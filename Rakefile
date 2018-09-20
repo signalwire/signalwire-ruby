@@ -12,12 +12,12 @@ end
 require 'rake'
 require 'juwelier'
 Juwelier::Tasks.new do |gem|
-  gem.name = 'signalwire-client'
-  gem.homepage = 'http://github.com/signalwire/signalwire-client-ruby'
+  gem.name = 'signalwire-ruby'
+  gem.homepage = 'http://github.com/signalwire/signalwire-ruby'
   gem.license = 'MIT'
   gem.summary = %(Ruby client for Signalwire)
-  gem.email = 'luca@signalwire.com'
-  gem.authors = ['Luca Pradovera']
+  gem.email = 'open.source@signalwire.com'
+  gem.authors = ['SignalWire Team']
 
   # dependencies defined in Gemfile
 end
