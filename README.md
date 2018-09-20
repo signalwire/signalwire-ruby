@@ -6,7 +6,7 @@ It allows you to create calls, send messages, and generate LAML responses.
 
 ## Installation
 
-Add `gem 'signalwire-client'` to your `Gemfile`, or simply `gem install signalwire-client`.
+Add `gem 'signalwire-ruby'` to your `Gemfile`, or simply `gem install signalwire-ruby`.
 
 ## SDK Usage
 
