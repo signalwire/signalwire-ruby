@@ -12,7 +12,7 @@ end
 require 'rake'
 require 'juwelier'
 Juwelier::Tasks.new do |gem|
-  gem.name = 'signalwire-ruby'
+  gem.name = 'signalwire'
   gem.homepage = 'http://github.com/signalwire/signalwire-ruby'
   gem.license = 'MIT'
   gem.summary = %(Ruby client for Signalwire)
