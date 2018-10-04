@@ -59,7 +59,13 @@ puts response.to_s
 </Response>
 ```
 
-== Contributing to signalwire-client-ruby
+## Tests
+
+A `Dockerfile` is provided for your testing convenience.
+
+Run `docker run -it $(docker build -q .)` to execute the specs, or `docker run -it $(docker build -q .) sh` to get a shell.
+
+## Contributing to signalwire-client-ruby
 
 * Check out the latest master to make sure the feature hasn't been implemented or the bug hasn't been fixed yet.
 * Check out the issue tracker to make sure someone already hasn't requested it and/or contributed it.
@@ -69,7 +75,7 @@ puts response.to_s
 * Make sure to add tests for it. This is important so I don't break it in a future version unintentionally.
 * Please try not to mess with the Rakefile, version, or history. If you want to have your own version, or is otherwise necessary, that is fine, but please isolate to its own commit so I can cherry-pick around it.
 
-== Copyright
+## Copyright
 
 Copyright (c) 2018 SignalWire Inc. See LICENSE.txt for
 further details.

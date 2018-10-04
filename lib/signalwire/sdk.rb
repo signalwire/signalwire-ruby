@@ -6,6 +6,7 @@ require 'signalwire/sdk/configuration'
 require 'signalwire/sdk/twilio_set_host'
 require 'signalwire/sdk/domain'
 require 'signalwire/sdk/voice_response'
+require 'signalwire/sdk/messaging_response'
 require 'signalwire/rest/client'
 
 module Signalwire
