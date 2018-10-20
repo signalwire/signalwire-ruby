@@ -10,7 +10,7 @@ Add `gem 'signalwire'` to your `Gemfile`, or simply `gem install signalwire`.
 
 ## SDK Usage
 
-Configure your signalwire subdomain, either by setting the environment variable `SIGNALWIRE_API_HOSTNAME=your_subdomain.signalwire.com` or within an
+Configure your signalwire subdomain, either by setting the environment variable `SIGNALWIRE_SPACE_URL=your_subdomain.signalwire.com` or within an
 initializer:
 
 ```ruby
@@ -23,9 +23,22 @@ end
 
 Then, setup a client to make requests, your `PROJECT_KEY` and `TOKEN` can be found within your Signalwire account, under Settings -> API Credentials
 
+### Making a call
+
 ```ruby
 @client = Signalwire::REST::Client.new PROJECT_KEY, TOKEN
 
+@call = @client.calls.create(
+  from: '+15551234567',
+  to: '+15557654321',
+  url: "https://cdn.signalwire.com/default-music/playlist.xml",
+  method: "GET"
+)
+```
+
+### Sending a text message
+
+```ruby
 @message = @client.messages.create(
   from: '+15551234567',
   to: '+15557654321',
@@ -33,7 +46,7 @@ Then, setup a client to make requests, your `PROJECT_KEY` and `TOKEN` can be fou
 )
 ```
 
-### Generating a LAML response
+## Generating a LAML response
 
 ```
 require 'signalwire/sdk'

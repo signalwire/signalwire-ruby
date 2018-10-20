@@ -20,7 +20,7 @@ RSpec.describe Signalwire::Sdk do
 
       expect do
         Twilio::REST::Client.new.api
-      end.to raise_exception ArgumentError, /Signalwire API Hostname is not configured/
+      end.to raise_exception ArgumentError, /Signalwire Space URL is not configured/
     end
   end
 end
