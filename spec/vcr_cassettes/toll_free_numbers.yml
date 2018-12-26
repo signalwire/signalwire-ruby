@@ -1,0 +1,80 @@
+---
+http_interactions:
+- request:
+    method: get
+    uri: https://lpradovera.signalwire.com/api/laml/2010-04-01/Accounts/29bba2d4-ddf1-4569-8b4a-5914440a5e13/AvailablePhoneNumbers/US/TollFree.json?AreaCode=310
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - twilio-ruby/5.18.0 (ruby/x86_64-darwin17 2.5.0-p0)
+      Accept-Charset:
+      - utf-8
+      Accept:
+      - application/json
+      Authorization:
+      - Basic MjliYmEyZDQtZGRmMS00NTY5LThiNGEtNTkxNDQ0MGE1ZTEzOlBUMjNkM2NjZjUxOWQzNDdlYjA0OTJjNDhlZWM3ZTFmMmRiY2ZkZWJhN2Q3YjEzZTY4
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Wed, 26 Dec 2018 16:56:45 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Transfer-Encoding:
+      - chunked
+      Connection:
+      - keep-alive
+      X-Ratelimit-Limit:
+      - '5000'
+      X-Ratelimit-Remaining:
+      - '4995'
+      X-Ratelimit-Reset:
+      - '1545843600'
+      Etag:
+      - W/"e813af3e1604ca52033e4966e3b9287b"
+      Cache-Control:
+      - max-age=0, private, must-revalidate
+      X-Request-Id:
+      - be18c737-7f67-494b-8964-503602b1fdee
+      X-Runtime:
+      - '0.504828'
+      Strict-Transport-Security:
+      - max-age=15768000; includeSubDomains
+      Content-Security-Policy:
+      - default-src * blob:; connect-src 'self' 'unsafe-inline' wss://*.signalwire.com
+        https://cdn.signalwire.com https://signalwire.s3-us-west-2.amazonaws.com https://api.stripe.com
+        https://www.google-analytics.com https://app.termly.io https://developer.livehelpnow.net
+        wss://app.livehelpnow.net; frame-src 'self' https://www.youtube.com https://youtube.com
+        https://cdn.signalwire.com https://js.stripe.com https://app.termly.io; child-src
+        'self' 'unsafe-inline' https://cdn.signalwire.com https://js.stripe.com blob:;
+        style-src 'self' 'unsafe-inline' https://cdn.signalwire.com https://fonts.gstatic.com
+        https://fonts.googleapis.com https://developer.livehelpnow.net; worker-src
+        'self' 'unsafe-inline' https://cdn.signalwire.com https://js.stripe.com blob:;
+        script-src 'self' 'unsafe-inline' https://cdn.signalwire.com https://www.google-analytics.com
+        https://www.googletagmanager.com https://js.stripe.com https://connect.facebook.net
+        https://app.termly.io https://developer.livehelpnow.net; font-src 'self' 'unsafe-inline'
+        https://cdn.signalwire.com https://fonts.gstatic.com https://fonts.googleapis.com
+        https://cdn.livehelpnow.net;
+    body:
+      encoding: UTF-8
+      string: '{"uri":"/api/laml/2010-04-01/Accounts/29bba2d4-ddf1-4569-8b4a-5914440a5e13/AvailablePhoneNumbers/US/TollFree?AreaCode=310","available_phone_numbers":[{"friendly_name":"310-217-4822","phone_number":"+13102174822","lata":null,"rate_center":"CMTN
+        GRDN","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-349-3059","phone_number":"+13103493059","lata":null,"rate_center":"HAWTHORNE","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-349-3184","phone_number":"+13103493184","lata":null,"rate_center":"HAWTHORNE","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-349-3207","phone_number":"+13103493207","lata":null,"rate_center":"HAWTHORNE","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-349-3272","phone_number":"+13103493272","lata":null,"rate_center":"HAWTHORNE","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-349-3603","phone_number":"+13103493603","lata":null,"rate_center":"HAWTHORNE","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-349-3629","phone_number":"+13103493629","lata":null,"rate_center":"HAWTHORNE","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-349-3651","phone_number":"+13103493651","lata":null,"rate_center":"HAWTHORNE","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-349-3662","phone_number":"+13103493662","lata":null,"rate_center":"HAWTHORNE","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-349-3664","phone_number":"+13103493664","lata":null,"rate_center":"HAWTHORNE","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-349-3669","phone_number":"+13103493669","lata":null,"rate_center":"HAWTHORNE","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-349-3670","phone_number":"+13103493670","lata":null,"rate_center":"HAWTHORNE","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-349-3671","phone_number":"+13103493671","lata":null,"rate_center":"HAWTHORNE","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-349-3672","phone_number":"+13103493672","lata":null,"rate_center":"HAWTHORNE","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-349-3673","phone_number":"+13103493673","lata":null,"rate_center":"HAWTHORNE","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-349-3674","phone_number":"+13103493674","lata":null,"rate_center":"HAWTHORNE","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-349-3675","phone_number":"+13103493675","lata":null,"rate_center":"HAWTHORNE","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-349-3676","phone_number":"+13103493676","lata":null,"rate_center":"HAWTHORNE","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-349-3682","phone_number":"+13103493682","lata":null,"rate_center":"HAWTHORNE","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-349-3683","phone_number":"+13103493683","lata":null,"rate_center":"HAWTHORNE","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-349-3684","phone_number":"+13103493684","lata":null,"rate_center":"HAWTHORNE","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-349-3685","phone_number":"+13103493685","lata":null,"rate_center":"HAWTHORNE","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-349-3686","phone_number":"+13103493686","lata":null,"rate_center":"HAWTHORNE","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-349-3687","phone_number":"+13103493687","lata":null,"rate_center":"HAWTHORNE","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-356-0706","phone_number":"+13103560706","lata":null,"rate_center":"EL
+        SEGUNDO","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-356-0721","phone_number":"+13103560721","lata":null,"rate_center":"EL
+        SEGUNDO","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-356-0733","phone_number":"+13103560733","lata":null,"rate_center":"EL
+        SEGUNDO","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-356-0799","phone_number":"+13103560799","lata":null,"rate_center":"EL
+        SEGUNDO","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-356-0802","phone_number":"+13103560802","lata":null,"rate_center":"EL
+        SEGUNDO","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-356-0805","phone_number":"+13103560805","lata":null,"rate_center":"EL
+        SEGUNDO","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-356-0806","phone_number":"+13103560806","lata":null,"rate_center":"EL
+        SEGUNDO","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-356-0807","phone_number":"+13103560807","lata":null,"rate_center":"EL
+        SEGUNDO","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-359-0741","phone_number":"+13103590741","lata":null,"rate_center":"MALIBU","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-359-0835","phone_number":"+13103590835","lata":null,"rate_center":"MALIBU","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-359-1453","phone_number":"+13103591453","lata":null,"rate_center":"MALIBU","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-359-1457","phone_number":"+13103591457","lata":null,"rate_center":"MALIBU","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-359-1498","phone_number":"+13103591498","lata":null,"rate_center":"MALIBU","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-359-1532","phone_number":"+13103591532","lata":null,"rate_center":"MALIBU","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-359-1542","phone_number":"+13103591542","lata":null,"rate_center":"MALIBU","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-359-1543","phone_number":"+13103591543","lata":null,"rate_center":"MALIBU","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-359-1546","phone_number":"+13103591546","lata":null,"rate_center":"MALIBU","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-359-1548","phone_number":"+13103591548","lata":null,"rate_center":"MALIBU","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-359-1550","phone_number":"+13103591550","lata":null,"rate_center":"MALIBU","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-359-1553","phone_number":"+13103591553","lata":null,"rate_center":"MALIBU","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-359-1554","phone_number":"+13103591554","lata":null,"rate_center":"MALIBU","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-359-1557","phone_number":"+13103591557","lata":null,"rate_center":"MALIBU","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-359-1558","phone_number":"+13103591558","lata":null,"rate_center":"MALIBU","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-359-1559","phone_number":"+13103591559","lata":null,"rate_center":"MALIBU","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-359-1560","phone_number":"+13103591560","lata":null,"rate_center":"MALIBU","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false},{"friendly_name":"310-359-1561","phone_number":"+13103591561","lata":null,"rate_center":"MALIBU","latitude":null,"longitude":null,"region":"CA","postal_code":null,"iso_country":"US","capabilities":{"voice":true,"SMS":true,"MMS":true},"beta":false}]}'
+    http_version: 
+  recorded_at: Wed, 26 Dec 2018 16:56:46 GMT
+recorded_with: VCR 4.0.0
