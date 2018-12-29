@@ -1,0 +1,73 @@
+---
+http_interactions:
+- request:
+    method: get
+    uri: https://lpradovera.signalwire.com/api/laml/2010-04-01/Accounts/29bba2d4-ddf1-4569-8b4a-5914440a5e13/Applications.json
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - twilio-ruby/5.18.0 (ruby/x86_64-darwin17 2.5.0-p0)
+      Accept-Charset:
+      - utf-8
+      Accept:
+      - application/json
+      Authorization:
+      - Basic MjliYmEyZDQtZGRmMS00NTY5LThiNGEtNTkxNDQ0MGE1ZTEzOlBUMjNkM2NjZjUxOWQzNDdlYjA0OTJjNDhlZWM3ZTFmMmRiY2ZkZWJhN2Q3YjEzZTY4
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Server:
+      - nginx
+      Date:
+      - Wed, 26 Dec 2018 16:51:53 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Transfer-Encoding:
+      - chunked
+      Connection:
+      - keep-alive
+      X-Ratelimit-Limit:
+      - '5000'
+      X-Ratelimit-Remaining:
+      - '4998'
+      X-Ratelimit-Reset:
+      - '1545843600'
+      Etag:
+      - W/"c38d7ad358a790cebf78625383b05a41"
+      Cache-Control:
+      - max-age=0, private, must-revalidate
+      X-Request-Id:
+      - 7508ee70-0a58-4365-9f7e-ecf2b9383d5a
+      X-Runtime:
+      - '0.040712'
+      Strict-Transport-Security:
+      - max-age=15768000; includeSubDomains
+      Content-Security-Policy:
+      - default-src * blob:; connect-src 'self' 'unsafe-inline' wss://*.signalwire.com
+        https://cdn.signalwire.com https://signalwire.s3-us-west-2.amazonaws.com https://api.stripe.com
+        https://www.google-analytics.com https://app.termly.io https://developer.livehelpnow.net
+        wss://app.livehelpnow.net; frame-src 'self' https://www.youtube.com https://youtube.com
+        https://cdn.signalwire.com https://js.stripe.com https://app.termly.io; child-src
+        'self' 'unsafe-inline' https://cdn.signalwire.com https://js.stripe.com blob:;
+        style-src 'self' 'unsafe-inline' https://cdn.signalwire.com https://fonts.gstatic.com
+        https://fonts.googleapis.com https://developer.livehelpnow.net; worker-src
+        'self' 'unsafe-inline' https://cdn.signalwire.com https://js.stripe.com blob:;
+        script-src 'self' 'unsafe-inline' https://cdn.signalwire.com https://www.google-analytics.com
+        https://www.googletagmanager.com https://js.stripe.com https://connect.facebook.net
+        https://app.termly.io https://developer.livehelpnow.net; font-src 'self' 'unsafe-inline'
+        https://cdn.signalwire.com https://fonts.gstatic.com https://fonts.googleapis.com
+        https://cdn.livehelpnow.net;
+    body:
+      encoding: UTF-8
+      string: '{"uri":"/api/laml/2010-04-01/Accounts/29bba2d4-ddf1-4569-8b4a-5914440a5e13/Applications?Page=0\u0026PageSize=50","first_page_uri":"/api/laml/2010-04-01/Accounts/29bba2d4-ddf1-4569-8b4a-5914440a5e13/Applications?Page=0\u0026PageSize=50","next_page_uri":null,"previous_page_uri":null,"page":0,"page_size":50,"applications":[{"sid":"34f49a97-a863-4a11-8fef-bc399c6f0928","date_created":"Wed,
+        19 Dec 2018 14:23:36 +0000","date_updated":"Wed, 19 Dec 2018 15:45:52 +0000","account_sid":"29bba2d4-ddf1-4569-8b4a-5914440a5e13","friendly_name":"Test
+        App","voice_url":"https://lpradovera.signalwire.com/laml-bins/edfb6a6e-a60a-4a56-9a9c-04babd511882","voice_method":"GET","voice_fallback_url":"","voice_fallback_method":"POST","status_callback":"","status_callback_method":"POST","voice_caller_id_lookup":null,"sms_url":"","sms_method":"POST","sms_fallback_url":"","sms_fallback_method":"POST","sms_status_callback":"","sms_status_callback_method":"POST","api_version":"2010-04-01","uri":"/api/laml/2010-04-01/Accounts/29bba2d4-ddf1-4569-8b4a-5914440a5e13/Calls/34f49a97-a863-4a11-8fef-bc399c6f0928"}]}'
+    http_version: 
+  recorded_at: Wed, 26 Dec 2018 16:51:53 GMT
+recorded_with: VCR 4.0.0

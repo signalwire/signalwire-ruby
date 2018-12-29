@@ -17,4 +17,5 @@ group :development do
   gem 'bundler-audit', require: false
   gem 'guard-rspec'
   gem 'webmock'
+  gem 'vcr'
 end
