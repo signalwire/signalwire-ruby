@@ -4,6 +4,7 @@ require 'twilio-ruby'
 
 require 'signalwire/sdk/configuration'
 require 'signalwire/sdk/twilio_set_host'
+require 'signalwire/sdk/twilio_set_fax'
 require 'signalwire/sdk/domain'
 require 'signalwire/sdk/voice_response'
 require 'signalwire/sdk/fax_response'

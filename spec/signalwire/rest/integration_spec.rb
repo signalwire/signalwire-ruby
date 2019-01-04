@@ -55,4 +55,48 @@ RSpec.describe Signalwire::REST::Client do
       expect(recordings.first.recording_sid).to eq 'e4c78e17-c0e2-441d-b5dd-39a6dad496f8'
     end
   end
+
+  context 'faxes' do
+    it 'sends a fax' do
+      VCR.use_cassette('send_fax') do
+        fax = @client.fax.faxes
+        .create(
+          from: '+15556677888',
+          to: '+15556677999',
+          media_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
+        )
+        expect(fax.sid).to eq '831455c6-574e-4d8b-b6ee-2418140bf4cd'
+      end
+    end
+
+    it 'lists faxes' do
+      VCR.use_cassette('list_faxes') do
+        faxes = @client.fax.faxes.list
+        expect(faxes.first.sid).to eq '831455c6-574e-4d8b-b6ee-2418140bf4cd'
+      end
+    end
+
+    it 'gets a fax' do
+      VCR.use_cassette('get_fax') do
+        fax = @client.fax.faxes('831455c6-574e-4d8b-b6ee-2418140bf4cd').fetch
+        expect(fax.to).to eq '+14043287360'
+        expect(fax.media_url).to eq 'https://s3.us-east-2.amazonaws.com/signalwire-assets/faxes/20190104162834-831455c6-574e-4d8b-b6ee-2418140bf4cd.tiff'
+      end
+    end
+
+    it 'gets a faxes media' do
+      VCR.use_cassette('get_fax_media_list') do
+        fax = @client.fax.faxes('831455c6-574e-4d8b-b6ee-2418140bf4cd').fetch
+        expect(fax.media.list.first.sid).to eq 'aff0684c-3445-49bc-802b-3a0a488139f5'
+      end
+    end
+
+    it 'gets a media instance' do
+      VCR.use_cassette('get_fax_media_instance') do
+        fax_media = @client.fax.faxes('831455c6-574e-4d8b-b6ee-2418140bf4cd').media('aff0684c-3445-49bc-802b-3a0a488139f5').fetch
+        expect(fax_media.content_type).to eq 'image/tiff'
+        expect(fax_media.url).to eq '/api/laml/2010-04-01/Accounts/xyz123-xyz123-xyz123/Faxes/831455c6-574e-4d8b-b6ee-2418140bf4cd/Media/aff0684c-3445-49bc-802b-3a0a488139f5.json'
+      end
+    end
+  end
 end
