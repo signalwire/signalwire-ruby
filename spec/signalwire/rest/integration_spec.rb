@@ -79,7 +79,7 @@ RSpec.describe Signalwire::REST::Client do
     it 'gets a fax' do
       VCR.use_cassette('get_fax') do
         fax = @client.fax.faxes('831455c6-574e-4d8b-b6ee-2418140bf4cd').fetch
-        expect(fax.to).to eq '+14043287360'
+        expect(fax.to).to eq '+15556677999'
         expect(fax.media_url).to eq 'https://s3.us-east-2.amazonaws.com/signalwire-assets/faxes/20190104162834-831455c6-574e-4d8b-b6ee-2418140bf4cd.tiff'
       end
     end

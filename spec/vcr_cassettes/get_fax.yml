@@ -7,14 +7,10 @@ http_interactions:
       encoding: US-ASCII
       string: ''
     headers:
-      User-Agent:
-      - twilio-ruby/5.18.0 (ruby/x86_64-darwin17 2.5.0-p0)
       Accept-Charset:
       - utf-8
       Accept:
       - application/json
-      Authorization:
-      - Basic MjliYmEyZDQtZGRmMS00NTY5LThiNGEtNTkxNDQ0MGE1ZTEzOlBUMjNkM2NjZjUxOWQzNDdlYjA0OTJjNDhlZWM3ZTFmMmRiY2ZkZWJhN2Q3YjEzZTY4
       Accept-Encoding:
       - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
   response:
@@ -23,7 +19,7 @@ http_interactions:
       message: OK
     body:
       encoding: UTF-8
-      string: '{"account_sid":"xyz123-xyz123-xyz123","api_version":"v1","date_created":"2019-01-04T16:28:33Z","date_updated":"2019-01-04T16:29:20Z","direction":"outbound","from":"+14043287382","media_url":"https://s3.us-east-2.amazonaws.com/signalwire-assets/faxes/20190104162834-831455c6-574e-4d8b-b6ee-2418140bf4cd.tiff","media_sid":"aff0684c-3445-49bc-802b-3a0a488139f5","num_pages":1,"price":0.0105,"price_unit":"USD","quality":"fine","sid":"831455c6-574e-4d8b-b6ee-2418140bf4cd","status":"delivered","to":"+14043287360","duration":41,"links":{"media":"/api/laml/2010-04-01/Accounts/xyz123-xyz123-xyz123/Faxes/831455c6-574e-4d8b-b6ee-2418140bf4cd/Media"},"url":"/api/laml/2010-04-01/Accounts/xyz123-xyz123-xyz123/Faxes/831455c6-574e-4d8b-b6ee-2418140bf4cd"}'
+      string: '{"account_sid":"xyz123-xyz123-xyz123","api_version":"v1","date_created":"2019-01-04T16:28:33Z","date_updated":"2019-01-04T16:29:20Z","direction":"outbound","from":"+14043287382","media_url":"https://s3.us-east-2.amazonaws.com/signalwire-assets/faxes/20190104162834-831455c6-574e-4d8b-b6ee-2418140bf4cd.tiff","media_sid":"aff0684c-3445-49bc-802b-3a0a488139f5","num_pages":1,"price":0.0105,"price_unit":"USD","quality":"fine","sid":"831455c6-574e-4d8b-b6ee-2418140bf4cd","status":"delivered","to":"+15556677999","duration":41,"links":{"media":"/api/laml/2010-04-01/Accounts/xyz123-xyz123-xyz123/Faxes/831455c6-574e-4d8b-b6ee-2418140bf4cd/Media"},"url":"/api/laml/2010-04-01/Accounts/xyz123-xyz123-xyz123/Faxes/831455c6-574e-4d8b-b6ee-2418140bf4cd"}'
     http_version: 
   recorded_at: Fri, 04 Jan 2019 16:33:25 GMT
 recorded_with: VCR 4.0.0

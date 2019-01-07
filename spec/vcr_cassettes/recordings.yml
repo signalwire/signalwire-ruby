@@ -7,14 +7,10 @@ http_interactions:
       encoding: US-ASCII
       string: ''
     headers:
-      User-Agent:
-      - twilio-ruby/5.18.0 (ruby/x86_64-darwin17 2.5.0-p0)
       Accept-Charset:
       - utf-8
       Accept:
       - application/json
-      Authorization:
-      - Basic MjliYmEyZDQtZGRmMS00NTY5LThiNGEtNTkxNDQ0MGE1ZTEzOlBUMjNkM2NjZjUxOWQzNDdlYjA0OTJjNDhlZWM3ZTFmMmRiY2ZkZWJhN2Q3YjEzZTY4
       Accept-Encoding:
       - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
   response:
