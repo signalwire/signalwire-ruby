@@ -4,6 +4,8 @@ This gem provides a client for the Signalwire LAML and REST services.
 
 It allows you to create calls, send messages, and generate LAML responses.
 
+[![Gem Version](https://badge.fury.io/rb/signalwire.svg)](https://badge.fury.io/rb/signalwire)
+
 ## Installation
 
 Add `gem 'signalwire'` to your `Gemfile`, or simply `gem install signalwire`.

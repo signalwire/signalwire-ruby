@@ -11,6 +11,7 @@ RSpec.describe Signalwire::Sdk do
 
       twilio_client = Twilio::REST::Client.new
       expect(twilio_client.api.hostname).to eq('demo.signalwire.com')
+      expect(twilio_client.fax.hostname).to eq('demo.signalwire.com')
     end
 
     it 'requires the hostname configuration to be set' do
@@ -20,7 +21,7 @@ RSpec.describe Signalwire::Sdk do
 
       expect do
         Twilio::REST::Client.new.api
-      end.to raise_exception ArgumentError, /Signalwire Space URL is not configured/
+      end.to raise_exception ArgumentError, /SignalWire Space URL is not configured/
     end
   end
 end

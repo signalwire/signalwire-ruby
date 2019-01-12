@@ -1,0 +1,29 @@
+---
+http_interactions:
+- request:
+    method: get
+    uri: https://testing.signalwire.com/api/laml/2010-04-01/Accounts/xyz123-xyz123-xyz123/Applications.json
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - twilio-ruby/5.18.0 (ruby/x86_64-darwin17 2.5.0-p0)
+      Accept-Charset:
+      - utf-8
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 200
+      message: OK
+    body:
+      encoding: UTF-8
+      string: '{"uri":"/api/laml/2010-04-01/Accounts/xyz123-xyz123-xyz123/Applications?Page=0\u0026PageSize=50","first_page_uri":"/api/laml/2010-04-01/Accounts/xyz123-xyz123-xyz123/Applications?Page=0\u0026PageSize=50","next_page_uri":null,"previous_page_uri":null,"page":0,"page_size":50,"applications":[{"sid":"34f49a97-a863-4a11-8fef-bc399c6f0928","date_created":"Wed,
+        19 Dec 2018 14:23:36 +0000","date_updated":"Wed, 19 Dec 2018 15:45:52 +0000","account_sid":"xyz123-xyz123-xyz123","friendly_name":"Test
+        App","voice_url":"https://testing.signalwire.com/laml-bins/edfb6a6e-a60a-4a56-9a9c-04babd511882","voice_method":"GET","voice_fallback_url":"","voice_fallback_method":"POST","status_callback":"","status_callback_method":"POST","voice_caller_id_lookup":null,"sms_url":"","sms_method":"POST","sms_fallback_url":"","sms_fallback_method":"POST","sms_status_callback":"","sms_status_callback_method":"POST","api_version":"2010-04-01","uri":"/api/laml/2010-04-01/Accounts/xyz123-xyz123-xyz123/Calls/34f49a97-a863-4a11-8fef-bc399c6f0928"}]}'
+    http_version: 
+  recorded_at: Wed, 26 Dec 2018 16:51:53 GMT
+recorded_with: VCR 4.0.0

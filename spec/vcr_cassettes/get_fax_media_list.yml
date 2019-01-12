@@ -1,0 +1,47 @@
+---
+http_interactions:
+- request:
+    method: get
+    uri: https://testing.signalwire.com/api/laml/2010-04-01/Accounts/xyz123-xyz123-xyz123/Faxes/831455c6-574e-4d8b-b6ee-2418140bf4cd.json
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      Accept-Charset:
+      - utf-8
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 200
+      message: OK
+    body:
+      encoding: UTF-8
+      string: '{"account_sid":"xyz123-xyz123-xyz123","api_version":"v1","date_created":"2019-01-04T16:28:33Z","date_updated":"2019-01-04T16:29:20Z","direction":"outbound","from":"+14043287382","media_url":"https://s3.us-east-2.amazonaws.com/signalwire-assets/faxes/20190104162834-831455c6-574e-4d8b-b6ee-2418140bf4cd.tiff","media_sid":"aff0684c-3445-49bc-802b-3a0a488139f5","num_pages":1,"price":0.0105,"price_unit":"USD","quality":"fine","sid":"831455c6-574e-4d8b-b6ee-2418140bf4cd","status":"delivered","to":"+14043287360","duration":41,"links":{"media":"/api/laml/2010-04-01/Accounts/xyz123-xyz123-xyz123/Faxes/831455c6-574e-4d8b-b6ee-2418140bf4cd/Media"},"url":"/api/laml/2010-04-01/Accounts/xyz123-xyz123-xyz123/Faxes/831455c6-574e-4d8b-b6ee-2418140bf4cd"}'
+    http_version: 
+  recorded_at: Fri, 04 Jan 2019 16:52:22 GMT
+- request:
+    method: get
+    uri: https://testing.signalwire.com/api/laml/2010-04-01/Accounts/xyz123-xyz123-xyz123/Faxes/831455c6-574e-4d8b-b6ee-2418140bf4cd/Media
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      Accept-Charset:
+      - utf-8
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 200
+      message: OK
+    body:
+      encoding: UTF-8
+      string: '{"uri":"/api/laml/2010-04-01/Accounts/xyz123-xyz123-xyz123/Faxes/831455c6-574e-4d8b-b6ee-2418140bf4cd/Media?Page=0\u0026PageSize=50","first_page_uri":"/api/laml/2010-04-01/Accounts/xyz123-xyz123-xyz123/Faxes/831455c6-574e-4d8b-b6ee-2418140bf4cd/Media?Page=0\u0026PageSize=50","next_page_uri":null,"previous_page_uri":null,"page":0,"page_size":50,"fax_media":[{"sid":"aff0684c-3445-49bc-802b-3a0a488139f5","date_created":"2019-01-04T16:28:33Z","date_updated":"2019-01-04T16:29:20Z","account_sid":"xyz123-xyz123-xyz123","fax_sid":"831455c6-574e-4d8b-b6ee-2418140bf4cd","content_type":"image/tiff","uri":"/api/laml/2010-04-01/Accounts/xyz123-xyz123-xyz123/Faxes/831455c6-574e-4d8b-b6ee-2418140bf4cd/Media/aff0684c-3445-49bc-802b-3a0a488139f5.json"}]}'
+    http_version: 
+  recorded_at: Fri, 04 Jan 2019 16:52:23 GMT
+recorded_with: VCR 4.0.0

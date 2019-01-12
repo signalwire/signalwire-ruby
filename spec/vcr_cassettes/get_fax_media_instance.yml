@@ -1,0 +1,27 @@
+---
+http_interactions:
+- request:
+    method: get
+    uri: https://testing.signalwire.com/api/laml/2010-04-01/Accounts/xyz123-xyz123-xyz123/Faxes/831455c6-574e-4d8b-b6ee-2418140bf4cd/Media/aff0684c-3445-49bc-802b-3a0a488139f5
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      User-Agent:
+      - twilio-ruby/5.18.0 (ruby/x86_64-darwin17 2.5.0-p0)
+      Accept-Charset:
+      - utf-8
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 200
+      message: OK
+    body:
+      encoding: UTF-8
+      string: '{"sid":"aff0684c-3445-49bc-802b-3a0a488139f5","date_created":"2019-01-04T16:28:33Z","date_updated":"2019-01-04T16:29:20Z","account_sid":"xyz123-xyz123-xyz123","fax_sid":"831455c6-574e-4d8b-b6ee-2418140bf4cd","content_type":"image/tiff","url":"/api/laml/2010-04-01/Accounts/xyz123-xyz123-xyz123/Faxes/831455c6-574e-4d8b-b6ee-2418140bf4cd/Media/aff0684c-3445-49bc-802b-3a0a488139f5.json"}'
+    http_version: 
+  recorded_at: Fri, 04 Jan 2019 16:55:37 GMT
+recorded_with: VCR 4.0.0
