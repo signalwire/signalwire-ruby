@@ -11,7 +11,7 @@ Gem::Specification.new do |s|
   s.required_rubygems_version = Gem::Requirement.new(">= 0".freeze) if s.respond_to? :required_rubygems_version=
   s.require_paths = ["lib".freeze]
   s.authors = ["SignalWire Team".freeze]
-  s.date = "2019-01-13"
+  s.date = "2019-01-15"
   s.email = "open.source@signalwire.com".freeze
   s.extra_rdoc_files = [
     "LICENSE.txt",
