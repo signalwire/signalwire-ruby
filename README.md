@@ -6,6 +6,8 @@ It supports all of the features in the SignalWire REST API, and generation of LA
 
 [![Gem Version](https://badge.fury.io/rb/signalwire.svg)](https://badge.fury.io/rb/signalwire)
 
+![Drone CI](https://ci.signalwire.com/api/badges/signalwire/signalwire-ruby/status.svg)
+
 ## Installation
 
 Add `gem 'signalwire'` to your `Gemfile`, or simply `gem install signalwire`.
