@@ -30,7 +30,7 @@ Then, setup a client to make requests, your `PROJECT_KEY` and `TOKEN` can be fou
 ### Making a call
 
 ```ruby
-@client = Signalwire::REST::Client.new PROJECT_KEY, TOKEN, "your_subdomain.signalwire.com"
+@client = Signalwire::REST::Client.new PROJECT_KEY, TOKEN, signalwire_space_url: "your_subdomain.signalwire.com"
 
 @call = @client.calls.create(
   from: '+15551234567',

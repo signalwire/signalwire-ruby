@@ -2,10 +2,10 @@
 
 module Signalwire::REST
   class Client < Twilio::REST::Client
-    def initialize(account, token, space = nil)
-      unless space.nil?
+    def initialize(account, token, signalwire_space_url: nil)
+      unless signalwire_space_url.nil?
         Signalwire::Sdk.configure do |config|
-          config.hostname = space
+          config.hostname = signalwire_space_url
         end
       end
 
