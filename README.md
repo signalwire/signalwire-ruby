@@ -14,8 +14,8 @@ Add `gem 'signalwire'` to your `Gemfile`, or simply `gem install signalwire`.
 
 ## SDK Usage
 
-Configure your signalwire subdomain, either by setting the environment variable `SIGNALWIRE_SPACE_URL=your_subdomain.signalwire.com` or within an
-initializer:
+Configure your signalwire subdomain, either by setting the environment variables `SIGNALWIRE_SPACE_URL` or `SIGNALWIRE_API_HOSTNAME` to `your_subdomain.signalwire.com` within an
+initializer, or simply passing in the parameter to the constructor as seen below in the "Making a call" example:
 
 ```ruby
 require 'signalwire/sdk'
@@ -30,7 +30,7 @@ Then, setup a client to make requests, your `PROJECT_KEY` and `TOKEN` can be fou
 ### Making a call
 
 ```ruby
-@client = Signalwire::REST::Client.new PROJECT_KEY, TOKEN
+@client = Signalwire::REST::Client.new PROJECT_KEY, TOKEN, signalwire_space_url: "your_subdomain.signalwire.com"
 
 @call = @client.calls.create(
   from: '+15551234567',
