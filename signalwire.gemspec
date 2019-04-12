@@ -64,7 +64,7 @@ Gem::Specification.new do |s|
   ]
   s.homepage = "http://github.com/signalwire/signalwire-ruby".freeze
   s.licenses = ["MIT".freeze]
-  s.rubygems_version = "3.0.3".freeze
+  s.rubygems_version = "2.7.3".freeze
   s.summary = "Ruby client for Signalwire".freeze
 
   if s.respond_to? :specification_version then
