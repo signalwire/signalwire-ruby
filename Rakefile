@@ -10,23 +10,6 @@ rescue Bundler::BundlerError => e
   exit e.status_code
 end
 require 'rake'
-require 'juwelier'
-Juwelier::Tasks.new do |gem|
-  gem.name = 'signalwire'
-  gem.homepage = 'http://github.com/signalwire/signalwire-ruby'
-  gem.license = 'MIT'
-  gem.summary = %(Ruby client for Signalwire)
-  gem.email = 'open.source@signalwire.com'
-  gem.authors = ['SignalWire Team']
-
-  # dependencies defined in Gemfile
-end
-Juwelier::RubygemsDotOrgTasks.new
-require 'rspec/core'
-require 'rspec/core/rake_task'
-RSpec::Core::RakeTask.new(:spec) do |spec|
-  spec.pattern = FileList['spec/**/*_spec.rb']
-end
 
 desc 'Code coverage detail'
 task :simplecov do
