@@ -6,20 +6,7 @@ module Signalwire::Blade::Util
 # pre-defined with a default object, allowing default entries
 # to be created.
 class FixedQueue
-
-  # We stash the max number of entries allowed in the entries array
-  @capacity
-  attr_reader :capacity
-
-  # Our entries array, where the things live that get added to this queue
-  @entries
-
-  # Our current virtual size
-  @size
-  attr_reader :size
-
-  # Our default entry which we clone into places as we grow
-  @default_entry
+  attr_reader :capacity, :size
 
   # Initializes the rolling queue with the max number of entries and the
   # default entry to be placed into each slot.
