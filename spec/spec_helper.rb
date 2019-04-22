@@ -5,7 +5,7 @@ SimpleCov.start
 
 %w[
   bundler/setup
-  signalwire/sdk
+  signalwire
   webmock/rspec
   vcr
 ].each { |f| require f }
