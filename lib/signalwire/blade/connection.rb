@@ -13,11 +13,12 @@ module Signalwire::Blade
 
     DEFAULT_PORTS = {'ws' => 80, 'wss' => 443}
 
-    def initialize(session, address = EnvVars::BLADE_ADDRESS)
+    def initialize(session, address = nil)
+
       @session = session
       @teardown = false
       @executor = Concurrent::ThreadPoolExecutor.new(min_threads: 1, max_threads: 10, max_queue: 10, fallback_policy: :caller_runs)
-      @url = address
+      @url = address || EnvVars::BLADE_ADDRESS
 
       # Instantiate our calculators
       @send_rate = Util::Throughput.new

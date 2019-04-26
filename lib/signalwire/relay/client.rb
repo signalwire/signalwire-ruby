@@ -42,7 +42,7 @@ module Signalwire::Relay
     private
 
     def setup_session
-      @session = Signalwire::Blade::Session.new
+      @session = Signalwire::Blade::Session.new(project: @project, token: @token, blade_address: @space_url)
 
       @session.once :connected do |event|
         trigger_handler :ready, event

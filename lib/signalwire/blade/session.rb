@@ -9,7 +9,9 @@ module Signalwire::Blade
       @session_id = nil
       @node_id = nil
       @connected = false
-      @connection = Connection.new(self)
+      
+      blade_address = @options.delete(:blade_address)
+      @connection = Connection.new(self, blade_address)
       @node_store = NodeStore.new(self)
     end
 

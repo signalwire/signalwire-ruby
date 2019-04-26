@@ -10,6 +10,7 @@ describe Signalwire::Blade::Connection do
   before :each do
     stub_const('Signalwire::Blade::EnvVars::SIGNALWIRE_API_PROJECT', 'project')
     stub_const('Signalwire::Blade::EnvVars::SIGNALWIRE_API_TOKEN', 'token')
+    stub_const('Signalwire::Blade::EnvVars::BLADE_ADDRESS', 'my.signalwire.com')
     allow(subject).to receive(:connect).and_return(nil)
     allow(subject).to receive(:event_loop).and_return(nil)
     # allow(Signalwire::Blade::NodeStore).to receive(:new).and_return(mock_cache)
