@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-RSpec.describe Signalwire::REST::Client do
+RSpec.describe Signalwire::REST::Client, integration: true do
   before :all do
     Signalwire::Sdk.configure do |config|
       config.hostname = ENV.fetch('SIGNALWIRE_SPACE', 'testing.signalwire.com')
