@@ -16,11 +16,12 @@ module Signalwire::Blade
     end
 
     def start!
-      on :started do |event|
+      on :started do
+
         execute(connect_request) do |event|
           @session_id = event[:sessionid]
-          @node_id = event[:nodeid]
-          @node_store.populate_from_connect(event)
+          # @node_id = event[:nodeid]
+          # @node_store.populate_from_connect(event)
           @connected = true
           logger.info "Session connected with id: #{@session_id}"
 
@@ -28,9 +29,10 @@ module Signalwire::Blade
         end
       end
 
-      on :incomingcommand, method: 'blade.netcast' do |event|
-        @node_store.netcast_update(event.params)
-      end
+      # Ignore node store, it needs Blade changes
+      # on :incomingcommand, method: 'blade.netcast' do |event|
+      #   @node_store.netcast_update(event.params)
+      # end
 
       # if @options[:async]
       #   @connection.async.start
@@ -48,7 +50,7 @@ module Signalwire::Blade
     end
 
     def execute(command, &block)
-      once(:result, id: command.id, &block) if block_given?
+      register_tmp_handler(:result, id: command.id, &block) if block_given?
       @connection.transmit(command.to_json)
     end
 

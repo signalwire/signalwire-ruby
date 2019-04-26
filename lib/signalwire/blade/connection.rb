@@ -82,16 +82,20 @@ module Signalwire::Blade
       logger.debug "RECV: #{event.data}"
       report_rate(event.data, @recv_rate)
       json = JSON.parse(event.data, symbolize_names: true)
+      
       if json.has_key? :method
-        @session.trigger_handler( :incomingcommand, Blade::IncomingCommand.new(json[:id], json[:method], json[:params]) )
+        @session.trigger_handler( :incomingcommand, IncomingCommand.new(json[:id], json[:method], json[:params]) )
       elsif json.has_key? :result
-        @session.trigger_handler( :result, Blade::Result.new(json[:id], json[:result]) )
+        @session.trigger_handler( :result, Result.new(json[:id], json[:result]) )
 
       elsif json.has_key? :error
-        @session.trigger_handler( :error, Blade::Error.new(json[:id], json[:error]) )
+        @session.trigger_handler( :error, Error.new(json[:id], json[:error]) )
       else
         logger.error "Unknown message: #{event.data}"
       end
+    rescue => e
+      logger.error e.inspect
+      logger.error e.backtrace
     end
 
     private

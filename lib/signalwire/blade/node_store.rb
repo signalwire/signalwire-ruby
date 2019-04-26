@@ -27,17 +27,17 @@ module Signalwire::Blade
     def netcast_update(netcast)
       params = netcast[:params]
       case netcast[:command]
-      when Blade::Netcast::ROUTE_ADD then add_route(params)
-      when Blade::Netcast::ROUTE_REMOVE then remove_route(params)
+      when Netcast::ROUTE_ADD then add_route(params)
+      when Netcast::ROUTE_REMOVE then remove_route(params)
 
-      when Blade::Netcast::IDENTITY_ADD then add_identity(params)
-      when Blade::Netcast::IDENTITY_REMOVE then remove_identity(params)
+      when Netcast::IDENTITY_ADD then add_identity(params)
+      when Netcast::IDENTITY_REMOVE then remove_identity(params)
 
       # when Blade::Netcast::PROTOCOL_ADD then false # TODO:
       # when Blade::Netcast::PROTOCOL_REMOVE then false # TODO:
 
-      when Blade::Netcast::PROTOCOL_PROVIDER_ADD then add_protocol_provider(params)
-      when Blade::Netcast::PROTOCOL_PROVIDER_REMOVE then remove_protocol_provider(params)
+      when Netcast::PROTOCOL_PROVIDER_ADD then add_protocol_provider(params)
+      when Netcast::PROTOCOL_PROVIDER_REMOVE then remove_protocol_provider(params)
 
       # when Blade::Netcast::PROTOCOL_PROVIDER_DATA_UPDATE then false # TODO:
       # when Blade::Netcast::PROTOCOL_PROVIDER_RANK_UPDATE then false # TODO:
@@ -51,8 +51,8 @@ module Signalwire::Blade
       # when Blade::Netcast::SUBSCRIPTION_ADD then add_subscription(params)
       # when Blade::Netcast::SUBSCRIPTION_REMOVE then remove_subscription(params)
 
-      when Blade::Netcast::AUTHORITY_ADD then add_authority(params[:nodeid])
-      when Blade::Netcast::AUTHORITY_REMOVE then remove_authority(params[:nodeid])
+      when Netcast::AUTHORITY_ADD then add_authority(params[:nodeid])
+      when Netcast::AUTHORITY_REMOVE then remove_authority(params[:nodeid])
 
       # when Blade::Netcast::AUTHORIZATION_ADD then false # TODO:
       # when Blade::Netcast::AUTHORIZATION_REMOVE then false # TODO:
@@ -60,7 +60,7 @@ module Signalwire::Blade
       # when Blade::Netcast::ACCESS_ADD then false # TODO:
       # when Blade::Netcast::ACCESS_REMOVE then false # TODO:
       else
-        logger.error "Unknown netcast command: #{netcast_params[:command]}"
+        logger.error "Unknown netcast command: #{params[:command]}"
       end
 
       print_stats
