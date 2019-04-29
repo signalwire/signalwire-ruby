@@ -4,12 +4,14 @@ module Signalwire::Relay
     include ::Signalwire::Relay::EventHandler
     include ::Signalwire::Blade::Logging::HasLogger
 
-    attr_accessor :calls, :project, :space_url, :protocol
+    attr_accessor :calls, :project, :space_url, :protocol, :connected
     def initialize(project:, token:, signalwire_space_url: nil)
       @project = project
       @token = token
       @space_url = clean_up_space_url(signalwire_space_url)
       @calls = {}
+
+      @connected = false
 
       setup_session
       setup_handlers
@@ -46,18 +48,20 @@ module Signalwire::Relay
       @session = Signalwire::Blade::Session.new(project: @project, token: @token, blade_address: @space_url)
 
       @session.once :connected do |event|
-        trigger_handler :ready, event
+        trigger_handler :connecting, event
       end
     end
 
     def setup_handlers
-      on :ready do |event|
+      on :connecting do |event|
         logger.debug "Relay client connected"
         @session.execute(ProtocolSetupRequest.new) do |event|
           @protocol = event.result[:result][:protocol]
           logger.debug "Protocol set up as #{protocol}"
           @session.execute(SubscribeNotificationsRequest.new(protocol)) do |event|
             logger.debug "Subscribed to notifications for #{protocol}"
+            @connected = true
+            trigger_handler :ready, self
           end
         end
       end
