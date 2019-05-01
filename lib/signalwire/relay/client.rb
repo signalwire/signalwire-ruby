@@ -15,6 +15,7 @@ module Signalwire::Relay
 
       setup_session
       setup_handlers
+      setup_events
     end
 
     def clean_up_space_url(space_url)
@@ -71,6 +72,14 @@ module Signalwire::Relay
             @connected = true
             trigger_handler :ready, self
           end
+        end
+      end
+    end
+
+    def setup_events
+      @session.on :incomingcommand do |event|
+        if event.method == "blade.broadcast" && event.params['event'] == 'relay'
+          trigger_handler :event, event
         end
       end
     end
