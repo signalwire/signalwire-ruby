@@ -4,7 +4,7 @@ module Signalwire::Relay
     include ::Signalwire::Relay::EventHandler
     include ::Signalwire::Blade::Logging::HasLogger
 
-    attr_accessor :calls, :project, :space_url, :protocol, :connected
+    attr_accessor :calls, :project, :space_url, :protocol, :connected, :session
     def initialize(project:, token:, signalwire_space_url: nil)
       @project = project
       @token = token
@@ -40,6 +40,14 @@ module Signalwire::Relay
     def connect!
       logger.debug "Starting up Relay session"
       @session.start!
+    end
+
+    def disconnect!
+      @session.stop!
+    end
+
+    def execute(command, &block)
+      @session.execute(command, &block)
     end
 
     private

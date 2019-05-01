@@ -2,6 +2,7 @@
 require 'spec_helper'
 
 describe Signalwire::Relay::Client do
+  include_context :mock_connection
   subject { Signalwire::Relay::Client.new(project: 'myproject', token: 'mytoken', signalwire_space_url: 'myspace.signalwire.com') }
 
   it "has a calls accessor" do
@@ -15,6 +16,12 @@ describe Signalwire::Relay::Client do
 
     it "leaves a specified URL alone" do
       expect(subject.clean_up_space_url('wss://my.someurl.com:8888/path')).to eq 'wss://my.someurl.com:8888/path'
+    end
+  end
+
+  describe "#connect!" do
+    it "setup up the client" do
+      subject.connect!
     end
   end
 end
