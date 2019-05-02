@@ -93,8 +93,11 @@ module Signalwire::Relay
 
     def setup_events
       @session.on :incomingcommand do |event|
-        if event.method == "blade.broadcast" && event.params['event'] == 'relay'
-          trigger_handler :event, Signalwire::Relay::Event.from_blade(event)
+        logger.debug event.inspect
+        if event.method == "blade.broadcast" && event.params[:event] == 'relay'
+          relay = Signalwire::Relay::Event.from_blade(event)
+          logger.debug "Dispatching #{relay}"
+          trigger_handler :event, relay
         end
       end
     end

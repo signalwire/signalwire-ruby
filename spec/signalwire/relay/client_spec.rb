@@ -27,15 +27,17 @@ describe Signalwire::Relay::Client do
 
   describe "event handling" do
     it "triggers the :event handler on an :incomingcommand with the right payload" do
-      event = Signalwire::Blade::IncomingCommand.new(SecureRandom.uuid, 'blade.broadcast', {'event' => 'relay', 'foo' => 123})
+      event = Signalwire::Blade::IncomingCommand.new(SecureRandom.uuid, 'blade.broadcast', { event: 'relay', foo: 123 })
       trigger = false
 
       subject.on :event do |evt|
-        trigger = event.params['foo']
+        trigger = evt
       end
 
-      subject.session.trigger_handler :incomingcommand, event
-      expect(trigger).to eq 123
+      trigger_handler_on_session :incomingcommand, event
+
+      expect(trigger).to be_a Signalwire::Relay::Event
+      expect(trigger.params[:foo]).to eq 123
     end
   end
 
