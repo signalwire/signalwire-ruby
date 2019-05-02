@@ -8,14 +8,17 @@ describe Signalwire::Relay::Calling do
   describe "#receive" do
     let(:context) { 'pbx' }
     let(:result_hash) do
-      { "result" => {
-        "code" => '200',
-        "message" => "Receiving inbound calls associated to 'pbx' relay context"
+      { result: {
+        code:'200',
+        message: "Receiving inbound calls associated to 'pbx' relay context"
         } 
       }
     end
     let(:call_receive) { Signalwire::Relay::CallReceive.new(subject.protocol, 'pbx') }
     let(:result)  { Signalwire::Blade::Result.new(call_receive.id, result_hash) }
+
+    let(:call_hash) { { params: { context: 'pbx' } } }
+    let(:incoming_event) { Signalwire::Relay::Event.new(id: SecureRandom.uuid, event_type: 'calling.call.receive', params: call_hash) }
 
     before do
       allow(Signalwire::Relay::CallReceive).to receive(:new).and_return(call_receive)
@@ -29,9 +32,11 @@ describe Signalwire::Relay::Calling do
 
     it "triggers and yields a call" do
       subject.calling.receive context: 'pbx' do |call|
+        expect(call).to be_a Signalwire::Relay::Call
       end
-
       trigger_handler_on_session :result, result
+
+      subject.trigger_handler :event, incoming_event
     end
   end
 end

@@ -3,10 +3,12 @@ module Signalwire::Relay
     include ::Signalwire::Relay::EventHandler
     include ::Signalwire::Blade::Logging::HasLogger
 
-    def initialize(client, **options)
-      @client = client
+    def self.from_event(client, event)
+      self.new(client, event)
     end
 
-
+    def initialize(client, options)
+      @client = client
+    end
   end
 end
