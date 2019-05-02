@@ -2,6 +2,7 @@ require 'uri'
 module Signalwire::Relay
   class Client
     include ::Signalwire::Relay::EventHandler
+    include ::Signalwire::Relay::Calling
     include ::Signalwire::Blade::Logging::HasLogger
 
     attr_accessor :calls, :project, :space_url, :protocol, :connected, :session
@@ -51,6 +52,20 @@ module Signalwire::Relay
       @session.execute(command, &block)
     end
 
+    def relay_execute(command, &block)
+      execute(command) do |event|
+        if event.result[:result] && event.result[:result][:code]
+          if event.result[:result][:code] == '200'
+            block.call(event) if block_given?
+          else
+            logger.error "Relay command failed with code #{event.result[:result][:code]} and message: #{event.result[:result][:code]}"
+          end
+        else
+          logger.error "Unknown Relay command failure, result code not found"
+        end
+      end
+    end
+
     private
 
     def setup_session
@@ -79,7 +94,7 @@ module Signalwire::Relay
     def setup_events
       @session.on :incomingcommand do |event|
         if event.method == "blade.broadcast" && event.params['event'] == 'relay'
-          trigger_handler :event, event
+          trigger_handler :event, Signalwire::Relay::Event.from_blade(event)
         end
       end
     end

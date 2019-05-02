@@ -38,4 +38,35 @@ describe Signalwire::Relay::Client do
       expect(trigger).to eq 123
     end
   end
+
+  describe "#relay_execute" do
+    let(:status) { '200' }
+    let(:result_hash) do
+      { result: {
+        code: status,
+        message: "Receiving inbound calls associated to 'incoming' relay context"
+        } 
+      }
+    end
+    let(:call_receive) { Signalwire::Relay::CallReceive.new(subject.protocol, 'incoming') }
+    let(:result)  { Signalwire::Blade::Result.new(call_receive.id, result_hash) }
+
+    it "calls the passed block on a 200" do
+      subject.relay_execute(call_receive)
+      trigger_handler_on_session :result, result
+    end
+  end
 end
+
+# {
+#   "jsonrpc": "2.0",
+#   "id": "d25c2540-a18a-4b4e-aa69-058bea6e5127",
+#   "result": {
+#     "requester_nodeid": "e516f275-c0da-481f-8c66-3517b9c0fd3c",
+#     "responder_nodeid": "3e8e494b-799d-4101-863f-d80efbd54704",
+#     "result": {
+#       "code": "200",
+#       "message": "Receiving inbound calls associated to 'incoming' relay context"
+#     }
+#   }
+# }
