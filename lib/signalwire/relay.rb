@@ -12,5 +12,6 @@ require 'signalwire/relay/requests/call_execute'
 
 module Signalwire
   module Relay
+    SYNC_TIMEOUT = ENV.fetch('RELAY_SYNC_TIMEOUT', 5).to_i
   end
 end
