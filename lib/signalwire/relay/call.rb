@@ -11,12 +11,14 @@ module Signalwire::Relay
     end
 
     def initialize(client, options)
+      call_options = options[:params][:params]
       @client = client
 
-      @id = options[:call_id]
-      @node_id = options[:node_id]
-      @context = options[:context]
-      @device = options[:params][:params][:device]
+
+      @id = call_options[:call_id]
+      @node_id = call_options[:node_id]
+      @context = call_options[:context]
+      @device = call_options[:device]
       @type = @device[:type]
 
       @from = @device[:params][:from]
@@ -32,7 +34,7 @@ module Signalwire::Relay
 
     def hangup
       params = {node_id: node_id, call_id: id, reason: 'hangup'}
-      execute_call_command method: 'call.hangup', params: params
+      execute_call_command method: 'call.end', params: params
     end
 
     def play(media)
@@ -49,7 +51,7 @@ module Signalwire::Relay
     end
 
     def execute_call_command(method:, params:)
-      future = Concurrent::Promises.resolvable_future
+      promise = Concurrent::Promises.resolvable_future
 
       @client.relay_execute Signalwire::Relay::CallExecute.new(protocol: @client.protocol, method: method, params: params) do |response|
         promise.fulfill response
