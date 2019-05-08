@@ -3,10 +3,9 @@ module Signalwire::Relay
     include ::Signalwire::Relay::EventHandler
     include ::Signalwire::Blade::Logging::HasLogger
 
-    attr_reader :id, :device, :type, :node_id, :context, :from, :to, :timeout, :tag
+    attr_reader :id, :device, :type, :node_id, :context, :from, :to, :timeout, :tag, :client
 
     def self.from_event(client, event)
-      puts  event.params.inspect
       self.new(client, event.params)
     end
 
@@ -48,6 +47,7 @@ module Signalwire::Relay
       }
 
       execute_call_command method: 'call.play', params: params
+      return Signalwire::Relay::Calling::PlayMediaAction.new(call: self, control_id: control_id)
     end
 
     def execute_call_command(method:, params:)

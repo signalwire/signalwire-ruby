@@ -12,7 +12,7 @@ client.on(:ready) do |client|
     puts "CALL JUST CAME IN ==============="
     call.answer
     call.play [{ "type": "tts", "params": { "text": "the quick brown fox jumps over the lazy dog", "language": "en-US", "gender": "male" } }]
-    call.hangup
+    # call.hangup
   end
 end
 

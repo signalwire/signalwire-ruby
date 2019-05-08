@@ -17,7 +17,7 @@ describe Signalwire::Relay::Calling do
     let(:call_receive) { Signalwire::Relay::CallReceive.new(subject.protocol, 'pbx') }
     let(:result)  { Signalwire::Blade::Result.new(call_receive.id, result_hash) }
 
-    let(:call_hash) { { params: { context: 'pbx' } } }
+    let(:call_hash) { mock_call_hash }
     let(:incoming_event) { Signalwire::Relay::Event.new(id: SecureRandom.uuid, event_type: 'calling.call.receive', params: call_hash) }
 
     before do

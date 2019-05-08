@@ -1,3 +1,6 @@
+require 'signalwire/relay/calling/base_action'
+require 'signalwire/relay/calling/play_media_action'
+
 module Signalwire::Relay
   module Calling
     def calling
