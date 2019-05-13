@@ -17,3 +17,8 @@ client.on(:ready) do |client|
 end
 
 client.connect!
+
+# TODO
+# Wire up call events
+# Call roster cleanup
+# Idle/disconnect

@@ -33,6 +33,7 @@ describe Signalwire::Relay::Calling do
     it "triggers and yields a call" do
       subject.calling.receive context: 'pbx' do |call|
         expect(call).to be_a Signalwire::Relay::Call
+        expect(subject.calls).to eq({ call.id => call })
       end
       trigger_handler_on_session :result, result
 

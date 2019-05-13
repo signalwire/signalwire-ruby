@@ -24,6 +24,7 @@ describe Signalwire::Relay::Call do
     it "populates the call properly" do
       call = described_class.from_event(client, incoming_event)
       expect(call.id).to eq call_hash[:params][:params][:call_id]
+      expect(call.state).to eq 'created'
       expect(call.from).to eq call_hash[:params][:params][:device][:params][:from]
     end
   end

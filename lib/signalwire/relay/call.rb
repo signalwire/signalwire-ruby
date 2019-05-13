@@ -3,7 +3,7 @@ module Signalwire::Relay
     include ::Signalwire::Relay::EventHandler
     include ::Signalwire::Blade::Logging::HasLogger
 
-    attr_reader :id, :device, :type, :node_id, :context, :from, :to, :timeout, :tag, :client
+    attr_reader :id, :device, :type, :node_id, :context, :from, :to, :timeout, :tag, :client, :state
 
     def self.from_event(client, event)
       self.new(client, event.params)
@@ -17,6 +17,7 @@ module Signalwire::Relay
       @id = call_options[:call_id]
       @node_id = call_options[:node_id]
       @context = call_options[:context]
+      @state = call_options[:call_state]
       @device = call_options[:device]
       @type = @device[:type]
 

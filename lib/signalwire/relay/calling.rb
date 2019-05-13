@@ -7,6 +7,10 @@ module Signalwire::Relay
       self
     end
 
+    def calls
+      @calls []= {}
+    end
+
     def contexts
       @contexts ||= []
     end
@@ -15,6 +19,7 @@ module Signalwire::Relay
       on :event, event_type: 'calling.call.receive' do |event|
         logger.info "Starting up call for #{event}"
         call_obj = Signalwire::Relay::Call::from_event(self, event)
+        self.calls[call_obj.id] = call_obj
 
         block.call(call_obj)
       end
