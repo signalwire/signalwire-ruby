@@ -17,7 +17,7 @@ describe Signalwire::Relay::Event do
       end
 
     let(:blade_command) {
-      Signalwire::Blade::IncomingCommand.new(SecureRandom.uuid, 'blade.broadcast', { event_type: "calling.call.receive", params: call_params })
+      Signalwire::Blade::IncomingCommand.new(SecureRandom.uuid, 'blade.broadcast', { params: { event_type: "calling.call.receive", params: call_params } })
     }
 
     it "returns a correctly populated event" do
