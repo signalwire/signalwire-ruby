@@ -15,5 +15,9 @@ module Signalwire::Relay
     def call_id
       params[:params][:params][:call_id] rescue nil
     end
+
+    def call_params
+      params[:params][:params] rescue {}
+    end
   end
 end

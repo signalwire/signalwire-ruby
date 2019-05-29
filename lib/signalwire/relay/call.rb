@@ -23,6 +23,10 @@ module Signalwire::Relay
       @to = @device[:params][:to]
       @timeout = @device[:params][:timeout] || 30
       @tag = SecureRandom.uuid
+
+      on :event, event_type: 'calling.call.state' do |event| 
+        set_call_state(event.call_params[:call_state])
+      end
     end
 
     def answer
@@ -47,6 +51,11 @@ module Signalwire::Relay
 
       execute_call_command method: 'call.play', params: params
       return Signalwire::Relay::Calling::PlayMediaAction.new(call: self, control_id: control_id)
+    end
+
+    def set_call_state(state)
+      @state = state
+      client.end_call(self.id) if state == 'ended'
     end
 
     def execute_call_command(method:, params:)

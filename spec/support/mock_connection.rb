@@ -24,7 +24,7 @@ RSpec.shared_context :mock_connection, :shared_context => :metadata do
       trigger_handler_on_session :event, result
     end
 
-    def mock_call_hash 
+    def mock_call_hash(state = 'created')
       {
         params: { 
           event_type: "calling.call.receive",
@@ -32,7 +32,7 @@ RSpec.shared_context :mock_connection, :shared_context => :metadata do
           project_id: "myproject123",
           space_id: "myspace345",
           params: {
-            call_state: "created",
+            call_state: state,
             context: "incoming",
             device: {
                 type: "phone",

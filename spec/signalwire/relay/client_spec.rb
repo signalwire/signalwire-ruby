@@ -42,6 +42,8 @@ describe Signalwire::Relay::Client do
     let(:call_hash) { mock_call_hash }
     let(:call) { Signalwire::Relay::Call.new(subject, call_hash[:params][:params]) }
     let(:incoming_event) { Signalwire::Relay::Event.new(id: SecureRandom.uuid, event_type: 'calling.call.state', params: call_hash) }
+    let(:state_event) { Signalwire::Relay::Event.new(id: SecureRandom.uuid, event_type: 'calling.call.state', params: mock_call_hash('ringing')) }
+    let(:ended_event) { Signalwire::Relay::Event.new(id: SecureRandom.uuid, event_type: 'calling.call.state', params: mock_call_hash('ended')) }
 
     before do
       subject.calls[call.id] = call
@@ -55,6 +57,16 @@ describe Signalwire::Relay::Client do
 
       subject.trigger_handler :event, incoming_event
       expect(event_type).to eq 'calling.call.state'
+    end
+
+    it "sets the call state" do
+      subject.trigger_handler :event, state_event
+      expect(call.state).to eq 'ringing'
+    end
+
+    it "removes the call on ended" do
+      subject.trigger_handler :event, ended_event
+      expect(subject.calls).to eq({})
     end
   end
 

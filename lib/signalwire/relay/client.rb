@@ -67,13 +67,17 @@ module Signalwire::Relay
       end
     end
 
+    def end_call(call_id)
+      calls.delete(call_id)
+    end
+
     private
 
     def setup_session
       @session = Signalwire::Blade::Session.new(project: @project, token: @token, blade_address: @space_url)
 
       @session.once :connected do |event|
-        trigger_handler :connecting, event
+        broadcast :connecting, event
       end
     end
 
@@ -86,7 +90,7 @@ module Signalwire::Relay
           @session.execute(SubscribeNotificationsRequest.new(protocol)) do |event|
             logger.debug "Subscribed to notifications for #{protocol}"
             @connected = true
-            trigger_handler :ready, self
+            broadcast :ready, self
           end
         end
       end
@@ -97,14 +101,14 @@ module Signalwire::Relay
         logger.debug event.inspect
         if event.method == "blade.broadcast" && event.params[:event] == 'relay'
           relay = Signalwire::Relay::Event.from_blade(event)
-          trigger_handler :event, relay
+          broadcast :event, relay
         end
       end
     end
 
     def setup_call_event_handlers
       on :event, proc {|evt| calls.has_key?(evt.call_id) } do |event|
-        calls[event.call_id].trigger_handler :event, event
+        calls[event.call_id].broadcast :event, event
       end
     end
   end
