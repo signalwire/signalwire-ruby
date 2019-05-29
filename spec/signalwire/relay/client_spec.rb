@@ -37,6 +37,26 @@ describe Signalwire::Relay::Client do
       trigger_handler_on_session :incomingcommand, event
     end
   end
+    
+  describe 'call event handling' do
+    let(:call_hash) { mock_call_hash }
+    let(:call) { Signalwire::Relay::Call.new(subject, call_hash[:params][:params]) }
+    let(:incoming_event) { Signalwire::Relay::Event.new(id: SecureRandom.uuid, event_type: 'calling.call.state', params: call_hash) }
+
+    before do
+      subject.calls[call.id] = call
+    end
+
+    it "triggers the events on a call if the payload is a calling.call.*" do
+      event_type = nil
+      call.on :event do |evt|
+        event_type = evt.event_type
+      end
+
+      subject.trigger_handler :event, incoming_event
+      expect(event_type).to eq 'calling.call.state'
+    end
+  end
 
   describe "#relay_execute" do
     let(:status) { '200' }

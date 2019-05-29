@@ -6,15 +6,13 @@ module Signalwire::Relay
     attr_reader :id, :device, :type, :node_id, :context, :from, :to, :timeout, :tag, :client, :state
 
     def self.from_event(client, event)
-      self.new(client, event.params)
+      self.new(client, event.params[:params][:params])
     end
 
-    def initialize(client, options)
-      call_options = options[:params][:params]
+    def initialize(client, call_options)
       @client = client
 
-
-      @id = call_options[:call_id]
+      @id = call_options[:call_id] || SecureRandom.uuid
       @node_id = call_options[:node_id]
       @context = call_options[:context]
       @state = call_options[:call_state]

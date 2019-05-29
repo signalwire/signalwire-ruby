@@ -11,5 +11,9 @@ module Signalwire::Relay
       @event_type = event_type
       @params = params
     end
+
+    def call_id
+      params[:params][:params][:call_id] rescue nil
+    end
   end
 end

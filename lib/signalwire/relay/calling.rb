@@ -8,7 +8,7 @@ module Signalwire::Relay
     end
 
     def calls
-      @calls []= {}
+      @calls ||= {}
     end
 
     def contexts

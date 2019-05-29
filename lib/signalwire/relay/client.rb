@@ -15,6 +15,7 @@ module Signalwire::Relay
       @connected = false
 
       setup_session
+      setup_call_event_handlers
       setup_handlers
       setup_events
     end
@@ -98,6 +99,12 @@ module Signalwire::Relay
           relay = Signalwire::Relay::Event.from_blade(event)
           trigger_handler :event, relay
         end
+      end
+    end
+
+    def setup_call_event_handlers
+      on :event, proc {|evt| calls.has_key?(evt.call_id) } do |event|
+        calls[event.call_id].trigger_handler :event, event
       end
     end
   end

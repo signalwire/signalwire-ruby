@@ -11,7 +11,7 @@ describe Signalwire::Relay::Call do
     signalwire_space_url: 'myspace.signalwire.com')
   }
 
-  subject { described_class.new(client, call_hash) }
+  subject { described_class.new(client, call_hash[:params][:params]) }
 
   describe ".from_event" do  
 
