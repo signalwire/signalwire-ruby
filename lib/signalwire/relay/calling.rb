@@ -29,10 +29,17 @@ module Signalwire::Relay
       end
     end
 
-    def new_call(from:, to:, timeout: 30)
-      tag = SecureRandom.uuid
-      relay_execute Signalwire::Relay::CallBegin.new(protocol: protocol, from: from, to: to, timeout: timeout, tag: tag) do |event|
-      end
+    def new_call(from:, to:, device_type: 'phone', timeout: 30)
+      params = {
+        device: {
+          type: device_type,
+          params: {
+            from: from,
+            to: to
+          }
+        }
+      }
+      return Call.new(self, params)
     end
   end
 end

@@ -40,6 +40,12 @@ describe Signalwire::Relay::Calling do
       subject.trigger_handler :event, incoming_event
     end
   end
+
+  describe "#new_call" do
+    it "creates a Call" do
+      expect(subject.new_call(from: '+15552233444', to: '+15556677888')).to be_a Signalwire::Relay::Call
+    end
+  end
 end
 
 # {
