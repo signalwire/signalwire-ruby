@@ -44,4 +44,26 @@ describe Signalwire::Relay::Call do
       expect(play_obj).to be_a Signalwire::Relay::Calling::PlayMediaAction
     end
   end
+
+  describe 'connect_state_change' do
+    let(:connect_params) do
+      {
+        params: {
+          connect_state: 'connected',
+          call_id: subject.id,
+          node_id: "some-node-id" 
+        }
+      }
+    end
+
+    let(:connect_event) { Signalwire::Relay::Event.new(id: SecureRandom.uuid, event_type: 'calling.call.connect', params: connect_params) }
+
+    it 'sets the connect state and fires the event' do
+      subject.on :connect_state_change do |event|
+        expect(event).to eq({ previous_state: nil, state: "connected" })
+      end
+
+      subject.trigger_handler :event, connect_event
+    end
+  end
 end

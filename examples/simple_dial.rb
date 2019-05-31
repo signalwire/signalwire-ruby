@@ -20,6 +20,5 @@ end
 client.connect!
 
 # TODO
-# Wire up call events
-# Call roster cleanup
+# call begin
 # Idle/disconnect

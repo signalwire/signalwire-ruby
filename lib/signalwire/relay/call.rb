@@ -3,10 +3,10 @@ module Signalwire::Relay
     include ::Signalwire::Relay::EventHandler
     include ::Signalwire::Blade::Logging::HasLogger
 
-    attr_reader :id, :device, :type, :node_id, :context, :from, :to, :timeout, :tag, :client, :state
+    attr_reader :id, :device, :type, :node_id, :context, :from, :to, :timeout, :tag, :client, :state, :previous_state
 
     def self.from_event(client, event)
-      self.new(client, event.params[:params][:params])
+      self.new(client, event.call_params)
     end
 
     def initialize(client, call_options)
@@ -15,7 +15,10 @@ module Signalwire::Relay
       @id = call_options[:call_id] || SecureRandom.uuid
       @node_id = call_options[:node_id]
       @context = call_options[:context]
+      @previous_state = nil
       @state = call_options[:call_state]
+      @previous_connect_state = nil
+      @connect_state = call_options[:connect_state]
       @device = call_options[:device]
       @type = @device[:type]
 
@@ -26,6 +29,10 @@ module Signalwire::Relay
 
       on :event, event_type: 'calling.call.state' do |event| 
         set_call_state(event.call_params[:call_state])
+      end
+
+      on :event, event_type: 'calling.call.connect' do |event| 
+        set_connect_state(event.event_params[:connect_state])
       end
     end
 
@@ -53,9 +60,17 @@ module Signalwire::Relay
       return Signalwire::Relay::Calling::PlayMediaAction.new(call: self, control_id: control_id)
     end
 
-    def set_call_state(state)
-      @state = state
-      client.end_call(self.id) if state == 'ended'
+    def set_call_state(call_state)
+      @previous_state = @state
+      @state = call_state
+      broadcast :call_state_change, {previous_state: @previous_state, state: @state}
+      client.end_call(self.id) if call_state == 'ended'
+    end
+
+    def set_connect_state(new_connect_state)
+      @previous_connect_state = @connect_state
+      @connect_state = new_connect_state
+      broadcast :connect_state_change, {previous_state: @previous_connect_state, state: @connect_state}
     end
 
     def execute_call_command(method:, params:)

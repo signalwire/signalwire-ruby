@@ -16,6 +16,10 @@ module Signalwire::Relay
       params[:params][:params][:call_id] rescue nil
     end
 
+    def event_params
+      params[:params] rescue {}
+    end
+    
     def call_params
       params[:params][:params] rescue {}
     end
