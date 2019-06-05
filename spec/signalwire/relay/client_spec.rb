@@ -6,7 +6,7 @@ describe Signalwire::Relay::Client do
   subject { Signalwire::Relay::Client.new(project: 'myproject', token: 'mytoken', signalwire_space_url: 'myspace.signalwire.com') }
 
   it "has a calls accessor" do
-    expect(subject.calls).to eq({})
+    expect(subject.calls).to eq([])
   end
 
   describe "#clean_up_space_url" do
@@ -46,7 +46,7 @@ describe Signalwire::Relay::Client do
     let(:ended_event) { Signalwire::Relay::Event.new(id: SecureRandom.uuid, event_type: 'calling.call.state', params: mock_call_hash('ended')) }
 
     before do
-      subject.calls[call.id] = call
+      subject.calls << call
     end
 
     it "triggers the events on a call if the payload is a calling.call.*" do
@@ -55,18 +55,18 @@ describe Signalwire::Relay::Client do
         event_type = evt.event_type
       end
 
-      subject.trigger_handler :event, incoming_event
+      subject.broadcast :event, incoming_event
       expect(event_type).to eq 'calling.call.state'
     end
 
     it "sets the call state" do
-      subject.trigger_handler :event, state_event
+      subject.broadcast :event, state_event
       expect(call.state).to eq 'ringing'
     end
 
     it "removes the call on ended" do
-      subject.trigger_handler :event, ended_event
-      expect(subject.calls).to eq({})
+      subject.broadcast :event, ended_event
+      expect(subject.calls).to eq([])
     end
   end
 

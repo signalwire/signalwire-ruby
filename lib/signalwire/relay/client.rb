@@ -5,12 +5,11 @@ module Signalwire::Relay
     include ::Signalwire::Relay::Calling
     include ::Signalwire::Blade::Logging::HasLogger
 
-    attr_accessor :calls, :project, :space_url, :protocol, :connected, :session
+    attr_accessor :project, :space_url, :protocol, :connected, :session
     def initialize(project:, token:, signalwire_space_url: nil)
       @project = project
       @token = token
       @space_url = clean_up_space_url(signalwire_space_url)
-      @calls = {}
 
       @connected = false
 
@@ -67,10 +66,6 @@ module Signalwire::Relay
       end
     end
 
-    def end_call(call_id)
-      calls.delete(call_id)
-    end
-
     private
 
     def setup_session
@@ -107,8 +102,13 @@ module Signalwire::Relay
     end
 
     def setup_call_event_handlers
-      on :event, proc {|evt| calls.has_key?(evt.call_id) } do |event|
-        calls[event.call_id].broadcast :event, event
+      on :event, proc {|evt| evt.event_type.match(/calling\.call/) } do |event|
+        found_call = find_call_by_id(event.call_id) || find_call_by_tag(event.call_params[:tag])
+        if found_call
+          found_call.broadcast :event, event 
+        else
+          logger.warn "RECEIVED EVENT FOR UNKNOWN CALL #{event.inspect}"
+        end
       end
     end
   end

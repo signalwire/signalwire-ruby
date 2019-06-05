@@ -8,18 +8,19 @@ module Signalwire::Relay
     end
 
     def calls
-      @calls ||= {}
+      @calls ||= Concurrent::Array.new
     end
 
     def contexts
-      @contexts ||= []
+      @contexts ||= Concurrent::Array.new
     end
 
     def receive(context:, &block)
       on :event, event_type: 'calling.call.receive' do |event|
         logger.info "Starting up call for #{event}"
         call_obj = Signalwire::Relay::Call::from_event(self, event)
-        self.calls[call_obj.id] = call_obj
+
+        self.calls << call_obj
 
         block.call(call_obj)
       end
@@ -27,6 +28,10 @@ module Signalwire::Relay
       relay_execute Signalwire::Relay::CallReceive.new(protocol, context) do |event|
         contexts << context
       end
+    end
+
+    def end_call(call_id)
+      calls.delete find_call_by_id(call_id)
     end
 
     def new_call(from:, to:, device_type: 'phone', timeout: 30)
@@ -40,6 +45,14 @@ module Signalwire::Relay
         }
       }
       return Call.new(self, params)
+    end
+
+    def find_call_by_id(call_id)
+      calls.find { |call| call.id == call_id }
+    end
+
+    def find_call_by_tag(tag)
+      calls.find { |call| call.tag == tag }
     end
   end
 end

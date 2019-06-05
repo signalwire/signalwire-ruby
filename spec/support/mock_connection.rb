@@ -9,7 +9,7 @@ RSpec.shared_context :mock_connection, :shared_context => :metadata do
     end
 
     def trigger_handler_on_session(event, obj)
-      subject.session.trigger_handler event, obj
+      subject.session.trigger_handler event, obj, broadcast: true
     end
 
     def receive_relay_result(id, code = 200)

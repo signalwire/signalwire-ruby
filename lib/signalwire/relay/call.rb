@@ -36,6 +36,21 @@ module Signalwire::Relay
       end
     end
 
+    # NOTE: begin is a reserved word in Ruby
+    def originate
+      cmd = Signalwire::Relay::CallBegin.new(
+        protocol: @client.protocol,
+        from_number: @from,
+        to_number: @to,
+        timeout: @timeout,
+        tag: @tag
+      )
+      @client.relay_execute(cmd) do |response|
+        @id = response[:result][:call_id]
+        @state = "created"
+      end
+    end
+
     def answer
       params = {node_id: node_id, call_id: id}
       execute_call_command method: 'call.answer', params: params
