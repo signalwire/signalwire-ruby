@@ -47,6 +47,7 @@ module Signalwire::Relay
       )
       @client.relay_execute(cmd) do |response|
         @id = response[:result][:call_id]
+        @node_id = response[:result][:node_id]
         @state = "created"
       end
     end
@@ -81,6 +82,7 @@ module Signalwire::Relay
       @previous_state = @state
       @state = call_state
       broadcast :call_state_change, {previous_state: @previous_state, state: @state}
+      broadcast :answer, {previous_state: @previous_state, state: @state} if state == 'answered'
       client.end_call(self.id) if call_state == 'ended'
     end
 
