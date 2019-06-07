@@ -72,7 +72,9 @@ module Signalwire::Relay
       }
 
       execute_call_command method: 'call.play', params: params
-      return Signalwire::Relay::Calling::PlayMediaAction.new(call: self, control_id: control_id)
+      logger.info "blocking here"
+      # return Signalwire::Relay::Calling::PlayMediaAction.new(call: self, control_id: control_id)
+      block_until_response event_type: 'calling.call.play', states: 'finished'
     end
 
     def set_call_state(call_state)
@@ -102,6 +104,26 @@ module Signalwire::Relay
         return promise.value
       else
         logger.error "Requesting #{method} with #{params} failed"
+        return false
+      end
+    end
+
+    def block_until_response(event_type:, states:)
+      promise = Concurrent::Promises.resolvable_future
+      states = Array(states).compact
+
+      once :event, event_type: event_type do |event|
+        if states.include?(event.call_params[:state])
+          promise.fulfill event
+        end
+      end
+
+      promise.wait Signalwire::Relay::SYNC_TIMEOUT
+
+      if promise.fulfilled?
+        return promise.value
+      else
+        logger.error "Response to #{event_type} failed"
         return false
       end
     end
