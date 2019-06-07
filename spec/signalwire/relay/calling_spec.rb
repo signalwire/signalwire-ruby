@@ -31,19 +31,29 @@ describe Signalwire::Relay::Calling do
     end
 
     it "triggers and yields a call" do
-      subject.calling.receive context: 'pbx' do |call|
-        expect(call).to be_a Signalwire::Relay::Call
-        expect(subject.calls).to eq([call])
+      call = nil
+      subject.calling.receive context: 'pbx' do |block_call|
+        call = block_call
       end
       trigger_handler_on_session :result, result
 
       subject.broadcast :event, incoming_event
+      expect(subject.calls).to eq([call])
     end
   end
 
   describe "#new_call" do
     it "creates a Call" do
-      expect(subject.new_call(from: '+15552233444', to: '+15556677888')).to be_a Signalwire::Relay::Call
+      created_call = subject.new_call(from: '+15552233444', to: '+15556677888')
+      expect(created_call).to be_a Signalwire::Relay::Call
+      expect(subject.calls).to eq [created_call]
+    end
+  end
+
+  describe '#find_call_by_tag' do
+    it 'finds the call' do
+      created_call = subject.new_call(from: '+15552233444', to: '+15556677888')
+      expect(subject.find_call_by_tag(created_call.tag)).to eq created_call
     end
   end
 end

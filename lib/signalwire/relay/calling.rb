@@ -44,7 +44,9 @@ module Signalwire::Relay
           }
         }
       }
-      return Call.new(self, params)
+      call = Call.new(self, params)
+      calls << call
+      call
     end
 
     def find_call_by_id(call_id)

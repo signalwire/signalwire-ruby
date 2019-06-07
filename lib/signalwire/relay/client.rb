@@ -102,7 +102,7 @@ module Signalwire::Relay
     end
 
     def setup_call_event_handlers
-      on :event, proc {|evt| evt.event_type.match(/calling\.call/) } do |event|
+      on :event, proc {|evt| evt.event_type.match(/calling\.call/) && !evt.event_type.match(/receive/) } do |event|
         found_call = find_call_by_id(event.call_id) || find_call_by_tag(event.call_params[:tag])
         if found_call
           found_call.broadcast :event, event 
