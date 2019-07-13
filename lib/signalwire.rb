@@ -1,6 +1,13 @@
 # frozen_string_literal: true
 
-require 'signalwire/sdk'
-
 module Signalwire
 end
+
+require 'signalwire/sdk'
+require 'signalwire/logger'
+require 'signalwire/common'
+
+require 'signalwire/blade'
+require 'signalwire/relay'
+
+
