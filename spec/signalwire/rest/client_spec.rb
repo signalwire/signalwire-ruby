@@ -10,7 +10,7 @@ module Signalwire
       end
 
       @client = Signalwire::REST::Client.new 'MYSWPROJECT',
-        'MYSWTOKEN'
+                                             'MYSWTOKEN'
 
       stub = stub_request(:post, 'https://myswspace.signalwire.com/api/laml/2010-04-01/Accounts/MYSWPROJECT/Messages.json')
              .with(body: { 'Body' => 'This is a message from the Signalwire-Ruby library!',
@@ -26,5 +26,3 @@ module Signalwire
     end
   end
 end
-
-

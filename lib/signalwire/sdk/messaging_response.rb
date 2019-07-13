@@ -4,5 +4,3 @@ module Signalwire::Sdk
   class MessagingResponse < Twilio::TwiML::MessagingResponse
   end
 end
-
-

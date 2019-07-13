@@ -6,14 +6,17 @@ module Twilio
       def initialize(twilio)
         super
 
-        @host = ENV['SIGNALWIRE_SPACE_URL'] || Signalwire::Sdk.configuration.hostname || raise(ArgumentError,
-          'SignalWire Space URL is not configured. Enter your SignalWire Space domain via the '\
-          'SIGNALWIRE_SPACE_URL environment variable, or hostname in the configuration.')
+        @host = ENV['SIGNALWIRE_SPACE_URL'] ||
+                Signalwire::Sdk.configuration.hostname ||
+                raise(ArgumentError,
+                      'SignalWire Space URL is not configured. Enter your SignalWire Space domain via the '\
+                      'SIGNALWIRE_SPACE_URL environment variable, or hostname in the configuration.')
+
         @base_url = "https://#{@host}/api/laml"
         @port = 443
 
         # Versions
-        @v1= nil
+        @v1 = nil
 
         # New properties
         @account_sid = twilio.account_sid
@@ -23,9 +26,7 @@ module Twilio
         @host
       end
 
-      def account_sid
-        @account_sid
-      end
+      attr_reader :account_sid
 
       class V1 < Version
         def initialize(domain)
@@ -39,7 +40,7 @@ module Twilio
             super(version)
 
             @solution = {}
-            @uri = "/Faxes.json"
+            @uri = '/Faxes.json'
           end
         end
 

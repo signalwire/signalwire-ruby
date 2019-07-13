@@ -11,11 +11,11 @@ RSpec.describe Signalwire::REST::Client do
 
   before :each do
     @client = Signalwire::REST::Client.new ENV.fetch('SIGNALWIRE_ACCOUNT', 'xyz123-xyz123-xyz123'),
-    ENV.fetch('SIGNALWIRE_TOKEN', 'PTxyz123-xyz123-xyz123')
+                                           ENV.fetch('SIGNALWIRE_TOKEN', 'PTxyz123-xyz123-xyz123')
   end
 
-  it "fetches accounts" do
-    VCR.use_cassette("accounts") do
+  it 'fetches accounts' do
+    VCR.use_cassette('accounts') do
       accounts = @client.api.accounts.list
       expect(accounts.first.friendly_name).to eq 'LAML testing'
     end
@@ -60,11 +60,11 @@ RSpec.describe Signalwire::REST::Client do
     it 'sends a fax' do
       VCR.use_cassette('send_fax') do
         fax = @client.fax.faxes
-        .create(
-          from: '+15556677888',
-          to: '+15556677999',
-          media_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
-        )
+                     .create(
+                       from: '+15556677888',
+                       to: '+15556677999',
+                       media_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
+                     )
         expect(fax.sid).to eq '831455c6-574e-4d8b-b6ee-2418140bf4cd'
       end
     end

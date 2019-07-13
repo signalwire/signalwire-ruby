@@ -14,5 +14,3 @@ module Signalwire
     end
   end
 end
-
-
