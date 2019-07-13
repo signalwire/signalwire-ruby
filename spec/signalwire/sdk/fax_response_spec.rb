@@ -14,13 +14,10 @@ module Signalwire
     end
 
     it 'can reject a fax' do
-      response = Signalwire::Sdk::FaxResponse.new do |r|
-        r.reject
-      end
+      response = Signalwire::Sdk::FaxResponse.new(&:reject)
 
       expect(response.to_s).to eq "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n"\
         "<Reject/>\n</Response>\n"
     end
   end
 end
-

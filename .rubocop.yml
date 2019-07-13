@@ -1,16 +1,22 @@
 AllCops:
-  TargetRubyVersion: 2.3
   Exclude:
     - 'bin/**/*'
-    - 'signalwire-client.gemspec'
+    - 'signalwire.gemspec'
     - 'Gemfile'
     - 'vendor/**/*'
+    - 'spec/**/*'
+    - 'examples/**/*'
+    - 'tmp/**/*'
+    - 'lib/signalwire/rest/client.rb' # it is just a shim, and has a weird signature
 
 Metrics/ClassLength:
   Max: 512
 
 Metrics/LineLength:
   Max: 120
+
+Metrics/MethodLength:
+  Max: 20
 
 Metrics/ModuleLength:
   Max: 132
@@ -24,8 +30,14 @@ Layout/AccessModifierIndentation:
 Style/Documentation:
   Enabled: false
 
+# Layout/AlignArguments:
+#   Enabled: false
+
 Layout/AlignParameters:
   EnforcedStyle: with_fixed_indentation
+
+Layout/AlignHash:
+  Enabled: false
 
 Style/ConditionalAssignment:
   Enabled: false
