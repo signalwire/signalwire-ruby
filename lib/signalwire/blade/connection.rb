@@ -39,6 +39,11 @@ module Signalwire::Blade
         @ws.on(:message) { |event| enqueue_inbound event }
         @ws.on(:close) { disconnect! }
 
+        @ws.on :error do |error|
+          puts "error occurred"
+          puts error.inspect
+        end
+
         EM.next_tick { flush_queues }
       end
     end
@@ -47,10 +52,11 @@ module Signalwire::Blade
       on :started do |_event|
         @connected = true
         myreq = connect_request
+        start_periodic_timer
 
         write_command(myreq) do |event|
-          @session_id = event.dig(:result, :sessionid)
-          @node_id = event.dig(:result, :nodeid)
+          @session_id = event.dig(:result, :sessionid) unless @session_id
+          @node_id = event.dig(:result, :nodeid) unless @node_d
           logger.info "Blade Session connected with id: #{@session_id}"
           broadcast :connected, event
         end
@@ -101,9 +107,8 @@ module Signalwire::Blade
     end
 
     def flush_queues
+      @inbound_queue.pop { |inbound| receive(inbound) } until @inbound_queue.empty?
       if connected?
-        @inbound_queue.pop { |inbound| receive(inbound) } until @inbound_queue.empty?
-
         @outbound_queue.pop { |outbound| write(outbound) } until @outbound_queue.empty?
       end
 
@@ -127,6 +132,22 @@ module Signalwire::Blade
 
     def connected?
       @connected == true
+    end
+
+    def start_periodic_timer
+        pinger = EventMachine::PeriodicTimer.new(Signalwire::Relay::PING_TIMEOUT) do
+        timeouter = EventMachine::Timer.new(2) do
+          pinger.cancel
+          puts "something happened"
+          # reconnect logic goes here
+        end
+      
+        puts "ping"
+        @ws.ping 'detecting presence' do
+          puts "pong"
+          timeouter.cancel
+        end
+      end
     end
 
     def log_traffic(direction, message)
