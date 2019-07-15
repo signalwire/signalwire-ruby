@@ -40,8 +40,7 @@ module Signalwire::Blade
         @ws.on(:close) { disconnect! }
 
         @ws.on :error do |error|
-          puts "error occurred"
-          puts error.inspect
+          logger.error "Error occurred: #{error.message}"
         end
 
         EM.next_tick { flush_queues }
@@ -135,12 +134,14 @@ module Signalwire::Blade
     end
 
     def start_periodic_timer
-        pinger = EventMachine::PeriodicTimer.new(Signalwire::Relay::PING_TIMEOUT) do
+      pinger = EventMachine::PeriodicTimer.new(Signalwire::Relay::PING_TIMEOUT) do
         timeouter = EventMachine::Timer.new(2) do
-          pinger.cancel
           # reconnect logic goes here
+          logger.error "We got disconnected!"
+          pinger.cancel
+          disconnect!
         end
-      
+    
         @ws.ping 'detecting presence' do
           timeouter.cancel
         end
