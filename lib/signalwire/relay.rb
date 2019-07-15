@@ -10,6 +10,7 @@ require 'signalwire/relay/event'
 require 'signalwire/relay/consumer'
 
 require 'signalwire/relay/calling'
+require 'signalwire/relay/calling/call_convenience_methods'
 require 'signalwire/relay/calling/call'
 
 require 'signalwire/relay/calling/action'
@@ -36,3 +37,4 @@ require 'signalwire/relay/calling/component/hangup'
 require 'signalwire/relay/calling/component/play'
 require 'signalwire/relay/calling/component/prompt'
 require 'signalwire/relay/calling/component/record'
+require 'signalwire/relay/calling/component/await'

@@ -138,13 +138,10 @@ module Signalwire::Blade
         pinger = EventMachine::PeriodicTimer.new(Signalwire::Relay::PING_TIMEOUT) do
         timeouter = EventMachine::Timer.new(2) do
           pinger.cancel
-          puts "something happened"
           # reconnect logic goes here
         end
       
-        puts "ping"
         @ws.ping 'detecting presence' do
-          puts "pong"
           timeouter.cancel
         end
       end

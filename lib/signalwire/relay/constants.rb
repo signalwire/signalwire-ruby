@@ -15,6 +15,15 @@ module Signalwire::Relay
     ENDED = 'ended'
   end
 
+  CALL_STATES = [
+    CallState::NONE,
+    CallState::CREATED,
+    CallState::RINGING,
+    CallState::ANSWERED,
+    CallState::ENDING,
+    CallState::ENDED
+  ]
+
   module DisconnectReason
     HANGUP = 'hangup'
     CANCEL = 'cancel'
