@@ -41,7 +41,7 @@ module MockHelpers
     })
   end
 
-  def mock_call_state(call_id, state='connected')
+  def mock_call_state(call_id, state=Relay::CallState::ANSWERED)
     mock_relay_message({
       "event_type": "calling.call.state",
       "event_channel": "signalwire_calling-999999999999",

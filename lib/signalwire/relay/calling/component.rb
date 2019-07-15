@@ -84,7 +84,7 @@ module Signalwire::Relay::Calling
 
     def wait_on_blocker
       create_blocker
-      blocker.wait Signalwire::Relay::COMMAND_TIMEOUT
+      blocker.wait
     end
 
     # This is the most important method to implement in a subclass

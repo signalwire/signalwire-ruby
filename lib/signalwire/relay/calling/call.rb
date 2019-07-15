@@ -7,11 +7,12 @@ module Signalwire::Relay::Calling
     include Signalwire::Logger
     include Signalwire::Common
     include Signalwire::Blade::EventHandler
-    include Signalwire::Relay::CallConvenienceMethods
+    include Signalwire::Relay::Calling::CallConvenienceMethods
     extend Forwardable
 
     attr_reader :device, :type, :node_id, :context, :from, :to,
-                :timeout, :tag, :client, :state, :previous_state, :components
+                :timeout, :tag, :client, :state, :previous_state, :components,
+                :busy, :failed
     def_delegators :@client, :relay_execute
 
     def self.from_event(client, event)
@@ -41,21 +42,22 @@ module Signalwire::Relay::Calling
         when 'calling.call.connect'
           change_connect_state(event.call_params[:connect_state])
         when 'calling.call.state'
-          change_call_state(event.call_params)
+          change_call_state(event.event_params)
         end
 
         broadcast :event, event
       end
     end
 
-    def change_call_state(call_state)
+    def change_call_state(event_params)
+      call_state = event_params[:params]
       @previous_state = @state
       @state = call_state[:call_state]
       broadcast :call_state_change, previous_state: @previous_state, state: @state
 
       update_call_fields(call_state)
       broadcast :answer, previous_state: @previous_state, state: @state if state == 'answered'
-      finish_call(call_state) if @state == 'ended'
+      finish_call(event_params) if @state == 'ended'
     end
 
     def update_call_fields(call_state)
@@ -159,6 +161,35 @@ module Signalwire::Relay::Calling
       DialResult.new(component: dial_component)
     end
 
+    def wait_for(*events)
+      events = [Relay::CallState::ENDED] if events.empty?
+      
+      current_state_index = Relay::CALL_STATES.find_index(@state)
+      max_index = events.map { |evt| Relay::CALL_STATES.find_index(evt) }.max
+
+      return true if current_state_index >= max_index
+
+      component = Await.new(call: self)
+      component.wait_for(*events)
+      component.successful
+    end
+
+    def wait_for_ringing
+      wait_for(Relay::CallState::RINGING)
+    end
+
+    def wait_for_answered
+      wait_for(Relay::CallState::ANSWERED)
+    end
+
+    def wait_for_ending
+      wait_for(Relay::CallState::ENDING)
+    end
+
+    def wait_for_ended
+      wait_for(Relay::CallState::ENDED)
+    end
+
     def register_component(component)
       @components << component
     end
@@ -172,6 +203,8 @@ module Signalwire::Relay::Calling
     def finish_call(params)
       terminate_components(params)
       client.calling.end_call(id)
+      @busy = true if params[:reason] == Relay::DisconnectReason::BUSY
+      @failed = true if params[:reason] == Relay::DisconnectReason::FAILED
       broadcast :ended, previous_state: @previous_state, state: @state
     end
 
@@ -185,6 +218,8 @@ module Signalwire::Relay::Calling
       @previous_connect_state = nil
       @connect_state = call_options[:connect_state]
       @device = call_options[:device]
+      @busy = false
+      @failed = false
     end
   end
 end

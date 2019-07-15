@@ -1,5 +1,5 @@
 module Signalwire::Relay::Calling
-  module ClassConvenienceMethods
+  module CallConvenienceMethods
     def play_audio(url)
       play audio_payload(url)
     end
@@ -48,7 +48,6 @@ module Signalwire::Relay::Calling
       prompt!(collect, tts_payload(sentence, language, gender))
     end
 
-
     def audio_payload(url)
       [{ type: "audio", params: { url: url } }]
     end
@@ -61,3 +60,4 @@ module Signalwire::Relay::Calling
       [{ "type": 'tts', "params": { "text": sentence, "language": language, "gender": gender } }]
     end
   end
+end
