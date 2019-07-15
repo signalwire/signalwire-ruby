@@ -72,6 +72,11 @@ module Signalwire::Relay
         calls << call
         call
       end
+
+      def dial(from:, to:, device_type: 'phone', timeout: 30)
+        handle = new_call(from: from, to: to, device_type: device_type, timeout: timeout)
+        handle.dial
+      end
     end
   end
 end
