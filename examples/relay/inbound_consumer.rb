@@ -15,12 +15,7 @@ class MyConsumer < Signalwire::Relay::Consumer
 
   def on_incoming_call(call)
     call.answer
-    call.play [{ "type": 'tts', "params": { "text": 'the quick brown fox jumps over the lazy dog', "language": 'en-US', "gender": 'male' } }]
-
-    # async example
-    # action = call.play! [{ "type": "tts", "params": { "text": "the quick brown fox jumps over the lazy dog" * 5, "language": "en-US", "gender": "male" } }]
-    # sleep 5
-    # action.stop
+    call.play_tts 'the quick brown fox jumps over the lazy dog'
 
     call.hangup
   end

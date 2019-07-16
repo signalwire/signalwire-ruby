@@ -6,18 +6,19 @@ module Signalwire::Relay
     include Signalwire::Common
     include Signalwire::Blade::EventHandler
 
-    attr_accessor :project, :space_url, :protocol, :connected, :session
+    attr_accessor :project, :host, :url, :protocol, :connected, :session
 
     # Creates a Relay client
     #
     # @param project [String] Your SignalWire project identifier
     # @param token [String] Your SignalWire secret token
-    # @param signalwire_space_url [String] Your SignalWire space URL (not needed for production usage)
+    # @param SIGNALWIRE_HOST [String] Your SignalWire space URL (not needed for production usage)
 
-    def initialize(project:, token:, signalwire_space_url: nil)
+    def initialize(project:, token:, host: nil)
       @project = project
       @token = token
-      @space_url = clean_up_space_url(signalwire_space_url)
+      @host = host
+      @url = clean_up_space_url(host)
       @protocol = nil
 
       @connected = false
@@ -41,12 +42,12 @@ module Signalwire::Relay
     end
 
     def clean_up_space_url(space_url)
-      return ENV.fetch('SIGNALWIRE_SPACE_URL', Signalwire::Relay::DEFAULT_URL) if space_url.nil?
+      return ENV.fetch('SIGNALWIRE_HOST', Signalwire::Relay::DEFAULT_URL) if space_url.nil?
 
       base_url = space_url ||
                  raise(ArgumentError,
                        'SignalWire Space URL is not configured. Enter your SignalWire Space domain via the '\
-                       'SIGNALWIRE_SPACE_URL environment variables, or the signalwire_space_url parameter')
+                       'SIGNALWIRE_HOST environment variables, or the SIGNALWIRE_HOST parameter')
 
       uri = URI.parse(base_url)
       # oddly, URI.parse interprets a simple hostname as a path
@@ -138,7 +139,7 @@ module Signalwire::Relay
         project: @project,
         token: @token
       }
-      @session = Signalwire::Blade::Connection.new(url: space_url, authentication: auth)
+      @session = Signalwire::Blade::Connection.new(url: url, authentication: auth)
     end
 
     def setup_events

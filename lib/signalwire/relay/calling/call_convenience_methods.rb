@@ -40,12 +40,28 @@ module Signalwire::Relay::Calling
       prompt!(collect, silence_payload(duration))
     end
 
-    def prompt_tts(collect, language='en-US', gender='male')
+    def prompt_tts(collect, sentence, language='en-US', gender='female')
       prompt(collect, tts_payload(sentence, language, gender))
     end
 
-    def prompt_tts!(collect, language='en-US', gender='male')
+    def prompt_tts!(collect, sentence, language='en-US', gender='female')
       prompt!(collect, tts_payload(sentence, language, gender))
+    end
+
+    def wait_for_ringing
+      wait_for(Relay::CallState::RINGING)
+    end
+
+    def wait_for_answered
+      wait_for(Relay::CallState::ANSWERED)
+    end
+
+    def wait_for_ending
+      wait_for(Relay::CallState::ENDING)
+    end
+
+    def wait_for_ended
+      wait_for(Relay::CallState::ENDED)
     end
 
     def audio_payload(url)

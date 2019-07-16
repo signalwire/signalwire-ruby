@@ -6,6 +6,10 @@ module Signalwire::Relay
       dig(:params, :params, :event_type)
     end
 
+    def name
+      event_type
+    end
+
     def call_id
       dig(:params, :params, :params, :call_id)
     rescue StandardError

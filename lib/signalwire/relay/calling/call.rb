@@ -175,22 +175,6 @@ module Signalwire::Relay::Calling
       component.successful
     end
 
-    def wait_for_ringing
-      wait_for(Relay::CallState::RINGING)
-    end
-
-    def wait_for_answered
-      wait_for(Relay::CallState::ANSWERED)
-    end
-
-    def wait_for_ending
-      wait_for(Relay::CallState::ENDING)
-    end
-
-    def wait_for_ended
-      wait_for(Relay::CallState::ENDED)
-    end
-
     def register_component(component)
       @components << component
     end
