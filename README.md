@@ -1,102 +1,38 @@
-# signalwire-client-ruby
+# SignalWire Ruby
 
-This gem provides a client for the Signalwire LAML and REST services.
 
-It supports all of the features in the SignalWire REST API, and generation of LAML responses.
+[![Build Status](https://ci.signalwire.com/api/badges/signalwire/signalwire-ruby/status.svg)](https://ci.signalwire.com/signalwire/signalwire-ruby) [![Gem Version](https://badge.fury.io/rb/signalwire.svg)](https://badge.fury.io/rb/signalwire)
 
-[![Gem Version](https://badge.fury.io/rb/signalwire.svg)](https://badge.fury.io/rb/signalwire)
+The Relay SDK for Ruby enables Ruby developers to connect and use SignalWire's Relay APIs within their own Ruby code. Our Relay SDK allows developers to build or add robust and innovative communication services to their applications.
 
-![Drone CI](https://ci.signalwire.com/api/badges/signalwire/signalwire-ruby/status.svg)
+## Getting Started
 
-## Installation
+Read the implementation documentation, guides and API Reference at the official [Relay SDK for Ruby Documentation](https://docs.signalwire.com/topics/relay-sdk-ruby) site.
 
-Add `gem 'signalwire'` to your `Gemfile`, or simply `gem install signalwire`.
+---
 
-## SDK Usage
+## Contributing
 
-Configure your signalwire subdomain, by either:
+Relay SDK for Ruby is open source and maintained by the SignalWire team, but we are very grateful for [everyone](https://github.com/signalwire/signalwire-ruby/contributors) who has contributed and assisted so far.
 
-* Setting the environment variable `SIGNALWIRE_HOST` to `your_subdomain.signalwire.com`
-* Setting your Space URL within an initializer:
+If you'd like to contribute, feel free to visit our [Slack channel](https://signalwire.community/) and read our developer section to get the code running in your local environment.
 
-```ruby
-require 'signalwire/sdk'
+## Developers
 
-Signalwire::Sdk.configure do |config|
-  config.hostname = "your_subdomain.signalwire.com"
-end
-```
+The Ruby SDK is a gem built from the [signalwire-ruby](https://github.com/signalwire/signalwire-ruby) repository. To setup the dev environment follow these steps:
 
-* or passing your Space URL when setting up your client, as seen below in the [Making a call](#making-a-call) example.
+1. Install Ruby, Bundler and Rubygems. [RVM](https://rvm.io/) is an easy to use Ruby installer and environment manager.
+2. Fork the [signalwire-ruby](https://github.com/signalwire/signalwire-ruby) repository and clone it.
+3. Create a new branch from `master` for your change.
+4. Run `bundle install` to install global dependencies.
+5. Run `bundle exec guard -c` to start watching your files and specs.
+6. Make changes!
 
-Then, setup a client to make requests, your `PROJECT_KEY`, `TOKEN`, and Space URL can be found within your Signalwire dashboard, under API -> API Tokens.
+## Versioning
 
-### Making a call
+Relay SDK forRuby follows Semantic Versioning 2.0 as defined at <http://semver.org>.
 
-```ruby
-@client = Signalwire::REST::Client.new PROJECT_KEY, TOKEN, SIGNALWIRE_HOST: "your_subdomain.signalwire.com"
+## License
 
-@call = @client.calls.create(
-  from: '+15551234567',
-  to: '+15557654321',
-  url: "https://cdn.signalwire.com/default-music/playlist.xml",
-  method: "GET"
-)
-```
-
-### Sending a text message
-
-```ruby
-@message = @client.messages.create(
-  from: '+15551234567',
-  to: '+15557654321',
-  body: 'This is a message from the Signalwire-Ruby library!'
-)
-```
-
-## Generating a LAML response
-
-```
-require 'signalwire/sdk'
-
-response = Signalwire::Sdk::VoiceResponse.new do |r|
-  r.say(message: 'hello there', voice: 'alice')
-  r.dial(caller_id: '+14159992222') do |d|
-    d.client 'jenny'
-  end
-end
-
-# print the result
-puts response.to_s
-```
-
-```
-<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-<Say voice="alice">hello there</Say>
-<Dial callerId="+14159992222">
-<Client>jenny</Client>
-</Dial>
-</Response>
-```
-
-## Tests
-
-A `Dockerfile` is provided for your testing convenience.
-
-Run `docker run -it $(docker build -q .)` to execute the specs, or `docker run -it $(docker build -q .) sh` to get a shell.
-
-## Contributing to signalwire-client-ruby
-
-* Check out the latest master to make sure the feature hasn't been implemented or the bug hasn't been fixed yet.
-* Check out the issue tracker to make sure someone already hasn't requested it and/or contributed it.
-* Fork the project.
-* Start a feature/bugfix branch.
-* Commit and push until you are happy with your contribution.
-* Make sure to add tests for it. This is important so I don't break it in a future version unintentionally.
-* Please try not to mess with the Rakefile, version, or history. If you want to have your own version, or is otherwise necessary, that is fine, but please isolate to its own commit so I can cherry-pick around it.
-
-## Copyright
-
-Copyright (c) 2018 SignalWire Inc. See LICENSE.txt for
-further details.
+Relay SDK for Ruby is copyright © 2018-2019
+[SignalWire](http://signalwire.com). It is free software, and may be redistributed under the terms specified in the [MIT-LICENSE](https://github.com//signalwire/signalwire-ruby/blob/master/LICENSE) file.
