@@ -5,28 +5,28 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [2.0.0] - 2019-07-16
 ### Added
-- Connection retry
+- Connection Retry upon disconnect.
 ### Changed
 - Switch to using hostname only to specify URLs
 
-## 2.0.0-rc.1 - 2019-07-15
+## [2.0.0-rc.1] - 2019-07-15
 ### Added
 - Released new Relay Client interface.
 
-## 1.4.0 - 2019-04-12
+## [1.4.0] - 2019-04-12
 ### Added
 - Add ability to specify domain via parameter
 - Accept both `SIGNALWIRE_SPACE_URL` and `SIGNALWIRE_API_HOSTNAME` variables for configuration
 
-## 1.3.0 - 2019-01-15
+## [1.3.0] - 2019-01-15
 ### Added
 - Fax REST API support, better tests
 
-## 1.2.0 - 2018-12-29
+## [1.2.0] - 2018-12-29
 ### Added
-- Fax LAML support
+- LaML Fax support
 
-## 1.0.0 - 2018-10-20
+## [1.0.0] - 2018-10-20
 ### Added
 - First release!
 
