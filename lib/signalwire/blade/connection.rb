@@ -31,13 +31,26 @@ module Signalwire::Blade
     def connect!
       setup_started_event
       enable_epoll
+      handle_signals
 
+      main_loop!
+    end
+
+    def reconnect!
+      return if @shutdown
+      sleep Signalwire::Blade::RECONNECT_PERIOD
+      @connected = false
+      logger.info "Attempting reconnection"
+      main_loop!
+    end
+
+    def main_loop!
       EM.run do
         @ws = Faye::WebSocket::Client.new(@url)
 
         @ws.on(:open) { |event| broadcast :started, event }
         @ws.on(:message) { |event| enqueue_inbound event }
-        @ws.on(:close) { disconnect! }
+        @ws.on(:close) { handle_close }
 
         @ws.on :error do |error|
           logger.error "Error occurred: #{error.message}"
@@ -59,6 +72,10 @@ module Signalwire::Blade
           logger.info "Blade Session connected with id: #{@session_id}"
           broadcast :connected, event
         end
+
+      rescue StandardError => e
+        logger.error e.inspect
+        logger.error e.backtrace
       end
     end
 
@@ -98,8 +115,12 @@ module Signalwire::Blade
       block_given? ? write_command(Subscribe.new(params), &block) : write_command(Subscribe.new(params))
     end
 
+    def handle_close
+      reconnect!
+    end
+
     def disconnect!
-      logger.info 'Stopping Blade event loop'
+      # logger.info 'Stopping Blade event loop'
       @ws = nil
       @connected = false
       EM.stop
@@ -124,7 +145,6 @@ module Signalwire::Blade
 
     def connect_request
       req = Connect.new
-      req.sessionid = @session_id if @session_id # not a typo
       req[:params][:authentication] = @authentication if @authentication
       req
     end
@@ -139,7 +159,7 @@ module Signalwire::Blade
           # reconnect logic goes here
           logger.error "We got disconnected!"
           pinger.cancel
-          disconnect!
+          reconnect!
         end
     
         @ws.ping 'detecting presence' do
@@ -160,19 +180,21 @@ module Signalwire::Blade
       logger.debug "#{direction.to_s.upcase}: #{pretty}"
     end
 
-    def self.shutdown_from_signal
-      EM.stop
+    def handle_signals
+      Signal.trap('INT') do
+        shutdown_from_signal
+      end
+      
+      Signal.trap('TERM') do
+        shutdown_from_signal
+      end
+    end
+
+
+    def shutdown_from_signal
+      @shutdown = true
+      disconnect!
+      exit
     end
   end
-end
-
-Signal.trap('INT') do
-  Signalwire::Blade::Connection.shutdown_from_signal
-  exit
-end
-
-# Trap `Kill `
-Signal.trap('TERM') do
-  Signalwire::Blade::Connection.shutdown_from_signal
-  exit
 end

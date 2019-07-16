@@ -108,6 +108,9 @@ module Signalwire::Relay
         }
       }
 
+      # hijack our protocol
+      setup[:params][:protocol] = @protocol if @protocol
+
       @session.execute(setup) do |event|
         @protocol = event.dig(:result, :result, :protocol)
         logger.debug "Protocol set up as #{protocol}"
@@ -118,7 +121,7 @@ module Signalwire::Relay
           "channels": ['notifications']
         }
 
-        @session.subscribe(notification_request) do |_event|
+        @session.subscribe(notification_request) do
           logger.debug "Subscribed to notifications for #{protocol}"
           @connected = true
           broadcast :ready, self

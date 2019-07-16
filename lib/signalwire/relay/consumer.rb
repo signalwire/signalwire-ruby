@@ -55,7 +55,7 @@ module Signalwire::Relay
 
     def run
       setup
-      client.on :ready do
+      client.once :ready do
         ready
         setup_receive_listeners
         setup_all_events_listener

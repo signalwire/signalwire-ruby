@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module Signalwire::Blade
+  RECONNECT_PERIOD = 5
 end
 
 require 'signalwire/blade/event_handler'
