@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Signalwire::Relay
-  DEFAULT_URL = 'wss://relay.signalwire.com'
+  DEFAULT_URL = 'relay.signalwire.com'
   COMMAND_TIMEOUT = 30
   DEFAULT_CALL_TIMEOUT = 30
   PING_TIMEOUT = 5

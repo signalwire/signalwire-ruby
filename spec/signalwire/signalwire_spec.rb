@@ -4,6 +4,6 @@ require 'spec_helper'
 
 describe Signalwire do
   it 'returns a Version' do
-    expect(Signalwire::VERSION).to eq '2.0.0'
+    expect(Signalwire::VERSION).to eq '2.0.0-rc.1'
   end
 end

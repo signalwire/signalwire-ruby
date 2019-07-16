@@ -28,10 +28,9 @@ module Signalwire::Relay
     def initialize(project: nil, token: nil, host: nil)
       @project = project   || ENV['SIGNALWIRE_ACCOUNT']
       @token =   token     || ENV['SIGNALWIRE_TOKEN']
-      @url =     space_url || ENV['SIGNALWIRE_HOST'] || Signalwire::Relay::DEFAULT_URL
-
+      @url =     host  || ENV['SIGNALWIRE_HOST'] || Signalwire::Relay::DEFAULT_URL
       @client = Signalwire::Relay::Client.new(project: @project,
-        token: @token, SIGNALWIRE_HOST: @url)
+        token: @token, host: @url)
     end
 
     def setup
@@ -62,7 +61,6 @@ module Signalwire::Relay
         setup_all_events_listener
         # not sure if ordering matters
       end
-
       client.connect!
     end
 

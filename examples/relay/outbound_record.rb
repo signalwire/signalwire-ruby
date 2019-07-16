@@ -6,15 +6,18 @@ $LOAD_PATH.unshift(File.dirname(__FILE__) + '/../lib')
   signalwire
 ].each { |f| require f }
 
+# Set logging to debug for testing
+Signalwire::Logger.logger.level = ::Logger::DEBUG
+
 class OutboundConsumer < Signalwire::Relay::Consumer
   def ready
     logger.info 'Dialing out'
     call = client.calling.new_call(from: ENV['FROM_NUMBER'], to: ENV['TO_NUMBER'])
     call.dial
-    call.play [{ "type": 'tts', "params": { "text": 'please leave your message after the beep. Press pound when done.', "language": 'en-US', "gender": 'male' } }]
+    call.play_tts 'please leave your message after the beep. Press pound when done.'
     result = call.record({"audio": { "beep": "true", "terminators": "#"}})
-    call.play [{ "type": 'tts', "params": { "text": 'you said:', "language": 'en-US', "gender": 'male' } }]
-    call.play [{ "type": 'audio', "params": { "url": result.url } }]
+    call.play_tts 'you said:'
+    call.play_audio result.url
     call.hangup
   end
 end

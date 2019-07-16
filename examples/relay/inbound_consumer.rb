@@ -10,6 +10,8 @@ $LOAD_PATH.unshift(File.dirname(__FILE__) + '/../lib')
 # SIGNALWIRE_ACCOUNT=YOUR_SIGNALWIRE_ACCOUNT_ID
 # SIGNALWIRE_TOKEN=YOUR_SIGNALWIRE_ACCOUNT_TOKEN
 #
+Signalwire::Logger.logger.level = ::Logger::DEBUG
+
 class MyConsumer < Signalwire::Relay::Consumer
   contexts ['incoming']
 

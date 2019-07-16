@@ -2,7 +2,7 @@
 
 module Signalwire::Relay::Calling
   class Component
-    attr_reader :completed, :state, :successful, :event, :execute_result
+    attr_reader :completed, :state, :successful, :event, :execute_result, :call
 
     def initialize(call:)
       @call = call

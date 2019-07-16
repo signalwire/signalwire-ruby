@@ -17,8 +17,8 @@ module Signalwire::Relay
     def initialize(project:, token:, host: nil)
       @project = project
       @token = token
-      @host = host
-      @url = clean_up_space_url(host)
+      @host = host || ENV.fetch('SIGNALWIRE_HOST', Signalwire::Relay::DEFAULT_URL)
+      @url = clean_up_space_url(@host)
       @protocol = nil
 
       @connected = false
@@ -42,21 +42,13 @@ module Signalwire::Relay
     end
 
     def clean_up_space_url(space_url)
-      return ENV.fetch('SIGNALWIRE_HOST', Signalwire::Relay::DEFAULT_URL) if space_url.nil?
-
-      base_url = space_url ||
-                 raise(ArgumentError,
-                       'SignalWire Space URL is not configured. Enter your SignalWire Space domain via the '\
-                       'SIGNALWIRE_HOST environment variables, or the SIGNALWIRE_HOST parameter')
-
-      uri = URI.parse(base_url)
+      uri = URI.parse(space_url)
       # oddly, URI.parse interprets a simple hostname as a path
       if uri.scheme.nil? && uri.host.nil?
         unless uri.path.nil?
           uri.scheme = 'wss'
           uri.host = uri.path
-          uri.path = '/api/relay/wss'
-          uri.port = 443
+          uri.path = ''
         end
       end
 

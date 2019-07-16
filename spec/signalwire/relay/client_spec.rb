@@ -7,7 +7,7 @@ describe Signalwire::Relay::Client do
 
   describe '#clean_up_space_url' do
     it 'should add a protocol and suffix if not present' do
-      expect(subject.clean_up_space_url('my.signalwire.com')).to eq 'wss://my.signalwire.com:443/api/relay/wss'
+      expect(subject.clean_up_space_url('my.signalwire.com')).to eq 'wss://my.signalwire.com'
     end
 
     it 'leaves a specified URL alone' do

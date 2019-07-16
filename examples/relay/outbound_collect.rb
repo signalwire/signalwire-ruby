@@ -6,14 +6,21 @@ $LOAD_PATH.unshift(File.dirname(__FILE__) + '/../lib')
   signalwire
 ].each { |f| require f }
 
+# Set logging to debug for testing
+Signalwire::Logger.logger.level = ::Logger::DEBUG
+
 class OutboundConsumer < Signalwire::Relay::Consumer
   def ready
-    call = client.calling.new_call(from: ENV['FROM_NUMBER'], to: ENV['TO_NUMBER']).dial
+    dial_result = client.calling.new_call(from: ENV['FROM_NUMBER'], to: ENV['TO_NUMBER']).dial
     collect_params = { "initial_timeout": 10.0, "digits": { "max": 1, "digit_timeout": 5.0 } }
-    result = call.prompt_tts( collect_params, 'how many hamburgers would you like to order?')
+    result = dial_result.call.prompt_tts( collect_params, 'how many hamburgers would you like to order?')
 
-    call.play_tts "You ordered #{result.result} hamburgers. Thank you!"
-    call.hangup
+    dial_result.call.play_tts "You ordered #{result.result} hamburgers. Thank you!"
+    dial_result.call.hangup
+  # this makes it so the errors don't stop the process
+  rescue StandardError => e
+    logger.error e.inspect
+    logger.error e.backtrace
   end
 end
 

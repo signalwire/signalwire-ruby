@@ -16,11 +16,11 @@ module Signalwire::Relay::Calling
       play! silence_payload(duration)
     end
 
-    def play_tts(sentence, language='en-US', gender='male')
+    def play_tts(sentence, language='en-US', gender='female')
       play tts_payload(sentence, language, gender)
     end
 
-    def play_tts!(sentence, language='en-US', gender='male')
+    def play_tts!(sentence, language='en-US', gender='female')
       play! tts_payload(sentence, language, gender)
     end
 
