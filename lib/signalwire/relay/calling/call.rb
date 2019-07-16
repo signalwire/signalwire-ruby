@@ -46,6 +46,7 @@ module Signalwire::Relay::Calling
         end
 
         broadcast :event, event
+        broadcast :state_change, event
       end
     end
 
@@ -56,8 +57,8 @@ module Signalwire::Relay::Calling
       broadcast :call_state_change, previous_state: @previous_state, state: @state
 
       update_call_fields(call_state)
-      broadcast :answer, previous_state: @previous_state, state: @state if state == 'answered'
-      finish_call(event_params) if @state == 'ended'
+      broadcast @state.to_sym, previous_state: @previous_state, state: @state
+      finish_call(event_params) if @state == Relay::CallState::ENDED
     end
 
     def update_call_fields(call_state)

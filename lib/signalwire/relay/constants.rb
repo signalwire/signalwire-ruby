@@ -22,7 +22,7 @@ module Signalwire::Relay
     CallState::ANSWERED,
     CallState::ENDING,
     CallState::ENDED
-  ]
+  ].freeze
 
   module DisconnectReason
     HANGUP = 'hangup'
@@ -61,6 +61,15 @@ module Signalwire::Relay
     PLAY = 'calling.call.play'
     COLLECT = 'calling.call.collect'
   end
+
+  CALL_EVENT_STATE_FIELDS = {
+    CallNotification::STATE => 'state',
+    CallNotification::RECEIVE => 'call_state',
+    CallNotification::CONNECT => 'connect_state',
+    CallNotification::RECORD => 'state',
+    CallNotification::PLAY => 'state',
+    CallNotification::COLLECT => 'result' # this actually need to be parsed separately
+  }.freeze
 
   module CallPlayState
     PLAYING = 'playing'

@@ -34,7 +34,13 @@ module Signalwire::Relay::Calling
         @event = event
       end
 
+      broadcast_event(event)
       check_for_waiting_events
+    end
+
+    def broadcast_event(event)
+      @call.broadcast "play_#{@state}".to_sym, event
+      @call.broadcast :play_state_change, event
     end
   end
 end
