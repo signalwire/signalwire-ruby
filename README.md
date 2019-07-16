@@ -16,7 +16,7 @@ Add `gem 'signalwire'` to your `Gemfile`, or simply `gem install signalwire`.
 
 Configure your signalwire subdomain, by either:
 
-* Setting the environment variable `SIGNALWIRE_SPACE_URL` to `your_subdomain.signalwire.com`
+* Setting the environment variable `SIGNALWIRE_HOST` to `your_subdomain.signalwire.com`
 * Setting your Space URL within an initializer:
 
 ```ruby
@@ -34,7 +34,7 @@ Then, setup a client to make requests, your `PROJECT_KEY`, `TOKEN`, and Space UR
 ### Making a call
 
 ```ruby
-@client = Signalwire::REST::Client.new PROJECT_KEY, TOKEN, signalwire_space_url: "your_subdomain.signalwire.com"
+@client = Signalwire::REST::Client.new PROJECT_KEY, TOKEN, SIGNALWIRE_HOST: "your_subdomain.signalwire.com"
 
 @call = @client.calls.create(
   from: '+15551234567',

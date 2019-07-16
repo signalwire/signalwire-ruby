@@ -6,11 +6,11 @@ module Twilio
       def initialize(twilio)
         super
 
-        @host = ENV['SIGNALWIRE_SPACE_URL'] ||
+        @host = ENV['SIGNALWIRE_HOST'] ||
                 Signalwire::Sdk.configuration.hostname ||
                 raise(ArgumentError,
                       'SignalWire Space URL is not configured. Enter your SignalWire Space domain via the '\
-                      'SIGNALWIRE_SPACE_URL environment variable, or hostname in the configuration.')
+                      'SIGNALWIRE_HOST environment variable, or hostname in the configuration.')
 
         @base_url = "https://#{@host}/api/laml"
         @port = 443
