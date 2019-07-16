@@ -11,7 +11,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## 2.0.0-rc.1
 ### Added
-- Relay client
+- Released new Relay Client interface.
 
 ## 1.4.0
 ### Added
