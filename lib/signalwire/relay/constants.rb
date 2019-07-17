@@ -60,6 +60,7 @@ module Signalwire::Relay
     RECORD = 'calling.call.record'
     PLAY = 'calling.call.play'
     COLLECT = 'calling.call.collect'
+    FAX = 'calling.call.fax'
   end
 
   CALL_EVENT_STATE_FIELDS = {
@@ -99,10 +100,18 @@ module Signalwire::Relay
     PLAY = 'call.play'
     PROMPT = 'call.play_and_collect'
     RECORD = 'call.record'
+    SEND_FAX = 'call.send_fax'
+    RECEIVE_FAX = 'call.receive_fax'
   end
 
   module CommonState
     SUCCESSFUL = 'successful'
+  end
+
+  module CallFaxState
+    PAGE = 'page',
+    ERROR = 'error',
+    FINISHED = 'finished'
   end
 end
 
