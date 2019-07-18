@@ -1,5 +1,6 @@
 require 'uri'
 require 'faraday'
+require 'json'
 
 module Signalwire::Relay
   class Task
@@ -9,7 +10,7 @@ module Signalwire::Relay
     def initialize(project:, token:, host: nil )
       @project = project
       @token = token
-      @host = normalize_host(host || DEFAULT_HOST)
+      @host = host || DEFAULT_HOST
     end
 
     def deliver(context, payload)
@@ -18,7 +19,7 @@ module Signalwire::Relay
         message: payload
       })
       conn = Faraday.new(
-        url: @host,
+        url: normalize_host(@host),
         headers: {'Content-Type' => 'application/json'}
       )
       conn.basic_auth(@project, @token)
@@ -26,7 +27,6 @@ module Signalwire::Relay
       resp = conn.post('/api/relay/rest/tasks') do |req|
         req.body = message
       end
-
       return resp.status == 204
     end
 

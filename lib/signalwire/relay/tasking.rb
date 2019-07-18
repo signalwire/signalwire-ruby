@@ -1,4 +1,8 @@
+require 'forwardable'
+
 module Signalwire::Relay
-  class Instance
+  module Tasking
+    class Instance
+    end
   end
 end

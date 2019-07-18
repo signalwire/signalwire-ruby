@@ -31,7 +31,7 @@ module Signalwire::Relay
     # Starts the client connection
     #
     def connect!
-      logger.debug "Connecting to #{@space_url}"
+      logger.debug "Connecting to #{@url}"
       session.connect!
     end
 
@@ -88,6 +88,10 @@ module Signalwire::Relay
 
     def calling
       @calling ||= Signalwire::Relay::Calling::Instance.new(self)
+    end
+
+    def tasking
+      @tasking ||= Signalwire::Relay::Tasking::Instance.new(self)
     end
 
   private
