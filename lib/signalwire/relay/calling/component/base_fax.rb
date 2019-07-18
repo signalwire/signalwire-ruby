@@ -13,7 +13,7 @@ module Signalwire::Relay::Calling
       fax_params = fax_state[:params]
       @state = fax_state[:type]
 
-      @completed = @state != CallFaxState::PAGE
+      @completed = @state != Relay::CallFaxState::PAGE
 
       if @completed
         if fax_params[:success]
