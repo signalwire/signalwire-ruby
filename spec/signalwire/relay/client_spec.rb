@@ -75,4 +75,16 @@ describe Signalwire::Relay::Client do
       expect(async.value).to eq :failure
     end
   end
+
+  describe "tasks" do
+    it "broadcasts a task" do
+      tasked = false
+      subject.on :task do |task|
+        tasked = true
+      end
+
+      mock_message subject.session, mock_relay_task({ here: 'there' })
+      expect(tasked).to eq true
+    end
+  end
 end

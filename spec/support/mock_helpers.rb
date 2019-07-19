@@ -46,7 +46,7 @@ module MockHelpers
       "event_type": "calling.call.state",
       "event_channel": "signalwire_calling-999999999999",
       "timestamp": 1558539404.79576,
-      "project_id": 'myproject123',
+      "project_id": 'fmyspace345',
       "space_id": 'fmyspace345',
       "params": {
         "call_state": state,
@@ -80,7 +80,7 @@ module MockHelpers
     })
   end
 
-  def mock_relay_message(inner_message)
+  def mock_relay_message(inner_message, event="relay")
     {
       "jsonrpc": "2.0",
       "id": "43358495-8fe8-43d1-8ed3-999999999999",
@@ -89,9 +89,19 @@ module MockHelpers
         "broadcaster_nodeid": "0f469957-9dbb-4492-ad21-999999999999",
         "protocol": "signalwire_calling-999999999999",
         "channel": "notifications",
-        "event": "relay",
+        "event": event,
         "params": inner_message
       }
     }
+  end
+
+  def mock_relay_task(payload, context="incoming")
+    mock_relay_message({
+      "space_id": "fmyspace345",
+      "project_id": "fmyspace345",
+      "context": context,
+      "message": payload,
+      "timestamp": 1563551206
+    }, "queuing.relay.tasks")
   end
 end

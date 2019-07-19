@@ -31,7 +31,7 @@ module Signalwire::Relay
     # Starts the client connection
     #
     def connect!
-      logger.debug "Connecting to #{@space_url}"
+      logger.debug "Connecting to #{@url}"
       session.connect!
     end
 
@@ -141,6 +141,7 @@ module Signalwire::Relay
       @session.on :message, %i[\[\] method] => 'blade.broadcast' do |event|
         relay = Signalwire::Relay::Event.from_blade(event)
         broadcast :event, relay
+        broadcast :task, relay if relay.dig(:params, :event) == "queuing.relay.tasks"
       end
     end
   end

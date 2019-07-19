@@ -1,0 +1,27 @@
+---
+http_interactions:
+- request:
+    method: post
+    uri: https://relay.signalwire.com/api/relay/rest/tasks
+    body:
+      encoding: UTF-8
+      string: '{"context":"task_context","message":{"some":"action"}}'
+    headers:
+      Content-Type:
+      - application/json
+  response:
+    status:
+      code: 204
+      message: No Content
+    headers:
+      Server:
+      Connection:
+      - keep-alive
+      Cache-Control:
+      - no-cache
+    body:
+      encoding: UTF-8
+      string: ''
+    http_version: 
+  recorded_at: Thu, 18 Jul 2019 07:35:11 GMT
+recorded_with: VCR 4.0.0
