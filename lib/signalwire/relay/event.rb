@@ -34,6 +34,10 @@ module Signalwire::Relay
       {}
     end
 
+    def message
+      event_params[:message]
+    end
+
     def self.from_blade(blade_event)
       new(blade_event.payload)
     end

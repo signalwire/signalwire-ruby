@@ -56,10 +56,10 @@ module Signalwire::Relay
     def run
       setup
       client.once :ready do
-        ready
         setup_receive_listeners
         setup_all_events_listener
-        # not sure if ordering matters
+        setup_task_listeners
+        ready
       end
       client.connect!
     end
@@ -76,6 +76,12 @@ module Signalwire::Relay
         client.calling.receive context: cxt do |call|
           on_incoming_call(call)
         end
+      end
+    end
+
+    def setup_task_listeners
+      client.on :task do |task|
+        on_task(task)
       end
     end
 

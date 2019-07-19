@@ -13,7 +13,6 @@ require 'signalwire/relay/calling'
 require 'signalwire/relay/calling/call_convenience_methods'
 require 'signalwire/relay/calling/call'
 
-require 'signalwire/relay/tasking'
 require 'signalwire/relay/task'
 
 require 'signalwire/relay/calling/action'

@@ -13,6 +13,11 @@ $LOAD_PATH.unshift(File.dirname(__FILE__) + '/../lib')
 Signalwire::Logger.logger.level = ::Logger::DEBUG
 
 class MyConsumer < Signalwire::Relay::Consumer
+  contexts ['incoming']
+
+  def on_task(task)
+    logger.debug "Received #{task.message}"
+  end
 end
 
 MyConsumer.new.run

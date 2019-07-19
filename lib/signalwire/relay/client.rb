@@ -90,10 +90,6 @@ module Signalwire::Relay
       @calling ||= Signalwire::Relay::Calling::Instance.new(self)
     end
 
-    def tasking
-      @tasking ||= Signalwire::Relay::Tasking::Instance.new(self)
-    end
-
   private
 
     def setup_handlers
@@ -145,6 +141,7 @@ module Signalwire::Relay
       @session.on :message, %i[\[\] method] => 'blade.broadcast' do |event|
         relay = Signalwire::Relay::Event.from_blade(event)
         broadcast :event, relay
+        broadcast :task, relay if relay.dig(:params, :event) == "queuing.relay.tasks"
       end
     end
   end

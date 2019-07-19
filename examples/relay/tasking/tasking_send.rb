@@ -10,4 +10,4 @@ task = Signalwire::Relay::Task.new(
   host: ENV['SIGNALWIRE_HOST']
 )
 
-task.deliver('processing', { foo: 'bar' })
+task.deliver('incoming', { foo: 'bar' })
