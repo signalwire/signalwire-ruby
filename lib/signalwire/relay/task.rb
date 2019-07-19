@@ -32,7 +32,6 @@ module Signalwire::Relay
 
     def normalize_host(passed_host)
       uri = URI.parse(passed_host)
-      # URI.parse is dumb
       if uri.scheme.nil? && uri.host.nil?
         unless uri.path.nil?
           uri.scheme = 'https'
