@@ -174,13 +174,13 @@ module Signalwire::Relay::Calling
       FaxAction.new(component: component)
     end
 
-    def fax_send(document, identity=nil, header=nil)
+    def fax_send(document: , identity: nil, header: nil)
       component = Signalwire::Relay::Calling::FaxSend.new(call: self, document: document, identity: identity, header: header)
       component.wait_for(Relay::CallFaxState::ERROR, Relay::CallFaxState::FINISHED)
       FaxResult.new(component: component)
     end
 
-    def fax_send!(document, identity=nil, header=nil)
+    def fax_send!(document: , identity: nil, header: nil)
       component = Signalwire::Relay::Calling::FaxSend.new(call: self, document: document, identity: identity, header: header)
       component.execute
       FaxAction.new(component: component)
