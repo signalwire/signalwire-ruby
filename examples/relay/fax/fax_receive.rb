@@ -14,7 +14,7 @@ class MyConsumer < Signalwire::Relay::Consumer
   def on_incoming_call(call)
     call.answer
     fax_result = call.fax_receive
-    logger.debug "Received a fax: #{fax_result.document} that is #{fax_result.pages} pages long"
+    logger.debug "Received a fax: #{fax_result.document} that is #{fax_result.pages} pages long."
     call.hangup
   end
 end
