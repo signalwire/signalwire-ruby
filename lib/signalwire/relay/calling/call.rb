@@ -162,6 +162,30 @@ module Signalwire::Relay::Calling
       DialResult.new(component: dial_component)
     end
 
+    def fax_receive
+      component = Signalwire::Relay::Calling::FaxReceive.new(call: self)
+      component.wait_for(Relay::CallFaxState::ERROR, Relay::CallFaxState::FINISHED)
+      FaxResult.new(component: component)
+    end
+
+    def fax_receive!
+      component = Signalwire::Relay::Calling::FaxReceive.new(call: self)
+      component.execute
+      FaxAction.new(component: component)
+    end
+
+    def fax_send(document: , identity: nil, header: nil)
+      component = Signalwire::Relay::Calling::FaxSend.new(call: self, document: document, identity: identity, header: header)
+      component.wait_for(Relay::CallFaxState::ERROR, Relay::CallFaxState::FINISHED)
+      FaxResult.new(component: component)
+    end
+
+    def fax_send!(document: , identity: nil, header: nil)
+      component = Signalwire::Relay::Calling::FaxSend.new(call: self, document: document, identity: identity, header: header)
+      component.execute
+      FaxAction.new(component: component)
+    end
+
     def wait_for(*events)
       events = [Relay::CallState::ENDED] if events.empty?
       
