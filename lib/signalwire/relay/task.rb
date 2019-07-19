@@ -13,10 +13,10 @@ module Signalwire::Relay
       @host = host || DEFAULT_HOST
     end
 
-    def deliver(context, payload)
+    def deliver(context: context, message: message)
       message = JSON.generate({
         context: context,
-        message: payload
+        message: message
       })
       conn = Faraday.new(
         url: normalize_host(@host),
