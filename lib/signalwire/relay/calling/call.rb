@@ -8,6 +8,7 @@ module Signalwire::Relay::Calling
     include Signalwire::Common
     include Signalwire::Blade::EventHandler
     include Signalwire::Relay::Calling::CallConvenienceMethods
+    include Signalwire::Relay::Calling::CallDetectMethods
     extend Forwardable
 
     attr_reader :device, :type, :node_id, :context, :from, :to,

@@ -62,6 +62,7 @@ module Signalwire::Relay
     COLLECT = 'calling.call.collect'
     FAX = 'calling.call.fax'
     TAP = 'calling.call.tap'
+    DETECT = 'calling.call.detect'
   end
 
   CALL_EVENT_STATE_FIELDS = {
@@ -104,6 +105,7 @@ module Signalwire::Relay
     SEND_FAX = 'call.send_fax'
     RECEIVE_FAX = 'call.receive_fax'
     TAP = 'call.tap'
+    DETECT = 'call.detect'
   end
 
   module CommonState
@@ -119,6 +121,24 @@ module Signalwire::Relay
   module CallTapState
     TAPPING = 'tapping'
     FINISHED = 'finished'
+  end
+  
+  module CallDetectState
+    ERROR = 'error'
+    FINISHED = 'finished'
+    CED = 'CED'
+    CNG = 'CNG'
+    MACHINE = 'MACHINE'
+    HUMAN = 'HUMAN'
+    UNKNOWN = 'UNKNOWN'
+    READY = 'READY'
+    NOT_READY = 'NOT_READY'
+  end
+
+  module CallDetectType
+    FAX = "fax"
+    MACHINE = "machine"
+    DIGIT = "digit"
   end
 end
 
