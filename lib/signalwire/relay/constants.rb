@@ -61,6 +61,7 @@ module Signalwire::Relay
     PLAY = 'calling.call.play'
     COLLECT = 'calling.call.collect'
     FAX = 'calling.call.fax'
+    TAP = 'calling.call.tap'
   end
 
   CALL_EVENT_STATE_FIELDS = {
@@ -102,6 +103,7 @@ module Signalwire::Relay
     RECORD = 'call.record'
     SEND_FAX = 'call.send_fax'
     RECEIVE_FAX = 'call.receive_fax'
+    TAP = 'call.tap'
   end
 
   module CommonState
