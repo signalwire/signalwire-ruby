@@ -2,6 +2,8 @@
 
 module Signalwire::Relay::Calling
   class Tap < ControlComponent
+    attr_accessor :device
+
     def initialize(call:, tap:, device:)
       super(call: call)
       @tap = tap
@@ -30,6 +32,10 @@ module Signalwire::Relay::Calling
         tap: @tap,
         device: @device
       }
+    end
+
+    def tap_media
+      @tap
     end
 
     def notification_handler(event)

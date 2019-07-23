@@ -4,6 +4,8 @@ require 'forwardable'
 
 module Signalwire::Relay::Calling
   class TapAction < Action
+    def_delegators :@component, :source_device
+
     def result
       TapResult.new(@component)
     end
