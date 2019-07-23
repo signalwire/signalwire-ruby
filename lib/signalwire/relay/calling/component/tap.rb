@@ -16,6 +16,12 @@ module Signalwire::Relay::Calling
       Relay::CallNotification::TAP
     end
 
+    def source_device
+      return unless @execute_result
+
+      @execute_result.dig(:result, :result, :source_device)
+    end
+
     def inner_params
       {
         node_id: @call.node_id,
