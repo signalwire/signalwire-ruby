@@ -115,6 +115,11 @@ module Signalwire::Relay
     ERROR = 'error',
     FINISHED = 'finished'
   end
+
+  module CallTapState
+    TAPPING = 'tapping'
+    FINISHED = 'finished'
+  end
 end
 
 Relay = Signalwire::Relay

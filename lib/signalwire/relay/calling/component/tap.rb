@@ -28,11 +28,12 @@ module Signalwire::Relay::Calling
 
     def notification_handler(event)
       @state = event.call_params[:state]
+      @device = event.call_params[:device]
+      @tap = event.call_params[:tap]
 
-      @completed = @state != Relay::CallPlayState::PLAYING
-
+      @completed = @state == Relay::CallTapState::FINISHED
       if @completed
-        @successful = true if @state == Relay::CallPlayState::FINISHED
+        @successful = true
         @event = event
       end
 
@@ -46,14 +47,3 @@ module Signalwire::Relay::Calling
     end
   end
 end
-
-const { state, tap, device } = params
-    this.tap = tap
-    this.device = device
-    this.state = state
-
-    this.completed = this.state === CallTapState.Finished
-    if (this.completed) {
-      this.successful = true
-      this.event = new Event(this.state, params)
-    }
