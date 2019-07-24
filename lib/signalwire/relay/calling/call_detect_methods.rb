@@ -95,7 +95,7 @@ module Signalwire::Relay::Calling
     def prepare_fax_arguments(tone)
       fax_events = [Relay::CallDetectState::CED, Relay::CallDetectState::CNG]
       events = [Relay::CallDetectState::FINISHED, Relay::CallDetectState::ERROR]
-      detect = { type: Relay::CallDetectType::FAX }
+      detect = { type: Relay::CallDetectType::FAX, params: {} }
 
       if fax_events.include?(tone)
         detect[:params] = { tone: tone }
