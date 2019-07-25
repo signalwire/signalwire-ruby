@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 ### Added
+- Tap API for Relay
 - `:task` broadcast from client
 - `Relay::Task` and `on_task` handler for `Consumer`
 - Fax API for Relay
