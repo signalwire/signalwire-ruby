@@ -186,6 +186,18 @@ module Signalwire::Relay::Calling
       FaxAction.new(component: component)
     end
 
+    def tap_media(tap:, device:)
+      component = Signalwire::Relay::Calling::Tap.new(call: self, tap: tap, device: device)
+      component.wait_for(Relay::CallTapState::FINISHED)
+      TapResult.new(component: component)
+    end
+
+    def tap_media!(tap:, device:)
+      component = Signalwire::Relay::Calling::Tap.new(call: self, tap: tap, device: device)
+      component.execute
+      TapAction.new(component: component)
+    end
+
     def wait_for(*events)
       events = [Relay::CallState::ENDED] if events.empty?
       
