@@ -48,3 +48,7 @@ require 'signalwire/relay/calling/component/base_fax'
 require 'signalwire/relay/calling/component/fax_send'
 require 'signalwire/relay/calling/component/fax_receive'
 require 'signalwire/relay/calling/component/tap'
+
+require 'signalwire/relay/messaging'
+require 'signalwire/relay/messaging/message'
+require 'signalwire/relay/messaging/send_result.rb'
