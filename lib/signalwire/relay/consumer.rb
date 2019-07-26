@@ -47,6 +47,8 @@ module Signalwire::Relay
 
     def on_task(task); end
 
+    def on_message(message); end
+
     def on_event(event)
       # all-events firespout
     end
@@ -59,6 +61,7 @@ module Signalwire::Relay
         setup_receive_listeners
         setup_all_events_listener
         setup_task_listeners
+        setup_messaging_listeners
         ready
       end
       client.connect!
@@ -88,6 +91,12 @@ module Signalwire::Relay
     def setup_all_events_listener
       client.on :event do |evt|
         on_event(evt)
+      end
+    end
+
+    def setup_messaging_listeners
+      client.messaging.on :message_received do |evt|
+        on_message(evt)
       end
     end
   end

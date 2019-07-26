@@ -42,9 +42,11 @@ module Signalwire::Relay
           params: params
         }
 
-        relay_execute messaging_send(messaging_send) do |event|
-          puts event.inspect
+        response = nil
+        relay_execute messaging_send do |event|
+          response = Signalwire::Relay::Messaging::SendResult.new(event)
         end
+        response
       end
 
       def setup_events
