@@ -13,7 +13,7 @@ module Signalwire::Relay
       @host = host || DEFAULT_HOST
     end
 
-    def deliver(context:, message: )
+    def deliver(context:, message:)
       message = JSON.generate({
         context: context,
         message: message
