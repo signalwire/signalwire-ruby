@@ -2,31 +2,17 @@
 
 module Signalwire::Relay::Messaging
   class Message < Signalwire::Relay::Event
-    def initialize(from_number:, to_number:, context:, **params)
-      @body = params.delete(:body)
-      @media = params.delete(:media)
-      @from_number = from_number
-      @to_number = to_number
-      @context = context
-      @payload = params
-      raise ArgumentError, "You need to specify either :body or :media" unless @body || @media
-
-      
+    FIELDS =  %i{body message_id context tags 
+                from_number to_number media 
+                segments message_state}.freeze
+    def message_params
+      dig(:params, :params, :params)
+    rescue StandardError
+      {}
     end
 
-    def send_request(protocol)
-      @payload[:body] = @body if @body
-      @payload[:media] = @media if @media
-
-      params = @payload.merge[:from_number] = @from_number
-      @payload[:to_number] = @to_number
-      @payload[:context] = @context
-
-      {
-        protocol: protocol,
-        method: 'messaging.send',
-        params: params
-      }
+    FIELDS.each do |meth|
+      define_method(meth) { message_params[meth] }
     end
   end
 end

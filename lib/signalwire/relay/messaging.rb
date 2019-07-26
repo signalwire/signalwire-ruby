@@ -14,6 +14,47 @@ module Signalwire::Relay
 
       def initialize(client)
         @client = client
+        setup_events
+      end
+
+      def send(from_number:, to_number:, context:, **params)
+        body = params.delete(:body)
+        media = params.delete(:media)
+        payload = params
+
+        raise ArgumentError, "You need to specify either :body or :media" unless body || media
+
+        payload[:body] = @body if @body
+        payload[:media] = @media if @media
+
+        params = payload.merge({
+          from_number: from_number,
+          to_number: to_number,
+          context: context
+        })
+
+        params[:body] = body if body
+        params[:media] = body if media
+
+        messaging_send = {
+          protocol: protocol,
+          method: 'messaging.send',
+          params: params
+        }
+
+        relay_execute messaging_send(messaging_send) do |event|
+          puts event.inspect
+        end
+      end
+
+      def setup_events
+        @client.on :event, event_type: 'messaging.receive' do |event|
+          broadcast :message_received, Signalwire::Relay::Messaging::Message.new(event.payload)
+        end
+
+        @client.on :event, event_type: 'messaging.state' do |event|
+          broadcast :message_state_change, Signalwire::Relay::Messaging::Message.new(event.payload)
+        end
       end
     end
   end

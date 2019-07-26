@@ -93,6 +93,15 @@ module Signalwire::Relay
     FINISHED = 'finished'
   end
 
+  module MessageState
+    QUEUED = 'queued'
+    INITIATED = 'initiated'
+    SENT = 'sent'
+    DELIVERED = 'delivered'
+    UNDELIVERED = 'undelivered'
+    FAILED = 'failed'
+  end
+
   module ComponentMethod
     ANSWER = 'call.answer'
     CONNECT = 'call.connect'

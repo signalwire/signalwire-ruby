@@ -1,11 +1,16 @@
 require 'spec_helper'
 
 describe Signalwire::Relay::Messaging::Message do
-  subject { described_class.new(from_number: '+1555XXXXXXX', to_number: '+1555YYYYYYY', context: 'incoming', body: "hello from SignalWire") }
 
-  describe "#send_request" do
-    it "has the correct payload" do
-      expect(subject.send_request('protocol123')).to eq "foo"
+  let(:event) { Signalwire::Relay::Event.new(mock_message_event) }
+  subject { described_class.new(event.payload) }
+
+  describe "accessors" do
+    it "has various accessors" do
+      described_class::FIELDS.each do |meth|
+        expect(subject.send(meth)).to eq event.dig(:params, :params, :params, meth)
+        expect(subject.body).to eq "Welcome at SignalWire!"
+      end
     end
   end
 end

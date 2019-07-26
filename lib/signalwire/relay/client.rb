@@ -90,6 +90,10 @@ module Signalwire::Relay
       @calling ||= Signalwire::Relay::Calling::Instance.new(self)
     end
 
+    def messaging
+      @messaging ||= Signalwire::Relay::Messaging::Instance.new(self)
+    end
+
     def setup_context(context)
       receive_command = {
         protocol: @protocol,
