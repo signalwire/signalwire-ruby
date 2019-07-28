@@ -18,23 +18,11 @@ module Signalwire::Relay
       end
 
       def send(from_number:, to_number:, context:, **params)
-        body = params.delete(:body)
-        media = params.delete(:media)
-        payload = params
-
-        raise ArgumentError, "You need to specify either :body or :media" unless body || media
-
-        payload[:body] = @body if @body
-        payload[:media] = @media if @media
-
-        params = payload.merge({
+        params.merge!({
           from_number: from_number,
           to_number: to_number,
           context: context
         })
-
-        params[:body] = body if body
-        params[:media] = body if media
 
         messaging_send = {
           protocol: protocol,

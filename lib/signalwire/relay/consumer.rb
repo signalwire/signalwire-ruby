@@ -33,21 +33,15 @@ module Signalwire::Relay
         token: @token, host: @url)
     end
 
-    def setup
-      # do stuff here.
-    end
+    def setup; end
 
-    def ready
-      # do stuff here.
-    end
+    def ready; end
 
-    def teardown
-      # do stuff here.
-    end
+    def teardown; end
 
     def on_task(task); end
-
-    def on_message(message); end
+    def on_incoming_message(message); end
+    def on_message_state_change(message); end
 
     def on_event(event)
       # all-events firespout
@@ -95,9 +89,8 @@ module Signalwire::Relay
     end
 
     def setup_messaging_listeners
-      client.messaging.on :message_received do |evt|
-        on_message(evt)
-      end
+      client.messaging.on(:message_received) { |evt|on_incoming_message(evt) }
+      client.messaging.on(:message_state_change) { |evt| on_message_state_change(evt) }
     end
   end
 end

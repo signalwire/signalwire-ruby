@@ -46,7 +46,7 @@ describe Signalwire::Relay::Messaging::Instance do
 
       mock_message subject.session, mock_message_event('state')
       expect(received).to be_a Signalwire::Relay::Messaging::Message
-      expect(received.message_state).to eq "received"
+      expect(received.state).to eq "received"
     end
   end
 end

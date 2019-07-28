@@ -11,7 +11,8 @@ Signalwire::Logger.logger.level = ::Logger::DEBUG
 
 class MessageSendConsumer < Signalwire::Relay::Consumer
   def ready
-    result = client.messaging.send(from_number: ENV['FROM_NUMBER'], to_number: ENV['TO_NUMBER'], context: 'incoming', body: 'hello world!')
+    logger.debug "Sending an SMS to #{ENV['TO_NUMBER']}"
+    result = client.messaging.send(from_number: ENV['TO_NUMBER'], to_number: ENV['FROM_NUMBER'], context: 'incoming', body: 'hello world!')
     logger.debug "message id #{result.message_id} was successfully sent" if result.successful
   rescue StandardError => e
     logger.error e.inspect
