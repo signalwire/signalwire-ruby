@@ -9,6 +9,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `:task` broadcast from client
 - `Relay::Task` and `on_task` handler for `Consumer`
 - Fax API for Relay
+- `Detect` API for Relay
 
 ## [2.0.0] - 2019-07-16
 ### Added
