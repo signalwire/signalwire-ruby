@@ -10,6 +10,8 @@ module Signalwire::Relay
       include Signalwire::Logger
       include Signalwire::Common
 
+      alias_method :object_send, :send
+
       def_delegators :@client, :relay_execute, :protocol, :on, :once, :broadcast
 
       def initialize(client)
@@ -17,12 +19,17 @@ module Signalwire::Relay
         setup_events
       end
 
-      def send(from_number:, to_number:, context:, **params)
-        params.merge!({
+      def send(from:, to:, context:, body: nil, media: nil, tags: nil, region: nil)
+        params = {
           from_number: from_number,
           to_number: to_number,
           context: context
-        })
+        }
+
+        params[:body] = body if body
+        params[:media] = media if media
+        params[:tags] = tags if tags
+        params[:region] = region if region
 
         messaging_send = {
           protocol: protocol,
