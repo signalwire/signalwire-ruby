@@ -21,7 +21,7 @@ module Signalwire::Relay
       end
 
       def contexts
-        @contexts ||= Concurrent::Array.new
+        @client.contexts
       end
 
       def receive(context:, &block)
@@ -32,17 +32,7 @@ module Signalwire::Relay
           block.call(call_obj) if block_given?
         end
 
-        receive_command = {
-          protocol: protocol,
-          method: 'call.receive',
-          params: {
-            context: context
-          }
-        }
-
-        relay_execute receive_command do
-          contexts << context
-        end
+        @client.setup_context(context)
       end
 
       def find_call_by_id(call_id)

@@ -64,6 +64,36 @@ module MockHelpers
     })
   end
 
+  def mock_message_event(event='receive')
+    mock_relay_message({
+      "event_type": "messaging.#{event}",
+      "timestamp": 1558539404.4556861,
+      "project_id": 'myproject123',
+      "space_id": 'fmyspace345',
+      "context": "incoming",
+      "params": {
+        "message_id": 'some-message-id-1234',
+        "context": 'incoming',
+        "direction": "inbound",
+        "tags": [
+          "message",
+          "inbound",
+          "SMS",
+          "home",
+          "+1xxx",
+          "+1yyy",
+          "relay-client"
+        ],
+        "from_number": "+1xxx",
+        "to_number": "+1yyy",
+        "body": "Welcome at SignalWire!",
+        "media": [],
+        "segments": 1,
+        "message_state": "received"
+      }
+    })
+  end
+
   def mock_component_event(call_id, control_id, event_type='calling.call.play', state_property='state', state='finished')
     mock_relay_message({
       "event_type": event_type,

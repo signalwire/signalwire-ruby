@@ -90,6 +90,29 @@ module Signalwire::Relay
       @calling ||= Signalwire::Relay::Calling::Instance.new(self)
     end
 
+    def messaging
+      @messaging ||= Signalwire::Relay::Messaging::Instance.new(self)
+    end
+
+    def setup_context(context)
+      return if contexts.include?(context)
+      receive_command = {
+        protocol: @protocol,
+        method: 'call.receive',
+        params: {
+          context: context
+        }
+      }
+
+      relay_execute receive_command do
+        contexts << context
+      end
+    end
+
+    def contexts
+      @contexts ||= Concurrent::Array.new
+    end
+
   private
 
     def setup_handlers
