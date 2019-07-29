@@ -10,7 +10,7 @@ RSpec.describe Signalwire::REST::Client do
   end
 
   before :each do
-    @client = Signalwire::REST::Client.new ENV.fetch('SIGNALWIRE_ACCOUNT', 'xyz123-xyz123-xyz123'),
+    @client = Signalwire::REST::Client.new ENV.fetch('SIGNALWIRE_PROJECT_KEY', 'xyz123-xyz123-xyz123'),
                                            ENV.fetch('SIGNALWIRE_TOKEN', 'PTxyz123-xyz123-xyz123')
   end
 

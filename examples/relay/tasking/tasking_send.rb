@@ -5,7 +5,7 @@ $LOAD_PATH.unshift(File.dirname(__FILE__) + '/../lib')
 ].each { |f| require f }
 
 task = Signalwire::Relay::Task.new(
-  project: ENV['SIGNALWIRE_ACCOUNT'],
+  project: ENV['SIGNALWIRE_PROJECT_KEY'],
   token: ENV['SIGNALWIRE_TOKEN'],
   host: ENV['SIGNALWIRE_HOST']
 )

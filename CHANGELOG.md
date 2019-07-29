@@ -10,6 +10,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `Relay::Task` and `on_task` handler for `Consumer`
 - Fax API for Relay
 - `Detect` API for Relay
+### Changed
+- Changed `SIGNALWIRE_ACCOUNT` environment variable to `SIGNALWIRE_PROJECT_KEY` to match UI
 
 ## [2.0.0] - 2019-07-16
 ### Added
