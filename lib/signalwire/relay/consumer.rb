@@ -18,7 +18,7 @@ module Signalwire::Relay
     # Creates a Consumer instance ready to be run
     #
     # The initialization parameters can also be supplied via ENV variables
-    # (SIGNALWIRE_ACCOUNT, SIGNALWIRE_TOKEN and SIGNALWIRE_HOST)
+    # (SIGNALWIRE_PROJECT_KEY, SIGNALWIRE_TOKEN and SIGNALWIRE_HOST)
     # Passed-in values override the environment ones.
     #
     # @param project [String] Your SignalWire project identifier
@@ -26,7 +26,7 @@ module Signalwire::Relay
     # @param SIGNALWIRE_HOST [String] Your SignalWire space URL (not needed for production usage)
 
     def initialize(project: nil, token: nil, host: nil)
-      @project = project   || ENV['SIGNALWIRE_ACCOUNT']
+      @project = project   || ENV['SIGNALWIRE_PROJECT_KEY']
       @token =   token     || ENV['SIGNALWIRE_TOKEN']
       @url =     host  || ENV['SIGNALWIRE_HOST'] || Signalwire::Relay::DEFAULT_URL
       @client = Signalwire::Relay::Client.new(project: @project,

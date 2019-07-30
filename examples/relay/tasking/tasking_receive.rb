@@ -7,7 +7,7 @@ $LOAD_PATH.unshift(File.dirname(__FILE__) + '/../lib')
 ].each { |f| require f }
 
 # Setup your ENV with:
-# SIGNALWIRE_ACCOUNT=YOUR_SIGNALWIRE_ACCOUNT_ID
+# SIGNALWIRE_PROJECT_KEY=YOUR_SIGNALWIRE_ACCOUNT_ID
 # SIGNALWIRE_TOKEN=YOUR_SIGNALWIRE_ACCOUNT_TOKEN
 #
 Signalwire::Logger.logger.level = ::Logger::DEBUG
