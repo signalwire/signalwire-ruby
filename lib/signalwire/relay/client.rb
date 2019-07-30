@@ -80,9 +80,11 @@ module Signalwire::Relay
           logger.error "Relay command failed with code #{code} and message: #{message}" unless success
         else
           logger.error 'Unknown Relay command failure, result code not found'
+          block.call(event, :failure) if block_given?
         end
       else
         logger.error 'Unknown Relay command failure, command timed out'
+        block.call(event, :failure) if block_given?
       end
     end
 
