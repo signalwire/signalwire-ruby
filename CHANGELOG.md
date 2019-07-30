@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.1.0] 2019-07-29
 ### Added
 - Tap API for Relay
 - `:task` broadcast from client
@@ -12,6 +12,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `Detect` API for Relay
 ### Changed
 - Changed `SIGNALWIRE_ACCOUNT` environment variable to `SIGNALWIRE_PROJECT_KEY` to match UI
+- Messaging API for Relay
 
 ## [2.0.0] - 2019-07-16
 ### Added
