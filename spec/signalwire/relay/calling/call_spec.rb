@@ -23,7 +23,7 @@ describe Signalwire::Relay::Calling::Call do
       client.calling.calls << peered_call
     end
 
-    fit 'sets the peer and fires the event' do
+    it 'sets the peer and fires the event' do
       subject.on :connect_state_change do |event|
         expect(event).to eq({ previous_state: nil, state: "connected" })
       end
