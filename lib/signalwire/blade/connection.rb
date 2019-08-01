@@ -25,7 +25,7 @@ module Signalwire::Blade
       @inbound_queue = EM::Queue.new
       @outbound_queue = EM::Queue.new
 
-      @counter = 1
+      @shutdown_list = []
     end
 
     def connect!
@@ -193,8 +193,19 @@ module Signalwire::Blade
 
     def shutdown_from_signal
       @shutdown = true
+      shutdown_registered
       disconnect!
       exit
+    end
+
+    def register_for_shutdown(obj)
+      @shutdown_list << obj
+    end
+
+    def shutdown_registered
+      @shutdown_list.each do |obj|
+        obj.stop
+      end
     end
   end
 end

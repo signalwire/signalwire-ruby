@@ -31,25 +31,21 @@ module Signalwire::Relay
       @url =     host  || ENV['SIGNALWIRE_HOST'] || Signalwire::Relay::DEFAULT_URL
       @client = Signalwire::Relay::Client.new(project: @project,
         token: @token, host: @url)
+
+      @client.session.register_for_shutdown(self)
     end
 
     def setup; end
-
     def ready; end
-
     def teardown; end
-
     def on_task(task); end
     def on_incoming_message(message); end
     def on_message_state_change(message); end
-
-    def on_event(event)
-      # all-events firespout
-    end
-
+    def on_event(event); end
     def on_incoming_call(call); end
 
     def run
+      logger.info "Starting up #{self.class}"
       setup
       client.once :ready do
         setup_receive_listeners
@@ -63,6 +59,11 @@ module Signalwire::Relay
 
     def stop
       teardown
+      logger_thread = Thread.new do
+        logger.info "#{self.class} Consumer shutting down."
+      end
+      logger_thread.join
+
       client.disconnect!
     end
 
