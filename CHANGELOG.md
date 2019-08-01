@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Fixed
+- Correctly set `peer` on calls
+
 ## [2.1.0] 2019-07-29
 ### Added
 - Tap API for Relay
