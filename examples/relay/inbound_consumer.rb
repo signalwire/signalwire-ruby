@@ -21,6 +21,10 @@ class MyConsumer < Signalwire::Relay::Consumer
 
     call.hangup
   end
+
+  def teardown
+    puts "this is an example of teardown"
+  end
 end
 
 MyConsumer.new.run
