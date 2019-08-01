@@ -50,6 +50,7 @@ module Signalwire::Relay
     def on_incoming_call(call); end
 
     def run
+      logger.info "Starting up #{self.class}"
       setup
       client.once :ready do
         setup_receive_listeners
