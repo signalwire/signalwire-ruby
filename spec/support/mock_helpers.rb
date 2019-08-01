@@ -17,7 +17,7 @@ module MockHelpers
     }
   end
 
-  def mock_call_hash(state = 'created')
+  def mock_call_hash(state = 'created', call_id='fb102ad7-4479-42a9-88ac-999999999999')
     mock_relay_message({
       "event_type": 'calling.call.receive',
       "timestamp": 1558539404.4556861,
@@ -34,7 +34,7 @@ module MockHelpers
           }
         },
         "direction": 'inbound',
-        "call_id": 'fb102ad7-4479-42a9-88ac-999999999999',
+        "call_id": call_id,
         "node_id": '2f25c10f-68cd-4b0c-8259-999999999999'
       },
       "event_channel": 'signalwire_calling_abc123'
@@ -60,6 +60,32 @@ module MockHelpers
         },
         "call_id": call_id,
         "node_id": "2f25c10f-68cd-4b0c-8259-999999999999"
+      }
+    })
+  end
+
+  def mock_connect_state(call_id, peer_id='some-call-id', state=Relay::CallConnectState::CONNECTED)
+    mock_relay_message({
+      "event_type": "calling.call.connect",
+      "event_channel": "signalwire_calling-999999999999",
+      "timestamp": 1558539404.79576,
+      "project_id": 'fmyspace345',
+      "space_id": 'fmyspace345',
+      "params": {
+        "connect_state": state,
+        "device": {
+          "type": "phone",
+          "params": {
+            "from_number": "+12029085665",
+            "to_number": "12069286532"
+          }
+        },
+        "call_id": call_id,
+        "node_id": "2f25c10f-68cd-4b0c-8259-999999999999",
+        "peer": {
+          "call_id": peer_id,
+          "node_id": "2f25c10f-68cd-4b0c-8259-999999999999"
+        }
       }
     })
   end

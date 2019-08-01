@@ -4,8 +4,11 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- Correctly set `peer` on calls
 ### Changed
 - Call `Consumer::teardown` on shutdown
+
 
 ## [2.1.0] 2019-07-29
 ### Added

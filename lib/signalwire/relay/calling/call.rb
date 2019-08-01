@@ -46,6 +46,7 @@ module Signalwire::Relay::Calling
           change_call_state(event.event_params)
         end
 
+        update_call_fields(event.call_params)
         broadcast :event, event
         broadcast :state_change, event
       end
@@ -56,8 +57,6 @@ module Signalwire::Relay::Calling
       @previous_state = @state
       @state = call_state[:call_state]
       broadcast :call_state_change, previous_state: @previous_state, state: @state
-
-      update_call_fields(call_state)
       broadcast @state.to_sym, previous_state: @previous_state, state: @state
       finish_call(event_params) if @state == Relay::CallState::ENDED
     end
@@ -65,6 +64,7 @@ module Signalwire::Relay::Calling
     def update_call_fields(call_state)
       @id = call_state[:call_id] if call_state[:call_id]
       @node_id = call_state[:node_id] if call_state[:node_id]
+      @peer = call_state[:peer] if call_state[:peer]
     end
 
     def change_connect_state(new_connect_state)
@@ -93,6 +93,10 @@ module Signalwire::Relay::Calling
 
     def active?
       !ended?
+    end
+
+    def peer
+      @client.calling.find_call_by_id(@peer[:call_id]) if @peer && @peer[:call_id]
     end
 
     def answer

@@ -24,7 +24,6 @@ describe Signalwire::Relay::Calling::Instance do
       sleep 0.1
 
       mock_message subject.session, relay_response(receive_command['id'])
-      # expect(subject.calling.contexts).to eq ['pbx']
 
       call = nil
       mock_message subject.session, mock_call_hash

@@ -16,6 +16,23 @@ describe Signalwire::Relay::Calling::Call do
     end
   end
 
+  describe 'connect_state_change' do
+    let(:peered_call){ described_class.new(client, mock_call_hash('created', 'some-call-id').dig(:params, :params, :params)) }
+
+    before do
+      client.calling.calls << peered_call
+    end
+
+    it 'sets the peer and fires the event' do
+      subject.on :connect_state_change do |event|
+        expect(event).to eq({ previous_state: nil, state: "connected" })
+      end
+
+      mock_message subject.client.session, mock_connect_state(subject.id, peered_call.id)
+      expect(subject.peer).to be peered_call
+    end
+  end
+
   describe 'ending a call' do
     it 'sets the busy state' do
       message = mock_call_state(subject.id, Relay::CallState::ENDED)
