@@ -21,8 +21,8 @@ module Signalwire::Relay
 
       def send(from:, to:, context:, body: nil, media: nil, tags: nil, region: nil)
         params = {
-          from_number: from_number,
-          to_number: to_number,
+          from_number: from,
+          to_number: to,
           context: context
         }
 

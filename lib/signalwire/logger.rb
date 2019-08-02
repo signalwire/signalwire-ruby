@@ -10,7 +10,7 @@ module Signalwire
       def logger
         @logger ||= begin
           logger = ::Logger.new(STDERR, progname: 'SignalWire', level: ::Logger::DEBUG)
-          logger.level = ENV.fetch('SIGNALWIRE_LOG_LEVEL', ::Logger::WARN)
+          logger.level = ENV.fetch('SIGNALWIRE_LOG_LEVEL', ::Logger::INFO)
           logger
         end
       end

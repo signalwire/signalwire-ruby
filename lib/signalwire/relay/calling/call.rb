@@ -13,7 +13,7 @@ module Signalwire::Relay::Calling
 
     attr_reader :device, :type, :node_id, :context, :from, :to,
                 :timeout, :tag, :client, :state, :previous_state, :components,
-                :busy, :failed
+                :busy, :failed, :peer_call
     def_delegators :@client, :relay_execute
 
     def self.from_event(client, event)
@@ -64,7 +64,7 @@ module Signalwire::Relay::Calling
     def update_call_fields(call_state)
       @id = call_state[:call_id] if call_state[:call_id]
       @node_id = call_state[:node_id] if call_state[:node_id]
-      @peer = call_state[:peer] if call_state[:peer]
+      @peer_call = call_state[:peer] if call_state[:peer]
     end
 
     def change_connect_state(new_connect_state)
@@ -96,7 +96,7 @@ module Signalwire::Relay::Calling
     end
 
     def peer
-      @client.calling.find_call_by_id(@peer[:call_id]) if @peer && @peer[:call_id]
+      @client.calling.find_call_by_id(@peer_call[:call_id]) if @peer_call && @peer_call[:call_id]
     end
 
     def answer

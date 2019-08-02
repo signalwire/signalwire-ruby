@@ -50,4 +50,12 @@ describe Signalwire::Relay::Calling::Instance do
       expect(subject.calling.find_call_by_tag(created_call.tag)).to eq created_call
     end
   end
+
+  describe '#listen_for_created_calls' do
+    it 'creates a call and adds it to the roster' do
+      subject.calling # usually we have called this somehow already
+      mock_message subject.session, mock_call_state("created_call_id", Relay::CallState::CREATED)
+      expect(subject.calling.calls.first.id).to eq 'created_call_id'
+    end
+  end
 end
