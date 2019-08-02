@@ -3,20 +3,20 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.1.2] - 2019-08-01
 ### Fixed
 - Fix CPU usage
 - Set default log level to INFO.
 - Fix incorrect names for messaging parameters.
 - Fix an issue when creating new calls.
 
-## [2.1.1] 2019-08-01
+## [2.1.1] - 2019-08-01
 ### Fixed
 - Correctly set `peer` on calls
 ### Changed
 - Call `Consumer::teardown` on shutdown
 
-## [2.1.0] 2019-07-29
+## [2.1.0] - 2019-07-29
 ### Added
 - Tap API for Relay
 - `:task` broadcast from client
