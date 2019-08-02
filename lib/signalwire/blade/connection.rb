@@ -56,8 +56,12 @@ module Signalwire::Blade
           logger.error "Error occurred: #{error.message}"
         end
 
-        EM.next_tick { flush_queues }
+        schedule_flush_queues
       end
+    end
+
+    def schedule_flush_queues
+      EM.add_timer(0.005) { flush_queues }
     end
 
     def setup_started_event
@@ -132,7 +136,7 @@ module Signalwire::Blade
         @outbound_queue.pop { |outbound| write(outbound) } until @outbound_queue.empty?
       end
 
-      EM.next_tick { flush_queues }
+      schedule_flush_queues
     end
 
     def enqueue_inbound(message)
