@@ -6,6 +6,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 ### Fixed
 - Fix CPU usage
+- Set default log level to INFO.
+- Fix incorrect names for messaging parameters.
+- Fix an issue when creating new calls.
 
 ## [2.1.1] 2019-08-01
 ### Fixed
