@@ -36,7 +36,7 @@ module Signalwire::Relay
 
       def receive(context:, &block)
         @client.on :event, event_type: 'calling.call.receive' do |event|
-          logger.info "Starting up call for #{event.call_params}"
+          logger.debug "Receiving call: #{event.call_params}"
           call_obj = Signalwire::Relay::Calling::Call.from_event(@client, event)
           calls << call_obj
           block.call(call_obj) if block_given?
