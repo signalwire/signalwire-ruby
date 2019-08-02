@@ -14,6 +14,7 @@ module Signalwire::Relay
 
       def initialize(client)
         @client = client
+        listen_for_created_calls
       end
 
       def calls
@@ -24,10 +25,19 @@ module Signalwire::Relay
         @client.contexts
       end
 
+      def listen_for_created_calls
+        @client.on :event, event_type: 'calling.call.state' do |event|
+          if !find_call_by_id(event.call_id)
+            created_call = Call.from_event(@client, event)
+            calls << created_call
+          end
+        end
+      end
+
       def receive(context:, &block)
         @client.on :event, event_type: 'calling.call.receive' do |event|
           logger.info "Starting up call for #{event.call_params}"
-          call_obj = Signalwire::Relay::Calling::Call.from_event(self, event)
+          call_obj = Signalwire::Relay::Calling::Call.from_event(@client, event)
           calls << call_obj
           block.call(call_obj) if block_given?
         end
@@ -58,7 +68,7 @@ module Signalwire::Relay
             }
           }
         }
-        call = Call.new(self, params)
+        call = Call.new(@client, params)
         calls << call
         call
       end
