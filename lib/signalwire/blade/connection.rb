@@ -66,20 +66,22 @@ module Signalwire::Blade
 
     def setup_started_event
       on :started do |_event|
-        @connected = true
-        myreq = connect_request
-        start_periodic_timer
+        begin
+          @connected = true
+          myreq = connect_request
+          start_periodic_timer
 
-        write_command(myreq) do |event|
-          @session_id = event.dig(:result, :sessionid) unless @session_id
-          @node_id = event.dig(:result, :nodeid) unless @node_d
-          logger.info "Blade Session connected with id: #{@session_id}"
-          broadcast :connected, event
+          write_command(myreq) do |event|
+            @session_id = event.dig(:result, :sessionid) unless @session_id
+            @node_id = event.dig(:result, :nodeid) unless @node_d
+            logger.info "Blade Session connected with id: #{@session_id}"
+            broadcast :connected, event
+          end
+
+        rescue StandardError => e
+          logger.error e.inspect
+          logger.error e.backtrace
         end
-
-      rescue StandardError => e
-        logger.error e.inspect
-        logger.error e.backtrace
       end
     end
 
