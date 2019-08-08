@@ -100,7 +100,7 @@ module Signalwire::Relay
       return if contexts.include?(context)
       receive_command = {
         protocol: @protocol,
-        method: 'call.receive',
+        method: 'signalwire.receive',
         params: {
           context: context
         }

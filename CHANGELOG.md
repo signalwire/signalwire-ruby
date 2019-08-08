@@ -6,6 +6,8 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 ### Fixed
 - Restore the correct parameter for the REST client space URL
+### Changed
+- SDK now uses `signalwire.receive` to set up contexts
 
 ## [2.1.2] - 2019-08-01
 ### Fixed
