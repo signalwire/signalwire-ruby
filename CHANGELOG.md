@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Fixed
+- Restore the correct parameter for the REST client space URL
+
 ## [2.1.2] - 2019-08-01
 ### Fixed
 - Fix CPU usage
