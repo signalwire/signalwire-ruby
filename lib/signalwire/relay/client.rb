@@ -79,7 +79,7 @@ module Signalwire::Relay
           block.call(event, success) if block_given?
           logger.error "Relay command failed with code #{code} and message: #{message}" unless success
         else
-          logger.error 'Unknown Relay command failure, result code not found'
+          logger.error("Relay error occurred, code #{event.error_code}: #{event.error_message}") if event.error?
           block.call(event, :failure) if block_given?
         end
       else
