@@ -34,5 +34,17 @@ module Signalwire::Blade
     def to_s
       inspect
     end
+
+    def error?
+      @payload.has_key?(:error)
+    end
+
+    def error_code
+      @payload.dig(:error, :code)
+    end
+
+    def error_message
+      @payload.dig(:error, :message)
+    end
   end
 end

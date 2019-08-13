@@ -109,8 +109,18 @@ module Signalwire::Blade
     end
 
     def write_command(command, &block)
-      once(:message, id: command.id, &block) if block_given?
+      if block_given?
+        once :message, id: command.id do |event|
+          handle_execute_response(event, &block)
+        end
+      end
+
       transmit(command.build_request.to_json)
+    end
+
+    def handle_execute_response(event, &block)
+      logger.error("Blade error occurred, code #{event.error_code}: #{event.error_message}") if event.error?
+      block.call(event)
     end
 
     def execute(params, &block)
