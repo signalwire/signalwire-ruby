@@ -47,6 +47,11 @@ module Signalwire::Relay
     def run
       logger.info "Starting up #{self.class}"
       setup
+      
+      client.on :ready do
+        setup_contexts
+      end
+
       client.once :ready do
         setup_receive_listeners
         setup_all_events_listener
@@ -74,6 +79,12 @@ module Signalwire::Relay
         client.calling.receive context: cxt do |call|
           on_incoming_call(call)
         end
+      end
+    end
+
+    def setup_contexts
+      self.class.contexts.each do |cxt|
+        @client.setup_context(ctx)
       end
     end
 
