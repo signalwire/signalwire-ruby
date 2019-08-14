@@ -75,15 +75,15 @@ module Signalwire::Relay
   private
 
     def setup_receive_listeners
-      self.class.contexts.each do |cxt|
-        client.calling.receive context: cxt do |call|
+      self.class.contexts.each do |ctx|
+        client.calling.receive context: ctx do |call|
           on_incoming_call(call)
         end
       end
     end
 
     def setup_contexts
-      self.class.contexts.each do |cxt|
+      self.class.contexts.each do |ctx|
         @client.setup_context(ctx)
       end
     end
