@@ -97,6 +97,7 @@ module Signalwire::Relay
     end
 
     def setup_context(context)
+      return if contexts.include?(context)
       receive_command = {
         protocol: @protocol,
         method: 'signalwire.receive',
@@ -148,6 +149,7 @@ module Signalwire::Relay
         @session.subscribe(notification_request) do
           logger.debug "Subscribed to notifications for #{protocol}"
           @connected = true
+          @contexts = Concurrent::Array.new
           broadcast :ready, self
         end
       end

@@ -37,9 +37,9 @@ module Signalwire::Blade
     end
 
     def reconnect!
+      @connected = false
       return if @shutdown
       sleep Signalwire::Blade::RECONNECT_PERIOD
-      @connected = false
       logger.info "Attempting reconnection"
       main_loop!
     end
@@ -165,11 +165,13 @@ module Signalwire::Blade
           # reconnect logic goes here
           logger.error "We got disconnected!"
           pinger.cancel
-          reconnect!
+          reconnect! if connected?
         end
-    
-        @ws.ping 'detecting presence' do
-          timeouter.cancel
+        
+        if @connected
+          @ws.ping 'detecting presence' do
+            timeouter.cancel
+          end
         end
       end
     end
