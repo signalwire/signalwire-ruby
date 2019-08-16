@@ -97,6 +97,7 @@ module Signalwire::Relay
     end
 
     def setup_context(context)
+      return if contexts.include?(context)
       receive_command = {
         protocol: @protocol,
         method: 'signalwire.receive',
