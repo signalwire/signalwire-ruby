@@ -79,7 +79,7 @@ module Signalwire::Relay
           block.call(event, success) if block_given?
           logger.error "Relay command failed with code #{code} and message: #{message}" unless success
         else
-          logger.error 'Unknown Relay command failure, result code not found'
+          logger.error("Relay error occurred, code #{event.error_code}: #{event.error_message}") if event.error?
           block.call(event, :failure) if block_given?
         end
       else
@@ -121,7 +121,11 @@ module Signalwire::Relay
       @session.on :connected do |event|
         logger.debug 'Relay client connected'
         broadcast :connecting, event
-        protocol_setup
+        if event.error?
+          logger.error("Error setting up Blade connection")
+        else
+          protocol_setup
+        end
       end
     end
 
@@ -137,19 +141,23 @@ module Signalwire::Relay
       setup[:params][:protocol] = @protocol if @protocol
 
       @session.execute(setup) do |event|
-        @protocol = event.dig(:result, :result, :protocol)
-        logger.debug "Protocol set up as #{protocol}"
+        if event.error?
+          logger.error("Error setting up Relay protocol")
+        else
+          @protocol = event.dig(:result, :result, :protocol)
+          logger.debug "Protocol set up as #{protocol}"
 
-        notification_request = {
-          "protocol": @protocol,
-          "command": 'add',
-          "channels": ['notifications']
-        }
+          notification_request = {
+            "protocol": @protocol,
+            "command": 'add',
+            "channels": ['notifications']
+          }
 
-        @session.subscribe(notification_request) do
-          logger.debug "Subscribed to notifications for #{protocol}"
-          @connected = true
-          broadcast :ready, self
+          @session.subscribe(notification_request) do
+            logger.debug "Subscribed to notifications for #{protocol}"
+            @connected = true
+            broadcast :ready, self
+          end
         end
       end
     end
