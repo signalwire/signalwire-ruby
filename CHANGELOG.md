@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Fix REST pagination URL
 ### Changed
 - SDK now uses `signalwire.receive` to set up contexts
+- The `call.*` actions are now `calling.*`
 - Support positional parameters in older methods
 
 ## [2.1.2] - 2019-08-01
