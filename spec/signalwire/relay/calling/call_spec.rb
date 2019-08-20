@@ -72,4 +72,101 @@ describe Signalwire::Relay::Calling::Call do
       expect(result.value).to eq true
     end
   end
+
+  describe "#prompt" do
+    let(:collect_obj) { 'some_collect'}
+    let(:play_obj) { 'some_play'}
+    let(:prompt_double) { double('Prompt', wait_for: nil) }
+
+    context "with valid parameters" do
+      before do
+        expect(Signalwire::Relay::Calling::Prompt).to receive(:new).with(call: subject, collect: collect_obj, play: play_obj).and_return(prompt_double)
+      end
+
+      it "handles positional parameters" do
+        subject.prompt(collect_obj, play_obj)
+      end
+
+      it "handles keyword parameters" do
+        subject.prompt(collect: collect_obj, play: play_obj)
+      end
+
+      it "handles mixed parameters" do
+        subject.prompt(collect_obj, play: play_obj)
+      end
+    end
+
+    it "raises on a missing parameter" do
+      expect {
+        subject.prompt(collect_obj)
+      }.to raise_error(ArgumentError)
+    end
+
+    it "raises on a missing parameter with keywords" do
+      expect {
+        subject.prompt(collect: collect_obj)
+      }.to raise_error(ArgumentError)
+    end
+  end
+
+  describe "#prompt_tts" do
+    let(:collect_obj) { 'some_collect'}
+    let(:sentence_obj) { 'some_sentence'}
+    let(:language) { "en-US" }
+    let(:play_obj) do
+       [{ params: {gender: "female", language: language, text: sentence_obj}, type: "tts" }]
+    end
+    let(:prompt_double) { double('Prompt', wait_for: nil) }
+
+    context "with valid parameters" do
+      before do
+        expect(Signalwire::Relay::Calling::Prompt).to receive(:new).with(call: subject, collect: collect_obj, play: play_obj).and_return(prompt_double)
+      end
+
+      it "handles positional parameters" do
+        subject.prompt_tts(collect_obj, sentence_obj)
+      end
+
+      it "handles keyword parameters" do
+        subject.prompt_tts(collect: collect_obj, text: sentence_obj)
+      end
+
+      context "optional parameters" do
+        let(:language) { "it-IT" }
+        it "handles optional parameters" do
+          subject.prompt_tts(collect: collect_obj, text: sentence_obj, language: language)
+        end
+      end
+    end
+
+    describe "#play_tts" do
+      let(:sentence_obj) { 'some_sentence'}
+      let(:language) { "en-US" }
+      let(:play_obj) do
+         [{ params: {gender: "female", language: language, text: sentence_obj}, type: "tts" }]
+      end
+      let(:play_double) { double('Play', wait_for: nil) }
+  
+      context "with valid parameters" do
+        before do
+          expect(Signalwire::Relay::Calling::Play).to receive(:new).with(call: subject, play: play_obj).and_return(play_double)
+        end
+  
+        it "handles positional parameters" do
+          subject.play_tts(sentence_obj)
+        end
+  
+        it "handles keyword parameters" do
+          subject.play_tts(text: sentence_obj)
+        end
+  
+        context "optional parameters" do
+          let(:language) { "it-IT" }
+          it "handles optional parameters" do
+            subject.play_tts(text: sentence_obj, language: language)
+          end
+        end
+      end
+    end
+  end
 end

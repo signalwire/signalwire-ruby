@@ -5,6 +5,8 @@ module Signalwire::Relay
   COMMAND_TIMEOUT = 30
   DEFAULT_CALL_TIMEOUT = 30
   PING_TIMEOUT = 5
+  DEFAULT_LANGUAGE = 'en-US'
+  DEFAULT_GENDER = 'female'
 
   module CallState
     NONE = 'none'
