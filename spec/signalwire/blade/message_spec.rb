@@ -32,4 +32,21 @@ describe Signalwire::Blade::Message do
       expect(msg[:someval]).to eq 'foo'
     end
   end
+
+  describe 'error?' do
+    let(:error_hash) do
+      { error: { code: '-9999', message: 'Something went horribly wrong' } }
+    end
+
+    it "returns true if error" do
+      obj = described_class.new(error_hash)
+      expect(obj.error?).to eq true
+      expect(obj.error_code).to eq error_hash[:error][:code]
+      expect(obj.error_message).to eq error_hash[:error][:message]
+    end
+
+    it "returns false if not an error" do
+      expect(subject.error?).to eq false
+    end
+  end
 end

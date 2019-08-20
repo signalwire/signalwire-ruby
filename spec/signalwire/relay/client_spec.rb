@@ -36,6 +36,20 @@ describe Signalwire::Relay::Client do
     end
   end
 
+  describe '#setup_handlers' do
+    let(:error_event) { Signalwire::Blade::Message.new({ error: { code: '-9999', message: 'Something went horribly wrong' } }) }
+    let(:result_event) { Signalwire::Blade::Message.new({ result: { code: '200', message: 'All good' } }) }
+    it "does not setup protocol on a failed login" do
+      expect(subject).to receive(:protocol_setup).never
+      subject.session.broadcast(:connected, error_event)
+    end
+
+    it "does setup protocol on a successful login" do
+      expect(subject).to receive(:protocol_setup).once
+      subject.session.broadcast(:connected, result_event)
+    end
+  end
+
   describe '#relay_execute' do
     let(:receive_message) { {
       "protocol": 'myprotocol',
