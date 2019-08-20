@@ -141,23 +141,20 @@ module Signalwire::Relay
       setup[:params][:protocol] = @protocol if @protocol
 
       @session.execute(setup) do |event|
-        if event.error?
-          logger.error("Error setting up Relay protocol")
-        else
-          @protocol = event.dig(:result, :result, :protocol)
-          logger.debug "Protocol set up as #{protocol}"
+        @protocol = event.dig(:result, :result, :protocol)
+        logger.debug "Protocol set up as #{protocol}"
 
-          notification_request = {
-            "protocol": @protocol,
-            "command": 'add',
-            "channels": ['notifications']
-          }
+        notification_request = {
+          "protocol": @protocol,
+          "command": 'add',
+          "channels": ['notifications']
+        }
 
-          @session.subscribe(notification_request) do
-            logger.debug "Subscribed to notifications for #{protocol}"
-            @connected = true
-            broadcast :ready, self
-          end
+        @session.subscribe(notification_request) do
+          logger.debug "Subscribed to notifications for #{protocol}"
+          @connected = true
+          @contexts = Concurrent::Array.new
+          broadcast :ready, self
         end
       end
     end
