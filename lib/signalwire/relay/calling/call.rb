@@ -117,16 +117,20 @@ module Signalwire::Relay::Calling
       PlayAction.new(component: play_component)
     end
 
-    def prompt(collect_object, play_object)
-      component = Prompt.new(call: self, collect: collect_object, play: play_object)
+    def prompt(collect_p = nil, play_p = nil, collect: nil, play: nil)
+      set_parameters(binding, %i{collect play}, %i{collect play})
+
+      component = Prompt.new(call: self, collect: collect, play: play)
       component.wait_for(Relay::CallPromptState::ERROR, Relay::CallPromptState::NO_INPUT, 
                          Relay::CallPromptState::NO_MATCH, Relay::CallPromptState::DIGIT,
                          Relay::CallPromptState::SPEECH)
       PromptResult.new(component: component)
     end
 
-    def prompt!(collect_object, play_object)
-      component = Prompt,new(call: self, collect: collect_object, play: play_object)
+    def prompt!(collect_p = nil, play_p = nil, collect: nil, play: nil)
+      set_parameters(binding, %i{collect play}, %i{collect play})
+
+      component = Prompt,new(call: self, collect: collect, play: play)
       component.execute
       PromptAction.new(component: component)
     end
@@ -246,6 +250,15 @@ module Signalwire::Relay::Calling
       @device = call_options[:device]
       @busy = false
       @failed = false
+    end
+
+    def set_parameters(passed_binding, keys, mandatory_keys)
+      keys.each do |x| 
+        passed_binding.local_variable_set(x, passed_binding.local_variable_get(x) || passed_binding.local_variable_get("#{x}_p"))
+      end
+      mandatory_keys.each do |x|
+        raise ArgumentError if passed_binding.local_variable_get(x).nil?
+      end
     end
   end
 end
