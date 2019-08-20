@@ -104,17 +104,17 @@ module Signalwire::Relay
   end
 
   module ComponentMethod
-    ANSWER = 'call.answer'
-    CONNECT = 'call.connect'
-    DIAL = 'call.begin' # BEGIN is a reserved word
-    HANGUP = 'call.end' # END is a reserved word
-    PLAY = 'call.play'
-    PROMPT = 'call.play_and_collect'
-    RECORD = 'call.record'
-    SEND_FAX = 'call.send_fax'
-    RECEIVE_FAX = 'call.receive_fax'
-    TAP = 'call.tap'
-    DETECT = 'call.detect'
+    ANSWER = 'calling.answer'
+    CONNECT = 'calling.connect'
+    DIAL = 'calling.begin' # BEGIN is a reserved word
+    HANGUP = 'calling.end' # END is a reserved word
+    PLAY = 'calling.play'
+    PROMPT = 'calling.play_and_collect'
+    RECORD = 'calling.record'
+    SEND_FAX = 'calling.send_fax'
+    RECEIVE_FAX = 'calling.receive_fax'
+    TAP = 'calling.tap'
+    DETECT = 'calling.detect'
   end
 
   module CommonState
