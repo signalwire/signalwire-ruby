@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 ### Fixed
 - Restore the correct parameter for the REST client space URL
+- Correctly handle reconnect on a server-side disconnect
 - Fix REST pagination URL
 ### Changed
 - SDK now uses `signalwire.receive` to set up contexts
