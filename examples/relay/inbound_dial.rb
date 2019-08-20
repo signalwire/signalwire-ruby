@@ -18,7 +18,7 @@ class MyConsumer < Signalwire::Relay::Consumer
 
   def on_incoming_call(call)
     call.answer
-    call.play_tts sentence: 'connecting you to the clock service'
+    call.play_tts text: 'connecting you to the clock service'
     call.connect [[{ type: 'phone', params: { to_number: '+12027621401', from_number: ENV['FROM_NUMBER'], timeout: 30 } }]]
     sleep 20
     call.hangup

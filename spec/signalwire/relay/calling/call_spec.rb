@@ -128,13 +128,13 @@ describe Signalwire::Relay::Calling::Call do
       end
 
       it "handles keyword parameters" do
-        subject.prompt_tts(collect: collect_obj, sentence: sentence_obj)
+        subject.prompt_tts(collect: collect_obj, text: sentence_obj)
       end
 
       context "optional parameters" do
         let(:language) { "it-IT" }
         it "handles optional parameters" do
-          subject.prompt_tts(collect: collect_obj, sentence: sentence_obj, language: language)
+          subject.prompt_tts(collect: collect_obj, text: sentence_obj, language: language)
         end
       end
     end
@@ -157,13 +157,13 @@ describe Signalwire::Relay::Calling::Call do
         end
   
         it "handles keyword parameters" do
-          subject.play_tts(sentence: sentence_obj)
+          subject.play_tts(text: sentence_obj)
         end
   
         context "optional parameters" do
           let(:language) { "it-IT" }
           it "handles optional parameters" do
-            subject.play_tts(sentence: sentence_obj, language: language)
+            subject.play_tts(text: sentence_obj, language: language)
           end
         end
       end

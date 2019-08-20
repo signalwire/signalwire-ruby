@@ -14,7 +14,7 @@ class OutboundConsumer < Signalwire::Relay::Consumer
     logger.info 'Dialing out'
     call = client.calling.new_call(from: ENV['FROM_NUMBER'], to: ENV['TO_NUMBER'])
     call.dial
-    call.play_tts sentence: 'the quick brown fox jumps over the lazy dog', 'en-US', 'male'
+    call.play_tts text: 'the quick brown fox jumps over the lazy dog', 'en-US', 'male'
     call.hangup
   end
 end
