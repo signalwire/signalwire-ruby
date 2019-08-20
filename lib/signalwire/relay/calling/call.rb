@@ -256,7 +256,9 @@ module Signalwire::Relay::Calling
       keys.each do |x| 
         passed_binding.local_variable_set(x, passed_binding.local_variable_get(x) || passed_binding.local_variable_get("#{x}_p"))
       end
-      mandatory_keys.each { |x| raise ArgumentError unless passed_binding.local_variable_get(x) }
+      mandatory_keys.each do |x|
+        raise ArgumentError if passed_binding.local_variable_get(x).nil?
+      end
     end
   end
 end
