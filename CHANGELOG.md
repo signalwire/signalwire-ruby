@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.1.3] - 2019-08-20
 ### Fixed
 - Restore the correct parameter for the REST client space URL
 - Correctly handle reconnect on a server-side disconnect
