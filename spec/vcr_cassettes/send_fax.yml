@@ -2,7 +2,7 @@
 http_interactions:
 - request:
     method: post
-    uri: https://testing.signalwire.com/api/laml/2010-04-01/Accounts/xyz123-xyz123-xyz123/Faxes.json
+    uri: https://testing.signalwire.com/2010-04-01/Accounts/xyz123-xyz123-xyz123/Faxes.json
     body:
       encoding: UTF-8
       string: From=%2B15556677888&MediaUrl=https%3A%2F%2Fwww.w3.org%2FWAI%2FER%2Ftests%2Fxhtml%2Ftestfiles%2Fresources%2Fpdf%2Fdummy.pdf&To=%2B15556677999
@@ -21,7 +21,7 @@ http_interactions:
       message: Created
     body:
       encoding: UTF-8
-      string: '{"account_sid":"xyz123-xyz123-xyz123","api_version":"v1","date_created":"2019-01-04T16:28:33Z","date_updated":"2019-01-04T16:28:33Z","direction":"outbound","from":"+15556677888","media_url":null,"media_sid":"aff0684c-3445-49bc-802b-3a0a488139f5","num_pages":null,"price":null,"price_unit":"USD","quality":"fine","sid":"831455c6-574e-4d8b-b6ee-2418140bf4cd","status":"queued","to":"+15556677999","duration":0,"links":{"media":"/api/laml/2010-04-01/Accounts/xyz123-xyz123-xyz123/Faxes/831455c6-574e-4d8b-b6ee-2418140bf4cd/Media"},"url":"/api/laml/2010-04-01/Accounts/xyz123-xyz123-xyz123/Faxes/831455c6-574e-4d8b-b6ee-2418140bf4cd"}'
+      string: '{"account_sid":"xyz123-xyz123-xyz123","api_version":"v1","date_created":"2019-01-04T16:28:33Z","date_updated":"2019-01-04T16:28:33Z","direction":"outbound","from":"+15556677888","media_url":null,"media_sid":"aff0684c-3445-49bc-802b-3a0a488139f5","num_pages":null,"price":null,"price_unit":"USD","quality":"fine","sid":"831455c6-574e-4d8b-b6ee-2418140bf4cd","status":"queued","to":"+15556677999","duration":0,"links":{"media":"/2010-04-01/Accounts/xyz123-xyz123-xyz123/Faxes/831455c6-574e-4d8b-b6ee-2418140bf4cd/Media"},"url":"/2010-04-01/Accounts/xyz123-xyz123-xyz123/Faxes/831455c6-574e-4d8b-b6ee-2418140bf4cd"}'
     http_version: 
   recorded_at: Fri, 04 Jan 2019 16:28:33 GMT
 recorded_with: VCR 4.0.0
