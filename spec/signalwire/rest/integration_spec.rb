@@ -95,7 +95,7 @@ RSpec.describe Signalwire::REST::Client do
       VCR.use_cassette('get_fax_media_instance') do
         fax_media = @client.fax.faxes('831455c6-574e-4d8b-b6ee-2418140bf4cd').media('aff0684c-3445-49bc-802b-3a0a488139f5').fetch
         expect(fax_media.content_type).to eq 'image/tiff'
-        expect(fax_media.url).to eq '/api/laml/2010-04-01/Accounts/xyz123-xyz123-xyz123/Faxes/831455c6-574e-4d8b-b6ee-2418140bf4cd/Media/aff0684c-3445-49bc-802b-3a0a488139f5.json'
+        expect(fax_media.url).to eq '/2010-04-01/Accounts/xyz123-xyz123-xyz123/Faxes/831455c6-574e-4d8b-b6ee-2418140bf4cd/Media/aff0684c-3445-49bc-802b-3a0a488139f5.json'
       end
     end
   end

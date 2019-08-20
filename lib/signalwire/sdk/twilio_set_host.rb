@@ -14,7 +14,7 @@ module Twilio
                       'SIGNALWIRE_HOST or SIGNALWIRE_API_HOSTNAME environment variables, '\
                       'or hostname in the configuration.')
 
-        @base_url = "https://#{@host}/api/laml"
+        @base_url = "https://#{@host}"
         @port = 443
 
         # Versions

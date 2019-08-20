@@ -12,7 +12,7 @@ module Twilio
                       'SignalWire Space URL is not configured. Enter your SignalWire Space domain via the '\
                       'SIGNALWIRE_HOST environment variable, or hostname in the configuration.')
 
-        @base_url = "https://#{@host}/api/laml"
+        @base_url = "https://#{@host}"
         @port = 443
 
         # Versions

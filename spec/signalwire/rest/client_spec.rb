@@ -12,7 +12,7 @@ module Signalwire
       @client = Signalwire::REST::Client.new 'MYSWPROJECT',
                                              'MYSWTOKEN'
 
-      stub = stub_request(:post, 'https://myswspace.signalwire.com/api/laml/2010-04-01/Accounts/MYSWPROJECT/Messages.json')
+      stub = stub_request(:post, 'https://myswspace.signalwire.com/2010-04-01/Accounts/MYSWPROJECT/Messages.json')
              .with(body: { 'Body' => 'This is a message from the Signalwire-Ruby library!',
                            'From' => '+15556677999', 'To' => '+15558866555' })
 
