@@ -72,4 +72,26 @@ describe Signalwire::Relay::Calling::Call do
       expect(result.value).to eq true
     end
   end
+
+  describe "#prompt" do
+    let(:collect_obj) { 'some_collect'}
+    let(:play_obj) { 'some_play'}
+    let(:prompt_double) { double('Prompt', wait_for: nil) }
+
+    before do
+      expect(Signalwire::Relay::Calling::Prompt).to receive(:new).with(call: subject, collect: collect_obj, play: play_obj).and_return(prompt_double)
+    end
+
+    it "handles positional parameters" do
+      subject.prompt(collect_obj, play_obj)
+    end
+
+    it "handles keyword parameters" do
+      subject.prompt(collect: collect_obj, play: play_obj)
+    end
+
+    it "handles mixed parameters" do
+      subject.prompt(collect_obj, play: play_obj)
+    end
+  end
 end
