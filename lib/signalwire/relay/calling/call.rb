@@ -147,13 +147,47 @@ module Signalwire::Relay::Calling
       ConnectAction.new(component: component)
     end
 
-    def record(record_object)
+    def record(record_object = nil, audio: nil, type: 'audio', beep: false, format: 'mp3', stereo: false, direction: 'speak', initial_timeout: 5, end_silence_timeout: 1, terminators: "#*")
+      if audio.nil?
+        record_object = {
+          "#{type}": 
+          { 
+            beep: beep,
+            format: format,
+            stereo: stereo,
+            direction: direction,
+            initial_timeout: initial_timeout,
+            end_silence_timeout: end_silence_timeout,
+            terminators: terminators
+          } 
+        }
+      else
+        record_object = { "#{type}": audio }
+      end
+
       component = Record.new(call: self, record: record_object)
       component.wait_for(Relay::CallRecordState::NO_INPUT, Relay::CallRecordState::FINISHED)
       RecordResult.new(component: component)
     end
 
-    def record!(record_object)
+    def record!(record_object = nil, audio: nil, type: 'audio', beep: false, format: 'mp3', stereo: false, direction: 'speak', initial_timeout: 5, end_silence_timeout: 1, terminators: "#*")
+      if audio.nil?
+        record_object = {
+          "#{type}": 
+          { 
+            beep: beep,
+            format: format,
+            stereo: stereo,
+            direction: direction,
+            initial_timeout: initial_timeout,
+            end_silence_timeout: end_silence_timeout,
+            terminators: terminators
+          } 
+        }
+      else
+        record_object = { "#{type}": audio }
+      end
+
       component = Record.new(call: self, record: record_object)
       component.execute
       RecordAction.new(component: component)

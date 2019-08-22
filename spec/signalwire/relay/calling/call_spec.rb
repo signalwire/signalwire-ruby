@@ -168,5 +168,45 @@ describe Signalwire::Relay::Calling::Call do
         end
       end
     end
+
+    describe "#record" do
+      let(:record_double) { double('Record', wait_for: nil) }
+
+      let(:type) { 'audio' }
+      let(:beep) { true }
+      let(:audio_format) { 'mp3' }
+      let(:stereo) { true }
+      let(:direction) { 'both' }
+      let(:initial_timeout) { 5 }
+      let(:end_silence_timeout) { 10 }
+      let(:terminators) { '12' }
+
+      let(:record_hash) do
+        {
+          "#{type}": 
+          { 
+            beep: beep,
+            format: audio_format,
+            stereo: stereo,
+            direction: direction,
+            initial_timeout: initial_timeout,
+            end_silence_timeout: end_silence_timeout,
+            terminators: terminators
+          } 
+        }
+      end
+
+      before do
+        expect(Signalwire::Relay::Calling::Record).to receive(:new).with(call: subject, record: record_hash).and_return(record_double)
+      end
+      
+      it "instantiates the component from an hash" do
+        subject.record(record_hash)
+      end
+
+      it "instantiates the component from keyword parameters" do
+        subject.record(type: 'audio', beep: beep, format: audio_format, stereo: stereo, direction: direction, initial_timeout: initial_timeout, end_silence_timeout: end_silence_timeout, terminators: terminators)
+      end      
+    end
   end
 end
