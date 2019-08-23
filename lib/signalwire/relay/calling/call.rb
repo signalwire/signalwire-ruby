@@ -147,7 +147,7 @@ module Signalwire::Relay::Calling
       ConnectAction.new(component: component)
     end
 
-    def record(record_object = nil, audio: nil, type: 'audio', beep: false, format: 'mp3', stereo: false, direction: 'speak', initial_timeout: 5, end_silence_timeout: 1, terminators: "#*")
+    def record(audio: nil, type: 'audio', beep: false, format: 'mp3', stereo: false, direction: 'speak', initial_timeout: 5, end_silence_timeout: 1, terminators: "#*")
       if audio.nil?
         record_object = {
           "#{type}": 
@@ -170,7 +170,7 @@ module Signalwire::Relay::Calling
       RecordResult.new(component: component)
     end
 
-    def record!(record_object = nil, audio: nil, type: 'audio', beep: false, format: 'mp3', stereo: false, direction: 'speak', initial_timeout: 5, end_silence_timeout: 1, terminators: "#*")
+    def record!(audio: nil, type: 'audio', beep: false, format: 'mp3', stereo: false, direction: 'speak', initial_timeout: 5, end_silence_timeout: 1, terminators: "#*")
       if audio.nil?
         record_object = {
           "#{type}": 
