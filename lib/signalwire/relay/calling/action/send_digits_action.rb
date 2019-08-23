@@ -7,9 +7,5 @@ module Signalwire::Relay::Calling
     def result
       SendDigitsResult.new(@component)
     end
-
-    def stop
-      @component.stop
-    end
   end
 end

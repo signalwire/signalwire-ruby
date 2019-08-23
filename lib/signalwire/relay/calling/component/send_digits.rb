@@ -37,5 +37,9 @@ module Signalwire::Relay::Calling
       @call.broadcast "send_digits_#{@state}".to_sym, event
       @call.broadcast :send_digits_change, event
     end
+
+    def stop
+      logger.warn "SendDigits does not implement a stop action"
+    end
   end
 end
