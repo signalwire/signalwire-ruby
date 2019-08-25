@@ -74,7 +74,7 @@ describe Signalwire::Relay::Calling::Call do
   end
 
   describe "#prompt" do
-    let(:collect_obj) { 'some_collect'}
+    let(:collect_obj) { { "initial_timeout": 10.0, "digits": { "max": 1, "digit_timeout": 5.0 } } }
     let(:play_obj) { 'some_play'}
     let(:prompt_double) { double('Prompt', wait_for: nil) }
 
@@ -106,6 +106,11 @@ describe Signalwire::Relay::Calling::Call do
       expect {
         subject.prompt(collect: collect_obj)
       }.to raise_error(ArgumentError)
+    end
+
+    context "with keyword arguments" do
+      it "accepts hash-style params" do
+      end
     end
   end
 
