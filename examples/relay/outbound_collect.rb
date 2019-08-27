@@ -13,7 +13,7 @@ class OutboundConsumer < Signalwire::Relay::Consumer
   def ready
     dial_result = client.calling.new_call(from: ENV['FROM_NUMBER'], to: ENV['TO_NUMBER']).dial
     collect_params = { "initial_timeout": 10.0, "digits": { "max": 1, "digit_timeout": 5.0 } }
-    result = dial_result.call.prompt_tts collect: collect_params, text: 'how many hamburgers would you like to order?')
+    result = dial_result.call.prompt_tts collect: collect_params, text: 'how many hamburgers would you like to order?'
 
     dial_result.call.play_tts text: "You ordered #{result.result} hamburgers. Thank you!"
     dial_result.call.hangup
