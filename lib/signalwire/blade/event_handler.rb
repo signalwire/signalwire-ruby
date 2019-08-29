@@ -9,7 +9,10 @@ module Signalwire::Blade
     alias once register_tmp_handler
 
     def broadcast(event_type, event)
-      trigger_handler event_type, event, broadcast: true
+      trigger_handler event_type, event, broadcast: true, exception_callback: Proc.new { |e| 
+        logger.error e.message
+        logger.error e.backtrace.join("\n")
+      }
     end
   end
 end
