@@ -253,6 +253,18 @@ module Signalwire::Relay::Calling
       TapAction.new(component: component)
     end
 
+    def send_digits(digits)
+      component = Signalwire::Relay::Calling::SendDigits.new(call: self, digits: digits)
+      component.wait_for(Relay::CallSendDigitsState::FINISHED)
+      SendDigitsResult.new(component: component)
+    end
+
+    def send_digits!(digits)
+      component = Signalwire::Relay::Calling::SendDigits.new(call: self, digits: digits)
+      component.execute
+      SendDigitsAction.new(component: component)
+    end
+
     def wait_for(*events)
       events = [Relay::CallState::ENDED] if events.empty?
       
