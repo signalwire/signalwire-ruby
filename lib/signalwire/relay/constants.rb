@@ -65,6 +65,7 @@ module Signalwire::Relay
     FAX = 'calling.call.fax'
     TAP = 'calling.call.tap'
     DETECT = 'calling.call.detect'
+    SEND_DIGITS = 'calling.call.send_digits'
   end
 
   CALL_EVENT_STATE_FIELDS = {
@@ -117,6 +118,7 @@ module Signalwire::Relay
     RECEIVE_FAX = 'calling.receive_fax'
     TAP = 'calling.tap'
     DETECT = 'calling.detect'
+    SEND_DIGITS = 'calling.send_digits'
   end
 
   module CommonState
@@ -150,6 +152,10 @@ module Signalwire::Relay
     FAX = "fax"
     MACHINE = "machine"
     DIGIT = "digit"
+  end
+
+  module CallSendDigitsState
+    FINISHED = 'finished'
   end
 end
 
