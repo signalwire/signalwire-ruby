@@ -248,6 +248,12 @@ module Signalwire::Relay::Calling
     end
 
     def tap_media!(tap:, device:)
+      tap = args.delete(:tap)
+      device = args.delete(:device)
+
+      tap = compile_tap_arguments(args) if tap.nil?
+      device = compile_tap_device_arguments(args) if device.nil?
+      
       component = Signalwire::Relay::Calling::Tap.new(call: self, tap: tap, device: device)
       component.execute
       TapAction.new(component: component)
