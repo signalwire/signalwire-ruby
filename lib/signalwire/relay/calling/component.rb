@@ -8,7 +8,7 @@ module Signalwire::Relay::Calling
       @call = call
       @completed = false
       @successful = false
-
+      @events_waiting = []
       @call.register_component(self)
     end
 
@@ -85,6 +85,10 @@ module Signalwire::Relay::Calling
     def wait_on_blocker
       create_blocker
       blocker.wait
+    end
+
+    def has_blocker?
+      !@blocker.nil?
     end
 
     # This is the most important method to implement in a subclass

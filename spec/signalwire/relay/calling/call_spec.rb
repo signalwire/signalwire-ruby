@@ -138,34 +138,71 @@ describe Signalwire::Relay::Calling::Call do
         end
       end
     end
+  end
 
-    describe "#play_tts" do
-      let(:sentence_obj) { 'some_sentence'}
-      let(:language) { "en-US" }
-      let(:play_obj) do
-         [{ params: {gender: "female", language: language, text: sentence_obj}, type: "tts" }]
+  describe "#play_tts" do
+    let(:sentence_obj) { 'some_sentence'}
+    let(:language) { "en-US" }
+    let(:play_obj) do
+        [{ params: {gender: "female", language: language, text: sentence_obj}, type: "tts" }]
+    end
+    let(:play_double) { double('Play', wait_for: nil) }
+
+    context "with valid parameters" do
+      before do
+        expect(Signalwire::Relay::Calling::Play).to receive(:new).with(call: subject, play: play_obj).and_return(play_double)
       end
-      let(:play_double) { double('Play', wait_for: nil) }
-  
-      context "with valid parameters" do
-        before do
-          expect(Signalwire::Relay::Calling::Play).to receive(:new).with(call: subject, play: play_obj).and_return(play_double)
+
+      it "handles positional parameters" do
+        subject.play_tts(sentence_obj)
+      end
+
+      it "handles keyword parameters" do
+        subject.play_tts(text: sentence_obj)
+      end
+
+      context "optional parameters" do
+        let(:language) { "it-IT" }
+        it "handles optional parameters" do
+          subject.play_tts(text: sentence_obj, language: language)
         end
-  
-        it "handles positional parameters" do
-          subject.play_tts(sentence_obj)
-        end
-  
-        it "handles keyword parameters" do
-          subject.play_tts(text: sentence_obj)
-        end
-  
-        context "optional parameters" do
-          let(:language) { "it-IT" }
-          it "handles optional parameters" do
-            subject.play_tts(text: sentence_obj, language: language)
-          end
-        end
+      end
+    end
+  end
+
+  describe "#detect" do
+    let(:detect_obj) do
+        { type: :digit, params: { digits: '123' } }
+    end
+    let(:detect_double) { double('Detect', wait_for: nil) }
+
+    before do
+      expect(Signalwire::Relay::Calling::Detect).to receive(:new).with(call: subject, detect: detect_obj, timeout: 30, wait_for_beep: nil).and_return(detect_double)
+    end
+
+    context "with digits" do
+      it "handles parameters" do
+        subject.detect(type: :digit, digits: '123')
+      end
+    end
+
+    context "with fax" do
+      let(:detect_obj) do
+        { type: :fax, params: { tone: 'CED' } }
+      end
+
+      it "handles parameters" do
+        subject.detect(type: :fax, tone: 'CED')
+      end
+    end
+
+    context "with machine" do
+      let(:detect_obj) do
+        { type: :machine, params: { initial_timeout: 10 } }
+      end
+
+      it "handles parameters" do
+        subject.detect(type: :machine, initial_timeout: 10)
       end
     end
   end
