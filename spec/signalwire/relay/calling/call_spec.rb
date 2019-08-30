@@ -226,7 +226,7 @@ describe Signalwire::Relay::Calling::Call do
     let(:device_obj) { {type: 'rtp', params: { addr: '127.0.0.1', port: '8081'} } }
 
     before do
-      expect(Signalwire::Relay::Calling::Tap).to receive(:new).with(call: subject, tap: tap_obj, device: device_obj).and_return(double('Tap', wait_for: nil))
+      expect(Signalwire::Relay::Calling::Tap).to receive(:new).with(call: subject, tap: tap_obj, device: device_obj).and_return(double('Tap', wait_for: nil, execute: nil))
     end
 
     it "accepts hash parameters" do
@@ -235,6 +235,12 @@ describe Signalwire::Relay::Calling::Call do
 
     it "accepts keyword parameters" do
       subject.tap_media(audio_direction: 'listen', target_addr: '127.0.0.1', target_port: '8081')
+    end
+
+    context "async version" do
+      it "accepts keyword parameters" do
+        subject.tap_media!(audio_direction: 'listen', target_addr: '127.0.0.1', target_port: '8081')
+      end
     end
   end
 end
