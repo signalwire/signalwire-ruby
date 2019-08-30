@@ -5,7 +5,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 ### Changed
-- Flatten parameter stractures for better readability
+- Flatten parameter structures for better readability
 - Log all exceptions as errors by default.
 
 ## [2.1.3] - 2019-08-20
