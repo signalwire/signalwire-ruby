@@ -27,39 +27,64 @@ module Signalwire::Relay::Calling
       play! tts_payload(text, language, gender)
     end
 
-    def prompt_audio(collect_p = nil, url_p = nil, collect: nil, url: nil)
+    def prompt_audio(collect_p = nil, url_p = nil, **args)
+      collect = args.delete(:collect)
+      url = args.delete(:url)
+      collect = compile_collect_arguments(args) if collect.nil? && collect_p.nil?
       set_parameters(binding, %i{collect url}, %i{collect url})
 
-      prompt(collect, audio_payload(url))
+      prompt(collect: collect, play: audio_payload(url))
     end
 
-    def prompt_audio!(collect_p = nil, url_p = nil, collect: nil, url: nil)
+    def prompt_audio!(collect_p = nil, url_p = nil, **args)
+      collect = args.delete(:collect)
+      url = args.delete(:url)
+      collect = compile_collect_arguments(args) if collect.nil? && collect_p.nil?
       set_parameters(binding, %i{collect url}, %i{collect url})
 
-      prompt!(collect, audio_payload(url))
+      prompt!(collect: collect, play: audio_payload(url))
     end
 
-    def prompt_silence(collect_p = nil, duration_p = nil, collect: nil, duration: nil)
+    def prompt_silence(collect_p = nil, duration_p = nil, **args)
+      collect = args.delete(:collect)
+      duration = args.delete(:duration)
+      collect = compile_collect_arguments(args) if collect.nil? && collect_p.nil?
       set_parameters(binding, %i{collect duration}, %i{collect duration})
 
-      prompt(collect, silence_payload(duration))
+      prompt(collect: collect, play: silence_payload(duration))
     end
 
-    def prompt_silence!(collect_p = nil, duration_p = nil, collect: nil, duration: nil)
+    def prompt_silence!(collect_p = nil, duration_p = nil, **args)
+      collect = args.delete(:collect)
+      duration = args.delete(:duration)
+      collect = compile_collect_arguments(args) if collect.nil? && collect_p.nil?
       set_parameters(binding, %i{collect duration}, %i{collect duration})
 
-      prompt!(collect, silence_payload(duration))
+      prompt!(collect: collect, play: silence_payload(duration))
     end
 
-    def prompt_tts(collect_p = nil, text_p = nil, language_p=Relay::DEFAULT_LANGUAGE, gender_p=Relay::DEFAULT_GENDER, collect: nil, text: nil, language: Relay::DEFAULT_LANGUAGE, gender: Relay::DEFAULT_GENDER)
+    def prompt_tts(collect_p = nil, text_p = nil, language_p=Relay::DEFAULT_LANGUAGE, gender_p=Relay::DEFAULT_GENDER, **args)
+      collect = args.delete(:collect)
+      text = args.delete(:text)
+      language = args.delete(:language) || Relay::DEFAULT_LANGUAGE
+      gender = args.delete(:gender) || Relay::DEFAULT_GENDER
+      collect = compile_collect_arguments(args) if collect.nil? && collect_p.nil?
+
       set_parameters(binding, %i{collect text language gender}, %i{collect text})
-      prompt(collect, tts_payload(text, language, gender))
+
+      prompt(collect: collect, play: tts_payload(text, language, gender))
     end
 
-    def prompt_tts!(collect_p = nil, text_p = nil, language_p=Relay::DEFAULT_LANGUAGE, gender_p=Relay::DEFAULT_GENDER, collect: nil, text: nil, language: Relay::DEFAULT_LANGUAGE, gender: Relay::DEFAULT_GENDER)
+    def prompt_tts!(collect_p = nil, text_p = nil, language_p=Relay::DEFAULT_LANGUAGE, gender_p=Relay::DEFAULT_GENDER, **args)
+      collect = args.delete(:collect)
+      text = args.delete(:text)
+      language = args.delete(:language) || Relay::DEFAULT_LANGUAGE
+      gender = args.delete(:gender) || Relay::DEFAULT_GENDER
+      collect = compile_collect_arguments(args) if collect.nil? && collect_p.nil?
+
       set_parameters(binding, %i{collect text language gender}, %i{collect text})
 
-      prompt!(collect, tts_payload(text, language, gender))
+      prompt!(collect: collect, play: tts_payload(text, language, gender))
     end
 
     def wait_for_ringing

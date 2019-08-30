@@ -4,6 +4,8 @@ require 'spec_helper'
 
 describe Signalwire::Relay::Calling::Call do
   let(:client) { Signalwire::Relay::Client.new(project: 'myproject', token: 'mytoken') }
+  let(:collect_obj) { { "initial_timeout": 10.0, "digits": { "max": 1, "digit_timeout": 5.0 } } }
+
   subject { described_class.new(client, mock_call_hash.dig(:params, :params, :params)) }
 
   describe 'call_state_change' do
@@ -74,7 +76,6 @@ describe Signalwire::Relay::Calling::Call do
   end
 
   describe "#prompt" do
-    let(:collect_obj) { 'some_collect'}
     let(:play_obj) { 'some_play'}
     let(:prompt_double) { double('Prompt', wait_for: nil) }
 
@@ -91,10 +92,15 @@ describe Signalwire::Relay::Calling::Call do
         subject.prompt(collect: collect_obj, play: play_obj)
       end
 
+      it "handles keyword single parameters" do
+        subject.prompt(initial_timeout: 10.0, digits_max: 1, digits_timeout: 5.0, play: play_obj)
+      end
+
       it "handles mixed parameters" do
         subject.prompt(collect_obj, play: play_obj)
       end
     end
+
 
     it "raises on a missing parameter" do
       expect {
@@ -107,10 +113,11 @@ describe Signalwire::Relay::Calling::Call do
         subject.prompt(collect: collect_obj)
       }.to raise_error(ArgumentError)
     end
+
+    
   end
 
   describe "#prompt_tts" do
-    let(:collect_obj) { 'some_collect'}
     let(:sentence_obj) { 'some_sentence'}
     let(:language) { "en-US" }
     let(:play_obj) do
@@ -131,6 +138,10 @@ describe Signalwire::Relay::Calling::Call do
         subject.prompt_tts(collect: collect_obj, text: sentence_obj)
       end
 
+      it "handles keyword single parameters" do
+        subject.prompt_tts(initial_timeout: 10.0, digits_max: 1, digits_timeout: 5.0, text: sentence_obj)
+      end
+
       context "optional parameters" do
         let(:language) { "it-IT" }
         it "handles optional parameters" do
@@ -138,34 +149,97 @@ describe Signalwire::Relay::Calling::Call do
         end
       end
     end
+  end
 
-    describe "#play_tts" do
-      let(:sentence_obj) { 'some_sentence'}
-      let(:language) { "en-US" }
-      let(:play_obj) do
-         [{ params: {gender: "female", language: language, text: sentence_obj}, type: "tts" }]
+  describe "#play_tts" do
+    let(:sentence_obj) { 'some_sentence'}
+    let(:language) { "en-US" }
+    let(:play_obj) do
+        [{ params: {gender: "female", language: language, text: sentence_obj}, type: "tts" }]
+    end
+    let(:play_double) { double('Play', wait_for: nil) }
+
+    context "with valid parameters" do
+      before do
+        expect(Signalwire::Relay::Calling::Play).to receive(:new).with(call: subject, play: play_obj).and_return(play_double)
       end
-      let(:play_double) { double('Play', wait_for: nil) }
-  
-      context "with valid parameters" do
-        before do
-          expect(Signalwire::Relay::Calling::Play).to receive(:new).with(call: subject, play: play_obj).and_return(play_double)
+
+      it "handles positional parameters" do
+        subject.play_tts(sentence_obj)
+      end
+
+      it "handles keyword parameters" do
+        subject.play_tts(text: sentence_obj)
+      end
+
+      context "optional parameters" do
+        let(:language) { "it-IT" }
+        it "handles optional parameters" do
+          subject.play_tts(text: sentence_obj, language: language)
         end
-  
-        it "handles positional parameters" do
-          subject.play_tts(sentence_obj)
-        end
-  
-        it "handles keyword parameters" do
-          subject.play_tts(text: sentence_obj)
-        end
-  
-        context "optional parameters" do
-          let(:language) { "it-IT" }
-          it "handles optional parameters" do
-            subject.play_tts(text: sentence_obj, language: language)
-          end
-        end
+      end
+    end
+  end
+
+  describe "#record" do
+    let(:record_double) { double('Record', wait_for: nil) }
+
+    let(:type) { 'audio' }
+    let(:beep) { true }
+    let(:audio_format) { 'mp3' }
+    let(:stereo) { true }
+    let(:direction) { 'both' }
+    let(:initial_timeout) { 5 }
+    let(:end_silence_timeout) { 10 }
+    let(:terminators) { '12' }
+
+    let(:record_hash) do
+      {
+        "#{type}": 
+        { 
+          beep: beep,
+          format: audio_format,
+          stereo: stereo,
+          direction: direction,
+          initial_timeout: initial_timeout,
+          end_silence_timeout: end_silence_timeout,
+          terminators: terminators
+        } 
+      }
+    end
+
+    before do
+      expect(Signalwire::Relay::Calling::Record).to receive(:new).with(call: subject, record: record_hash).and_return(record_double)
+    end
+    
+    it "instantiates the component from an hash" do
+      subject.record(record_hash)
+    end
+
+    it "instantiates the component from keyword parameters" do
+      subject.record(type: 'audio', beep: beep, format: audio_format, stereo: stereo, direction: direction, initial_timeout: initial_timeout, end_silence_timeout: end_silence_timeout, terminators: terminators)
+    end      
+  end
+
+  describe "#tap_media" do
+    let(:tap_obj) { { type: 'audio', params: { direction: 'listen'} } }
+    let(:device_obj) { {type: 'rtp', params: { addr: '127.0.0.1', port: '8081'} } }
+
+    before do
+      expect(Signalwire::Relay::Calling::Tap).to receive(:new).with(call: subject, tap: tap_obj, device: device_obj).and_return(double('Tap', wait_for: nil, execute: nil))
+    end
+
+    it "accepts hash parameters" do
+      subject.tap_media(tap: tap_obj, device: device_obj)
+    end
+
+    it "accepts keyword parameters" do
+      subject.tap_media(audio_direction: 'listen', target_addr: '127.0.0.1', target_port: '8081')
+    end
+
+    context "async version" do
+      it "accepts keyword parameters" do
+        subject.tap_media!(audio_direction: 'listen', target_addr: '127.0.0.1', target_port: '8081')
       end
     end
   end
