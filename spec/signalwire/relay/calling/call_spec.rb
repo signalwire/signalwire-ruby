@@ -204,6 +204,12 @@ describe Signalwire::Relay::Calling::Call do
       it "handles parameters" do
         subject.detect(type: :machine, initial_timeout: 10)
       end
+
+      describe "#detect_answering_machine" do
+        it "handles parameters" do
+          subject.detect_answering_machine(initial_timeout: 10)
+        end
+      end
     end
   end
 end

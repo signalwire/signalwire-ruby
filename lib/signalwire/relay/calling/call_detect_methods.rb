@@ -14,6 +14,22 @@ module Signalwire::Relay::Calling
       DetectAction.new(component: component)
     end
 
+    def detect_answering_machine(**args)
+      detect(type: :machine, **args)
+    end
+
+    def detect_answering_machine!(**args)
+      detect!(type: :machine, **args)
+    end
+
+    def amd(**args)
+      detect(type: :machine, **args)
+    end
+
+    def amd!(**args)
+      detect!(type: :machine, **args)
+    end
+
     # deprecated since version 2.2. Will be deleted in version 3.0.
     def detect_human(params: {}, timeout: Relay::DEFAULT_CALL_TIMEOUT)
       detect = {
