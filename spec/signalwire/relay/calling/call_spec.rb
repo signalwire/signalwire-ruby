@@ -175,14 +175,15 @@ describe Signalwire::Relay::Calling::Call do
         { type: :digit, params: { digits: '123' } }
     end
     let(:detect_double) { double('Detect', wait_for: nil) }
+    let(:timeout) { 20 }
 
     before do
-      expect(Signalwire::Relay::Calling::Detect).to receive(:new).with(call: subject, detect: detect_obj, timeout: 30, wait_for_beep: nil).and_return(detect_double)
+      expect(Signalwire::Relay::Calling::Detect).to receive(:new).with(call: subject, detect: detect_obj, timeout: timeout, wait_for_beep: nil).and_return(detect_double)
     end
 
     context "with digits" do
       it "handles parameters" do
-        subject.detect(type: :digit, digits: '123')
+        subject.detect(type: :digit, digits: '123', timeout: timeout)
       end
     end
 
@@ -192,7 +193,7 @@ describe Signalwire::Relay::Calling::Call do
       end
 
       it "handles parameters" do
-        subject.detect(type: :fax, tone: 'CED')
+        subject.detect(type: :fax, tone: 'CED', timeout: timeout)
       end
     end
 
@@ -202,12 +203,12 @@ describe Signalwire::Relay::Calling::Call do
       end
 
       it "handles parameters" do
-        subject.detect(type: :machine, initial_timeout: 10)
+        subject.detect(type: :machine, initial_timeout: 10, timeout: timeout)
       end
 
       describe "#detect_answering_machine" do
         it "handles parameters" do
-          subject.detect_answering_machine(initial_timeout: 10)
+          subject.detect_answering_machine(initial_timeout: 10, timeout: timeout)
         end
       end
     end

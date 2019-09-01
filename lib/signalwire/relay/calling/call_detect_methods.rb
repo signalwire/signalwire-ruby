@@ -77,19 +77,19 @@ module Signalwire::Relay::Calling
     end
 
     def detect_fax(tone: nil, timeout: Relay::DEFAULT_CALL_TIMEOUT)
-      detect(type: :fax, tone: tone)
+      detect(type: :fax, tone: tone, timeout: timeout)
     end
 
     def detect_fax!(tone: nil, timeout: Relay::DEFAULT_CALL_TIMEOUT)
-      detect!(type: :fax, tone: tone)    
+      detect!(type: :fax, tone: tone, timeout: timeout)    
     end
 
     def detect_digit(digits: nil, timeout: Relay::DEFAULT_CALL_TIMEOUT)
-      detect(type: :digit, digits: digits)
+      detect(type: :digit, digits: digits, timeout: timeout)
     end
 
     def detect_digit!(digits: nil, timeout: Relay::DEFAULT_CALL_TIMEOUT)
-      detect!(type: :digit, digits: digits)
+      detect!(type: :digit, digits: digits, timeout: timeout)
     end
 
     private 
