@@ -181,6 +181,50 @@ describe Signalwire::Relay::Calling::Call do
     end
   end
 
+  describe "#detect" do
+    let(:detect_obj) do
+        { type: :digit, params: { digits: '123' } }
+    end
+    let(:detect_double) { double('Detect', wait_for: nil) }
+    let(:timeout) { 20 }
+
+    before do
+      expect(Signalwire::Relay::Calling::Detect).to receive(:new).with(call: subject, detect: detect_obj, timeout: timeout, wait_for_beep: nil).and_return(detect_double)
+    end
+
+    context "with digits" do
+      it "handles parameters" do
+        subject.detect(type: :digit, digits: '123', timeout: timeout)
+      end
+    end
+
+    context "with fax" do
+      let(:detect_obj) do
+        { type: :fax, params: { tone: 'CED' } }
+      end
+
+      it "handles parameters" do
+        subject.detect(type: :fax, tone: 'CED', timeout: timeout)
+      end
+    end
+
+    context "with machine" do
+      let(:detect_obj) do
+        { type: :machine, params: { initial_timeout: 10 } }
+      end
+
+      it "handles parameters" do
+        subject.detect(type: :machine, initial_timeout: 10, timeout: timeout)
+      end
+
+      describe "#detect_answering_machine" do
+        it "handles parameters" do
+          subject.detect_answering_machine(initial_timeout: 10, timeout: timeout)
+        end
+      end
+    end
+  end
+
   describe "#record" do
     let(:record_double) { double('Record', wait_for: nil) }
 

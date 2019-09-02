@@ -11,6 +11,13 @@ module Signalwire::Relay::Calling
     include Signalwire::Relay::Calling::CallDetectMethods
     extend Forwardable
 
+    extend Gem::Deprecate
+    DETECT_DEPRECATE_MONTH = 10
+    deprecate :detect_human,    :amd, 2019, DETECT_DEPRECATE_MONTH
+    deprecate :detect_human!,   :amd!, 2019, DETECT_DEPRECATE_MONTH
+    deprecate :detect_machine,  :amd, 2019, DETECT_DEPRECATE_MONTH
+    deprecate :detect_machine!, :amd!, 2019, DETECT_DEPRECATE_MONTH
+
     attr_reader :device, :type, :node_id, :context, :from, :to,
                 :timeout, :tag, :client, :state, :previous_state, :components,
                 :busy, :failed, :peer_call

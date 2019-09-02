@@ -4,9 +4,13 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- `detect_answering_machine` method with its `amd` alias
+
 ### Changed
 - Flatten parameter structures for better readability
 - Log all exceptions as errors by default.
+- Deprecated `detect_human` and `detect_machine` methods in favor of `detect_answering_machine`
 
 ## [2.1.3] - 2019-08-20
 ### Fixed
