@@ -15,7 +15,7 @@ class OutboundConsumer < Signalwire::Relay::Consumer
     call = client.calling.new_call(from: ENV['FROM_NUMBER'], to: ENV['TO_NUMBER'])
     call.dial
     call.play_tts text: 'please leave your message after the beep. Press pound when done.'
-    result = call.record({"audio": { "beep": "true", "terminators": "#"}})
+    result = call.record(beep: true, terminators: "#")
     call.play_tts text: 'you said:'
     call.play_audio result.url
     call.hangup

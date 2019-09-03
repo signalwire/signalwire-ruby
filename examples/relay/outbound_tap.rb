@@ -14,11 +14,8 @@ class OutboundConsumer < Signalwire::Relay::Consumer
     logger.info 'Dialing out'
     call = client.calling.new_call(from: ENV['FROM_NUMBER'], to: ENV['TO_NUMBER'])
     call.dial
-    
-    tap_arguments = { type: "audio", params: { direction: "listen" } }
-    device_arguments = { type: "rtp", params: { addr: "127.0.0.1", port: 1234 } }
 
-    call.tap_media(tap: tap_arguments, device: device_arguments)
+    call.tap_media(audio_direction: "both", target_addr: "127.0.0.1", target_port: 1234)
 
     call.hangup
   rescue StandardError => e
