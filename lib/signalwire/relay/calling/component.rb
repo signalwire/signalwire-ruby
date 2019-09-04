@@ -2,6 +2,7 @@
 
 module Signalwire::Relay::Calling
   class Component
+    include Signalwire::Logger
     attr_reader :completed, :state, :successful, :event, :execute_result, :call
 
     def initialize(call:)
@@ -69,7 +70,7 @@ module Signalwire::Relay::Calling
       @successful = false
       @state = 'failed'
       @event = event if event
-      blocker&.reject
+      blocker&.reject false
     end
 
     def setup_waiting_events(events)
@@ -107,7 +108,7 @@ module Signalwire::Relay::Calling
     end
 
     def unblock(value)
-      blocker&.resolve value
+      blocker&.resolve value if has_blocker? && blocker.pending?
     end
 
     attr_reader :blocker

@@ -297,7 +297,7 @@ module Signalwire::Relay::Calling
 
     def terminate_components(params = {})
       @components.each do |comp|
-        comp.terminate(params) unless component.completed
+        comp.terminate(params) unless comp.completed
       end
     end
 
