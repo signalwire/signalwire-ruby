@@ -10,7 +10,7 @@ module Signalwire::Blade
 
     def broadcast(event_type, event)
       trigger_handler event_type, event, broadcast: true, exception_callback: Proc.new { |e| 
-        logger.error e.message
+        logger.error "#{e.class}: #{e.message}"
         logger.error e.backtrace.join("\n")
       }
     end

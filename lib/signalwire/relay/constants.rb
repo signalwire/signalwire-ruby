@@ -33,6 +33,7 @@ module Signalwire::Relay
     NO_ANSWER = 'noAnswer'
     DECLINE = 'decline'
     ERROR = 'error'
+    FAILED = 'failed'
   end
 
   module DisconnectSource
