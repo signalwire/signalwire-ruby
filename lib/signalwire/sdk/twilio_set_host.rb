@@ -6,9 +6,9 @@ module Twilio
       def initialize(twilio)
         super
 
-        @host = ENV['SIGNALWIRE_HOST'] ||
-                ENV['SIGNALWIRE_API_HOSTNAME'] ||
-                Signalwire::Sdk.configuration.hostname ||
+        return if Signalwire::Sdk.configuration.service_provider == 'twilio'
+
+        @host = ENV['SIGNALWIRE_HOST'] || ENV['SIGNALWIRE_API_HOSTNAME'] || Signalwire::Sdk.configuration.hostname ||
                 raise(ArgumentError,
                       'SignalWire Space URL is not configured. Enter your SignalWire Space domain via the '\
                       'SIGNALWIRE_HOST or SIGNALWIRE_API_HOSTNAME environment variables, '\
@@ -23,6 +23,10 @@ module Twilio
 
       def hostname
         @host
+      end
+
+      def service_provider
+        Signalwire::Sdk.configuration.service_provider
       end
     end
   end

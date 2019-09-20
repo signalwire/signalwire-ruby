@@ -3,7 +3,22 @@
 module Signalwire
   module Sdk
     class Configuration
-      attr_accessor :hostname
+      attr_accessor :hostname, :service_provider
+
+      def initialize
+        @service_provider = 'signalwire'
+      end
+
+      def configure
+        yield self
+      end
+
+
+      def reset_config
+        configure do |config|
+          config.service_provider = 'signalwire'
+        end
+      end
     end
   end
 end
