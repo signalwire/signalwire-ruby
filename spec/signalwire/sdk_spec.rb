@@ -22,8 +22,8 @@ RSpec.describe Signalwire::Sdk do
       end
 
       twilio_client = Twilio::REST::Client.new
-      expect(twilio_client.api.hostname).to eq(nil)
-      expect(twilio_client.fax.hostname).to eq(nil)
+      expect(twilio_client.api.hostname).to eq('api.twilio.com')
+      expect(twilio_client.fax.hostname).to eq('fax.twilio.com')
       expect(twilio_client.api.service_provider).to eq('twilio')
     end
 
