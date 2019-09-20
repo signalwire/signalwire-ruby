@@ -6,7 +6,7 @@ module Signalwire
       attr_accessor :hostname, :service_provider
 
       def initialize
-        @service_provider = 'signalwire'
+        @service_provider = 'signalwire' if self.service_provider.nil?
       end
 
       def configure
