@@ -62,7 +62,12 @@ module Signalwire::Relay::Calling
 
     def handle_execute_result(event, outcome)
       @execute_result = event
+      after_execute(event)
       terminate if outcome == :failure
+    end
+
+    def after_execute(event)
+      # implemented in subclasses
     end
 
     def terminate(event = nil)
