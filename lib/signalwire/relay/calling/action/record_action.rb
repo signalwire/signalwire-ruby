@@ -11,5 +11,9 @@ module Signalwire::Relay::Calling
     def stop
       @component.stop
     end
+
+    def url
+      @component.url
+    end
   end
 end
