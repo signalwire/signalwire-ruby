@@ -49,5 +49,9 @@ module Signalwire::Relay::Calling
       @call.broadcast "record_#{@state}".to_sym, event
       @call.broadcast :record_state_change, event
     end
+
+    def after_execute(execute_event)
+      @url = execute_event.call_params[:url]
+    end
   end
 end
