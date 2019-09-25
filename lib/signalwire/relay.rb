@@ -39,6 +39,8 @@ require 'signalwire/relay/calling/result/fax_result'
 require 'signalwire/relay/calling/result/tap_result'
 require 'signalwire/relay/calling/result/send_digits_result'
 
+require 'signalwire/relay/calling/result/stop_result'
+
 require 'signalwire/relay/calling/component'
 require 'signalwire/relay/calling/control_component'
 require 'signalwire/relay/calling/component/answer'

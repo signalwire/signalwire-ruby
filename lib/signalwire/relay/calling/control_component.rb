@@ -25,10 +25,10 @@ module Signalwire::Relay::Calling
 
     def stop
       @call.relay_execute execute_params('.stop') do |event, outcome|
-        if outcome == :failure
-          terminate(event)
-          return event
-        end
+        succeeded = outcome == :success
+        terminate(event) unless succeeded
+
+        return Signalwire::Relay::Calling::StopResult.new(succeeded)
       end
     end
   end
