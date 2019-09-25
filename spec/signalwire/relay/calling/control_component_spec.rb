@@ -63,4 +63,18 @@ describe Signalwire::Relay::Calling::ControlComponent do
       expect(subject.event.event_type).to eq Relay::CallNotification::PLAY
     end
   end
+
+  describe "#stop" do
+    it "returns a StopResult" do
+      stop_command = nil
+      allow(call.client.session).to receive(:transmit) { |arg| stop_command = JSON.parse(arg) }
+      async = Thread.new do
+        subject.stop
+      end
+      sleep 0.2
+      mock_message call.client.session, relay_response(stop_command['id'])
+      expect(async.value).to be_a Signalwire::Relay::Calling::StopResult
+      expect(async.value.successful).to eq true
+    end
+  end
 end
