@@ -77,4 +77,19 @@ describe Signalwire::Relay::Calling::ControlComponent do
       expect(async.value.successful).to eq true
     end
   end
+
+
+  describe "#execute_subcommand" do
+    it "returns a PlayPauseResult" do
+      stop_command = nil
+      allow(call.client.session).to receive(:transmit) { |arg| stop_command = JSON.parse(arg) }
+      async = Thread.new do
+        subject.execute_subcommand('.pause', Signalwire::Relay::Calling::PlayPauseResult)
+      end
+      sleep 0.2
+      mock_message call.client.session, relay_response(stop_command['id'])
+      expect(async.value).to be_a Signalwire::Relay::Calling::PlayPauseResult
+      expect(async.value.successful).to eq true
+    end
+  end
 end

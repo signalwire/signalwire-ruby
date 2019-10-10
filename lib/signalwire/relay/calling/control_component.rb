@@ -24,11 +24,15 @@ module Signalwire::Relay::Calling
     end
 
     def stop
+      execute_subcommand '.stop', Signalwire::Relay::Calling::StopResult
+    end
+
+    def execute_subcommand(suffix, result_klass)
       @call.relay_execute execute_params('.stop') do |event, outcome|
         succeeded = outcome == :success
         terminate(event) unless succeeded
 
-        return Signalwire::Relay::Calling::StopResult.new(succeeded)
+        return result_klass.new(succeeded)
       end
     end
   end
