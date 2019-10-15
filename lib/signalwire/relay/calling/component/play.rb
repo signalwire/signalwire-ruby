@@ -2,9 +2,10 @@
 
 module Signalwire::Relay::Calling
   class Play < ControlComponent
-    def initialize(call:, play:)
+    def initialize(call:, play:, volume: nil)
       super(call: call)
       @play = play
+      @volume = volume
     end
 
     def method
@@ -16,12 +17,15 @@ module Signalwire::Relay::Calling
     end
 
     def inner_params
-      {
+      prm = {
         node_id: @call.node_id,
         call_id: @call.id,
         control_id: control_id,
         play: @play
       }
+
+      prm[:volume] = @volume unless @volume.nil?
+      prm
     end
 
     def notification_handler(event)

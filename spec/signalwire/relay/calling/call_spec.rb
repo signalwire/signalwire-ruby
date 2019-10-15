@@ -81,7 +81,7 @@ describe Signalwire::Relay::Calling::Call do
 
     context "with valid parameters" do
       before do
-        expect(Signalwire::Relay::Calling::Prompt).to receive(:new).with(call: subject, collect: collect_obj, play: play_obj).and_return(prompt_double)
+        expect(Signalwire::Relay::Calling::Prompt).to receive(:new).with(call: subject, collect: collect_obj, play: play_obj, volume: nil).and_return(prompt_double)
       end
 
       it "handles positional parameters" do
@@ -127,7 +127,7 @@ describe Signalwire::Relay::Calling::Call do
 
     context "with valid parameters" do
       before do
-        expect(Signalwire::Relay::Calling::Prompt).to receive(:new).with(call: subject, collect: collect_obj, play: play_obj).and_return(prompt_double)
+        expect(Signalwire::Relay::Calling::Prompt).to receive(:new).with(call: subject, collect: collect_obj, play: play_obj, volume: nil).and_return(prompt_double)
       end
 
       it "handles positional parameters" do
@@ -161,7 +161,7 @@ describe Signalwire::Relay::Calling::Call do
 
     context "with valid parameters" do
       before do
-        expect(Signalwire::Relay::Calling::Play).to receive(:new).with(call: subject, play: play_obj).and_return(play_double)
+        expect(Signalwire::Relay::Calling::Play).to receive(:new).with(call: subject, play: play_obj, volume: nil).and_return(play_double)
       end
 
       it "handles positional parameters" do

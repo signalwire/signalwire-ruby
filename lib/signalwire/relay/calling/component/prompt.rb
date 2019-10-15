@@ -3,10 +3,11 @@
 module Signalwire::Relay::Calling
   class Prompt < ControlComponent
     attr_reader :type, :input, :terminator
-    def initialize(call:, collect:, play:)
+    def initialize(call:, collect:, play:, volume: nil)
       super(call: call)
       @play = play
       @collect = collect
+      @volume = volume
     end
 
     def method
@@ -18,13 +19,15 @@ module Signalwire::Relay::Calling
     end
 
     def inner_params
-      {
+      prm = {
         node_id: @call.node_id,
         call_id: @call.id,
         control_id: control_id,
         play: @play,
         collect: @collect
       }
+      prm[:volume] = @volume unless @volume.nil?
+      prm
     end
 
     def notification_handler(event)
