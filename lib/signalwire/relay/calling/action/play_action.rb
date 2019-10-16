@@ -13,11 +13,15 @@ module Signalwire::Relay::Calling
     end
 
     def pause
-      @component.execute_subcommand '.pause', Signalwire::Relay::Calling::PlayPauseResult
+      @component.pause
     end
 
-    def pause
-      @component.execute_subcommand '.resume', Signalwire::Relay::Calling::PlayResumeResult
+    def resume
+      @component.resume
+    end
+
+    def volume(setting)
+      @component.volume setting
     end
   end
 end

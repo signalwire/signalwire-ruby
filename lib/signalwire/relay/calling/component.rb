@@ -30,11 +30,11 @@ module Signalwire::Relay::Calling
       raise NotImplementedError, 'Define this method on the child classes'
     end
 
-    def execute_params(method_suffix = nil)
+    def execute_params(method_suffix = nil, inner_params_merge = {})
       {
         protocol: @call.client.protocol,
         method: method + method_suffix.to_s,
-        params: inner_params
+        params: inner_params.merge(inner_params_merge)
       }
     end
 

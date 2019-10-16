@@ -48,6 +48,10 @@ module Signalwire::Relay::Calling
       check_for_waiting_events
     end
 
+    def volume(setting)
+      execute_subcommand '.volume', Signalwire::Relay::Calling::PromptVolumeResult, { volume: setting }
+    end
+
   private
 
     def digit_event(result)

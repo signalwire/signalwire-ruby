@@ -46,5 +46,17 @@ module Signalwire::Relay::Calling
       @call.broadcast "play_#{@state}".to_sym, event
       @call.broadcast :play_state_change, event
     end
+
+    def pause
+      execute_subcommand '.pause', Signalwire::Relay::Calling::PlayPauseResult
+    end
+
+    def resume
+      execute_subcommand '.resume', Signalwire::Relay::Calling::PlayResumeResult
+    end
+
+    def volume(setting)
+      execute_subcommand '.volume', Signalwire::Relay::Calling::PlayVolumeResult, { volume: setting }
+    end
   end
 end
