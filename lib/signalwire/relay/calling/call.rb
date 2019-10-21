@@ -160,14 +160,16 @@ module Signalwire::Relay::Calling
       PromptAction.new(component: component)
     end
 
-    def connect(devices_object)
-      component = Connect.new(call: self, devices: devices_object)
+    def connect(devices_p = nil, ringback_p = nil, devices: nil, ringback: nil)
+      set_parameters(binding, %i{devices ringback}, %i{devices})
+      component = ringback.nil?  ? Connect.new(call: self, devices: devices) : Connect.new(call: self, devices: devices, ringback: ringback)
       component.wait_for(Relay::CallConnectState::CONNECTED, Relay::CallConnectState::FAILED)
       ConnectResult.new(component: component)
     end
 
-    def connect!(devices_object)
-      component = Connect.new(call: self, devices: devices_object)
+    def connect!(devices_p = nil, ringback_p = nil, devices: nil, ringback: nil)
+      set_parameters(binding, %i{devices ringback}, %i{devices})
+      component = ringback.nil?  ? Connect.new(call: self, devices: devices) : Connect.new(call: self, devices: devices, ringback: ringback)
       component.execute
       ConnectAction.new(component: component)
     end

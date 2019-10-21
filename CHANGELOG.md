@@ -8,6 +8,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Add `pause` and `resume` on `PlayAction`.
 - Add `volume` optional parameter to `play` and `prompt` methods
 - Add `volume` method to `Play` and `Prompt` components
+- Add `play_ringtone` and `play_ringtone!` for ringback.
+- Add `prompt_ringtone` and `prompt_ringtone!` for ringback on a prompt.
+- Added `ringback` parameter to the `connect` and `connect!` methods.
 
 ## [2.2.0] - 2019-09-09
 ### Added

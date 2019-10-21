@@ -101,7 +101,6 @@ describe Signalwire::Relay::Calling::Call do
       end
     end
 
-
     it "raises on a missing parameter" do
       expect {
         subject.prompt(collect_obj)
@@ -113,8 +112,40 @@ describe Signalwire::Relay::Calling::Call do
         subject.prompt(collect: collect_obj)
       }.to raise_error(ArgumentError)
     end
+  end
 
-    
+  describe "#connect" do
+    let(:devices_obj) { 'some_devices'}
+    let(:ringback_obj) { 'some_ringback'}
+    let(:connect_double) { double('Conenct', wait_for: nil) }
+
+    context "with valid parameters" do
+      before do
+        expect(Signalwire::Relay::Calling::Connect).to receive(:new).with(call: subject, devices: devices_obj).and_return(connect_double)
+      end
+
+      it "handles positional parameters" do
+        subject.connect(devices_obj)
+      end
+
+      it "handles keyword parameters" do
+        subject.connect(devices: devices_obj)
+      end
+    end
+
+    context "with a ringback parameter" do
+      before do
+        expect(Signalwire::Relay::Calling::Connect).to receive(:new).with(call: subject, devices: devices_obj, ringback: ringback_obj).and_return(connect_double)
+      end
+
+      it "handles positional parameters" do
+        subject.connect(devices_obj, ringback_obj)
+      end
+
+      it "handles keyword parameters" do
+        subject.connect(devices: devices_obj, ringback: ringback_obj)
+      end
+    end
   end
 
   describe "#prompt_tts" do
