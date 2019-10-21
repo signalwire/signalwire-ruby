@@ -35,6 +35,14 @@ module Signalwire::Relay::Calling
       play! tts_payload(text, language, gender), volume: volume
     end
 
+    def play_ringtone(name:, duration: nil)
+      play ringtone_payload(name, duration)
+    end
+
+    def play_ringtone!(name:, duration: nil)
+      play ringtone_payload(name, duration)
+    end
+
     def prompt_audio(collect_p = nil, url_p = nil, volume_p=nil, **args)
       collect = args.delete(:collect)
       url = args.delete(:url)
@@ -99,6 +107,14 @@ module Signalwire::Relay::Calling
       prompt!(collect: collect, play: tts_payload(text, language, gender), volume: volume)
     end
 
+    def prompt_ringtone(collect:, name:, duration: nil)
+      prompt(collect: collect, play:ringtone_payload(name, duration), volume: volume)
+    end
+
+    def prompt_ringtone!(collect:, name:, duration: nil)
+      prompt!(collect: collect, play:ringtone_payload(name, duration), volume: volume)
+    end
+
     def wait_for_ringing
       wait_for(Relay::CallState::RINGING)
     end
@@ -127,6 +143,12 @@ module Signalwire::Relay::Calling
 
     def tts_payload(text, language=Relay::DEFAULT_LANGUAGE, gender=Relay::DEFAULT_GENDER)
       [{ "type": 'tts', "params": { "text": text, "language": language, "gender": gender } }]
+    end
+
+    def ringtone_payload(name, duration)
+      params = { name: name } 
+      params[:duration] = duration if duration && duration.to_i > 0
+      [{ type: "ringtone", params: params }]
     end
   end
 end

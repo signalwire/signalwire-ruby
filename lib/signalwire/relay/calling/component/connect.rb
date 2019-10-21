@@ -2,9 +2,10 @@
 
 module Signalwire::Relay::Calling
   class Connect < Component
-    def initialize(call:, devices:)
+    def initialize(call:, devices:, ringback: nil)
       super(call: call)
       @devices = devices
+      @ringback = ringback
     end
 
     def method
@@ -16,11 +17,14 @@ module Signalwire::Relay::Calling
     end
 
     def inner_params
-      {
+      params = {
         node_id: @call.node_id,
         call_id: @call.id,
         devices: @devices
       }
+
+      params[:ringback] = @ringback unless @ringback.nil?
+      params
     end
 
     def notification_handler(event)
