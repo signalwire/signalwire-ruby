@@ -2,9 +2,10 @@
 
 module Signalwire::Relay::Calling
   class Play < ControlComponent
-    def initialize(call:, play:)
+    def initialize(call:, play:, volume: nil)
       super(call: call)
       @play = play
+      @volume = volume
     end
 
     def method
@@ -16,12 +17,15 @@ module Signalwire::Relay::Calling
     end
 
     def inner_params
-      {
+      prm = {
         node_id: @call.node_id,
         call_id: @call.id,
         control_id: control_id,
         play: @play
       }
+
+      prm[:volume] = @volume unless @volume.nil?
+      prm
     end
 
     def notification_handler(event)
@@ -41,6 +45,18 @@ module Signalwire::Relay::Calling
     def broadcast_event(event)
       @call.broadcast "play_#{@state}".to_sym, event
       @call.broadcast :play_state_change, event
+    end
+
+    def pause
+      execute_subcommand '.pause', Signalwire::Relay::Calling::PlayPauseResult
+    end
+
+    def resume
+      execute_subcommand '.resume', Signalwire::Relay::Calling::PlayResumeResult
+    end
+
+    def volume(setting)
+      execute_subcommand '.volume', Signalwire::Relay::Calling::PlayVolumeResult, { volume: setting }
     end
   end
 end

@@ -11,5 +11,9 @@ module Signalwire::Relay::Calling
     def stop
       @component.stop
     end
+
+    def volume(setting)
+      @component.volume setting
+    end
   end
 end

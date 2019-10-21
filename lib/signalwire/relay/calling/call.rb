@@ -112,38 +112,50 @@ module Signalwire::Relay::Calling
       AnswerResult.new(component: answer_component)
     end
 
-    def play(play_object)
-      play_component = Signalwire::Relay::Calling::Play.new(call: self, play: play_object)
+    def play(play_p = nil, volume_p = nil, **args)
+      play = args.delete(:play)
+      volume = args.delete(:volume)
+      set_parameters(binding, %i{play volume}, %i{play})
+
+      play_component = Signalwire::Relay::Calling::Play.new(call: self, play: play, volume: volume)
       play_component.wait_for(Relay::CallPlayState::FINISHED, Relay::CallPlayState::ERROR)
       PlayResult.new(component: play_component)
     end
 
-    def play!(play_object)
-      play_component = Signalwire::Relay::Calling::Play.new(call: self, play: play_object)
+    def play!(play_p = nil, volume_p = nil, **args)
+      play = args.delete(:play)
+      volume = args.delete(:volume)
+      set_parameters(binding, %i{play volume}, %i{play})
+
+      play_component = Signalwire::Relay::Calling::Play.new(call: self, play: play, volume: volume)
       play_component.execute
       PlayAction.new(component: play_component)
     end
 
-    def prompt(collect_p = nil, play_p = nil, **args)
-
+    def prompt(collect_p = nil, play_p = nil, volume_p = nil, **args)
       collect = args.delete(:collect)
       play = args.delete(:play)
+      volume = args.delete(:volume)
 
       collect = compile_collect_arguments(args) if collect.nil? && collect_p.nil?
       set_parameters(binding, %i{collect play}, %i{collect play})
 
-      component = Prompt.new(call: self, collect: collect, play: play)
+      component = Prompt.new(call: self, collect: collect, play: play, volume: volume)
       component.wait_for(Relay::CallPromptState::ERROR, Relay::CallPromptState::NO_INPUT, 
                          Relay::CallPromptState::NO_MATCH, Relay::CallPromptState::DIGIT,
                          Relay::CallPromptState::SPEECH)
       PromptResult.new(component: component)
     end
 
-    def prompt!(collect_p = nil, play_p = nil, **args)
+    def prompt!(collect_p = nil, play_p = nil, volume_p = nil, **args)
+      collect = args.delete(:collect)
+      play = args.delete(:play)
+      volume = args.delete(:volume)
+
       collect = compile_collect_arguments(args) if collect.nil? && collect_p.nil?
       set_parameters(binding, %i{collect play}, %i{collect play})
 
-      component = Prompt,new(call: self, collect: collect, play: play)
+      component = Prompt.new(call: self, collect: collect, play: play, volume: volume)
       component.execute
       PromptAction.new(component: component)
     end
