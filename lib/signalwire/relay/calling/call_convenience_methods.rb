@@ -107,12 +107,14 @@ module Signalwire::Relay::Calling
       prompt!(collect: collect, play: tts_payload(text, language, gender), volume: volume)
     end
 
-    def prompt_ringtone(collect:, name:, duration: nil)
-      prompt(collect: collect, play:ringtone_payload(name, duration), volume: volume)
+    def prompt_ringtone(collect: nil, name:, duration: nil, **args)
+      collect = compile_collect_arguments(args) if collect.nil?
+      prompt(collect: collect, play: ringtone_payload(name, duration))
     end
 
-    def prompt_ringtone!(collect:, name:, duration: nil)
-      prompt!(collect: collect, play:ringtone_payload(name, duration), volume: volume)
+    def prompt_ringtone!(collect: nil, name:, duration: nil, **args)
+      collect = compile_collect_arguments(args) if collect.nil?
+      prompt!(collect: collect, play: ringtone_payload(name, duration))
     end
 
     def wait_for_ringing

@@ -182,6 +182,24 @@ describe Signalwire::Relay::Calling::Call do
     end
   end
 
+  describe "#prompt_ringtone" do
+    let(:tone_name) { "us" }
+    let(:prompt_double) { double('Prompt', wait_for: nil) }
+    let(:play_obj) do
+      [{params: {name: "us"}, type: "ringtone"}]
+    end
+
+    context "with valid parameters" do
+      before do
+        expect(Signalwire::Relay::Calling::Prompt).to receive(:new).with(call: subject, collect: collect_obj, play: play_obj, volume: nil).and_return(prompt_double)
+      end
+
+      it "handles keyword single parameters" do
+        subject.prompt_ringtone(initial_timeout: 10.0, digits_max: 1, digits_timeout: 5.0, name: tone_name)
+      end
+    end
+  end
+
   describe "#play_tts" do
     let(:sentence_obj) { 'some_sentence'}
     let(:language) { "en-US" }
