@@ -4,7 +4,7 @@ module Signalwire::Relay
   DEFAULT_URL = 'relay.signalwire.com'
   COMMAND_TIMEOUT = 30
   DEFAULT_CALL_TIMEOUT = 30
-  PING_TIMEOUT = 5
+  PING_TIMEOUT = 10
   DEFAULT_LANGUAGE = 'en-US'
   DEFAULT_GENDER = 'female'
 
