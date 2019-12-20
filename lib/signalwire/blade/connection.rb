@@ -25,6 +25,8 @@ module Signalwire::Blade
       @inbound_queue = EM::Queue.new
       @outbound_queue = EM::Queue.new
 
+      @keep_alive_timer = nil
+
       @shutdown_list = []
     end
 
@@ -37,7 +39,7 @@ module Signalwire::Blade
     end
 
     def reconnect!
-      @connected = false
+      clear_connections
       return if @shutdown
       sleep Signalwire::Blade::RECONNECT_PERIOD
       logger.info "Attempting reconnection"
@@ -69,13 +71,14 @@ module Signalwire::Blade
         begin
           @connected = true
           myreq = connect_request
-          start_periodic_timer
+          @pong = nil
 
           write_command(myreq) do |event|
             @session_id = event.dig(:result, :sessionid) unless @session_id
             @node_id = event.dig(:result, :nodeid) unless @node_d
             logger.info "Blade Session connected with id: #{@session_id}"
             broadcast :connected, event
+            keep_alive
           end
 
         rescue StandardError => e
@@ -127,18 +130,28 @@ module Signalwire::Blade
       block_given? ? write_command(Execute.new(params), &block) : write_command(Execute.new(params))
     end
 
+    def ping(&block)
+      block_given? ? write_command(Ping.new, &block) : write_command(Ping.new)
+    end
+
     def subscribe(params, &block)
       block_given? ? write_command(Subscribe.new(params), &block) : write_command(Subscribe.new(params))
     end
 
     def handle_close
+      logger.warn "WS Socket closed!"
       reconnect!
+    end
+
+    def clear_connections
+      @ws = nil
+      @connected = false
+      @keep_alive_timer.cancel if @keep_alive_timer
     end
 
     def disconnect!
       # logger.info 'Stopping Blade event loop'
-      @ws = nil
-      @connected = false
+      clear_connections
       EM.stop
     end
 
@@ -169,19 +182,19 @@ module Signalwire::Blade
       @connected == true
     end
 
-    def start_periodic_timer
-      pinger = EventMachine::PeriodicTimer.new(Signalwire::Relay::PING_TIMEOUT) do
-        timeouter = EventMachine::Timer.new(2) do
-          # reconnect logic goes here
-          logger.error "We got disconnected!"
-          pinger.cancel
+    def keep_alive
+      @pong = false
+
+      ping do
+        @pong = true
+      end
+
+      @keep_alive_timer = EventMachine::Timer.new(Signalwire::Relay::PING_TIMEOUT) do
+        if @pong === false
+          logger.error "Ping failed"
           reconnect! if connected?
-        end
-        
-        if @connected
-          @ws.ping 'detecting presence' do
-            timeouter.cancel
-          end
+        else
+          keep_alive
         end
       end
     end
