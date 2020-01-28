@@ -5,6 +5,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [2.3.2] - 2020-01-29
+### Fixed
+- Correctly return AMD result in Relay.
+
 ## [2.3.1] - 2019-12-20
 ### Changed
 - Keepalive now uses `blade.ping`.
