@@ -77,7 +77,7 @@ describe Signalwire::Relay::Calling::Detect do
     describe "On complete" do
       let(:detect) { { type: :machine, params: {} } }
       let(:event_type) { 'machine' }
-      let(:event_value) { 'finished' }
+      let(:event_value) { 'READY' }
 
       let(:mock_detect_event) do
         Signalwire::Relay::Event.new({
@@ -110,13 +110,22 @@ describe Signalwire::Relay::Calling::Detect do
         expect(subject.type).to eq 'machine'
       end
 
-      it "returns result as 'finished'" do
+      it "returns result as 'MACHINE'" do
         allow_any_instance_of(Signalwire::Relay::Calling::Detect).to receive(:has_blocker?).and_return(true)
         allow_any_instance_of(Signalwire::Relay::Calling::Detect).to receive(:unblock)
 
         subject.notification_handler(mock_detect_event)
 
-        expect(subject.result).to eq 'finished'
+        expect(subject.result).to eq 'READY'
+      end
+
+      context "when not waiting for beep" do
+        let(:event_value) { 'MACHINE' }
+
+        it "returns result as 'MACHINE'" do
+          subject.notification_handler(mock_detect_event)
+          expect(subject.result).to eq 'MACHINE'
+        end
       end
     end
   end
