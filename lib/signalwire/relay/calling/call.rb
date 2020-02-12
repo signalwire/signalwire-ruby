@@ -389,7 +389,7 @@ module Signalwire::Relay::Calling
         speech_obj[:language] = args[:speech_language] if args[:speech_language]
         speech_obj[:hints] = args[:speech_hints] if args[:speech_hints]
         speech_obj[:end_silence_timeout] = args[:end_silence_timeout] if args[:end_silence_timeout]
-        collect[:digits] = digits_obj
+        collect[:speech] = speech_obj
       end
 
       collect

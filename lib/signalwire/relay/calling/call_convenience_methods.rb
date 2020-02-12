@@ -90,7 +90,6 @@ module Signalwire::Relay::Calling
       collect = compile_collect_arguments(args) if collect.nil? && collect_p.nil?
 
       set_parameters(binding, %i{collect text language gender volume}, %i{collect text})
-
       prompt(collect: collect, play: tts_payload(text, language, gender), volume: volume)
     end
 
