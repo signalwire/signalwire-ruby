@@ -3,8 +3,7 @@ module Signalwire::Relay::Calling
 
     def detect(type:, **args)
       component = build_detect_component(type, args)
-      component.wait_for(Relay::CallDetectState::MACHINE, Relay::CallDetectState::HUMAN,
-        Relay::CallDetectState::UNKNOWN, Relay::CallDetectState::CED, Relay::CallDetectState::CNG)
+      component.wait_for(Relay::CallDetectState::CED, Relay::CallDetectState::CNG)
       DetectResult.new(component: component)
     end
 

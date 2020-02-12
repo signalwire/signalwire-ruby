@@ -4,7 +4,22 @@ module Signalwire::Relay::Calling
   class Detect < ControlComponent
     attr_reader :result, :type
 
-    FINISHED_EVENTS = [Relay::CallDetectState::FINISHED, Relay::CallDetectState::ERROR]
+    FINISHED_EVENTS = [
+      Relay::CallDetectState::FINISHED, 
+      Relay::CallDetectState::ERROR,
+      Relay::CallDetectState::READY,
+      Relay::CallDetectState::NOT_READY,
+      Relay::CallDetectState::MACHINE,
+      Relay::CallDetectState::HUMAN,
+      Relay::CallDetectState::UNKNOWN
+    ]
+
+    READY_EVENTS = [
+      Relay::CallDetectState::FINISHED, 
+      Relay::CallDetectState::ERROR,
+      Relay::CallDetectState::READY
+    ]
+
     MACHINE_EVENTS = [Relay::CallDetectState::READY, Relay::CallDetectState::NOT_READY]
 
     def initialize(call:, detect:, wait_for_beep: false, timeout: 30)
@@ -38,26 +53,22 @@ module Signalwire::Relay::Calling
       detect_result = event.call_params[:detect]
       @type = detect_result[:type]
       params = detect_result[:params]
-      res_event = params[:event]
-      @state = res_event
+      @state = params[:event]
 
-      return complete(event) if FINISHED_EVENTS.include?(@state) || @type == Relay::CallDetectType::DIGIT
+      # if we are detecting digits we are done
+      return complete(event) if @type == Relay::CallDetectType::DIGIT
 
-      if has_blocker?
-        @received_events << @state
-        return
+      if @type == 'machine'
+        if @wait_for_beep
+          return complete(event) if READY_EVENTS.include?(@state)
+        else
+          return complete(event) if FINISHED_EVENTS.include?(@state)
+        end
+      else
+        check_for_waiting_events
       end
-
-      if @waiting_for_ready
-        return (@state == Relay::CallDetectState::READY ? complete(event) : nil)
-      end
-
-      if (@wait_for_beep && @state == Relay::CallDetectState::MACHINE)
-        @waiting_for_ready = true
-        return
-      end
-
-      check_for_waiting_events
+      
+      @received_events << @state
       broadcast_event(event)
     end
 
@@ -71,20 +82,10 @@ module Signalwire::Relay::Calling
     def complete(event)
       @completed = true
       @event = event
+      @result = @state
 
-      if has_blocker?
-        @successful = @state == Relay::CallDetectState::FINISHED
-
-        if MACHINE_EVENTS.include?(@state)
-          @result = Relay::CallDetectState::MACHINE
-        else
-          @result = @state
-        end
-        unblock(event)
-      else
-        @result = @received_events.join(',')
-        @successful = @state != Relay::CallDetectState::ERROR
-      end
+      @successful = @state != Relay::CallDetectState::ERROR
+      unblock(event) if has_blocker?
     end
   end
 end
