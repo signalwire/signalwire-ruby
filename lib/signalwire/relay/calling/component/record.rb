@@ -51,7 +51,7 @@ module Signalwire::Relay::Calling
     end
 
     def after_execute(execute_event)
-      @url = execute_event.call_params[:url]
+      @url = execute_event.dig(:params, :params, :params, :url)
     end
   end
 end
