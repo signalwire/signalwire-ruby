@@ -127,6 +127,25 @@ describe Signalwire::Relay::Calling::Detect do
           expect(subject.result).to eq 'MACHINE'
         end
       end
+
+      context "when waiting for beep" do
+        let(:wait_for_beep) { true }
+        let(:event_value) { 'READY' }
+
+        it "returns result as 'READY'" do
+          subject.notification_handler(mock_detect_event)
+          expect(subject.result).to eq 'READY'
+        end
+
+        context "with a human" do
+          let(:event_value) { 'HUMAN' }
+
+          it "returns result as 'HUMAN'" do
+            subject.notification_handler(mock_detect_event)
+            expect(subject.result).to eq 'HUMAN'
+          end
+        end
+      end
     end
   end
 end
