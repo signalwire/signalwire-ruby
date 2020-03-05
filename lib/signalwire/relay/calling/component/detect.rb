@@ -17,7 +17,8 @@ module Signalwire::Relay::Calling
     READY_EVENTS = [
       Relay::CallDetectState::FINISHED, 
       Relay::CallDetectState::ERROR,
-      Relay::CallDetectState::READY
+      Relay::CallDetectState::READY,
+      Relay::CallDetectState::HUMAN
     ]
 
     MACHINE_EVENTS = [Relay::CallDetectState::READY, Relay::CallDetectState::NOT_READY]
