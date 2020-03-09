@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `record` correctly set up for terminators now.
 - Make AMD more usable and less complex.
 - AMD now returns immediately in `wait_for_beep` mode if it detects a human.
+-  Relax `gemspec` dependencies.
 
 ## [2.3.2] - 2020-01-29
 ### Fixed
