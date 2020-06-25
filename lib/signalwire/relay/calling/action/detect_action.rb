@@ -5,7 +5,7 @@ require 'forwardable'
 module Signalwire::Relay::Calling
   class DetectAction < Action
     def result
-      DetectResult.new(@component)
+      DetectResult.new(component: @component)
     end
 
     def stop

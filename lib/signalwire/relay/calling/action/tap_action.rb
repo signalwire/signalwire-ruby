@@ -7,7 +7,7 @@ module Signalwire::Relay::Calling
     def_delegators :@component, :source_device
 
     def result
-      TapResult.new(@component)
+      TapResult.new(component: @component)
     end
 
     def stop
