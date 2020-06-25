@@ -45,7 +45,7 @@ module Signalwire::Relay::Calling
     end
 
     def setup_call_event_handlers
-      @client.on(:event, proc { |evt| call_match_event(evt) }) do |event|
+      @call_event_handler = @client.on(:event, proc { |evt| call_match_event(evt) }) do |event|
         case event.event_type
         when 'calling.call.connect'
           change_connect_state(event.call_params[:connect_state])
@@ -81,7 +81,8 @@ module Signalwire::Relay::Calling
     end
 
     def call_match_event(event)
-      event.event_type.match(/calling\.call/) &&
+      event.event_type &&
+        event.event_type.match(/calling\.call/) &&
         !event.event_type.match(/receive/) &&
         (event.call_id == id || event.call_params[:tag] == tag)
     end
@@ -316,6 +317,7 @@ module Signalwire::Relay::Calling
     end
 
     def finish_call(params)
+      @client.unregister_handler(:event, @call_event_handler)
       terminate_components(params)
       client.calling.end_call(id)
       @busy = true if params[:reason] == Relay::DisconnectReason::BUSY
