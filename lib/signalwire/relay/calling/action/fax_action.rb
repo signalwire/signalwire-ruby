@@ -5,7 +5,7 @@ require 'forwardable'
 module Signalwire::Relay::Calling
   class FaxAction < Action
     def result
-      FaxResult.new(@component)
+      FaxResult.new(component: @component)
     end
 
     def stop

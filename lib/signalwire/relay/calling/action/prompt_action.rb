@@ -5,7 +5,7 @@ require 'forwardable'
 module Signalwire::Relay::Calling
   class PromptAction < Action
     def result
-      PromptResult.new(@component)
+      PromptResult.new(component: @component)
     end
 
     def stop
