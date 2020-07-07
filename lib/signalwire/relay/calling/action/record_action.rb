@@ -5,7 +5,7 @@ require 'forwardable'
 module Signalwire::Relay::Calling
   class RecordAction < Action
     def result
-      RecordResult.new(@component)
+      RecordResult.new(component: @component)
     end
 
     def stop

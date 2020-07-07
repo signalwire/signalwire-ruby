@@ -5,7 +5,7 @@ require 'forwardable'
 module Signalwire::Relay::Calling
   class PlayAction < Action
     def result
-      PlayResult.new(@component)
+      PlayResult.new(component: @component)
     end
 
     def stop

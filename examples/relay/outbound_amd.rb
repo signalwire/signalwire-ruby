@@ -14,7 +14,7 @@ class OutboundConsumer < Signalwire::Relay::Consumer
     logger.info 'Dialing out'
     call = client.calling.new_call(from: ENV['FROM_NUMBER'], to: ENV['TO_NUMBER'])
     call.dial
-    result = call.amd(timeout: 5)
+    result = call.amd(timeout: 10, wait_for_beep: true)
     pp "---------------------------------- Detect AM result was:"
     pp result.type
     pp result.result
