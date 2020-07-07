@@ -10,7 +10,8 @@ module Signalwire::Blade
             major: 2,
             minor: 1,
             revision: 0
-          }
+          },
+          agent: "Ruby SDK/#{Signalwire::VERSION}"
         }
       }
     end

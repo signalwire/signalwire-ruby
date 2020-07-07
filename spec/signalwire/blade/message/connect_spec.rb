@@ -12,4 +12,10 @@ describe Signalwire::Blade::Connect do
     connect = described_class.new.build_request
     expect(connect.dig(:params, :version)).to eq(major: 2, minor: 1, revision: 0)
   end
+
+  it 'uses the current Agent version number' do
+    connect = described_class.new.build_request
+    expect(connect.dig(:params, :agent)).to eq("Ruby SDK/#{Signalwire::VERSION}")
+  end
+
 end
