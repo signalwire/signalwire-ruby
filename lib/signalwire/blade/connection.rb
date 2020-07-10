@@ -23,12 +23,14 @@ module Signalwire::Blade
       @log_traffic = options.fetch(:log_traffic, true)
       @authentication = options.fetch(:authentication, nil)
 
-      @pong = Concurrent::AtomicBoolean.new
+      
 
       @inbound_queue = EM::Queue.new
       @outbound_queue = EM::Queue.new
 
+      @pong = Concurrent::AtomicBoolean.new
       @keep_alive_timer = nil
+      @ping_is_sent = Concurrent::AtomicBoolean.new
 
       @shutdown_list = []
     end
@@ -56,7 +58,7 @@ module Signalwire::Blade
 
         @ws.on(:open) { |event| broadcast :started, event }
         @ws.on(:message) { |event| enqueue_inbound event }
-        @ws.on(:close) { logger.error "CLOSE TRIGGERED"; handle_close }
+        @ws.on(:close) { handle_close }
 
         @ws.on :error do |error|
           logger.error "Error occurred: #{error.message}"
@@ -156,7 +158,6 @@ module Signalwire::Blade
     end
 
     def disconnect!
-      # logger.info 'Stopping Blade event loop'
       clear_connections
       EM.stop
     end
@@ -189,21 +190,21 @@ module Signalwire::Blade
     end
 
     def keep_alive
-      @pong.make_false
-
-      @ping = ping do
-        logger.info "Pong received"
-        @pong.make_true
+      if @ping_is_sent.false?
+        ping do
+          @pong.make_true
+        end
+        @ping_is_sent.make_true
+      else
+        if @pong.false?
+          logger.error "KEEPALIVE: Ping failed"
+          reconnect! if connected?
+        end
+        @ping_is_sent.make_false
       end
 
       @keep_alive_timer = EventMachine::Timer.new(Signalwire::Relay::PING_TIMEOUT) do
-        if @pong.false?
-          logger.error "Ping failed, pong is #{@pong.value}, ping is #{ping.id}"  
-          #reconnect! if connected? && @pong.false?
-        else
-          sleep 0.5
-          keep_alive
-        end
+        keep_alive
       end
     end
 
