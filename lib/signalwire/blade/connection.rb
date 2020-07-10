@@ -4,6 +4,7 @@ require 'has_guarded_handlers'
 require 'eventmachine'
 require 'faye/websocket'
 require 'json'
+require 'concurrent-ruby'
 
 module Signalwire::Blade
   class Connection
@@ -21,6 +22,8 @@ module Signalwire::Blade
       @url = @options.fetch(:url, 'wss://relay.signalwire.com')
       @log_traffic = options.fetch(:log_traffic, true)
       @authentication = options.fetch(:authentication, nil)
+
+      @pong = Concurrent::AtomicBoolean.new
 
       @inbound_queue = EM::Queue.new
       @outbound_queue = EM::Queue.new
@@ -48,11 +51,12 @@ module Signalwire::Blade
 
     def main_loop!
       EM.run do
+        logger.info "CREATING SOCKET"
         @ws = Faye::WebSocket::Client.new(@url)
 
         @ws.on(:open) { |event| broadcast :started, event }
         @ws.on(:message) { |event| enqueue_inbound event }
-        @ws.on(:close) { handle_close }
+        @ws.on(:close) { logger.error "CLOSE TRIGGERED"; handle_close }
 
         @ws.on :error do |error|
           logger.error "Error occurred: #{error.message}"
@@ -71,7 +75,7 @@ module Signalwire::Blade
         begin
           @connected = true
           myreq = connect_request
-          @pong = nil
+          @pong.make_false
 
           write_command(myreq) do |event|
             @session_id = event.dig(:result, :sessionid) unless @session_id
@@ -131,7 +135,9 @@ module Signalwire::Blade
     end
 
     def ping(&block)
-      block_given? ? write_command(Ping.new, &block) : write_command(Ping.new)
+      ping_cmd = Ping.new
+      block_given? ? write_command(ping_cmd, &block) : write_command(ping_cmd)
+      ping_cmd
     end
 
     def subscribe(params, &block)
@@ -183,17 +189,19 @@ module Signalwire::Blade
     end
 
     def keep_alive
-      @pong = false
+      @pong.make_false
 
-      ping do
-        @pong = true
+      @ping = ping do
+        logger.info "Pong received"
+        @pong.make_true
       end
 
       @keep_alive_timer = EventMachine::Timer.new(Signalwire::Relay::PING_TIMEOUT) do
-        if @pong === false
-          logger.error "Ping failed"
-          reconnect! if connected?
+        if @pong.false?
+          logger.error "Ping failed, pong is #{@pong.value}, ping is #{ping.id}"  
+          #reconnect! if connected? && @pong.false?
         else
+          sleep 0.5
           keep_alive
         end
       end
