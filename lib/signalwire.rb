@@ -3,6 +3,7 @@
 module Signalwire
 end
 
+require 'signalwire/version'
 require 'signalwire/sdk'
 require 'signalwire/logger'
 require 'signalwire/common'

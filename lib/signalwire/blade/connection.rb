@@ -4,6 +4,7 @@ require 'has_guarded_handlers'
 require 'eventmachine'
 require 'faye/websocket'
 require 'json'
+require 'concurrent-ruby'
 
 module Signalwire::Blade
   class Connection
@@ -22,10 +23,14 @@ module Signalwire::Blade
       @log_traffic = options.fetch(:log_traffic, true)
       @authentication = options.fetch(:authentication, nil)
 
+      
+
       @inbound_queue = EM::Queue.new
       @outbound_queue = EM::Queue.new
 
+      @pong = Concurrent::AtomicBoolean.new
       @keep_alive_timer = nil
+      @ping_is_sent = Concurrent::AtomicBoolean.new
 
       @shutdown_list = []
     end
@@ -48,6 +53,7 @@ module Signalwire::Blade
 
     def main_loop!
       EM.run do
+        logger.info "CREATING SOCKET"
         @ws = Faye::WebSocket::Client.new(@url)
 
         @ws.on(:open) { |event| broadcast :started, event }
@@ -71,7 +77,7 @@ module Signalwire::Blade
         begin
           @connected = true
           myreq = connect_request
-          @pong = nil
+          @pong.make_false
 
           write_command(myreq) do |event|
             @session_id = event.dig(:result, :sessionid) unless @session_id
@@ -131,7 +137,9 @@ module Signalwire::Blade
     end
 
     def ping(&block)
-      block_given? ? write_command(Ping.new, &block) : write_command(Ping.new)
+      ping_cmd = Ping.new
+      block_given? ? write_command(ping_cmd, &block) : write_command(ping_cmd)
+      ping_cmd
     end
 
     def subscribe(params, &block)
@@ -150,7 +158,6 @@ module Signalwire::Blade
     end
 
     def disconnect!
-      # logger.info 'Stopping Blade event loop'
       clear_connections
       EM.stop
     end
@@ -183,19 +190,21 @@ module Signalwire::Blade
     end
 
     def keep_alive
-      @pong = false
-
-      ping do
-        @pong = true
+      if @ping_is_sent.false?
+        ping do
+          @pong.make_true
+        end
+        @ping_is_sent.make_true
+      else
+        if @pong.false?
+          logger.error "KEEPALIVE: Ping failed"
+          reconnect! if connected?
+        end
+        @ping_is_sent.make_false
       end
 
       @keep_alive_timer = EventMachine::Timer.new(Signalwire::Relay::PING_TIMEOUT) do
-        if @pong === false
-          logger.error "Ping failed"
-          reconnect! if connected?
-        else
-          keep_alive
-        end
+        keep_alive
       end
     end
 
