@@ -3,10 +3,13 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+ ## [Unreleased]
+
+## [2.3.4] - 2020-09-09
 ### Fixed
 - Correctly ignore non-call events and clear handlers on call end
 - Async method arguments fixed
+- Fix ping race condition
 
 ## [2.3.3] - 2020-03-09
 ### Fixed
