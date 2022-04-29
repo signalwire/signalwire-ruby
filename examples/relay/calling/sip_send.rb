@@ -13,7 +13,7 @@ TO_NUMBER = ENV["TO_NUMBER"] || "sip:1-999-123-4567@voip-provider.example.net"
 client = Signalwire::Relay::Client.new(project: SIGNALWIRE_PROJECT_KEY, token: SIGNALWIRE_TOKEN)
 
 client.on :ready do
-  call = client.calling.new_call(from: FROM_NUMBER, to: TO_NUMBER)
+  call = client.calling.new_call(from: FROM_NUMBER, to: TO_NUMBER, device_type: "sip")
 
   call.on :answered do |state_data|
     call.play_tts 'the quick brown fox jumps over the lazy dog'
