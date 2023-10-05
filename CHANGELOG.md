@@ -7,7 +7,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [2.4.0] - 2023-
 ### Added
--
+- Add Webhook `ValidateRequest`
 
 ## [2.3.4] - 2020-09-09
 ### Fixed
