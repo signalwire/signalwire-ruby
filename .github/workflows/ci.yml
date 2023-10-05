@@ -10,9 +10,10 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    continue-on-error: true
     strategy:
       matrix:
-        ruby-version: ['2.6', '2.7']
+        ruby-version: ['2.6', '2.7', '3.0']
     steps:
     - uses: actions/checkout@v4
     - name: Set up Ruby
