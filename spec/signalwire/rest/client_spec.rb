@@ -24,5 +24,17 @@ module Signalwire
 
       expect(stub).to have_been_requested
     end
+
+    describe '#validate_request' do
+      it 'validates the webhook request' do
+        Signalwire::REST::Client.validate_request(
+          "XXXXXXXX", // signing key copied from your credentials page,
+          req.headers["x-signalwire-signature"],
+              "https://example.ngrok.io/mywebhook",
+                  req.body
+          )
+
+      end
+    end
   end
 end
