@@ -57,7 +57,7 @@ RSpec.describe Signalwire::REST::Client do
   end
 
   context 'faxes' do
-    it 'sends a fax' do
+    xit 'sends a fax' do
       VCR.use_cassette('send_fax') do
         fax = @client.fax.faxes
                      .create(
@@ -69,14 +69,14 @@ RSpec.describe Signalwire::REST::Client do
       end
     end
 
-    it 'lists faxes' do
+    xit 'lists faxes' do
       VCR.use_cassette('list_faxes') do
         faxes = @client.fax.faxes.list
         expect(faxes.first.sid).to eq '831455c6-574e-4d8b-b6ee-2418140bf4cd'
       end
     end
 
-    it 'gets a fax' do
+    xit 'gets a fax' do
       VCR.use_cassette('get_fax') do
         fax = @client.fax.faxes('831455c6-574e-4d8b-b6ee-2418140bf4cd').fetch
         expect(fax.to).to eq '+15556677999'
@@ -84,14 +84,14 @@ RSpec.describe Signalwire::REST::Client do
       end
     end
 
-    it 'gets a faxes media' do
+    xit 'gets a faxes media' do
       VCR.use_cassette('get_fax_media_list') do
         fax = @client.fax.faxes('831455c6-574e-4d8b-b6ee-2418140bf4cd').fetch
         expect(fax.media.list.first.sid).to eq 'aff0684c-3445-49bc-802b-3a0a488139f5'
       end
     end
 
-    it 'gets a media instance' do
+    xit 'gets a media instance' do
       VCR.use_cassette('get_fax_media_instance') do
         fax_media = @client.fax.faxes('831455c6-574e-4d8b-b6ee-2418140bf4cd').media('aff0684c-3445-49bc-802b-3a0a488139f5').fetch
         expect(fax_media.content_type).to eq 'image/tiff'

@@ -306,7 +306,7 @@ describe Signalwire::Relay::Calling::Call do
     end
     
     it "instantiates the component from an hash" do
-      subject.record(record_hash)
+      subject.record(**record_hash)
     end
 
     it "instantiates the component from keyword parameters" do

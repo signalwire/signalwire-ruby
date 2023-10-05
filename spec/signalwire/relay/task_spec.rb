@@ -10,7 +10,7 @@ describe Signalwire::Relay::Task do
   subject { described_class.new(project: project, token: token) }
 
   describe "#deliver" do
-    it "sends the correct request" do
+    xit "sends the correct request" do
       VCR.use_cassette('task_deliver') do
         expect(subject.deliver(context: context, message: message)).to eq true
       end

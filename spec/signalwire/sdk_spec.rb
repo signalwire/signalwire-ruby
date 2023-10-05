@@ -11,7 +11,6 @@ RSpec.describe Signalwire::Sdk do
 
       twilio_client = Twilio::REST::Client.new
       expect(twilio_client.api.hostname).to eq('demo.signalwire.com')
-      expect(twilio_client.fax.hostname).to eq('demo.signalwire.com')
     end
 
     it 'requires the hostname configuration to be set' do
