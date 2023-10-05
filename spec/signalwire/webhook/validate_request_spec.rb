@@ -44,7 +44,7 @@ module Signalwire
         }
 
         it 'validates signatures do not match' do
-          valid = subject.validate(signature: signature, url: url, raw_body: '{"foo":"bar"}')
+          valid = subject.validate(signature: signature, url: url, raw_body: body)
           expect(valid).to eq(false)
         end
       end
