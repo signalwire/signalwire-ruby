@@ -1,0 +1,14 @@
+kind: pipeline
+name: default
+
+steps:
+- name: test
+  image: ruby:2.6
+  commands:
+  - gem install bundler
+  - bundle install --jobs=3 --retry=3
+  - bundle exec rspec
+
+trigger:
+  event: push
+
