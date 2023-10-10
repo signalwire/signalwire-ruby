@@ -48,6 +48,40 @@ module Signalwire
           expect(valid).to eq(false)
         end
       end
+
+      context 'when inital validation fails' do
+        subject { described_class.new(private_key: '12345') }
+
+        let(:default_params) {
+          {
+            CallSid: 'CA1234567890ABCDE',
+            Caller: '+14158675309',
+            Digits: '1234',
+            From: '+14158675309',
+            To: '+18005551212',
+          }
+        }
+        let(:default_signature) { 'RSOYDt4T1cUTdK1PDd93/VVr8B8=' }
+        let(:request_url) { 'https://mycompany.com/myapp.php?foo=1&bar=2' }
+
+        it 'fallback and validates the request' do
+          valid = subject.validate(
+            header: default_signature,
+            url: request_url,
+            raw_body: default_params
+          )
+          expect(valid).to eq(true)
+        end
+
+        it 'fallback and should not validate the request' do
+          valid = subject.validate(
+            header: 'wrong_one!',
+            url: request_url,
+            raw_body: default_params
+          )
+          expect(valid).to eq(false)
+        end
+      end
     end
   end
 end

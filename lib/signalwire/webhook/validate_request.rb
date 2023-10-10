@@ -11,12 +11,25 @@ module Signalwire::Webhook
     end
 
     def validate(header:, url:, raw_body:)
+      if raw_body.is_a?(Hash)
+        return validate_for_compatibility_api(url, raw_body, header)
+      end
+
       payload = url + raw_body
       expected_signature = compute_signature(payload)
-      secure_compare(expected_signature, header)
+      valid = secure_compare(expected_signature, header)
+
+      return true if valid
+
+      validate_for_compatibility_api(url, raw_body, header)
     end
 
     private
+
+    def validate_for_compatibility_api(url, params, signature)
+      validator = Twilio::Security::RequestValidator.new(private_key)
+      validator.validate(url, params, signature)
+    end
 
     def compute_signature(payload)
       OpenSSL::HMAC.hexdigest(OpenSSL::Digest.new('sha1'), private_key, payload)
