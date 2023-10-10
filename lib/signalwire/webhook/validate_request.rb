@@ -4,10 +4,10 @@ require 'openssl'
 
 module Signalwire::Webhook
   class ValidateRequest
-    attr_reader :signing_key
+    attr_reader :private_key
 
-    def initialize(signing_key:)
-      @signing_key = signing_key
+    def initialize(private_key:)
+      @private_key = private_key
     end
 
     def validate(signature:, url:, raw_body:)
@@ -19,7 +19,7 @@ module Signalwire::Webhook
     private
 
     def compute_signature(payload)
-      OpenSSL::HMAC.hexdigest(OpenSSL::Digest.new('sha1'), signing_key, payload)
+      OpenSSL::HMAC.hexdigest(OpenSSL::Digest.new('sha1'), private_key, payload)
     end
 
     # Constant time string comparison, from ActiveSupport
