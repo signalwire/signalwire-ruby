@@ -10,10 +10,10 @@ module Signalwire::Webhook
       @private_key = private_key
     end
 
-    def validate(signature:, url:, raw_body:)
+    def validate(header:, url:, raw_body:)
       payload = url + raw_body
       expected_signature = compute_signature(payload)
-      secure_compare(expected_signature, signature)
+      secure_compare(expected_signature, header)
     end
 
     private
