@@ -15,7 +15,7 @@ module Signalwire::Webhook
       return false if header.nil? || url.nil?
 
       if raw_body.is_a?(Hash)
-        return validate_for_compatibility_api(url, raw_body, header)
+        return validate_with_compatibility_api(url, raw_body, header)
       end
 
       payload = url + raw_body
@@ -24,12 +24,12 @@ module Signalwire::Webhook
 
       return true if valid
 
-      validate_for_compatibility_api(url, raw_body, header)
+      validate_with_compatibility_api(url, raw_body, header)
     end
 
     private
 
-    def validate_for_compatibility_api(url, params, signature)
+    def validate_with_compatibility_api(url, params, signature)
       validator = Twilio::Security::RequestValidator.new(private_key)
       validator.validate(url, params, signature)
     end
