@@ -37,7 +37,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'webmock', '~> 3.5'
 
   spec.add_dependency 'twilio-ruby', '~> 5.0'
-  spec.add_dependency 'faye-websocket', '~> 0.10'
+  spec.add_dependency 'faye-websocket', '~> 0.11'
   spec.add_dependency 'concurrent-ruby', '~> 1.1'
   spec.add_dependency 'has-guarded-handlers', '~> 1.6.3'
   spec.add_dependency 'logger', '~> 1.3'
