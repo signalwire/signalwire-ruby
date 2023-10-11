@@ -33,7 +33,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rubocop', '~> 0.67'
   spec.add_development_dependency 'ruby-prof', '~> 0.17'
   spec.add_development_dependency 'simplecov', '~> 0.16'
-  spec.add_development_dependency 'vcr', '~> 4.0'
+  spec.add_development_dependency 'vcr', '~> 6.2'
   spec.add_development_dependency 'webmock', '~> 3.5'
 
   spec.add_dependency 'twilio-ruby', '~> 5.0'
