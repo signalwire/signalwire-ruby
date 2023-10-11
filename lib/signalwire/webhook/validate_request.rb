@@ -14,7 +14,7 @@ module Signalwire::Webhook
     def validate(url, raw_body, header)
       return false if header.nil? || url.nil?
 
-      if raw_body.is_a?(Hash) || raw_body.respond_to?(:to_unsafe_h)
+      if raw_body.is_a?(Hash)
         return validate_for_compatibility_api(url, raw_body, header)
       end
 
