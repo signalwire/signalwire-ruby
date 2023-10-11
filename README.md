@@ -1,7 +1,8 @@
 # SignalWire Ruby
 
 
-[![Build Status](https://ci.signalwire.com/api/badges/signalwire/signalwire-ruby/status.svg)](https://ci.signalwire.com/signalwire/signalwire-ruby) [![Gem Version](https://badge.fury.io/rb/signalwire.svg)](https://badge.fury.io/rb/signalwire)
+[![CI](https://github.com/signalwire/signalwire-ruby/actions/workflows/ci.yml/badge.svg)](https://github.com/signalwire/signalwire-ruby/actions/workflows/ci.yml)
+[![Gem Version](https://badge.fury.io/rb/signalwire.svg)](https://badge.fury.io/rb/signalwire)
 
 The Relay SDK for Ruby enables Ruby developers to connect and use SignalWire's Relay APIs within their own Ruby code. Our Relay SDK allows developers to build or add robust and innovative communication services to their applications.
 
@@ -34,5 +35,5 @@ Relay SDK forRuby follows Semantic Versioning 2.0 as defined at <http://semver.o
 
 ## License
 
-Relay SDK for Ruby is copyright © 2018-2019
+Relay SDK for Ruby is copyright © 2018-2023
 [SignalWire](http://signalwire.com). It is free software, and may be redistributed under the terms specified in the [MIT-LICENSE](https://github.com//signalwire/signalwire-ruby/blob/master/LICENSE) file.
