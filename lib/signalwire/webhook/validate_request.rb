@@ -14,16 +14,19 @@ module Signalwire::Webhook
     def validate(url, raw_body, header)
       return false if header.nil? || url.nil?
 
+      # compatibility validation for POST parameters of x-www-form-urlencoded requests
       if raw_body.is_a?(Hash)
         return validate_with_compatibility_api(url, raw_body, header)
       end
 
+      # relay json validation
       payload = url + raw_body
       expected_signature = compute_signature(payload)
       valid = secure_compare(expected_signature, header)
 
       return true if valid
 
+      # fallback compatibilty json validation
       validate_with_compatibility_api(url, raw_body, header)
     end
 
