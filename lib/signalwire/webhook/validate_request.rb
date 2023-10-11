@@ -6,12 +6,12 @@ module Signalwire::Webhook
   class ValidateRequest
     attr_reader :private_key
 
-    def initialize(private_key:)
+    def initialize(private_key)
       @private_key = private_key
       raise ArgumentError, 'Private key is required' if @private_key.nil?
     end
 
-    def validate(header:, url:, raw_body:)
+    def validate(url, raw_body, header)
       return false if header.nil? || url.nil?
 
       if raw_body.is_a?(Hash) || raw_body.respond_to?(:to_unsafe_h)

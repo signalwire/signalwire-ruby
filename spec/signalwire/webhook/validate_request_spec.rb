@@ -4,7 +4,7 @@ require 'spec_helper'
 
 module Signalwire
   RSpec.describe Webhook::ValidateRequest do
-    subject { described_class.new(private_key: private_key) }
+    subject { described_class.new(private_key) }
     let(:url) { 'https://81f2-2-45-18-191.ngrok-free.app/' }
     let(:private_key) { 'PSK_7TruNcSNTxp4zNrykMj4EPzF' }
     let(:header) { 'b18500437ebb010220ddd770cbe6fd531ea0ba0d' }
@@ -15,7 +15,7 @@ module Signalwire
     describe '#validate' do
       context 'when key is valid' do
         it 'validates' do
-          valid = subject.validate(header: header, url: url, raw_body: body)
+          valid = subject.validate(url, body, header)
           expect(valid).to eq(true)
         end
       end
@@ -24,7 +24,7 @@ module Signalwire
         let(:private_key) { 'PSK_foo' }
 
         it 'validates signatures do not match' do
-          valid = subject.validate(header: header, url: url, raw_body: body)
+          valid = subject.validate(url, body, header)
           expect(valid).to eq(false)
         end
       end
@@ -33,7 +33,7 @@ module Signalwire
         let(:url) { 'https://81f2-2-45-18-191.ngrok-free.app/bar?q=hello' }
 
         it 'validates signatures do not match' do
-          valid = subject.validate(header: header, url: url, raw_body: body)
+          valid = subject.validate(url, body, header)
           expect(valid).to eq(false)
         end
       end
@@ -44,13 +44,13 @@ module Signalwire
         }
 
         it 'validates signatures do not match' do
-          valid = subject.validate(header: header, url: url, raw_body: body)
+          valid = subject.validate(url, body, header)
           expect(valid).to eq(false)
         end
       end
 
       context 'when inital validation fails' do
-        subject { described_class.new(private_key: '12345') }
+        subject { described_class.new('12345') }
 
         let(:default_params) {
           {
@@ -66,18 +66,18 @@ module Signalwire
 
         it 'fallback and validates the request' do
           valid = subject.validate(
-            header: default_signature,
-            url: request_url,
-            raw_body: default_params
+            request_url,
+            default_params,
+            default_signature
           )
           expect(valid).to eq(true)
         end
 
         it 'fallback and should not validate the request' do
           valid = subject.validate(
-            header: 'wrong_one!',
-            url: request_url,
-            raw_body: default_params
+            request_url,
+            default_params,
+            'wrong_one!'
           )
           expect(valid).to eq(false)
         end
