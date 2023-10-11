@@ -8,9 +8,12 @@ module Signalwire::Webhook
 
     def initialize(private_key:)
       @private_key = private_key
+      raise ArgumentError, 'Private key is required' if @private_key.nil?
     end
 
     def validate(header:, url:, raw_body:)
+      return false if header.nil? || url.nil?
+
       if raw_body.is_a?(Hash) || raw_body.respond_to?(:to_unsafe_h)
         return validate_for_compatibility_api(url, raw_body, header)
       end
@@ -37,6 +40,7 @@ module Signalwire::Webhook
 
     # Constant time string comparison, from ActiveSupport
     def secure_compare(a, b)
+      return false if a.nil? || b.nil?
       return false unless a.bytesize == b.bytesize
 
       l = a.unpack "C#{a.bytesize}"
