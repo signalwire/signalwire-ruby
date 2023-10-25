@@ -1,6 +1,6 @@
 require 'spec_helper'
 require 'rack/mock'
-require 'rack/signalwire_webhook_authentication'
+require 'rack/sw_webhook_authentication'
 
 describe Rack::SwWebhookAuthentication do
   before do
