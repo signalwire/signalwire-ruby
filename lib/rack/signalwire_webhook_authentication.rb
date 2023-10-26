@@ -5,7 +5,6 @@ require 'rack/media_type'
 module Rack
 
   class SignalwireWebhookAuthentication
-
     FORM_URLENCODED_MEDIA_TYPE = Rack::MediaType.type('application/x-www-form-urlencoded')
 
     def initialize(app, private_key, *paths, &private_key_lookup)
