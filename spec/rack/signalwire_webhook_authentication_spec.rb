@@ -1,8 +1,8 @@
 require 'spec_helper'
 require 'rack/mock'
-require 'rack/sw_webhook_authentication'
+require 'rack/signalwire_webhook_authentication'
 
-describe Rack::SwWebhookAuthentication do
+describe Rack::SignalwireWebhookAuthentication do
   before do
     @app = ->(_env) { [200, { 'Content-Type' => 'text/plain' }, ['Hello']] }
   end
@@ -10,19 +10,19 @@ describe Rack::SwWebhookAuthentication do
   describe 'new' do
     it 'should initialize with an app, auth token and a path' do
       expect do
-        Rack::SwWebhookAuthentication.new(@app, 'ABC', /\/voice/)
+        Rack::SignalwireWebhookAuthentication.new(@app, 'ABC', /\/voice/)
       end.not_to raise_error
     end
 
     it 'should initialize with an app, auth token and paths' do
       expect do
-        Rack::SwWebhookAuthentication.new(@app, 'ABC', /\/voice/, /\/sms/)
+        Rack::SignalwireWebhookAuthentication.new(@app, 'ABC', /\/voice/, /\/sms/)
       end.not_to raise_error
     end
 
     it 'should initialize with an app, dynamic token and paths' do
       expect do
-        Rack::SwWebhookAuthentication.new(@app, nil, /\/voice/, /\/sms/)
+        Rack::SignalwireWebhookAuthentication.new(@app, nil, /\/voice/, /\/sms/)
       end.not_to raise_error
     end
   end
@@ -34,7 +34,7 @@ describe Rack::SwWebhookAuthentication do
       expect_any_instance_of(Rack::Request).to receive(:post?).and_return(true)
       expect_any_instance_of(Rack::Request).to receive(:media_type).and_return(Rack::MediaType.type('application/x-www-form-urlencoded'))
       expect_any_instance_of(Rack::Request).to receive(:POST).and_return({ 'AccountSid' => account_sid })
-      @middleware = Rack::SwWebhookAuthentication.new(@app, nil, /\/voice/) { |asid| auth_token }
+      @middleware = Rack::SignalwireWebhookAuthentication.new(@app, nil, /\/voice/) { |asid| auth_token }
       request_validator = double('RequestValidator')
       expect(Twilio::Security::RequestValidator).to receive(:new).with(auth_token).and_return(request_validator)
       expect(request_validator).to receive(:validate).and_return(true)
@@ -46,7 +46,7 @@ describe Rack::SwWebhookAuthentication do
 
   describe 'calling against one path' do
     before do
-      @middleware = Rack::SwWebhookAuthentication.new(@app, 'ABC', /\/voice/)
+      @middleware = Rack::SignalwireWebhookAuthentication.new(@app, 'ABC', /\/voice/)
     end
 
     it 'should not intercept when the path doesn\'t match' do
@@ -77,7 +77,7 @@ describe Rack::SwWebhookAuthentication do
 
   describe 'calling against many paths' do
     before do
-      @middleware = Rack::SwWebhookAuthentication.new(@app, 'ABC', /\/voice/, /\/sms/)
+      @middleware = Rack::SignalwireWebhookAuthentication.new(@app, 'ABC', /\/voice/, /\/sms/)
     end
 
     it 'should not intercept when the path doesn\'t match' do
@@ -108,7 +108,7 @@ describe Rack::SwWebhookAuthentication do
 
   describe 'validating non-form-data POST payloads' do
     it 'should fail if the body does not validate' do
-      middleware = Rack::SwWebhookAuthentication.new(@app, 'qwerty', /\/test/)
+      middleware = Rack::SignalwireWebhookAuthentication.new(@app, 'qwerty', /\/test/)
       input = StringIO.new('{"message": "a post body that does not match the bodySHA256"}')
 
       request = Rack::MockRequest.env_for(
@@ -125,7 +125,7 @@ describe Rack::SwWebhookAuthentication do
     end
 
     it 'should validate if the body signature is correct' do
-      middleware = Rack::SwWebhookAuthentication.new(@app, 'qwerty', /\/test/)
+      middleware = Rack::SignalwireWebhookAuthentication.new(@app, 'qwerty', /\/test/)
       input = StringIO.new('{"message": "a post body"}')
 
       request = Rack::MockRequest.env_for(
@@ -142,7 +142,7 @@ describe Rack::SwWebhookAuthentication do
     end
 
     it 'should validate even if a previous middleware read the body first' do
-      middleware = Rack::SwWebhookAuthentication.new(@app, 'qwerty', /\/test/)
+      middleware = Rack::SignalwireWebhookAuthentication.new(@app, 'qwerty', /\/test/)
       input = StringIO.new('{"message": "a post body"}')
 
       request = Rack::MockRequest.env_for(
@@ -162,7 +162,7 @@ describe Rack::SwWebhookAuthentication do
 
   describe 'validating application/x-www-form-urlencoded POST payloads' do
     it 'should fail if the body does not validate' do
-      middleware = Rack::SwWebhookAuthentication.new(@app, 'qwerty', /\/test/)
+      middleware = Rack::SignalwireWebhookAuthentication.new(@app, 'qwerty', /\/test/)
 
       request = Rack::MockRequest.env_for(
         'https://example.com/test',
@@ -178,7 +178,7 @@ describe Rack::SwWebhookAuthentication do
     end
 
     it 'should validate if the body signature is correct' do
-      middleware = Rack::SwWebhookAuthentication.new(@app, 'qwerty', /\/test/)
+      middleware = Rack::SignalwireWebhookAuthentication.new(@app, 'qwerty', /\/test/)
 
       request = Rack::MockRequest.env_for(
         'https://example.com/test',
