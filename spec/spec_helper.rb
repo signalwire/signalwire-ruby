@@ -5,6 +5,7 @@ SimpleCov.start
 
 %w[
   bundler/setup
+  rack
   signalwire
   webmock/rspec
   vcr
