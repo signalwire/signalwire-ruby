@@ -5,6 +5,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
  ## [Unreleased]
 
+## [2.6.0] -
+### Added
+- Remove support for Ruby 2.6
+
 ## [2.5.0] - 2023-10-26
 ### Added
 - Add Middleware `SignalwireWebhookAuthentication`
