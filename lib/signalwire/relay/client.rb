@@ -69,23 +69,25 @@ module Signalwire::Relay
 
       promise.wait timeout
 
-      if promise.fulfilled?
-        event = promise.value
-        code = event.dig(:result, :result, :code)
-        message = event.dig(:result, :result, :message)
-        success = code == '200' ? :success : :failure
-
-        if code
-          block.call(event, success) if block_given?
-          logger.error "Relay command failed with code #{code} and message: #{message}" unless success
-        else
-          logger.error("Relay error occurred, code #{event.error_code}: #{event.error_message}") if event.error?
-          block.call(event, :failure) if block_given?
-        end
-      else
+      unless promise.fulfilled?
         logger.error 'Unknown Relay command failure, command timed out'
         block.call(event, :failure) if block_given?
+        return
       end
+
+      event = promise.value
+      code = event.dig(:result, :result, :code)
+      message = event.dig(:result, :result, :message)
+      success = code == '200' ? :success : :failure
+
+      unless code
+        logger.error("Relay error occurred, code #{event.error_code}: #{event.error_message}") if event.error?
+        block.call(event, :failure) if block_given?
+        return
+      end
+
+      block.call(event, success) if block_given?
+      logger.error "Relay command failed with code #{code} and message: #{message}" unless success
     end
 
     def calling
