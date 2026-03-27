@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
-require_relative '../../lib/signalwire_agents/swaig/function_result'
-require_relative '../../lib/signalwire_agents/datamap/data_map'
-require_relative '../../lib/signalwire_agents/skills/skill_base'
-require_relative '../../lib/signalwire_agents/skills/skill_manager'
-require_relative '../../lib/signalwire_agents/skills/skill_registry'
+require_relative '../../lib/signalwire/swaig/function_result'
+require_relative '../../lib/signalwire/datamap/data_map'
+require_relative '../../lib/signalwire/skills/skill_base'
+require_relative '../../lib/signalwire/skills/skill_manager'
+require_relative '../../lib/signalwire/skills/skill_registry'
 
-SignalWireAgents::Skills::SkillRegistry.register_builtins!
+SignalWire::Skills::SkillRegistry.register_builtins!
 
 class RegistryDetailedTest < Minitest::Test
   EXPECTED_SKILLS = %w[
@@ -17,7 +17,7 @@ class RegistryDetailedTest < Minitest::Test
   ].freeze
 
   def test_has_all_18_skills
-    registered = SignalWireAgents::Skills::SkillRegistry.list_skills.sort
+    registered = SignalWire::Skills::SkillRegistry.list_skills.sort
     EXPECTED_SKILLS.each do |skill_name|
       assert_includes registered, skill_name, "Missing skill: #{skill_name}"
     end
@@ -26,31 +26,31 @@ class RegistryDetailedTest < Minitest::Test
 
   def test_each_skill_can_be_instantiated
     EXPECTED_SKILLS.each do |skill_name|
-      factory = SignalWireAgents::Skills::SkillRegistry.get_factory(skill_name)
+      factory = SignalWire::Skills::SkillRegistry.get_factory(skill_name)
       refute_nil factory, "No factory for: #{skill_name}"
       skill = factory.call({})
-      assert_kind_of SignalWireAgents::Skills::SkillBase, skill
+      assert_kind_of SignalWire::Skills::SkillBase, skill
       assert_equal skill_name, skill.name
     end
   end
 
   def test_registered_check
-    assert SignalWireAgents::Skills::SkillRegistry.registered?('datetime')
-    refute SignalWireAgents::Skills::SkillRegistry.registered?('nonexistent_skill_xyz')
+    assert SignalWire::Skills::SkillRegistry.registered?('datetime')
+    refute SignalWire::Skills::SkillRegistry.registered?('nonexistent_skill_xyz')
   end
 
   def test_get_factory_returns_nil_for_unknown
-    assert_nil SignalWireAgents::Skills::SkillRegistry.get_factory('nonexistent_skill_xyz')
+    assert_nil SignalWire::Skills::SkillRegistry.get_factory('nonexistent_skill_xyz')
   end
 end
 
 class ManagerDetailedTest < Minitest::Test
   def setup
-    @manager = SignalWireAgents::Skills::SkillManager.new
+    @manager = SignalWire::Skills::SkillManager.new
   end
 
   def test_load_and_get
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('datetime')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('datetime')
     skill = factory.call({})
     @manager.load('datetime', skill)
     assert @manager.loaded?('datetime')
@@ -59,7 +59,7 @@ class ManagerDetailedTest < Minitest::Test
   end
 
   def test_unload
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('math')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('math')
     skill = factory.call({})
     @manager.load('math', skill)
     removed = @manager.unload('math')
@@ -68,7 +68,7 @@ class ManagerDetailedTest < Minitest::Test
   end
 
   def test_load_duplicate_raises
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('datetime')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('datetime')
     skill = factory.call({})
     @manager.load('datetime', skill)
     assert_raises(ArgumentError) { @manager.load('datetime', skill) }
@@ -76,7 +76,7 @@ class ManagerDetailedTest < Minitest::Test
 
   def test_loaded_keys
     %w[datetime math].each do |name|
-      factory = SignalWireAgents::Skills::SkillRegistry.get_factory(name)
+      factory = SignalWire::Skills::SkillRegistry.get_factory(name)
       @manager.load(name, factory.call({}))
     end
     keys = @manager.loaded_keys.sort
@@ -85,7 +85,7 @@ class ManagerDetailedTest < Minitest::Test
 
   def test_clear
     %w[datetime math].each do |name|
-      factory = SignalWireAgents::Skills::SkillRegistry.get_factory(name)
+      factory = SignalWire::Skills::SkillRegistry.get_factory(name)
       @manager.load(name, factory.call({}))
     end
     @manager.clear

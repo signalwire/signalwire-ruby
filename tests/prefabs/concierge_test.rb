@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
-require_relative '../../lib/signalwire_agents/swaig/function_result'
-require_relative '../../lib/signalwire_agents/prefabs/concierge'
+require_relative '../../lib/signalwire/swaig/function_result'
+require_relative '../../lib/signalwire/prefabs/concierge'
 
 class ConciergePrefabDetailedTest < Minitest::Test
   def test_construction
-    agent = SignalWireAgents::Prefabs::Concierge.new(
+    agent = SignalWire::Prefabs::Concierge.new(
       venue_name: 'Grand Hotel',
       services: ['room service', 'spa'],
       amenities: { 'pool' => { 'hours' => '7 AM - 10 PM' } }
@@ -17,7 +17,7 @@ class ConciergePrefabDetailedTest < Minitest::Test
   end
 
   def test_tools
-    agent = SignalWireAgents::Prefabs::Concierge.new(
+    agent = SignalWire::Prefabs::Concierge.new(
       venue_name: 'Test', services: ['test'], amenities: {}
     )
     assert_includes agent.tools, 'get_amenity_info'
@@ -25,7 +25,7 @@ class ConciergePrefabDetailedTest < Minitest::Test
   end
 
   def test_handle_amenity_info_found
-    agent = SignalWireAgents::Prefabs::Concierge.new(
+    agent = SignalWire::Prefabs::Concierge.new(
       venue_name: 'Hotel',
       services: [],
       amenities: { 'pool' => { 'hours' => '7-10' } }
@@ -35,7 +35,7 @@ class ConciergePrefabDetailedTest < Minitest::Test
   end
 
   def test_handle_amenity_info_not_found
-    agent = SignalWireAgents::Prefabs::Concierge.new(
+    agent = SignalWire::Prefabs::Concierge.new(
       venue_name: 'Hotel', services: [],
       amenities: { 'pool' => 'Open daily' }
     )
@@ -44,7 +44,7 @@ class ConciergePrefabDetailedTest < Minitest::Test
   end
 
   def test_handle_service_info_found
-    agent = SignalWireAgents::Prefabs::Concierge.new(
+    agent = SignalWire::Prefabs::Concierge.new(
       venue_name: 'Hotel',
       services: ['room service'],
       amenities: {}
@@ -54,7 +54,7 @@ class ConciergePrefabDetailedTest < Minitest::Test
   end
 
   def test_global_data
-    agent = SignalWireAgents::Prefabs::Concierge.new(
+    agent = SignalWire::Prefabs::Concierge.new(
       venue_name: 'Hotel', services: ['spa'], amenities: {}
     )
     data = agent.global_data

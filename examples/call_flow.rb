@@ -5,9 +5,9 @@
 # Demonstrates pre-answer verbs, post-answer verbs, post-AI verbs,
 # call recording, and debug event callbacks.
 
-require 'signalwire_agents'
+require 'signalwire'
 
-agent = SignalWireAgents::AgentBase.new(
+agent = SignalWire::AgentBase.new(
   name:          'call_flow_agent',
   route:         '/',
   record_call:   true,
@@ -64,7 +64,7 @@ agent.define_tool(
     'room_type' => { 'type' => 'string', 'description' => 'Room type: standard, deluxe, suite' }
   }
 ) do |args, _raw_data|
-  SignalWireAgents::Swaig::FunctionResult.new(
+  SignalWire::Swaig::FunctionResult.new(
     "#{args['room_type']&.capitalize} room available from #{args['check_in']} " \
     "to #{args['check_out']}. Rate: $189/night. Includes breakfast and WiFi."
   )
@@ -81,7 +81,7 @@ agent.define_tool(
   }
 ) do |args, _raw_data|
   conf_num = "RES-#{rand(100_000..999_999)}"
-  result = SignalWireAgents::Swaig::FunctionResult.new(
+  result = SignalWire::Swaig::FunctionResult.new(
     "Reservation confirmed! Confirmation: #{conf_num}. " \
     "Guest: #{args['guest_name']}, #{args['room_type']} room, " \
     "#{args['check_in']} to #{args['check_out']}."
@@ -95,7 +95,7 @@ agent.define_tool(
   description: 'Transfer the call to the front desk',
   parameters:  {}
 ) do |_args, _raw_data|
-  result = SignalWireAgents::Swaig::FunctionResult.new(
+  result = SignalWire::Swaig::FunctionResult.new(
     'Transferring you to the front desk now.'
   )
   result.connect('+15559876543')

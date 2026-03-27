@@ -6,10 +6,10 @@
 # documents at /main, /customer, and /product sub-paths from a
 # single Service instance.
 
-require 'signalwire_agents'
+require 'signalwire'
 require 'json'
 
-service = SignalWireAgents::SWML::Service.new(
+service = SignalWire::SWML::Service.new(
   name:  'routing-example',
   route: '/main'
 )
@@ -21,7 +21,7 @@ service.hangup
 
 # Customer route callback
 service.register_routing_callback('/customer') do |request_data|
-  doc = SignalWireAgents::SWML::Document.new
+  doc = SignalWire::SWML::Document.new
   doc.add_verb('answer', {})
 
   customer_id = request_data && request_data['customer_id']
@@ -36,7 +36,7 @@ end
 
 # Product route callback
 service.register_routing_callback('/product') do |request_data|
-  doc = SignalWireAgents::SWML::Document.new
+  doc = SignalWire::SWML::Document.new
   doc.add_verb('answer', {})
 
   product_id = request_data && request_data['product_id']

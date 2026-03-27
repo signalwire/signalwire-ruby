@@ -8,9 +8,9 @@
 #
 # Replace the example credentials with your actual DataSphere details.
 
-require 'signalwire_agents'
+require 'signalwire'
 
-agent = SignalWireAgents::AgentBase.new(name: 'Multi-DataSphere', route: '/datasphere-demo')
+agent = SignalWire::AgentBase.new(name: 'Multi-DataSphere', route: '/datasphere-demo')
 
 agent.add_language('name' => 'English', 'code' => 'en-US', 'voice' => 'elevenlabs.rachel')
 

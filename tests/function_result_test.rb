@@ -2,10 +2,10 @@
 
 require 'minitest/autorun'
 require 'json'
-require_relative '../lib/signalwire_agents/swaig/function_result'
+require_relative '../lib/signalwire/swaig/function_result'
 
 class FunctionResultTest < Minitest::Test
-  FR = SignalWireAgents::Swaig::FunctionResult
+  FR = SignalWire::Swaig::FunctionResult
 
   # ------------------------------------------------------------------
   # Construction

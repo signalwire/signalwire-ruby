@@ -6,7 +6,7 @@
 # skill. Requires GOOGLE_SEARCH_API_KEY and GOOGLE_SEARCH_ENGINE_ID
 # environment variables.
 
-require 'signalwire_agents'
+require 'signalwire'
 
 api_key   = ENV['GOOGLE_SEARCH_API_KEY']
 engine_id = ENV['GOOGLE_SEARCH_ENGINE_ID']
@@ -20,7 +20,7 @@ unless api_key && engine_id
   exit 1
 end
 
-agent = SignalWireAgents::AgentBase.new(name: 'Web Search Assistant', route: '/search')
+agent = SignalWire::AgentBase.new(name: 'Web Search Assistant', route: '/search')
 
 agent.add_language('name' => 'English', 'code' => 'en-US', 'voice' => 'elevenlabs.rachel')
 

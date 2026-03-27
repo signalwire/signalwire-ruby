@@ -6,9 +6,9 @@
 # collection. Questions are presented one at a time, with answers
 # stored in global_data under the configured output key.
 
-require 'signalwire_agents'
+require 'signalwire'
 
-agent = SignalWireAgents::AgentBase.new(
+agent = SignalWire::AgentBase.new(
   name:  'Patient Intake Agent',
   route: '/patient-intake'
 )

@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
-require_relative '../../lib/signalwire_agents/swaig/function_result'
-require_relative '../../lib/signalwire_agents/skills/skill_base'
-require_relative '../../lib/signalwire_agents/skills/skill_registry'
-require_relative '../../lib/signalwire_agents/skills/builtin/info_gatherer'
+require_relative '../../lib/signalwire/swaig/function_result'
+require_relative '../../lib/signalwire/skills/skill_base'
+require_relative '../../lib/signalwire/skills/skill_registry'
+require_relative '../../lib/signalwire/skills/builtin/info_gatherer'
 
 class InfoGathererSkillDetailedTest < Minitest::Test
   def test_setup_and_register_tools
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('info_gatherer')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('info_gatherer')
     skill = factory.call({
       'questions' => [
         { 'key_name' => 'name', 'question_text' => 'What is your name?' },
@@ -24,19 +24,19 @@ class InfoGathererSkillDetailedTest < Minitest::Test
   end
 
   def test_setup_fails_without_questions
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('info_gatherer')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('info_gatherer')
     skill = factory.call({})
     refute skill.setup
   end
 
   def test_setup_fails_with_invalid_questions
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('info_gatherer')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('info_gatherer')
     skill = factory.call({ 'questions' => [{ 'key_name' => 'x' }] })
     refute skill.setup
   end
 
   def test_global_data
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('info_gatherer')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('info_gatherer')
     skill = factory.call({
       'questions' => [{ 'key_name' => 'name', 'question_text' => 'Name?' }]
     })
@@ -47,7 +47,7 @@ class InfoGathererSkillDetailedTest < Minitest::Test
   end
 
   def test_custom_prefix
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('info_gatherer')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('info_gatherer')
     skill = factory.call({
       'questions' => [{ 'key_name' => 'name', 'question_text' => 'Name?' }],
       'prefix' => 'onboard'

@@ -4,11 +4,11 @@ require 'minitest/autorun'
 
 ENV['SIGNALWIRE_LOG_MODE'] = 'off'
 
-require_relative '../lib/signalwire_agents'
+require_relative '../lib/signalwire'
 
 class PreAnswerVerbTest < Minitest::Test
   def setup
-    @agent = SignalWireAgents::AgentBase.new
+    @agent = SignalWire::AgentBase.new
   end
 
   def test_pre_answer_verbs
@@ -40,7 +40,7 @@ end
 
 class PostAnswerVerbTest < Minitest::Test
   def setup
-    @agent = SignalWireAgents::AgentBase.new
+    @agent = SignalWire::AgentBase.new
   end
 
   def test_post_answer_verbs
@@ -65,7 +65,7 @@ end
 
 class PostAiVerbTest < Minitest::Test
   def setup
-    @agent = SignalWireAgents::AgentBase.new
+    @agent = SignalWire::AgentBase.new
   end
 
   def test_post_ai_verbs
@@ -88,7 +88,7 @@ end
 
 class AnswerVerbConfigTest < Minitest::Test
   def test_answer_verb_config
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.add_answer_verb({ 'max_duration' => 3600 })
     swml = agent.render_swml
     main = swml['sections']['main']
@@ -99,7 +99,7 @@ end
 
 class VerbChainingTest < Minitest::Test
   def test_all_verb_methods_return_self
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     assert_same agent, agent.add_pre_answer_verb('play', {})
     assert_same agent, agent.clear_pre_answer_verbs
     assert_same agent, agent.add_answer_verb({})

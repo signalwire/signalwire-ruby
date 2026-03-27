@@ -4,11 +4,11 @@ require 'minitest/autorun'
 
 ENV['SIGNALWIRE_LOG_MODE'] = 'off'
 
-require_relative '../lib/signalwire_agents'
+require_relative '../lib/signalwire'
 
 class AIConfigHintsTest < Minitest::Test
   def setup
-    @agent = SignalWireAgents::AgentBase.new
+    @agent = SignalWire::AgentBase.new
   end
 
   def test_add_hint
@@ -45,7 +45,7 @@ end
 
 class AIConfigLanguagesTest < Minitest::Test
   def setup
-    @agent = SignalWireAgents::AgentBase.new
+    @agent = SignalWire::AgentBase.new
   end
 
   def test_add_language
@@ -70,7 +70,7 @@ end
 
 class AIConfigPronunciationsTest < Minitest::Test
   def setup
-    @agent = SignalWireAgents::AgentBase.new
+    @agent = SignalWire::AgentBase.new
   end
 
   def test_add_pronunciation
@@ -92,7 +92,7 @@ end
 
 class AIConfigParamsTest < Minitest::Test
   def setup
-    @agent = SignalWireAgents::AgentBase.new
+    @agent = SignalWire::AgentBase.new
   end
 
   def test_set_param
@@ -113,7 +113,7 @@ end
 
 class AIConfigGlobalDataTest < Minitest::Test
   def setup
-    @agent = SignalWireAgents::AgentBase.new
+    @agent = SignalWire::AgentBase.new
   end
 
   def test_set_global_data
@@ -135,7 +135,7 @@ end
 
 class AIConfigNativeFunctionsTest < Minitest::Test
   def test_set_native_functions
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.set_native_functions(['check_for_input'])
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
@@ -145,7 +145,7 @@ end
 
 class AIConfigFillersTest < Minitest::Test
   def test_set_internal_fillers
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.set_internal_fillers({
       'next_step' => { 'en-US' => ['Moving on...'] }
     })
@@ -155,7 +155,7 @@ class AIConfigFillersTest < Minitest::Test
   end
 
   def test_add_internal_filler
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.add_internal_filler('check_time', 'en-US', ['Checking time...'])
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
@@ -165,7 +165,7 @@ end
 
 class AIConfigDebugEventsTest < Minitest::Test
   def test_enable_debug_events
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.enable_debug_events(2)
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
@@ -176,7 +176,7 @@ end
 
 class AIConfigFunctionIncludesTest < Minitest::Test
   def test_add_function_include
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.add_function_include('https://example.com/funcs', ['fn1', 'fn2'],
                                 meta_data: { 'key' => 'val' })
     swml = agent.render_swml
@@ -189,7 +189,7 @@ class AIConfigFunctionIncludesTest < Minitest::Test
   end
 
   def test_set_function_includes
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     includes = [{ 'url' => 'https://a.com', 'functions' => ['f1'] }]
     agent.set_function_includes(includes)
     swml = agent.render_swml
@@ -200,7 +200,7 @@ end
 
 class AIConfigLLMParamsTest < Minitest::Test
   def test_set_prompt_llm_params
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.set_prompt_text('Hello')
     agent.set_prompt_llm_params(temperature: 0.3, top_p: 0.9)
     swml = agent.render_swml
@@ -211,7 +211,7 @@ class AIConfigLLMParamsTest < Minitest::Test
   end
 
   def test_set_post_prompt_llm_params
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.set_post_prompt('Summarize')
     agent.set_post_prompt_llm_params(model: 'gpt-4o-mini', temperature: 0.5)
     swml = agent.render_swml
@@ -224,7 +224,7 @@ end
 
 class AIConfigChainingTest < Minitest::Test
   def test_all_ai_config_methods_return_self
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     assert_same agent, agent.add_hint('x')
     assert_same agent, agent.add_hints(['x'])
     assert_same agent, agent.add_pattern_hint('p')

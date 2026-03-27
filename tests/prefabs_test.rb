@@ -2,16 +2,16 @@
 
 require 'minitest/autorun'
 
-require_relative '../lib/signalwire_agents/swaig/function_result'
-require_relative '../lib/signalwire_agents/prefabs/info_gatherer'
-require_relative '../lib/signalwire_agents/prefabs/survey'
-require_relative '../lib/signalwire_agents/prefabs/receptionist'
-require_relative '../lib/signalwire_agents/prefabs/faq_bot'
-require_relative '../lib/signalwire_agents/prefabs/concierge'
+require_relative '../lib/signalwire/swaig/function_result'
+require_relative '../lib/signalwire/prefabs/info_gatherer'
+require_relative '../lib/signalwire/prefabs/survey'
+require_relative '../lib/signalwire/prefabs/receptionist'
+require_relative '../lib/signalwire/prefabs/faq_bot'
+require_relative '../lib/signalwire/prefabs/concierge'
 
 class InfoGathererPrefabTest < Minitest::Test
   def test_construction
-    agent = SignalWireAgents::Prefabs::InfoGatherer.new(
+    agent = SignalWire::Prefabs::InfoGatherer.new(
       questions: [
         { 'key_name' => 'name', 'question_text' => 'What is your name?' },
         { 'key_name' => 'email', 'question_text' => 'What is your email?' }
@@ -23,7 +23,7 @@ class InfoGathererPrefabTest < Minitest::Test
   end
 
   def test_tools
-    agent = SignalWireAgents::Prefabs::InfoGatherer.new(
+    agent = SignalWire::Prefabs::InfoGatherer.new(
       questions: [{ 'key_name' => 'name', 'question_text' => 'Name?' }]
     )
     assert_includes agent.tools, 'start_questions'
@@ -31,7 +31,7 @@ class InfoGathererPrefabTest < Minitest::Test
   end
 
   def test_handle_start
-    agent = SignalWireAgents::Prefabs::InfoGatherer.new(
+    agent = SignalWire::Prefabs::InfoGatherer.new(
       questions: [{ 'key_name' => 'name', 'question_text' => 'What is your name?' }]
     )
     result = agent.handle_start({}, {})
@@ -39,13 +39,13 @@ class InfoGathererPrefabTest < Minitest::Test
   end
 
   def test_raises_without_questions
-    assert_raises(ArgumentError) { SignalWireAgents::Prefabs::InfoGatherer.new(questions: []) }
+    assert_raises(ArgumentError) { SignalWire::Prefabs::InfoGatherer.new(questions: []) }
   end
 end
 
 class SurveyPrefabTest < Minitest::Test
   def test_construction
-    agent = SignalWireAgents::Prefabs::Survey.new(
+    agent = SignalWire::Prefabs::Survey.new(
       survey_name: 'Satisfaction Survey',
       questions: [
         { 'id' => 'rating', 'text' => 'How would you rate us?', 'type' => 'rating', 'scale' => 5 }
@@ -57,7 +57,7 @@ class SurveyPrefabTest < Minitest::Test
   end
 
   def test_tools
-    agent = SignalWireAgents::Prefabs::Survey.new(
+    agent = SignalWire::Prefabs::Survey.new(
       survey_name: 'Test',
       questions: [{ 'id' => 'q1', 'text' => 'Question?' }]
     )
@@ -69,7 +69,7 @@ end
 
 class ReceptionistPrefabTest < Minitest::Test
   def test_construction
-    agent = SignalWireAgents::Prefabs::Receptionist.new(
+    agent = SignalWire::Prefabs::Receptionist.new(
       departments: [
         { 'name' => 'sales', 'description' => 'Sales dept', 'number' => '+15551235555' }
       ]
@@ -79,7 +79,7 @@ class ReceptionistPrefabTest < Minitest::Test
   end
 
   def test_tools
-    agent = SignalWireAgents::Prefabs::Receptionist.new(
+    agent = SignalWire::Prefabs::Receptionist.new(
       departments: [
         { 'name' => 'sales', 'description' => 'Sales', 'number' => '+15551235555' }
       ]
@@ -89,7 +89,7 @@ class ReceptionistPrefabTest < Minitest::Test
   end
 
   def test_handle_transfer
-    agent = SignalWireAgents::Prefabs::Receptionist.new(
+    agent = SignalWire::Prefabs::Receptionist.new(
       departments: [
         { 'name' => 'sales', 'description' => 'Sales', 'number' => '+15551235555' }
       ]
@@ -99,13 +99,13 @@ class ReceptionistPrefabTest < Minitest::Test
   end
 
   def test_raises_without_departments
-    assert_raises(ArgumentError) { SignalWireAgents::Prefabs::Receptionist.new(departments: []) }
+    assert_raises(ArgumentError) { SignalWire::Prefabs::Receptionist.new(departments: []) }
   end
 end
 
 class FaqBotPrefabTest < Minitest::Test
   def test_construction
-    agent = SignalWireAgents::Prefabs::FaqBot.new(
+    agent = SignalWire::Prefabs::FaqBot.new(
       faqs: [
         { 'question' => 'What is SignalWire?', 'answer' => 'A communications platform.' }
       ]
@@ -115,14 +115,14 @@ class FaqBotPrefabTest < Minitest::Test
   end
 
   def test_tools
-    agent = SignalWireAgents::Prefabs::FaqBot.new(
+    agent = SignalWire::Prefabs::FaqBot.new(
       faqs: [{ 'question' => 'Q?', 'answer' => 'A.' }]
     )
     assert_includes agent.tools, 'search_faq'
   end
 
   def test_handle_search
-    agent = SignalWireAgents::Prefabs::FaqBot.new(
+    agent = SignalWire::Prefabs::FaqBot.new(
       faqs: [{ 'question' => 'What is SignalWire?', 'answer' => 'A cloud comms platform.' }]
     )
     result = agent.handle_search({ 'query' => 'signalwire' }, {})
@@ -132,7 +132,7 @@ end
 
 class ConciergePrefabTest < Minitest::Test
   def test_construction
-    agent = SignalWireAgents::Prefabs::Concierge.new(
+    agent = SignalWire::Prefabs::Concierge.new(
       venue_name: 'Grand Hotel',
       services: ['room service', 'spa'],
       amenities: { 'pool' => { 'hours' => '7 AM - 10 PM' } }
@@ -143,7 +143,7 @@ class ConciergePrefabTest < Minitest::Test
   end
 
   def test_tools
-    agent = SignalWireAgents::Prefabs::Concierge.new(
+    agent = SignalWire::Prefabs::Concierge.new(
       venue_name: 'Test',
       services: ['test'],
       amenities: {}

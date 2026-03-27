@@ -6,13 +6,13 @@
 # tool handlers, including basic recording, voicemail, and a complete
 # customer-service workflow.
 
-require 'signalwire_agents'
+require 'signalwire'
 require 'json'
 
 # --- Basic recording ---
 
 puts '=== Basic Recording ==='
-basic = SignalWireAgents::Swaig::FunctionResult.new('Starting basic call recording')
+basic = SignalWire::Swaig::FunctionResult.new('Starting basic call recording')
   .record_call
   .say('This call is now being recorded')
 puts JSON.pretty_generate(basic.to_h)
@@ -21,7 +21,7 @@ puts
 # --- Advanced recording ---
 
 puts '=== Advanced Recording ==='
-advanced = SignalWireAgents::Swaig::FunctionResult.new('Starting advanced call recording')
+advanced = SignalWire::Swaig::FunctionResult.new('Starting advanced call recording')
   .record_call(
     control_id: 'support_call_001',
     stereo:     true,
@@ -38,7 +38,7 @@ puts
 # --- Voicemail ---
 
 puts '=== Voicemail Recording ==='
-voicemail = SignalWireAgents::Swaig::FunctionResult.new('Please leave your message after the beep')
+voicemail = SignalWire::Swaig::FunctionResult.new('Please leave your message after the beep')
   .record_call(
     control_id:          'voicemail_123',
     format:              'wav',
@@ -55,7 +55,7 @@ puts
 # --- Stop recording ---
 
 puts '=== Stop Recording ==='
-stop_rec = SignalWireAgents::Swaig::FunctionResult.new('Ending call recording')
+stop_rec = SignalWire::Swaig::FunctionResult.new('Ending call recording')
   .stop_record_call(control_id: 'support_call_001')
   .say('Thank you for calling. Your feedback is important to us.')
 puts JSON.pretty_generate(stop_rec.to_h)
@@ -65,7 +65,7 @@ puts
 
 puts '=== Customer Service Workflow ==='
 
-start_rec = SignalWireAgents::Swaig::FunctionResult.new('Transferring you to an agent')
+start_rec = SignalWire::Swaig::FunctionResult.new('Transferring you to an agent')
   .record_call(
     control_id: 'cs_transfer_001',
     format:     'mp3',
@@ -81,7 +81,7 @@ puts 'Start recording:'
 puts JSON.pretty_generate(start_rec.to_h)
 puts
 
-end_rec = SignalWireAgents::Swaig::FunctionResult.new('Call recording stopped')
+end_rec = SignalWire::Swaig::FunctionResult.new('Call recording stopped')
   .stop_record_call(control_id: 'cs_transfer_001')
   .remove_global_data('recording_id')
   .say('Thank you for calling. Have a wonderful day!')

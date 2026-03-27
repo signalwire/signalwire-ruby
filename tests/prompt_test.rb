@@ -4,11 +4,11 @@ require 'minitest/autorun'
 
 ENV['SIGNALWIRE_LOG_MODE'] = 'off'
 
-require_relative '../lib/signalwire_agents'
+require_relative '../lib/signalwire'
 
 class PromptTextModeTest < Minitest::Test
   def setup
-    @agent = SignalWireAgents::AgentBase.new
+    @agent = SignalWire::AgentBase.new
   end
 
   def test_set_prompt_text
@@ -35,14 +35,14 @@ class PromptTextModeTest < Minitest::Test
   end
 
   def test_empty_prompt_returns_nil
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     assert_nil agent.get_prompt
   end
 end
 
 class PromptPomModeTest < Minitest::Test
   def setup
-    @agent = SignalWireAgents::AgentBase.new
+    @agent = SignalWire::AgentBase.new
   end
 
   def test_set_prompt_pom_direct
@@ -71,7 +71,7 @@ end
 
 class PromptSectionTest < Minitest::Test
   def setup
-    @agent = SignalWireAgents::AgentBase.new
+    @agent = SignalWire::AgentBase.new
   end
 
   def test_add_section_basic
@@ -128,7 +128,7 @@ end
 
 class PromptPostPromptTest < Minitest::Test
   def test_post_prompt_renders
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.set_post_prompt('Summarize the call')
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
@@ -136,7 +136,7 @@ class PromptPostPromptTest < Minitest::Test
   end
 
   def test_post_prompt_url_generated
-    agent = SignalWireAgents::AgentBase.new(basic_auth: ['u', 'p'])
+    agent = SignalWire::AgentBase.new(basic_auth: ['u', 'p'])
     agent.set_post_prompt('Summarize')
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
@@ -146,7 +146,7 @@ end
 
 class PromptChainingTest < Minitest::Test
   def test_all_prompt_methods_return_self
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     assert_same agent, agent.set_prompt_text('x')
     assert_same agent, agent.set_post_prompt('x')
     assert_same agent, agent.set_prompt_pom([])

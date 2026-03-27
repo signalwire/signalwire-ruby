@@ -1,6 +1,6 @@
 # Examples
 
-Standalone Ruby scripts demonstrating the SignalWire AI Agents SDK. Each example uses `require 'signalwire_agents'` and can be run directly.
+Standalone Ruby scripts demonstrating the SignalWire AI Agents SDK. Each example uses `require 'signalwire'` and can be run directly.
 
 ## Agent Examples
 
@@ -73,7 +73,7 @@ Standalone Ruby scripts demonstrating the SignalWire AI Agents SDK. Each example
 
 ```bash
 # Install dependencies
-cd /path/to/signalwire-agents-ruby
+cd /path/to/signalwire-ruby
 bundle install
 
 # Run any example

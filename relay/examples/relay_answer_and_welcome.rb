@@ -7,9 +7,9 @@
 #   SIGNALWIRE_API_TOKEN    - your SignalWire API token
 #   SIGNALWIRE_SPACE        - your SignalWire space (e.g. example.signalwire.com)
 
-require 'signalwire_agents'
+require 'signalwire'
 
-client = SignalWireAgents::Relay::Client.new(contexts: ['default'])
+client = SignalWire::Relay::Client.new(contexts: ['default'])
 
 client.on_call do |call|
   puts "Incoming call: #{call.call_id}"

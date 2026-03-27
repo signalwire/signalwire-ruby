@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
-require_relative '../../lib/signalwire_agents/relay/constants'
-require_relative '../../lib/signalwire_agents/relay/relay_event'
-require_relative '../../lib/signalwire_agents/relay/action'
-require_relative '../../lib/signalwire_agents/relay/call'
+require_relative '../../lib/signalwire/relay/constants'
+require_relative '../../lib/signalwire/relay/relay_event'
+require_relative '../../lib/signalwire/relay/action'
+require_relative '../../lib/signalwire/relay/call'
 
 class RelayCallDetailedTest < Minitest::Test
   class StubClient
@@ -18,7 +18,7 @@ class RelayCallDetailedTest < Minitest::Test
 
   def setup
     @stub_client = StubClient.new
-    @call = SignalWireAgents::Relay::Call.new(
+    @call = SignalWire::Relay::Call.new(
       @stub_client,
       call_id: 'call-1', node_id: 'node-1', project_id: 'proj-1',
       context: 'default', tag: 'tag-1', direction: 'inbound', state: 'answered'
@@ -56,7 +56,7 @@ class RelayCallDetailedTest < Minitest::Test
 
   def test_call_play
     action = @call.play([{ 'type' => 'audio', 'params' => { 'url' => 'http://test.wav' } }])
-    assert_instance_of SignalWireAgents::Relay::PlayAction, action
+    assert_instance_of SignalWire::Relay::PlayAction, action
     method, params = @stub_client.executed[0]
     assert_equal 'calling.play', method
     assert_equal 'node-1', params['node_id']
@@ -64,28 +64,28 @@ class RelayCallDetailedTest < Minitest::Test
 
   def test_call_record
     action = @call.record(audio: { 'format' => 'mp3' })
-    assert_instance_of SignalWireAgents::Relay::RecordAction, action
+    assert_instance_of SignalWire::Relay::RecordAction, action
     method, = @stub_client.executed[0]
     assert_equal 'calling.record', method
   end
 
   def test_call_detect
     action = @call.detect({ 'type' => 'machine', 'params' => {} })
-    assert_instance_of SignalWireAgents::Relay::DetectAction, action
+    assert_instance_of SignalWire::Relay::DetectAction, action
     method, = @stub_client.executed[0]
     assert_equal 'calling.detect', method
   end
 
   def test_call_transcribe
     action = @call.transcribe
-    assert_instance_of SignalWireAgents::Relay::TranscribeAction, action
+    assert_instance_of SignalWire::Relay::TranscribeAction, action
     method, = @stub_client.executed[0]
     assert_equal 'calling.transcribe', method
   end
 
   def test_call_stream
     action = @call.stream(url: 'wss://test.example.com')
-    assert_instance_of SignalWireAgents::Relay::StreamAction, action
+    assert_instance_of SignalWire::Relay::StreamAction, action
     method, params = @stub_client.executed[0]
     assert_equal 'calling.stream', method
     assert_equal 'wss://test.example.com', params['url']
@@ -93,7 +93,7 @@ class RelayCallDetailedTest < Minitest::Test
 
   def test_call_ai
     action = @call.ai(prompt: { 'text' => 'You are helpful' })
-    assert_instance_of SignalWireAgents::Relay::AIAction, action
+    assert_instance_of SignalWire::Relay::AIAction, action
     method, = @stub_client.executed[0]
     assert_equal 'calling.ai', method
   end

@@ -20,7 +20,7 @@ ruby -Ilib:tests tests/unit/core/test_agent_base.rb
 rake test TESTOPTS="--verbose"
 
 # Syntax-check a file
-ruby -c lib/signalwire_agents/agent/agent_base.rb
+ruby -c lib/signalwire/agent/agent_base.rb
 ```
 
 ### Installation and Setup
@@ -29,10 +29,10 @@ ruby -c lib/signalwire_agents/agent/agent_base.rb
 bundle install
 
 # Install the gem in development mode
-gem build signalwire_agents.gemspec && gem install signalwire_agents-*.gem
+gem build signalwire.gemspec && gem install signalwire-*.gem
 
 # Or add to Gemfile:
-#   gem 'signalwire_agents', path: '.'
+#   gem 'signalwire', path: '.'
 ```
 
 ### CLI Tools
@@ -48,19 +48,19 @@ ruby bin/sw-search ./docs --output knowledge.swsearch
 ## Architecture Overview
 
 ### Core Components
-1. **AgentBase** (`lib/signalwire_agents/agent/agent_base.rb`) -- Base class for all AI agents
-2. **SWMLService** (`lib/signalwire_agents/swml/service.rb`) -- Foundation for SWML document management
-3. **AgentServer** (`lib/signalwire_agents/server/agent_server.rb`) -- Multi-agent hosting server
-4. **Skills System** (`lib/signalwire_agents/skills/`) -- Modular capabilities framework
-5. **Contexts and Steps** (`lib/signalwire_agents/contexts/context_builder.rb`) -- Structured workflow management
-6. **DataMap Tools** (`lib/signalwire_agents/datamap/data_map.rb`) -- Server-side API integration without webhooks
-7. **RELAY Client** (`lib/signalwire_agents/relay/`) -- Real-time call control over WebSocket
-8. **REST Client** (`lib/signalwire_agents/rest/`) -- Synchronous REST API for all SignalWire resources
+1. **AgentBase** (`lib/signalwire/agent/agent_base.rb`) -- Base class for all AI agents
+2. **SWMLService** (`lib/signalwire/swml/service.rb`) -- Foundation for SWML document management
+3. **AgentServer** (`lib/signalwire/server/agent_server.rb`) -- Multi-agent hosting server
+4. **Skills System** (`lib/signalwire/skills/`) -- Modular capabilities framework
+5. **Contexts and Steps** (`lib/signalwire/contexts/context_builder.rb`) -- Structured workflow management
+6. **DataMap Tools** (`lib/signalwire/datamap/data_map.rb`) -- Server-side API integration without webhooks
+7. **RELAY Client** (`lib/signalwire/relay/`) -- Real-time call control over WebSocket
+8. **REST Client** (`lib/signalwire/rest/`) -- Synchronous REST API for all SignalWire resources
 
 ### Key Patterns
 
 #### Agent Creation
-Agents inherit from `SignalWireAgents::AgentBase` and define:
+Agents inherit from `SignalWire::AgentBase` and define:
 - Prompt Object Model (POM) sections via `prompt_add_section`
 - SWAIG functions via `define_tool` with block handlers
 - Skills integration via `add_skill` method
@@ -75,12 +75,12 @@ agent.define_tool(
     'city' => { 'type' => 'string', 'description' => 'City name' }
   }
 ) do |args, raw_data|
-  SignalWireAgents::Swaig::FunctionResult.new("Weather in #{args['city']}: 72F")
+  SignalWire::Swaig::FunctionResult.new("Weather in #{args['city']}: 72F")
 end
 ```
 
 #### Skills System
-Skills are self-contained modules in `lib/signalwire_agents/skills/builtin/`. Each skill:
+Skills are self-contained modules in `lib/signalwire/skills/builtin/`. Each skill:
 - Inherits from `SkillBase`
 - Implements `register_tools` method
 - Has optional configuration via `params` hash
@@ -89,11 +89,11 @@ Skills are self-contained modules in `lib/signalwire_agents/skills/builtin/`. Ea
 #### DataMap Tools
 Server-side tools that execute on SignalWire servers:
 ```ruby
-dm = SignalWireAgents::DataMap.new('get_weather')
+dm = SignalWire::DataMap.new('get_weather')
      .purpose('Get weather')
      .parameter('city', 'string', 'City name', required: true)
      .webhook('GET', 'https://api.weather.com?q=${args.city}')
-     .output(SignalWireAgents::Swaig::FunctionResult.new('Temp: ${response.temp}F'))
+     .output(SignalWire::Swaig::FunctionResult.new('Temp: ${response.temp}F'))
 ```
 
 #### Contexts and Steps System
@@ -106,7 +106,7 @@ step1.set_valid_steps(['collect_info'])
 
 ### Module Structure
 ```
-lib/signalwire_agents/
+lib/signalwire/
     agent/agent_base.rb      # Central agent class
     swml/                    # SWML document and service
     swaig/function_result.rb # Tool response builder
@@ -166,7 +166,7 @@ lib/signalwire_agents/
 ## Common Development Workflows
 
 ### Adding New Skills
-1. Create file in `lib/signalwire_agents/skills/builtin/`
+1. Create file in `lib/signalwire/skills/builtin/`
 2. Implement skill class inheriting from `SkillBase`
 3. Define `SKILL_NAME`, `SKILL_DESCRIPTION`
 4. Implement `setup` (returns bool) and `register_tools`

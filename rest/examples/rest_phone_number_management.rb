@@ -2,20 +2,20 @@
 
 # Example: Full phone number inventory lifecycle.
 #
-# Set these env vars (or pass them directly to SignalWireClient.new):
+# Set these env vars (or pass them directly to RestClient.new):
 #   SIGNALWIRE_PROJECT_ID   - your SignalWire project ID
 #   SIGNALWIRE_API_TOKEN    - your SignalWire API token
 #   SIGNALWIRE_SPACE        - your SignalWire space (e.g. example.signalwire.com)
 
-require 'signalwire_agents'
+require 'signalwire'
 
-client = SignalWireAgents::REST::SignalWireClient.new
+client = SignalWire::REST::RestClient.new
 
 def safe(label)
   result = yield
   puts "  #{label}: OK"
   result
-rescue SignalWireAgents::REST::SignalWireRestError => e
+rescue SignalWire::REST::SignalWireRestError => e
   puts "  #{label}: failed (#{e.status_code})"
   nil
 end
@@ -35,7 +35,7 @@ begin
   number = client.phone_numbers.create(number: first.fetch('e164', '+15125551234'))
   num_id = number['id']
   puts "  Purchased: #{num_id}"
-rescue SignalWireAgents::REST::SignalWireRestError => e
+rescue SignalWire::REST::SignalWireRestError => e
   puts "  Purchase failed (expected in demo): #{e.status_code}"
 end
 
@@ -76,7 +76,7 @@ if group_id && num_id
     (memberships['data'] || []).each do |m|
       puts "  - Member: #{m.fetch('id', 'unknown')}"
     end
-  rescue SignalWireAgents::REST::SignalWireRestError => e
+  rescue SignalWire::REST::SignalWireRestError => e
     puts "  Membership failed (expected in demo): #{e.status_code}"
   end
 end
@@ -97,7 +97,7 @@ begin
   puts "  Created verified caller: #{caller_id}"
   client.verified_callers.submit_verification(caller_id, verification_code: '123456')
   puts '  Verification code submitted'
-rescue SignalWireAgents::REST::SignalWireRestError => e
+rescue SignalWire::REST::SignalWireRestError => e
   puts "  Verified caller failed (expected in demo): #{e.status_code}"
 end
 

@@ -5,9 +5,9 @@
 # Skills are self-contained capability modules that register tools,
 # hints, and prompt sections automatically when added to an agent.
 
-require 'signalwire_agents'
+require 'signalwire'
 
-agent = SignalWireAgents::AgentBase.new(name: 'skills_agent', route: '/')
+agent = SignalWire::AgentBase.new(name: 'skills_agent', route: '/')
 
 agent.prompt_add_section(
   'Role',

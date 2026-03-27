@@ -5,7 +5,7 @@ require 'json'
 require 'fileutils'
 require 'tmpdir'
 
-require_relative '../lib/signalwire_agents/server/agent_server'
+require_relative '../lib/signalwire/server/agent_server'
 
 # Simple mock agent for testing
 class MockAgent
@@ -19,7 +19,7 @@ end
 
 class AgentServerTest < Minitest::Test
   def setup
-    @server = SignalWireAgents::AgentServer.new(host: '127.0.0.1', port: 4567)
+    @server = SignalWire::AgentServer.new(host: '127.0.0.1', port: 4567)
   end
 
   def test_creation
@@ -28,7 +28,7 @@ class AgentServerTest < Minitest::Test
   end
 
   def test_default_creation
-    server = SignalWireAgents::AgentServer.new
+    server = SignalWire::AgentServer.new
     assert_equal '0.0.0.0', server.host
     assert_equal 3000, server.port
   end
@@ -187,7 +187,7 @@ end
 # =========================================================================
 class AgentServerStaticFilesTest < Minitest::Test
   def setup
-    @server = SignalWireAgents::AgentServer.new(host: '127.0.0.1', port: 4567)
+    @server = SignalWire::AgentServer.new(host: '127.0.0.1', port: 4567)
 
     # Create a temporary directory with test files
     @tmpdir = File.join(Dir.tmpdir, "swaig_test_static_#{$$}")

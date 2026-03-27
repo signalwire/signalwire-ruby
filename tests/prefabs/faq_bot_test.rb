@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
-require_relative '../../lib/signalwire_agents/swaig/function_result'
-require_relative '../../lib/signalwire_agents/prefabs/faq_bot'
+require_relative '../../lib/signalwire/swaig/function_result'
+require_relative '../../lib/signalwire/prefabs/faq_bot'
 
 class FaqBotPrefabDetailedTest < Minitest::Test
   def test_construction
-    agent = SignalWireAgents::Prefabs::FaqBot.new(
+    agent = SignalWire::Prefabs::FaqBot.new(
       faqs: [{ 'question' => 'What is SignalWire?', 'answer' => 'A communications platform.' }]
     )
     assert_equal 'faq_bot', agent.name
@@ -14,14 +14,14 @@ class FaqBotPrefabDetailedTest < Minitest::Test
   end
 
   def test_tools
-    agent = SignalWireAgents::Prefabs::FaqBot.new(
+    agent = SignalWire::Prefabs::FaqBot.new(
       faqs: [{ 'question' => 'Q?', 'answer' => 'A.' }]
     )
     assert_includes agent.tools, 'search_faq'
   end
 
   def test_handle_search_match
-    agent = SignalWireAgents::Prefabs::FaqBot.new(
+    agent = SignalWire::Prefabs::FaqBot.new(
       faqs: [{ 'question' => 'What is SignalWire?', 'answer' => 'A cloud comms platform.' }]
     )
     result = agent.handle_search({ 'query' => 'signalwire' }, {})
@@ -29,7 +29,7 @@ class FaqBotPrefabDetailedTest < Minitest::Test
   end
 
   def test_handle_search_no_match
-    agent = SignalWireAgents::Prefabs::FaqBot.new(
+    agent = SignalWire::Prefabs::FaqBot.new(
       faqs: [{ 'question' => 'What is SignalWire?', 'answer' => 'A platform.' }]
     )
     result = agent.handle_search({ 'query' => 'banana' }, {})
@@ -37,11 +37,11 @@ class FaqBotPrefabDetailedTest < Minitest::Test
   end
 
   def test_raises_without_faqs
-    assert_raises(ArgumentError) { SignalWireAgents::Prefabs::FaqBot.new(faqs: []) }
+    assert_raises(ArgumentError) { SignalWire::Prefabs::FaqBot.new(faqs: []) }
   end
 
   def test_global_data
-    agent = SignalWireAgents::Prefabs::FaqBot.new(
+    agent = SignalWire::Prefabs::FaqBot.new(
       faqs: [{ 'question' => 'Q?', 'answer' => 'A.' }]
     )
     data = agent.global_data

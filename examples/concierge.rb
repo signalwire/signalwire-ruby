@@ -5,10 +5,10 @@
 # Demonstrates creating a virtual concierge for a hotel with amenity
 # and service lookups, hours of operation, and custom welcome message.
 
-require 'signalwire_agents'
+require 'signalwire'
 
 # Build the concierge prefab
-concierge = SignalWireAgents::Prefabs::Concierge.new(
+concierge = SignalWire::Prefabs::Concierge.new(
   venue_name: 'Oceanview Resort',
   services: [
     'room service',
@@ -53,7 +53,7 @@ concierge = SignalWireAgents::Prefabs::Concierge.new(
 )
 
 # Wrap the prefab in an AgentBase for HTTP serving
-agent = SignalWireAgents::AgentBase.new(name: concierge.name, route: concierge.route)
+agent = SignalWire::AgentBase.new(name: concierge.name, route: concierge.route)
 
 concierge.prompt_sections.each do |section|
   agent.prompt_add_section(section['title'], section['body'], bullets: section['bullets'])

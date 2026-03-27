@@ -10,9 +10,9 @@
 #   SIGNALWIRE_API_TOKEN    - your SignalWire API token
 #   SIGNALWIRE_SPACE        - your SignalWire space
 
-require 'signalwire_agents'
+require 'signalwire'
 
-client = SignalWireAgents::REST::SignalWireClient.new
+client = SignalWire::REST::RestClient.new
 
 # 1. Create an AI agent via Fabric API
 puts 'Creating AI agent...'
@@ -23,7 +23,7 @@ begin
   )
   agent_id = agent['id']
   puts "  Created agent: #{agent_id}"
-rescue SignalWireAgents::REST::SignalWireRestError => e
+rescue SignalWire::REST::SignalWireRestError => e
   puts "  Failed: #{e.status_code} -- #{e.message}"
   agent_id = nil
 end
@@ -35,7 +35,7 @@ begin
   (agents['data'] || []).each do |a|
     puts "  - #{a['id']}: #{a.fetch('name', 'unnamed')}"
   end
-rescue SignalWireAgents::REST::SignalWireRestError => e
+rescue SignalWire::REST::SignalWireRestError => e
   puts "  Failed: #{e.status_code}"
 end
 
@@ -46,7 +46,7 @@ begin
   (available['data'] || []).each do |num|
     puts "  - #{num.fetch('e164', num.fetch('number', 'unknown'))}"
   end
-rescue SignalWireAgents::REST::SignalWireRestError => e
+rescue SignalWire::REST::SignalWireRestError => e
   puts "  Failed: #{e.status_code}"
 end
 
@@ -56,7 +56,7 @@ begin
   room = client.video.rooms.create(name: 'ruby-demo-room', max_members: 5)
   room_id = room['id']
   puts "  Created room: #{room_id}"
-rescue SignalWireAgents::REST::SignalWireRestError => e
+rescue SignalWire::REST::SignalWireRestError => e
   puts "  Failed: #{e.status_code}"
   room_id = nil
 end
@@ -68,7 +68,7 @@ begin
   (queues['data'] || []).each do |q|
     puts "  - #{q['id']}: #{q.fetch('name', q.fetch('friendly_name', 'unnamed'))}"
   end
-rescue SignalWireAgents::REST::SignalWireRestError => e
+rescue SignalWire::REST::SignalWireRestError => e
   puts "  Failed: #{e.status_code}"
 end
 

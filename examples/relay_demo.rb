@@ -11,9 +11,9 @@
 #   SIGNALWIRE_API_TOKEN    - your SignalWire API token
 #   SIGNALWIRE_SPACE        - your SignalWire space
 
-require 'signalwire_agents'
+require 'signalwire'
 
-client = SignalWireAgents::Relay::Client.new(contexts: ['default'])
+client = SignalWire::Relay::Client.new(contexts: ['default'])
 
 # Handle inbound calls
 client.on_call do |call|

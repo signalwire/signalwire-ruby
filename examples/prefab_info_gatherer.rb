@@ -5,10 +5,10 @@
 # The InfoGatherer is a pre-built agent pattern that walks callers through
 # a structured set of questions, confirms answers, and collects results.
 
-require 'signalwire_agents'
+require 'signalwire'
 
 # Create the InfoGatherer prefab
-gatherer = SignalWireAgents::Prefabs::InfoGatherer.new(
+gatherer = SignalWire::Prefabs::InfoGatherer.new(
   questions: [
     {
       'key_name'      => 'full_name',
@@ -34,7 +34,7 @@ gatherer = SignalWireAgents::Prefabs::InfoGatherer.new(
 )
 
 # Wrap it in an agent for serving
-agent = SignalWireAgents::AgentBase.new(name: gatherer.name, route: gatherer.route)
+agent = SignalWire::AgentBase.new(name: gatherer.name, route: gatherer.route)
 
 # Apply the prefab's prompt sections
 gatherer.prompt_sections.each do |section|

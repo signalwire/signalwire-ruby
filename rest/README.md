@@ -5,9 +5,9 @@ Synchronous REST client for managing SignalWire resources, controlling live call
 ## Quick Start
 
 ```ruby
-require 'signalwire_agents'
+require 'signalwire'
 
-client = SignalWireAgents::REST::SignalWireClient.new(
+client = SignalWire::REST::RestClient.new(
   project: 'your-project-id',
   token:   'your-api-token',
   host:    'example.signalwire.com'
@@ -32,7 +32,7 @@ client.calling.dial(
 
 ## Features
 
-- Single `SignalWireClient` with namespaced sub-objects for every API
+- Single `RestClient` with namespaced sub-objects for every API
 - All 37 calling commands: dial, play, record, collect, detect, tap, stream, AI, transcribe, and more
 - Full Fabric API: 13 resource types with CRUD + addresses, tokens, and generic resources
 - Datasphere: document management and semantic search
@@ -105,7 +105,7 @@ client.mfa.verify(result['id'], token: '123456')
 ## Documentation
 
 - [Getting Started](docs/getting-started.md) -- installation, configuration, first API call
-- [Client Reference](docs/client-reference.md) -- SignalWireClient constructor, namespaces, error handling
+- [Client Reference](docs/client-reference.md) -- RestClient constructor, namespaces, error handling
 - [Fabric Resources](docs/fabric.md) -- managing AI agents, SWML scripts, subscribers, call flows, and more
 - [Calling Commands](docs/calling.md) -- REST-based call control (dial, play, record, collect, AI, etc.)
 - [Compatibility API](docs/compat.md) -- Twilio-compatible LAML endpoints
@@ -129,8 +129,8 @@ client.mfa.verify(result['id'], token: '123456')
 ## Module Structure
 
 ```
-lib/signalwire_agents/rest/
-    signalwire_client.rb  # SignalWireClient -- namespace wiring, env var resolution
+lib/signalwire/rest/
+    signalwire_client.rb  # RestClient -- namespace wiring, env var resolution
     http_client.rb        # HttpClient -- net/http wrapper with auth
     namespaces/
         fabric.rb         # 13 resource types + generic resources + addresses + tokens

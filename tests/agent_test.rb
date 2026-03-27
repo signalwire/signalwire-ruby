@@ -7,20 +7,20 @@ require 'json'
 # Suppress logging during tests
 ENV['SIGNALWIRE_LOG_MODE'] = 'off'
 
-require_relative '../lib/signalwire_agents'
+require_relative '../lib/signalwire'
 
 class AgentBaseConstructionTest < Minitest::Test
   def test_default_construction
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     assert_equal 'agent', agent.name
     assert_equal '/', agent.route
     assert_equal '0.0.0.0', agent.host
     assert_equal 3000, agent.port
-    assert_instance_of SignalWireAgents::Logging::Logger, agent.logger
+    assert_instance_of SignalWire::Logging::Logger, agent.logger
   end
 
   def test_custom_options
-    agent = SignalWireAgents::AgentBase.new(
+    agent = SignalWire::AgentBase.new(
       name: 'my_agent',
       route: '/bot',
       host: '127.0.0.1',
@@ -33,25 +33,25 @@ class AgentBaseConstructionTest < Minitest::Test
   end
 
   def test_route_normalisation
-    agent = SignalWireAgents::AgentBase.new(route: '/foo/')
+    agent = SignalWire::AgentBase.new(route: '/foo/')
     assert_equal '/foo', agent.route
   end
 
   def test_empty_route_becomes_root
-    agent = SignalWireAgents::AgentBase.new(route: '')
+    agent = SignalWire::AgentBase.new(route: '')
     assert_equal '/', agent.route
   end
 
   def test_port_from_env
     ENV['PORT'] = '9999'
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     assert_equal 9999, agent.port
   ensure
     ENV.delete('PORT')
   end
 
   def test_basic_auth_auto_generated
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     creds = agent.get_basic_auth_credentials
     assert_equal 2, creds.length
     refute_empty creds[0]
@@ -59,14 +59,14 @@ class AgentBaseConstructionTest < Minitest::Test
   end
 
   def test_basic_auth_explicit
-    agent = SignalWireAgents::AgentBase.new(basic_auth: ['user', 'pass'])
+    agent = SignalWire::AgentBase.new(basic_auth: ['user', 'pass'])
     assert_equal ['user', 'pass'], agent.get_basic_auth_credentials
   end
 
   def test_basic_auth_from_env
     ENV['SWML_BASIC_AUTH_USER']     = 'envuser'
     ENV['SWML_BASIC_AUTH_PASSWORD'] = 'envpass'
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     assert_equal ['envuser', 'envpass'], agent.get_basic_auth_credentials
   ensure
     ENV.delete('SWML_BASIC_AUTH_USER')
@@ -79,7 +79,7 @@ end
 # =========================================================================
 class AgentPromptTest < Minitest::Test
   def setup
-    @agent = SignalWireAgents::AgentBase.new
+    @agent = SignalWire::AgentBase.new
   end
 
   def test_text_mode
@@ -154,7 +154,7 @@ end
 # =========================================================================
 class AgentToolTest < Minitest::Test
   def setup
-    @agent = SignalWireAgents::AgentBase.new
+    @agent = SignalWire::AgentBase.new
   end
 
   def test_define_tool_with_block
@@ -163,7 +163,7 @@ class AgentToolTest < Minitest::Test
       description: 'Say hello',
       parameters: { 'name' => { 'type' => 'string', 'description' => 'Name' } }
     ) do |args, _raw|
-      SignalWireAgents::Swaig::FunctionResult.new("Hello, #{args['name']}!")
+      SignalWire::Swaig::FunctionResult.new("Hello, #{args['name']}!")
     end
 
     tools = @agent.define_tools
@@ -192,7 +192,7 @@ class AgentToolTest < Minitest::Test
       description: 'Echo back',
       parameters: {}
     ) do |args, _raw|
-      SignalWireAgents::Swaig::FunctionResult.new("Echo: #{args['text']}")
+      SignalWire::Swaig::FunctionResult.new("Echo: #{args['text']}")
     end
 
     result = @agent.on_function_call('echo', { 'text' => 'hello' }, {})
@@ -209,7 +209,7 @@ class AgentToolTest < Minitest::Test
       name: 'slow_op',
       description: 'Slow operation',
       fillers: { 'en-US' => ['Please wait...', 'Working on it...'] }
-    ) { |_, _| SignalWireAgents::Swaig::FunctionResult.new('Done') }
+    ) { |_, _| SignalWire::Swaig::FunctionResult.new('Done') }
 
     tools = @agent.define_tools
     assert_equal({ 'en-US' => ['Please wait...', 'Working on it...'] }, tools[0]['fillers'])
@@ -226,7 +226,7 @@ end
 # =========================================================================
 class AgentAIConfigTest < Minitest::Test
   def setup
-    @agent = SignalWireAgents::AgentBase.new
+    @agent = SignalWire::AgentBase.new
   end
 
   def test_add_hint
@@ -395,7 +395,7 @@ end
 # =========================================================================
 class AgentVerbTest < Minitest::Test
   def setup
-    @agent = SignalWireAgents::AgentBase.new
+    @agent = SignalWire::AgentBase.new
   end
 
   def test_pre_answer_verbs
@@ -467,18 +467,18 @@ end
 # =========================================================================
 class AgentContextsTest < Minitest::Test
   def test_define_contexts_returns_builder
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     builder = agent.define_contexts
-    assert_instance_of SignalWireAgents::Contexts::ContextBuilder, builder
+    assert_instance_of SignalWire::Contexts::ContextBuilder, builder
   end
 
   def test_contexts_alias
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     assert_same agent.define_contexts, agent.contexts
   end
 
   def test_contexts_rendered_in_swml
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     ctx = agent.define_contexts.add_context('default')
     ctx.add_step('greeting').set_text('Say hello')
     swml = agent.render_swml
@@ -493,7 +493,7 @@ end
 # =========================================================================
 class AgentSkillTest < Minitest::Test
   def test_add_skill_datetime
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.add_skill('datetime')
     assert agent.has_skill?('datetime')
     assert_includes agent.list_skills, 'datetime'
@@ -505,20 +505,20 @@ class AgentSkillTest < Minitest::Test
   end
 
   def test_add_skill_returns_self
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     result = agent.add_skill('datetime')
     assert_same agent, result
   end
 
   def test_remove_skill
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.add_skill('datetime')
     agent.remove_skill('datetime')
     refute agent.has_skill?('datetime')
   end
 
   def test_unknown_skill_raises
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     assert_raises(ArgumentError) { agent.add_skill('nonexistent_skill_xyz') }
   end
 end
@@ -528,7 +528,7 @@ end
 # =========================================================================
 class AgentRenderSwmlTest < Minitest::Test
   def test_basic_structure
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     swml = agent.render_swml
     assert_equal '1.0.0', swml['version']
     assert swml.key?('sections')
@@ -536,21 +536,21 @@ class AgentRenderSwmlTest < Minitest::Test
   end
 
   def test_auto_answer
-    agent = SignalWireAgents::AgentBase.new(auto_answer: true)
+    agent = SignalWire::AgentBase.new(auto_answer: true)
     swml = agent.render_swml
     main = swml['sections']['main']
     assert main.any? { |v| v.key?('answer') }
   end
 
   def test_no_auto_answer
-    agent = SignalWireAgents::AgentBase.new(auto_answer: false)
+    agent = SignalWire::AgentBase.new(auto_answer: false)
     swml = agent.render_swml
     main = swml['sections']['main']
     refute main.any? { |v| v.key?('answer') }
   end
 
   def test_record_call
-    agent = SignalWireAgents::AgentBase.new(record_call: true, record_format: 'wav', record_stereo: false)
+    agent = SignalWire::AgentBase.new(record_call: true, record_format: 'wav', record_stereo: false)
     swml = agent.render_swml
     main = swml['sections']['main']
     rec = main.find { |v| v.key?('record_call') }
@@ -560,7 +560,7 @@ class AgentRenderSwmlTest < Minitest::Test
   end
 
   def test_with_tools
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.define_tool(name: 'foo', description: 'Foo tool') { |_, _| }
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
@@ -571,7 +571,7 @@ class AgentRenderSwmlTest < Minitest::Test
   end
 
   def test_with_pom
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.prompt_add_section('Intro', 'Hello')
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
@@ -581,7 +581,7 @@ class AgentRenderSwmlTest < Minitest::Test
   end
 
   def test_with_text_prompt
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.set_prompt_text('You are helpful.')
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
@@ -589,7 +589,7 @@ class AgentRenderSwmlTest < Minitest::Test
   end
 
   def test_with_params
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.set_params({ 'temperature' => 0.5 })
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
@@ -597,7 +597,7 @@ class AgentRenderSwmlTest < Minitest::Test
   end
 
   def test_5_phase_ordering
-    agent = SignalWireAgents::AgentBase.new(record_call: true)
+    agent = SignalWire::AgentBase.new(record_call: true)
     agent.add_pre_answer_verb('set', { 'x' => '1' })
     agent.add_post_answer_verb('play', { 'url' => 'welcome.mp3' })
     agent.add_post_ai_verb('hangup', {})
@@ -619,7 +619,7 @@ class AgentRenderSwmlTest < Minitest::Test
   end
 
   def test_webhook_url_in_swml
-    agent = SignalWireAgents::AgentBase.new(basic_auth: ['u', 'p'])
+    agent = SignalWire::AgentBase.new(basic_auth: ['u', 'p'])
     agent.define_tool(name: 'test', description: 'Test') { |_, _| }
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
@@ -629,7 +629,7 @@ class AgentRenderSwmlTest < Minitest::Test
   end
 
   def test_post_prompt_url_in_swml
-    agent = SignalWireAgents::AgentBase.new(basic_auth: ['u', 'p'])
+    agent = SignalWire::AgentBase.new(basic_auth: ['u', 'p'])
     agent.set_post_prompt('Summarize')
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
@@ -637,7 +637,7 @@ class AgentRenderSwmlTest < Minitest::Test
   end
 
   def test_web_hook_url_override
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.set_web_hook_url('https://custom.example.com/hook')
     agent.define_tool(name: 'test', description: 'Test') { |_, _| }
     swml = agent.render_swml
@@ -646,7 +646,7 @@ class AgentRenderSwmlTest < Minitest::Test
   end
 
   def test_post_prompt_url_override
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.set_post_prompt('Sum')
     agent.set_post_prompt_url('https://custom.example.com/pp')
     swml = agent.render_swml
@@ -660,7 +660,7 @@ end
 # =========================================================================
 class AgentDynamicConfigTest < Minitest::Test
   def test_dynamic_config_callback_applied
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.set_prompt_text('Original')
     agent.set_dynamic_config_callback do |_query, _body, _headers, ephemeral|
       ephemeral.set_prompt_text('Modified')
@@ -671,7 +671,7 @@ class AgentDynamicConfigTest < Minitest::Test
   end
 
   def test_original_not_mutated
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.set_prompt_text('Original')
     agent.set_dynamic_config_callback do |_query, _body, _headers, ephemeral|
       ephemeral.set_prompt_text('Modified')
@@ -688,7 +688,7 @@ class AgentDynamicConfigTest < Minitest::Test
   end
 
   def test_dynamic_config_can_add_tools
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.set_dynamic_config_callback do |_q, _b, _h, ephemeral|
       ephemeral.define_tool(name: 'dynamic_tool', description: 'Added dynamically') { |_, _| }
     end
@@ -708,10 +708,10 @@ class AgentRackTest < Minitest::Test
   include Rack::Test::Methods
 
   def app
-    @agent = SignalWireAgents::AgentBase.new(basic_auth: ['testuser', 'testpass'])
+    @agent = SignalWire::AgentBase.new(basic_auth: ['testuser', 'testpass'])
     @agent.set_prompt_text('Hello')
     @agent.define_tool(name: 'echo', description: 'Echo') do |args, _raw|
-      SignalWireAgents::Swaig::FunctionResult.new("Echo: #{args['msg']}")
+      SignalWire::Swaig::FunctionResult.new("Echo: #{args['msg']}")
     end
     @agent.on_summary do |summary, _raw|
       @last_summary = summary
@@ -844,7 +844,7 @@ class AgentCustomRouteRackTest < Minitest::Test
   include Rack::Test::Methods
 
   def app
-    @agent = SignalWireAgents::AgentBase.new(
+    @agent = SignalWire::AgentBase.new(
       route: '/bot',
       basic_auth: ['u', 'p']
     )
@@ -877,7 +877,7 @@ end
 # =========================================================================
 class AgentMethodChainingTest < Minitest::Test
   def test_all_config_methods_return_self
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
 
     assert_same agent, agent.set_prompt_text('x')
     assert_same agent, agent.set_post_prompt('x')
@@ -933,7 +933,7 @@ end
 class AgentProxyUrlTest < Minitest::Test
   def test_proxy_url_from_env
     ENV['SWML_PROXY_URL_BASE'] = 'https://proxy.example.com'
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.define_tool(name: 'test', description: 'Test') { |_, _| }
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
@@ -944,7 +944,7 @@ class AgentProxyUrlTest < Minitest::Test
   end
 
   def test_manual_set_proxy_url
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.manual_set_proxy_url('https://manual.example.com')
     agent.define_tool(name: 'test', description: 'Test') { |_, _| }
     swml = agent.render_swml
@@ -959,7 +959,7 @@ end
 # =========================================================================
 class AgentSwaigQueryParamsTest < Minitest::Test
   def test_add_swaig_query_params
-    agent = SignalWireAgents::AgentBase.new(basic_auth: ['u', 'p'])
+    agent = SignalWire::AgentBase.new(basic_auth: ['u', 'p'])
     agent.add_swaig_query_params({ 'tenant' => 'acme' })
     agent.define_tool(name: 'test', description: 'Test') { |_, _| }
     swml = agent.render_swml
@@ -969,7 +969,7 @@ class AgentSwaigQueryParamsTest < Minitest::Test
   end
 
   def test_clear_swaig_query_params
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.add_swaig_query_params({ 'key' => 'val' })
     agent.clear_swaig_query_params
     agent.define_tool(name: 'test', description: 'Test') { |_, _| }
@@ -985,12 +985,12 @@ end
 # =========================================================================
 class AgentDataMapTest < Minitest::Test
   def test_register_datamap_tool
-    agent = SignalWireAgents::AgentBase.new
-    dm = SignalWireAgents::DataMap.new('get_weather')
+    agent = SignalWire::AgentBase.new
+    dm = SignalWire::DataMap.new('get_weather')
          .purpose('Get weather')
          .parameter('city', 'string', 'City name', required: true)
          .webhook('GET', 'https://api.weather.com?q=${city}')
-         .output(SignalWireAgents::Swaig::FunctionResult.new('Weather: ${response.temp}'))
+         .output(SignalWire::Swaig::FunctionResult.new('Weather: ${response.temp}'))
 
     agent.register_swaig_function(dm.to_swaig_function)
     swml = agent.render_swml
@@ -1009,7 +1009,7 @@ class AgentDebugEventTest < Minitest::Test
   include Rack::Test::Methods
 
   def app
-    @agent = SignalWireAgents::AgentBase.new(basic_auth: ['u', 'p'])
+    @agent = SignalWire::AgentBase.new(basic_auth: ['u', 'p'])
     @received_event = nil
     @agent.on_debug_event do |event_type, data|
       @received_event = [event_type, data]
@@ -1032,74 +1032,74 @@ end
 # =========================================================================
 class AgentSipUsernameTest < Minitest::Test
   def test_extract_sip_username_basic
-    assert_equal 'alice', SignalWireAgents::AgentBase.extract_sip_username('sip:alice@example.com')
+    assert_equal 'alice', SignalWire::AgentBase.extract_sip_username('sip:alice@example.com')
   end
 
   def test_extract_sips_username
-    assert_equal 'bob', SignalWireAgents::AgentBase.extract_sip_username('sips:bob@example.com')
+    assert_equal 'bob', SignalWire::AgentBase.extract_sip_username('sips:bob@example.com')
   end
 
   def test_extract_without_scheme
-    assert_equal 'carol', SignalWireAgents::AgentBase.extract_sip_username('carol@example.com')
+    assert_equal 'carol', SignalWire::AgentBase.extract_sip_username('carol@example.com')
   end
 
   def test_extract_nil_returns_nil
-    assert_nil SignalWireAgents::AgentBase.extract_sip_username(nil)
+    assert_nil SignalWire::AgentBase.extract_sip_username(nil)
   end
 
   def test_extract_empty_returns_nil
-    assert_nil SignalWireAgents::AgentBase.extract_sip_username('')
+    assert_nil SignalWire::AgentBase.extract_sip_username('')
   end
 
   def test_extract_no_at_sign_returns_nil
-    assert_nil SignalWireAgents::AgentBase.extract_sip_username('sip:justuser')
+    assert_nil SignalWire::AgentBase.extract_sip_username('sip:justuser')
   end
 
   def test_extract_empty_user_part_returns_nil
-    assert_nil SignalWireAgents::AgentBase.extract_sip_username('sip:@example.com')
+    assert_nil SignalWire::AgentBase.extract_sip_username('sip:@example.com')
   end
 
   def test_extract_from_request_to_field
     data = { 'to' => 'sip:alice@example.com' }
-    assert_equal 'alice', SignalWireAgents::AgentBase.extract_sip_username_from_request(data)
+    assert_equal 'alice', SignalWire::AgentBase.extract_sip_username_from_request(data)
   end
 
   def test_extract_from_request_from_field
     data = { 'from' => 'sip:bob@example.com' }
-    assert_equal 'bob', SignalWireAgents::AgentBase.extract_sip_username_from_request(data)
+    assert_equal 'bob', SignalWire::AgentBase.extract_sip_username_from_request(data)
   end
 
   def test_extract_from_request_sip_uri_field
     data = { 'sip_uri' => 'sip:carol@example.com' }
-    assert_equal 'carol', SignalWireAgents::AgentBase.extract_sip_username_from_request(data)
+    assert_equal 'carol', SignalWire::AgentBase.extract_sip_username_from_request(data)
   end
 
   def test_extract_from_request_nested_call_to
     data = { 'call' => { 'to' => 'sip:dave@example.com' } }
-    assert_equal 'dave', SignalWireAgents::AgentBase.extract_sip_username_from_request(data)
+    assert_equal 'dave', SignalWire::AgentBase.extract_sip_username_from_request(data)
   end
 
   def test_extract_from_request_nested_call_from
     data = { 'call' => { 'from' => 'sip:eve@example.com' } }
-    assert_equal 'eve', SignalWireAgents::AgentBase.extract_sip_username_from_request(data)
+    assert_equal 'eve', SignalWire::AgentBase.extract_sip_username_from_request(data)
   end
 
   def test_extract_from_request_nil
-    assert_nil SignalWireAgents::AgentBase.extract_sip_username_from_request(nil)
+    assert_nil SignalWire::AgentBase.extract_sip_username_from_request(nil)
   end
 
   def test_extract_from_request_empty
-    assert_nil SignalWireAgents::AgentBase.extract_sip_username_from_request({})
+    assert_nil SignalWire::AgentBase.extract_sip_username_from_request({})
   end
 
   def test_extract_from_request_no_sip_fields
     data = { 'call_id' => 'abc-123', 'function' => 'test' }
-    assert_nil SignalWireAgents::AgentBase.extract_sip_username_from_request(data)
+    assert_nil SignalWire::AgentBase.extract_sip_username_from_request(data)
   end
 
   def test_extract_from_request_prefers_first_match
     data = { 'to' => 'sip:first@example.com', 'from' => 'sip:second@example.com' }
-    assert_equal 'first', SignalWireAgents::AgentBase.extract_sip_username_from_request(data)
+    assert_equal 'first', SignalWire::AgentBase.extract_sip_username_from_request(data)
   end
 end
 
@@ -1109,7 +1109,7 @@ end
 class AgentPasswordNotLoggedTest < Minitest::Test
   def test_password_not_in_log_output
     # Read the source file and verify password is redacted in log messages
-    source = File.read(File.join(__dir__, '..', 'lib', 'signalwire_agents', 'agent', 'agent_base.rb'))
+    source = File.read(File.join(__dir__, '..', 'lib', 'signalwire', 'agent', 'agent_base.rb'))
     # The serve method should log [REDACTED] not the actual password
     assert_includes source, 'password: [REDACTED]'
     refute_match(/password: #\{pass\}/, source)

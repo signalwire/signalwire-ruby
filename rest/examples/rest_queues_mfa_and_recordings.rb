@@ -2,20 +2,20 @@
 
 # Example: Call queues, recording review, and MFA verification.
 #
-# Set these env vars (or pass them directly to SignalWireClient.new):
+# Set these env vars (or pass them directly to RestClient.new):
 #   SIGNALWIRE_PROJECT_ID   - your SignalWire project ID
 #   SIGNALWIRE_API_TOKEN    - your SignalWire API token
 #   SIGNALWIRE_SPACE        - your SignalWire space (e.g. example.signalwire.com)
 
-require 'signalwire_agents'
+require 'signalwire'
 
-client = SignalWireAgents::REST::SignalWireClient.new
+client = SignalWire::REST::RestClient.new
 
 def safe(label)
   result = yield
   puts "  #{label}: OK"
   result
-rescue SignalWireAgents::REST::SignalWireRestError => e
+rescue SignalWire::REST::SignalWireRestError => e
   puts "  #{label}: failed (#{e.status_code})"
   nil
 end
@@ -55,7 +55,7 @@ if queue_id
 
     next_member = client.queues.get_next_member(queue_id)
     puts "  Next member: #{next_member}"
-  rescue SignalWireAgents::REST::SignalWireRestError => e
+  rescue SignalWire::REST::SignalWireRestError => e
     puts "  Member ops failed (expected if queue empty): #{e.status_code}"
   end
 end
@@ -90,7 +90,7 @@ begin
   )
   request_id = sms_result['id'] || sms_result['request_id']
   puts "  MFA SMS sent: #{request_id}"
-rescue SignalWireAgents::REST::SignalWireRestError => e
+rescue SignalWire::REST::SignalWireRestError => e
   puts "  MFA SMS failed (expected in demo): #{e.status_code}"
 end
 
@@ -104,7 +104,7 @@ begin
     token_length: 6
   )
   puts "  MFA call sent: #{voice_result['id'] || voice_result['request_id']}"
-rescue SignalWireAgents::REST::SignalWireRestError => e
+rescue SignalWire::REST::SignalWireRestError => e
   puts "  MFA call failed (expected in demo): #{e.status_code}"
 end
 

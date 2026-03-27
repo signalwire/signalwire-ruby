@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
-require_relative '../../lib/signalwire_agents/swaig/function_result'
-require_relative '../../lib/signalwire_agents/datamap/data_map'
-require_relative '../../lib/signalwire_agents/skills/skill_base'
-require_relative '../../lib/signalwire_agents/skills/skill_registry'
-require_relative '../../lib/signalwire_agents/skills/builtin/swml_transfer'
+require_relative '../../lib/signalwire/swaig/function_result'
+require_relative '../../lib/signalwire/datamap/data_map'
+require_relative '../../lib/signalwire/skills/skill_base'
+require_relative '../../lib/signalwire/skills/skill_registry'
+require_relative '../../lib/signalwire/skills/builtin/swml_transfer'
 
 class SwmlTransferSkillDetailedTest < Minitest::Test
   def test_setup_and_register
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('swml_transfer')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('swml_transfer')
     skill = factory.call({
       'transfers' => {
         'sales'   => { 'url' => 'https://example.com/sales', 'message' => 'Transferring to sales' },
@@ -23,19 +23,19 @@ class SwmlTransferSkillDetailedTest < Minitest::Test
   end
 
   def test_setup_fails_without_transfers
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('swml_transfer')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('swml_transfer')
     skill = factory.call({})
     refute skill.setup
   end
 
   def test_setup_fails_with_empty_transfers
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('swml_transfer')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('swml_transfer')
     skill = factory.call({ 'transfers' => {} })
     refute skill.setup
   end
 
   def test_get_hints
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('swml_transfer')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('swml_transfer')
     skill = factory.call({
       'transfers' => { 'sales' => { 'url' => 'https://example.com/sales' } }
     })
@@ -45,7 +45,7 @@ class SwmlTransferSkillDetailedTest < Minitest::Test
   end
 
   def test_prompt_sections
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('swml_transfer')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('swml_transfer')
     skill = factory.call({
       'transfers' => { 'sales' => { 'url' => 'https://example.com/sales' } }
     })

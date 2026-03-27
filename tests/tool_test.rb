@@ -4,11 +4,11 @@ require 'minitest/autorun'
 
 ENV['SIGNALWIRE_LOG_MODE'] = 'off'
 
-require_relative '../lib/signalwire_agents'
+require_relative '../lib/signalwire'
 
 class ToolRegistrationTest < Minitest::Test
   def setup
-    @agent = SignalWireAgents::AgentBase.new
+    @agent = SignalWire::AgentBase.new
   end
 
   def test_define_tool_with_block
@@ -17,7 +17,7 @@ class ToolRegistrationTest < Minitest::Test
       description: 'Say hello',
       parameters: { 'name' => { 'type' => 'string', 'description' => 'Name' } }
     ) do |args, _raw|
-      SignalWireAgents::Swaig::FunctionResult.new("Hello, #{args['name']}!")
+      SignalWire::Swaig::FunctionResult.new("Hello, #{args['name']}!")
     end
 
     tools = @agent.define_tools
@@ -43,7 +43,7 @@ class ToolRegistrationTest < Minitest::Test
       name: 'slow_op',
       description: 'Slow operation',
       fillers: { 'en-US' => ['Please wait...', 'Working on it...'] }
-    ) { |_, _| SignalWireAgents::Swaig::FunctionResult.new('Done') }
+    ) { |_, _| SignalWire::Swaig::FunctionResult.new('Done') }
 
     tools = @agent.define_tools
     assert_equal({ 'en-US' => ['Please wait...', 'Working on it...'] }, tools[0]['fillers'])
@@ -52,7 +52,7 @@ end
 
 class ToolDispatchTest < Minitest::Test
   def setup
-    @agent = SignalWireAgents::AgentBase.new
+    @agent = SignalWire::AgentBase.new
   end
 
   def test_on_function_call_dispatch
@@ -61,7 +61,7 @@ class ToolDispatchTest < Minitest::Test
       description: 'Echo back',
       parameters: {}
     ) do |args, _raw|
-      SignalWireAgents::Swaig::FunctionResult.new("Echo: #{args['text']}")
+      SignalWire::Swaig::FunctionResult.new("Echo: #{args['text']}")
     end
 
     result = @agent.on_function_call('echo', { 'text' => 'hello' }, {})
@@ -85,7 +85,7 @@ end
 
 class DataMapToolRegistrationTest < Minitest::Test
   def test_register_swaig_function
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     dm_func = {
       'function'    => 'weather',
       'description' => 'Get weather',
@@ -100,18 +100,18 @@ class DataMapToolRegistrationTest < Minitest::Test
   end
 
   def test_register_swaig_function_returns_self
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     result = agent.register_swaig_function({ 'function' => 'x' })
     assert_same agent, result
   end
 
   def test_register_datamap_tool
-    agent = SignalWireAgents::AgentBase.new
-    dm = SignalWireAgents::DataMap.new('get_weather')
+    agent = SignalWire::AgentBase.new
+    dm = SignalWire::DataMap.new('get_weather')
          .purpose('Get weather')
          .parameter('city', 'string', 'City name', required: true)
          .webhook('GET', 'https://api.weather.com?q=${city}')
-         .output(SignalWireAgents::Swaig::FunctionResult.new('Weather: ${response.temp}'))
+         .output(SignalWire::Swaig::FunctionResult.new('Weather: ${response.temp}'))
 
     agent.register_swaig_function(dm.to_swaig_function)
     swml = agent.render_swml
@@ -125,7 +125,7 @@ end
 
 class DefineToolsOrderingTest < Minitest::Test
   def test_tools_appear_before_swaig_functions
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.define_tool(name: 'tool_a', description: 'A') { |_, _| }
     agent.register_swaig_function({ 'function' => 'dm_b', 'description' => 'B' })
     agent.define_tool(name: 'tool_c', description: 'C') { |_, _| }

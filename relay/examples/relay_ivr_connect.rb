@@ -13,11 +13,11 @@
 #   SIGNALWIRE_API_TOKEN    - your SignalWire API token
 #   SIGNALWIRE_SPACE        - your SignalWire space
 
-require 'signalwire_agents'
+require 'signalwire'
 
 AGENT_NUMBER = '+19184238080'
 
-client = SignalWireAgents::Relay::Client.new(contexts: ['default'])
+client = SignalWire::Relay::Client.new(contexts: ['default'])
 
 def tts(text)
   { 'type' => 'tts', 'params' => { 'text' => text } }

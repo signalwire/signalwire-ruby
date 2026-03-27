@@ -9,11 +9,11 @@
 # Usage:
 #   PORT=8080 ruby examples/kubernetes.rb
 
-require 'signalwire_agents'
+require 'signalwire'
 
 port = Integer(ENV.fetch('PORT', 8080))
 
-agent = SignalWireAgents::AgentBase.new(
+agent = SignalWire::AgentBase.new(
   name:  'k8s-agent',
   route: '/',
   host:  '0.0.0.0',
@@ -33,7 +33,7 @@ agent.define_tool(
   description: 'Get the health status of this agent',
   parameters:  {}
 ) do |_args, _raw_data|
-  SignalWireAgents::Swaig::FunctionResult.new(
+  SignalWire::Swaig::FunctionResult.new(
     "Agent '#{agent.name}' is healthy, running on port #{agent.port} in Kubernetes."
   )
 end

@@ -5,7 +5,7 @@
 # Demonstrates adding the built-in joke skill to an agent.
 # Requires API_NINJAS_KEY environment variable.
 
-require 'signalwire_agents'
+require 'signalwire'
 
 api_key = ENV['API_NINJAS_KEY']
 unless api_key
@@ -15,7 +15,7 @@ unless api_key
   exit 1
 end
 
-agent = SignalWireAgents::AgentBase.new(
+agent = SignalWire::AgentBase.new(
   name:  'Joke Skill Demo',
   route: '/joke-skill'
 )

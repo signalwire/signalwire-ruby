@@ -7,9 +7,9 @@
 #
 # Try: curl "http://localhost:3000/chat?user_name=Alice&topic=AI&mood=casual"
 
-require 'signalwire_agents'
+require 'signalwire'
 
-agent = SignalWireAgents::AgentBase.new(
+agent = SignalWire::AgentBase.new(
   name:        'Chat Assistant',
   route:       '/chat',
   record_call: true

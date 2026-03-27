@@ -5,9 +5,9 @@
 # This agent uses the contexts system to guide a caller through
 # an insurance claim process with structured steps.
 
-require 'signalwire_agents'
+require 'signalwire'
 
-agent = SignalWireAgents::AgentBase.new(name: 'claims_agent', route: '/')
+agent = SignalWire::AgentBase.new(name: 'claims_agent', route: '/')
 
 # Base prompt
 agent.prompt_add_section(
@@ -74,7 +74,7 @@ agent.define_tool(
   }
 ) do |args, _raw_data|
   claim = args['claim_number'] || 'unknown'
-  SignalWireAgents::Swaig::FunctionResult.new(
+  SignalWire::Swaig::FunctionResult.new(
     "Claim #{claim}: Status is 'Under Review'. Filed on 2024-01-15 for auto damage. " \
     'Estimated amount: $3,200. Adjuster assigned: Jane Smith.'
   )
@@ -91,7 +91,7 @@ agent.define_tool(
   }
 ) do |args, _raw_data|
   claim_num = "CLM-#{rand(100_000..999_999)}"
-  result = SignalWireAgents::Swaig::FunctionResult.new(
+  result = SignalWire::Swaig::FunctionResult.new(
     "Claim submitted successfully! Your claim number is #{claim_num}. " \
     "Type: #{args['type']}, Date: #{args['date']}, Amount: $#{args['amount']}."
   )

@@ -1,0 +1,1336 @@
+# frozen_string_literal: true
+
+# Copyright (c) 2025 SignalWire
+#
+# Licensed under the MIT License.
+# See LICENSE file in the project root for full license information.
+
+require 'json'
+require 'securerandom'
+require 'openssl'
+require 'rack'
+require 'uri'
+require_relative '../logging'
+require_relative '../swml/document'
+require_relative '../swml/schema'
+require_relative '../swml/service'
+require_relative '../swaig/function_result'
+require_relative '../security/session_manager'
+require_relative '../contexts/context_builder'
+require_relative '../skills/skill_base'
+require_relative '../skills/skill_manager'
+require_relative '../skills/skill_registry'
+
+module SignalWire
+  # Central agent class that composes SWML rendering, tool dispatch,
+  # prompt management, AI config, and HTTP serving.
+  #
+  # AgentBase extends SWMLService with agent-specific capabilities:
+  #  - Prompt management (POM sections and raw text)
+  #  - Tool (SWAIG function) registration & dispatch
+  #  - AI configuration (hints, languages, pronunciations, params)
+  #  - Verb management (pre/post answer, post-AI)
+  #  - Context & step workflows
+  #  - Skill integration
+  #  - Dynamic configuration via per-request ephemeral copies
+  #
+  # All configuration methods return +self+ for method chaining.
+  class AgentBase
+    attr_reader :name, :route, :host, :port, :logger
+
+    # Maximum request body size (1 MB)
+    MAX_BODY_SIZE = 1_048_576
+
+    # ------------------------------------------------------------------
+    # Construction
+    # ------------------------------------------------------------------
+
+    def initialize(name: 'agent', route: '/', host: '0.0.0.0', port: nil,
+                   basic_auth: nil, auto_answer: true, record_call: false,
+                   record_format: 'mp4', record_stereo: true,
+                   token_expiry_secs: 3600)
+      @name   = name
+      @route  = route.to_s.chomp('/')
+      @route  = '/' if @route.empty?
+      @host   = host
+      @port   = port || Integer(ENV.fetch('PORT', 3000))
+      @logger = Logging.logger("AgentBase[#{name}]")
+
+      # --- auth ---------------------------------------------------------
+      @basic_auth = if basic_auth
+                      basic_auth
+                    elsif ENV['SWML_BASIC_AUTH_USER'] && ENV['SWML_BASIC_AUTH_PASSWORD']
+                      [ENV['SWML_BASIC_AUTH_USER'], ENV['SWML_BASIC_AUTH_PASSWORD']]
+                    else
+                      [SecureRandom.uuid, SecureRandom.uuid]
+                    end
+
+      # --- call settings ------------------------------------------------
+      @auto_answer   = auto_answer
+      @record_call   = record_call
+      @record_format = record_format
+      @record_stereo = record_stereo
+
+      # --- session manager ----------------------------------------------
+      @session_manager = Security::SessionManager.new(token_expiry_secs: token_expiry_secs)
+
+      # --- prompt state -------------------------------------------------
+      @prompt_text      = nil    # raw text mode
+      @prompt_pom       = nil    # direct POM array
+      @pom_sections     = []     # built via prompt_add_section
+      @post_prompt_text = nil
+
+      # --- tools --------------------------------------------------------
+      @tools          = {}       # name => { definition + handler }
+      @swaig_functions = {}      # name => raw hash (DataMap etc.)
+
+      # --- AI config ----------------------------------------------------
+      @hints               = []
+      @languages           = []
+      @pronounce           = []
+      @params              = {}
+      @global_data         = {}
+      @native_functions    = []
+      @function_includes   = []
+      @internal_fillers    = {}
+      @prompt_llm_params   = {}
+      @post_prompt_llm_params = {}
+
+      # --- debug --------------------------------------------------------
+      @debug_events_enabled = false
+      @debug_events_level   = 1
+      @debug_event_callback = nil
+
+      # --- verbs --------------------------------------------------------
+      @pre_answer_verbs  = []    # [[verb_name, config], ...]
+      @answer_config     = {}
+      @post_answer_verbs = []
+      @post_ai_verbs     = []
+
+      # --- contexts -----------------------------------------------------
+      @context_builder   = nil
+
+      # --- skills -------------------------------------------------------
+      @skill_manager     = Skills::SkillManager.new
+      @loaded_skills     = {}    # skill_name => SkillBase
+
+      # --- web ----------------------------------------------------------
+      @dynamic_config_callback = nil
+      @proxy_url_base          = ENV['SWML_PROXY_URL_BASE']
+      @web_hook_url_override   = nil
+      @post_prompt_url_override = nil
+      @swaig_query_params      = {}
+      @debug_routes_enabled    = false
+      @summary_callback        = nil
+
+      # --- SIP ----------------------------------------------------------
+      @sip_routing_enabled = false
+      @sip_auto_map        = false
+      @sip_path            = '/sip'
+      @sip_usernames       = []
+
+      # --- MCP ----------------------------------------------------------
+      @mcp_servers         = []     # external MCP server configs
+      @mcp_server_enabled  = false  # expose /mcp endpoint
+
+      @logger.info "Agent '#{@name}' initialised (route=#{@route}, port=#{@port})"
+    end
+
+    # ==================================================================
+    # Prompt methods
+    # ==================================================================
+
+    # Set prompt as raw text. Clears any POM state.
+    def set_prompt_text(text)
+      @prompt_text  = text
+      @pom_sections = []
+      @prompt_pom   = nil
+      self
+    end
+
+    # Set post-prompt text.
+    def set_post_prompt(text)
+      @post_prompt_text = text
+      self
+    end
+
+    # Set POM array directly.
+    def set_prompt_pom(pom)
+      @prompt_pom   = pom
+      @prompt_text  = nil
+      @pom_sections = []
+      self
+    end
+
+    # Add a POM section.
+    def prompt_add_section(title, body = nil, bullets: nil)
+      @prompt_text = nil
+      @prompt_pom  = nil
+      section = { 'title' => title }
+      section['body']    = body    if body
+      section['bullets'] = bullets if bullets
+      @pom_sections << section
+      self
+    end
+
+    # Append text to an existing POM section's body.
+    def prompt_add_to_section(title, text)
+      sec = @pom_sections.find { |s| s['title'] == title }
+      if sec
+        sec['body'] = (sec['body'] || '') + text
+      end
+      self
+    end
+
+    # Add a subsection under a parent section.
+    def prompt_add_subsection(parent_title, title, body = nil, bullets: nil)
+      parent = @pom_sections.find { |s| s['title'] == parent_title }
+      if parent
+        parent['subsections'] ||= []
+        sub = { 'title' => title }
+        sub['body']    = body    if body
+        sub['bullets'] = bullets if bullets
+        parent['subsections'] << sub
+      end
+      self
+    end
+
+    # Check whether a POM section with the given title exists.
+    def prompt_has_section?(title)
+      @pom_sections.any? { |s| s['title'] == title }
+    end
+
+    # Return the current prompt: either a string (text mode) or an array (POM).
+    def get_prompt
+      return @prompt_text if @prompt_text
+      return @prompt_pom  if @prompt_pom
+      return @pom_sections.dup unless @pom_sections.empty?
+      nil
+    end
+
+    # ==================================================================
+    # Tool methods
+    # ==================================================================
+
+    # Define a tool with a block handler.
+    #
+    # @param name [String]
+    # @param description [String]
+    # @param parameters [Hash] JSON-Schema of parameters
+    # @param secure [Boolean]
+    # @param fillers [Hash, nil] language_code => [phrases]
+    # @param swaig_fields [Hash, nil] extra fields merged into definition
+    # @yield [args, raw_data] the tool handler
+    def define_tool(name:, description:, parameters: {}, secure: false,
+                    fillers: nil, swaig_fields: nil, &handler)
+      # Normalise parameters into JSON-Schema form
+      param_schema = _normalise_parameters(parameters)
+
+      tool_def = {
+        'function'    => name,
+        'description' => description,
+        'parameters'  => param_schema
+      }
+      tool_def['fillers'] = fillers if fillers && !fillers.empty?
+
+      # Merge extra swaig fields
+      if swaig_fields.is_a?(Hash)
+        swaig_fields.each { |k, v| tool_def[k.to_s] = v }
+      end
+
+      @tools[name] = {
+        definition: tool_def,
+        handler:    handler,
+        secure:     secure
+      }
+      self
+    end
+
+    # Register a raw SWAIG function definition (e.g. from DataMap#to_swaig_function).
+    def register_swaig_function(func_def)
+      fname = func_def['function'] || func_def[:function]
+      return self unless fname
+      @swaig_functions[fname] = func_def.transform_keys(&:to_s)
+      self
+    end
+
+    # Return an array of all tool definitions (for SWML rendering).
+    def define_tools
+      defs = @tools.values.map { |t| t[:definition].dup }
+      defs + @swaig_functions.values.map(&:dup)
+    end
+
+    # Dispatch a function call to the registered handler.
+    def on_function_call(name, args, raw_data)
+      tool = @tools[name]
+      unless tool
+        return { 'response' => "Function '#{name}' not found" }
+      end
+
+      # Validate secure token if needed
+      if tool[:secure]
+        call_id = raw_data && (raw_data['call_id'] || (raw_data['call'] && raw_data['call']['call_id']))
+        token   = raw_data && raw_data['meta_data_token']
+        if call_id && token
+          unless @session_manager.validate_token(name, token, call_id)
+            return { 'response' => 'Invalid or expired token' }
+          end
+        end
+      end
+
+      result = tool[:handler].call(args, raw_data)
+      if result.respond_to?(:to_h)
+        result.to_h
+      elsif result.is_a?(Hash)
+        result
+      else
+        { 'response' => result.to_s }
+      end
+    rescue => e
+      @logger.error "Tool '#{name}' error: #{e.message}"
+      { 'response' => "Error executing '#{name}': #{e.message}" }
+    end
+
+    # ==================================================================
+    # AI Config methods
+    # ==================================================================
+
+    def add_hint(hint)
+      @hints << hint if hint.is_a?(String) && !hint.empty?
+      self
+    end
+
+    def add_hints(hints)
+      if hints.is_a?(Array)
+        hints.each { |h| add_hint(h) }
+      end
+      self
+    end
+
+    def add_pattern_hint(pattern, hint: nil, language: 'en-US')
+      entry = { 'pattern' => pattern }
+      entry['hint']     = hint     if hint
+      entry['language'] = language if language
+      @hints << entry
+      self
+    end
+
+    def add_language(config)
+      @languages << config if config.is_a?(Hash)
+      self
+    end
+
+    def set_languages(languages)
+      @languages = languages.dup if languages.is_a?(Array)
+      self
+    end
+
+    def add_pronunciation(phrase, pronunciation, language_code: 'en-US')
+      rule = { 'replace' => phrase, 'with' => pronunciation }
+      rule['ignore_case'] = false
+      @pronounce << rule
+      self
+    end
+
+    def set_pronunciations(pronunciations)
+      @pronounce = pronunciations.dup if pronunciations.is_a?(Array)
+      self
+    end
+
+    def set_param(key, value)
+      @params[key.to_s] = value
+      self
+    end
+
+    def set_params(params)
+      if params.is_a?(Hash)
+        params.each { |k, v| @params[k.to_s] = v }
+      end
+      self
+    end
+
+    def set_global_data(data)
+      @global_data.merge!(data) if data.is_a?(Hash)
+      self
+    end
+
+    def update_global_data(data)
+      set_global_data(data)
+    end
+
+    def set_native_functions(names)
+      @native_functions = names.dup if names.is_a?(Array)
+      self
+    end
+
+    def set_internal_fillers(fillers)
+      @internal_fillers.merge!(fillers) if fillers.is_a?(Hash)
+      self
+    end
+
+    def add_internal_filler(func_name, lang_code, fillers)
+      if func_name && lang_code && fillers.is_a?(Array) && !fillers.empty?
+        @internal_fillers[func_name] ||= {}
+        @internal_fillers[func_name][lang_code] = fillers
+      end
+      self
+    end
+
+    def enable_debug_events(level = 1)
+      @debug_events_enabled = true
+      @debug_events_level   = level
+      self
+    end
+
+    def add_function_include(url, functions, meta_data: nil)
+      include = { 'url' => url, 'functions' => functions }
+      include['meta_data'] = meta_data if meta_data.is_a?(Hash)
+      @function_includes << include
+      self
+    end
+
+    def set_function_includes(includes)
+      @function_includes = includes.dup if includes.is_a?(Array)
+      self
+    end
+
+    def set_prompt_llm_params(**params)
+      @prompt_llm_params.merge!(params.transform_keys(&:to_s))
+      self
+    end
+
+    def set_post_prompt_llm_params(**params)
+      @post_prompt_llm_params.merge!(params.transform_keys(&:to_s))
+      self
+    end
+
+    # ==================================================================
+    # Verb management
+    # ==================================================================
+
+    def add_pre_answer_verb(verb_name, config)
+      @pre_answer_verbs << [verb_name.to_s, config]
+      self
+    end
+
+    def clear_pre_answer_verbs
+      @pre_answer_verbs = []
+      self
+    end
+
+    def add_answer_verb(config)
+      @answer_config = config
+      self
+    end
+
+    def add_post_answer_verb(verb_name, config)
+      @post_answer_verbs << [verb_name.to_s, config]
+      self
+    end
+
+    def clear_post_answer_verbs
+      @post_answer_verbs = []
+      self
+    end
+
+    def add_post_ai_verb(verb_name, config)
+      @post_ai_verbs << [verb_name.to_s, config]
+      self
+    end
+
+    def clear_post_ai_verbs
+      @post_ai_verbs = []
+      self
+    end
+
+    # ==================================================================
+    # Contexts
+    # ==================================================================
+
+    # Returns the ContextBuilder, creating one lazily.
+    def define_contexts
+      @context_builder ||= Contexts::ContextBuilder.new
+    end
+
+    alias contexts define_contexts
+
+    # ==================================================================
+    # Skill integration
+    # ==================================================================
+
+    # Load and register a skill by name.
+    def add_skill(skill_name, params = {})
+      # Ensure builtins are registered
+      Skills::SkillRegistry.register_builtins!
+
+      factory = Skills::SkillRegistry.get_factory(skill_name)
+      raise ArgumentError, "Unknown skill: '#{skill_name}'" unless factory
+
+      skill = factory.call(params)
+      @skill_manager.load(skill.instance_key, skill)
+      @loaded_skills[skill_name] = skill
+
+      # Register tools from the skill
+      tool_defs = skill.register_tools
+      if tool_defs.is_a?(Array)
+        tool_defs.each do |td|
+          td_name    = td[:name]    || td['name']
+          td_desc    = td[:description] || td['description']
+          td_params  = td[:parameters]  || td['parameters'] || {}
+          td_handler = td[:handler]     || td['handler']
+          next unless td_name && td_handler
+
+          define_tool(
+            name: td_name,
+            description: td_desc || '',
+            parameters: td_params,
+            &td_handler
+          )
+        end
+      end
+
+      # Merge hints
+      skill_hints = skill.get_hints
+      @hints.concat(skill_hints) if skill_hints.is_a?(Array) && !skill_hints.empty?
+
+      # Merge global data
+      skill_data = skill.get_global_data
+      @global_data.merge!(skill_data) if skill_data.is_a?(Hash) && !skill_data.empty?
+
+      # Merge prompt sections
+      skill_sections = skill.get_prompt_sections
+      if skill_sections.is_a?(Array) && !skill_sections.empty?
+        @prompt_text = nil  # switch to POM mode
+        @prompt_pom  = nil
+        skill_sections.each do |sec|
+          @pom_sections << sec
+        end
+      end
+
+      self
+    end
+
+    def remove_skill(skill_name)
+      skill = @loaded_skills.delete(skill_name)
+      @skill_manager.unload(skill.instance_key) if skill
+      self
+    end
+
+    def list_skills
+      @loaded_skills.keys
+    end
+
+    def has_skill?(skill_name)
+      @loaded_skills.key?(skill_name)
+    end
+
+    # ==================================================================
+    # Web / HTTP configuration
+    # ==================================================================
+
+    def set_dynamic_config_callback(callable = nil, &block)
+      @dynamic_config_callback = callable || block
+      self
+    end
+
+    def manual_set_proxy_url(url)
+      @proxy_url_base = url
+      self
+    end
+
+    def set_web_hook_url(url)
+      @web_hook_url_override = url
+      self
+    end
+
+    def set_post_prompt_url(url)
+      @post_prompt_url_override = url
+      self
+    end
+
+    def add_swaig_query_params(params)
+      @swaig_query_params.merge!(params) if params.is_a?(Hash)
+      self
+    end
+
+    def clear_swaig_query_params
+      @swaig_query_params = {}
+      self
+    end
+
+    def enable_debug_routes
+      @debug_routes_enabled = true
+      self
+    end
+
+    # ==================================================================
+    # SIP
+    # ==================================================================
+
+    def enable_sip_routing(auto_map: true, path: '/sip')
+      @sip_routing_enabled = true
+      @sip_auto_map        = auto_map
+      @sip_path            = path
+      self
+    end
+
+    def register_sip_username(username)
+      @sip_usernames << username
+      self
+    end
+
+    # Extract a SIP username from a SIP URI string.
+    #
+    # Parses URIs of the form "sip:user@domain" and returns the user part.
+    # Handles optional "sip:" or "sips:" scheme prefixes.
+    #
+    # @param sip_uri [String] a SIP URI, e.g. "sip:alice@example.com"
+    # @return [String, nil] the username, or nil if the URI cannot be parsed
+    def self.extract_sip_username(sip_uri)
+      return nil if sip_uri.nil? || sip_uri.empty?
+
+      # Strip optional sip:/sips: scheme
+      uri = sip_uri.to_s.strip
+      uri = uri.sub(%r{\Asips?:}, '')
+
+      # Extract user part before @
+      if uri.include?('@')
+        user = uri.split('@', 2).first
+        user && !user.empty? ? user : nil
+      else
+        nil
+      end
+    end
+
+    # Extract the SIP username from request body data.
+    #
+    # Looks for SIP URI in common request body fields
+    # (e.g., "to", "from", "sip_uri", "call.to", "call.from").
+    #
+    # @param request_data [Hash] the parsed request body
+    # @return [String, nil] the extracted SIP username, or nil
+    def self.extract_sip_username_from_request(request_data)
+      return nil unless request_data.is_a?(Hash)
+
+      # Check common SIP URI fields
+      candidates = [
+        request_data['to'],
+        request_data['from'],
+        request_data['sip_uri'],
+        request_data.dig('call', 'to'),
+        request_data.dig('call', 'from')
+      ].compact
+
+      candidates.each do |uri|
+        username = extract_sip_username(uri.to_s)
+        return username if username
+      end
+
+      nil
+    end
+
+    # ==================================================================
+    # MCP integration
+    # ==================================================================
+
+    # Add an external MCP server for tool discovery and invocation.
+    #
+    # @param url [String] MCP server HTTP endpoint URL
+    # @param headers [Hash, nil] optional HTTP headers
+    # @param resources [Boolean] whether to fetch resources into global_data
+    # @param resource_vars [Hash, nil] variables for URI template substitution
+    # @return [self]
+    def add_mcp_server(url, headers: nil, resources: false, resource_vars: nil)
+      server = { 'url' => url }
+      server['headers']       = headers       if headers && !headers.empty?
+      server['resources']     = true          if resources
+      server['resource_vars'] = resource_vars if resource_vars && !resource_vars.empty?
+      @mcp_servers << server
+      self
+    end
+
+    # Expose this agent's tools as an MCP server endpoint at /mcp.
+    #
+    # @return [self]
+    def enable_mcp_server
+      @mcp_server_enabled = true
+      self
+    end
+
+    # @api private
+    # Build MCP tool list from registered tools.
+    def _build_mcp_tool_list
+      tools = []
+      @tools.each do |name, tool|
+        t = {
+          'name'        => name,
+          'description' => tool[:definition]['description'] || name,
+        }
+        params = tool[:definition]['parameters']
+        if params && !params.empty?
+          t['inputSchema'] = params.key?('type') ? params : { 'type' => 'object', 'properties' => params }
+        else
+          t['inputSchema'] = { 'type' => 'object', 'properties' => {} }
+        end
+        tools << t
+      end
+      tools
+    end
+
+    # @api private
+    # Handle a single MCP JSON-RPC 2.0 request and return the response hash.
+    def _handle_mcp_request(body)
+      jsonrpc = body['jsonrpc']
+      method  = body['method'] || ''
+      req_id  = body['id']
+      params  = body['params'] || {}
+
+      unless jsonrpc == '2.0'
+        return _mcp_error(req_id, -32600, 'Invalid JSON-RPC version')
+      end
+
+      case method
+      when 'initialize'
+        {
+          'jsonrpc' => '2.0', 'id' => req_id,
+          'result' => {
+            'protocolVersion' => '2025-06-18',
+            'capabilities'   => { 'tools' => {} },
+            'serverInfo'     => { 'name' => @name, 'version' => '1.0.0' }
+          }
+        }
+      when 'notifications/initialized'
+        { 'jsonrpc' => '2.0', 'id' => req_id, 'result' => {} }
+      when 'tools/list'
+        {
+          'jsonrpc' => '2.0', 'id' => req_id,
+          'result' => { 'tools' => _build_mcp_tool_list }
+        }
+      when 'tools/call'
+        tool_name = params['name'] || ''
+        arguments = params['arguments'] || {}
+
+        tool = @tools[tool_name]
+        unless tool
+          return _mcp_error(req_id, -32602, "Unknown tool: #{tool_name}")
+        end
+
+        begin
+          raw_data = {
+            'function' => tool_name,
+            'argument' => { 'parsed' => [arguments] }
+          }
+          result = tool[:handler].call(arguments, raw_data)
+
+          response_text = ''
+          if result.respond_to?(:to_h)
+            h = result.to_h
+            response_text = h['response'] || ''
+          elsif result.is_a?(Hash)
+            response_text = result['response'] || result.to_s
+          elsif result.is_a?(String)
+            response_text = result
+          end
+
+          {
+            'jsonrpc' => '2.0', 'id' => req_id,
+            'result' => {
+              'content' => [{ 'type' => 'text', 'text' => response_text }],
+              'isError' => false
+            }
+          }
+        rescue => e
+          @logger.error "MCP tool call error: #{tool_name}: #{e.message}"
+          {
+            'jsonrpc' => '2.0', 'id' => req_id,
+            'result' => {
+              'content' => [{ 'type' => 'text', 'text' => "Error: #{e.message}" }],
+              'isError' => true
+            }
+          }
+        end
+      when 'ping'
+        { 'jsonrpc' => '2.0', 'id' => req_id, 'result' => {} }
+      else
+        _mcp_error(req_id, -32601, "Method not found: #{method}")
+      end
+    end
+
+    # @api private
+    def _mcp_error(req_id, code, message)
+      {
+        'jsonrpc' => '2.0',
+        'id'      => req_id,
+        'error'   => { 'code' => code, 'message' => message }
+      }
+    end
+
+    # ==================================================================
+    # Lifecycle
+    # ==================================================================
+
+    def on_summary(&block)
+      @summary_callback = block
+      self
+    end
+
+    def on_debug_event(&block)
+      @debug_event_callback = block
+      self
+    end
+
+    # Start the HTTP server (blocking).
+    def run
+      serve
+    end
+
+    def serve
+      require 'webrick'
+      @logger.info "Starting server on #{@host}:#{@port} ..."
+      user, _pass = @basic_auth
+      @logger.info "Basic-auth credentials — user: #{user}  password: [REDACTED]"
+
+      @server = ::WEBrick::HTTPServer.new(
+        Host: @host,
+        Port: @port,
+        Logger: WEBrick::Log.new($stderr, WEBrick::Log::WARN),
+        AccessLog: []
+      )
+
+      # Rack 3+ moved Handler to the rackup gem
+      handler = begin
+                  require 'rackup/handler/webrick'
+                  Rackup::Handler::WEBrick
+                rescue LoadError
+                  require 'rack/handler/webrick'
+                  Rack::Handler::WEBrick
+                end
+      @server.mount '/', handler, rack_app
+
+      trap('INT')  { @server.shutdown }
+      trap('TERM') { @server.shutdown }
+
+      @server.start
+    end
+
+    # Return a Rack-compatible application for mounting.
+    def rack_app
+      @rack_app ||= _build_rack_app
+    end
+
+    alias as_rack_app rack_app
+
+    # ==================================================================
+    # SWML Rendering
+    # ==================================================================
+
+    # Build the complete SWML document hash.
+    #
+    # @param request_data [Hash, nil] parsed request body
+    # @param request [Rack::Request, nil] the HTTP request
+    # @return [Hash]
+    def render_swml(request_data = nil, request: nil)
+      agent = self
+
+      # Dynamic config: clone into ephemeral copy
+      if @dynamic_config_callback
+        agent = _create_ephemeral_copy
+        begin
+          query_params = request ? _parse_query_string(request) : {}
+          body_params  = request_data || {}
+          headers      = request ? _extract_headers(request) : {}
+          @dynamic_config_callback.call(query_params, body_params, headers, agent)
+        rescue => e
+          @logger.error "Dynamic config error: #{e.message}"
+        end
+      end
+
+      agent._render_swml_internal
+    end
+
+    # @api private
+    def _render_swml_internal
+      sections_main = []
+
+      # PHASE 1: Pre-answer verbs
+      @pre_answer_verbs.each do |verb_name, config|
+        sections_main << { verb_name => config }
+      end
+
+      # PHASE 2: Answer verb
+      if @auto_answer
+        answer_conf = @answer_config.empty? ? {} : @answer_config
+        sections_main << { 'answer' => answer_conf }
+      end
+
+      # PHASE 3: Post-answer verbs
+      if @record_call
+        sections_main << {
+          'record_call' => {
+            'format' => @record_format,
+            'stereo' => @record_stereo
+          }
+        }
+      end
+      @post_answer_verbs.each do |verb_name, config|
+        sections_main << { verb_name => config }
+      end
+
+      # PHASE 4: AI verb
+      ai_config = _build_ai_config
+      sections_main << { 'ai' => ai_config }
+
+      # PHASE 5: Post-AI verbs
+      @post_ai_verbs.each do |verb_name, config|
+        sections_main << { verb_name => config }
+      end
+
+      {
+        'version'  => '1.0.0',
+        'sections' => {
+          'main' => sections_main
+        }
+      }
+    end
+
+    # Returns [username, password]
+    def get_basic_auth_credentials
+      @basic_auth.dup
+    end
+
+    # ==================================================================
+    # Private helpers
+    # ==================================================================
+
+    private
+
+    # Build the AI verb configuration hash.
+    def _build_ai_config
+      ai = {}
+
+      # --- prompt -------------------------------------------------------
+      prompt = get_prompt
+      if prompt.is_a?(Array) && !prompt.empty?
+        prompt_obj = { 'pom' => prompt }
+        prompt_obj.merge!(@prompt_llm_params) unless @prompt_llm_params.empty?
+        ai['prompt'] = prompt_obj
+      elsif prompt.is_a?(String) && !prompt.empty?
+        prompt_obj = { 'text' => prompt }
+        prompt_obj.merge!(@prompt_llm_params) unless @prompt_llm_params.empty?
+        ai['prompt'] = prompt_obj
+      end
+
+      # --- post-prompt --------------------------------------------------
+      if @post_prompt_text && !@post_prompt_text.empty?
+        pp_obj = { 'text' => @post_prompt_text }
+        pp_obj.merge!(@post_prompt_llm_params) unless @post_prompt_llm_params.empty?
+        ai['post_prompt'] = pp_obj
+
+        # post_prompt_url
+        if @post_prompt_url_override
+          ai['post_prompt_url'] = @post_prompt_url_override
+        else
+          ai['post_prompt_url'] = _build_webhook_url('post_prompt')
+        end
+      end
+
+      # --- SWAIG --------------------------------------------------------
+      swaig = {}
+
+      # default webhook url
+      default_url = @web_hook_url_override || _build_webhook_url('swaig', @swaig_query_params.empty? ? nil : @swaig_query_params)
+      swaig['defaults'] = { 'web_hook_url' => default_url }
+
+      # functions
+      functions = _build_functions_array
+      swaig['functions'] = functions unless functions.empty?
+
+      # native functions
+      swaig['native_functions'] = @native_functions unless @native_functions.empty?
+
+      # includes
+      swaig['includes'] = @function_includes unless @function_includes.empty?
+
+      # internal_fillers
+      swaig['internal_fillers'] = @internal_fillers unless @internal_fillers.empty?
+
+      ai['SWAIG'] = swaig unless swaig.keys == ['defaults']  && functions.empty?
+
+      # --- hints --------------------------------------------------------
+      ai['hints'] = @hints.dup unless @hints.empty?
+
+      # --- languages ----------------------------------------------------
+      ai['languages'] = @languages.dup unless @languages.empty?
+
+      # --- pronunciations -----------------------------------------------
+      ai['pronounce'] = @pronounce.dup unless @pronounce.empty?
+
+      # --- params -------------------------------------------------------
+      merged_params = @params.dup
+      if @debug_events_enabled
+        merged_params['debug_webhook_url']   = _build_webhook_url('debug_events')
+        merged_params['debug_webhook_level'] = @debug_events_level
+      end
+      ai['params'] = merged_params unless merged_params.empty?
+
+      # --- global_data --------------------------------------------------
+      ai['global_data'] = @global_data.dup unless @global_data.empty?
+
+      # --- contexts -----------------------------------------------------
+      if @context_builder
+        begin
+          ai['contexts'] = @context_builder.to_h
+        rescue ArgumentError
+          # invalid context config — skip silently
+        end
+      end
+
+      # --- MCP servers ---------------------------------------------------
+      ai['mcp_servers'] = @mcp_servers.map(&:dup) unless @mcp_servers.empty?
+
+      ai
+    end
+
+    # Build the functions array for the SWAIG section.
+    def _build_functions_array
+      functions = []
+
+      @tools.each do |name, tool|
+        func_entry = tool[:definition].dup
+        # Add per-function webhook URL if it has a token or query params
+        if tool[:secure] || !@swaig_query_params.empty?
+          qp = @swaig_query_params.dup
+          if tool[:secure]
+            # Note: token is generated per-call; in render we can't know call_id yet,
+            # so secure tools get per-function URLs at request time.
+            # For now, the default webhook URL handles dispatch.
+          end
+          func_entry['web_hook_url'] = _build_webhook_url('swaig', qp) unless qp.empty?
+        end
+        functions << func_entry
+      end
+
+      @swaig_functions.each do |_name, func_def|
+        functions << func_def.dup
+      end
+
+      functions
+    end
+
+    # Build a webhook URL with optional query params.
+    def _build_webhook_url(endpoint, query_params = nil)
+      base = _base_url
+      path = @route == '/' ? "/#{endpoint}" : "#{@route}/#{endpoint}"
+
+      url = "#{base}#{path}"
+
+      if query_params && !query_params.empty?
+        qs = URI.encode_www_form(query_params)
+        url = "#{url}?#{qs}"
+      end
+
+      url
+    end
+
+    # Compute the base URL (with auth embedded).
+    def _base_url
+      return @proxy_url_base if @proxy_url_base && !@proxy_url_base.empty?
+
+      user, pass = @basic_auth
+      "http://#{user}:#{pass}@#{@host}:#{@port}"
+    end
+
+    # Normalise tool parameters into JSON-Schema form.
+    def _normalise_parameters(params)
+      return params if params.is_a?(Hash) && params['type'] == 'object'
+      return { 'type' => 'object', 'properties' => {} } if params.nil? || params.empty?
+
+      # If the hash looks like {name => {type, description}}, wrap it.
+      if params.is_a?(Hash) && !params.key?('type')
+        { 'type' => 'object', 'properties' => params.transform_keys(&:to_s) }
+      else
+        params
+      end
+    end
+
+    # Create an ephemeral deep copy for dynamic config.
+    def _create_ephemeral_copy
+      copy = dup
+      # Deep-copy mutable collections
+      copy.instance_variable_set(:@pom_sections,         @pom_sections.map(&:dup))
+      copy.instance_variable_set(:@tools,                @tools.transform_values(&:dup))
+      copy.instance_variable_set(:@swaig_functions,      @swaig_functions.transform_values(&:dup))
+      copy.instance_variable_set(:@hints,                @hints.dup)
+      copy.instance_variable_set(:@languages,            @languages.map { |l| l.dup })
+      copy.instance_variable_set(:@pronounce,            @pronounce.map { |p| p.dup })
+      copy.instance_variable_set(:@params,               @params.dup)
+      copy.instance_variable_set(:@global_data,          @global_data.dup)
+      copy.instance_variable_set(:@native_functions,     @native_functions.dup)
+      copy.instance_variable_set(:@function_includes,    @function_includes.map { |i| i.dup })
+      copy.instance_variable_set(:@internal_fillers,     _deep_dup_hash(@internal_fillers))
+      copy.instance_variable_set(:@prompt_llm_params,    @prompt_llm_params.dup)
+      copy.instance_variable_set(:@post_prompt_llm_params, @post_prompt_llm_params.dup)
+      copy.instance_variable_set(:@pre_answer_verbs,     @pre_answer_verbs.map(&:dup))
+      copy.instance_variable_set(:@post_answer_verbs,    @post_answer_verbs.map(&:dup))
+      copy.instance_variable_set(:@post_ai_verbs,        @post_ai_verbs.map(&:dup))
+      copy.instance_variable_set(:@answer_config,        @answer_config.dup)
+      copy.instance_variable_set(:@swaig_query_params,   @swaig_query_params.dup)
+      copy.instance_variable_set(:@loaded_skills,        @loaded_skills.dup)
+      copy.instance_variable_set(:@mcp_servers,          @mcp_servers.map(&:dup))
+      copy.instance_variable_set(:@mcp_server_enabled,   @mcp_server_enabled)
+      # Don't copy the dynamic config callback to prevent infinite recursion
+      copy.instance_variable_set(:@dynamic_config_callback, nil)
+      copy
+    end
+
+    # Deep-dup a hash of hashes
+    def _deep_dup_hash(hash)
+      hash.each_with_object({}) do |(k, v), result|
+        result[k] = v.is_a?(Hash) ? v.dup : v
+      end
+    end
+
+    # Parse query string from Rack request
+    def _parse_query_string(request)
+      return {} unless request.respond_to?(:env)
+
+      qs = request.env['QUERY_STRING'] || ''
+      URI.decode_www_form(qs).to_h
+    rescue
+      {}
+    end
+
+    # Extract headers from Rack request
+    def _extract_headers(request)
+      return {} unless request.respond_to?(:env)
+
+      request.env.select { |k, _| k.start_with?('HTTP_') }
+             .transform_keys { |k| k.sub('HTTP_', '').downcase.tr('_', '-') }
+    rescue
+      {}
+    end
+
+    # ==================================================================
+    # Rack app
+    # ==================================================================
+
+    def _build_rack_app
+      agent = self
+      main_route = @route
+
+      Rack::Builder.new do
+        # --- public endpoints (no auth) --------------------------------
+        map '/health' do
+          run ->(_env) {
+            body = JSON.generate({ status: 'healthy' })
+            [200, { 'content-type' => 'application/json' }, [body]]
+          }
+        end
+
+        map '/ready' do
+          run ->(_env) {
+            body = JSON.generate({ status: 'ready' })
+            [200, { 'content-type' => 'application/json' }, [body]]
+          }
+        end
+
+        # --- authenticated endpoints -----------------------------------
+        map main_route do
+          use AgentSecurityHeadersMiddleware
+          use AgentBodyLimitMiddleware, AgentBase::MAX_BODY_SIZE
+          use AgentTimingSafeBasicAuth, agent
+
+          run ->(env) {
+            request  = Rack::Request.new(env)
+            sub_path = env['PATH_INFO'] || '/'
+            sub_path = '/' if sub_path.empty?
+
+            request_data = nil
+            if request.post? || request.put?
+              body = request.body.read
+              request_data = JSON.parse(body) rescue nil
+            end
+
+            case sub_path
+            when '/swaig'
+              agent._handle_swaig(request_data, env)
+            when '/post_prompt'
+              agent._handle_post_prompt(request_data, env)
+            when '/debug_events'
+              agent._handle_debug_events(request_data, env)
+            when '/mcp'
+              agent._handle_mcp_endpoint(request_data, env)
+            else
+              # SWML endpoint
+              swml = agent.render_swml(request_data, request: request)
+              body = JSON.generate(swml)
+              [200, { 'content-type' => 'application/json' }, [body]]
+            end
+          }
+        end
+      end
+    end
+
+    # These methods must be accessible from the Rack lambda
+    public
+
+    # Handle SWAIG function dispatch.
+    # @api private
+    def _handle_swaig(request_data, _env)
+      unless request_data
+        body = JSON.generate({ 'response' => 'No request data' })
+        return [400, { 'content-type' => 'application/json' }, [body]]
+      end
+
+      func_name = request_data['function']
+      unless func_name
+        body = JSON.generate({ 'response' => 'No function specified' })
+        return [400, { 'content-type' => 'application/json' }, [body]]
+      end
+
+      # Extract args from argument.parsed[0]
+      args = {}
+      if request_data['argument'].is_a?(Hash)
+        parsed = request_data['argument']['parsed']
+        args = parsed.first if parsed.is_a?(Array) && !parsed.empty?
+      end
+      args ||= {}
+
+      result = on_function_call(func_name, args, request_data)
+      body = JSON.generate(result)
+      [200, { 'content-type' => 'application/json' }, [body]]
+    end
+
+    # Handle post_prompt callback.
+    # @api private
+    def _handle_post_prompt(request_data, _env)
+      if @summary_callback && request_data
+        begin
+          post_prompt_data = request_data['post_prompt_data']
+          summary = nil
+          if post_prompt_data.is_a?(Hash)
+            summary = post_prompt_data['parsed'] || post_prompt_data['raw']
+          end
+          @summary_callback.call(summary, request_data)
+        rescue => e
+          @logger.error "Post-prompt callback error: #{e.message}"
+        end
+      end
+
+      body = JSON.generate({ 'status' => 'ok' })
+      [200, { 'content-type' => 'application/json' }, [body]]
+    end
+
+    # Handle debug events.
+    # @api private
+    def _handle_debug_events(request_data, _env)
+      if @debug_event_callback && request_data
+        begin
+          event_type = request_data['event_type'] || 'unknown'
+          @debug_event_callback.call(event_type, request_data)
+        rescue => e
+          @logger.error "Debug event callback error: #{e.message}"
+        end
+      end
+
+      body = JSON.generate({ 'status' => 'ok' })
+      [200, { 'content-type' => 'application/json' }, [body]]
+    end
+
+    # Handle MCP JSON-RPC 2.0 endpoint.
+    # @api private
+    def _handle_mcp_endpoint(request_data, _env)
+      unless @mcp_server_enabled
+        body = JSON.generate({ 'error' => 'MCP server not enabled' })
+        return [404, { 'content-type' => 'application/json' }, [body]]
+      end
+
+      unless request_data
+        body = JSON.generate(_mcp_error(nil, -32700, 'Parse error'))
+        return [400, { 'content-type' => 'application/json' }, [body]]
+      end
+
+      resp = _handle_mcp_request(request_data)
+      body = JSON.generate(resp)
+      [200, { 'content-type' => 'application/json' }, [body]]
+    end
+
+    private
+
+    # ==================================================================
+    # Rack Middleware
+    # ==================================================================
+
+    class AgentSecurityHeadersMiddleware
+      HEADERS = {
+        'x-content-type-options' => 'nosniff',
+        'x-frame-options'        => 'DENY',
+        'cache-control'          => 'no-store, no-cache, must-revalidate'
+      }.freeze
+
+      def initialize(app)
+        @app = app
+      end
+
+      def call(env)
+        status, headers, body = @app.call(env)
+        HEADERS.each { |k, v| headers[k] = v }
+        [status, headers, body]
+      end
+    end
+
+    class AgentBodyLimitMiddleware
+      def initialize(app, max_size)
+        @app      = app
+        @max_size = max_size
+      end
+
+      def call(env)
+        if env['CONTENT_LENGTH'] && env['CONTENT_LENGTH'].to_i > @max_size
+          body = JSON.generate({ 'error' => 'Request body too large' })
+          return [413, { 'content-type' => 'application/json' }, [body]]
+        end
+        @app.call(env)
+      end
+    end
+
+    class AgentTimingSafeBasicAuth
+      def initialize(app, agent)
+        @app   = app
+        @agent = agent
+      end
+
+      def call(env)
+        auth = Rack::Auth::Basic::Request.new(env)
+        unless auth.provided? && auth.basic?
+          return _unauthorized
+        end
+
+        user, pass = @agent.get_basic_auth_credentials
+        input_user, input_pass = auth.credentials
+
+        user_ok = Rack::Utils.secure_compare(user.to_s, input_user.to_s)
+        pass_ok = Rack::Utils.secure_compare(pass.to_s, input_pass.to_s)
+
+        if user_ok && pass_ok
+          @app.call(env)
+        else
+          _unauthorized
+        end
+      end
+
+      private
+
+      def _unauthorized
+        [
+          401,
+          {
+            'content-type'     => 'text/plain',
+            'www-authenticate' => 'Basic realm="SignalWire Agent"'
+          },
+          ['Unauthorized']
+        ]
+      end
+    end
+  end
+end

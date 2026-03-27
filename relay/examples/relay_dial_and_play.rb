@@ -9,12 +9,12 @@
 #   RELAY_FROM_NUMBER   - a number on your SignalWire project
 #   RELAY_TO_NUMBER     - destination to call
 
-require 'signalwire_agents'
+require 'signalwire'
 
 from_number = ENV.fetch('RELAY_FROM_NUMBER')
 to_number   = ENV.fetch('RELAY_TO_NUMBER')
 
-client = SignalWireAgents::Relay::Client.new
+client = SignalWire::Relay::Client.new
 
 # Dial the number
 devices = [[{ 'type' => 'phone', 'params' => { 'to_number' => to_number, 'from_number' => from_number } }]]
@@ -22,7 +22,7 @@ devices = [[{ 'type' => 'phone', 'params' => { 'to_number' => to_number, 'from_n
 begin
   call = client.dial(devices, timeout: 30)
   puts "Call answered -- call_id: #{call.call_id}"
-rescue SignalWireAgents::Relay::RelayError => e
+rescue SignalWire::Relay::RelayError => e
   puts "Dial failed: #{e.message}"
   exit 1
 end

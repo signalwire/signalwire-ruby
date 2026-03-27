@@ -5,9 +5,9 @@
 # This is the simplest possible agent -- it defines a prompt, registers
 # a couple of tools, adds speech recognition hints, and serves over HTTP.
 
-require 'signalwire_agents'
+require 'signalwire'
 
-agent = SignalWireAgents::AgentBase.new(name: 'weather_agent', route: '/')
+agent = SignalWire::AgentBase.new(name: 'weather_agent', route: '/')
 
 # --- Prompt (using POM sections) ---
 
@@ -38,7 +38,7 @@ agent.define_tool(
 ) do |args, _raw_data|
   city = args['city'] || 'unknown'
   # In production, call a real weather API here
-  SignalWireAgents::Swaig::FunctionResult.new(
+  SignalWire::Swaig::FunctionResult.new(
     "The weather in #{city} is 72F (22C), partly cloudy with a light breeze."
   )
 end
@@ -51,7 +51,7 @@ agent.define_tool(
   }
 ) do |args, _raw_data|
   city = args['city'] || 'unknown'
-  SignalWireAgents::Swaig::FunctionResult.new(
+  SignalWire::Swaig::FunctionResult.new(
     "3-day forecast for #{city}: Today 72F partly cloudy, " \
     'Tomorrow 68F rain likely, Day after 75F sunny.'
   )

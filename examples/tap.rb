@@ -5,13 +5,13 @@
 # Demonstrates starting and stopping tap streams over WebSocket and
 # RTP for monitoring, analytics, and compliance.
 
-require 'signalwire_agents'
+require 'signalwire'
 require 'json'
 
 # --- WebSocket tap ---
 
 puts '=== Basic WebSocket Tap ==='
-ws_tap = SignalWireAgents::Swaig::FunctionResult.new('Starting call monitoring')
+ws_tap = SignalWire::Swaig::FunctionResult.new('Starting call monitoring')
   .tap('wss://monitoring.company.com/audio-stream')
   .say('Call monitoring is now active')
 puts JSON.pretty_generate(ws_tap.to_h)
@@ -20,7 +20,7 @@ puts
 # --- RTP tap ---
 
 puts '=== Basic RTP Tap ==='
-rtp_tap = SignalWireAgents::Swaig::FunctionResult.new('Starting RTP monitoring')
+rtp_tap = SignalWire::Swaig::FunctionResult.new('Starting RTP monitoring')
   .tap('rtp://192.168.1.100:5004')
   .update_global_data('rtp_monitoring' => true)
 puts JSON.pretty_generate(rtp_tap.to_h)
@@ -29,7 +29,7 @@ puts
 # --- Advanced compliance monitoring ---
 
 puts '=== Compliance Monitoring ==='
-compliance = SignalWireAgents::Swaig::FunctionResult.new('Setting up compliance monitoring')
+compliance = SignalWire::Swaig::FunctionResult.new('Setting up compliance monitoring')
   .tap(
     'wss://compliance.company.com/secure-stream',
     control_id: 'compliance_tap_001',
@@ -49,7 +49,7 @@ puts
 # --- Stop specific tap ---
 
 puts '=== Stop Tap ==='
-stop = SignalWireAgents::Swaig::FunctionResult.new('Ending compliance monitoring')
+stop = SignalWire::Swaig::FunctionResult.new('Ending compliance monitoring')
   .stop_tap(control_id: 'compliance_tap_001')
   .update_global_data('compliance_session' => false)
   .say('Compliance monitoring has been deactivated')
@@ -59,7 +59,7 @@ puts
 # --- Multi-tap management ---
 
 puts '=== Multi-Tap ==='
-multi = SignalWireAgents::Swaig::FunctionResult.new('Initialising multi-stream monitoring')
+multi = SignalWire::Swaig::FunctionResult.new('Initialising multi-stream monitoring')
   .tap('wss://compliance.company.com/stream', control_id: 'compliance_stream', direction: 'both')
   .tap('rtp://analytics.company.com:5006',    control_id: 'analytics_stream',  codec: 'PCMA')
   .tap('wss://quality.company.com/monitoring', control_id: 'quality_stream',    direction: 'speak')

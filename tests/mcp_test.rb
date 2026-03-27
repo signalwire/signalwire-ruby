@@ -6,14 +6,14 @@ require 'json'
 # Suppress logging during tests
 ENV['SIGNALWIRE_LOG_MODE'] = 'off'
 
-require_relative '../lib/signalwire_agents'
+require_relative '../lib/signalwire'
 
 # ===========================================================================
 # Helper
 # ===========================================================================
 
 def make_mcp_agent
-  agent = SignalWireAgents::AgentBase.new(name: 'test-mcp', route: '/test')
+  agent = SignalWire::AgentBase.new(name: 'test-mcp', route: '/test')
   agent.enable_mcp_server
 
   agent.define_tool(
@@ -24,7 +24,7 @@ def make_mcp_agent
     }
   ) do |args, _raw|
     loc = args['location'] || 'unknown'
-    SignalWireAgents::Swaig::FunctionResult.new("72F sunny in #{loc}")
+    SignalWire::Swaig::FunctionResult.new("72F sunny in #{loc}")
   end
 
   agent
@@ -182,7 +182,7 @@ end
 
 class MCPAddServerBasicTest < Minitest::Test
   def test_add_mcp_server_basic
-    agent = SignalWireAgents::AgentBase.new(name: 'test', route: '/test')
+    agent = SignalWire::AgentBase.new(name: 'test', route: '/test')
     agent.add_mcp_server('https://mcp.example.com/tools')
 
     servers = agent.instance_variable_get(:@mcp_servers)
@@ -193,7 +193,7 @@ end
 
 class MCPAddServerHeadersTest < Minitest::Test
   def test_add_mcp_server_with_headers
-    agent = SignalWireAgents::AgentBase.new(name: 'test', route: '/test')
+    agent = SignalWire::AgentBase.new(name: 'test', route: '/test')
     agent.add_mcp_server(
       'https://mcp.example.com/tools',
       headers: { 'Authorization' => 'Bearer sk-xxx' }
@@ -206,7 +206,7 @@ end
 
 class MCPAddServerResourcesTest < Minitest::Test
   def test_add_mcp_server_with_resources
-    agent = SignalWireAgents::AgentBase.new(name: 'test', route: '/test')
+    agent = SignalWire::AgentBase.new(name: 'test', route: '/test')
     agent.add_mcp_server(
       'https://mcp.example.com/crm',
       resources: true,
@@ -221,7 +221,7 @@ end
 
 class MCPAddMultipleServersTest < Minitest::Test
   def test_add_multiple_servers
-    agent = SignalWireAgents::AgentBase.new(name: 'test', route: '/test')
+    agent = SignalWire::AgentBase.new(name: 'test', route: '/test')
     agent.add_mcp_server('https://mcp1.example.com')
     agent.add_mcp_server('https://mcp2.example.com')
 
@@ -232,7 +232,7 @@ end
 
 class MCPMethodChainingTest < Minitest::Test
   def test_method_chaining
-    agent = SignalWireAgents::AgentBase.new(name: 'test', route: '/test')
+    agent = SignalWire::AgentBase.new(name: 'test', route: '/test')
     result = agent.add_mcp_server('https://mcp.example.com')
     assert_same agent, result
   end
@@ -240,7 +240,7 @@ end
 
 class MCPEnableServerTest < Minitest::Test
   def test_enable_mcp_server
-    agent = SignalWireAgents::AgentBase.new(name: 'test', route: '/test')
+    agent = SignalWire::AgentBase.new(name: 'test', route: '/test')
     assert_equal false, agent.instance_variable_get(:@mcp_server_enabled)
 
     result = agent.enable_mcp_server
@@ -251,7 +251,7 @@ end
 
 class MCPServersInSwmlTest < Minitest::Test
   def test_mcp_servers_in_swml
-    agent = SignalWireAgents::AgentBase.new(name: 'test', route: '/test')
+    agent = SignalWire::AgentBase.new(name: 'test', route: '/test')
     agent.add_mcp_server(
       'https://mcp.example.com/tools',
       headers: { 'Authorization' => 'Bearer key' }

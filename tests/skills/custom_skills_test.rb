@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
-require_relative '../../lib/signalwire_agents/swaig/function_result'
-require_relative '../../lib/signalwire_agents/skills/skill_base'
-require_relative '../../lib/signalwire_agents/skills/skill_registry'
-require_relative '../../lib/signalwire_agents/skills/builtin/custom_skills'
+require_relative '../../lib/signalwire/swaig/function_result'
+require_relative '../../lib/signalwire/skills/skill_base'
+require_relative '../../lib/signalwire/skills/skill_registry'
+require_relative '../../lib/signalwire/skills/builtin/custom_skills'
 
 class CustomSkillsDetailedTest < Minitest::Test
   def test_setup_and_register
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('custom_skills')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('custom_skills')
     skill = factory.call({
       'tools' => [
         { 'name' => 'my_tool', 'description' => 'Does something', 'response' => 'Done!' }
@@ -24,13 +24,13 @@ class CustomSkillsDetailedTest < Minitest::Test
   end
 
   def test_setup_fails_without_tools
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('custom_skills')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('custom_skills')
     skill = factory.call({})
     refute skill.setup
   end
 
   def test_multiple_tools
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('custom_skills')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('custom_skills')
     skill = factory.call({
       'tools' => [
         { 'name' => 'tool_a', 'description' => 'A' },
@@ -43,13 +43,13 @@ class CustomSkillsDetailedTest < Minitest::Test
   end
 
   def test_supports_multiple_instances
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('custom_skills')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('custom_skills')
     skill = factory.call({})
     assert skill.supports_multiple_instances?
   end
 
   def test_default_response
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('custom_skills')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('custom_skills')
     skill = factory.call({
       'tools' => [{ 'name' => 'no_response_tool', 'description' => 'Test' }]
     })

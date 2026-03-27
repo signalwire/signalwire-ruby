@@ -5,7 +5,7 @@
 # Demonstrates a call-routing receptionist with department transfers,
 # custom greeting, and caller info collection.
 
-require 'signalwire_agents'
+require 'signalwire'
 
 departments = [
   { 'name' => 'sales',   'description' => 'Product inquiries and pricing',     'number' => '+15551235555' },
@@ -14,14 +14,14 @@ departments = [
   { 'name' => 'general', 'description' => 'All other inquiries',              'number' => '+15551238888' }
 ]
 
-receptionist = SignalWireAgents::Prefabs::Receptionist.new(
+receptionist = SignalWire::Prefabs::Receptionist.new(
   departments: departments,
   name:        'acme-receptionist',
   route:       '/reception',
   greeting:    'Hello, thank you for calling ACME Corporation. How may I direct your call today?'
 )
 
-agent = SignalWireAgents::AgentBase.new(name: receptionist.name, route: receptionist.route)
+agent = SignalWire::AgentBase.new(name: receptionist.name, route: receptionist.route)
 
 # Apply prompt sections
 receptionist.prompt_sections.each do |section|

@@ -1,23 +1,23 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
-require_relative '../lib/signalwire_agents/rest/signalwire_client'
+require_relative '../lib/signalwire/rest/rest_client'
 
 class RestHttpClientTest < Minitest::Test
   def test_http_client_url_construction
-    client = SignalWireAgents::REST::HttpClient.new('proj-123', 'tok-abc', 'myspace.signalwire.com')
+    client = SignalWire::REST::HttpClient.new('proj-123', 'tok-abc', 'myspace.signalwire.com')
     assert_equal 'https://myspace.signalwire.com', client.base_url
   end
 
   def test_http_client_with_short_space
-    client = SignalWireAgents::REST::HttpClient.new('proj-123', 'tok-abc', 'myspace')
+    client = SignalWire::REST::HttpClient.new('proj-123', 'tok-abc', 'myspace')
     assert_equal 'https://myspace.signalwire.com', client.base_url
   end
 end
 
 class RestSignalWireRestErrorTest < Minitest::Test
   def test_error_formatting
-    err = SignalWireAgents::REST::SignalWireRestError.new(404, 'Not Found', '/api/test', 'GET')
+    err = SignalWire::REST::SignalWireRestError.new(404, 'Not Found', '/api/test', 'GET')
     assert_equal 404, err.status_code
     assert_equal 'Not Found', err.body
     assert_equal '/api/test', err.url
@@ -29,15 +29,15 @@ class RestSignalWireRestErrorTest < Minitest::Test
   end
 
   def test_error_default_method
-    err = SignalWireAgents::REST::SignalWireRestError.new(500, 'Error', '/api/fail')
+    err = SignalWire::REST::SignalWireRestError.new(500, 'Error', '/api/fail')
     assert_equal 'GET', err.method_name
   end
 end
 
 class RestBaseResourceTest < Minitest::Test
   def test_base_resource_path_construction
-    http = SignalWireAgents::REST::HttpClient.new('proj', 'tok', 'test.signalwire.com')
-    resource = SignalWireAgents::REST::BaseResource.new(http, '/api/test')
+    http = SignalWire::REST::HttpClient.new('proj', 'tok', 'test.signalwire.com')
+    resource = SignalWire::REST::BaseResource.new(http, '/api/test')
     # Use send to test private method
     assert_equal '/api/test/abc/def', resource.send(:_path, 'abc', 'def')
     assert_equal '/api/test/123', resource.send(:_path, 123)
@@ -46,24 +46,24 @@ end
 
 class RestCrudResourceTest < Minitest::Test
   def test_crud_resource_default_update_method
-    assert_equal 'PATCH', SignalWireAgents::REST::CrudResource.update_method
+    assert_equal 'PATCH', SignalWire::REST::CrudResource.update_method
   end
 
   def test_crud_resource_custom_update_method
     # PhoneNumbersResource uses PUT
-    klass = SignalWireAgents::REST::Namespaces::PhoneNumbersResource
+    klass = SignalWire::REST::Namespaces::PhoneNumbersResource
     assert_equal 'PUT', klass.update_method
   end
 end
 
-class RestSignalWireClientTest < Minitest::Test
+class RestRestClientTest < Minitest::Test
   def test_client_creation_with_explicit_params
-    client = SignalWireAgents::REST::SignalWireClient.new(
+    client = SignalWire::REST::RestClient.new(
       project: 'proj-123',
       token: 'tok-abc',
       host: 'myspace.signalwire.com'
     )
-    assert_instance_of SignalWireAgents::REST::SignalWireClient, client
+    assert_instance_of SignalWire::REST::RestClient, client
   end
 
   def test_client_requires_all_params
@@ -73,11 +73,11 @@ class RestSignalWireClientTest < Minitest::Test
 
     begin
       assert_raises(ArgumentError) do
-        SignalWireAgents::REST::SignalWireClient.new
+        SignalWire::REST::RestClient.new
       end
 
       assert_raises(ArgumentError) do
-        SignalWireAgents::REST::SignalWireClient.new(project: 'proj', token: 'tok')
+        SignalWire::REST::RestClient.new(project: 'proj', token: 'tok')
       end
     ensure
       ENV['SIGNALWIRE_PROJECT_ID'] = old_project if old_project
@@ -92,8 +92,8 @@ class RestSignalWireClientTest < Minitest::Test
     ENV['SIGNALWIRE_SPACE'] = 'env-space.signalwire.com'
 
     begin
-      client = SignalWireAgents::REST::SignalWireClient.new
-      assert_instance_of SignalWireAgents::REST::SignalWireClient, client
+      client = SignalWire::REST::RestClient.new
+      assert_instance_of SignalWire::REST::RestClient, client
     ensure
       ENV.delete('SIGNALWIRE_PROJECT_ID')
       ENV.delete('SIGNALWIRE_API_TOKEN')
@@ -102,7 +102,7 @@ class RestSignalWireClientTest < Minitest::Test
   end
 
   def test_all_21_namespaces_non_nil
-    client = SignalWireAgents::REST::SignalWireClient.new(
+    client = SignalWire::REST::RestClient.new(
       project: 'proj', token: 'tok', host: 'test.signalwire.com'
     )
 
@@ -130,7 +130,7 @@ class RestSignalWireClientTest < Minitest::Test
   end
 
   def test_fabric_sub_resources
-    client = SignalWireAgents::REST::SignalWireClient.new(
+    client = SignalWire::REST::RestClient.new(
       project: 'proj', token: 'tok', host: 'test.signalwire.com'
     )
 
@@ -154,7 +154,7 @@ class RestSignalWireClientTest < Minitest::Test
   end
 
   def test_video_sub_resources
-    client = SignalWireAgents::REST::SignalWireClient.new(
+    client = SignalWire::REST::RestClient.new(
       project: 'proj', token: 'tok', host: 'test.signalwire.com'
     )
 
@@ -169,7 +169,7 @@ class RestSignalWireClientTest < Minitest::Test
   end
 
   def test_compat_sub_resources
-    client = SignalWireAgents::REST::SignalWireClient.new(
+    client = SignalWire::REST::RestClient.new(
       project: 'proj', token: 'tok', host: 'test.signalwire.com'
     )
 
@@ -189,7 +189,7 @@ class RestSignalWireClientTest < Minitest::Test
   end
 
   def test_registry_sub_resources
-    client = SignalWireAgents::REST::SignalWireClient.new(
+    client = SignalWire::REST::RestClient.new(
       project: 'proj', token: 'tok', host: 'test.signalwire.com'
     )
 
@@ -201,7 +201,7 @@ class RestSignalWireClientTest < Minitest::Test
   end
 
   def test_logs_sub_resources
-    client = SignalWireAgents::REST::SignalWireClient.new(
+    client = SignalWire::REST::RestClient.new(
       project: 'proj', token: 'tok', host: 'test.signalwire.com'
     )
 
@@ -213,7 +213,7 @@ class RestSignalWireClientTest < Minitest::Test
   end
 
   def test_datasphere_sub_resources
-    client = SignalWireAgents::REST::SignalWireClient.new(
+    client = SignalWire::REST::RestClient.new(
       project: 'proj', token: 'tok', host: 'test.signalwire.com'
     )
 
@@ -222,7 +222,7 @@ class RestSignalWireClientTest < Minitest::Test
   end
 
   def test_project_sub_resources
-    client = SignalWireAgents::REST::SignalWireClient.new(
+    client = SignalWire::REST::RestClient.new(
       project: 'proj', token: 'tok', host: 'test.signalwire.com'
     )
 
@@ -233,91 +233,91 @@ end
 
 class RestNamespacePathsTest < Minitest::Test
   def setup
-    @http = SignalWireAgents::REST::HttpClient.new('proj', 'tok', 'test.signalwire.com')
+    @http = SignalWire::REST::HttpClient.new('proj', 'tok', 'test.signalwire.com')
   end
 
   def test_phone_numbers_path
-    resource = SignalWireAgents::REST::Namespaces::PhoneNumbersResource.new(@http)
+    resource = SignalWire::REST::Namespaces::PhoneNumbersResource.new(@http)
     # Verify path construction via send
     assert_equal '/api/relay/rest/phone_numbers/search', resource.send(:_path, 'search')
   end
 
   def test_addresses_path
-    resource = SignalWireAgents::REST::Namespaces::AddressesResource.new(@http)
+    resource = SignalWire::REST::Namespaces::AddressesResource.new(@http)
     assert_equal '/api/relay/rest/addresses/abc', resource.send(:_path, 'abc')
   end
 
   def test_queues_path
-    resource = SignalWireAgents::REST::Namespaces::QueuesResource.new(@http)
+    resource = SignalWire::REST::Namespaces::QueuesResource.new(@http)
     assert_equal '/api/relay/rest/queues/q1/members', resource.send(:_path, 'q1', 'members')
   end
 
   def test_recordings_path
-    resource = SignalWireAgents::REST::Namespaces::RecordingsResource.new(@http)
+    resource = SignalWire::REST::Namespaces::RecordingsResource.new(@http)
     assert_equal '/api/relay/rest/recordings/r1', resource.send(:_path, 'r1')
   end
 
   def test_number_groups_path
-    resource = SignalWireAgents::REST::Namespaces::NumberGroupsResource.new(@http)
+    resource = SignalWire::REST::Namespaces::NumberGroupsResource.new(@http)
     assert_equal '/api/relay/rest/number_groups/g1/number_group_memberships',
                  resource.send(:_path, 'g1', 'number_group_memberships')
   end
 
   def test_verified_callers_path
-    resource = SignalWireAgents::REST::Namespaces::VerifiedCallersResource.new(@http)
+    resource = SignalWire::REST::Namespaces::VerifiedCallersResource.new(@http)
     assert_equal '/api/relay/rest/verified_caller_ids/vc1/verification',
                  resource.send(:_path, 'vc1', 'verification')
   end
 
   def test_sip_profile_path
-    resource = SignalWireAgents::REST::Namespaces::SipProfileResource.new(@http)
+    resource = SignalWire::REST::Namespaces::SipProfileResource.new(@http)
     # Singleton resource, base path is the full path
     assert_equal '/api/relay/rest/sip_profile', resource.instance_variable_get(:@base_path)
   end
 
   def test_lookup_path
-    resource = SignalWireAgents::REST::Namespaces::LookupResource.new(@http)
+    resource = SignalWire::REST::Namespaces::LookupResource.new(@http)
     assert_equal '/api/relay/rest/lookup/phone_number/+15551234567',
                  resource.send(:_path, 'phone_number', '+15551234567')
   end
 
   def test_short_codes_path
-    resource = SignalWireAgents::REST::Namespaces::ShortCodesResource.new(@http)
+    resource = SignalWire::REST::Namespaces::ShortCodesResource.new(@http)
     assert_equal '/api/relay/rest/short_codes/sc1', resource.send(:_path, 'sc1')
   end
 
   def test_imported_numbers_path
-    resource = SignalWireAgents::REST::Namespaces::ImportedNumbersResource.new(@http)
+    resource = SignalWire::REST::Namespaces::ImportedNumbersResource.new(@http)
     assert_equal '/api/relay/rest/imported_phone_numbers',
                  resource.instance_variable_get(:@base_path)
   end
 
   def test_mfa_path
-    resource = SignalWireAgents::REST::Namespaces::MfaResource.new(@http)
+    resource = SignalWire::REST::Namespaces::MfaResource.new(@http)
     assert_equal '/api/relay/rest/mfa/sms', resource.send(:_path, 'sms')
     assert_equal '/api/relay/rest/mfa/req-1/verify', resource.send(:_path, 'req-1', 'verify')
   end
 
   def test_calling_path
-    resource = SignalWireAgents::REST::Namespaces::CallingNamespace.new(@http)
+    resource = SignalWire::REST::Namespaces::CallingNamespace.new(@http)
     assert_equal '/api/calling/calls', resource.instance_variable_get(:@base_path)
   end
 
   def test_pubsub_path
-    resource = SignalWireAgents::REST::Namespaces::PubSubResource.new(@http)
+    resource = SignalWire::REST::Namespaces::PubSubResource.new(@http)
     assert_equal '/api/pubsub/tokens', resource.instance_variable_get(:@base_path)
   end
 
   def test_chat_path
-    resource = SignalWireAgents::REST::Namespaces::ChatResource.new(@http)
+    resource = SignalWire::REST::Namespaces::ChatResource.new(@http)
     assert_equal '/api/chat/tokens', resource.instance_variable_get(:@base_path)
   end
 end
 
 class RestCxmlApplicationsTest < Minitest::Test
   def test_cxml_applications_create_raises
-    http = SignalWireAgents::REST::HttpClient.new('proj', 'tok', 'test.signalwire.com')
-    resource = SignalWireAgents::REST::Namespaces::CxmlApplicationsResource.new(
+    http = SignalWire::REST::HttpClient.new('proj', 'tok', 'test.signalwire.com')
+    resource = SignalWire::REST::Namespaces::CxmlApplicationsResource.new(
       http, '/api/fabric/resources/cxml_applications'
     )
     assert_raises(NotImplementedError) do

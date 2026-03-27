@@ -3,10 +3,10 @@
 require 'minitest/autorun'
 require 'tmpdir'
 require 'fileutils'
-require_relative '../../lib/signalwire_agents/swaig/function_result'
-require_relative '../../lib/signalwire_agents/skills/skill_base'
-require_relative '../../lib/signalwire_agents/skills/skill_registry'
-require_relative '../../lib/signalwire_agents/skills/builtin/claude_skills'
+require_relative '../../lib/signalwire/swaig/function_result'
+require_relative '../../lib/signalwire/skills/skill_base'
+require_relative '../../lib/signalwire/skills/skill_registry'
+require_relative '../../lib/signalwire/skills/builtin/claude_skills'
 
 class ClaudeSkillDetailedTest < Minitest::Test
   def setup
@@ -21,19 +21,19 @@ class ClaudeSkillDetailedTest < Minitest::Test
   end
 
   def test_setup_requires_skills_path
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('claude_skills')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('claude_skills')
     skill = factory.call({})
     refute skill.setup
   end
 
   def test_setup_with_valid_path
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('claude_skills')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('claude_skills')
     skill = factory.call({ 'skills_path' => @tmpdir })
     assert skill.setup
   end
 
   def test_register_tools_discovers_md_files
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('claude_skills')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('claude_skills')
     skill = factory.call({ 'skills_path' => @tmpdir })
     skill.setup
     tools = skill.register_tools
@@ -44,7 +44,7 @@ class ClaudeSkillDetailedTest < Minitest::Test
   end
 
   def test_custom_tool_prefix
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('claude_skills')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('claude_skills')
     skill = factory.call({ 'skills_path' => @tmpdir, 'tool_prefix' => 'sk_' })
     skill.setup
     tools = skill.register_tools
@@ -52,7 +52,7 @@ class ClaudeSkillDetailedTest < Minitest::Test
   end
 
   def test_supports_multiple_instances
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('claude_skills')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('claude_skills')
     skill = factory.call({})
     assert skill.supports_multiple_instances?
   end

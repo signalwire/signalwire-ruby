@@ -5,7 +5,7 @@
 # Demonstrates a specialised FAQ agent that answers questions from a
 # pre-defined knowledge base and logs conversation summaries.
 
-require 'signalwire_agents'
+require 'signalwire'
 
 faqs = [
   {
@@ -22,14 +22,14 @@ faqs = [
   }
 ]
 
-faq_bot = SignalWireAgents::Prefabs::FaqBot.new(
+faq_bot = SignalWire::Prefabs::FaqBot.new(
   faqs:    faqs,
   name:    'signalwire_faq',
   route:   '/faq',
   persona: 'You are a helpful FAQ assistant for SignalWire.'
 )
 
-agent = SignalWireAgents::AgentBase.new(name: faq_bot.name, route: faq_bot.route)
+agent = SignalWire::AgentBase.new(name: faq_bot.name, route: faq_bot.route)
 
 # Apply prompt sections
 faq_bot.prompt_sections.each do |section|

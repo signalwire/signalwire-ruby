@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
-require_relative '../../lib/signalwire_agents/swaig/function_result'
-require_relative '../../lib/signalwire_agents/prefabs/info_gatherer'
+require_relative '../../lib/signalwire/swaig/function_result'
+require_relative '../../lib/signalwire/prefabs/info_gatherer'
 
 class InfoGathererPrefabDetailedTest < Minitest::Test
   def test_construction
-    agent = SignalWireAgents::Prefabs::InfoGatherer.new(
+    agent = SignalWire::Prefabs::InfoGatherer.new(
       questions: [
         { 'key_name' => 'name', 'question_text' => 'What is your name?' },
         { 'key_name' => 'email', 'question_text' => 'What is your email?' }
@@ -18,7 +18,7 @@ class InfoGathererPrefabDetailedTest < Minitest::Test
   end
 
   def test_tools
-    agent = SignalWireAgents::Prefabs::InfoGatherer.new(
+    agent = SignalWire::Prefabs::InfoGatherer.new(
       questions: [{ 'key_name' => 'name', 'question_text' => 'Name?' }]
     )
     assert_includes agent.tools, 'start_questions'
@@ -26,7 +26,7 @@ class InfoGathererPrefabDetailedTest < Minitest::Test
   end
 
   def test_handle_start
-    agent = SignalWireAgents::Prefabs::InfoGatherer.new(
+    agent = SignalWire::Prefabs::InfoGatherer.new(
       questions: [{ 'key_name' => 'name', 'question_text' => 'What is your name?' }]
     )
     result = agent.handle_start({}, {})
@@ -34,7 +34,7 @@ class InfoGathererPrefabDetailedTest < Minitest::Test
   end
 
   def test_handle_submit
-    agent = SignalWireAgents::Prefabs::InfoGatherer.new(
+    agent = SignalWire::Prefabs::InfoGatherer.new(
       questions: [{ 'key_name' => 'name', 'question_text' => 'Name?' }]
     )
     result = agent.handle_submit({ 'answer' => 'Alice' }, {})
@@ -42,11 +42,11 @@ class InfoGathererPrefabDetailedTest < Minitest::Test
   end
 
   def test_raises_without_questions
-    assert_raises(ArgumentError) { SignalWireAgents::Prefabs::InfoGatherer.new(questions: []) }
+    assert_raises(ArgumentError) { SignalWire::Prefabs::InfoGatherer.new(questions: []) }
   end
 
   def test_prompt_sections
-    agent = SignalWireAgents::Prefabs::InfoGatherer.new(
+    agent = SignalWire::Prefabs::InfoGatherer.new(
       questions: [{ 'key_name' => 'name', 'question_text' => 'Name?' }]
     )
     sections = agent.prompt_sections
@@ -55,7 +55,7 @@ class InfoGathererPrefabDetailedTest < Minitest::Test
   end
 
   def test_global_data
-    agent = SignalWireAgents::Prefabs::InfoGatherer.new(
+    agent = SignalWire::Prefabs::InfoGatherer.new(
       questions: [{ 'key_name' => 'name', 'question_text' => 'Name?' }]
     )
     data = agent.global_data
@@ -64,7 +64,7 @@ class InfoGathererPrefabDetailedTest < Minitest::Test
   end
 
   def test_custom_name_and_route
-    agent = SignalWireAgents::Prefabs::InfoGatherer.new(
+    agent = SignalWire::Prefabs::InfoGatherer.new(
       questions: [{ 'key_name' => 'name', 'question_text' => 'Name?' }],
       name: 'custom', route: '/custom'
     )

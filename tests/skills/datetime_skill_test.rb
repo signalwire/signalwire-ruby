@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
-require_relative '../../lib/signalwire_agents/swaig/function_result'
-require_relative '../../lib/signalwire_agents/skills/skill_base'
-require_relative '../../lib/signalwire_agents/skills/skill_registry'
-require_relative '../../lib/signalwire_agents/skills/builtin/datetime'
+require_relative '../../lib/signalwire/swaig/function_result'
+require_relative '../../lib/signalwire/skills/skill_base'
+require_relative '../../lib/signalwire/skills/skill_registry'
+require_relative '../../lib/signalwire/skills/builtin/datetime'
 
 class DateTimeSkillDetailedTest < Minitest::Test
   def setup
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('datetime')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('datetime')
     @skill = factory.call({})
     @skill.setup
   end
@@ -34,7 +34,7 @@ class DateTimeSkillDetailedTest < Minitest::Test
     tools = @skill.register_tools
     time_tool = tools.find { |t| t[:name] == 'get_current_time' }
     result = time_tool[:handler].call({ 'timezone' => 'UTC' }, {})
-    assert_kind_of SignalWireAgents::Swaig::FunctionResult, result
+    assert_kind_of SignalWire::Swaig::FunctionResult, result
     assert_match(/current time is/i, result.response)
   end
 
@@ -42,7 +42,7 @@ class DateTimeSkillDetailedTest < Minitest::Test
     tools = @skill.register_tools
     date_tool = tools.find { |t| t[:name] == 'get_current_date' }
     result = date_tool[:handler].call({ 'timezone' => 'UTC' }, {})
-    assert_kind_of SignalWireAgents::Swaig::FunctionResult, result
+    assert_kind_of SignalWire::Swaig::FunctionResult, result
     assert_match(/date is/i, result.response)
   end
 
@@ -60,7 +60,7 @@ class DateTimeSkillDetailedTest < Minitest::Test
   end
 
   def test_setup_always_succeeds
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('datetime')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('datetime')
     skill = factory.call({})
     assert skill.setup
   end

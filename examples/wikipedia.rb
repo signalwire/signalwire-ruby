@@ -5,9 +5,9 @@
 # Demonstrates the wikipedia_search skill for factual information
 # retrieval with custom configuration.
 
-require 'signalwire_agents'
+require 'signalwire'
 
-agent = SignalWireAgents::AgentBase.new(name: 'Wikipedia Assistant', route: '/wiki-demo')
+agent = SignalWire::AgentBase.new(name: 'Wikipedia Assistant', route: '/wiki-demo')
 
 agent.add_language('name' => 'English', 'code' => 'en-US', 'voice' => 'elevenlabs.rachel')
 

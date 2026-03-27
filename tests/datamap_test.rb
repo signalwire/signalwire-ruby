@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
-require_relative '../lib/signalwire_agents/datamap/data_map'
-require_relative '../lib/signalwire_agents/swaig/function_result'
+require_relative '../lib/signalwire/datamap/data_map'
+require_relative '../lib/signalwire/swaig/function_result'
 
 class DataMapTest < Minitest::Test
-  FR = SignalWireAgents::Swaig::FunctionResult
-  DM = SignalWireAgents::DataMap
+  FR = SignalWire::Swaig::FunctionResult
+  DM = SignalWire::DataMap
 
   # ----------------------------------------------------------------
   # Basic creation and fluent building

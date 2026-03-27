@@ -8,9 +8,9 @@
 #
 # For local testing, simply run this file directly.
 
-require 'signalwire_agents'
+require 'signalwire'
 
-agent = SignalWireAgents::AgentBase.new(
+agent = SignalWire::AgentBase.new(
   name:  'lambda-agent',
   route: '/'
 )
@@ -36,7 +36,7 @@ agent.define_tool(
   }
 ) do |args, _raw_data|
   name = args['name'] || 'friend'
-  SignalWireAgents::Swaig::FunctionResult.new("Hello #{name}! I'm running in serverless mode!")
+  SignalWire::Swaig::FunctionResult.new("Hello #{name}! I'm running in serverless mode!")
 end
 
 agent.define_tool(
@@ -44,7 +44,7 @@ agent.define_tool(
   description: 'Get the current time',
   parameters:  {}
 ) do |_args, _raw_data|
-  SignalWireAgents::Swaig::FunctionResult.new("Current time: #{Time.now.iso8601}")
+  SignalWire::Swaig::FunctionResult.new("Current time: #{Time.now.iso8601}")
 end
 
 # In a real serverless deployment you would export the Rack app:

@@ -5,11 +5,11 @@
 # AgentServer provides multi-agent hosting on one port with
 # longest-prefix-match routing.
 
-require 'signalwire_agents'
+require 'signalwire'
 
 # --- Agent 1: Sales ---
 
-sales = SignalWireAgents::AgentBase.new(name: 'sales', route: '/sales')
+sales = SignalWire::AgentBase.new(name: 'sales', route: '/sales')
 sales.prompt_add_section('Role', 'You are a sales representative for TechCo.')
 sales.prompt_add_section('Guidelines', nil, bullets: [
   'Be enthusiastic about our products.',
@@ -26,7 +26,7 @@ sales.define_tool(
     'date'  => { 'type' => 'string', 'description' => 'Preferred date (YYYY-MM-DD)' }
   }
 ) do |args, _raw_data|
-  SignalWireAgents::Swaig::FunctionResult.new(
+  SignalWire::Swaig::FunctionResult.new(
     "Demo scheduled for #{args['email']} on #{args['date']}. " \
     "You'll receive a confirmation email shortly."
   )
@@ -34,7 +34,7 @@ end
 
 # --- Agent 2: Support ---
 
-support = SignalWireAgents::AgentBase.new(name: 'support', route: '/support')
+support = SignalWire::AgentBase.new(name: 'support', route: '/support')
 support.prompt_add_section('Role', 'You are a technical support agent for TechCo.')
 support.prompt_add_section('Guidelines', nil, bullets: [
   'Ask for the ticket number first.',
@@ -50,7 +50,7 @@ support.define_tool(
     'ticket_number' => { 'type' => 'string', 'description' => 'The support ticket number' }
   }
 ) do |args, _raw_data|
-  SignalWireAgents::Swaig::FunctionResult.new(
+  SignalWire::Swaig::FunctionResult.new(
     "Ticket #{args['ticket_number']}: Status is 'In Progress'. " \
     'Issue: Login timeout after recent update. Assigned to engineering team.'
   )
@@ -58,7 +58,7 @@ end
 
 # --- Agent 3: Receptionist ---
 
-receptionist = SignalWireAgents::AgentBase.new(name: 'receptionist', route: '/reception')
+receptionist = SignalWire::AgentBase.new(name: 'receptionist', route: '/reception')
 receptionist.prompt_add_section('Role', 'You are the main receptionist for TechCo.')
 receptionist.prompt_add_section('Guidelines', nil, bullets: [
   'Greet callers warmly.',
@@ -78,7 +78,7 @@ receptionist.define_tool(
   }
 ) do |args, _raw_data|
   dept = args['department'] || 'unknown'
-  result = SignalWireAgents::Swaig::FunctionResult.new(
+  result = SignalWire::Swaig::FunctionResult.new(
     "Transferring you to #{dept} now. Please hold."
   )
   result.connect("+1555000#{dept.length}#{dept.length}#{dept.length}#{dept.length}")
@@ -87,7 +87,7 @@ end
 
 # --- Server ---
 
-server = SignalWireAgents::AgentServer.new(host: '0.0.0.0', port: 3000)
+server = SignalWire::AgentServer.new(host: '0.0.0.0', port: 3000)
 server.register(sales)
 server.register(support)
 server.register(receptionist)

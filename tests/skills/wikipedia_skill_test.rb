@@ -1,27 +1,27 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
-require_relative '../../lib/signalwire_agents/swaig/function_result'
-require_relative '../../lib/signalwire_agents/skills/skill_base'
-require_relative '../../lib/signalwire_agents/skills/skill_registry'
-require_relative '../../lib/signalwire_agents/skills/builtin/wikipedia_search'
+require_relative '../../lib/signalwire/swaig/function_result'
+require_relative '../../lib/signalwire/skills/skill_base'
+require_relative '../../lib/signalwire/skills/skill_registry'
+require_relative '../../lib/signalwire/skills/builtin/wikipedia_search'
 
 class WikipediaSkillDetailedTest < Minitest::Test
   def test_setup_always_succeeds
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('wikipedia_search')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('wikipedia_search')
     skill = factory.call({})
     assert skill.setup
   end
 
   def test_name_and_description
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('wikipedia_search')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('wikipedia_search')
     skill = factory.call({})
     assert_equal 'wikipedia_search', skill.name
     assert_includes skill.description, 'Wikipedia'
   end
 
   def test_register_tools
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('wikipedia_search')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('wikipedia_search')
     skill = factory.call({})
     skill.setup
     tools = skill.register_tools
@@ -31,7 +31,7 @@ class WikipediaSkillDetailedTest < Minitest::Test
   end
 
   def test_prompt_sections
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('wikipedia_search')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('wikipedia_search')
     skill = factory.call({})
     skill.setup
     sections = skill.get_prompt_sections
@@ -40,7 +40,7 @@ class WikipediaSkillDetailedTest < Minitest::Test
   end
 
   def test_parameter_schema
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('wikipedia_search')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('wikipedia_search')
     skill = factory.call({})
     schema = skill.get_parameter_schema
     assert schema.key?('num_results')

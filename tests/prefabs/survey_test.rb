@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
-require_relative '../../lib/signalwire_agents/swaig/function_result'
-require_relative '../../lib/signalwire_agents/prefabs/survey'
+require_relative '../../lib/signalwire/swaig/function_result'
+require_relative '../../lib/signalwire/prefabs/survey'
 
 class SurveyPrefabDetailedTest < Minitest::Test
   def test_construction
-    agent = SignalWireAgents::Prefabs::Survey.new(
+    agent = SignalWire::Prefabs::Survey.new(
       survey_name: 'Satisfaction Survey',
       questions: [
         { 'id' => 'rating', 'text' => 'How would you rate us?', 'type' => 'rating', 'scale' => 5 }
@@ -18,7 +18,7 @@ class SurveyPrefabDetailedTest < Minitest::Test
   end
 
   def test_tools
-    agent = SignalWireAgents::Prefabs::Survey.new(
+    agent = SignalWire::Prefabs::Survey.new(
       survey_name: 'Test', questions: [{ 'id' => 'q1', 'text' => 'Question?' }]
     )
     assert_includes agent.tools, 'start_survey'
@@ -27,7 +27,7 @@ class SurveyPrefabDetailedTest < Minitest::Test
   end
 
   def test_handle_start
-    agent = SignalWireAgents::Prefabs::Survey.new(
+    agent = SignalWire::Prefabs::Survey.new(
       survey_name: 'Test', questions: [{ 'id' => 'q1', 'text' => 'How was it?' }]
     )
     result = agent.handle_start({}, {})
@@ -35,7 +35,7 @@ class SurveyPrefabDetailedTest < Minitest::Test
   end
 
   def test_handle_submit
-    agent = SignalWireAgents::Prefabs::Survey.new(
+    agent = SignalWire::Prefabs::Survey.new(
       survey_name: 'Test', questions: [{ 'id' => 'q1', 'text' => 'Q?' }]
     )
     result = agent.handle_submit({ 'answer' => 'Great' }, {})
@@ -43,7 +43,7 @@ class SurveyPrefabDetailedTest < Minitest::Test
   end
 
   def test_handle_summary
-    agent = SignalWireAgents::Prefabs::Survey.new(
+    agent = SignalWire::Prefabs::Survey.new(
       survey_name: 'Test', questions: [{ 'id' => 'q1', 'text' => 'Q?' }],
       conclusion: 'All done!'
     )
@@ -52,7 +52,7 @@ class SurveyPrefabDetailedTest < Minitest::Test
   end
 
   def test_global_data
-    agent = SignalWireAgents::Prefabs::Survey.new(
+    agent = SignalWire::Prefabs::Survey.new(
       survey_name: 'Test', questions: [{ 'id' => 'q1', 'text' => 'Q?' }]
     )
     data = agent.global_data
@@ -62,7 +62,7 @@ class SurveyPrefabDetailedTest < Minitest::Test
 
   def test_raises_without_questions
     assert_raises(ArgumentError) do
-      SignalWireAgents::Prefabs::Survey.new(survey_name: 'Test', questions: [])
+      SignalWire::Prefabs::Survey.new(survey_name: 'Test', questions: [])
     end
   end
 end

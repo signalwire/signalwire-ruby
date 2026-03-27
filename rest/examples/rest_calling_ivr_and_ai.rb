@@ -6,14 +6,14 @@
 # illustrative -- in production you would obtain it from a dial response or
 # inbound call event.
 #
-# Set these env vars (or pass them directly to SignalWireClient.new):
+# Set these env vars (or pass them directly to RestClient.new):
 #   SIGNALWIRE_PROJECT_ID   - your SignalWire project ID
 #   SIGNALWIRE_API_TOKEN    - your SignalWire API token
 #   SIGNALWIRE_SPACE        - your SignalWire space (e.g. example.signalwire.com)
 
-require 'signalwire_agents'
+require 'signalwire'
 
-client = SignalWireAgents::REST::SignalWireClient.new
+client = SignalWire::REST::RestClient.new
 
 CALL_ID = 'demo-call-id'
 
@@ -21,7 +21,7 @@ def safe(label)
   result = yield
   puts "  #{label}: OK"
   result
-rescue SignalWireAgents::REST::SignalWireRestError => e
+rescue SignalWire::REST::SignalWireRestError => e
   puts "  #{label}: failed (#{e.status_code})"
   nil
 end

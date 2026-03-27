@@ -5,9 +5,9 @@ Real-time call control and messaging over WebSocket using Ruby threads. The RELA
 ## Quick Start
 
 ```ruby
-require 'signalwire_agents'
+require 'signalwire'
 
-client = SignalWireAgents::Relay::Client.new(
+client = SignalWire::Relay::Client.new(
   project:  'your-project-id',
   token:    'your-api-token',
   space:    'example.signalwire.com',
@@ -123,7 +123,7 @@ call.wait_for_ended
 ## Module Structure
 
 ```
-lib/signalwire_agents/relay/
+lib/signalwire/relay/
     client.rb       # Client -- WebSocket connection, auth, event dispatch
     call.rb         # Call object -- all calling methods and Action classes
     action.rb       # Action object -- wait, stop, pause, resume

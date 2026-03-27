@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
-require_relative '../../lib/signalwire_agents/relay/constants'
-require_relative '../../lib/signalwire_agents/relay/relay_event'
-require_relative '../../lib/signalwire_agents/relay/message'
+require_relative '../../lib/signalwire/relay/constants'
+require_relative '../../lib/signalwire/relay/relay_event'
+require_relative '../../lib/signalwire/relay/message'
 
 class RelayMessageDetailedTest < Minitest::Test
   def test_message_creation
-    msg = SignalWireAgents::Relay::Message.new(
+    msg = SignalWire::Relay::Message.new(
       message_id: 'msg-1', context: 'default', direction: 'outbound',
       from_number: '+15551111111', to_number: '+15552222222',
       body: 'Hello', state: 'queued'
@@ -20,7 +20,7 @@ class RelayMessageDetailedTest < Minitest::Test
   end
 
   def test_message_state_dispatch
-    msg = SignalWireAgents::Relay::Message.new(message_id: 'msg-2', state: 'queued')
+    msg = SignalWire::Relay::Message.new(message_id: 'msg-2', state: 'queued')
 
     payload = {
       'event_type' => 'messaging.state',
@@ -40,7 +40,7 @@ class RelayMessageDetailedTest < Minitest::Test
   end
 
   def test_message_on_completed
-    msg = SignalWireAgents::Relay::Message.new(message_id: 'msg-4', state: 'queued')
+    msg = SignalWire::Relay::Message.new(message_id: 'msg-4', state: 'queued')
     callback_fired = false
     msg.on_completed { callback_fired = true }
 
@@ -54,7 +54,7 @@ class RelayMessageDetailedTest < Minitest::Test
   end
 
   def test_message_to_s
-    msg = SignalWireAgents::Relay::Message.new(
+    msg = SignalWire::Relay::Message.new(
       message_id: 'msg-6', direction: 'outbound', state: 'queued',
       from_number: '+15551111111', to_number: '+15552222222'
     )
@@ -64,7 +64,7 @@ class RelayMessageDetailedTest < Minitest::Test
   end
 
   def test_message_wait_with_timeout
-    msg = SignalWireAgents::Relay::Message.new(message_id: 'msg-3', state: 'queued')
+    msg = SignalWire::Relay::Message.new(message_id: 'msg-3', state: 'queued')
     Thread.new do
       sleep 0.05
       payload = {
@@ -75,6 +75,6 @@ class RelayMessageDetailedTest < Minitest::Test
     end
     result = msg.wait(timeout: 2)
     assert msg.done?
-    assert_kind_of SignalWireAgents::Relay::RelayEvent, result
+    assert_kind_of SignalWire::Relay::RelayEvent, result
   end
 end

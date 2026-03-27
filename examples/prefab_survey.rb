@@ -5,10 +5,10 @@
 # The Survey prefab walks callers through a set of questions with
 # different answer types (rating, open-ended, yes/no).
 
-require 'signalwire_agents'
+require 'signalwire'
 
 # Create the Survey prefab
-survey = SignalWireAgents::Prefabs::Survey.new(
+survey = SignalWire::Prefabs::Survey.new(
   survey_name: 'Customer Satisfaction Survey',
   questions: [
     {
@@ -46,7 +46,7 @@ survey = SignalWireAgents::Prefabs::Survey.new(
 )
 
 # Wrap it in an agent for serving
-agent = SignalWireAgents::AgentBase.new(name: survey.name, route: survey.route)
+agent = SignalWire::AgentBase.new(name: survey.name, route: survey.route)
 
 # Apply prompt sections from the prefab
 survey.prompt_sections.each do |section|

@@ -1,17 +1,17 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
-require_relative '../../lib/signalwire_agents/swaig/function_result'
-require_relative '../../lib/signalwire_agents/datamap/data_map'
-require_relative '../../lib/signalwire_agents/skills/skill_base'
-require_relative '../../lib/signalwire_agents/skills/skill_registry'
-require_relative '../../lib/signalwire_agents/skills/builtin/joke'
+require_relative '../../lib/signalwire/swaig/function_result'
+require_relative '../../lib/signalwire/datamap/data_map'
+require_relative '../../lib/signalwire/skills/skill_base'
+require_relative '../../lib/signalwire/skills/skill_registry'
+require_relative '../../lib/signalwire/skills/builtin/joke'
 
 class JokeSkillDetailedTest < Minitest::Test
   def test_setup_requires_api_key
     saved = ENV.delete('API_NINJAS_KEY')
     begin
-      factory = SignalWireAgents::Skills::SkillRegistry.get_factory('joke')
+      factory = SignalWire::Skills::SkillRegistry.get_factory('joke')
       skill = factory.call({})
       refute skill.setup
 
@@ -25,7 +25,7 @@ class JokeSkillDetailedTest < Minitest::Test
   def test_setup_with_env_var
     ENV['API_NINJAS_KEY'] = 'env_test_key'
     begin
-      factory = SignalWireAgents::Skills::SkillRegistry.get_factory('joke')
+      factory = SignalWire::Skills::SkillRegistry.get_factory('joke')
       skill = factory.call({})
       assert skill.setup
     ensure
@@ -34,7 +34,7 @@ class JokeSkillDetailedTest < Minitest::Test
   end
 
   def test_register_tools_returns_datamap
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('joke')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('joke')
     skill = factory.call({ 'api_key' => 'test_key' })
     skill.setup
     tools = skill.register_tools
@@ -44,7 +44,7 @@ class JokeSkillDetailedTest < Minitest::Test
   end
 
   def test_custom_tool_name
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('joke')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('joke')
     skill = factory.call({ 'api_key' => 'key', 'tool_name' => 'tell_joke' })
     skill.setup
     tools = skill.register_tools
@@ -52,7 +52,7 @@ class JokeSkillDetailedTest < Minitest::Test
   end
 
   def test_global_data
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('joke')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('joke')
     skill = factory.call({ 'api_key' => 'key' })
     skill.setup
     data = skill.get_global_data
@@ -60,7 +60,7 @@ class JokeSkillDetailedTest < Minitest::Test
   end
 
   def test_prompt_sections
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('joke')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('joke')
     skill = factory.call({ 'api_key' => 'key' })
     skill.setup
     sections = skill.get_prompt_sections
@@ -69,7 +69,7 @@ class JokeSkillDetailedTest < Minitest::Test
   end
 
   def test_parameter_schema
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('joke')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('joke')
     skill = factory.call({})
     schema = skill.get_parameter_schema
     assert schema.key?('api_key')

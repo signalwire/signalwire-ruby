@@ -1,0 +1,92 @@
+# frozen_string_literal: true
+
+module SignalWire
+  module Logging
+    LEVELS = { debug: 0, info: 1, warn: 2, error: 3, off: 4 }.freeze
+
+    # Returns the current global log level, derived from:
+    #   1. SIGNALWIRE_LOG_MODE=off  -> :off  (suppresses everything)
+    #   2. SIGNALWIRE_LOG_LEVEL env  -> the named level
+    #   3. Default                   -> :info
+    def self.global_level
+      @global_level || resolve_level_from_env
+    end
+
+    def self.global_level=(level)
+      level = level.to_sym if level.is_a?(String)
+      raise ArgumentError, "Unknown log level: #{level}" unless LEVELS.key?(level)
+
+      @global_level = level
+    end
+
+    def self.reset!
+      @global_level = nil
+    end
+
+    def self.suppressed?
+      global_level == :off
+    end
+
+    # Convenience factory
+    def self.logger(name)
+      Logger.new(name)
+    end
+
+    # -------------------------------------------------------------------
+    class Logger
+      attr_reader :name
+
+      def initialize(name)
+        @name = name
+        @output = $stderr
+      end
+
+      def debug(msg)
+        log(:debug, msg)
+      end
+
+      def info(msg)
+        log(:info, msg)
+      end
+
+      def warn(msg)
+        log(:warn, msg)
+      end
+
+      def error(msg)
+        log(:error, msg)
+      end
+
+      private
+
+      def log(level, msg)
+        return if Logging.suppressed?
+        return if LEVELS[level] < LEVELS[Logging.global_level]
+
+        timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S')
+        @output.puts "[#{timestamp}] #{level.upcase} [#{@name}] #{msg}"
+      end
+    end
+
+    # -------------------------------------------------------------------
+    # Private helpers
+    # -------------------------------------------------------------------
+    private_class_method def self.resolve_level_from_env
+      if ENV['SIGNALWIRE_LOG_MODE']&.downcase == 'off'
+        @global_level = :off
+        return :off
+      end
+
+      raw = ENV['SIGNALWIRE_LOG_LEVEL']
+      if raw
+        sym = raw.downcase.to_sym
+        if LEVELS.key?(sym)
+          @global_level = sym
+          return sym
+        end
+      end
+
+      :info # default — not cached so env changes take effect
+    end
+  end
+end

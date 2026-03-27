@@ -2,10 +2,10 @@
 
 require 'minitest/autorun'
 require 'base64'
-require_relative '../lib/signalwire_agents/security/session_manager'
+require_relative '../lib/signalwire/security/session_manager'
 
 class SessionManagerTest < Minitest::Test
-  SM = SignalWireAgents::Security::SessionManager
+  SM = SignalWire::Security::SessionManager
 
   def setup
     @mgr = SM.new(token_expiry_secs: 3600)

@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
-require_relative '../../lib/signalwire_agents/rest/signalwire_client'
+require_relative '../../lib/signalwire/rest/rest_client'
 
 class RestFabricDetailedTest < Minitest::Test
   def test_fabric_sub_resources
-    client = SignalWireAgents::REST::SignalWireClient.new(
+    client = SignalWire::REST::RestClient.new(
       project: 'proj', token: 'tok', host: 'test.signalwire.com'
     )
     fabric = client.fabric
@@ -28,8 +28,8 @@ class RestFabricDetailedTest < Minitest::Test
   end
 
   def test_cxml_applications_create_raises
-    http = SignalWireAgents::REST::HttpClient.new('proj', 'tok', 'test.signalwire.com')
-    resource = SignalWireAgents::REST::Namespaces::CxmlApplicationsResource.new(
+    http = SignalWire::REST::HttpClient.new('proj', 'tok', 'test.signalwire.com')
+    resource = SignalWire::REST::Namespaces::CxmlApplicationsResource.new(
       http, '/api/fabric/resources/cxml_applications'
     )
     assert_raises(NotImplementedError) { resource.create(name: 'test') }

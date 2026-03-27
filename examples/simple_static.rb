@@ -6,9 +6,9 @@
 # Demonstrates voice, AI params, hints, global data, and structured
 # prompt sections for a customer-service agent.
 
-require 'signalwire_agents'
+require 'signalwire'
 
-agent = SignalWireAgents::AgentBase.new(
+agent = SignalWire::AgentBase.new(
   name:        'Simple Customer Service Agent',
   record_call: true
 )

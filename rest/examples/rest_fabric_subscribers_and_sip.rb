@@ -2,20 +2,20 @@
 
 # Example: Provision a SIP-enabled user on Fabric.
 #
-# Set these env vars (or pass them directly to SignalWireClient.new):
+# Set these env vars (or pass them directly to RestClient.new):
 #   SIGNALWIRE_PROJECT_ID   - your SignalWire project ID
 #   SIGNALWIRE_API_TOKEN    - your SignalWire API token
 #   SIGNALWIRE_SPACE        - your SignalWire space (e.g. example.signalwire.com)
 
-require 'signalwire_agents'
+require 'signalwire'
 
-client = SignalWireAgents::REST::SignalWireClient.new
+client = SignalWire::REST::RestClient.new
 
 def safe(label)
   result = yield
   puts "  #{label}: OK"
   result
-rescue SignalWireAgents::REST::SignalWireRestError => e
+rescue SignalWire::REST::SignalWireRestError => e
   puts "  #{label}: failed (#{e.status_code})"
   nil
 end
@@ -75,7 +75,7 @@ begin
     addr_detail = client.fabric.addresses.get(first_addr['id'])
     puts "  Address detail: #{addr_detail.fetch('display_name', 'N/A')}"
   end
-rescue SignalWireAgents::REST::SignalWireRestError => e
+rescue SignalWire::REST::SignalWireRestError => e
   puts "  Fabric addresses failed: #{e.status_code}"
 end
 

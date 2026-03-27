@@ -18,9 +18,9 @@
 #   - Point a SignalWire phone number at http://your-server:3000/agent
 #   - Connect Claude Desktop to http://your-server:3000/agent/mcp
 
-require_relative '../lib/signalwire_agents'
+require_relative '../lib/signalwire'
 
-agent = SignalWireAgents::AgentBase.new(name: 'mcp-agent', route: '/agent')
+agent = SignalWire::AgentBase.new(name: 'mcp-agent', route: '/agent')
 
 # -- MCP Server ---------------------------------------------------------------
 # Adds a /mcp endpoint that speaks JSON-RPC 2.0 (MCP protocol).
@@ -57,7 +57,7 @@ agent.define_tool(
   }
 ) do |args, _raw|
   location = args['location'] || 'unknown'
-  SignalWireAgents::Swaig::FunctionResult.new("Currently 72F and sunny in #{location}.")
+  SignalWire::Swaig::FunctionResult.new("Currently 72F and sunny in #{location}.")
 end
 
 agent.define_tool(
@@ -69,7 +69,7 @@ agent.define_tool(
   }
 ) do |args, _raw|
   subject = args['subject'] || 'No subject'
-  SignalWireAgents::Swaig::FunctionResult.new("Ticket created: '#{subject}'. Reference number: TK-12345.")
+  SignalWire::Swaig::FunctionResult.new("Ticket created: '#{subject}'. Reference number: TK-12345.")
 end
 
 agent.run

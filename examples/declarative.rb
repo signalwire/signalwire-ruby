@@ -6,9 +6,9 @@
 # at startup, with a post-prompt for structured conversation summaries.
 # Tools are defined alongside the agent rather than via a decorator.
 
-require 'signalwire_agents'
+require 'signalwire'
 
-agent = SignalWireAgents::AgentBase.new(
+agent = SignalWire::AgentBase.new(
   name:  'declarative',
   route: '/declarative'
 )
@@ -52,7 +52,7 @@ agent.define_tool(
   parameters:  {}
 ) do |_args, _raw_data|
   now = Time.now.strftime('%H:%M:%S')
-  SignalWireAgents::Swaig::FunctionResult.new("The current time is #{now}")
+  SignalWire::Swaig::FunctionResult.new("The current time is #{now}")
 end
 
 agent.define_tool(
@@ -63,7 +63,7 @@ agent.define_tool(
   }
 ) do |args, _raw_data|
   location = args['location'] || 'Unknown location'
-  SignalWireAgents::Swaig::FunctionResult.new("It's sunny and 72F in #{location}.")
+  SignalWire::Swaig::FunctionResult.new("It's sunny and 72F in #{location}.")
 end
 
 # --- Summary callback ---

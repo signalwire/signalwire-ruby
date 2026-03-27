@@ -6,11 +6,11 @@
 # documents without AI components -- voicemail, recording, and
 # call transfer flows.
 
-require 'signalwire_agents'
+require 'signalwire'
 
 # --- Voicemail service ---
 
-voicemail = SignalWireAgents::SWML::Service.new(
+voicemail = SignalWire::SWML::Service.new(
   name:  'voicemail',
   route: '/voicemail'
 )
@@ -35,7 +35,7 @@ puts
 
 # --- Call recording service ---
 
-recording = SignalWireAgents::SWML::Service.new(
+recording = SignalWire::SWML::Service.new(
   name:  'recording',
   route: '/recording'
 )
@@ -61,7 +61,7 @@ puts
 
 # --- Call transfer service ---
 
-transfer = SignalWireAgents::SWML::Service.new(
+transfer = SignalWire::SWML::Service.new(
   name:  'transfer',
   route: '/transfer'
 )

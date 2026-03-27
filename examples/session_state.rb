@@ -5,9 +5,9 @@
 # Demonstrates how to use session state to track conversation data,
 # configure post-prompt analysis, and receive call summaries.
 
-require 'signalwire_agents'
+require 'signalwire'
 
-agent = SignalWireAgents::AgentBase.new(name: 'stateful_agent', route: '/')
+agent = SignalWire::AgentBase.new(name: 'stateful_agent', route: '/')
 
 # --- Prompt ---
 
@@ -57,7 +57,7 @@ agent.define_tool(
   }
 ) do |args, _raw_data|
   order_id = args['order_id'] || 'unknown'
-  SignalWireAgents::Swaig::FunctionResult.new(
+  SignalWire::Swaig::FunctionResult.new(
     "Order #{order_id}: Shipped on 2024-01-10, currently in transit. " \
     'Expected delivery: January 15. Carrier: FedEx. Tracking: 1Z999AA10123456784.'
   )
@@ -71,7 +71,7 @@ agent.define_tool(
     'sms_updates'     => { 'type' => 'boolean', 'description' => 'Enable SMS delivery updates' }
   }
 ) do |args, _raw_data|
-  result = SignalWireAgents::Swaig::FunctionResult.new(
+  result = SignalWire::Swaig::FunctionResult.new(
     "Preferences updated: delivery window=#{args['delivery_window']}, " \
     "SMS updates=#{args['sms_updates']}."
   )

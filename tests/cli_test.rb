@@ -9,7 +9,7 @@ require 'socket'
 # Suppress logging during tests
 ENV['SIGNALWIRE_LOG_MODE'] = 'off'
 
-require_relative '../lib/signalwire_agents'
+require_relative '../lib/signalwire'
 
 # Load the CLI module
 load File.expand_path('../bin/swaig-test', __dir__)
@@ -108,7 +108,7 @@ class SwaigTestCLIIntegrationTest < Minitest::Test
   def setup
     @port = find_available_port
 
-    @agent = SignalWireAgents::AgentBase.new(
+    @agent = SignalWire::AgentBase.new(
       name: 'cli_test_agent',
       basic_auth: ['testuser', 'testpass'],
       port: @port,
@@ -122,7 +122,7 @@ class SwaigTestCLIIntegrationTest < Minitest::Test
         'name' => { 'type' => 'string', 'description' => 'Person name' }
       }
     ) do |args, _raw|
-      SignalWireAgents::Swaig::FunctionResult.new("Hello, #{args['name']}!")
+      SignalWire::Swaig::FunctionResult.new("Hello, #{args['name']}!")
     end
 
     @rack_app = @agent.rack_app

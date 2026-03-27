@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
-require_relative '../../lib/signalwire_agents/swaig/function_result'
-require_relative '../../lib/signalwire_agents/prefabs/receptionist'
+require_relative '../../lib/signalwire/swaig/function_result'
+require_relative '../../lib/signalwire/prefabs/receptionist'
 
 class ReceptionistPrefabDetailedTest < Minitest::Test
   def test_construction
-    agent = SignalWireAgents::Prefabs::Receptionist.new(
+    agent = SignalWire::Prefabs::Receptionist.new(
       departments: [
         { 'name' => 'sales', 'description' => 'Sales dept', 'number' => '+15551235555' }
       ]
@@ -16,7 +16,7 @@ class ReceptionistPrefabDetailedTest < Minitest::Test
   end
 
   def test_tools
-    agent = SignalWireAgents::Prefabs::Receptionist.new(
+    agent = SignalWire::Prefabs::Receptionist.new(
       departments: [{ 'name' => 'sales', 'description' => 'Sales', 'number' => '+15551235555' }]
     )
     assert_includes agent.tools, 'transfer_to_department'
@@ -24,7 +24,7 @@ class ReceptionistPrefabDetailedTest < Minitest::Test
   end
 
   def test_handle_transfer
-    agent = SignalWireAgents::Prefabs::Receptionist.new(
+    agent = SignalWire::Prefabs::Receptionist.new(
       departments: [{ 'name' => 'sales', 'description' => 'Sales', 'number' => '+15551235555' }]
     )
     result = agent.handle_transfer({ 'department' => 'sales' }, {})
@@ -32,7 +32,7 @@ class ReceptionistPrefabDetailedTest < Minitest::Test
   end
 
   def test_handle_transfer_unknown_department
-    agent = SignalWireAgents::Prefabs::Receptionist.new(
+    agent = SignalWire::Prefabs::Receptionist.new(
       departments: [{ 'name' => 'sales', 'description' => 'Sales', 'number' => '+15551235555' }]
     )
     result = agent.handle_transfer({ 'department' => 'unknown' }, {})
@@ -40,11 +40,11 @@ class ReceptionistPrefabDetailedTest < Minitest::Test
   end
 
   def test_raises_without_departments
-    assert_raises(ArgumentError) { SignalWireAgents::Prefabs::Receptionist.new(departments: []) }
+    assert_raises(ArgumentError) { SignalWire::Prefabs::Receptionist.new(departments: []) }
   end
 
   def test_global_data
-    agent = SignalWireAgents::Prefabs::Receptionist.new(
+    agent = SignalWire::Prefabs::Receptionist.new(
       departments: [{ 'name' => 'sales', 'description' => 'Sales', 'number' => '+15551235555' }]
     )
     data = agent.global_data

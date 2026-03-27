@@ -19,9 +19,9 @@ A Ruby framework for building, deploying, and managing AI agents as microservice
 ## Quick Start
 
 ```ruby
-require 'signalwire_agents'
+require 'signalwire'
 
-agent = SignalWireAgents::AgentBase.new(name: 'my-agent')
+agent = SignalWire::AgentBase.new(name: 'my-agent')
 
 agent.set_prompt_text("You are a helpful assistant.")
 
@@ -30,7 +30,7 @@ agent.define_tool(
   description: 'Get the current time',
   parameters: {}
 ) do |args, raw_data|
-  SignalWireAgents::FunctionResult.new("The current time is #{Time.now}")
+  SignalWire::FunctionResult.new("The current time is #{Time.now}")
 end
 
 agent.run
@@ -39,13 +39,13 @@ agent.run
 ## Installation
 
 ```bash
-gem install signalwire_agents
+gem install signalwire
 ```
 
 Or in your Gemfile:
 
 ```ruby
-gem 'signalwire_agents'
+gem 'signalwire'
 ```
 
 ## Rack / Rails Integration

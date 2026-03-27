@@ -3,54 +3,54 @@
 require 'minitest/autorun'
 require 'rack/test'
 require 'json'
-require 'signalwire_agents'
+require 'signalwire'
 
 # =========================================================================
 # Logging tests
 # =========================================================================
 class LoggingTest < Minitest::Test
   def setup
-    SignalWireAgents::Logging.reset!
+    SignalWire::Logging.reset!
     ENV.delete('SIGNALWIRE_LOG_LEVEL')
     ENV.delete('SIGNALWIRE_LOG_MODE')
   end
 
   def teardown
-    SignalWireAgents::Logging.reset!
+    SignalWire::Logging.reset!
     ENV.delete('SIGNALWIRE_LOG_LEVEL')
     ENV.delete('SIGNALWIRE_LOG_MODE')
   end
 
   def test_default_level_is_info
-    assert_equal :info, SignalWireAgents::Logging.global_level
+    assert_equal :info, SignalWire::Logging.global_level
   end
 
   def test_set_global_level
-    SignalWireAgents::Logging.global_level = :debug
-    assert_equal :debug, SignalWireAgents::Logging.global_level
+    SignalWire::Logging.global_level = :debug
+    assert_equal :debug, SignalWire::Logging.global_level
   end
 
   def test_env_log_level
     ENV['SIGNALWIRE_LOG_LEVEL'] = 'debug'
-    SignalWireAgents::Logging.reset!
-    assert_equal :debug, SignalWireAgents::Logging.global_level
+    SignalWire::Logging.reset!
+    assert_equal :debug, SignalWire::Logging.global_level
   end
 
   def test_env_log_mode_off
     ENV['SIGNALWIRE_LOG_MODE'] = 'off'
-    SignalWireAgents::Logging.reset!
-    assert SignalWireAgents::Logging.suppressed?
-    assert_equal :off, SignalWireAgents::Logging.global_level
+    SignalWire::Logging.reset!
+    assert SignalWire::Logging.suppressed?
+    assert_equal :off, SignalWire::Logging.global_level
   end
 
   def test_logger_creation
-    logger = SignalWireAgents::Logging.logger('test')
+    logger = SignalWire::Logging.logger('test')
     assert_equal 'test', logger.name
   end
 
   def test_logger_outputs_at_correct_level
-    SignalWireAgents::Logging.global_level = :warn
-    logger = SignalWireAgents::Logging.logger('test')
+    SignalWire::Logging.global_level = :warn
+    logger = SignalWire::Logging.logger('test')
 
     out = StringIO.new
     logger.instance_variable_set(:@output, out)
@@ -65,8 +65,8 @@ class LoggingTest < Minitest::Test
   end
 
   def test_logger_suppressed_when_off
-    SignalWireAgents::Logging.global_level = :off
-    logger = SignalWireAgents::Logging.logger('test')
+    SignalWire::Logging.global_level = :off
+    logger = SignalWire::Logging.logger('test')
 
     out = StringIO.new
     logger.instance_variable_set(:@output, out)
@@ -77,12 +77,12 @@ class LoggingTest < Minitest::Test
 
   def test_levels_hash
     expected = { debug: 0, info: 1, warn: 2, error: 3, off: 4 }
-    assert_equal expected, SignalWireAgents::Logging::LEVELS
+    assert_equal expected, SignalWire::Logging::LEVELS
   end
 
   def test_invalid_level_raises
     assert_raises(ArgumentError) do
-      SignalWireAgents::Logging.global_level = :nonexistent
+      SignalWire::Logging.global_level = :nonexistent
     end
   end
 end
@@ -92,7 +92,7 @@ end
 # =========================================================================
 class DocumentTest < Minitest::Test
   def setup
-    @doc = SignalWireAgents::SWML::Document.new
+    @doc = SignalWire::SWML::Document.new
   end
 
   def test_initial_state
@@ -182,32 +182,32 @@ end
 # =========================================================================
 class SchemaTest < Minitest::Test
   def test_loads_38_verbs
-    schema = SignalWireAgents::SWML::Schema.new
+    schema = SignalWire::SWML::Schema.new
     assert_equal 38, schema.verb_count,
                  "Expected 38 verbs, got #{schema.verb_count}: #{schema.verb_names.join(', ')}"
   end
 
   def test_known_verbs_present
-    schema = SignalWireAgents::SWML::Schema.new
+    schema = SignalWire::SWML::Schema.new
     %w[answer ai hangup play sleep connect record send_sms transfer].each do |v|
       assert schema.valid_verb?(v), "Expected verb '#{v}' to be valid"
     end
   end
 
   def test_invalid_verb_rejected
-    schema = SignalWireAgents::SWML::Schema.new
+    schema = SignalWire::SWML::Schema.new
     refute schema.valid_verb?('not_a_verb')
     refute schema.valid_verb?('explode')
   end
 
   def test_verb_names_sorted
-    schema = SignalWireAgents::SWML::Schema.new
+    schema = SignalWire::SWML::Schema.new
     names = schema.verb_names
     assert_equal names.sort, names
   end
 
   def test_get_verb_returns_definition
-    schema = SignalWireAgents::SWML::Schema.new
+    schema = SignalWire::SWML::Schema.new
     defn = schema.get_verb('answer')
     assert_kind_of Hash, defn
     assert_equal 'answer', defn['name']
@@ -216,13 +216,13 @@ class SchemaTest < Minitest::Test
   end
 
   def test_get_verb_nil_for_unknown
-    schema = SignalWireAgents::SWML::Schema.new
+    schema = SignalWire::SWML::Schema.new
     assert_nil schema.get_verb('nonexistent')
   end
 
   def test_singleton
-    s1 = SignalWireAgents::SWML.schema
-    s2 = SignalWireAgents::SWML.schema
+    s1 = SignalWire::SWML.schema
+    s2 = SignalWire::SWML.schema
     assert_same s1, s2
   end
 end
@@ -233,21 +233,21 @@ end
 class ServiceTest < Minitest::Test
   def setup
     # Suppress log output during tests
-    SignalWireAgents::Logging.global_level = :off
+    SignalWire::Logging.global_level = :off
     ENV.delete('SWML_BASIC_AUTH_USER')
     ENV.delete('SWML_BASIC_AUTH_PASSWORD')
     ENV.delete('PORT')
   end
 
   def teardown
-    SignalWireAgents::Logging.reset!
+    SignalWire::Logging.reset!
     ENV.delete('SWML_BASIC_AUTH_USER')
     ENV.delete('SWML_BASIC_AUTH_PASSWORD')
     ENV.delete('PORT')
   end
 
   def test_creation
-    svc = SignalWireAgents::SWML::Service.new(name: 'test')
+    svc = SignalWire::SWML::Service.new(name: 'test')
     assert_equal 'test', svc.name
     assert_equal '/', svc.route
     assert_equal '0.0.0.0', svc.host
@@ -255,26 +255,26 @@ class ServiceTest < Minitest::Test
   end
 
   def test_custom_route
-    svc = SignalWireAgents::SWML::Service.new(name: 'test', route: '/my-agent')
+    svc = SignalWire::SWML::Service.new(name: 'test', route: '/my-agent')
     assert_equal '/my-agent', svc.route
   end
 
   def test_port_from_env
     ENV['PORT'] = '8080'
-    svc = SignalWireAgents::SWML::Service.new(name: 'test')
+    svc = SignalWire::SWML::Service.new(name: 'test')
     assert_equal 8080, svc.port
   end
 
   def test_explicit_port_overrides_env
     ENV['PORT'] = '8080'
-    svc = SignalWireAgents::SWML::Service.new(name: 'test', port: 9999)
+    svc = SignalWire::SWML::Service.new(name: 'test', port: 9999)
     assert_equal 9999, svc.port
   end
 
   # -- Verb methods via method_missing ------------------------------------
 
   def test_answer_verb
-    svc = SignalWireAgents::SWML::Service.new(name: 'test')
+    svc = SignalWire::SWML::Service.new(name: 'test')
     svc.answer
     verbs = svc.document.get_verbs
     assert_equal 1, verbs.length
@@ -282,35 +282,35 @@ class ServiceTest < Minitest::Test
   end
 
   def test_hangup_verb
-    svc = SignalWireAgents::SWML::Service.new(name: 'test')
+    svc = SignalWire::SWML::Service.new(name: 'test')
     svc.hangup
     verbs = svc.document.get_verbs
     assert_equal({ 'hangup' => {} }, verbs.first)
   end
 
   def test_play_verb_with_kwargs
-    svc = SignalWireAgents::SWML::Service.new(name: 'test')
+    svc = SignalWire::SWML::Service.new(name: 'test')
     svc.play(url: 'http://example.com/ring.mp3')
     verbs = svc.document.get_verbs
     assert_equal({ 'play' => { 'url' => 'http://example.com/ring.mp3' } }, verbs.first)
   end
 
   def test_sleep_with_integer
-    svc = SignalWireAgents::SWML::Service.new(name: 'test')
+    svc = SignalWire::SWML::Service.new(name: 'test')
     svc.sleep(2000)
     verbs = svc.document.get_verbs
     assert_equal({ 'sleep' => 2000 }, verbs.first)
   end
 
   def test_sleep_with_duration_kwarg
-    svc = SignalWireAgents::SWML::Service.new(name: 'test')
+    svc = SignalWire::SWML::Service.new(name: 'test')
     svc.sleep(duration: 500)
     verbs = svc.document.get_verbs
     assert_equal({ 'sleep' => 500 }, verbs.first)
   end
 
   def test_respond_to_valid_verbs
-    svc = SignalWireAgents::SWML::Service.new(name: 'test')
+    svc = SignalWire::SWML::Service.new(name: 'test')
     assert svc.respond_to?(:answer)
     assert svc.respond_to?(:hangup)
     assert svc.respond_to?(:ai)
@@ -318,18 +318,18 @@ class ServiceTest < Minitest::Test
   end
 
   def test_respond_to_invalid_verb
-    svc = SignalWireAgents::SWML::Service.new(name: 'test')
+    svc = SignalWire::SWML::Service.new(name: 'test')
     refute svc.respond_to?(:explode)
     refute svc.respond_to?(:not_a_verb)
   end
 
   def test_invalid_method_raises
-    svc = SignalWireAgents::SWML::Service.new(name: 'test')
+    svc = SignalWire::SWML::Service.new(name: 'test')
     assert_raises(NoMethodError) { svc.not_a_verb }
   end
 
   def test_nil_kwargs_stripped
-    svc = SignalWireAgents::SWML::Service.new(name: 'test')
+    svc = SignalWire::SWML::Service.new(name: 'test')
     svc.play(url: 'http://example.com/a.mp3', volume: nil)
     verbs = svc.document.get_verbs
     assert_equal({ 'play' => { 'url' => 'http://example.com/a.mp3' } }, verbs.first)
@@ -338,7 +338,7 @@ class ServiceTest < Minitest::Test
   # -- Auth ---------------------------------------------------------------
 
   def test_auto_generated_auth
-    svc = SignalWireAgents::SWML::Service.new(name: 'test')
+    svc = SignalWire::SWML::Service.new(name: 'test')
     user, pass = svc.get_basic_auth_credentials
     # UUID v4 format
     assert_match(/\A[0-9a-f-]{36}\z/, user)
@@ -346,45 +346,45 @@ class ServiceTest < Minitest::Test
   end
 
   def test_explicit_auth
-    svc = SignalWireAgents::SWML::Service.new(name: 'test', basic_auth: %w[alice s3cret])
+    svc = SignalWire::SWML::Service.new(name: 'test', basic_auth: %w[alice s3cret])
     assert_equal %w[alice s3cret], svc.get_basic_auth_credentials
   end
 
   def test_env_based_auth
     ENV['SWML_BASIC_AUTH_USER']     = 'envuser'
     ENV['SWML_BASIC_AUTH_PASSWORD'] = 'envpass'
-    svc = SignalWireAgents::SWML::Service.new(name: 'test')
+    svc = SignalWire::SWML::Service.new(name: 'test')
     assert_equal %w[envuser envpass], svc.get_basic_auth_credentials
   end
 
   def test_explicit_auth_overrides_env
     ENV['SWML_BASIC_AUTH_USER']     = 'envuser'
     ENV['SWML_BASIC_AUTH_PASSWORD'] = 'envpass'
-    svc = SignalWireAgents::SWML::Service.new(name: 'test', basic_auth: %w[explicit pass])
+    svc = SignalWire::SWML::Service.new(name: 'test', basic_auth: %w[explicit pass])
     assert_equal %w[explicit pass], svc.get_basic_auth_credentials
   end
 
   def test_get_full_url
-    svc = SignalWireAgents::SWML::Service.new(name: 'test', port: 5000)
+    svc = SignalWire::SWML::Service.new(name: 'test', port: 5000)
     assert_equal 'http://0.0.0.0:5000/', svc.get_full_url
   end
 
   def test_get_full_url_with_auth
-    svc = SignalWireAgents::SWML::Service.new(
+    svc = SignalWire::SWML::Service.new(
       name: 'test', port: 5000, basic_auth: %w[user pass]
     )
     assert_equal 'http://user:pass@0.0.0.0:5000/', svc.get_full_url(include_auth: true)
   end
 
   def test_get_full_url_with_custom_route
-    svc = SignalWireAgents::SWML::Service.new(name: 'test', port: 5000, route: '/bot')
+    svc = SignalWire::SWML::Service.new(name: 'test', port: 5000, route: '/bot')
     assert_equal 'http://0.0.0.0:5000/bot', svc.get_full_url
   end
 
   # -- Render -------------------------------------------------------------
 
   def test_render
-    svc = SignalWireAgents::SWML::Service.new(name: 'test')
+    svc = SignalWire::SWML::Service.new(name: 'test')
     svc.answer
     json = svc.render
     parsed = JSON.parse(json)
@@ -400,8 +400,8 @@ class ServiceRackTest < Minitest::Test
   include Rack::Test::Methods
 
   def setup
-    SignalWireAgents::Logging.global_level = :off
-    @service = SignalWireAgents::SWML::Service.new(
+    SignalWire::Logging.global_level = :off
+    @service = SignalWire::SWML::Service.new(
       name: 'rack-test',
       basic_auth: %w[testuser testpass]
     )
@@ -411,7 +411,7 @@ class ServiceRackTest < Minitest::Test
   end
 
   def teardown
-    SignalWireAgents::Logging.reset!
+    SignalWire::Logging.reset!
   end
 
   def app

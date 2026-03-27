@@ -1,17 +1,17 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
-require_relative '../../lib/signalwire_agents/swaig/function_result'
-require_relative '../../lib/signalwire_agents/datamap/data_map'
-require_relative '../../lib/signalwire_agents/skills/skill_base'
-require_relative '../../lib/signalwire_agents/skills/skill_registry'
-require_relative '../../lib/signalwire_agents/skills/builtin/weather_api'
+require_relative '../../lib/signalwire/swaig/function_result'
+require_relative '../../lib/signalwire/datamap/data_map'
+require_relative '../../lib/signalwire/skills/skill_base'
+require_relative '../../lib/signalwire/skills/skill_registry'
+require_relative '../../lib/signalwire/skills/builtin/weather_api'
 
 class WeatherApiSkillDetailedTest < Minitest::Test
   def test_setup_requires_api_key
     saved = ENV.delete('WEATHER_API_KEY')
     begin
-      factory = SignalWireAgents::Skills::SkillRegistry.get_factory('weather_api')
+      factory = SignalWire::Skills::SkillRegistry.get_factory('weather_api')
       skill = factory.call({})
       refute skill.setup
 
@@ -23,7 +23,7 @@ class WeatherApiSkillDetailedTest < Minitest::Test
   end
 
   def test_register_tools_returns_datamap
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('weather_api')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('weather_api')
     skill = factory.call({ 'api_key' => 'test_key' })
     skill.setup
     tools = skill.register_tools
@@ -33,7 +33,7 @@ class WeatherApiSkillDetailedTest < Minitest::Test
   end
 
   def test_custom_tool_name
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('weather_api')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('weather_api')
     skill = factory.call({ 'api_key' => 'key', 'tool_name' => 'check_weather' })
     skill.setup
     tools = skill.register_tools
@@ -41,7 +41,7 @@ class WeatherApiSkillDetailedTest < Minitest::Test
   end
 
   def test_celsius_mode
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('weather_api')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('weather_api')
     skill = factory.call({ 'api_key' => 'key', 'temperature_unit' => 'celsius' })
     skill.setup
     tools = skill.register_tools
@@ -51,7 +51,7 @@ class WeatherApiSkillDetailedTest < Minitest::Test
   end
 
   def test_fahrenheit_mode_default
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('weather_api')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('weather_api')
     skill = factory.call({ 'api_key' => 'key' })
     skill.setup
     tools = skill.register_tools
@@ -61,7 +61,7 @@ class WeatherApiSkillDetailedTest < Minitest::Test
   end
 
   def test_parameter_schema
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('weather_api')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('weather_api')
     skill = factory.call({})
     schema = skill.get_parameter_schema
     assert schema.key?('api_key')

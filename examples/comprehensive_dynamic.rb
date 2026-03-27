@@ -6,7 +6,7 @@
 # tier-based parameters, industry-specific prompts, voice/language
 # selection, A/B testing, and global data setup.
 
-require 'signalwire_agents'
+require 'signalwire'
 
 VOICE_OPTIONS = {
   'standard'   => %w[elevenlabs.rachel elevenlabs.adam],
@@ -21,7 +21,7 @@ INDUSTRY_CONFIGS = {
   'general'    => { 'compliance' => 'standard', 'style' => 'conversational' }
 }.freeze
 
-agent = SignalWireAgents::AgentBase.new(
+agent = SignalWire::AgentBase.new(
   name:        'comprehensive_dynamic',
   route:       '/dynamic',
   record_call: true

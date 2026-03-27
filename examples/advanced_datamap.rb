@@ -6,35 +6,35 @@
 # form parameter encoding, array processing, and conditional logic --
 # all using the server-side DataMap builder.
 
-require 'signalwire_agents'
+require 'signalwire'
 require 'json'
 
 # --- Expression-based command processor ---
 
-command_processor = SignalWireAgents::DataMap.new('command_processor')
+command_processor = SignalWire::DataMap.new('command_processor')
   .purpose('Process user commands with pattern matching')
   .parameter('command', 'string', 'User command to process', required: true)
   .parameter('target', 'string', 'Optional target for the command', required: false)
 
 command_processor.expression(
   '${args.command}', '^start',
-  SignalWireAgents::Swaig::FunctionResult.new('Starting process: ${args.target}')
+  SignalWire::Swaig::FunctionResult.new('Starting process: ${args.target}')
 )
 command_processor.expression(
   '${args.command}', '^stop',
-  SignalWireAgents::Swaig::FunctionResult.new('Stopping process: ${args.target}')
+  SignalWire::Swaig::FunctionResult.new('Stopping process: ${args.target}')
 )
 command_processor.expression(
   '${args.command}', '^status',
-  SignalWireAgents::Swaig::FunctionResult.new('Checking status of: ${args.target}'),
-  nomatch_output: SignalWireAgents::Swaig::FunctionResult.new(
+  SignalWire::Swaig::FunctionResult.new('Checking status of: ${args.target}'),
+  nomatch_output: SignalWire::Swaig::FunctionResult.new(
     'Unknown command: ${args.command}. Try start, stop, or status.'
   )
 )
 
 # --- Advanced webhook tool ---
 
-advanced_api = SignalWireAgents::DataMap.new('advanced_api_tool')
+advanced_api = SignalWire::DataMap.new('advanced_api_tool')
   .purpose('API tool with advanced webhook features')
   .parameter('action', 'string', 'Action to perform', required: true)
   .parameter('data', 'string', 'Data to send', required: false)
@@ -68,16 +68,16 @@ advanced_api.webhook(
 )
 advanced_api.params('q' => '${args.action}')
 advanced_api.output(
-  SignalWireAgents::Swaig::FunctionResult.new('Backup result: ${response.data}')
+  SignalWire::Swaig::FunctionResult.new('Backup result: ${response.data}')
 )
 advanced_api.fallback_output(
-  SignalWireAgents::Swaig::FunctionResult.new('All APIs are currently unavailable')
+  SignalWire::Swaig::FunctionResult.new('All APIs are currently unavailable')
 )
 advanced_api.global_error_keys(%w[error fault exception])
 
 # --- Form-encoded submission ---
 
-form_tool = SignalWireAgents::DataMap.new('form_submission_tool')
+form_tool = SignalWire::DataMap.new('form_submission_tool')
   .purpose('Submit form data using form encoding')
   .parameter('name', 'string', 'User name', required: true)
   .parameter('email', 'string', 'User email', required: true)
@@ -96,14 +96,14 @@ form_tool = SignalWireAgents::DataMap.new('form_submission_tool')
     'message' => '${args.message}'
   )
   .output(
-    SignalWireAgents::Swaig::FunctionResult.new(
+    SignalWire::Swaig::FunctionResult.new(
       'Form submitted successfully for ${args.name}'
     )
   )
 
 # --- Array processing with foreach ---
 
-search_tool = SignalWireAgents::DataMap.new('search_results_tool')
+search_tool = SignalWire::DataMap.new('search_results_tool')
   .purpose('Search and format results from API')
   .parameter('query', 'string', 'Search query', required: true)
   .parameter('limit', 'string', 'Maximum results', required: false)
@@ -119,7 +119,7 @@ search_tool = SignalWireAgents::DataMap.new('search_results_tool')
     'append'     => "Title: ${this.title}\n${this.summary}\nURL: ${this.url}\n\n"
   )
   .output(
-    SignalWireAgents::Swaig::FunctionResult.new(
+    SignalWire::Swaig::FunctionResult.new(
       'Found results for "${args.query}":\n\n${formatted_results}'
     )
   )

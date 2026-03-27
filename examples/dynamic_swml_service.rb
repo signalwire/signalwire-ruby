@@ -6,10 +6,10 @@
 # SWML responses based on the request path and POST data, without any
 # AI components.
 
-require 'signalwire_agents'
+require 'signalwire'
 require 'json'
 
-service = SignalWireAgents::SWML::Service.new(
+service = SignalWire::SWML::Service.new(
   name:  'dynamic-greeting',
   route: '/greeting'
 )
@@ -21,7 +21,7 @@ service.hangup
 
 # Register a callback for the /vip sub-path
 service.register_routing_callback('/vip') do |request_data|
-  doc = SignalWireAgents::SWML::Document.new
+  doc = SignalWire::SWML::Document.new
   doc.add_verb('answer', {})
 
   caller_name = request_data && request_data['caller_name']
@@ -35,7 +35,7 @@ end
 
 # Register a callback for the /new sub-path
 service.register_routing_callback('/new') do |_request_data|
-  doc = SignalWireAgents::SWML::Document.new
+  doc = SignalWire::SWML::Document.new
   doc.add_verb('answer', {})
   doc.add_verb('play', { 'url' => 'say:Welcome to our service! Press 1 to learn about our products, 2 to speak with sales.' })
   doc.add_verb('hangup', {})

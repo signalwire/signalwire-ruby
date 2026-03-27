@@ -6,11 +6,11 @@
 # to configure three distinct agent styles: precise, creative, and
 # customer-service.
 
-require 'signalwire_agents'
+require 'signalwire'
 
 # --- Precise technical assistant ---
 
-precise = SignalWireAgents::AgentBase.new(name: 'precise-assistant', route: '/precise')
+precise = SignalWire::AgentBase.new(name: 'precise-assistant', route: '/precise')
 
 precise.prompt_add_section('Role', 'You are a precise technical assistant.')
 precise.prompt_add_section('Instructions', nil, bullets: [
@@ -32,14 +32,14 @@ precise.set_post_prompt_llm_params(temperature: 0.1)
 precise.define_tool(
   name: 'get_system_info', description: 'Get system info', parameters: {}
 ) do |_args, _raw_data|
-  SignalWireAgents::Swaig::FunctionResult.new(
+  SignalWire::Swaig::FunctionResult.new(
     "System Status: CPU #{rand(10..90)}%, Memory #{rand(1..16)}GB, Uptime #{rand(1..30)} days"
   )
 end
 
 # --- Creative writing assistant ---
 
-creative = SignalWireAgents::AgentBase.new(name: 'creative-assistant', route: '/creative')
+creative = SignalWire::AgentBase.new(name: 'creative-assistant', route: '/creative')
 
 creative.prompt_add_section('Role', 'You are a creative writing assistant.')
 creative.prompt_add_section('Instructions', nil, bullets: [
@@ -68,14 +68,14 @@ creative.define_tool(
     'mystery'   => 'A photograph where people keep disappearing',
     'default'   => 'An ordinary object with extraordinary powers'
   }
-  SignalWireAgents::Swaig::FunctionResult.new(
+  SignalWire::Swaig::FunctionResult.new(
     "Story prompt for #{theme}: #{prompts.fetch(theme.downcase, prompts['default'])}"
   )
 end
 
 # --- Customer service agent ---
 
-support = SignalWireAgents::AgentBase.new(name: 'customer-service', route: '/support')
+support = SignalWire::AgentBase.new(name: 'customer-service', route: '/support')
 
 support.prompt_add_section('Role', 'You are a professional customer service representative.')
 support.prompt_add_section('Guidelines', nil, bullets: [
@@ -105,12 +105,12 @@ support.define_tool(
     'Out for delivery - Expected today by 6 PM',
     'Delivered - Left at front door'
   ]
-  SignalWireAgents::Swaig::FunctionResult.new("Order #{order_id}: #{statuses.sample}")
+  SignalWire::Swaig::FunctionResult.new("Order #{order_id}: #{statuses.sample}")
 end
 
 # --- Host all three on one server ---
 
-server = SignalWireAgents::AgentServer.new(host: '0.0.0.0', port: 3000)
+server = SignalWire::AgentServer.new(host: '0.0.0.0', port: 3000)
 server.register(precise)
 server.register(creative)
 server.register(support)

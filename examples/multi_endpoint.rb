@@ -10,11 +10,11 @@
 #   /info    -- Information desk agent
 #   /health  -- Built-in health check
 
-require 'signalwire_agents'
+require 'signalwire'
 
 # --- Voice AI agent ---
 
-voice = SignalWireAgents::AgentBase.new(name: 'voice-assistant', route: '/voice')
+voice = SignalWire::AgentBase.new(name: 'voice-assistant', route: '/voice')
 voice.prompt_add_section('Role', 'You are a helpful voice assistant.')
 voice.prompt_add_section('Instructions', nil, bullets: [
   'Greet callers warmly.',
@@ -27,12 +27,12 @@ voice.define_tool(
   name: 'get_time', description: 'Get the current time', parameters: {}
 ) do |_args, _raw_data|
   now = Time.now.strftime('%I:%M %p')
-  SignalWireAgents::Swaig::FunctionResult.new("The current time is #{now}")
+  SignalWire::Swaig::FunctionResult.new("The current time is #{now}")
 end
 
 # --- Information desk agent ---
 
-info = SignalWireAgents::AgentBase.new(name: 'info-desk', route: '/info')
+info = SignalWire::AgentBase.new(name: 'info-desk', route: '/info')
 info.prompt_add_section('Role', 'You are an information desk assistant.')
 info.prompt_add_section('Guidelines', nil, bullets: [
   'Provide accurate information about the building and services.',
@@ -45,12 +45,12 @@ info.define_tool(
   parameters: { 'department' => { 'type' => 'string', 'description' => 'Department name' } }
 ) do |args, _raw_data|
   dept = args['department'] || 'unknown'
-  SignalWireAgents::Swaig::FunctionResult.new("#{dept.capitalize}: Floor 3, Room 302. Hours 9 AM-5 PM.")
+  SignalWire::Swaig::FunctionResult.new("#{dept.capitalize}: Floor 3, Room 302. Hours 9 AM-5 PM.")
 end
 
 # --- Server ---
 
-server = SignalWireAgents::AgentServer.new(host: '0.0.0.0', port: 8080)
+server = SignalWire::AgentServer.new(host: '0.0.0.0', port: 8080)
 server.register(voice)
 server.register(info)
 

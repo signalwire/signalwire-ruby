@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
-require_relative '../../lib/signalwire_agents/swaig/function_result'
-require_relative '../../lib/signalwire_agents/skills/skill_base'
-require_relative '../../lib/signalwire_agents/skills/skill_registry'
-require_relative '../../lib/signalwire_agents/skills/builtin/spider'
+require_relative '../../lib/signalwire/swaig/function_result'
+require_relative '../../lib/signalwire/skills/skill_base'
+require_relative '../../lib/signalwire/skills/skill_registry'
+require_relative '../../lib/signalwire/skills/builtin/spider'
 
 class SpiderSkillDetailedTest < Minitest::Test
   def test_register_tools_returns_three_tools
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('spider')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('spider')
     skill = factory.call({})
     assert skill.setup
     tools = skill.register_tools
@@ -20,7 +20,7 @@ class SpiderSkillDetailedTest < Minitest::Test
   end
 
   def test_custom_tool_prefix
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('spider')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('spider')
     skill = factory.call({ 'tool_name' => 'myspider' })
     skill.setup
     tools = skill.register_tools
@@ -29,13 +29,13 @@ class SpiderSkillDetailedTest < Minitest::Test
   end
 
   def test_supports_multiple_instances
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('spider')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('spider')
     skill = factory.call({})
     assert skill.supports_multiple_instances?
   end
 
   def test_get_hints
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('spider')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('spider')
     skill = factory.call({})
     skill.setup
     hints = skill.get_hints
@@ -44,7 +44,7 @@ class SpiderSkillDetailedTest < Minitest::Test
   end
 
   def test_scrape_empty_url
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('spider')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('spider')
     skill = factory.call({})
     skill.setup
     tools = skill.register_tools

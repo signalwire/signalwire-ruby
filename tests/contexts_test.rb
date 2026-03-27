@@ -2,14 +2,14 @@
 
 require 'minitest/autorun'
 require 'set'
-require_relative '../lib/signalwire_agents/contexts/context_builder'
+require_relative '../lib/signalwire/contexts/context_builder'
 
 class ContextsTest < Minitest::Test
-  CB  = SignalWireAgents::Contexts::ContextBuilder
-  CTX = SignalWireAgents::Contexts::Context
-  STP = SignalWireAgents::Contexts::Step
-  GI  = SignalWireAgents::Contexts::GatherInfo
-  GQ  = SignalWireAgents::Contexts::GatherQuestion
+  CB  = SignalWire::Contexts::ContextBuilder
+  CTX = SignalWire::Contexts::Context
+  STP = SignalWire::Contexts::Step
+  GI  = SignalWire::Contexts::GatherInfo
+  GQ  = SignalWire::Contexts::GatherQuestion
 
   # ================================================================
   # ContextBuilder
@@ -683,13 +683,13 @@ class ContextsTest < Minitest::Test
   # ================================================================
 
   def test_create_simple_context_default_name
-    ctx = SignalWireAgents::Contexts.create_simple_context
+    ctx = SignalWire::Contexts.create_simple_context
     assert_instance_of CTX, ctx
     assert_equal 'default', ctx.name
   end
 
   def test_create_simple_context_custom_name
-    ctx = SignalWireAgents::Contexts.create_simple_context('custom')
+    ctx = SignalWire::Contexts.create_simple_context('custom')
     assert_equal 'custom', ctx.name
   end
 

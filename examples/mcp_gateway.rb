@@ -11,9 +11,9 @@
 #   MCP_GATEWAY_AUTH_USER    -- Basic auth username
 #   MCP_GATEWAY_AUTH_PASSWORD -- Basic auth password
 
-require 'signalwire_agents'
+require 'signalwire'
 
-agent = SignalWireAgents::AgentBase.new(
+agent = SignalWire::AgentBase.new(
   name:  'MCP Gateway Agent',
   route: '/mcp-gateway'
 )

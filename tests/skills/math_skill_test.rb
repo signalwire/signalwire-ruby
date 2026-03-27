@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
-require_relative '../../lib/signalwire_agents/swaig/function_result'
-require_relative '../../lib/signalwire_agents/skills/skill_base'
-require_relative '../../lib/signalwire_agents/skills/skill_registry'
-require_relative '../../lib/signalwire_agents/skills/builtin/math'
+require_relative '../../lib/signalwire/swaig/function_result'
+require_relative '../../lib/signalwire/skills/skill_base'
+require_relative '../../lib/signalwire/skills/skill_registry'
+require_relative '../../lib/signalwire/skills/builtin/math'
 
 class MathSkillDetailedTest < Minitest::Test
   def setup
-    factory = SignalWireAgents::Skills::SkillRegistry.get_factory('math')
+    factory = SignalWire::Skills::SkillRegistry.get_factory('math')
     @skill = factory.call({})
     @skill.setup
     @calc = @skill.register_tools[0][:handler]

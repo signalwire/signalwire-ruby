@@ -4,11 +4,11 @@ require 'minitest/autorun'
 
 ENV['SIGNALWIRE_LOG_MODE'] = 'off'
 
-require_relative '../lib/signalwire_agents'
+require_relative '../lib/signalwire'
 
 class RenderBasicStructureTest < Minitest::Test
   def test_basic_structure
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     swml = agent.render_swml
     assert_equal '1.0.0', swml['version']
     assert swml.key?('sections')
@@ -16,14 +16,14 @@ class RenderBasicStructureTest < Minitest::Test
   end
 
   def test_auto_answer_enabled
-    agent = SignalWireAgents::AgentBase.new(auto_answer: true)
+    agent = SignalWire::AgentBase.new(auto_answer: true)
     swml = agent.render_swml
     main = swml['sections']['main']
     assert main.any? { |v| v.key?('answer') }
   end
 
   def test_auto_answer_disabled
-    agent = SignalWireAgents::AgentBase.new(auto_answer: false)
+    agent = SignalWire::AgentBase.new(auto_answer: false)
     swml = agent.render_swml
     main = swml['sections']['main']
     refute main.any? { |v| v.key?('answer') }
@@ -32,7 +32,7 @@ end
 
 class RenderRecordCallTest < Minitest::Test
   def test_record_call
-    agent = SignalWireAgents::AgentBase.new(record_call: true, record_format: 'wav', record_stereo: false)
+    agent = SignalWire::AgentBase.new(record_call: true, record_format: 'wav', record_stereo: false)
     swml = agent.render_swml
     main = swml['sections']['main']
     rec = main.find { |v| v.key?('record_call') }
@@ -44,7 +44,7 @@ end
 
 class RenderWithToolsTest < Minitest::Test
   def test_tools_rendered
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.define_tool(name: 'foo', description: 'Foo tool') { |_, _| }
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
@@ -57,7 +57,7 @@ end
 
 class RenderWithPromptTest < Minitest::Test
   def test_pom_prompt
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.prompt_add_section('Intro', 'Hello')
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
@@ -67,7 +67,7 @@ class RenderWithPromptTest < Minitest::Test
   end
 
   def test_text_prompt
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.set_prompt_text('You are helpful.')
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
@@ -77,7 +77,7 @@ end
 
 class Render5PhaseOrderingTest < Minitest::Test
   def test_5_phase_ordering
-    agent = SignalWireAgents::AgentBase.new(record_call: true)
+    agent = SignalWire::AgentBase.new(record_call: true)
     agent.add_pre_answer_verb('set', { 'x' => '1' })
     agent.add_post_answer_verb('play', { 'url' => 'welcome.mp3' })
     agent.add_post_ai_verb('hangup', {})
@@ -100,7 +100,7 @@ end
 
 class RenderEdgeCasesTest < Minitest::Test
   def test_empty_agent_renders
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     swml = agent.render_swml
     assert_equal '1.0.0', swml['version']
     main = swml['sections']['main']
@@ -108,7 +108,7 @@ class RenderEdgeCasesTest < Minitest::Test
   end
 
   def test_with_params
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     agent.set_params({ 'temperature' => 0.5 })
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
@@ -116,7 +116,7 @@ class RenderEdgeCasesTest < Minitest::Test
   end
 
   def test_contexts_rendered_in_swml
-    agent = SignalWireAgents::AgentBase.new
+    agent = SignalWire::AgentBase.new
     ctx = agent.define_contexts.add_context('default')
     ctx.add_step('greeting').set_text('Say hello')
     swml = agent.render_swml

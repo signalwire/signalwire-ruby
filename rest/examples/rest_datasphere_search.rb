@@ -2,14 +2,14 @@
 
 # Example: Upload a document to Datasphere and run a semantic search.
 #
-# Set these env vars (or pass them directly to SignalWireClient.new):
+# Set these env vars (or pass them directly to RestClient.new):
 #   SIGNALWIRE_PROJECT_ID   - your SignalWire project ID
 #   SIGNALWIRE_API_TOKEN    - your SignalWire API token
 #   SIGNALWIRE_SPACE        - your SignalWire space (e.g. example.signalwire.com)
 
-require 'signalwire_agents'
+require 'signalwire'
 
-client = SignalWireAgents::REST::SignalWireClient.new
+client = SignalWire::REST::RestClient.new
 
 # 1. Upload a document (a publicly accessible text file)
 puts 'Uploading document to Datasphere...'

@@ -5,13 +5,13 @@
 # Demonstrates join_room for multi-party rooms, sip_refer for SIP
 # transfers, and join_conference for ad-hoc conferences.
 
-require 'signalwire_agents'
+require 'signalwire'
 require 'json'
 
 # --- Basic room join ---
 
 puts '=== Basic Room Join ==='
-room = SignalWireAgents::Swaig::FunctionResult.new('Joining the support team room')
+room = SignalWire::Swaig::FunctionResult.new('Joining the support team room')
   .join_room('support_team_room')
   .say('Welcome to the support team collaboration room')
 puts JSON.pretty_generate(room.to_h)
@@ -20,7 +20,7 @@ puts
 # --- Conference room with metadata ---
 
 puts '=== Conference Room ==='
-conf_room = SignalWireAgents::Swaig::FunctionResult.new('Setting up daily standup meeting')
+conf_room = SignalWire::Swaig::FunctionResult.new('Setting up daily standup meeting')
   .join_room('daily_standup_room')
   .set_metadata(
     'meeting_type'   => 'daily_standup',
@@ -35,7 +35,7 @@ puts
 # --- SIP REFER transfer ---
 
 puts '=== SIP REFER ==='
-sip = SignalWireAgents::Swaig::FunctionResult.new('Transferring to support')
+sip = SignalWire::Swaig::FunctionResult.new('Transferring to support')
   .say('Please hold while I transfer you')
   .sip_refer('sip:support@company.com')
 puts JSON.pretty_generate(sip.to_h)
@@ -44,7 +44,7 @@ puts
 # --- Join conference ---
 
 puts '=== Join Conference ==='
-conference = SignalWireAgents::Swaig::FunctionResult.new('Joining team conference')
+conference = SignalWire::Swaig::FunctionResult.new('Joining team conference')
   .join_conference('daily_standup')
   .say('Welcome to the daily standup conference')
 puts JSON.pretty_generate(conference.to_h)
@@ -53,7 +53,7 @@ puts
 # --- Advanced conference with recording ---
 
 puts '=== Advanced Conference ==='
-adv_conf = SignalWireAgents::Swaig::FunctionResult.new('Setting up recorded conference')
+adv_conf = SignalWire::Swaig::FunctionResult.new('Setting up recorded conference')
   .join_conference(
     'customer_training_session',
     record:                  'record-from-start',

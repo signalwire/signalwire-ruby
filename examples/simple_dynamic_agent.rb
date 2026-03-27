@@ -7,9 +7,9 @@
 # This is useful for multi-tenant deployments where each caller gets a
 # customised experience.
 
-require 'signalwire_agents'
+require 'signalwire'
 
-agent = SignalWireAgents::AgentBase.new(name: 'dynamic_agent', route: '/')
+agent = SignalWire::AgentBase.new(name: 'dynamic_agent', route: '/')
 
 # Base prompt -- will be augmented per-request
 agent.prompt_add_section('Role', 'You are a helpful assistant.')
@@ -63,7 +63,7 @@ agent.define_tool(
   parameters:  {}
 ) do |_args, _raw_data|
   # In production, global_data would be populated per-request
-  SignalWireAgents::Swaig::FunctionResult.new(
+  SignalWire::Swaig::FunctionResult.new(
     'Company info is available in the global data.'
   )
 end
