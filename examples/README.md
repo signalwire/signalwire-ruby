@@ -9,6 +9,7 @@ Standalone Ruby scripts demonstrating the SignalWire AI Agents SDK. Each example
 | [simple_agent.rb](simple_agent.rb) | Basic agent with tools, hints, and language configuration |
 | [simple_static.rb](simple_static.rb) | Minimal static agent with voice, params, hints, and structured prompts |
 | [simple_dynamic_agent.rb](simple_dynamic_agent.rb) | Per-request dynamic configuration callback for multi-tenant deployments |
+| [simple_dynamic_enhanced.rb](simple_dynamic_enhanced.rb) | Enhanced dynamic config: VIP, department, customer ID, language |
 | [comprehensive_dynamic.rb](comprehensive_dynamic.rb) | Tier-based dynamic config with industry prompts, A/B testing, and voice selection |
 | [custom_path.rb](custom_path.rb) | Agent with a custom HTTP path (`/chat`) and query-param personalisation |
 | [declarative.rb](declarative.rb) | Declarative agent config with prompt sections, post-prompt, and summary callback |
@@ -30,15 +31,21 @@ Standalone Ruby scripts demonstrating the SignalWire AI Agents SDK. Each example
 | File | Description |
 |------|-------------|
 | [joke_agent.rb](joke_agent.rb) | Joke skill integration (requires `API_NINJAS_KEY`) |
+| [joke_skill.rb](joke_skill.rb) | Joke skill via the modular skills system with DataMap |
 | [web_search.rb](web_search.rb) | Web search skill via Google Custom Search API |
+| [web_search_multi_instance.rb](web_search_multi_instance.rb) | Multiple web search instances (general, news, quick) |
 | [wikipedia.rb](wikipedia.rb) | Wikipedia search skill for factual information retrieval |
 | [datasphere.rb](datasphere.rb) | DataSphere skill with multiple instances and custom tool names |
+| [datasphere_multi_instance.rb](datasphere_multi_instance.rb) | DataSphere multi-instance with custom tool names |
+| [datasphere_serverless_env.rb](datasphere_serverless_env.rb) | DataSphere serverless from environment variables |
+| [datasphere_webhook_env.rb](datasphere_webhook_env.rb) | Webhook-based DataSphere from environment variables |
 | [mcp_gateway.rb](mcp_gateway.rb) | MCP gateway skill connecting to Model Context Protocol servers |
 
 ## Prefab Examples
 
 | File | Description |
 |------|-------------|
+| [dynamic_info_gatherer.rb](dynamic_info_gatherer.rb) | Dynamic InfoGatherer with callback-based question selection |
 | [prefab_info_gatherer.rb](prefab_info_gatherer.rb) | InfoGatherer prefab: collect structured answers from callers |
 | [prefab_survey.rb](prefab_survey.rb) | Survey prefab: conduct automated phone surveys with ratings and open-ended questions |
 | [concierge.rb](concierge.rb) | ConciergeAgent prefab: hotel virtual concierge with amenity/service lookups |
@@ -49,6 +56,7 @@ Standalone Ruby scripts demonstrating the SignalWire AI Agents SDK. Each example
 
 | File | Description |
 |------|-------------|
+| [auto_vivified.rb](auto_vivified.rb) | Auto-vivified verb methods on SWMLService |
 | [swml_service.rb](swml_service.rb) | Basic SWMLService (non-AI): voicemail, recording, and call transfer |
 | [dynamic_swml_service.rb](dynamic_swml_service.rb) | Dynamic SWML service with routing callbacks for VIP/new callers |
 | [swml_service_routing.rb](swml_service_routing.rb) | SWML service with sub-path routing (customer, product) |
