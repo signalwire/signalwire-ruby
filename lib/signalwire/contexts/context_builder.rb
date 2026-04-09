@@ -10,6 +10,20 @@ module SignalWire
     MAX_CONTEXTS = 50
     MAX_STEPS_PER_CONTEXT = 100
 
+    # Reserved tool names auto-injected by the runtime when contexts/steps
+    # are present. User-defined SWAIG tools must not collide with these
+    # names.
+    #
+    #   - next_step / change_context are injected when valid_steps or
+    #     valid_contexts is set so the model can navigate the flow.
+    #   - gather_submit is injected while a step's gather_info is
+    #     collecting answers.
+    #
+    # ContextBuilder#validate! rejects any agent that registers a user
+    # tool sharing one of these names — the runtime would never call the
+    # user tool because the native one wins.
+    RESERVED_NATIVE_TOOL_NAMES = %w[next_step change_context gather_submit].freeze
+
     # Represents a single question in a gather_info configuration.
     class GatherQuestion
       attr_accessor :key, :question, :type, :confirm, :prompt, :functions
@@ -126,7 +140,37 @@ module SignalWire
         self
       end
 
-      # @param functions [String, Array<String>] "none" to disable all, or list of names
+      # Set which non-internal functions are callable while this step is
+      # active.
+      #
+      # IMPORTANT — inheritance behavior:
+      #   If you do NOT call this method, the step inherits whichever
+      #   function set was active on the previous step (or the previous
+      #   context's last step). The server-side runtime only resets the
+      #   active set when a step explicitly declares its +functions+
+      #   field. This is the most common source of bugs in multi-step
+      #   agents: forgetting +set_functions+ on a later step lets the
+      #   previous step's tools leak through. Best practice is to call
+      #   +set_functions+ explicitly on every step that should differ
+      #   from the previous one.
+      #
+      # Keep the per-step active set small: LLM tool selection accuracy
+      # degrades noticeably past ~7-8 simultaneously-active tools per
+      # call. Use per-step whitelisting to partition large tool
+      # collections.
+      #
+      # Internal functions (e.g. +gather_submit+, hangup hook) are
+      # ALWAYS protected and cannot be deactivated by this whitelist.
+      # The native navigation tools +next_step+ and +change_context+ are
+      # injected automatically when +set_valid_steps+/+set_valid_contexts+
+      # is used; they are not affected by this list and do not need to
+      # appear in it.
+      #
+      # @param functions [String, Array<String>] one of:
+      #   - Array<String> — whitelist of function names allowed in this
+      #     step. Functions not in the list become inactive.
+      #   - [] — explicit disable-all (no user functions callable).
+      #   - "none" — synonym for [], same effect.
       def set_functions(functions)
         @functions = functions
         self
@@ -142,6 +186,18 @@ module SignalWire
         self
       end
 
+      # Mark this step as terminal for the step flow.
+      #
+      # IMPORTANT: +is_end+ = true does NOT end the conversation or hang
+      # up the call. It exits step mode entirely after this step
+      # executes — clearing the steps list, current step index,
+      # valid_steps, and valid_contexts. The agent keeps running, but
+      # operates only under the base system prompt and the
+      # context-level prompt; no more step instructions are injected
+      # and no more +next_step+ tool is offered.
+      #
+      # To actually end the call, call a hangup tool or define a
+      # hangup hook.
       def set_end(is_end)
         @end = is_end
         self
@@ -170,6 +226,25 @@ module SignalWire
 
       # Add a question to this step's gather_info configuration.
       # +set_gather_info+ must be called first.
+      #
+      # IMPORTANT — gather mode locks function access:
+      #   While the model is asking gather questions, the runtime
+      #   forcibly deactivates ALL of the step's other functions. The
+      #   only callable tools during a gather question are:
+      #
+      #     - +gather_submit+ (the native answer-submission tool)
+      #     - Whatever names you pass in this question's +functions:+
+      #       option
+      #
+      #   +next_step+ and +change_context+ are also filtered out — the
+      #   model cannot navigate away until the gather completes. This
+      #   is by design: it forces a tight ask → submit → next-question
+      #   loop.
+      #
+      #   If a question needs to call out to a tool (e.g. validate an
+      #   email, geocode a ZIP), pass that tool name in this question's
+      #   +functions:+ option. Functions listed here are active ONLY for
+      #   this question.
       def add_gather_question(key:, question:, **opts)
         raise ArgumentError, "Must call set_gather_info before add_gather_question" if @gather_info.nil?
 
@@ -361,6 +436,24 @@ module SignalWire
         self
       end
 
+      # Mark this context as isolated — entering it wipes conversation
+      # history.
+      #
+      # When +val+ = true and the context is entered via change_context,
+      # the runtime wipes the conversation array. The model starts
+      # fresh with only the new context's system_prompt + step
+      # instructions, with no memory of prior turns.
+      #
+      # EXCEPTION — reset overrides the wipe:
+      #   If the context also has a reset configuration (via
+      #   +set_consolidate+ or +set_full_reset+), the wipe is skipped in
+      #   favor of the reset behavior. Use reset with consolidate=true
+      #   to summarize prior history into a single message instead of
+      #   dropping it entirely.
+      #
+      # Use cases: switching to a sensitive billing flow that should
+      # not see prior small-talk; handing off to a different agent
+      # persona; resetting after a long off-topic detour.
       def set_isolated(val)
         @isolated = val
         self
@@ -485,11 +578,57 @@ module SignalWire
       end
     end
 
-    # Main builder that holds multiple contexts and validates the configuration.
+    # Builder for multi-step, multi-context AI agent workflows.
+    #
+    # A ContextBuilder owns one or more Contexts; each Context owns an
+    # ordered list of Steps. Only one context and one step is active at
+    # a time. Per chat turn, the runtime injects the current step's
+    # instructions as a system message, then asks the LLM for a
+    # response.
+    #
+    # == Native tools auto-injected by the runtime
+    #
+    # When a step (or its enclosing context) declares +valid_steps+ or
+    # +valid_contexts+, the runtime auto-injects two native tools so
+    # the model can navigate the flow:
+    #
+    #   - +next_step(step: enum)+         — present when valid_steps is set
+    #   - +change_context(context: enum)+ — present when valid_contexts is set
+    #
+    # Their +enum+ schemas are rewritten on every turn to match
+    # whatever valid_steps / valid_contexts apply to the current step.
+    # You do NOT need to define these tools yourself; they appear
+    # automatically.
+    #
+    # A third native tool — +gather_submit+ — is injected during
+    # gather_info questioning (see Step#set_gather_info /
+    # Step#add_gather_question).
+    #
+    # These three names — +next_step+, +change_context+,
+    # +gather_submit+ — are reserved. +validate!+ will reject any agent
+    # that defines a SWAIG tool with one of these names. See
+    # RESERVED_NATIVE_TOOL_NAMES.
+    #
+    # == Function whitelisting (Step#set_functions)
+    #
+    # Each step may declare a +functions+ whitelist. The whitelist is
+    # applied in-memory at the start of each LLM turn. CRITICALLY: if a
+    # step does NOT declare a +functions+ field, it INHERITS the
+    # previous step's active set. See Step#set_functions for details
+    # and examples.
     class ContextBuilder
       def initialize
         @contexts      = {}   # name => Context
         @context_order = []
+        @agent         = nil
+      end
+
+      # Attach an agent reference so +validate!+ can check
+      # user-defined tool names against RESERVED_NATIVE_TOOL_NAMES.
+      # Called internally by AgentBase#define_contexts.
+      def attach_agent(agent)
+        @agent = agent
+        self
       end
 
       # Add a new context. Returns the Context object.
@@ -591,13 +730,41 @@ module SignalWire
                 idx = ctx._step_order.index(step_name)
                 if idx >= ctx._step_order.size - 1
                   raise ArgumentError,
-                        "Step '#{step_name}' in context '#{ctx_name}' has gather_info completion_action='next_step' but it is the last step"
+                        "Step '#{step_name}' in context '#{ctx_name}' has gather_info " \
+                        "completion_action='next_step' but it is the last step in the " \
+                        "context. Either (1) add another step after '#{step_name}', " \
+                        "(2) set completion_action to the name of an existing step in " \
+                        "this context to jump to it, or (3) set completion_action=nil " \
+                        "(default) to stay in '#{step_name}' after gathering completes."
                 end
               elsif !ctx._steps.key?(action)
+                available = ctx._steps.keys.sort
                 raise ArgumentError,
-                      "Step '#{step_name}' in context '#{ctx_name}' has gather_info completion_action='#{action}' but step '#{action}' does not exist"
+                      "Step '#{step_name}' in context '#{ctx_name}' has gather_info " \
+                      "completion_action='#{action}' but '#{action}' is not a step in " \
+                      "this context. Valid options: 'next_step' (advance to the next " \
+                      "sequential step), nil (stay in the current step), or one of " \
+                      "#{available.inspect}."
               end
             end
+          end
+        end
+
+        # Validate that user-defined tools do not collide with reserved
+        # native tool names. The runtime auto-injects next_step /
+        # change_context / gather_submit when contexts/steps are
+        # present, so user tools sharing those names would never be
+        # called.
+        if @agent && @agent.respond_to?(:list_tool_names)
+          registered = @agent.list_tool_names.to_a
+          colliding = registered.select { |n| RESERVED_NATIVE_TOOL_NAMES.include?(n) }.sort.uniq
+          if colliding.any?
+            raise ArgumentError,
+                  "Tool name(s) #{colliding.inspect} collide with reserved native " \
+                  "tools auto-injected by contexts/steps. The names " \
+                  "#{RESERVED_NATIVE_TOOL_NAMES.sort.inspect} are reserved and " \
+                  "cannot be used for user-defined SWAIG tools when contexts/steps " \
+                  "are in use. Rename your tool(s) to avoid the collision."
           end
         end
 
