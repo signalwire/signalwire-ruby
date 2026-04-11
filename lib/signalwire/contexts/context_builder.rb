@@ -339,6 +339,7 @@ module SignalWire
         # Navigation
         @valid_contexts = nil
         @valid_steps    = nil
+        @initial_step   = nil
 
         # Context entry parameters
         @post_prompt     = nil
@@ -389,6 +390,17 @@ module SignalWire
 
         @step_order.delete(name)
         @step_order.insert(position, name)
+        self
+      end
+
+      # Set which step the context starts on when entered.
+      #
+      # By default, a context starts on its first step (index 0). Use
+      # this to skip a preamble step on re-entry via +change_context+.
+      #
+      # @param step_name [String] name of the step to start on.
+      def set_initial_step(step_name)
+        @initial_step = step_name
         self
       end
 
@@ -526,6 +538,7 @@ module SignalWire
 
         ctx["valid_contexts"] = @valid_contexts if @valid_contexts
         ctx["valid_steps"]    = @valid_steps    if @valid_steps
+        ctx["initial_step"]   = @initial_step   if @initial_step
         ctx["post_prompt"]    = @post_prompt    if @post_prompt
 
         sys = render_system_prompt
@@ -550,8 +563,9 @@ module SignalWire
 
       # Expose internal state for validation
       # @api private
-      def _steps;      @steps;      end
-      def _step_order; @step_order; end
+      def _steps;        @steps;        end
+      def _step_order;   @step_order;   end
+      def _initial_step; @initial_step; end
 
       private
 
@@ -631,6 +645,15 @@ module SignalWire
         self
       end
 
+      # Remove all contexts, returning the builder to its initial state.
+      # Use this in a dynamic config callback when you need to rebuild
+      # contexts from scratch for a specific request.
+      def reset
+        @contexts.clear
+        @context_order.clear
+        self
+      end
+
       # Add a new context. Returns the Context object.
       def add_context(name)
         raise ArgumentError, "Context '#{name}' already exists" if @contexts.key?(name)
@@ -660,6 +683,17 @@ module SignalWire
         # Each context must have at least one step
         @contexts.each do |ctx_name, ctx|
           raise ArgumentError, "Context '#{ctx_name}' must have at least one step" if ctx._steps.empty?
+        end
+
+        # Validate initial_step references a real step in the context
+        @contexts.each do |ctx_name, ctx|
+          is = ctx._initial_step
+          if is && !ctx._steps.key?(is)
+            available = ctx._steps.keys.sort
+            raise ArgumentError,
+                  "Context '#{ctx_name}' has initial_step='#{is}' but that step does " \
+                  "not exist. Available steps: #{available.inspect}"
+          end
         end
 
         # Validate step references in valid_steps

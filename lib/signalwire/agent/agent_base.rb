@@ -613,6 +613,15 @@ module SignalWire
 
     alias contexts define_contexts
 
+    # Remove all contexts, returning the agent to a no-contexts state.
+    # This is a convenience wrapper around +define_contexts.reset+.
+    # Use it in a dynamic config callback when you need to rebuild
+    # contexts from scratch for a specific request.
+    def reset_contexts
+      @context_builder&.reset
+      self
+    end
+
     # Return the names of all registered SWAIG tools in insertion
     # order. Used by ContextBuilder#validate! to detect collisions with
     # reserved native tool names.
