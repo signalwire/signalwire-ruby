@@ -9,30 +9,264 @@
 #
 # swaig-test — CLI tool for testing SWAIG agent endpoints.
 #
-# Usage:
-#   swaig-test --url http://user:pass@host:port/route --dump-swml
-#   swaig-test --url http://user:pass@host:port/route --list-tools
-#   swaig-test --url http://user:pass@host:port/route --exec tool_name --param key=value
+# Two modes:
+#
+#   (1) URL mode — hit a live agent over HTTP:
+#
+#       swaig-test --url http://user:pass@host:port/route --dump-swml
+#       swaig-test --url http://user:pass@host:port/route --list-tools
+#       swaig-test --url http://user:pass@host:port/route --exec tool_name --param key=value
+#
+#   (2) File mode with serverless simulation — load an agent source file
+#       and route invocations through the platform adapter (no HTTP server):
+#
+#       swaig-test agent.rb --simulate-serverless lambda
+#       swaig-test agent.rb --simulate-serverless lambda --dump-swml
+#       swaig-test agent.rb --simulate-serverless lambda --exec tool_name --param key=value
+#
+#   Only platforms the SDK has actually implemented are accepted. Today
+#   that's `lambda` only; `gcf`, `cgi`, and `azure` are rejected with a
+#   pointer to the phase-9 gap.
 #
 
 require 'net/http'
 require 'uri'
 require 'json'
 require 'optparse'
+require 'base64'
 
 module SwaigTest
+  # Platforms the port has a Phase-9 handler adapter for. Anything else
+  # must be rejected with a clear error so users don't accidentally exercise
+  # the fall-through HTTP path and think the simulator worked.
+  IMPLEMENTED_SERVERLESS_PLATFORMS = %w[lambda].freeze
+
+  # All platforms the porting guide recognises, so the CLI can emit a
+  # helpful "recognised but not implemented" error rather than
+  # "unrecognised value" for the in-progress ones.
+  RECOGNISED_SERVERLESS_PLATFORMS = %w[lambda cgi gcf google_cloud_function azure azure_function].freeze
+
+  # Environment variables the simulator touches. Captured so the simulator
+  # can snapshot and restore them no matter what path the invocation took.
+  LAMBDA_SIMULATION_ENV_VARS = %w[
+    AWS_LAMBDA_FUNCTION_NAME
+    AWS_LAMBDA_FUNCTION_URL
+    AWS_REGION
+    LAMBDA_TASK_ROOT
+    _HANDLER
+    SWML_PROXY_URL_BASE
+  ].freeze
+
+  # Snapshot + restore the env vars a serverless simulation touches, so
+  # tests in the same process (and users who invoke the CLI repeatedly in
+  # a shell session) never inherit leaked state.
+  module RuntimeEnvIsolation
+    def self.snapshot(keys = LAMBDA_SIMULATION_ENV_VARS)
+      keys.each_with_object({}) { |k, h| h[k] = ENV[k] }
+    end
+
+    def self.restore(snapshot)
+      snapshot.each do |k, v|
+        if v.nil?
+          ENV.delete(k)
+        else
+          ENV[k] = v
+        end
+      end
+    end
+  end
+
+  # Serverless platform simulator. Responsible for:
+  #   * setting the mode-detection env vars for the target platform,
+  #   * clearing conflicting env vars (notably SWML_PROXY_URL_BASE),
+  #   * restoring the original environment on deactivate.
+  #
+  # Mirrors signalwire/cli/simulation/mock_env.py's ServerlessSimulator.
+  class ServerlessSimulator
+    LAMBDA_PRESETS = {
+      'AWS_LAMBDA_FUNCTION_NAME' => 'test-agent-function',
+      'LAMBDA_TASK_ROOT'         => '/var/task',
+      'AWS_REGION'               => 'us-east-1',
+      '_HANDLER'                 => 'lambda_function.handler'
+    }.freeze
+
+    attr_reader :platform, :overrides
+
+    def initialize(platform, overrides: {}, verbose: false, io: $stderr)
+      @platform  = platform
+      @overrides = overrides || {}
+      @verbose   = verbose
+      @io        = io
+      @snapshot  = nil
+      @active    = false
+    end
+
+    def activate
+      return if @active
+
+      @snapshot = RuntimeEnvIsolation.snapshot
+
+      # Clear conflicting env vars BEFORE applying presets so that a
+      # SWML_PROXY_URL_BASE set in the outer shell can't override the
+      # platform-derived base URL during the simulation.
+      ENV.delete('SWML_PROXY_URL_BASE')
+
+      preset_for_platform.each { |k, v| ENV[k] = v }
+      @overrides.each { |k, v| ENV[k] = v }
+
+      # Match Python: warn if SWML_PROXY_URL_BASE somehow survived (e.g.
+      # an override re-set it). A live warning here is far cheaper than
+      # silently generating the wrong webhook URLs.
+      if ENV['SWML_PROXY_URL_BASE'] && !ENV['SWML_PROXY_URL_BASE'].empty?
+        @io.puts "WARNING: SWML_PROXY_URL_BASE still set after simulation clear: #{ENV['SWML_PROXY_URL_BASE'].inspect}"
+      end
+
+      @active = true
+
+      return unless @verbose
+
+      @io.puts "Activated #{@platform} environment simulation"
+      preset_for_platform.each_key do |k|
+        @io.puts "  #{k}: #{ENV[k]}"
+      end
+    end
+
+    def deactivate
+      return unless @active
+      RuntimeEnvIsolation.restore(@snapshot) if @snapshot
+      @snapshot = nil
+      @active   = false
+      @io.puts "Deactivated #{@platform} environment simulation" if @verbose
+    end
+
+    # Scope helper so callers can wrap a block in activate/deactivate
+    # without hand-rolling begin/ensure.
+    def with_simulation
+      activate
+      yield self
+    ensure
+      deactivate
+    end
+
+    private
+
+    def preset_for_platform
+      case @platform
+      when 'lambda' then LAMBDA_PRESETS
+      else {}  # unreachable — validated in CLI
+      end
+    end
+  end
+
+  # Dispatches synthetic Lambda Function URL events into a
+  # SignalWire::Serverless::LambdaHandler. Used by --simulate-serverless
+  # lambda to exercise the adapter instead of the HTTP server.
+  class LambdaAdapterDispatcher
+    def initialize(agent)
+      @agent   = agent
+      @handler = SignalWire::Serverless::LambdaHandler.for(agent)
+    end
+
+    # GET the agent's root route and return the response body as a
+    # parsed hash (the SWML document). Raises RuntimeError on non-2xx.
+    def dump_swml
+      route   = @agent.route == '/' ? '/' : @agent.route
+      event   = build_event('GET', route)
+      resp    = @handler.call(event, nil)
+      ensure_success!(resp, "dump-swml GET #{route}")
+      decode_body(resp)
+    end
+
+    # POST to <route>/swaig with a SWAIG invocation. Returns the
+    # response body parsed as a hash.
+    def exec_tool(func_name, params)
+      route = @agent.route == '/' ? '' : @agent.route
+      path  = "#{route}/swaig"
+      body  = JSON.generate(
+        'function' => func_name,
+        'argument' => { 'parsed' => [params || {}] }
+      )
+      auth  = basic_auth_header
+      headers = { 'content-type' => 'application/json' }
+      headers['authorization'] = auth if auth
+
+      event = build_event('POST', path, body: body, headers: headers)
+      resp  = @handler.call(event, nil)
+      ensure_success!(resp, "exec POST #{path}")
+      decode_body(resp)
+    end
+
+    private
+
+    def build_event(method, path, body: nil, headers: nil)
+      base_headers = {
+        'host' => ENV['AWS_LAMBDA_FUNCTION_URL']&.then { |u| URI.parse(u).host } ||
+                  "#{ENV['AWS_LAMBDA_FUNCTION_NAME']}.lambda-url.#{ENV['AWS_REGION']}.on.aws"
+      }
+      base_headers.merge!(headers) if headers
+
+      # Ensure auth is present for authenticated endpoints (SWML, swaig).
+      unless base_headers.key?('authorization') || path == '/health' || path == '/ready'
+        auth = basic_auth_header
+        base_headers['authorization'] = auth if auth
+      end
+
+      event = {
+        'version'        => '2.0',
+        'routeKey'       => '$default',
+        'rawPath'        => path,
+        'rawQueryString' => '',
+        'headers'        => base_headers,
+        'requestContext' => {
+          'http'  => { 'method' => method, 'path' => path, 'protocol' => 'HTTP/1.1' },
+          'stage' => '$default'
+        }
+      }
+      if body
+        event['body']            = body
+        event['isBase64Encoded'] = false
+      end
+      event
+    end
+
+    def basic_auth_header
+      # The agent auto-generates a random password at construction time;
+      # read it back via the public accessor so we can authenticate
+      # ourselves against it.
+      if @agent.respond_to?(:get_basic_auth_credentials)
+        user, pass = @agent.get_basic_auth_credentials
+        return "Basic " + ["#{user}:#{pass}"].pack('m0').chomp if user && pass
+      end
+      nil
+    end
+
+    def ensure_success!(resp, description)
+      status = resp['statusCode'].to_i
+      return if status >= 200 && status < 300
+      raise "Simulator: #{description} returned HTTP #{status}: #{resp['body']}"
+    end
+
+    def decode_body(resp)
+      body = resp['body'].to_s
+      body = Base64.decode64(body) if resp['isBase64Encoded']
+      JSON.parse(body)
+    end
+  end
+
   class CLI
     attr_reader :options
 
     def initialize(argv = ARGV)
       @options = {
-        url: nil,
-        dump_swml: false,
-        list_tools: false,
-        exec: nil,
-        params: {},
-        raw: false,
-        verbose: false
+        url:                 nil,
+        agent_file:          nil,
+        simulate_serverless: nil,
+        dump_swml:           false,
+        list_tools:          false,
+        exec:                nil,
+        params:              {},
+        raw:                 false,
+        verbose:             false
       }
       parse_options(argv)
     end
@@ -40,7 +274,9 @@ module SwaigTest
     def run
       validate_options!
 
-      if @options[:dump_swml]
+      if @options[:simulate_serverless]
+        run_simulated_serverless
+      elsif @options[:dump_swml]
         dump_swml
       elsif @options[:list_tools]
         list_tools
@@ -56,10 +292,15 @@ module SwaigTest
 
     def parse_options(argv)
       parser = OptionParser.new do |opts|
-        opts.banner = "Usage: swaig-test [options]"
+        opts.banner = "Usage: swaig-test [agent_file] [options]"
 
         opts.on("--url URL", "Agent URL with embedded auth (http://user:pass@host:port/route)") do |v|
           @options[:url] = v
+        end
+
+        opts.on("--simulate-serverless PLATFORM",
+                "Simulate the named serverless platform (loads agent file locally). Supported: #{IMPLEMENTED_SERVERLESS_PLATFORMS.join(', ')}") do |v|
+          @options[:simulate_serverless] = v
         end
 
         opts.on("--dump-swml", "GET SWML document and pretty-print it") do
@@ -77,7 +318,6 @@ module SwaigTest
         opts.on("--param KEY=VALUE", "Set a parameter (repeatable)") do |v|
           key, value = v.split('=', 2)
           if key && value
-            # Try to parse as JSON value (number, bool, etc.)
             @options[:params][key] = parse_param_value(value)
           else
             $stderr.puts "Warning: ignoring malformed --param '#{v}' (expected key=value)"
@@ -98,12 +338,28 @@ module SwaigTest
         end
       end
 
-      parser.parse!(argv)
+      remaining = parser.parse(argv)
+
+      # Any leftover positional argument is treated as an agent source
+      # file path. This is the only way to invoke file mode, so we keep
+      # it outside of validate_options! for clearer error messages.
+      if remaining.length > 1
+        $stderr.puts "Error: at most one positional agent file may be given; got #{remaining.inspect}"
+        exit 1
+      elsif remaining.length == 1
+        @options[:agent_file] = remaining.first
+      end
     end
 
     def validate_options!
+      if @options[:simulate_serverless]
+        validate_simulate_serverless_options!
+        return
+      end
+
+      # Classic URL mode from here down.
       unless @options[:url]
-        $stderr.puts "Error: --url is required"
+        $stderr.puts "Error: --url is required (or pass an agent file with --simulate-serverless PLATFORM)"
         exit 1
       end
 
@@ -113,6 +369,45 @@ module SwaigTest
         exit 1
       elsif actions > 1
         $stderr.puts "Error: specify only one of --dump-swml, --list-tools, or --exec NAME"
+        exit 1
+      end
+    end
+
+    def validate_simulate_serverless_options!
+      platform = @options[:simulate_serverless]
+
+      unless IMPLEMENTED_SERVERLESS_PLATFORMS.include?(platform)
+        if RECOGNISED_SERVERLESS_PLATFORMS.include?(platform)
+          $stderr.puts "Error: --simulate-serverless #{platform.inspect} is not implemented in this SDK yet."
+          $stderr.puts "       Phase 9 (serverless support) has only shipped for: #{IMPLEMENTED_SERVERLESS_PLATFORMS.join(', ')}."
+          $stderr.puts "       Add the #{platform} handler adapter before enabling it here."
+        else
+          $stderr.puts "Error: unknown serverless platform #{platform.inspect}."
+          $stderr.puts "       Supported: #{IMPLEMENTED_SERVERLESS_PLATFORMS.join(', ')}."
+        end
+        exit 1
+      end
+
+      unless @options[:agent_file]
+        $stderr.puts "Error: --simulate-serverless requires a positional agent file argument"
+        $stderr.puts "Usage: swaig-test AGENT_FILE --simulate-serverless #{platform} [--dump-swml | --exec NAME]"
+        exit 1
+      end
+
+      unless File.exist?(@options[:agent_file])
+        $stderr.puts "Error: agent file not found: #{@options[:agent_file]}"
+        exit 1
+      end
+
+      # Simulated mode cannot combine with --url (different dispatch paths).
+      if @options[:url]
+        $stderr.puts "Error: --simulate-serverless and --url are mutually exclusive"
+        exit 1
+      end
+
+      actions = [@options[:dump_swml], @options[:list_tools], !!@options[:exec]].count(true)
+      if actions > 1
+        $stderr.puts "Error: specify at most one of --dump-swml, --list-tools, or --exec NAME"
         exit 1
       end
     end
@@ -300,6 +595,81 @@ module SwaigTest
       end
 
       functions
+    end
+
+    # --------------------------------------------------------------
+    # --simulate-serverless ... dispatch
+    # --------------------------------------------------------------
+
+    def run_simulated_serverless
+      require 'signalwire'
+
+      simulator = ServerlessSimulator.new(
+        @options[:simulate_serverless],
+        verbose: @options[:verbose]
+      )
+
+      simulator.with_simulation do
+        agent = load_agent_file(@options[:agent_file])
+        unless agent
+          $stderr.puts "Error: agent file #{@options[:agent_file].inspect} did not expose an AGENT constant (expected SignalWire::AgentBase)."
+          exit 1
+        end
+
+        dispatcher = LambdaAdapterDispatcher.new(agent)
+
+        if @options[:dump_swml]
+          puts format_json(dispatcher.dump_swml)
+        elsif @options[:exec]
+          puts format_json(dispatcher.exec_tool(@options[:exec], @options[:params]))
+        elsif @options[:list_tools]
+          swml = dispatcher.dump_swml
+          render_functions_list(extract_functions(swml))
+        else
+          # No sub-action: render the SWML and print it (matches the porting-guide
+          # "render SWML and exit" default).
+          puts format_json(dispatcher.dump_swml)
+        end
+      end
+    end
+
+    def load_agent_file(path)
+      # Use load rather than require so repeated CLI invocations in the
+      # same process (tests) don't silently no-op.
+      absolute = File.expand_path(path)
+      load(absolute)
+
+      # Preferred convention: the agent file defines a top-level
+      # constant named AGENT. Fall back to any SignalWire::AgentBase
+      # instance at top-level for forgiveness.
+      if Object.const_defined?(:AGENT)
+        candidate = Object.const_get(:AGENT)
+        return candidate if candidate.is_a?(SignalWire::AgentBase)
+      end
+
+      Object.constants.each do |c|
+        next if c == :AGENT
+        value = Object.const_get(c)
+        return value if value.is_a?(SignalWire::AgentBase)
+      end
+
+      nil
+    end
+
+    def render_functions_list(functions)
+      if functions.empty?
+        puts "No SWAIG functions found."
+        return
+      end
+      puts "SWAIG Functions:"
+      puts "-" * 60
+      functions.each do |func|
+        name = func['function'] || '(unnamed)'
+        desc = func['description'] || '(no description)'
+        puts "  #{name}"
+        puts "    #{desc}"
+        puts ""
+      end
     end
   end
 end
