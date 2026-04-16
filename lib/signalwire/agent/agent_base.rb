@@ -11,6 +11,7 @@ require 'openssl'
 require 'rack'
 require 'uri'
 require_relative '../logging'
+require_relative '../runtime'
 require_relative '../swml/document'
 require_relative '../swml/schema'
 require_relative '../swml/service'
@@ -1207,12 +1208,49 @@ module SignalWire
       url
     end
 
-    # Compute the base URL (with auth embedded).
+    # Compute the base URL for webhook construction.
+    #
+    # Precedence (matches the Python SDK):
+    #   1. +SWML_PROXY_URL_BASE+ or a call to +manual_set_proxy_url+
+    #      (an explicit override always wins)
+    #   2. AWS Lambda-derived URL when execution mode is +:lambda+
+    #      (either +AWS_LAMBDA_FUNCTION_URL+ or the Function URL built
+    #      from +AWS_LAMBDA_FUNCTION_NAME+ + +AWS_REGION+)
+    #   3. +http://user:pass@host:port+ for local server mode
+    #
+    # This method intentionally returns only the *base* — the agent's
+    # +@route+ is appended by {#_build_webhook_url}. Never bake the
+    # route into the base here, or a non-root agent deployed behind a
+    # proxy will have its mount point silently dropped from webhook
+    # URLs.
     def _base_url
-      return @proxy_url_base if @proxy_url_base && !@proxy_url_base.empty?
+      return @proxy_url_base.chomp('/') if @proxy_url_base && !@proxy_url_base.empty?
+
+      if Runtime.lambda?
+        lambda_base = Runtime.lambda_base_url
+        if lambda_base
+          user, pass = @basic_auth
+          return _embed_auth(lambda_base, user, pass)
+        end
+      end
 
       user, pass = @basic_auth
       "http://#{user}:#{pass}@#{@host}:#{@port}"
+    end
+
+    # Embed basic-auth credentials into +base+ immediately after the
+    # scheme. Returns +base+ untouched when either credential is blank
+    # or the URL already contains an @-delimited userinfo component.
+    def _embed_auth(base, user, pass)
+      return base if user.nil? || user.empty? || pass.nil? || pass.empty?
+
+      uri = URI.parse(base)
+      return base if uri.userinfo && !uri.userinfo.empty?
+
+      uri.userinfo = "#{URI.encode_www_form_component(user)}:#{URI.encode_www_form_component(pass)}"
+      uri.to_s
+    rescue URI::InvalidURIError
+      base
     end
 
     # Normalise tool parameters into JSON-Schema form.

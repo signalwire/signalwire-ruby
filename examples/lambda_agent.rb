@@ -1,34 +1,48 @@
 # frozen_string_literal: true
 
-# Example: Serverless-style agent pattern.
+# Example: AWS Lambda-deployed agent.
 #
-# Shows how to create an agent whose Rack app can be exported for use
-# in serverless environments (AWS Lambda via lamby, Cloud Functions,
-# or any Rack-compatible host).
+# This file doubles as:
+#   * A local script you can run directly (`ruby lambda_agent.rb`) — it
+#     boots a WEBrick server the same way every other example does.
+#   * A Lambda deployment entrypoint — bundle the SDK into a Lambda zip,
+#     point the function handler at `lambda_agent.handler`, and AWS will
+#     invoke the bottom of this file.
 #
-# For local testing, simply run this file directly.
+# No code changes are required between the two modes: the SDK auto-detects
+# Lambda via `AWS_LAMBDA_FUNCTION_NAME` / `LAMBDA_TASK_ROOT`, and
+# `SignalWire::Serverless::LambdaHandler` adapts API Gateway / Function
+# URL events to the agent's Rack app.
+#
+# Webhook URLs are derived automatically in this priority order:
+#   1. `SWML_PROXY_URL_BASE`          (any custom domain / proxy)
+#   2. `AWS_LAMBDA_FUNCTION_URL`      (Function URLs, the usual case)
+#   3. `https://{AWS_LAMBDA_FUNCTION_NAME}.lambda-url.{AWS_REGION}.on.aws`
+#
+# In each case the agent's `route:` is appended, so deploying at a
+# non-root route (e.g. `/my-agent`) just works.
 
 require 'signalwire'
 
-agent = SignalWire::AgentBase.new(
+AGENT = SignalWire::AgentBase.new(
   name:  'lambda-agent',
   route: '/'
 )
 
-agent.add_language('name' => 'English', 'code' => 'en-US', 'voice' => 'elevenlabs.rachel')
+AGENT.add_language('name' => 'English', 'code' => 'en-US', 'voice' => 'elevenlabs.rachel')
 
-agent.prompt_add_section(
+AGENT.prompt_add_section(
   'Role',
   'You are a helpful AI assistant running in a serverless environment.'
 )
 
-agent.prompt_add_section('Instructions', nil, bullets: [
+AGENT.prompt_add_section('Instructions', nil, bullets: [
   'Greet users warmly and offer help.',
   'Use the greet_user function when asked to greet someone.',
   'Use the get_time function when asked about the current time.'
 ])
 
-agent.define_tool(
+AGENT.define_tool(
   name:        'greet_user',
   description: 'Greet a user by name',
   parameters:  {
@@ -39,7 +53,7 @@ agent.define_tool(
   SignalWire::Swaig::FunctionResult.new("Hello #{name}! I'm running in serverless mode!")
 end
 
-agent.define_tool(
+AGENT.define_tool(
   name:        'get_time',
   description: 'Get the current time',
   parameters:  {}
@@ -47,12 +61,21 @@ agent.define_tool(
   SignalWire::Swaig::FunctionResult.new("Current time: #{Time.now.iso8601}")
 end
 
-# In a real serverless deployment you would export the Rack app:
-#   APP = agent.rack_app
-# and point your handler at APP.
-#
-# For local testing:
+# ---------------------------------------------------------------------------
+# Lambda entrypoint. AWS invokes `handler(event:, context:)` at the top level
+# of this file. `LambdaHandler.for(agent)` builds a long-lived adapter that
+# translates API Gateway / Function URL events to Rack and back.
+# ---------------------------------------------------------------------------
+HANDLER = SignalWire::Serverless::LambdaHandler.for(AGENT)
+
+def handler(event:, context: nil)
+  HANDLER.call(event, context)
+end
+
+# ---------------------------------------------------------------------------
+# Local development fallback — only runs when this file is the main script.
+# ---------------------------------------------------------------------------
 if __FILE__ == $PROGRAM_NAME
-  puts "Starting lambda-style agent on port #{agent.port}..."
-  agent.run
+  puts "Starting lambda-style agent on port #{AGENT.port}..."
+  AGENT.run
 end
