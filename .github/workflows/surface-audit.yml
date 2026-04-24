@@ -1,0 +1,72 @@
+name: Surface Audit (Layer B)
+# Enforces symbol-level parity between this Ruby port and the Python
+# reference that lives in the porting-sdk repo. Any drift — a Python symbol
+# missing from the port without an entry in PORT_OMISSIONS.md, or a
+# port-only symbol without an entry in PORT_ADDITIONS.md — fails the job.
+#
+# See:
+#   - scripts/enumerate_surface.rb           (produces port_surface.json)
+#   - PORT_OMISSIONS.md / PORT_ADDITIONS.md  (deliberate deltas)
+#   - ../porting-sdk/scripts/diff_port_surface.py (the diff tool)
+#   - ../porting-sdk/python_surface.json     (the canonical reference)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Nightly at 06:30 UTC so we catch upstream python_surface.json drift
+    # within 24 hours.
+    - cron: '30 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  surface-audit:
+    name: Verify symbol-level parity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout signalwire-ruby
+        uses: actions/checkout@v5
+
+      - name: Checkout porting-sdk alongside
+        uses: actions/checkout@v5
+        with:
+          repository: signalwire/porting-sdk
+          path: porting-sdk
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+
+      - name: Set up Python (for the diff tool)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Regenerate port_surface.json
+        run: |
+          # Prefer bundle exec if the Gemfile loads; fall back to plain ruby.
+          if bundle check >/dev/null 2>&1; then
+            bundle exec ruby scripts/enumerate_surface.rb --output port_surface.json
+          else
+            ruby scripts/enumerate_surface.rb --output port_surface.json
+          fi
+
+      - name: Detect stale port_surface.json
+        run: |
+          if ! git diff --exit-code -- port_surface.json; then
+            echo "::error::port_surface.json is stale. Regenerate with:"
+            echo "::error::  ruby scripts/enumerate_surface.rb --output port_surface.json"
+            exit 1
+          fi
+
+      - name: Diff against python_surface.json
+        run: |
+          python3 porting-sdk/scripts/diff_port_surface.py \
+              --reference porting-sdk/python_surface.json \
+              --port-surface port_surface.json \
+              --omissions PORT_OMISSIONS.md \
+              --additions PORT_ADDITIONS.md
