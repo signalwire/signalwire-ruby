@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'http_client'
+require_relative 'phone_call_handler'
 require_relative 'namespaces/fabric'
 require_relative 'namespaces/calling'
 require_relative 'namespaces/phone_numbers'
