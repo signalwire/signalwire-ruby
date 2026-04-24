@@ -219,8 +219,8 @@ The skills system follows a three-layer architecture:
 │ Agent Layer     │    │ Management      │    │ Skills Layer    │
 │                 │    │ Layer           │    │                 │
 │ AgentBase       │━━━▶│ SkillManager    │━━━▶│ SkillBase       │
-│ .add_skill()    │    │ .load_skill()   │    │ .setup()        │
-│                 │    │ .unload_skill() │    │ .register_tools()│
+│ #add_skill      │    │ #add_skill      │    │ #setup          │
+│ #remove_skill   │    │ #remove_skill   │    │ #register_tools │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          │                       │                       │
@@ -617,22 +617,22 @@ Dynamic configuration integrates with other SDK components:
 
 The system includes robust error handling:
 
-```python
-def configure_agent_dynamically(self, query_params, body_params, headers, agent):
-    try:
-        # Primary configuration logic
-        # agent is the actual AgentBase instance
-        tier = query_params.get('tier', 'standard')
-        if tier == 'premium':
-            agent.set_params({"end_of_speech_timeout": 300})
-            agent.add_hints(["premium support", "priority handling"])
-    except ConfigurationError as e:
-        # Log error and apply safe defaults
-        self.log.error("dynamic_config_error", error=str(e))
-        # Agent retains its base configuration
-    except Exception as e:
-        # Catch-all - agent continues with existing configuration
-        self.log.error("dynamic_config_critical", error=str(e))
+```ruby
+def configure_agent_dynamically(query_params, body_params, headers, agent)
+  # Primary configuration logic — agent is the actual AgentBase instance
+  tier = query_params.fetch("tier", "standard")
+  if tier == "premium"
+    agent.set_params("end_of_speech_timeout" => 300)
+    agent.add_hints(["premium support", "priority handling"])
+  end
+rescue Signalwire::ConfigurationError => e
+  # Log error and apply safe defaults
+  agent.logger.error("dynamic_config_error: #{e.message}")
+  # Agent retains its base configuration
+rescue => e
+  # Catch-all - agent continues with existing configuration
+  agent.logger.error("dynamic_config_critical: #{e.message}")
+end
 ```
 
 #### Migration Strategy

@@ -85,23 +85,10 @@ agent.run()
 
 ### Search Service
 
-The standalone search service also supports the same security configuration:
-
-```python
-from signalwire.search import SearchService
-
-# Basic usage - security configured from environment
-service = SearchService(port=8001, indexes={"docs": "index.swsearch"})
-service.start()
-
-# Override SSL settings programmatically
-service.start(
-    host="0.0.0.0",
-    port=8001,
-    ssl_cert="/path/to/cert.pem",
-    ssl_key="/path/to/key.pem"
-)
-```
+The Python SDK ships a standalone `SearchService` for vector search; this
+subsystem is not ported to Ruby (see
+[PORT_OMISSIONS.md](../PORT_OMISSIONS.md)). If you need vector search, proxy
+to the Python service or run your own vector-store gem alongside the agent.
 
 ## Security Headers
 

@@ -1,0 +1,70 @@
+name: Doc Audit (Layer C)
+# Catches phantom-API drift between this port's documentation/examples and
+# its actual source. Every method call referenced in docs/examples must
+# resolve to a real symbol in port_surface.json, or be listed in
+# DOC_AUDIT_IGNORE.md with a one-line rationale (external gem, Ruby stdlib,
+# illustrative user-code placeholder, etc).
+#
+# Also verifies that every example file parses cleanly with `ruby -c`.
+#
+# See:
+#   - ../porting-sdk/scripts/audit_docs.py  (the auditor)
+#   - DOC_AUDIT_IGNORE.md                   (ignored identifiers + rationale)
+#   - port_surface.json                     (the known-symbols surface)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Nightly at 06:45 UTC — 15 minutes after the surface audit so docs
+    # drift is caught within 24 hours.
+    - cron: '45 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  doc-audit:
+    name: Verify doc/example references resolve
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout signalwire-ruby
+        uses: actions/checkout@v5
+
+      - name: Checkout porting-sdk alongside
+        uses: actions/checkout@v5
+        with:
+          repository: signalwire/porting-sdk
+          path: porting-sdk
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+
+      - name: Set up Python (for the audit tool)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Parse-check every example file
+        run: |
+          set -e
+          shopt -s nullglob
+          files=( examples/*.rb rest/examples/*.rb relay/examples/*.rb )
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "::error::No example files found."
+            exit 1
+          fi
+          for f in "${files[@]}"; do
+            echo "ruby -c $f"
+            ruby -c "$f"
+          done
+
+      - name: Audit docs and examples
+        run: |
+          python3 porting-sdk/scripts/audit_docs.py \
+              --root . \
+              --surface port_surface.json \
+              --ignore DOC_AUDIT_IGNORE.md

@@ -39,12 +39,13 @@ Update an active call's dialplan mid-call.
 client.calling.update(id=call_id, url="https://example.com/new-handler")
 ```
 
-### `end(call_id, **params) -> dict`
+### `end_call(call_id, **params) -> Hash`
 
-Terminate a call.
+Terminate a call. The method is named `end_call` in the Ruby port because
+`end` is a reserved keyword.
 
-```python
-client.calling.end(call_id, reason="hangup")
+```ruby
+client.calling.end_call(call_id, reason: "hangup")
 ```
 
 ### `transfer(call_id, **params) -> dict`

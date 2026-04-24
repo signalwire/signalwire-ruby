@@ -270,44 +270,28 @@ After (Option 3 - Mix config and env vars):
 
 ## Programmatic Usage
 
-### Loading Configuration
+The Ruby port does not ship a dedicated `ConfigLoader` class; configuration is
+driven entirely from environment variables (see
+[PORT_OMISSIONS.md](../PORT_OMISSIONS.md)). Set the relevant `SWML_*` and
+agent-specific environment variables before instantiating your agent:
 
-```python
-from signalwire.core.config_loader import ConfigLoader
+```ruby
+ENV["SWML_BASIC_AUTH_USER"]     = "admin"
+ENV["SWML_BASIC_AUTH_PASSWORD"] = "secret"
+ENV["SWML_SERVER_PORT"]         = "3000"
 
-# Load config
-loader = ConfigLoader(["my_config.json"])
-if loader.has_config():
-    config = loader.get_config()
-    
-    # Get specific value with substitution
-    port = loader.get("service.port", default=3000)
-    
-    # Get entire section
-    security = loader.get_section("security")
+class MyAgent < Signalwire::Agent::AgentBase
+  def initialize
+    super(name: "my-agent")
+  end
+end
+
+MyAgent.new.serve
 ```
 
-### Using with Services
-
-```python
-# SWML Service
-from signalwire import AgentBase
-
-class MyAgent(AgentBase):
-    def __init__(self):
-        # Auto-detects config.json if present
-        super().__init__(name="my-agent", config_file="agent_config.json")
-
-# Search Service
-from signalwire.search import SearchService
-
-service = SearchService(config_file="search_config.json")
-
-# MCP Gateway
-from mcp_gateway.gateway_service import MCPGateway
-
-gateway = MCPGateway(config_path="mcp_config.json")
-```
+If you need JSON- or YAML-based configuration, load the file in your own code
+(with the stdlib `JSON` or `YAML` module) and pass the values into the agent
+constructor explicitly.
 
 ## Troubleshooting
 

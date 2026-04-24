@@ -37,96 +37,88 @@ pip install signalwire-agents
 
 Here's a simple example of creating an SWML service:
 
-```python
-from signalwire.core.swml_service import SWMLService
+```ruby
+require "signalwire/swml"
 
-class SimpleVoiceService(SWMLService):
-    def __init__(self, host="0.0.0.0", port=3000):
-        super().__init__(
-            name="voice-service",
-            route="/voice",
-            host=host,
-            port=port
-        )
-        
-        # Build the SWML document
-        self.build_document()
-    
-    def build_document(self):
-        # Reset the document to start fresh
-        self.reset_document()
-        
-        # Add answer verb
-        self.add_verb("answer", {})
-        
-        # Add play verb for greeting
-        self.add_verb("play", {
-            "url": "say:Hello, thank you for calling our service."
-        })
-        
-        # Add hangup verb
-        self.add_verb("hangup", {})
+class SimpleVoiceService < Signalwire::SWML::Service
+  def initialize(host: "0.0.0.0", port: 3000)
+    super(name: "voice-service", route: "/voice", host: host, port: port)
+
+    build_document
+  end
+
+  def build_document
+    # Add answer verb
+    document.add_verb("answer", {})
+
+    # Add play verb for greeting
+    document.add_verb("play", {
+      "url" => "say:Hello, thank you for calling our service."
+    })
+
+    # Add hangup verb
+    document.add_verb("hangup", {})
+  end
+end
 
 # Create and start the service
-service = SimpleVoiceService()
-service.run()
+service = SimpleVoiceService.new
+service.serve
 ```
 
 ## Centralized Logging System
 
-The `SWMLService` class includes a centralized logging system based on `structlog` that provides structured, JSON-formatted logs. This logging system is automatically set up when you import the module, so you don't need to configure it in each service or example.
-
-### How It Works
-
-1. When `swml_service.py` is imported, it configures `structlog` (if not already configured)
-2. Each `SWMLService` instance gets a logger bound to its service name
-3. All logs include contextual information like service name, timestamp, and log level
-4. Logs are formatted as JSON for easy parsing and analysis
+The SignalWire Ruby SDK ships its own lightweight logger
+(`Signalwire::Logging::Logger`) that every `SWMLService` and agent uses
+automatically. Each logger is tagged with the service name so messages are easy
+to trace.
 
 ### Using the Logger
 
-Every `SWMLService` instance has a `log` attribute that can be used for logging:
+Inside a `Signalwire::SWML::Service` or `Signalwire::Agent::AgentBase`
+subclass, grab a logger via the `Signalwire::Logging.logger` factory:
 
-```python
+```ruby
+log = Signalwire::Logging.logger("SWML::Service[my-service]")
+
 # Basic logging
-self.log.info("service_started")
+log.info("service_started")
 
-# Logging with context
-self.log.debug("document_created", size=len(document))
+# Debug information
+log.debug("document_created size=#{document.to_h.size}")
 
 # Error logging
-try:
-    # Some operation
-    pass
-except Exception as e:
-    self.log.error("operation_failed", error=str(e))
+begin
+  # Some operation
+rescue => e
+  log.error("operation_failed error=#{e.message}")
+end
 ```
 
 ### Log Levels
 
-The following log levels are available (in increasing order of severity):
+Available log levels, in increasing severity:
+
 - `debug`: Detailed information for debugging
-- `info`: General information about operation
-- `warning`: Warning about potential issues
+- `info`:  General information about operation
+- `warn`:  Warning about potential issues
 - `error`: Error information when operations fail
-- `critical`: Critical error that might cause the application to terminate
 
 ### Suppressing Logs
 
-To suppress logs when running a service, you can set the log level:
+To suppress logs globally, set `SIGNALWIRE_LOG_MODE=off`, or raise the
+threshold with `SIGNALWIRE_LOG_LEVEL=warn`:
 
-```python
-import logging
-logging.getLogger().setLevel(logging.WARNING)  # Only show warnings and above
+```bash
+export SIGNALWIRE_LOG_LEVEL=warn   # only warnings and above
+# or
+export SIGNALWIRE_LOG_MODE=off     # suppress everything
 ```
 
-You can also pass `suppress_logs=True` when initializing an agent or service:
+At runtime:
 
-```python
-service = SWMLService(
-    name="my-service",
-    suppress_logs=True
-)
+```ruby
+Signalwire::Logging.global_level = :warn
 ```
 
 ## SWML Document Creation
@@ -154,16 +146,19 @@ SWML documents have the following basic structure:
 
 ### Document Methods
 
-- `reset_document()`: Reset the document to an empty state
-- `add_verb(verb_name, config)`: Add a verb to the main section
-- `add_section(section_name)`: Add a new section
+On `Signalwire::SWML::Document`:
+
+- `add_section(name)`: Add a new named section
+- `add_verb(verb_name, config)`: Add a verb to the `main` section
 - `add_verb_to_section(section_name, verb_name, config)`: Add a verb to a specific section
-- `get_document()`: Get the current document as a dictionary
-- `render_document()`: Get the current document as a JSON string
+- `to_h`: Get the current document as a hash
+- `to_json`: Get the current document as a JSON string
 
-### Common Verb Shortcuts
+On `Signalwire::SWML::Service`:
 
-- `add_verb(verb_name, config)`: Add any SWML verb with configuration
+- `document`: The underlying `Document` instance — use `service.document.add_verb(...)`
+- `render`: Render the document as JSON (compact)
+- `render_pretty`: Render the document as pretty-printed JSON
 
 ## Verb Handling
 
@@ -173,40 +168,24 @@ The `SWMLService` class provides validation for SWML verbs using the SignalWire 
 
 When adding a verb, the service validates it against the schema to ensure it has the correct structure and parameters.
 
-```python
-# This will validate the configuration against the schema
-self.add_verb("play", {
-    "url": "say:Hello, world!",
-    "volume": 5
+```ruby
+# Validated against the bundled SWML schema
+document.add_verb("play", {
+  "url"    => "say:Hello, world!",
+  "volume" => 5
 })
 
-# This would fail validation (invalid parameter)
-self.add_verb("play", {
-    "invalid_param": "value"
-})
+# This raises Signalwire::SWML::Schema::ValidationError at document render time
+document.add_verb("play", { "invalid_param" => "value" })
 ```
 
 ### Custom Verb Handlers
 
-You can register custom verb handlers for specialized verb processing:
-
-```python
-from signalwire.core.swml_handler import SWMLVerbHandler
-
-class CustomPlayHandler(SWMLVerbHandler):
-    def __init__(self):
-        super().__init__("play")
-    
-    def validate_config(self, config):
-        # Custom validation logic
-        return True, []
-    
-    def build_config(self, **kwargs):
-        # Custom configuration building
-        return kwargs
-
-service.register_verb_handler(CustomPlayHandler())
-```
+In the Ruby port, verb validation is handled uniformly by
+`Signalwire::SWML::Schema`. Per-verb custom handlers are not exposed — if you
+need custom behavior for a specific verb, subclass `Signalwire::SWML::Service`
+and override `execute_verb` (or call `add_verb`/`add_verb_to_section` directly
+with a pre-built hash that bypasses the schema check).
 
 ## Web Service Features
 
@@ -227,10 +206,10 @@ Where `route` is the route path specified when creating the service.
 
 Basic authentication is automatically set up for all endpoints. Credentials are generated if not provided, or can be specified:
 
-```python
-service = SWMLService(
-    name="my-service",
-    basic_auth=("username", "password")
+```ruby
+service = Signalwire::SWML::Service.new(
+  name:       "my-service",
+  basic_auth: ["username", "password"]
 )
 ```
 
@@ -242,28 +221,20 @@ You can also set credentials using environment variables:
 
 You can override the `on_swml_request` method to customize SWML documents based on request data:
 
-```python
-def on_swml_request(self, request_data=None):
-    if not request_data:
-        return None
-        
-    # Customize document based on request_data
-    self.reset_document()
-    self.add_answer_verb()
-    
-    # Add custom verbs based on request_data
-    if request_data.get("caller_type") == "vip":
-        self.add_verb("play", {
-            "url": "say:Welcome VIP caller!"
-        })
-    else:
-        self.add_verb("play", {
-            "url": "say:Welcome caller!"
-        })
-    
-    # Return modifications to the document
-    # or None to use the document we've built without modifications
-    return None
+```ruby
+def on_swml_request(request_data = nil)
+  return nil unless request_data
+
+  document.add_verb("answer", {})
+
+  if request_data["caller_type"] == "vip"
+    document.add_verb("play", { "url" => "say:Welcome VIP caller!" })
+  else
+    document.add_verb("play", { "url" => "say:Welcome caller!" })
+  end
+
+  nil # use the document we've built as-is
+end
 ```
 
 ## Custom Routing Callbacks
@@ -274,29 +245,17 @@ The `SWMLService` class allows you to register custom routing callbacks that can
 
 You can use the `register_routing_callback` method to register a function that will be called to process requests to a specific path:
 
-```python
-def my_routing_callback(request, body):
-    """
-    Process incoming requests and determine routing
-    
-    Args:
-        request: FastAPI Request object
-        body: Parsed JSON body as a dictionary
-        
-    Returns:
-        Optional[str]: If a string is returned, the request will be redirected to that URL.
-                      If None is returned, the request will be processed normally.
-    """
-    # Example: Route based on a field in the request body
-    if "customer_id" in body:
-        customer_id = body["customer_id"]
-        return f"/customer/{customer_id}"
-    
-    # Process request normally
-    return None
+```ruby
+# Example: Route based on a field in the request body. If the block returns a
+# string, the request is redirected to that URL with HTTP 307. Returning nil
+# causes the request to be processed normally by `on_request`.
+service.register_routing_callback("/customer") do |request_data|
+  if request_data["customer_id"]
+    next "/customer/#{request_data['customer_id']}"
+  end
 
-# Register the callback for a specific path
-service.register_routing_callback(my_routing_callback, path="/customer")
+  nil
+end
 ```
 
 ### How Routing Works
@@ -310,121 +269,81 @@ service.register_routing_callback(my_routing_callback, path="/customer")
 
 You can use the `callback_path` parameter passed to `on_request` to serve different content for different paths:
 
-```python
-def on_request(self, request_data=None, callback_path=None):
-    """
-    Called when SWML is requested
-    
-    Args:
-        request_data: Optional dictionary containing the parsed POST body
-        callback_path: Optional callback path from the request
-        
-    Returns:
-        Optional dict to modify/augment the SWML document
-    """
-    # Serve different content based on the callback path
-    if callback_path == "/customer":
-        return {
-            "sections": {
-                "main": [
-                    {"answer": {}},
-                    {"play": {"url": "say:Welcome to customer service!"}}
-                ]
-            }
-        }
-    elif callback_path == "/product":
-        return {
-            "sections": {
-                "main": [
-                    {"answer": {}},
-                    {"play": {"url": "say:Welcome to product support!"}}
-                ]
-            }
-        }
-    
-    # Default content
-    return None
+```ruby
+def on_request(request_data = nil, callback_path: nil)
+  case callback_path
+  when "/customer"
+    {
+      "sections" => {
+        "main" => [
+          { "answer" => {} },
+          { "play" => { "url" => "say:Welcome to customer service!" } }
+        ]
+      }
+    }
+  when "/product"
+    {
+      "sections" => {
+        "main" => [
+          { "answer" => {} },
+          { "play" => { "url" => "say:Welcome to product support!" } }
+        ]
+      }
+    }
+  end
+end
 ```
 
 ### Example: Multi-Section Service
 
 Here's an example of a service that uses routing callbacks to handle different types of requests:
 
-```python
-from signalwire.core.swml_service import SWMLService
-from fastapi import Request
-from typing import Dict, Any, Optional
+```ruby
+require "signalwire/swml"
 
-class MultiSectionService(SWMLService):
-    def __init__(self):
-        super().__init__(
-            name="multi-section",
-            route="/main"
-        )
-        
-        # Create the main document
-        self.reset_document()
-        self.add_verb("answer", {})
-        self.add_verb("play", {"url": "say:Hello from the main service!"})
-        self.add_verb("hangup", {})
-        
-        # Register customer and product routes
-        self.register_customer_route()
-        self.register_product_route()
-    
-    def register_customer_route(self):
-        def customer_callback(request: Request, body: Dict[str, Any]) -> Optional[str]:
-            # Check if we need to route to a specific customer ID
-            if "customer_id" in body:
-                customer_id = body["customer_id"]
-                # In a real implementation, you might redirect to another service
-                # Here we just log it and process normally
-                print(f"Processing request for customer ID: {customer_id}")
-            return None
-            
-        # Register the callback at the /customer path
-        self.register_routing_callback(customer_callback, path="/customer")
-        
-        # Create the customer SWML section
-        self.add_section("customer_section")
-        self.add_verb_to_section("customer_section", "answer", {})
-        self.add_verb_to_section("customer_section", "play", 
-                                {"url": "say:Welcome to customer service!"})
-        self.add_verb_to_section("customer_section", "hangup", {})
-    
-    def register_product_route(self):
-        def product_callback(request: Request, body: Dict[str, Any]) -> Optional[str]:
-            # Check if we need to route to a specific product ID
-            if "product_id" in body:
-                product_id = body["product_id"]
-                print(f"Processing request for product ID: {product_id}")
-            return None
-            
-        # Register the callback at the /product path
-        self.register_routing_callback(product_callback, path="/product")
-        
-        # Create the product SWML section
-        self.add_section("product_section")
-        self.add_verb_to_section("product_section", "answer", {})
-        self.add_verb_to_section("product_section", "play", 
-                               {"url": "say:Welcome to product support!"})
-        self.add_verb_to_section("product_section", "hangup", {})
-    
-    def on_request(self, request_data=None, callback_path=None):
-        # Serve different content based on the callback path
-        if callback_path == "/customer":
-            return {
-                "sections": {
-                    "main": self.get_document()["sections"]["customer_section"]
-                }
-            }
-        elif callback_path == "/product":
-            return {
-                "sections": {
-                    "main": self.get_document()["sections"]["product_section"]
-                }
-            }
-        return None
+class MultiSectionService < Signalwire::SWML::Service
+  def initialize
+    super(name: "multi-section", route: "/main")
+
+    # Main document
+    document.add_verb("answer", {})
+    document.add_verb("play", { "url" => "say:Hello from the main service!" })
+    document.add_verb("hangup", {})
+
+    # Customer section
+    document.add_section("customer_section")
+    document.add_verb_to_section("customer_section", "answer", {})
+    document.add_verb_to_section("customer_section", "play",
+                                 { "url" => "say:Welcome to customer service!" })
+    document.add_verb_to_section("customer_section", "hangup", {})
+
+    register_routing_callback("/customer") do |body|
+      puts "Processing request for customer ID: #{body['customer_id']}" if body["customer_id"]
+      nil
+    end
+
+    # Product section
+    document.add_section("product_section")
+    document.add_verb_to_section("product_section", "answer", {})
+    document.add_verb_to_section("product_section", "play",
+                                 { "url" => "say:Welcome to product support!" })
+    document.add_verb_to_section("product_section", "hangup", {})
+
+    register_routing_callback("/product") do |body|
+      puts "Processing request for product ID: #{body['product_id']}" if body["product_id"]
+      nil
+    end
+  end
+
+  def on_request(_request_data = nil, callback_path: nil)
+    case callback_path
+    when "/customer"
+      { "sections" => { "main" => document.to_h["sections"]["customer_section"] } }
+    when "/product"
+      { "sections" => { "main" => document.to_h["sections"]["product_section"] } }
+    end
+  end
+end
 ```
 
 In this example:
@@ -437,15 +356,20 @@ In this example:
 
 ### Creating a FastAPI Router
 
-You can get a FastAPI router for the service to include in a larger application:
+You can get a Rack-compatible app for the service to include in a larger
+application:
 
-```python
-from fastapi import FastAPI
+```ruby
+require "rack/builder"
+require "signalwire/swml"
 
-app = FastAPI()
-service = SWMLService(name="my-service")
-router = service.as_router()
-app.include_router(router, prefix="/voice")
+service = Signalwire::SWML::Service.new(name: "my-service")
+
+app = Rack::Builder.new do
+  map "/voice" do
+    run service.rack_app
+  end
+end.to_app
 ```
 
 ### Schema Path Customization
@@ -497,104 +421,91 @@ service = SWMLService(
 
 ### Basic Voicemail Service
 
-```python
-from signalwire.core.swml_service import SWMLService
+```ruby
+require "signalwire/swml"
 
-class VoicemailService(SWMLService):
-    def __init__(self, host="0.0.0.0", port=3000):
-        super().__init__(
-            name="voicemail",
-            route="/voicemail",
-            host=host,
-            port=port
-        )
-        
-        # Build the SWML document
-        self.build_voicemail_document()
-    
-    def build_voicemail_document(self):
-        """Build the voicemail SWML document"""
-        # Reset the document
-        self.reset_document()
-        
-        # Add answer verb
-        self.add_verb("answer", {})
-        
-        # Add play verb for greeting
-        self.add_verb("play", {
-            "url": "say:Hello, you've reached the voicemail service. Please leave a message after the beep."
-        })
-        
-        # Play a beep
-        self.add_verb("play", {
-            "url": "https://example.com/beep.wav"
-        })
-        
-        # Record the message
-        self.add_verb("record", {
-            "format": "mp3",
-            "stereo": False,
-            "max_length": 120,  # 2 minutes max
-            "terminators": "#"
-        })
-        
-        # Thank the caller
-        self.add_verb("play", {
-            "url": "say:Thank you for your message. Goodbye!"
-        })
-        
-        # Hang up
-        self.add_verb("hangup", {})
-        
-        self.log.debug("voicemail_document_built")
+class VoicemailService < Signalwire::SWML::Service
+  def initialize(host: "0.0.0.0", port: 3000)
+    super(name: "voicemail", route: "/voicemail", host: host, port: port)
+
+    build_voicemail_document
+  end
+
+  def build_voicemail_document
+    # Add answer verb
+    document.add_verb("answer", {})
+
+    # Play greeting
+    document.add_verb("play", {
+      "url" => "say:Hello, you've reached the voicemail service. Please leave a message after the beep."
+    })
+
+    # Play a beep
+    document.add_verb("play", { "url" => "https://example.com/beep.wav" })
+
+    # Record the message
+    document.add_verb("record", {
+      "format"      => "mp3",
+      "stereo"      => false,
+      "max_length"  => 120,   # 2 minutes max
+      "terminators" => "#"
+    })
+
+    # Thank the caller
+    document.add_verb("play", {
+      "url" => "say:Thank you for your message. Goodbye!"
+    })
+
+    # Hang up
+    document.add_verb("hangup", {})
+  end
+end
 ```
 
 ### Dynamic Call Routing Service
 
-```python
-class CallRouterService(SWMLService):
-    def on_swml_request(self, request_data=None):
-        # If there's no request data, use default routing
-        if not request_data:
-            self.log.debug("no_request_data_using_default")
-            return None
-        
-        # Create a new document
-        self.reset_document()
-        self.add_verb("answer", {})
-        
-        # Get routing parameters
-        department = request_data.get("department", "").lower()
-        
-        # Add play verb for greeting
-        self.add_verb("play", {
-            "url": f"say:Thank you for calling our {department} department. Please hold."
-        })
-        
-        # Route based on department
-        phone_numbers = {
-            "sales": "+15551112222",
-            "support": "+15553334444",
-            "billing": "+15555556666"
-        }
-        
-        # Get the appropriate number or use default
-        to_number = phone_numbers.get(department, "+15559990000")
-        
-        # Connect to the department
-        self.add_verb("connect", {
-            "to": to_number,
-            "timeout": 30,
-            "answer_on_bridge": True
-        })
-        
-        # Add fallback message and hangup
-        self.add_verb("play", {
-            "url": "say:We're sorry, but all of our agents are currently busy. Please try again later."
-        })
-        self.add_verb("hangup", {})
-        
-        return None  # Use the document we've built
+```ruby
+class CallRouterService < Signalwire::SWML::Service
+  def on_swml_request(request_data = nil)
+    # If there's no request data, use the default document.
+    return nil unless request_data
+
+    document.add_verb("answer", {})
+
+    # Get routing parameters
+    department = (request_data["department"] || "").downcase
+
+    # Play greeting
+    document.add_verb("play", {
+      "url" => "say:Thank you for calling our #{department} department. Please hold."
+    })
+
+    # Route based on department
+    phone_numbers = {
+      "sales"   => "+15551112222",
+      "support" => "+15553334444",
+      "billing" => "+15555556666"
+    }
+
+    # Get the appropriate number or use the default.
+    to_number = phone_numbers[department] || "+15559990000"
+
+    # Connect to the department
+    document.add_verb("connect", {
+      "to"                => to_number,
+      "timeout"           => 30,
+      "answer_on_bridge"  => true
+    })
+
+    # Fallback message and hangup
+    document.add_verb("play", {
+      "url" => "say:We're sorry, but all of our agents are currently busy. Please try again later."
+    })
+    document.add_verb("hangup", {})
+
+    nil # Use the document we've built
+  end
+end
 ```
 
 For more examples, see the `examples` directory in the SignalWire AI Agent SDK repository. 

@@ -301,42 +301,44 @@ print("Loaded skills:", agent.list_skills())
 # Remove a skill
 agent.remove_skill("math")
 
-# Check if specific skill is loaded
-if agent.has_skill("datetime"):
-    print("Date/time capabilities available")
+# Check if a specific skill is loaded (note the Ruby predicate `?`)
+if agent.has_skill?("datetime")
+  puts "Date/time capabilities available"
+end
 ```
 
 ## Creating Custom Skills
 
-Create a new skill by extending `SkillBase` with parameter support:
+Create a new skill by extending `Signalwire::Skills::SkillBase` with
+parameter support:
 
-```python
-# signalwire/skills/my_skill/skill.py
-from signalwire.core.skill_base import SkillBase
-from signalwire.core.function_result import SwaigFunctionResult
+```ruby
+# lib/signalwire/skills/my_skill.rb
+require "signalwire/skills"
 
-class MyCustomSkill(SkillBase):
-    SKILL_NAME = "my_skill"
-    SKILL_DESCRIPTION = "Does something awesome with configurable parameters"
-    SKILL_VERSION = "1.0.0"
-    REQUIRED_PACKAGES = ["requests"]  # Optional
-    REQUIRED_ENV_VARS = ["API_KEY"]   # Optional
-    
-    def setup(self) -> bool:
-        """Initialize the skill with parameters"""
-        if not self.validate_env_vars() or not self.validate_packages():
-            return False
-            
-        # Use parameters with defaults
-        self.max_items = self.params.get('max_items', 10)
-        self.timeout = self.params.get('timeout', 30)
-        self.retry_count = self.params.get('retry_count', 3)
-        
-        return True
-        
-    def register_tools(self) -> None:
-        """Register SWAIG tools with the agent"""
-        self.define_tool(
+class MyCustomSkill < Signalwire::Skills::SkillBase
+  SKILL_NAME        = "my_skill"
+  SKILL_DESCRIPTION = "Does something awesome with configurable parameters"
+  SKILL_VERSION     = "1.0.0"
+  REQUIRED_ENV_VARS = ["API_KEY"] # Optional — validated manually below
+
+  def setup
+    # Explicit env-var checks; the Ruby port does not ship a bundled
+    # validate_env_vars helper (see PORT_OMISSIONS.md).
+    REQUIRED_ENV_VARS.each do |var|
+      return false if ENV[var].nil? || ENV[var].empty?
+    end
+
+    # Use parameters with defaults
+    @max_items   = params.fetch(:max_items, 10)
+    @timeout     = params.fetch(:timeout, 30)
+    @retry_count = params.fetch(:retry_count, 3)
+
+    true
+  end
+
+  def register_tools
+    define_tool(
             name="my_function",
             description=f"Does something cool (max {self.max_items} items)",
             parameters={
@@ -433,23 +435,26 @@ print('Skills system with parameters working!')
 ## Migration Guide
 
 **Before (manual implementation):**
-```python
+```ruby
 # Had to manually implement every capability
-class WebSearchAgent(AgentBase):
-    def __init__(self):
-        super().__init__("WebSearchAgent")
-        self.setup_google_search()
-        self.define_tool("web_search", ...)
-        # Lots of manual code...
+class WebSearchAgent < Signalwire::Agent::AgentBase
+  def initialize
+    super(name: "WebSearchAgent")
+    # ... application-specific search setup ...
+    define_tool(name: "web_search", description: "...", parameters: {}) do |args, _raw|
+      # Lots of manual code...
+    end
+  end
+end
 ```
 
 **After (skills system with parameters):**
-```python
+```ruby
 # Simple one-liner with custom configuration
-agent = AgentBase("WebSearchAgent")
+agent = Signalwire::Agent::AgentBase.new(name: "WebSearchAgent")
 agent.add_skill("web_search", {
-    "num_results": 3,  # Get more results
-    "delay": 0.5       # Be respectful to servers
+  "num_results" => 3,    # Get more results
+  "delay"       => 0.5   # Be respectful to servers
 })
 # Done! Full web search capability with custom settings.
 ```
