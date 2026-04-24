@@ -7,16 +7,14 @@ RELAY events are server-pushed notifications about call state changes and operat
 ### On a Call
 
 ```python
-@client.on_call
-async def handle(call):
-    # Register a listener
-    call.on("calling.call.play", lambda event: print(f"Play: {event.params}"))
+client.on_call do |call|
+  # Register a listener
+  call.on("calling.call.play") { |event| puts "Play: #{event.params}" }
 
-    # Or wait for a specific event
-    event = await call.wait_for("calling.call.state",
-        predicate=lambda e: e.params.get("call_state") == "ended",
-        timeout=60.0,
-    )
+  # Or wait for a specific action to complete via its returned Action object
+  # (see "Via Actions" below), or for the call to end:
+  event = call.wait_for_ended(timeout: 60.0)
+end
 ```
 
 ### Via Actions

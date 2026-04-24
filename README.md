@@ -212,7 +212,6 @@ Guides are also available in the [`docs/`](docs/) directory:
 ### Reference
 
 - [API Reference](docs/api_reference.md) -- complete class and method reference
-- [Web Service](docs/web_service.md) -- HTTP server and endpoint details
 - [Skills Parameter Schema](docs/skills_parameter_schema.md) -- skill parameter definitions
 
 ## Environment Variables

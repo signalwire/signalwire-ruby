@@ -404,8 +404,8 @@ agent.set_params({
 agent.set_native_functions(["check_time", "wait_for_user"])
 agent.add_internal_filler("check_time", "en", ["Let me check the time..."])
 
-# Call recording
-agent.enable_record_call(format="wav", stereo=True)
+# Call recording — enable when constructing the agent:
+# AgentBase.new(name: "my-agent", record_call: true)
 
 # Call flow verbs
 agent.add_pre_answer_verb("play", {"url": "ringback.wav"})

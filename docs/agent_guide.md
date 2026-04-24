@@ -203,20 +203,6 @@ self.prompt_add_section("Context",
                                "Check for existing tickets"])
 ```
 
-For convenience, the SDK also provides wrapper methods that some users may prefer:
-
-```python
-# Convenience methods
-self.setPersonality("You are a friendly assistant.") 
-self.setGoal("Help users with their questions.")
-self.setInstructions([
-    "Answer questions clearly",
-    "Be helpful and polite"
-])
-```
-
-These convenience methods call `prompt_add_section()` internally with the appropriate section titles.
-
 ### 2. Using Raw Text Prompts
 
 For simpler agents, you can set the prompt directly as text:
@@ -894,12 +880,13 @@ For complete documentation on the search system, see [Search Overview](search_ov
 
 ```python
 # Check what skills are loaded
-loaded_skills = agent.list_skills()
-print(f"Loaded skills: {', '.join(loaded_skills)}")
+loaded_skills = agent.list_skills
+puts "Loaded skills: #{loaded_skills.join(', ')}"
 
-# Check if a specific skill is loaded
-if agent.has_skill("web_search"):
-    print("Web search is available")
+# Check if a specific skill is loaded (note the Ruby predicate `?`)
+if agent.has_skill?("web_search")
+  puts "Web search is available"
+end
 
 # Remove a skill (if needed)
 agent.remove_skill("math")
@@ -1086,12 +1073,13 @@ class DynamicSkillAgent(AgentBase):
    ```
 
 2. **Handle missing dependencies gracefully**:
-   ```python
-   try:
-       agent.add_skill("web_search")
-   except ValueError as e:
-       self.logger.warning(f"Web search unavailable: {e}")
-       # Continue without web search capability
+   ```ruby
+   begin
+     agent.add_skill("web_search")
+   rescue ArgumentError => e
+     agent.logger.warn("Web search unavailable: #{e.message}")
+     # Continue without web search capability
+   end
    ```
 
 3. **Document your custom skills**: Include clear descriptions and parameter documentation
@@ -1919,104 +1907,107 @@ These hooks are particularly useful for:
 
 To implement lifecycle hooks, define them as regular SWAIG functions with these specific names:
 
-```python
-from signalwire import AgentBase, SwaigFunctionResult
+```ruby
+require "signalwire"
 
-class MyAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="my-agent")
-    
-    @AgentBase.tool(
-        name="startup_hook",
-        description="Called when the voice session starts"
-    )
-    def startup_hook(self, args, raw_data):
-        # Extract session information
-        call_id = raw_data.get("call_id")
-        from_number = raw_data.get("from_number")
-        to_number = raw_data.get("to_number")
-        
-        # Initialize session state
-        self.update_state(call_id, {
-            "session_start": datetime.now().isoformat(),
-            "from": from_number,
-            "to": to_number,
-            "interaction_count": 0
-        })
-        
-        # Log session start
-        print(f"Session started: {call_id} from {from_number}")
-        
-        # Return success (SignalWire expects a response)
-        return SwaigFunctionResult("Session initialized successfully")
-    
-    @AgentBase.tool(
-        name="hangup_hook",
-        description="Called when the voice session ends"
-    )
-    def hangup_hook(self, args, raw_data):
-        # Extract session information
-        call_id = raw_data.get("call_id")
-        
-        # Retrieve session state
-        state = self.get_state(call_id)
-        
-        if state:
-            # Calculate session duration
-            start_time = datetime.fromisoformat(state.get("session_start"))
-            duration = (datetime.now() - start_time).total_seconds()
-            
-            # Log session metrics
-            print(f"Session ended: {call_id}")
-            print(f"Duration: {duration} seconds")
-            print(f"Interactions: {state.get('interaction_count', 0)}")
-            
-            # Clean up state (optional - SignalWire will clean up automatically)
-            self.delete_state(call_id)
-        
-        return SwaigFunctionResult("Session cleanup completed")
+class MyAgent < Signalwire::Agent::AgentBase
+  def initialize
+    super(name: "my-agent")
+    @sessions = {}
+
+    define_tool(
+      name: "startup_hook",
+      description: "Called when the voice session starts",
+      parameters: {}
+    ) do |args, raw_data|
+      call_id     = raw_data["call_id"]
+      from_number = raw_data["from_number"]
+      to_number   = raw_data["to_number"]
+
+      # Initialize session state in an instance-level hash.
+      @sessions[call_id] = {
+        session_start:     Time.now,
+        from:              from_number,
+        to:                to_number,
+        interaction_count: 0
+      }
+
+      puts "Session started: #{call_id} from #{from_number}"
+
+      Signalwire::Agent::SwaigFunctionResult.new("Session initialized successfully")
+    end
+
+    define_tool(
+      name: "hangup_hook",
+      description: "Called when the voice session ends",
+      parameters: {}
+    ) do |args, raw_data|
+      call_id = raw_data["call_id"]
+      state   = @sessions[call_id]
+
+      if state
+        duration = Time.now - state[:session_start]
+        puts "Session ended: #{call_id}"
+        puts "Duration: #{duration} seconds"
+        puts "Interactions: #{state[:interaction_count]}"
+
+        # Clean up session data.
+        @sessions.delete(call_id)
+      end
+
+      Signalwire::Agent::SwaigFunctionResult.new("Session cleanup completed")
+    end
+  end
+end
 ```
 
 #### Common Use Cases
 
 ##### 1. User Preference Loading
-```python
-@AgentBase.tool(name="startup_hook", description="Called when the voice session starts", parameters={})
-def startup_hook(self, args, raw_data):
-    caller_id = raw_data.get("from_number")
-    
-    # Load user preferences from database
-    preferences = self.load_user_preferences(caller_id)
-    
-    # Store in session state for quick access
-    self.update_state(raw_data.get("call_id"), {
-        "user_preferences": preferences,
-        "language": preferences.get("language", "en-US"),
-        "previous_orders": preferences.get("recent_orders", [])
-    })
-    
-    return SwaigFunctionResult("User preferences loaded")
+```ruby
+define_tool(
+  name: "startup_hook",
+  description: "Called when the voice session starts",
+  parameters: {}
+) do |_args, raw_data|
+  caller_id = raw_data["from_number"]
+
+  # Application-specific: load preferences from your database.
+  preferences = my_load_user_preferences(caller_id)
+
+  # Store in an instance-level session hash for later turns.
+  @sessions[raw_data["call_id"]] = {
+    user_preferences: preferences,
+    language:         preferences["language"] || "en-US",
+    previous_orders:  preferences["recent_orders"] || []
+  }
+
+  Signalwire::Agent::SwaigFunctionResult.new("User preferences loaded")
+end
 ```
 
 ##### 2. Analytics and Logging
-```python
-@AgentBase.tool(name="hangup_hook", description="Called when the voice session ends", parameters={})
-def hangup_hook(self, args, raw_data):
-    call_id = raw_data.get("call_id")
-    state = self.get_state(call_id)
-    
-    # Send analytics data
-    analytics_data = {
-        "call_id": call_id,
-        "duration": state.get("duration"),
-        "functions_called": state.get("functions_called", []),
-        "outcome": state.get("outcome", "unknown")
-    }
-    
-    # Post to analytics service
-    self.send_to_analytics(analytics_data)
-    
-    return SwaigFunctionResult("Analytics data sent")
+```ruby
+define_tool(
+  name: "hangup_hook",
+  description: "Called when the voice session ends",
+  parameters: {}
+) do |_args, raw_data|
+  call_id = raw_data["call_id"]
+  state   = @sessions[call_id] || {}
+
+  analytics_data = {
+    call_id:          call_id,
+    duration:         state[:duration],
+    functions_called: state.fetch(:functions_called, []),
+    outcome:          state.fetch(:outcome, "unknown")
+  }
+
+  # Application-specific: POST the hash to your analytics service.
+  my_send_to_analytics(analytics_data)
+
+  Signalwire::Agent::SwaigFunctionResult.new("Analytics data sent")
+end
 ```
 
 #### Important Notes
@@ -2192,21 +2183,18 @@ def on_swml_request(self, request_data=None, callback_path=None):
 
 Process conversation summaries:
 
-```python
-def on_summary(self, summary, raw_data=None):
-    """
-    Handle the conversation summary
-    
-    Args:
-        summary: The summary object or None if no summary was found
-        raw_data: The complete raw POST data from the request
-    """
-    if summary:
-        # Log the summary
-        self.log.info("conversation_summary", summary=summary)
-        
-        # Save the summary to a database, send notifications, etc.
-        # ...
+```ruby
+def on_summary(summary, raw_data = nil)
+  # summary:  Hash with the summary payload, or nil if no summary was found
+  # raw_data: complete raw POST data from the request
+  return unless summary
+
+  # Log the summary
+  logger.info("conversation_summary: #{summary.inspect}")
+
+  # Save the summary to a database, send notifications, etc.
+  # ...
+end
 ```
 
 ### Custom Webhook URLs
@@ -2230,81 +2218,15 @@ agent.set_post_prompt_url("https://analytics.example.com/conversation-summaries"
 
 ### External Input Checking
 
-The SDK provides a check-for-input endpoint that allows agents to check for new input from external systems:
+The SDK exposes a `/check_for_input` endpoint so external systems can push new
+messages into an ongoing conversation. The default implementation returns an
+empty response. Advanced applications can subclass `AgentBase` and override the
+Rack-level handler to plug in custom storage and authentication; the specific
+hook name is part of the private interface and may change between releases.
 
-```python
-# Example client code that checks for new input
-import requests
-import json
-
-def check_for_new_input(agent_url, conversation_id, auth):
-    """
-    Check if there's any new input for a conversation
-    
-    Args:
-        agent_url: Base URL for the agent
-        conversation_id: ID of the conversation to check
-        auth: (username, password) tuple for basic auth
-    
-    Returns:
-        New messages if any, None otherwise
-    """
-    url = f"{agent_url}/check_for_input"
-    response = requests.post(
-        url,
-        json={"conversation_id": conversation_id},
-        auth=auth
-    )
-    
-    if response.status_code == 200:
-        data = response.json()
-        if data.get("new_input", False):
-            return data.get("messages", [])
-    
-    return None
-```
-
-By default, the check_for_input endpoint returns an empty response. To implement custom behavior, override the `_handle_check_for_input_request` method in your agent:
-
-```python
-async def _handle_check_for_input_request(self, request):
-    # First do basic authentication check
-    if not self._check_basic_auth(request):
-        return Response(
-            content=json.dumps({"error": "Unauthorized"}),
-            status_code=401,
-            headers={"WWW-Authenticate": "Basic"},
-            media_type="application/json"
-        )
-    
-    # Get conversation_id from request
-    conversation_id = None
-    if request.method == "POST":
-        body = await request.json()
-        conversation_id = body.get("conversation_id")
-    else:
-        conversation_id = request.query_params.get("conversation_id")
-    
-    if not conversation_id:
-        return Response(
-            content=json.dumps({"error": "Missing conversation_id"}),
-            status_code=400,
-            media_type="application/json"
-        )
-    
-    # Custom logic to check for new input
-    # For example, checking a database or external API
-    messages = self._get_new_messages(conversation_id)
-    
-    return {
-        "status": "success",
-        "conversation_id": conversation_id,
-        "new_input": len(messages) > 0,
-        "messages": messages
-    }
-```
-
-This endpoint is useful for implementing asynchronous conversations where users might send messages through different channels that need to be incorporated into the agent conversation.
+This endpoint is useful for asynchronous conversations where users send
+messages through different channels that need to be incorporated into the
+agent's conversation.
 
 ## Prefab Agents
 

@@ -731,19 +731,20 @@ active_skills = agent.list_skills()
 print(f"Active skills: {active_skills}")
 ```
 
-##### `has_skill(skill_name: str) -> bool`
-Check if a skill is currently added.
+##### `has_skill?(skill_name) -> Boolean`
+Check if a skill is currently added. Note the Ruby predicate `?` suffix.
 
 **Parameters:**
-- `skill_name` (str): Name of skill to check
+- `skill_name` (String): Name of skill to check
 
 **Returns:**
-- bool: True if skill is active
+- Boolean: `true` if skill is active
 
 **Usage:**
-```python
-if agent.has_skill("web_search"):
-    print("Web search is available")
+```ruby
+if agent.has_skill?("web_search")
+  puts "Web search is available"
+end
 ```
 
 ### Native Functions
@@ -1178,24 +1179,24 @@ Get the agent's name.
 **Returns:**
 - str: Agent name
 
-##### `get_app()`
-Get the FastAPI application instance.
+##### `rack_app -> Rack application`
+Return the agent as a Rack-compatible app (`call(env) → [status, headers, body]`)
+so it can be mounted in any Rack or Sinatra application.
 
 **Returns:**
-- FastAPI: The underlying FastAPI app
-
-##### `as_router() -> APIRouter`
-Get the agent as a FastAPI router for embedding in larger applications.
-
-**Returns:**
-- APIRouter: FastAPI router instance
+- Rack application: The underlying Rack app (Sinatra-based).
 
 **Usage:**
-```python
-# Embed agent in larger FastAPI app
-main_app = FastAPI()
-agent_router = agent.as_router()
-main_app.include_router(agent_router, prefix="/agent")
+```ruby
+# Embed agent in a larger Rack application:
+require "rack"
+require "rack/builder"
+
+app = Rack::Builder.new do
+  map "/agent" do
+    run agent.rack_app
+  end
+end.to_app
 ```
 
 ### Event Handlers
@@ -1404,15 +1405,17 @@ Define structured workflow contexts for the agent.
 - ContextBuilder: Builder for creating contexts and steps
 
 **Usage:**
-```python
-contexts = agent.define_contexts()
-contexts.add_context("greeting") \
-    .add_step("welcome", "Welcome! How can I help?") \
-    .on_completion_go_to("main_menu")
+```ruby
+contexts = agent.define_contexts
+contexts.add_context("greeting")
+        .add_step("welcome")
+        .set_text("Welcome! How can I help?")
+        .set_valid_steps(["main_menu"])
 
-contexts.add_context("main_menu") \
-    .add_step("menu", "Choose: 1) Support 2) Sales 3) Billing") \
-    .allow_functions(["transfer_to_support", "transfer_to_sales"])
+contexts.add_context("main_menu")
+        .add_step("menu")
+        .set_text("Choose: 1) Support 2) Sales 3) Billing")
+        .set_functions(["transfer_to_support", "transfer_to_sales"])
 ```
 
 This concludes Part 1 of the API reference covering the AgentBase class. The document will continue with SwaigFunctionResult, DataMap, and other components in subsequent parts.
@@ -2089,19 +2092,19 @@ result.execute_swml(custom_swml)
 
 ### Utility Methods
 
-##### `to_dict() -> Dict[str, Any]`
-Convert the result to a dictionary for serialization.
+##### `to_h -> Hash`
+Convert the result to a Hash for serialization.
 
 **Returns:**
-- Dict[str, Any]: Dictionary representation of the result
+- Hash: Hash representation of the result
 
 **Usage:**
-```python
-result = SwaigFunctionResult("Hello world")
+```ruby
+result = Signalwire::Swaig::FunctionResult.new("Hello world")
 result.add_action("play", "music.mp3")
-result_dict = result.to_dict()
-print(result_dict)
-# Output: {"response": "Hello world", "action": [{"play": "music.mp3"}]}
+result_hash = result.to_h
+puts result_hash
+# Output: {"response" => "Hello world", "action" => [{"play" => "music.mp3"}]}
 ```
 
 ### Static Helper Methods
@@ -3076,49 +3079,27 @@ Skills are automatically discovered from the `signalwire/skills/` directory. To 
 
 ## Utility Classes
 
-### SWAIGFunction Class
+### SWAIG Functions
 
-Represents a SWAIG function definition with metadata and validation.
+The Ruby port does not ship a dedicated `SWAIGFunction` wrapper class (see
+[PORT_OMISSIONS.md](../PORT_OMISSIONS.md)); SWAIG functions are registered as
+plain Hashes directly with the agent. Use `AgentBase#define_tool` for the
+conventional case, or `AgentBase#register_swaig_function` for manual hashes:
 
-#### Constructor
-
-```python
-SWAIGFunction(
-    function: str,
-    description: str,
-    parameters: Dict[str, Any],
-    **kwargs
-)
-```
-
-**Parameters:**
-- `function` (str): Function name
-- `description` (str): Function description
-- `parameters` (Dict[str, Any]): JSON schema for parameters
-- `**kwargs`: Additional SWAIG properties
-
-#### Usage
-
-```python
-from signalwire.core.swaig_function import SWAIGFunction
-
-# Create SWAIG function
-swaig_func = SWAIGFunction(
-    function="get_weather",
-    description="Get current weather",
-    parameters={
-        "type": "object",
-        "properties": {
-            "location": {"type": "string", "description": "City name"}
-        },
-        "required": ["location"]
+```ruby
+agent.register_swaig_function(
+  "function"    => "get_weather",
+  "description" => "Get current weather",
+  "parameters"  => {
+    "type"       => "object",
+    "properties" => {
+      "location" => { "type" => "string", "description" => "City name" }
     },
-    secure=True,
-    fillers={"en-US": ["Checking weather..."]}
+    "required"   => ["location"]
+  },
+  "secure"  => true,
+  "fillers" => { "en-US" => ["Checking weather..."] }
 )
-
-# Register with agent
-agent.register_swaig_function(swaig_func.to_dict())
 ```
 
 ### SWMLService Class

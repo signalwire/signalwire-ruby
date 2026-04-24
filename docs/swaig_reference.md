@@ -46,10 +46,10 @@ result.execute_swml('{"version":"1.0.0","sections":{"main":[{"say":"Hello"}]}}')
 swml_dict = {"version": "1.0.0", "sections": {"main": [{"say": "Hello"}]}}
 result.execute_swml(swml_dict, transfer=True)
 
-# SWML SDK object
-from signalwire.swml import SWML
-swml_doc = SWML()
-swml_doc.add_application("main", "say", {"text": "Connecting now"})
+# SWML SDK object — use the Ruby builder:
+require "signalwire/swml"
+swml_doc = Signalwire::SWML::Document.new
+swml_doc.add_verb_to_section("main", "say", { "text" => "Connecting now" })
 result.execute_swml(swml_doc)
 ```
 

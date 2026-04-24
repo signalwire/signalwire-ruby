@@ -386,16 +386,18 @@ def register_tools(self) -> None:
 
 ### Skill Dependencies
 
-Load skills that depend on other skills:
+Load skills that depend on other skills. Call through `has_skill?` on the
+agent (note the Ruby predicate `?`):
 
-```python
-def setup(self) -> bool:
-    # Check if required skill is available
-    if not self.agent.skill_manager.has_skill("translation"):
-        self.logger.error("This skill requires the translation skill")
-        return False
-    
-    return True
+```ruby
+def setup
+  unless agent.has_skill?("translation")
+    # Logger tag suppressed for brevity; plug in your own logger as needed.
+    return false
+  end
+
+  true
+end
 ```
 
 ## Testing Third-Party Skills

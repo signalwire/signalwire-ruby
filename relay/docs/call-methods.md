@@ -89,12 +89,13 @@ await call.hangup()
 await call.hangup(reason="busy")
 ```
 
-### `pass_() -> dict`
+### `pass_call -> Hash`
 
-Decline control, returning the call to routing.
+Decline control, returning the call to routing. The method is named
+`pass_call` in the Ruby port because `pass` is a method on `Object`.
 
-```python
-await call.pass_()
+```ruby
+call.pass_call
 ```
 
 ## Audio Playback
@@ -454,14 +455,6 @@ def on_play(event):
     print(f"Play state: {event.params.get('state')}")
 
 call.on("calling.call.play", on_play)
-```
-
-### `wait_for(event_type, predicate=None, timeout=None) -> RelayEvent`
-
-Wait for a specific event.
-
-```python
-event = await call.wait_for("calling.call.play", timeout=30.0)
 ```
 
 ### `wait_for_ended(timeout=None) -> RelayEvent`
