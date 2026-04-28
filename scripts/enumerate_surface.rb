@@ -386,8 +386,12 @@ end
 # -----------------------------------------------------------------------------
 # CLI
 # -----------------------------------------------------------------------------
+# Metadata fields that vary across runs/environments (commit SHA, interpreter
+# version) and are not part of the structural surface. Excluded from --check.
+META_FIELDS = %w[generated_from ruby_version].freeze
+
 def strip_meta(obj)
-  obj.reject { |k, _| k == 'generated_from' }
+  obj.reject { |k, _| META_FIELDS.include?(k) }
 end
 
 def main(argv)
