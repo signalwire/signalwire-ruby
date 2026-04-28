@@ -47,8 +47,27 @@ require 'pathname'
 
 REPO_ROOT = Pathname.new(__dir__).parent.expand_path
 LIB_DIR   = REPO_ROOT.join('lib')
-PORTING_SDK_DEFAULT = Pathname.new(ENV['PORTING_SDK_PATH'] ||
-                                   File.expand_path('~/src/porting-sdk'))
+
+# Where to look for the porting-sdk checkout. The script needs python_surface.json
+# from there to map Ruby classes onto Python module paths; without it, every
+# class falls back to a Ruby-namespace path and the resulting port_surface.json
+# disagrees with python_surface.json on every symbol.
+#
+# Search order (first existing wins):
+#   1. $PORTING_SDK_PATH (env override)
+#   2. ./porting-sdk     (CI layout — checked out as a sibling under repo root)
+#   3. ../porting-sdk    (local layout — sibling of signalwire-ruby)
+def find_default_porting_sdk
+  env = ENV['PORTING_SDK_PATH']
+  return Pathname.new(env) if env && !env.empty?
+
+  [REPO_ROOT.join('porting-sdk'), REPO_ROOT.parent.join('porting-sdk')].each do |p|
+    return p if p.directory?
+  end
+  REPO_ROOT.join('porting-sdk') # fall through; the file-existence check fails loudly later
+end
+
+PORTING_SDK_DEFAULT = find_default_porting_sdk
 
 # -----------------------------------------------------------------------------
 # Python class -> module index. Loaded from python_surface.json so we can look
@@ -58,7 +77,15 @@ PORTING_SDK_DEFAULT = Pathname.new(ENV['PORTING_SDK_PATH'] ||
 # translation of the Ruby namespace.
 # -----------------------------------------------------------------------------
 def load_python_index(python_surface_path)
-  return {} unless python_surface_path.file?
+  unless python_surface_path.file?
+    abort <<~MSG
+      error: python_surface.json not found at #{python_surface_path}
+        The script needs the canonical Python surface to map Ruby classes onto
+        Python module paths. Without it the output is not comparable against
+        python_surface.json and the Layer B audit will fail.
+        Pass --python-surface PATH or set PORTING_SDK_PATH.
+    MSG
+  end
 
   data = JSON.parse(python_surface_path.read)
   index = {}
