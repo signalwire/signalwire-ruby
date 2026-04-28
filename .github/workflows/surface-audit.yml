@@ -46,21 +46,17 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Regenerate port_surface.json
+      - name: Verify port_surface.json is current
+        # Uses the script's --check mode, which parses both files and compares
+        # the structural surface (ignoring generated_from and JSON-gem
+        # whitespace quirks across Ruby versions). A plain `git diff` would
+        # false-positive on the embedded git SHA and on empty-array
+        # formatting differences between json gem 2.6.x (CI) and 2.12+ (local).
         run: |
-          # Prefer bundle exec if the Gemfile loads; fall back to plain ruby.
           if bundle check >/dev/null 2>&1; then
-            bundle exec ruby scripts/enumerate_surface.rb --output port_surface.json
+            bundle exec ruby scripts/enumerate_surface.rb --check --output port_surface.json
           else
-            ruby scripts/enumerate_surface.rb --output port_surface.json
-          fi
-
-      - name: Detect stale port_surface.json
-        run: |
-          if ! git diff --exit-code -- port_surface.json; then
-            echo "::error::port_surface.json is stale. Regenerate with:"
-            echo "::error::  ruby scripts/enumerate_surface.rb --output port_surface.json"
-            exit 1
+            ruby scripts/enumerate_surface.rb --check --output port_surface.json
           fi
 
       - name: Diff against python_surface.json
