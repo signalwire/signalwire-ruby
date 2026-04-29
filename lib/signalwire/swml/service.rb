@@ -18,6 +18,9 @@ module SignalWire
       # @param host   [String]  Bind address (default "0.0.0.0")
       # @param port   [Integer, nil] Port — falls back to $PORT then 3000
       # @param basic_auth [Array(String,String), nil] Explicit (user, pass) pair
+      # Maximum request body size enforced on /swaig and the main route (1 MB).
+      SWAIG_FN_NAME = /\A[a-zA-Z_][a-zA-Z0-9_]*\z/.freeze
+
       def initialize(name:, route: '/', host: '0.0.0.0', port: nil, basic_auth: nil)
         @name   = name
         @route  = route.chomp('/')
@@ -29,6 +32,11 @@ module SignalWire
         @routing_callbacks = {}
         @server = nil
 
+        # SWAIG tool registry — lifted from AgentBase so any Service (sidecar,
+        # non-agent verb host) can register and dispatch SWAIG functions.
+        @tools = {}            # name => { definition + handler }
+        @swaig_functions = {}  # name => raw hash (DataMap etc.)
+
         # --- auth --------------------------------------------------------
         @basic_auth = if basic_auth
                         basic_auth
@@ -39,6 +47,87 @@ module SignalWire
                       end
 
         @log.info "Service '#{@name}' initialised (route=#{@route}, port=#{@port})"
+      end
+
+      # ------------------------------------------------------------------
+      # SWAIG tool registry (lifted from AgentBase)
+      # ------------------------------------------------------------------
+
+      # Define a SWAIG function the AI can call. Tool descriptions and
+      # parameter descriptions are LLM-facing prompt engineering — see
+      # PORTING_GUIDE for guidance.
+      def define_tool(name:, description:, parameters: {}, secure: false, &handler)
+        @tools[name] = {
+          definition: {
+            'function'    => name,
+            'description' => description,
+            'parameters'  => parameters,
+          },
+          handler:    handler,
+          secure:     secure,
+        }
+        self
+      end
+
+      # Register a raw SWAIG function definition (e.g. from DataMap#to_swaig_function).
+      def register_swaig_function(func_def)
+        fname = func_def['function'] || func_def[:function]
+        return self unless fname
+        @swaig_functions[fname] = func_def.transform_keys(&:to_s)
+        self
+      end
+
+      # Return an array of all tool definitions (for SWML rendering).
+      def define_tools
+        defs = @tools.values.map { |t| t[:definition].dup }
+        defs + @swaig_functions.values.map(&:dup)
+      end
+
+      # Dispatch a function call to the registered handler. Default plain
+      # implementation — AgentBase overrides with token validation.
+      def on_function_call(name, args, raw_data)
+        tool = @tools[name]
+        return nil unless tool && tool[:handler]
+        result = tool[:handler].call(args, raw_data)
+        if result.is_a?(Hash)
+          result
+        elsif result.respond_to?(:to_h) && !result.nil?
+          result.to_h
+        else
+          { 'response' => result.to_s }
+        end
+      end
+
+      # List registered SWAIG tool names in registration order.
+      def list_tool_names
+        @tools.keys
+      end
+
+      # Extension point: invoked between argument parsing and function
+      # dispatch on POST /swaig. Returns [target, short_circuit]. If
+      # short_circuit is non-nil, it's returned as the SWAIG response
+      # without calling on_function_call. AgentBase overrides to add
+      # session-token validation and ephemeral dynamic-config copies.
+      def swaig_pre_dispatch(_request_data, _func_name, _env)
+        [self, nil]
+      end
+
+      # Extension point: handle GET /swaig (returns the SWML document by
+      # default). AgentBase overrides to render with prompts + dynamic config.
+      def render_main_swml(_request_data = nil, request: nil)
+        @document.to_h
+      end
+
+      # Extension point: register additional Rack routes after Service
+      # mounts /health, /ready, /swaig, and the main route. AgentBase uses
+      # this to add /post_prompt, /debug_events, /mcp.
+      #
+      # @param sub_path [String] The sub-path under the main route
+      # @param request_data [Hash, nil] Parsed JSON body
+      # @param env [Hash] The Rack env
+      # @return [Array, nil] A Rack response triple, or nil if not handled
+      def handle_additional_route(_sub_path, _request_data, _env)
+        nil
       end
 
       # ------------------------------------------------------------------
@@ -209,9 +298,9 @@ module SignalWire
             run ->(env) {
               request = Rack::Request.new(env)
 
-              # Determine sub-path for routing callbacks
-              callback_path = env['PATH_INFO'] || '/'
-              callback_path = '/' if callback_path.empty?
+              # Determine sub-path for routing callbacks / additional routes.
+              sub_path = env['PATH_INFO'] || '/'
+              sub_path = '/' if sub_path.empty?
 
               request_data = nil
               if request.post? || request.put?
@@ -219,7 +308,17 @@ module SignalWire
                 request_data = JSON.parse(body) rescue nil
               end
 
-              result = service.on_request(request_data, callback_path)
+              # /swaig — handled by Service itself (lifted from AgentBase).
+              if sub_path == '/swaig'
+                next service.send(:_handle_swaig_endpoint, request, request_data, env)
+              end
+
+              # Subclass extension hook for /post_prompt, /debug_events, /mcp, etc.
+              extra = service.handle_additional_route(sub_path, request_data, env)
+              next extra if extra
+
+              # Fallback: routing-callback hook then the SWML document.
+              result = service.on_request(request_data, sub_path)
               body   = JSON.generate(result)
               [200, { 'content-type' => 'application/json' }, [body]]
             }
@@ -227,6 +326,54 @@ module SignalWire
         end
 
         app
+      end
+
+      # Internal: handle GET/POST /swaig.
+      # GET — returns the rendered SWML doc via render_main_swml.
+      # POST — parses {function, argument, call_id}, validates, runs the
+      # swaig_pre_dispatch hook, dispatches via on_function_call.
+      def _handle_swaig_endpoint(request, request_data, env)
+        if request.get?
+          swml = render_main_swml(request_data, request: request)
+          return [200, { 'content-type' => 'application/json' }, [JSON.generate(swml)]]
+        end
+
+        unless request_data
+          return [400, { 'content-type' => 'application/json' },
+                  [JSON.generate('error' => 'Missing request body')]]
+        end
+
+        func_name = request_data['function']
+        if func_name.nil? || func_name.empty?
+          return [400, { 'content-type' => 'application/json' },
+                  [JSON.generate('error' => 'Missing function name')]]
+        end
+        unless SWAIG_FN_NAME.match?(func_name)
+          return [400, { 'content-type' => 'application/json' },
+                  [JSON.generate('error' => "Invalid function name format: '#{func_name}'")]]
+        end
+
+        # Argument extraction: nested {argument:{parsed:[...]}} OR flat {arguments}
+        args = {}
+        if request_data['argument'].is_a?(Hash)
+          parsed = request_data['argument']['parsed']
+          args = parsed.first if parsed.is_a?(Array) && !parsed.empty?
+        elsif request_data['arguments'].is_a?(Hash)
+          args = request_data['arguments']
+        end
+        args ||= {}
+
+        target, short_circuit = swaig_pre_dispatch(request_data, func_name, env)
+        if short_circuit
+          return [200, { 'content-type' => 'application/json' }, [JSON.generate(short_circuit)]]
+        end
+
+        result = target.on_function_call(func_name, args, request_data)
+        if result.nil?
+          return [404, { 'content-type' => 'application/json' },
+                  [JSON.generate('error' => "Unknown function: #{func_name}")]]
+        end
+        [200, { 'content-type' => 'application/json' }, [JSON.generate(result)]]
       end
 
       # ------------------------------------------------------------------

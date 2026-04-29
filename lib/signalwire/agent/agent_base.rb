@@ -36,8 +36,8 @@ module SignalWire
   #  - Dynamic configuration via per-request ephemeral copies
   #
   # All configuration methods return +self+ for method chaining.
-  class AgentBase
-    attr_reader :name, :route, :host, :port, :logger
+  class AgentBase < SWML::Service
+    attr_reader :logger
 
     # Maximum request body size (1 MB)
     MAX_BODY_SIZE = 1_048_576
@@ -50,23 +50,22 @@ module SignalWire
                    basic_auth: nil, auto_answer: true, record_call: false,
                    record_format: 'mp4', record_stereo: true,
                    token_expiry_secs: 3600)
-      @name   = name
-      @route  = route.to_s.chomp('/')
-      @route  = '/' if @route.empty?
-      @host   = host
-      @port   = port || Integer(ENV.fetch('PORT', 3000))
+      # Resolve auth before super so we can warn about auto-generated
+      # passwords. Service's built-in auth fallback uses a fresh UUID per
+      # process, which is fine, but we want the agent-specific warning.
+      password_auto_generated = false
+      resolved_auth = if basic_auth
+                        basic_auth
+                      elsif ENV['SWML_BASIC_AUTH_USER'] && ENV['SWML_BASIC_AUTH_PASSWORD']
+                        [ENV['SWML_BASIC_AUTH_USER'], ENV['SWML_BASIC_AUTH_PASSWORD']]
+                      else
+                        password_auto_generated = true
+                        [(ENV['SWML_BASIC_AUTH_USER'] || SecureRandom.uuid), SecureRandom.uuid]
+                      end
+
+      super(name: name, route: route, host: host, port: port, basic_auth: resolved_auth)
       @logger = Logging.logger("AgentBase[#{name}]")
 
-      # --- auth ---------------------------------------------------------
-      password_auto_generated = false
-      @basic_auth = if basic_auth
-                      basic_auth
-                    elsif ENV['SWML_BASIC_AUTH_USER'] && ENV['SWML_BASIC_AUTH_PASSWORD']
-                      [ENV['SWML_BASIC_AUTH_USER'], ENV['SWML_BASIC_AUTH_PASSWORD']]
-                    else
-                      password_auto_generated = true
-                      [(ENV['SWML_BASIC_AUTH_USER'] || SecureRandom.uuid), SecureRandom.uuid]
-                    end
       if password_auto_generated
         # Warn loudly so external callers (tests, RPC clients, MCP)
         # know why they are getting HTTP 401. This is the silent cause
@@ -101,8 +100,8 @@ module SignalWire
       @post_prompt_text = nil
 
       # --- tools --------------------------------------------------------
-      @tools          = {}       # name => { definition + handler }
-      @swaig_functions = {}      # name => raw hash (DataMap etc.)
+      # @tools and @swaig_functions are now initialised by Service (parent).
+      # AgentBase's enhanced define_tool overrides Service's plain version.
 
       # --- AI config ----------------------------------------------------
       @hints               = []
@@ -1364,55 +1363,45 @@ module SignalWire
               request_data = JSON.parse(body) rescue nil
             end
 
-            case sub_path
-            when '/swaig'
-              agent._handle_swaig(request_data, env)
-            when '/post_prompt'
-              agent._handle_post_prompt(request_data, env)
-            when '/debug_events'
-              agent._handle_debug_events(request_data, env)
-            when '/mcp'
-              agent._handle_mcp_endpoint(request_data, env)
-            else
-              # SWML endpoint
-              swml = agent.render_swml(request_data, request: request)
-              body = JSON.generate(swml)
-              [200, { 'content-type' => 'application/json' }, [body]]
+            # /swaig — handled by Service (lifted from AgentBase). The dispatch
+            # uses on_function_call which AgentBase overrides for token validation.
+            if sub_path == '/swaig'
+              next agent.send(:_handle_swaig_endpoint, request, request_data, env)
             end
+
+            # AgentBase's extra routes (/post_prompt, /debug_events, /mcp).
+            extra = agent.handle_additional_route(sub_path, request_data, env)
+            next extra if extra
+
+            # SWML endpoint
+            swml = agent.render_swml(request_data, request: request)
+            body = JSON.generate(swml)
+            [200, { 'content-type' => 'application/json' }, [body]]
           }
         end
       end
     end
 
+    # Override Service's hook to add agent-specific routes.
+    public
+
+    def handle_additional_route(sub_path, request_data, env)
+      case sub_path
+      when '/post_prompt'  then _handle_post_prompt(request_data, env)
+      when '/debug_events' then _handle_debug_events(request_data, env)
+      when '/mcp'          then _handle_mcp_endpoint(request_data, env)
+      end
+    end
+
+    private
+
     # These methods must be accessible from the Rack lambda
     public
 
-    # Handle SWAIG function dispatch.
-    # @api private
-    def _handle_swaig(request_data, _env)
-      unless request_data
-        body = JSON.generate({ 'response' => 'No request data' })
-        return [400, { 'content-type' => 'application/json' }, [body]]
-      end
-
-      func_name = request_data['function']
-      unless func_name
-        body = JSON.generate({ 'response' => 'No function specified' })
-        return [400, { 'content-type' => 'application/json' }, [body]]
-      end
-
-      # Extract args from argument.parsed[0]
-      args = {}
-      if request_data['argument'].is_a?(Hash)
-        parsed = request_data['argument']['parsed']
-        args = parsed.first if parsed.is_a?(Array) && !parsed.empty?
-      end
-      args ||= {}
-
-      result = on_function_call(func_name, args, request_data)
-      body = JSON.generate(result)
-      [200, { 'content-type' => 'application/json' }, [body]]
-    end
+    # _handle_swaig is now provided by Service (lifted as _handle_swaig_endpoint).
+    # AgentBase still hooks the dispatch path via the on_function_call override
+    # below, which adds session-token validation on top of Service's plain
+    # registry lookup.
 
     # Handle post_prompt callback.
     # @api private
