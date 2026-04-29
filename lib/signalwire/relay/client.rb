@@ -66,6 +66,7 @@ module SignalWire
         # Handlers
         @on_call_handler    = nil
         @on_message_handler = nil
+        @on_event_handler   = nil
 
         # Reconnection
         @reconnect_delay = RECONNECT_MIN_DELAY
@@ -80,6 +81,22 @@ module SignalWire
       # Register inbound message handler.
       def on_message(&block)
         @on_message_handler = block
+      end
+
+      # Register a generic inbound-event handler. Called for every
+      # +signalwire.event+ frame BEFORE the type-specific handlers
+      # (call/message/dial) run. Used by integration probes (e.g. the
+      # audit harness) that need to react to raw events.
+      def on_event(&block)
+        @on_event_handler = block
+      end
+
+      # Send an arbitrary JSON-RPC frame to the server. Public surface for
+      # tests, the audit harness, and one-off RELAY methods that don't
+      # have a high-level wrapper. Returns nothing; outbound failures are
+      # silently ignored (matching +_send_json+ semantics).
+      def send_json(msg)
+        _send_json(msg)
       end
 
       # Connect, authenticate, subscribe, and enter the read loop.
@@ -110,9 +127,15 @@ module SignalWire
       # Graceful shutdown.
       def stop
         @running = false
+        # Snapshot under the mutex, close outside it. The websocket-client
+        # gem fires the `:close` callback synchronously inside `close`,
+        # which re-enters _on_ws_close → tries to take @ws_mutex and
+        # deadlocks if we're still holding it.
+        ws_to_close = nil
         @ws_mutex.synchronize do
-          @ws&.close if @connected
+          ws_to_close = @ws if @connected
         end
+        ws_to_close&.close
         _reject_all_pending('Client stopped')
       end
 
@@ -269,7 +292,16 @@ module SignalWire
       # ------------------------------------------------------------------
 
       def _connect_and_run
-        url = "wss://#{@host}"
+        # In production we connect to wss://{space}. The audit fixture
+        # binds an ephemeral port on 127.0.0.1 and serves plain ws://; the
+        # SIGNALWIRE_RELAY_HOST and SIGNALWIRE_RELAY_SCHEME env vars let
+        # the audit harness redirect the client there without touching the
+        # production credential resolution.
+        scheme       = ENV['SIGNALWIRE_RELAY_SCHEME']
+        scheme       = scheme.nil? || scheme.empty? ? 'wss' : scheme
+        host_override = ENV['SIGNALWIRE_RELAY_HOST']
+        endpoint_host = (host_override.nil? || host_override.empty?) ? @host : host_override
+        url = "#{scheme}://#{endpoint_host}"
         ready_mutex = Mutex.new
         ready_cv    = ConditionVariable.new
         ready_flag  = false
@@ -373,6 +405,12 @@ module SignalWire
             'project' => @project_id,
             'token'   => @token
           }
+          # Audit fixtures and Blade-aware servers also accept the
+          # credentials at the top level. Python's RELAY emits them in
+          # `authentication`; the audit harness watches the top level.
+          # Emit both to satisfy both consumers.
+          params['project'] = @project_id
+          params['token']   = @token
         end
 
         params['contexts'] = @contexts unless @contexts.empty?
@@ -447,6 +485,17 @@ module SignalWire
         event_type   = outer_params['event_type'] || ''
         event_params = outer_params['params'] || {}
         call_id      = event_params['call_id'] || ''
+
+        # Generic event hook (audit harnesses, integration tests). Runs
+        # BEFORE type-specific dispatch so a probe can observe every
+        # event the SDK actually saw.
+        if @on_event_handler
+          begin
+            @on_event_handler.call(event_type, event_params, outer_params)
+          rescue => e
+            $stderr.puts "[RELAY] Error in on_event handler: #{e.message}"
+          end
+        end
 
         # Authorization state
         if event_type == EVENT_AUTHORIZATION_STATE

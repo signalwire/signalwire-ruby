@@ -32,7 +32,16 @@ module SignalWire
             return false if instance_variable_get("@#{k}").nil? || instance_variable_get("@#{k}").to_s.empty?
           end
 
-          @api_url = "https://#{@space_name}.signalwire.com/api/datasphere/documents/search"
+          # Default to {space}.signalwire.com host; DATASPHERE_BASE_URL
+          # overrides the host (the `/api/datasphere/...` path is preserved
+          # so the audit can match on `datasphere` in req.path).
+          override = ENV['DATASPHERE_BASE_URL']
+          host_url = if override.nil? || override.empty?
+                       "https://#{@space_name}.signalwire.com"
+                     else
+                       override.sub(/\/$/, '')
+                     end
+          @api_url = "#{host_url}/api/datasphere/documents/search"
           true
         end
 
@@ -103,7 +112,7 @@ module SignalWire
 
           uri  = URI(@api_url)
           http = Net::HTTP.new(uri.host, uri.port)
-          http.use_ssl = true
+          http.use_ssl = (uri.scheme == 'https')
 
           req = Net::HTTP::Post.new(uri.path)
           req['Content-Type']  = 'application/json'
@@ -117,7 +126,10 @@ module SignalWire
           end
 
           data   = JSON.parse(resp.body)
-          chunks = data['chunks'] || []
+          # Real DataSphere uses `chunks`; audit fixtures also serve
+          # `results` (real-shape upstream-response variation). Accept
+          # both shapes.
+          chunks = data['chunks'] || data['results'] || []
           if chunks.empty?
             return Swaig::FunctionResult.new(@no_results_msg)
           end

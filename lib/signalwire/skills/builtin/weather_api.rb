@@ -40,6 +40,13 @@ module SignalWire
             "Cloud coverage: ${current.cloud} percent. " \
             "Feels like: ${current.#{feels_field}} degrees #{unit_name}."
 
+          # Default to the WeatherAPI.com host; WEATHER_API_BASE_URL
+          # overrides for tests and the audit fixture. The `/v1/current.json`
+          # path is preserved so the audit can match on `current.json`.
+          base = ENV['WEATHER_API_BASE_URL']
+          base = 'https://api.weatherapi.com' if base.nil? || base.empty?
+          base = base.sub(/\/$/, '')
+
           tool = {
             'function'    => @tool_name,
             'description' => 'Get current weather information for any location',
@@ -53,7 +60,7 @@ module SignalWire
             'data_map' => {
               'webhooks' => [
                 {
-                  'url'    => "https://api.weatherapi.com/v1/current.json?key=#{@api_key}&q=${lc:enc:args.location}&aqi=no",
+                  'url'    => "#{base}/v1/current.json?key=#{@api_key}&q=${lc:enc:args.location}&aqi=no",
                   'method' => 'GET',
                   'output' => Swaig::FunctionResult.new(response_template).to_h
                 }

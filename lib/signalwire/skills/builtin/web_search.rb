@@ -97,7 +97,13 @@ module SignalWire
         end
 
         def google_search(query, num)
-          uri = URI('https://www.googleapis.com/customsearch/v1')
+          # Default to Google CSE; WEB_SEARCH_BASE_URL overrides for tests
+          # and the audit fixture (matches Rust SDK's behavior — env var is
+          # the *host*, the `/customsearch/v1` path is appended below so
+          # the audit can match on `customsearch` in req.path).
+          base = ENV['WEB_SEARCH_BASE_URL']
+          base = 'https://www.googleapis.com' if base.nil? || base.empty?
+          uri = URI("#{base.sub(/\/$/, '')}/customsearch/v1")
           uri.query = URI.encode_www_form(
             key: @api_key,
             cx: @search_engine_id,

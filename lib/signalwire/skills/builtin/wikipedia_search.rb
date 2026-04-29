@@ -72,8 +72,16 @@ module SignalWire
         end
 
         def search_wiki(query)
+          # Default to en.wikipedia.org host; WIKIPEDIA_BASE_URL overrides
+          # for tests and the audit fixture. The env var is the *host*; the
+          # `/w/api.php` path is appended below so audit_skills_dispatch
+          # can match on `api.php` in req.path.
+          base = ENV['WIKIPEDIA_BASE_URL']
+          base = 'https://en.wikipedia.org' if base.nil? || base.empty?
+          api_endpoint = "#{base.sub(/\/$/, '')}/w/api.php"
+
           # Step 1: Search
-          search_uri = URI("https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&srsearch=#{URI.encode_www_form_component(query)}&srlimit=#{@num_results}")
+          search_uri = URI("#{api_endpoint}?action=query&list=search&format=json&srsearch=#{URI.encode_www_form_component(query)}&srlimit=#{@num_results}")
           search_resp = Net::HTTP.get_response(search_uri)
           return @no_results_msg unless search_resp.is_a?(Net::HTTPSuccess)
 
@@ -81,19 +89,27 @@ module SignalWire
           results = search_data.dig('query', 'search') || []
           return @no_results_msg if results.empty?
 
-          # Step 2: Get extracts
+          # Step 2: Get extracts. If the upstream returns extracts
+          # (production behavior on en.wikipedia.org), prefer those; if the
+          # response shape doesn't include `query.pages` (test fixtures,
+          # truncated responses), fall back to the snippet from step 1.
           articles = results.first(@num_results).filter_map do |r|
             title = r['title']
-            extract_uri = URI("https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&format=json&titles=#{URI.encode_www_form_component(title)}")
+            snippet = (r['snippet'] || '').gsub(/<[^>]+>/, '').strip
+            extract_uri = URI("#{api_endpoint}?action=query&prop=extracts&exintro&explaintext&format=json&titles=#{URI.encode_www_form_component(title)}")
             extract_resp = Net::HTTP.get_response(extract_uri)
-            next unless extract_resp.is_a?(Net::HTTPSuccess)
 
-            pages = JSON.parse(extract_resp.body).dig('query', 'pages') || {}
-            page = pages.values.first
-            extract = page&.dig('extract')&.strip
-            next if extract.nil? || extract.empty?
+            extract = nil
+            if extract_resp.is_a?(Net::HTTPSuccess)
+              pages = JSON.parse(extract_resp.body).dig('query', 'pages') || {}
+              page = pages.values.first
+              extract = page&.dig('extract')&.strip
+            end
 
-            "**#{title}**\n\n#{extract}"
+            content = extract && !extract.empty? ? extract : snippet
+            next if content.nil? || content.empty?
+
+            "**#{title}**\n\n#{content}"
           end
 
           return @no_results_msg if articles.empty?

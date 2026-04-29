@@ -50,14 +50,16 @@ module SignalWire
                   :compat, :addresses, :queues, :recordings, :number_groups,
                   :verified_callers, :sip_profile, :lookup, :short_codes,
                   :imported_numbers, :mfa, :registry, :logs, :project,
-                  :pubsub, :chat
+                  :pubsub, :chat, :project_id
 
-      def initialize(project: nil, token: nil, host: nil)
+      # +base_url+ overrides the derived +https://{space}+ default. The
+      # audit harness uses this to point at the local fixture server.
+      def initialize(project: nil, token: nil, host: nil, base_url: nil)
         project_id = project || ENV['SIGNALWIRE_PROJECT_ID'] || ''
         api_token  = token || ENV['SIGNALWIRE_API_TOKEN'] || ''
         space      = host || ENV['SIGNALWIRE_SPACE'] || ''
 
-        if project_id.empty? || api_token.empty? || space.empty?
+        if project_id.empty? || api_token.empty? || (space.empty? && (base_url.nil? || base_url.empty?))
           raise ArgumentError,
                 'project, token, and host are required. ' \
                 'Provide them as arguments or set SIGNALWIRE_PROJECT_ID, ' \
@@ -65,7 +67,7 @@ module SignalWire
         end
 
         @project_id = project_id
-        @http = HttpClient.new(project_id, api_token, space)
+        @http = HttpClient.new(project_id, api_token, space, base_url: base_url)
 
         # Fabric API
         @fabric = Namespaces::FabricNamespace.new(@http)

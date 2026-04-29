@@ -24,12 +24,24 @@ module SignalWire
     class HttpClient
       attr_reader :base_url
 
-      def initialize(project_id, token, space)
-        host = space.include?('.') ? space : "#{space}.signalwire.com"
-        @base_url    = "https://#{host}"
+      # +base_url+ overrides the derived +https://{space}+ value when set,
+      # which is how the audit fixture and tests point the client at a
+      # loopback server. Pass either +space+ ("acme") / a host
+      # ("acme.signalwire.com") OR an explicit +base_url+ ("http://127.0.0.1:NNNN").
+      def initialize(project_id, token, space, base_url: nil)
+        if base_url && !base_url.empty?
+          @base_url = base_url.sub(/\/$/, '')
+        else
+          host       = space.include?('.') ? space : "#{space}.signalwire.com"
+          @base_url  = "https://#{host}"
+        end
         @project_id  = project_id
         @token       = token
         @auth_header = 'Basic ' + Base64.strict_encode64("#{project_id}:#{token}")
+      end
+
+      def project_id
+        @project_id
       end
 
       def get(path, params = nil)
@@ -79,7 +91,7 @@ module SignalWire
         end
 
         http = Net::HTTP.new(uri.host, uri.port)
-        http.use_ssl = true
+        http.use_ssl = (uri.scheme == 'https')
 
         response = http.request(req)
 

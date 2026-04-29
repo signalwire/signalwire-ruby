@@ -44,6 +44,14 @@ module SignalWire
           descs = @categories.map { |c| "#{c}: #{VALID_CATEGORIES[c] || c}" }
           param_desc = 'Category for trivia question. Options: ' + descs.join('; ')
 
+          # Default to the production endpoint; API_NINJAS_BASE_URL
+          # overrides the host (the audit fixture sets it to a loopback
+          # address). The `/v1/trivia` path is preserved so the audit
+          # can match on `trivia` in the fixture's req.path.
+          base = ENV['API_NINJAS_BASE_URL']
+          base = 'https://api.api-ninjas.com' if base.nil? || base.empty?
+          base = base.sub(/\/$/, '')
+
           tool = {
             'function'    => @tool_name,
             'description' => "Get trivia questions for #{@tool_name.tr('_', ' ')}",
@@ -57,7 +65,7 @@ module SignalWire
             'data_map' => {
               'webhooks' => [
                 {
-                  'url'     => 'https://api.api-ninjas.com/v1/trivia?category=%{args.category}',
+                  'url'     => "#{base}/v1/trivia?category=%{args.category}",
                   'method'  => 'GET',
                   'headers' => { 'X-Api-Key' => @api_key },
                   'output'  => Swaig::FunctionResult.new(

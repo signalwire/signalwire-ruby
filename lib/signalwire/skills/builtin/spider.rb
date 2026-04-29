@@ -108,6 +108,15 @@ module SignalWire
         end
 
         def fetch_text(url)
+          # SPIDER_BASE_URL redirects every fetch through a configured host
+          # (used by audit_skills_dispatch.py to point the skill at a
+          # loopback fixture). The path/query of the user-supplied URL is
+          # preserved so the audit can match on it.
+          base = ENV['SPIDER_BASE_URL']
+          if base && !base.empty?
+            url = "#{base.sub(/\/$/, '')}#{_url_path(url)}"
+          end
+
           uri = URI(url)
           http = Net::HTTP.new(uri.host, uri.port)
           http.use_ssl = (uri.scheme == 'https')
@@ -121,6 +130,17 @@ module SignalWire
           return nil unless resp.is_a?(Net::HTTPSuccess)
 
           body = resp.body.encode('UTF-8', invalid: :replace, undef: :replace, replace: '')
+          # Some upstreams (and the audit fixture) wrap the HTML in JSON
+          # under an `_raw_html` field; unwrap before stripping tags.
+          begin
+            parsed = JSON.parse(body)
+            if parsed.is_a?(Hash) && parsed['_raw_html'].is_a?(String)
+              body = parsed['_raw_html']
+            end
+          rescue JSON::ParserError
+            # not JSON — treat as raw HTML
+          end
+
           # Strip HTML tags
           text = body.gsub(/<script[^>]*>.*?<\/script>/mi, '')
                      .gsub(/<style[^>]*>.*?<\/style>/mi, '')
@@ -131,6 +151,13 @@ module SignalWire
           text.length > @max_text_length ? text[0, @max_text_length] : text
         rescue => _e
           nil
+        end
+
+        # Extract the path-and-query portion of a URL. Used by
+        # SPIDER_BASE_URL redirection to preserve audit fixture matching.
+        def _url_path(url)
+          stripped = url.sub(%r{\Ahttps?://[^/]+}, '')
+          stripped.empty? ? '/' : stripped
         end
       end
     end
