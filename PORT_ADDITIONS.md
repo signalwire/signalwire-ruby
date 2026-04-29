@@ -563,3 +563,16 @@ signalwire.swml.service.Service.render_pretty: port-only: consolidated Ruby SWML
 signalwire.swml.service.Service.route: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
 signalwire.swml.service.Service.serve: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
 signalwire.swml.service.Service.stop: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
+signalwire.swml.service.Service.define_tool: port-only: SWAIG hosting lifted from AgentBase to SWMLService per parity-rule (Phase 2 of CHECKLIST_TEMPLATE — SWMLService independently usable)
+signalwire.swml.service.Service.define_tools: port-only: SWAIG hosting lifted from AgentBase to SWMLService per parity-rule
+signalwire.swml.service.Service.list_tool_names: port-only: SWAIG hosting lifted from AgentBase to SWMLService per parity-rule
+signalwire.swml.service.Service.on_function_call: port-only: SWAIG dispatcher lifted from AgentBase to SWMLService per parity-rule (AgentBase overrides via _swaig_pre_dispatch instead)
+signalwire.swml.service.Service.register_swaig_function: port-only: SWAIG hosting lifted from AgentBase to SWMLService per parity-rule
+signalwire.swml.service.Service.handle_additional_route: port-only: routing-callback dispatcher exposed at the Service level for Ruby's Rack adapter
+signalwire.swml.service.Service.render_main_swml: port-only: extension point that AgentBase overrides with prompt-driven rendering (matches Python's _render_swml hook)
+signalwire.swml.service.Service.swaig_pre_dispatch: port-only: extension point AgentBase overrides for token validation + dynamic config (matches Python's _swaig_pre_dispatch)
+signalwire.core.agent_base.AgentBase.handle_additional_route: port-only: AgentBase exposes Service's handle_additional_route through inheritance — Ruby method-resolution makes the inherited method visible on the subclass
+signalwire.relay.client.RelayClient.on_event: port-only: generic event-handler hook for integration probes (e.g. audit_relay_handshake harness); Python uses callback registration on individual events
+signalwire.relay.client.RelayClient.send_json: port-only: public surface for emitting raw JSON-RPC frames (used by tests and the audit harness; Python keeps this private)
+signalwire.rest._base.HttpClient.project_id: port-only: Ruby attr_reader exposes the constructor-set project_id (used by audit_rest_transport harness to build paths in the LAML namespace)
+signalwire.rest.client.RestClient.project_id: port-only: Ruby attr_reader exposes the constructor-set project_id (used by tests and the audit harness)

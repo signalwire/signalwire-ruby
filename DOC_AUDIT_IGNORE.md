@@ -26,7 +26,12 @@ merge: `Hash#merge` — Ruby stdlib
 sleep: `Kernel#sleep` — Ruby stdlib
 pack: `Array#pack` — Ruby stdlib (used for Base64 header building)
 pretty_generate: `JSON.pretty_generate` — Ruby stdlib (json gem)
+generate: `JSON.generate` — Ruby stdlib (json gem)
 rb: Ruby filename extension literal (e.g. `"foo.rb"`) — not a method call
+expand_path: `File.expand_path` — Ruby stdlib (used to resolve $LOAD_PATH)
+reject: `Enumerable#reject` — Ruby stdlib
+sub: `String#sub` — Ruby stdlib
+transform_keys: `Hash#transform_keys` — Ruby stdlib (Ruby 2.5+)
 
 ## Python-decorator syntax retained in illustrative examples
 
