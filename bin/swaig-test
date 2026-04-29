@@ -28,6 +28,15 @@
 #   that's `lambda` only; `gcf`, `cgi`, and `azure` are rejected with a
 #   pointer to the phase-9 gap.
 #
+#   (3) In-process file mode — `--file PATH --list-tools` loads the script
+#       in the current Ruby process, finds the user's SWML::Service subclass
+#       (including non-AgentBase services), and reads the runtime tool
+#       registry directly. NO HTTP, NO simulator. This is the only mode
+#       that surfaces SWAIG tools registered on a plain SWML::Service
+#       (e.g. ai_sidecar hosts, standalone SWAIG services):
+#
+#       swaig-test --file examples/swmlservice_swaig_standalone.rb --list-tools
+#
 
 require 'net/http'
 require 'uri'
@@ -260,6 +269,7 @@ module SwaigTest
       @options = {
         url:                 nil,
         agent_file:          nil,
+        file:                nil,
         simulate_serverless: nil,
         dump_swml:           false,
         list_tools:          false,
@@ -274,7 +284,9 @@ module SwaigTest
     def run
       validate_options!
 
-      if @options[:simulate_serverless]
+      if @options[:file]
+        run_in_process_file_mode
+      elsif @options[:simulate_serverless]
         run_simulated_serverless
       elsif @options[:dump_swml]
         dump_swml
@@ -301,6 +313,11 @@ module SwaigTest
         opts.on("--simulate-serverless PLATFORM",
                 "Simulate the named serverless platform (loads agent file locally). Supported: #{IMPLEMENTED_SERVERLESS_PLATFORMS.join(', ')}") do |v|
           @options[:simulate_serverless] = v
+        end
+
+        opts.on("--file PATH", "--example PATH",
+                "Load a SWML::Service subclass from PATH in-process and read its tool registry directly (no HTTP, no simulator). Required for --list-tools on a non-AgentBase Service.") do |v|
+          @options[:file] = v
         end
 
         opts.on("--dump-swml", "GET SWML document and pretty-print it") do
@@ -352,6 +369,11 @@ module SwaigTest
     end
 
     def validate_options!
+      if @options[:file]
+        validate_file_mode_options!
+        return
+      end
+
       if @options[:simulate_serverless]
         validate_simulate_serverless_options!
         return
@@ -359,7 +381,7 @@ module SwaigTest
 
       # Classic URL mode from here down.
       unless @options[:url]
-        $stderr.puts "Error: --url is required (or pass an agent file with --simulate-serverless PLATFORM)"
+        $stderr.puts "Error: --url is required (or pass --file PATH for in-process file mode, or pass an agent file with --simulate-serverless PLATFORM)"
         exit 1
       end
 
@@ -369,6 +391,36 @@ module SwaigTest
         exit 1
       elsif actions > 1
         $stderr.puts "Error: specify only one of --dump-swml, --list-tools, or --exec NAME"
+        exit 1
+      end
+    end
+
+    def validate_file_mode_options!
+      # In-process file mode is currently scoped to listing tools off the
+      # runtime registry, since that is the gap on non-AgentBase services.
+      # URL/simulator combinations are rejected to avoid ambiguous dispatch.
+      if @options[:url]
+        $stderr.puts "Error: --file and --url are mutually exclusive"
+        exit 1
+      end
+
+      if @options[:simulate_serverless]
+        $stderr.puts "Error: --file and --simulate-serverless are mutually exclusive"
+        exit 1
+      end
+
+      unless File.exist?(@options[:file])
+        $stderr.puts "Error: file not found: #{@options[:file]}"
+        exit 1
+      end
+
+      unless @options[:list_tools]
+        $stderr.puts "Error: --file mode currently supports only --list-tools"
+        exit 1
+      end
+
+      if @options[:dump_swml] || @options[:exec]
+        $stderr.puts "Error: --file mode does not support --dump-swml or --exec (use --url or --simulate-serverless lambda for those)"
         exit 1
       end
     end
@@ -668,8 +720,148 @@ module SwaigTest
         desc = func['description'] || '(no description)'
         puts "  #{name}"
         puts "    #{desc}"
+
+        properties, required = extract_param_properties(func['parameters'])
+        unless properties.empty?
+          puts "    Parameters:"
+          properties.each do |pname, pdef|
+            ptype = (pdef.is_a?(Hash) ? pdef['type'] : nil) || 'any'
+            pdesc = (pdef.is_a?(Hash) ? pdef['description'] : nil) || ''
+            req_marker = required.include?(pname.to_s) ? ' (required)' : ''
+            puts "      - #{pname}: #{ptype}#{req_marker} #{pdesc}".rstrip
+          end
+        end
         puts ""
       end
+    end
+
+    # Accepts either JSON-Schema-shaped `{type:object, properties:{...}}` or
+    # the raw flat shape SWML::Service stores (`{name => {type, description}}`).
+    # Returns [properties_hash, required_array].
+    def extract_param_properties(params)
+      return [{}, []] unless params.is_a?(Hash)
+      if params['properties'].is_a?(Hash)
+        [params['properties'], Array(params['required']).map(&:to_s)]
+      elsif params['type'] == 'object'
+        [{}, []]
+      else
+        # Flat shape — keys are parameter names, values are schema fragments.
+        [params.transform_keys(&:to_s), []]
+      end
+    end
+
+    # --------------------------------------------------------------
+    # --file ... --list-tools dispatch (in-process, no HTTP)
+    # --------------------------------------------------------------
+    #
+    # Loads PATH with Kernel#load (so re-loads in the same process work
+    # cleanly), discovers a `SignalWire::SWML::Service` subclass, instantiates
+    # it (or reuses a top-level instance the script already exposed), and
+    # reads the runtime tool registry directly. This is the only path that
+    # surfaces SWAIG tools registered on a non-AgentBase Service, since URL
+    # mode looks for them in rendered SWML and they aren't there for plain
+    # Service subclasses (`render_main_swml` returns the document only).
+    def run_in_process_file_mode
+      require 'signalwire'
+
+      service = load_service_from_file(@options[:file])
+      unless service
+        $stderr.puts "Error: file #{@options[:file].inspect} did not expose a SignalWire::SWML::Service subclass."
+        exit 1
+      end
+
+      tools = collect_runtime_tools(service)
+      render_functions_list(tools)
+    end
+
+    # Find a user-defined SWML::Service subclass and return an instance.
+    # Selection order:
+    #   1. A top-level `service` or `agent` constant/variable already
+    #      pointing at a Service instance (rare, but a script may set one).
+    #   2. The most recently defined Service subclass that ISN'T
+    #      SignalWire::SWML::Service or SignalWire::AgentBase itself.
+    def load_service_from_file(path)
+      absolute = File.expand_path(path)
+
+      # Snapshot the existing Service subclasses so we can pick the one
+      # the file just defined, instead of accidentally grabbing a class
+      # left over from earlier requires (e.g. AgentBase).
+      service_class = SignalWire::SWML::Service
+      pre_existing = ObjectSpace.each_object(Class).select { |c| service_subclass?(c, service_class) }.to_set
+
+      load(absolute)
+
+      # Top-level instance fallback (some scripts assign a global).
+      %i[SERVICE AGENT].each do |name|
+        if Object.const_defined?(name)
+          val = Object.const_get(name)
+          return val if val.is_a?(service_class)
+        end
+      end
+
+      newly_defined = ObjectSpace.each_object(Class).select do |c|
+        service_subclass?(c, service_class) && !pre_existing.include?(c)
+      end
+
+      # Sort by class name so output is deterministic when a file defines
+      # multiple subclasses; users can disambiguate by setting `SERVICE`.
+      candidate = newly_defined.sort_by { |c| c.name.to_s }.last
+
+      # Fallback: if no NEW subclass was defined (e.g. running the same
+      # file twice in the same process), pick any user subclass.
+      candidate ||= ObjectSpace.each_object(Class)
+                    .select { |c| service_subclass?(c, service_class) }
+                    .sort_by { |c| c.name.to_s }
+                    .last
+
+      return nil unless candidate
+
+      instantiate_service(candidate)
+    rescue StandardError => e
+      $stderr.puts "Error loading #{path}: #{e.class}: #{e.message}"
+      $stderr.puts e.backtrace.first(8).join("\n") if @options[:verbose]
+      exit 1
+    end
+
+    def service_subclass?(klass, service_class)
+      return false unless klass.is_a?(Class)
+      return false if klass == service_class
+      return false if defined?(SignalWire::AgentBase) && klass == SignalWire::AgentBase
+      klass.ancestors.include?(service_class)
+    rescue StandardError
+      false
+    end
+
+    # Try a parameterless instantiation first (the convention in the
+    # examples). Fall back to a few common keyword shapes if that fails.
+    def instantiate_service(klass)
+      klass.new
+    rescue ArgumentError
+      begin
+        klass.new(host: '127.0.0.1', port: 0)
+      rescue ArgumentError
+        klass.new(name: klass.name.to_s)
+      end
+    end
+
+    # Read the runtime tool registry off a Service instance. Service
+    # exposes `define_tools` (the merged definition list across @tools and
+    # @swaig_functions). That's the source of truth — we use it instead
+    # of poking @tools directly so AgentBase / future subclasses that
+    # override the accessor still work.
+    def collect_runtime_tools(service)
+      if service.respond_to?(:define_tools)
+        Array(service.define_tools).map { |d| stringify_tool(d) }
+      elsif service.instance_variable_defined?(:@tools)
+        service.instance_variable_get(:@tools).values.map { |t| stringify_tool(t[:definition]) }
+      else
+        []
+      end
+    end
+
+    def stringify_tool(defn)
+      return {} unless defn.is_a?(Hash)
+      defn.transform_keys(&:to_s)
     end
   end
 end

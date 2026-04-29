@@ -238,3 +238,84 @@ class SwaigTestCLIIntegrationTest < Minitest::Test
     $stdout = old_stdout
   end
 end
+
+# In-process file-mode tests: verify `--file PATH --list-tools` loads the
+# script, finds the SWML::Service subclass, walks its tool registry, and
+# prints each tool. NO HTTP, NO simulator — this is the path that surfaces
+# SWAIG tools registered on a non-AgentBase Service (the case URL mode
+# can't see, since plain Service `render_main_swml` returns the document
+# only).
+class SwaigTestCLIFileModeTest < Minitest::Test
+  EXAMPLES_DIR = File.expand_path('../examples', __dir__)
+
+  def standalone_path
+    File.join(EXAMPLES_DIR, 'swmlservice_swaig_standalone.rb')
+  end
+
+  def sidecar_path
+    File.join(EXAMPLES_DIR, 'swmlservice_ai_sidecar.rb')
+  end
+
+  def capture_stdout
+    old = $stdout
+    $stdout = StringIO.new
+    yield
+    $stdout.string
+  ensure
+    $stdout = old
+  end
+
+  def test_file_option_recognised
+    cli = SwaigTest::CLI.new(['--file', standalone_path, '--list-tools'])
+    assert_equal standalone_path, cli.options[:file]
+    assert cli.options[:list_tools]
+  end
+
+  def test_file_mode_lists_at_least_one_tool_for_standalone_example
+    skip 'standalone example missing' unless File.exist?(standalone_path)
+    output = capture_stdout do
+      SwaigTest::CLI.new(['--file', standalone_path, '--list-tools']).run
+    end
+    assert_includes output, 'SWAIG Functions:'
+    assert_includes output, 'lookup_competitor'
+    assert_includes output, 'competitor'
+    refute_includes output, 'No SWAIG functions found.'
+  end
+
+  def test_file_mode_lists_at_least_one_tool_for_sidecar_example
+    skip 'sidecar example missing' unless File.exist?(sidecar_path)
+    output = capture_stdout do
+      SwaigTest::CLI.new(['--file', sidecar_path, '--list-tools']).run
+    end
+    assert_includes output, 'lookup_competitor'
+    assert_includes output, 'competitor'
+  end
+
+  def test_file_mode_rejects_url_combo
+    assert_raises(SystemExit) do
+      SwaigTest::CLI.new(['--file', standalone_path,
+                          '--url', 'http://u:p@h:80/',
+                          '--list-tools']).run
+    end
+  end
+
+  def test_file_mode_rejects_simulate_serverless_combo
+    assert_raises(SystemExit) do
+      SwaigTest::CLI.new(['--file', standalone_path,
+                          '--simulate-serverless', 'lambda',
+                          '--list-tools']).run
+    end
+  end
+
+  def test_file_mode_requires_list_tools_action
+    assert_raises(SystemExit) do
+      SwaigTest::CLI.new(['--file', standalone_path]).run
+    end
+  end
+
+  def test_file_mode_rejects_missing_file
+    assert_raises(SystemExit) do
+      SwaigTest::CLI.new(['--file', '/no/such/file.rb', '--list-tools']).run
+    end
+  end
+end
