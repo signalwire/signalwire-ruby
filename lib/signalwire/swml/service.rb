@@ -253,7 +253,15 @@ module SignalWire
           AccessLog: []
         )
 
-        @server.mount '/', Rack::Handler::WEBrick, rack_app
+        # Rack 3+ moved Handler to the rackup gem.
+        handler = begin
+                    require 'rackup/handler/webrick'
+                    Rackup::Handler::WEBrick
+                  rescue LoadError
+                    require 'rack/handler/webrick'
+                    Rack::Handler::WEBrick
+                  end
+        @server.mount '/', handler, rack_app
 
         trap('INT')  { stop }
         trap('TERM') { stop }
