@@ -87,6 +87,32 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
     "SignalWire::Skills::Builtin::WikipediaSearchSkill": "signalwire.skills.wikipedia_search.skill",
     "SignalWire::Relay::Client": "signalwire.relay.client",
     "SignalWire::Relay::ActionTimeoutError": "signalwire.relay.client",
+    "SignalWire::Relay::Action": "signalwire.relay.action",
+    # Relay events: Python groups them under signalwire.relay.event
+    "SignalWire::Relay::CallReceiveEvent": "signalwire.relay.event",
+    "SignalWire::Relay::CallStateEvent": "signalwire.relay.event",
+    "SignalWire::Relay::QueueEvent": "signalwire.relay.event",
+    "SignalWire::Relay::RecordEvent": "signalwire.relay.event",
+    "SignalWire::Relay::TranscribeEvent": "signalwire.relay.event",
+    "SignalWire::Relay::PlayEvent": "signalwire.relay.event",
+    "SignalWire::Relay::DialEvent": "signalwire.relay.event",
+    "SignalWire::Relay::DetectEvent": "signalwire.relay.event",
+    "SignalWire::Relay::CollectEvent": "signalwire.relay.event",
+    "SignalWire::Relay::FaxEvent": "signalwire.relay.event",
+    "SignalWire::Relay::TapEvent": "signalwire.relay.event",
+    "SignalWire::Relay::StreamEvent": "signalwire.relay.event",
+    "SignalWire::Relay::ConnectEvent": "signalwire.relay.event",
+    "SignalWire::Relay::ReferEvent": "signalwire.relay.event",
+    "SignalWire::Relay::SendDigitsEvent": "signalwire.relay.event",
+    "SignalWire::Relay::PayEvent": "signalwire.relay.event",
+    "SignalWire::Relay::MessagingReceiveEvent": "signalwire.relay.event",
+    "SignalWire::Relay::MessagingStateEvent": "signalwire.relay.event",
+    "SignalWire::Relay::MessageReceiveEvent": "signalwire.relay.event",
+    "SignalWire::Relay::MessageStateEvent": "signalwire.relay.event",
+    "SignalWire::Relay::AIEvent": "signalwire.relay.event",
+    "SignalWire::Relay::RelayEvent": "signalwire.relay.event",
+    "SignalWire::REST::RestClient": "signalwire.rest.client",
+    "SignalWire::Relay::Message": "signalwire.relay.message",
     # REST resource & namespace classes — Python groups them by domain
     "SignalWire::REST::RestClient": "signalwire.rest.rest_client",
     "SignalWire::REST::HttpClient": "signalwire.rest.http_client",
@@ -150,6 +176,38 @@ RUBY_TO_PYTHON_CLASS_ALIASES = {
     "SignalWire::Skills::Builtin::DatasphereSkill": "DataSphereSkill",
     "SignalWire::Skills::Builtin::DatasphereServerlessSkill": "DataSphereServerlessSkill",
     "SignalWire::Relay::Client": "RelayClient",
+    "SignalWire::SWML::Service": "SWMLService",
+}
+
+MIXIN_PROJECTIONS = {
+    ("signalwire.core.mixins.ai_config_mixin", "AIConfigMixin"): [
+        "add_function_include", "add_hint", "add_hints", "add_internal_filler",
+        "add_language", "add_pattern_hint", "add_pronunciation",
+        "enable_debug_events",
+        "set_function_includes", "set_global_data", "set_internal_fillers",
+        "set_languages", "set_native_functions", "set_param", "set_params",
+        "set_post_prompt_llm_params", "set_prompt_llm_params",
+        "set_pronunciations", "update_global_data",
+    ],
+    ("signalwire.core.mixins.prompt_mixin", "PromptMixin"): [
+        "define_contexts", "get_prompt", "prompt_add_section",
+        "prompt_add_subsection", "prompt_add_to_section",
+        "prompt_has_section", "reset_contexts", "set_post_prompt",
+        "set_prompt_text",
+    ],
+    ("signalwire.core.mixins.skill_mixin", "SkillMixin"): [
+        "add_skill", "has_skill", "list_skills", "remove_skill",
+    ],
+    ("signalwire.core.mixins.tool_mixin", "ToolMixin"): [
+        "define_tool", "on_function_call", "register_swaig_function",
+    ],
+    ("signalwire.core.mixins.web_mixin", "WebMixin"): [
+        "enable_debug_routes", "manual_set_proxy_url", "run", "serve",
+        "set_dynamic_config_callback",
+    ],
+    ("signalwire.core.mixins.mcp_server_mixin", "MCPServerMixin"): [
+        "add_mcp_server",
+    ],
 }
 
 EXCLUDED_RUBY_CLASSES = {
@@ -284,6 +342,29 @@ def collect(raw: dict) -> dict:
         out_modules[mod]["classes"][canonical_class] = {
             "methods": dict(sorted(methods_out.items())),
         }
+
+    # Mixin projection: Ruby mixes all AgentBase mixins via include/extend
+    # so every method shows on AgentBase. Project canonical-Python mixin
+    # methods onto their owning mixin module.
+    ab_entry = out_modules.get("signalwire.core.agent_base", {}).get("classes", {}).get("AgentBase")
+    if ab_entry:
+        ab_methods = ab_entry["methods"]
+        projected: set[str] = set()
+        for (target_mod, target_cls), expected in MIXIN_PROJECTIONS.items():
+            present = {m: ab_methods[m] for m in expected if m in ab_methods}
+            if not present:
+                continue
+            out_modules.setdefault(target_mod, {})
+            out_modules[target_mod].setdefault("classes", {})
+            out_modules[target_mod]["classes"].setdefault(target_cls, {"methods": {}})
+            out_modules[target_mod]["classes"][target_cls]["methods"].update(present)
+            projected.update(present)
+        for n in projected:
+            ab_methods.pop(n, None)
+        if not ab_methods:
+            out_modules["signalwire.core.agent_base"]["classes"].pop("AgentBase", None)
+            if not out_modules["signalwire.core.agent_base"].get("classes"):
+                out_modules.pop("signalwire.core.agent_base", None)
 
     sorted_modules = {}
     for k in sorted(out_modules):
