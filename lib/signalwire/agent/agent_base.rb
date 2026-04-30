@@ -331,6 +331,30 @@ module SignalWire
       defs + @swaig_functions.values.map(&:dup)
     end
 
+    # Mint a per-call SWAIG-function token via the agent's SessionManager.
+    #
+    # Python parity: state_mixin.StateMixin#_create_tool_token —
+    # delegates to SessionManager#create_token and returns "" on any
+    # raised error (Python rescues all exceptions and returns "").
+    def create_tool_token(tool_name, call_id)
+      @session_manager.create_token(tool_name, call_id)
+    rescue StandardError
+      ''
+    end
+
+    # Validate a per-call SWAIG-function token. Returns false when the
+    # function is not registered, when the SessionManager rejects the
+    # token, or on any underlying exception.
+    #
+    # Python parity: state_mixin.StateMixin#validate_tool_token —
+    # rejects unknown function names up-front and rescues exceptions.
+    def validate_tool_token(function_name, token, call_id)
+      return false unless has_function(function_name)
+      @session_manager.validate_token(function_name, token, call_id)
+    rescue StandardError
+      false
+    end
+
     # Dispatch a function call to the registered handler.
     def on_function_call(name, args, raw_data)
       tool = @tools[name]
