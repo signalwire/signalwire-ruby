@@ -2,7 +2,208 @@
   "version": "2",
   "generated_from": "signalwire-ruby via Method#parameters reflection",
   "modules": {
-    "signalwire.agent_base": {
+    "signalwire.agent_server": {
+      "classes": {
+        "AgentServer": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "host",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "port",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "void"
+            },
+            "get_agent": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "route",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "get_agents": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "host": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "port": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "rack_app": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "register": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "agent",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "route",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "register_sip_username": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "username",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "route",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "run": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "serve_static_files": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "directory",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "route",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "setup_sip_routing": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "route",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "auto_map",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "unregister": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "route",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        }
+      }
+    },
+    "signalwire.contexts": {
+      "functions": {
+        "create_simple_context": {
+          "params": [
+            {
+              "name": "name",
+              "type": "any",
+              "required": false,
+              "default": null
+            }
+          ],
+          "returns": "any"
+        }
+      }
+    },
+    "signalwire.core.agent_base": {
       "classes": {
         "AgentBase": {
           "methods": {
@@ -1177,208 +1378,7 @@
         }
       }
     },
-    "signalwire.agent_server": {
-      "classes": {
-        "AgentServer": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "host",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "port",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "void"
-            },
-            "get_agent": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "route",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "get_agents": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "host": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "port": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "rack_app": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "register": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "agent",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "route",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "register_sip_username": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "username",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "route",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "run": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "serve_static_files": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "directory",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "route",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "setup_sip_routing": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "route",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "auto_map",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "unregister": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "route",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            }
-          }
-        }
-      }
-    },
-    "signalwire.contexts": {
-      "functions": {
-        "create_simple_context": {
-          "params": [
-            {
-              "name": "name",
-              "type": "any",
-              "required": false,
-              "default": null
-            }
-          ],
-          "returns": "any"
-        }
-      }
-    },
-    "signalwire.contexts.context": {
+    "signalwire.core.contexts": {
       "classes": {
         "Context": {
           "methods": {
@@ -1758,11 +1758,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.contexts.context_builder": {
-      "classes": {
+        },
         "ContextBuilder": {
           "methods": {
             "__init__": {
@@ -1844,11 +1840,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.contexts.gather_info": {
-      "classes": {
+        },
         "GatherInfo": {
           "methods": {
             "__init__": {
@@ -1954,11 +1946,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.contexts.gather_question": {
-      "classes": {
+        },
         "GatherQuestion": {
           "methods": {
             "__init__": {
@@ -2074,11 +2062,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.contexts.step": {
-      "classes": {
+        },
         "Step": {
           "methods": {
             "__init__": {
@@ -2389,81 +2373,7 @@
         }
       }
     },
-    "signalwire.core.security.session_manager": {
-      "classes": {
-        "SessionManager": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "token_expiry_secs",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "secret_key",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "void"
-            },
-            "create_token": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "function_name",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "call_id",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "validate_token": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "function_name",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "token",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "call_id",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            }
-          }
-        }
-      }
-    },
-    "signalwire.data_map": {
+    "signalwire.core.data_map": {
       "classes": {
         "DataMap": {
           "methods": {
@@ -2831,6 +2741,2150 @@
                 },
                 {
                   "name": "expressions",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        }
+      }
+    },
+    "signalwire.core.function_result": {
+      "classes": {
+        "FunctionResult": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "response",
+                  "type": "any",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "post_process",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "void"
+            },
+            "action": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "add_action": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "add_actions": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "actions",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "add_dynamic_hints": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "hints",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "clear_dynamic_hints": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "connect": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "destination",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "final",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "from_addr",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "create_payment_action": {
+              "params": [
+                {
+                  "name": "action_type",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "phrase",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "create_payment_parameter": {
+              "params": [
+                {
+                  "name": "name",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "value",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "create_payment_prompt": {
+              "params": [
+                {
+                  "name": "for_situation",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "actions",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "card_type",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "error_type",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "enable_extensive_data": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "enabled",
+                  "type": "any",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "enable_functions_on_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "enabled",
+                  "type": "any",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "execute_rpc": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "method",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "params",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "call_id",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "node_id",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "execute_swml": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "swml_content",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "transfer",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "hangup": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "hold": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "timeout",
+                  "type": "any",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "join_conference": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "muted",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "beep",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "start_on_enter",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "end_on_exit",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "wait_url",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "max_participants",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "record",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "region",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "trim",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "coach",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "status_callback_event",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "status_callback",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "status_callback_method",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "recording_status_callback",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "recording_status_callback_method",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "recording_status_callback_event",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "result",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "join_room": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "pay": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "payment_connector_url",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": true
+                },
+                {
+                  "name": "input_method",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "status_url",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "payment_method",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "timeout",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "max_attempts",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "security_code",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "postal_code",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "min_postal_code_length",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "token_type",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "charge_amount",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "currency",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "language",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "voice",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "description",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "valid_card_types",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "parameters",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "prompts",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "ai_response",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "play_background_file": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "filename",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "wait",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "post_process": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "record_call": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "control_id",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "stereo",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "format",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "direction",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "terminators",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "beep",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "input_sensitivity",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "initial_timeout",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "end_silence_timeout",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "max_length",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "status_url",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "remove_global_data": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "keys",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "remove_metadata": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "keys",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "replace_in_history": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "text",
+                  "type": "any",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "response": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "rpc_ai_message": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "call_id",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "message_text",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "role",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "rpc_ai_unhold": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "call_id",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "rpc_dial": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "to_number",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": true
+                },
+                {
+                  "name": "from_number",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": true
+                },
+                {
+                  "name": "dest_swml",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": true
+                },
+                {
+                  "name": "device_type",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "say": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "text",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "send_sms": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "to_number",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": true
+                },
+                {
+                  "name": "from_number",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": true
+                },
+                {
+                  "name": "body",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "media",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "tags",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "region",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "set_end_of_speech_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "milliseconds",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "set_metadata": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "data",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "set_post_process": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "val",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "set_response": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "text",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "set_speech_event_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "milliseconds",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "simulate_user_input": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "text",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "sip_refer": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "to_uri",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "stop": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "stop_background_file": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "stop_record_call": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "control_id",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "stop_tap": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "control_id",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "switch_context": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "system_prompt",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "user_prompt",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "consolidate",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "full_reset",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "isolated",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "swml_change_context": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "context_name",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "swml_change_step": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "step_name",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "swml_transfer": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "dest",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "ai_response",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "final",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "swml_user_event": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "event_data",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "tap": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "uri",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "control_id",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "direction",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "codec",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "rtp_ptime",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "status_url",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "to_h": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "to_json": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "args",
+                  "type": "any",
+                  "kind": "var_positional",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "toggle_functions": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "toggles",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "update_global_data": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "data",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "update_settings": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "settings",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "wait_for_user": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "enabled",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "timeout",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "answer_first",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        }
+      }
+    },
+    "signalwire.core.security.session_manager": {
+      "classes": {
+        "SessionManager": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "token_expiry_secs",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "secret_key",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "void"
+            },
+            "create_token": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "function_name",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "call_id",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "validate_token": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "function_name",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "token",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "call_id",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        }
+      }
+    },
+    "signalwire.core.skill_base": {
+      "classes": {
+        "SkillBase": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "params",
+                  "type": "any",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "void"
+            },
+            "cleanup": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "description": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "get_global_data": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "get_hints": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "get_param": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "key",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "env_var",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "default",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "get_parameter_schema": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "get_prompt_sections": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "instance_key": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "name": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "params": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "register_tools": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "required_env_vars": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "setup": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "supports_multiple_instances": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "version": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        }
+      }
+    },
+    "signalwire.core.skill_manager": {
+      "classes": {
+        "SkillManager": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "void"
+            },
+            "clear": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "get": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "key",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "load": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "key",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "skill",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "loaded": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "key",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "loaded_keys": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "size": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "unload": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "key",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        }
+      }
+    },
+    "signalwire.core.swml_schema": {
+      "classes": {
+        "Schema": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "void"
+            },
+            "get_verb": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "valid_verb": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "verb_count": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "verb_names": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "verbs": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        }
+      }
+    },
+    "signalwire.core.swml_service": {
+      "classes": {
+        "Service": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": true
+                },
+                {
+                  "name": "route",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "host",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "port",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "basic_auth",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "void"
+            },
+            "define_tool": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": true
+                },
+                {
+                  "name": "description",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": true
+                },
+                {
+                  "name": "parameters",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "secure",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "handler",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "define_tools": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "document": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "execute_verb": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "verb_name",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "args",
+                  "type": "any",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "kwargs",
+                  "type": "any",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "get_basic_auth_credentials": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "get_full_url": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "include_auth",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "handle_additional_route": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "_sub_path",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "_request_data",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "_env",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "host": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "list_tool_names": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "method_missing": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "method_name",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "args",
+                  "type": "any",
+                  "kind": "var_positional",
+                  "required": true
+                },
+                {
+                  "name": "kwargs",
+                  "type": "any",
+                  "kind": "var_keyword",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "name": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "on_function_call": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "args",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "raw_data",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "on_request": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "request_data",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "callback_path",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "port": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "rack_app": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "register_routing_callback": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "path",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "block",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "register_swaig_function": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "func_def",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "render": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "render_main_swml": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "_request_data",
+                  "type": "any",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "request",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "render_pretty": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "route": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "serve": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "stop": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "swaig_pre_dispatch": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "_request_data",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "_func_name",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "_env",
                   "type": "any",
                   "required": true
                 }
@@ -8325,7 +10379,7 @@
         }
       }
     },
-    "signalwire.rest.base_resource": {
+    "signalwire.rest._base": {
       "classes": {
         "BaseResource": {
           "methods": {
@@ -8349,11 +10403,7 @@
               "returns": "void"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.crud_resource": {
-      "classes": {
+        },
         "CrudResource": {
           "methods": {
             "create": {
@@ -8600,7 +10650,7 @@
         }
       }
     },
-    "signalwire.rest.namespaces.addresses_resource": {
+    "signalwire.rest.namespaces.addresses": {
       "classes": {
         "AddressesResource": {
           "methods": {
@@ -8680,98 +10730,7 @@
         }
       }
     },
-    "signalwire.rest.namespaces.auto_materialized_webhook": {
-      "classes": {
-        "AutoMaterializedWebhook": {
-          "methods": {
-            "create": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "kwargs",
-                  "type": "any",
-                  "kind": "var_keyword",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            }
-          }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.call_flows_resource": {
-      "classes": {
-        "CallFlowsResource": {
-          "methods": {
-            "deploy_version": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "resource_id",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "kwargs",
-                  "type": "any",
-                  "kind": "var_keyword",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "list_addresses": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "resource_id",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "params",
-                  "type": "any",
-                  "kind": "var_keyword",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "list_versions": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "resource_id",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "params",
-                  "type": "any",
-                  "kind": "var_keyword",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            }
-          }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.calling_namespace": {
+    "signalwire.rest.namespaces.calling": {
       "classes": {
         "CallingNamespace": {
           "methods": {
@@ -9523,7 +11482,7 @@
         }
       }
     },
-    "signalwire.rest.namespaces.chat_resource": {
+    "signalwire.rest.namespaces.chat": {
       "classes": {
         "ChatResource": {
           "methods": {
@@ -9560,7 +11519,7 @@
         }
       }
     },
-    "signalwire.rest.namespaces.compat_accounts": {
+    "signalwire.rest.namespaces.compat": {
       "classes": {
         "CompatAccounts": {
           "methods": {
@@ -9643,11 +11602,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.compat_applications": {
-      "classes": {
+        },
         "CompatApplications": {
           "methods": {
             "update": {
@@ -9671,11 +11626,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.compat_calls": {
-      "classes": {
+        },
         "CompatCalls": {
           "methods": {
             "start_recording": {
@@ -9789,11 +11740,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.compat_conferences": {
-      "classes": {
+        },
         "CompatConferences": {
           "methods": {
             "delete_recording": {
@@ -10057,11 +12004,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.compat_faxes": {
-      "classes": {
+        },
         "CompatFaxes": {
           "methods": {
             "delete_media": {
@@ -10143,11 +12086,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.compat_laml_bins": {
-      "classes": {
+        },
         "CompatLamlBins": {
           "methods": {
             "update": {
@@ -10171,11 +12110,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.compat_messages": {
-      "classes": {
+        },
         "CompatMessages": {
           "methods": {
             "delete_media": {
@@ -10257,11 +12192,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.compat_namespace": {
-      "classes": {
+        },
         "CompatNamespace": {
           "methods": {
             "__init__": {
@@ -10392,11 +12323,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.compat_phone_numbers": {
-      "classes": {
+        },
         "CompatPhoneNumbers": {
           "methods": {
             "__init__": {
@@ -10567,11 +12494,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.compat_queues": {
-      "classes": {
+        },
         "CompatQueues": {
           "methods": {
             "dequeue_member": {
@@ -10659,11 +12582,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.compat_recordings": {
-      "classes": {
+        },
         "CompatRecordings": {
           "methods": {
             "delete": {
@@ -10710,11 +12629,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.compat_tokens": {
-      "classes": {
+        },
         "CompatTokens": {
           "methods": {
             "create": {
@@ -10767,11 +12682,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.compat_transcriptions": {
-      "classes": {
+        },
         "CompatTranscriptions": {
           "methods": {
             "delete": {
@@ -10821,81 +12732,7 @@
         }
       }
     },
-    "signalwire.rest.namespaces.conference_logs": {
-      "classes": {
-        "ConferenceLogs": {
-          "methods": {
-            "list": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "params",
-                  "type": "any",
-                  "kind": "var_keyword",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            }
-          }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.conference_rooms_resource": {
-      "classes": {
-        "ConferenceRoomsResource": {
-          "methods": {
-            "list_addresses": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "resource_id",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "params",
-                  "type": "any",
-                  "kind": "var_keyword",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            }
-          }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.cxml_applications_resource": {
-      "classes": {
-        "CxmlApplicationsResource": {
-          "methods": {
-            "create": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "_kwargs",
-                  "type": "any",
-                  "kind": "var_keyword",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            }
-          }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.datasphere_documents": {
+    "signalwire.rest.namespaces.datasphere": {
       "classes": {
         "DatasphereDocuments": {
           "methods": {
@@ -10987,11 +12824,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.datasphere_namespace": {
-      "classes": {
+        },
         "DatasphereNamespace": {
           "methods": {
             "__init__": {
@@ -11021,8 +12854,134 @@
         }
       }
     },
-    "signalwire.rest.namespaces.fabric_addresses": {
+    "signalwire.rest.namespaces.fabric": {
       "classes": {
+        "AutoMaterializedWebhook": {
+          "methods": {
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "kwargs",
+                  "type": "any",
+                  "kind": "var_keyword",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        },
+        "CallFlowsResource": {
+          "methods": {
+            "deploy_version": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "resource_id",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "kwargs",
+                  "type": "any",
+                  "kind": "var_keyword",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "list_addresses": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "resource_id",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "params",
+                  "type": "any",
+                  "kind": "var_keyword",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "list_versions": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "resource_id",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "params",
+                  "type": "any",
+                  "kind": "var_keyword",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        },
+        "ConferenceRoomsResource": {
+          "methods": {
+            "list_addresses": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "resource_id",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "params",
+                  "type": "any",
+                  "kind": "var_keyword",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        },
+        "CxmlApplicationsResource": {
+          "methods": {
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "_kwargs",
+                  "type": "any",
+                  "kind": "var_keyword",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        },
         "FabricAddresses": {
           "methods": {
             "get": {
@@ -11055,11 +13014,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.fabric_namespace": {
-      "classes": {
+        },
         "FabricNamespace": {
           "methods": {
             "__init__": {
@@ -11221,11 +13176,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.fabric_resource": {
-      "classes": {
+        },
         "FabricResource": {
           "methods": {
             "list_addresses": {
@@ -11249,11 +13200,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.fabric_tokens": {
-      "classes": {
+        },
         "FabricTokens": {
           "methods": {
             "__init__": {
@@ -11338,43 +13285,6 @@
                 },
                 {
                   "name": "kwargs",
-                  "type": "any",
-                  "kind": "var_keyword",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            }
-          }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.fax_logs": {
-      "classes": {
-        "FaxLogs": {
-          "methods": {
-            "get": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "log_id",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "list": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "params",
                   "type": "any",
                   "kind": "var_keyword",
                   "required": true
@@ -11497,7 +13407,7 @@
         }
       }
     },
-    "signalwire.rest.namespaces.imported_numbers_resource": {
+    "signalwire.rest.namespaces.imported_numbers": {
       "classes": {
         "ImportedNumbersResource": {
           "methods": {
@@ -11534,8 +13444,60 @@
         }
       }
     },
-    "signalwire.rest.namespaces.logs_namespace": {
+    "signalwire.rest.namespaces.logs": {
       "classes": {
+        "ConferenceLogs": {
+          "methods": {
+            "list": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "params",
+                  "type": "any",
+                  "kind": "var_keyword",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        },
+        "FaxLogs": {
+          "methods": {
+            "get": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "log_id",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "list": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "params",
+                  "type": "any",
+                  "kind": "var_keyword",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        },
         "LogsNamespace": {
           "methods": {
             "__init__": {
@@ -11592,7 +13554,7 @@
         }
       }
     },
-    "signalwire.rest.namespaces.lookup_resource": {
+    "signalwire.rest.namespaces.lookup": {
       "classes": {
         "LookupResource": {
           "methods": {
@@ -11671,7 +13633,7 @@
         }
       }
     },
-    "signalwire.rest.namespaces.mfa_resource": {
+    "signalwire.rest.namespaces.mfa": {
       "classes": {
         "MfaResource": {
           "methods": {
@@ -11743,7 +13705,7 @@
         }
       }
     },
-    "signalwire.rest.namespaces.number_groups_resource": {
+    "signalwire.rest.namespaces.number_groups": {
       "classes": {
         "NumberGroupsResource": {
           "methods": {
@@ -11833,7 +13795,7 @@
         }
       }
     },
-    "signalwire.rest.namespaces.phone_numbers_resource": {
+    "signalwire.rest.namespaces.phone_numbers": {
       "classes": {
         "PhoneNumbersResource": {
           "methods": {
@@ -12080,7 +14042,7 @@
         }
       }
     },
-    "signalwire.rest.namespaces.project_namespace": {
+    "signalwire.rest.namespaces.project": {
       "classes": {
         "ProjectNamespace": {
           "methods": {
@@ -12108,11 +14070,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.project_tokens": {
-      "classes": {
+        },
         "ProjectTokens": {
           "methods": {
             "__init__": {
@@ -12182,7 +14140,7 @@
         }
       }
     },
-    "signalwire.rest.namespaces.pub_sub_resource": {
+    "signalwire.rest.namespaces.pubsub": {
       "classes": {
         "PubSubResource": {
           "methods": {
@@ -12219,7 +14177,7 @@
         }
       }
     },
-    "signalwire.rest.namespaces.queues_resource": {
+    "signalwire.rest.namespaces.queues": {
       "classes": {
         "QueuesResource": {
           "methods": {
@@ -12294,7 +14252,7 @@
         }
       }
     },
-    "signalwire.rest.namespaces.recordings_resource": {
+    "signalwire.rest.namespaces.recordings": {
       "classes": {
         "RecordingsResource": {
           "methods": {
@@ -12359,7 +14317,7 @@
         }
       }
     },
-    "signalwire.rest.namespaces.registry_brands": {
+    "signalwire.rest.namespaces.registry": {
       "classes": {
         "RegistryBrands": {
           "methods": {
@@ -12448,11 +14406,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.registry_campaigns": {
-      "classes": {
+        },
         "RegistryCampaigns": {
           "methods": {
             "create_order": {
@@ -12550,11 +14504,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.registry_namespace": {
-      "classes": {
+        },
         "RegistryNamespace": {
           "methods": {
             "__init__": {
@@ -12655,7 +14605,7 @@
         }
       }
     },
-    "signalwire.rest.namespaces.short_codes_resource": {
+    "signalwire.rest.namespaces.short_codes": {
       "classes": {
         "ShortCodesResource": {
           "methods": {
@@ -12726,7 +14676,7 @@
         }
       }
     },
-    "signalwire.rest.namespaces.sip_profile_resource": {
+    "signalwire.rest.namespaces.sip_profile": {
       "classes": {
         "SipProfileResource": {
           "methods": {
@@ -12883,7 +14833,7 @@
         }
       }
     },
-    "signalwire.rest.namespaces.verified_callers_resource": {
+    "signalwire.rest.namespaces.verified_callers": {
       "classes": {
         "VerifiedCallersResource": {
           "methods": {
@@ -14828,289 +16778,7 @@
         }
       }
     },
-    "signalwire.skills.skill_base": {
-      "classes": {
-        "SkillBase": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "params",
-                  "type": "any",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "void"
-            },
-            "cleanup": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "description": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "get_global_data": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "get_hints": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "get_param": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "key",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "env_var",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "default",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "get_parameter_schema": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "instance_key": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "name": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "params": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "register_tools": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "required_env_vars": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "setup": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "supports_multiple_instances": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "version": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            }
-          }
-        }
-      }
-    },
-    "signalwire.skills.skill_manager": {
-      "classes": {
-        "SkillManager": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "void"
-            },
-            "clear": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "get": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "key",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "load": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "key",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "skill",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "loaded": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "key",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "loaded_keys": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "size": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "unload": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "key",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            }
-          }
-        }
-      }
-    },
-    "signalwire.skills.skill_registry": {
+    "signalwire.skills.registry": {
       "classes": {
         "SkillRegistry": {
           "methods": {
@@ -15564,1296 +17232,6 @@
         }
       }
     },
-    "signalwire.swaig.function_result": {
-      "classes": {
-        "FunctionResult": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "response",
-                  "type": "any",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "post_process",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "void"
-            },
-            "action": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "add_action": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "name",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "data",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "add_actions": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "actions",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "add_dynamic_hints": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "hints",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "clear_dynamic_hints": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "connect": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "destination",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "final",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "from_addr",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "create_payment_action": {
-              "params": [
-                {
-                  "name": "action_type",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "phrase",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "create_payment_parameter": {
-              "params": [
-                {
-                  "name": "name",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "value",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "create_payment_prompt": {
-              "params": [
-                {
-                  "name": "for_situation",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "actions",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "card_type",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "error_type",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "enable_extensive_data": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "enabled",
-                  "type": "any",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "enable_functions_on_timeout": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "enabled",
-                  "type": "any",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "execute_rpc": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "method",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "params",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "call_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "node_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "execute_swml": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "swml_content",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "transfer",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "hangup": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "hold": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "timeout",
-                  "type": "any",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "join_conference": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "name",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "muted",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "beep",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "start_on_enter",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "end_on_exit",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "wait_url",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "max_participants",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "record",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "region",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "trim",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "coach",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "status_callback_event",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "status_callback",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "status_callback_method",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "recording_status_callback",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "recording_status_callback_method",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "recording_status_callback_event",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "result",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "join_room": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "name",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "pay": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "payment_connector_url",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
-                },
-                {
-                  "name": "input_method",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "status_url",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "payment_method",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "timeout",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "max_attempts",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "security_code",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "postal_code",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "min_postal_code_length",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "token_type",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "charge_amount",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "currency",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "language",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "voice",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "description",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "valid_card_types",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "parameters",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "prompts",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "ai_response",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "play_background_file": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "filename",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "wait",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "post_process": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "record_call": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "stereo",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "format",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "direction",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "terminators",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "beep",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "input_sensitivity",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "initial_timeout",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "end_silence_timeout",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "max_length",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "status_url",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "remove_global_data": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "keys",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "remove_metadata": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "keys",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "replace_in_history": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "text",
-                  "type": "any",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "response": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "rpc_ai_message": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "call_id",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "message_text",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "role",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "rpc_ai_unhold": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "call_id",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "rpc_dial": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "to_number",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
-                },
-                {
-                  "name": "from_number",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
-                },
-                {
-                  "name": "dest_swml",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
-                },
-                {
-                  "name": "device_type",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "say": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "text",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "send_sms": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "to_number",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
-                },
-                {
-                  "name": "from_number",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
-                },
-                {
-                  "name": "body",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "media",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "tags",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "region",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "set_end_of_speech_timeout": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "milliseconds",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "set_metadata": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "data",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "set_post_process": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "val",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "set_response": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "text",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "set_speech_event_timeout": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "milliseconds",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "simulate_user_input": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "text",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "sip_refer": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "to_uri",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "stop": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "stop_background_file": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "stop_record_call": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "stop_tap": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "switch_context": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "system_prompt",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "user_prompt",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "consolidate",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "full_reset",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "isolated",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "swml_change_context": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "context_name",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "swml_change_step": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "step_name",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "swml_transfer": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "dest",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "ai_response",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "final",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "swml_user_event": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "event_data",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "tap": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "uri",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "direction",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "codec",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "rtp_ptime",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "status_url",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "to_h": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "to_json": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "args",
-                  "type": "any",
-                  "kind": "var_positional",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "toggle_functions": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "toggles",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "update_global_data": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "data",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "update_settings": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "settings",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "wait_for_user": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "enabled",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "timeout",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "answer_first",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            }
-          }
-        }
-      }
-    },
     "signalwire.swml": {
       "functions": {
         "reset_schema": {
@@ -17015,504 +17393,6 @@
                 {
                   "name": "self",
                   "kind": "self"
-                }
-              ],
-              "returns": "any"
-            }
-          }
-        }
-      }
-    },
-    "signalwire.swml.schema": {
-      "classes": {
-        "Schema": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "void"
-            },
-            "get_verb": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "name",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "valid_verb": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "name",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "verb_count": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "verb_names": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "verbs": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            }
-          }
-        }
-      }
-    },
-    "signalwire.swml.service": {
-      "classes": {
-        "Service": {
-          "methods": {
-            "__init__": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "name",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
-                },
-                {
-                  "name": "route",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "host",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "port",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "basic_auth",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "void"
-            },
-            "define_tool": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "name",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
-                },
-                {
-                  "name": "description",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
-                },
-                {
-                  "name": "parameters",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "secure",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "handler",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "define_tools": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "document": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "execute_verb": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "verb_name",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "args",
-                  "type": "any",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "kwargs",
-                  "type": "any",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "get_basic_auth_credentials": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "get_full_url": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "include_auth",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "handle_additional_route": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "_sub_path",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "_request_data",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "_env",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "host": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "list_tool_names": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "method_missing": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "method_name",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "args",
-                  "type": "any",
-                  "kind": "var_positional",
-                  "required": true
-                },
-                {
-                  "name": "kwargs",
-                  "type": "any",
-                  "kind": "var_keyword",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "name": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "on_function_call": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "name",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "args",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "raw_data",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "on_request": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "request_data",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "callback_path",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "port": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "rack_app": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "register_routing_callback": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "path",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "block",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "register_swaig_function": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "func_def",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "render": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "render_main_swml": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "_request_data",
-                  "type": "any",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "request",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "render_pretty": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "route": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "serve": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "stop": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "swaig_pre_dispatch": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "_request_data",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "_func_name",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "_env",
-                  "type": "any",
-                  "required": true
                 }
               ],
               "returns": "any"
