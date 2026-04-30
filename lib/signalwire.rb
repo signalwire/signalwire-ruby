@@ -2,6 +2,8 @@
 
 require_relative 'signalwire/version'
 require_relative 'signalwire/logging'
+require_relative 'signalwire/core/logging_config'
+require_relative 'signalwire/utils/serverless'
 require_relative 'signalwire/runtime'
 require_relative 'signalwire/swml/document'
 require_relative 'signalwire/swml/schema'

@@ -17941,20 +17941,6 @@
     },
     "signalwire.utils.url_validator": {
       "functions": {
-        "env_allows_private": {
-          "params": [],
-          "returns": "any"
-        },
-        "resolve": {
-          "params": [
-            {
-              "name": "hostname",
-              "type": "any",
-              "required": true
-            }
-          ],
-          "returns": "any"
-        },
         "resolver": {
           "params": [],
           "returns": "any"
