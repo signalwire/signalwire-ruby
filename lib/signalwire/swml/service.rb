@@ -218,6 +218,38 @@ module SignalWire
         @basic_auth.dup
       end
 
+      # Validate provided basic-auth credentials against the configured ones
+      # using a constant-time comparison.
+      # Python parity: AuthMixin#validate_basic_auth(username, password).
+      def validate_basic_auth(username, password)
+        require 'openssl'
+        u, p = @basic_auth
+        return false if u.nil? || p.nil?
+        OpenSSL.fixed_length_secure_compare(username, u) &&
+          OpenSSL.fixed_length_secure_compare(password, p)
+      rescue ArgumentError
+        # fixed_length_secure_compare raises on length mismatch
+        false
+      end
+
+      # Returns [username, password, source] where source is "provided",
+      # "environment", or "generated".
+      # Python parity: AuthMixin#get_basic_auth_credentials(include_source: true).
+      def get_basic_auth_credentials_with_source
+        u, p = @basic_auth
+        env_user = ENV['SWML_BASIC_AUTH_USER']
+        env_pass = ENV['SWML_BASIC_AUTH_PASSWORD']
+        source =
+          if env_user && !env_user.empty? && env_pass && !env_pass.empty? && u == env_user && p == env_pass
+            'environment'
+          elsif u&.start_with?('user_') && p && p.length > 20
+            'generated'
+          else
+            'provided'
+          end
+        [u, p, source]
+      end
+
       # Build the full URL for this service.
       #
       #   get_full_url                       # => "http://0.0.0.0:3000/"
