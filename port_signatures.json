@@ -17941,10 +17941,6 @@
     },
     "signalwire.utils.url_validator": {
       "functions": {
-        "resolver": {
-          "params": [],
-          "returns": "any"
-        },
         "validate_url": {
           "params": [
             {
