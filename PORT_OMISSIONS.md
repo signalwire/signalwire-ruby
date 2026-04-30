@@ -66,8 +66,6 @@ deferral — track those for future work.
 
 # Omitted symbols
 
-signalwire.RestClient: Ruby exposes SignalWire::REST::RestClient - not re-exported at top level
-signalwire.add_skill_directory: not_yet_implemented: top-level skill directory registration; use SignalWire::Skills::SkillRegistry directly
 signalwire.agent_server.AgentServer.register_global_routing_callback: not_yet_implemented: global routing callback on AgentServer
 signalwire.agents.bedrock.BedrockAgent: Bedrock agent omitted - not core to the port
 signalwire.agents.bedrock.BedrockAgent.__init__: Bedrock agent omitted - not core to the port
@@ -432,7 +430,6 @@ signalwire.core.swml_service.SWMLService.reset_document: consolidated into Signa
 signalwire.core.swml_service.SWMLService.serve: consolidated into SignalWire::SWML::Service - see port_surface.json signalwire.swml.service
 signalwire.core.swml_service.SWMLService.stop: consolidated into SignalWire::SWML::Service - see port_surface.json signalwire.swml.service
 signalwire.list_skills: not_yet_implemented: top-level list_skills helper; use SignalWire::Skills::SkillRegistry#list_skills
-signalwire.list_skills_with_params: not_yet_implemented: top-level helper; use SignalWire::Skills::SkillRegistry discovery
 signalwire.livewire.Agent: LiveKit compatibility shim - to be added once core port is stable
 signalwire.livewire.Agent.__init__: LiveKit compatibility shim - to be added once core port is stable
 signalwire.livewire.Agent.llm_node: LiveKit compatibility shim - to be added once core port is stable
@@ -564,7 +561,6 @@ signalwire.prefabs.receptionist.ReceptionistAgent.on_summary: not_yet_implemente
 signalwire.prefabs.survey.SurveyAgent.log_response: not_yet_implemented: survey log_response hook
 signalwire.prefabs.survey.SurveyAgent.on_summary: not_yet_implemented: survey on_summary hook
 signalwire.prefabs.survey.SurveyAgent.validate_response: not_yet_implemented: survey validate_response hook
-signalwire.register_skill: not_yet_implemented: top-level skill registration helper; use SignalWire::Skills::SkillRegistry directly
 signalwire.relay.call.Action.is_done: Ruby uses is_done? and done? (idiomatic Ruby predicates)
 signalwire.relay.call.Call.__repr__: Ruby uses inspect/to_s idioms
 signalwire.relay.call.Call.pass_: Ruby uses SignalWire::Relay::Call#pass_call - pass is a Ruby keyword

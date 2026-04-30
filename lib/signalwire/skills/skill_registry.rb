@@ -55,6 +55,21 @@ module SignalWire
         end
       end
 
+      # Get complete schema for all registered skills (instance form).
+      #
+      # Mirrors Python's instance-method
+      # ``SkillRegistry.get_all_skills_schema()`` — returns a hash keyed
+      # by skill name, each value containing parameter metadata. Ruby
+      # skills don't carry rich Python-style parameter introspection in
+      # v1, so the value defaults to a minimal shape with the skill
+      # name; built-ins that expose ``parameter_schema`` get richer
+      # detail.
+      #
+      # @return [Hash{String => Hash}]
+      def get_all_skills_schema
+        self.class.get_all_skills_schema
+      end
+
       class << self
         # Register a skill factory.
         # @param skill_name [String]
@@ -105,6 +120,44 @@ module SignalWire
           # We just need to require them all.
           builtin_dir = File.join(__dir__, 'builtin')
           Dir[File.join(builtin_dir, '*.rb')].sort.each { |f| require f }
+        end
+
+        # Get complete schema for all registered skills.
+        #
+        # Mirrors Python's
+        # ``SkillRegistry.get_all_skills_schema()`` — returns a hash
+        # keyed by skill name, with each value containing parameter
+        # metadata. Ruby skills don't carry rich Python-style parameter
+        # introspection in v1, so the value defaults to a minimal shape
+        # with the skill name; built-in skills that expose
+        # ``parameter_schema`` get richer detail.
+        #
+        # @return [Hash{String => Hash}]
+        def get_all_skills_schema
+          @mutex.synchronize do
+            @factories.keys.sort.each_with_object({}) do |name, h|
+              entry = { 'name' => name, 'parameters' => {} }
+              factory = @factories[name]
+              if factory.respond_to?(:call)
+                begin
+                  instance = factory.call({})
+                  if instance.respond_to?(:parameter_schema)
+                    entry['parameters'] = instance.parameter_schema || {}
+                  end
+                  if instance.class.respond_to?(:skill_description)
+                    entry['description'] = instance.class.skill_description
+                  end
+                  if instance.class.respond_to?(:skill_version)
+                    entry['version'] = instance.class.skill_version
+                  end
+                rescue StandardError
+                  # If we can't instantiate without params, fall back to
+                  # the minimal entry.
+                end
+              end
+              h[name] = entry
+            end
+          end
         end
       end
     end

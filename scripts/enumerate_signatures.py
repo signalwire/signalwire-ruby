@@ -253,6 +253,16 @@ MIXIN_PROJECTIONS = {
     ],
 }
 
+# Free-function name overrides — for cases where the Python canonical
+# name doesn't follow snake_case. Python's top-level
+# ``signalwire.RestClient`` is a factory function but uses PascalCase
+# (it mirrors the class name). The Ruby source-side method is also named
+# ``RestClient`` so the snake_case() helper would emit ``rest_client``;
+# this table preserves the PascalCase canonical name.
+FREE_FN_NAME_OVERRIDES = {
+    "rest_client": "RestClient",
+}
+
 EXCLUDED_RUBY_CLASSES = {
     "SignalWire::AgentBase::AgentBodyLimitMiddleware",
     "SignalWire::AgentBase::AgentSecurityHeadersMiddleware",
@@ -335,11 +345,22 @@ def collect(raw: dict) -> dict:
                     continue
                 if native.endswith("=") or not re.match(r"^[A-Za-z_][A-Za-z0-9_]*[?!]?$", native):
                     continue  # skip Ruby setters / operator methods
+                # Underscore-prefixed Ruby methods are private convention;
+                # skip them from the public surface.
+                if native.startswith("_"):
+                    continue
                 clean = native.rstrip("?!")
                 snake = snake_case(clean)
+                # Free-function name overrides — Python's top-level
+                # ``signalwire.RestClient`` is a factory function but uses
+                # PascalCase (it mirrors the class name). The Ruby
+                # source-side method is also named ``RestClient`` (Ruby
+                # allows uppercase method names). Preserve the PascalCase
+                # for this canonical name.
+                projected = FREE_FN_NAME_OVERRIDES.get(snake, snake)
                 sig = build_signature(m, instance_method=False)
                 sig["params"] = [p for p in sig["params"] if p.get("name")]
-                functions[snake] = sig
+                functions[projected] = sig
             if functions:
                 out_modules.setdefault(mod_path, {})
                 out_modules[mod_path].setdefault("functions", {})

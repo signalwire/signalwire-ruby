@@ -2,6 +2,51 @@
   "version": "2",
   "generated_from": "signalwire-ruby via Method#parameters reflection",
   "modules": {
+    "signalwire": {
+      "functions": {
+        "RestClient": {
+          "params": [
+            {
+              "name": "args",
+              "type": "any",
+              "kind": "var_positional",
+              "required": true
+            },
+            {
+              "name": "kwargs",
+              "type": "any",
+              "kind": "var_keyword",
+              "required": true
+            }
+          ],
+          "returns": "any"
+        },
+        "add_skill_directory": {
+          "params": [
+            {
+              "name": "path",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "any"
+        },
+        "list_skills_with_params": {
+          "params": [],
+          "returns": "any"
+        },
+        "register_skill": {
+          "params": [
+            {
+              "name": "skill_class",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "any"
+        }
+      }
+    },
     "signalwire.agent_server": {
       "classes": {
         "AgentServer": {
@@ -17313,6 +17358,15 @@
               "returns": "any"
             },
             "external_paths": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "get_all_skills_schema": {
               "params": [
                 {
                   "name": "self",
