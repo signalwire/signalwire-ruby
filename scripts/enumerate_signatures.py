@@ -49,6 +49,10 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
     "SignalWire::AgentBase": "signalwire.core.agent_base",
     "SignalWire::SWML::Service": "signalwire.core.swml_service",
     "SignalWire::SWML::Schema": "signalwire.core.swml_schema",
+    # SchemaUtils + SchemaValidationError both live under
+    # signalwire.utils.schema_utils per the canonical Python module layout.
+    "SignalWire::Utils::SchemaUtils": "signalwire.utils.schema_utils",
+    "SignalWire::Utils::SchemaValidationError": "signalwire.utils.schema_utils",
     "SignalWire::SWAIG::FunctionResult": "signalwire.core.function_result",
     "SignalWire::Swaig::FunctionResult": "signalwire.core.function_result",
     "SignalWire::DataMap": "signalwire.core.data_map",

@@ -576,3 +576,10 @@ signalwire.relay.client.RelayClient.on_event: port-only: generic event-handler h
 signalwire.relay.client.RelayClient.send_json: port-only: public surface for emitting raw JSON-RPC frames (used by tests and the audit harness; Python keeps this private)
 signalwire.rest._base.HttpClient.project_id: port-only: Ruby attr_reader exposes the constructor-set project_id (used by audit_rest_transport harness to build paths in the LAML namespace)
 signalwire.rest.client.RestClient.project_id: port-only: Ruby attr_reader exposes the constructor-set project_id (used by tests and the audit harness)
+signalwire.core.swml_schema.Schema.get_verb: port-only: pre-existing singleton sidecar; canonical SchemaUtils ships separately at signalwire.utils.schema_utils
+signalwire.core.swml_schema.Schema.valid_verb: port-only: pre-existing singleton sidecar; canonical SchemaUtils ships separately at signalwire.utils.schema_utils
+signalwire.swml.reset_schema: port-only: Ruby module-level helper for clearing the cached singleton (used in tests); canonical SchemaUtils ships separately
+signalwire.swml.schema: port-only: Ruby module-level singleton accessor; canonical SchemaUtils ships separately at signalwire.utils.schema_utils
+signalwire.utils.schema_utils.SchemaUtils.generate_method_signature: Python-source codegen helper; canonical Python signatures filter this method out (Python-only output shape)
+signalwire.utils.schema_utils.SchemaUtils.generate_method_body: Python-source codegen helper; canonical Python signatures filter this method out (Python-only output shape)
+signalwire.utils.schema_utils.SchemaUtils.full_validation_available?: @property in Python (filtered as bool-returning attribute); ports expose it as an explicit method per spec

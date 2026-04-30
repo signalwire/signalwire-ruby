@@ -309,6 +309,16 @@ module SignalWire
         @document
       end
 
+      # SchemaUtils helper bound to this Service. Mirrors Python's
+      # self.schema_utils public instance attribute on SWMLService.
+      # Built lazily on first access.
+      def schema_utils
+        @schema_utils ||= begin
+          require_relative '../utils/schema_utils'
+          ::SignalWire::Utils::SchemaUtils.new
+        end
+      end
+
       # ------------------------------------------------------------------
       # Rack interface
       # ------------------------------------------------------------------
