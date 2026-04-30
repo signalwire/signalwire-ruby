@@ -15108,7 +15108,7 @@
         }
       }
     },
-    "signalwire.rest.namespaces.video_conference_tokens": {
+    "signalwire.rest.namespaces.video": {
       "classes": {
         "VideoConferenceTokens": {
           "methods": {
@@ -15141,11 +15141,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.video_conferences": {
-      "classes": {
+        },
         "VideoConferences": {
           "methods": {
             "create_stream": {
@@ -15209,11 +15205,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.video_namespace": {
-      "classes": {
+        },
         "VideoNamespace": {
           "methods": {
             "__init__": {
@@ -15294,11 +15286,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.video_room_recordings": {
-      "classes": {
+        },
         "VideoRoomRecordings": {
           "methods": {
             "delete": {
@@ -15365,11 +15353,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.video_room_sessions": {
-      "classes": {
+        },
         "VideoRoomSessions": {
           "methods": {
             "get": {
@@ -15462,11 +15446,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.video_room_tokens": {
-      "classes": {
+        },
         "VideoRoomTokens": {
           "methods": {
             "create": {
@@ -15485,11 +15465,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.video_rooms": {
-      "classes": {
+        },
         "VideoRooms": {
           "methods": {
             "create_stream": {
@@ -15533,11 +15509,7 @@
               "returns": "any"
             }
           }
-        }
-      }
-    },
-    "signalwire.rest.namespaces.video_streams": {
-      "classes": {
+        },
         "VideoStreams": {
           "methods": {
             "delete": {

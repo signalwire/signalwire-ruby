@@ -164,6 +164,20 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
     "SignalWire::REST::Namespaces::ShortCodesResource": "signalwire.rest.namespaces.short_codes",
     "SignalWire::REST::Namespaces::SipProfileResource": "signalwire.rest.namespaces.sip_profile",
     "SignalWire::REST::Namespaces::VerifiedCallersResource": "signalwire.rest.namespaces.verified_callers",
+    # Video namespace classes
+    "SignalWire::REST::Namespaces::VideoNamespace": "signalwire.rest.namespaces.video",
+    "SignalWire::REST::Namespaces::VideoRooms": "signalwire.rest.namespaces.video",
+    "SignalWire::REST::Namespaces::VideoRoomTokens": "signalwire.rest.namespaces.video",
+    "SignalWire::REST::Namespaces::VideoRoomSessions": "signalwire.rest.namespaces.video",
+    "SignalWire::REST::Namespaces::VideoRoomRecordings": "signalwire.rest.namespaces.video",
+    "SignalWire::REST::Namespaces::VideoConferences": "signalwire.rest.namespaces.video",
+    "SignalWire::REST::Namespaces::VideoConferenceTokens": "signalwire.rest.namespaces.video",
+    "SignalWire::REST::Namespaces::VideoStreams": "signalwire.rest.namespaces.video",
+    # Chat namespace
+    "SignalWire::REST::Namespaces::ChatResource": "signalwire.rest.namespaces.chat",
+    # Datasphere namespace
+    "SignalWire::REST::Namespaces::DatasphereDocuments": "signalwire.rest.namespaces.datasphere",
+    "SignalWire::REST::Namespaces::DatasphereNamespace": "signalwire.rest.namespaces.datasphere",
 }
 
 RUBY_TO_PYTHON_CLASS_ALIASES = {
