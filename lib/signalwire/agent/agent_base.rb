@@ -237,7 +237,8 @@ module SignalWire
     # state.
     def pom
       return nil if @prompt_text
-      @pom_sections.map(&:dup)
+      sections = @prompt_pom || @pom_sections
+      sections.map(&:dup)
     end
 
     # Returns the post-prompt text whatever set_post_prompt stored, or

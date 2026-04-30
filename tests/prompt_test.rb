@@ -155,3 +155,55 @@ class PromptChainingTest < Minitest::Test
     assert_same agent, agent.prompt_add_subsection('T', 'S', 'B')
   end
 end
+
+# ----------------------------------------------------------------------
+# pom accessor (Python parity: agent.pom)
+#
+# Mirrors signalwire-python tests/unit/core/test_agent_base.py::
+#   TestAgentBasePromptMethods::test_set_prompt_pom_succeeds_when_use_pom_true
+# ----------------------------------------------------------------------
+class PomAccessorTest < Minitest::Test
+  def setup
+    @agent = SignalWire::AgentBase.new
+  end
+
+  def test_pom_returns_assigned_sections
+    sections = [{ 'title' => 'Greeting', 'body' => 'Hello' }]
+    @agent.set_prompt_pom(sections)
+    pom = @agent.pom
+    refute_nil pom
+    assert_equal 1, pom.length
+    assert_equal 'Greeting', pom[0]['title']
+    assert_equal 'Hello', pom[0]['body']
+  end
+
+  def test_pom_returns_sections_after_prompt_add_section
+    @agent.prompt_add_section('Topic', 'Body text')
+    pom = @agent.pom
+    refute_nil pom
+    assert_equal 1, pom.length
+    assert_equal 'Topic', pom[0]['title']
+    assert_equal 'Body text', pom[0]['body']
+  end
+
+  def test_pom_nil_when_in_text_mode
+    # set_prompt_text disables POM mode; pom must return nil to mirror
+    # Python's "self.pom is None when use_pom is False".
+    @agent.set_prompt_text('plain text')
+    assert_nil @agent.pom
+  end
+
+  def test_pom_returns_copy_not_internal_array
+    @agent.prompt_add_section('Original', 'Body')
+    pom = @agent.pom
+    refute_nil pom
+
+    # Mutate the returned array; internal state must be unchanged.
+    pom << { 'title' => 'Injected' }
+    pom[0]['title'] = 'Hijacked'
+
+    fresh = @agent.pom
+    assert_equal 1, fresh.length, 'caller mutation leaked into agent state'
+    assert_equal 'Original', fresh[0]['title'], 'caller mutation leaked into agent state'
+  end
+end
