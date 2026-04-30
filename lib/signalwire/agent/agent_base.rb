@@ -227,6 +227,48 @@ module SignalWire
       nil
     end
 
+    # Read-only snapshot of the agent's POM section list.
+    #
+    # Python parity: ``agent.pom`` instance attribute (agent_base.py
+    # line 209). Returns ``nil`` when raw-text prompt mode is in effect
+    # (``set_prompt_text`` was called) — mirrors Python's
+    # ``self.pom = None when use_pom=False``. Otherwise returns a duped
+    # array of duped section hashes so callers cannot corrupt internal
+    # state.
+    def pom
+      return nil if @prompt_text
+      @pom_sections.map(&:dup)
+    end
+
+    # Returns the post-prompt text whatever set_post_prompt stored, or
+    # nil when no post-prompt has been set.
+    #
+    # Mirrors Python's PromptManager#get_post_prompt /
+    # PromptMixin#get_post_prompt — used by SWML rendering when a
+    # post-prompt is configured.
+    def get_post_prompt
+      @post_prompt_text
+    end
+
+    # Returns the raw prompt text whatever set_prompt_text stored, or
+    # nil when no raw prompt has been set. Distinct from #get_prompt
+    # which may return the POM array when use_pom is true.
+    #
+    # Mirrors Python's PromptManager#get_raw_prompt.
+    def get_raw_prompt
+      @prompt_text
+    end
+
+    # Returns the contexts dictionary as a serialised hash, or nil when
+    # no contexts have been defined yet.
+    #
+    # Mirrors Python's PromptManager#get_contexts which returns the
+    # contexts dict or None.
+    def get_contexts
+      return nil if @context_builder.nil?
+      @context_builder.to_h
+    end
+
     # ==================================================================
     # Tool methods
     # ==================================================================

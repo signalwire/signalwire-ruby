@@ -895,6 +895,15 @@
               ],
               "returns": "any"
             },
+            "pom": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "rack_app": {
               "params": [
                 {
@@ -4483,35 +4492,12 @@
                 {
                   "name": "request_data",
                   "type": "any",
-                  "required": false,
-                  "default": null
+                  "required": true
                 },
                 {
                   "name": "callback_path",
                   "type": "any",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "on_swml_request": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "request_data",
-                  "type": "any",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "callback_path",
-                  "type": "any",
-                  "required": false,
-                  "default": null
+                  "required": true
                 }
               ],
               "returns": "any"
@@ -5262,35 +5248,12 @@
                 {
                   "name": "request_data",
                   "type": "any",
-                  "required": false,
-                  "default": null
+                  "required": true
                 },
                 {
                   "name": "callback_path",
                   "type": "any",
-                  "required": false,
-                  "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "on_swml_request": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "request_data",
-                  "type": "any",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "callback_path",
-                  "type": "any",
-                  "required": false,
-                  "default": null
+                  "required": true
                 }
               ],
               "returns": "any"
