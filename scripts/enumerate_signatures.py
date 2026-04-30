@@ -111,10 +111,11 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
     "SignalWire::Relay::MessageStateEvent": "signalwire.relay.event",
     "SignalWire::Relay::AIEvent": "signalwire.relay.event",
     "SignalWire::Relay::RelayEvent": "signalwire.relay.event",
-    "SignalWire::REST::RestClient": "signalwire.rest.client",
     "SignalWire::Relay::Message": "signalwire.relay.message",
-    # REST resource & namespace classes — Python groups them by domain
-    "SignalWire::REST::RestClient": "signalwire.rest.rest_client",
+    # REST resource & namespace classes — Python groups them by domain.
+    # Ruby's ``SignalWire::REST::RestClient`` -> Python's
+    # ``signalwire.rest.client.RestClient``.
+    "SignalWire::REST::RestClient": "signalwire.rest.client",
     "SignalWire::REST::HttpClient": "signalwire.rest.http_client",
     "SignalWire::REST::BaseResource": "signalwire.rest._base",
     "SignalWire::REST::CrudResource": "signalwire.rest._base",
