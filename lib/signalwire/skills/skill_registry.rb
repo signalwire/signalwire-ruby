@@ -19,6 +19,42 @@ module SignalWire
       @factories = {}  # skill_name => lambda { |params| SkillBase }
       @mutex     = Mutex.new
 
+      # Per-instance state for the skill-directory parity surface; the
+      # class-method API above is preserved for backwards compatibility,
+      # but `add_skill_directory` mirrors Python's instance-method shape
+      # exactly (Python's `signalwire.skills.registry.SkillRegistry`).
+      def initialize
+        @external_paths = []
+        @inst_mutex     = Mutex.new
+      end
+
+      # External skill directories registered via #add_skill_directory.
+      # Mirrors Python's `_external_paths` accessor surface.
+      attr_reader :external_paths
+
+      # Add a directory to search for skills.
+      #
+      # Mirrors Python's `SkillRegistry.add_skill_directory`: validate
+      # that the path exists and is a directory, then append it
+      # (de-duplicated) to `@external_paths`. Raises `ArgumentError`
+      # (the Ruby analog of Python's `ValueError`) for invalid input.
+      #
+      # @param path [String] absolute or relative path to a directory
+      # @return [void]
+      # @raise [ArgumentError] when the path doesn't exist or isn't a
+      #   directory.
+      def add_skill_directory(path)
+        @inst_mutex.synchronize do
+          unless File.exist?(path)
+            raise ArgumentError, "Skill directory does not exist: #{path}"
+          end
+          unless File.directory?(path)
+            raise ArgumentError, "Path is not a directory: #{path}"
+          end
+          @external_paths << path unless @external_paths.include?(path)
+        end
+      end
+
       class << self
         # Register a skill factory.
         # @param skill_name [String]

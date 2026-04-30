@@ -3644,6 +3644,14 @@
         }
       }
     },
+    "signalwire.core.logging_config": {
+      "functions": {
+        "get_execution_mode": {
+          "params": [],
+          "returns": "any"
+        }
+      }
+    },
     "signalwire.core.mixins.ai_config_mixin": {
       "classes": {
         "AIConfigMixin": {
@@ -17272,6 +17280,38 @@
       "classes": {
         "SkillRegistry": {
           "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "void"
+            },
+            "add_skill_directory": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "path",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "external_paths": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "get_factory": {
               "params": [
                 {
@@ -17888,6 +17928,52 @@
               "returns": "any"
             }
           }
+        }
+      }
+    },
+    "signalwire.utils": {
+      "functions": {
+        "is_serverless_mode": {
+          "params": [],
+          "returns": "any"
+        }
+      }
+    },
+    "signalwire.utils.url_validator": {
+      "functions": {
+        "env_allows_private": {
+          "params": [],
+          "returns": "any"
+        },
+        "resolve": {
+          "params": [
+            {
+              "name": "hostname",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "any"
+        },
+        "resolver": {
+          "params": [],
+          "returns": "any"
+        },
+        "validate_url": {
+          "params": [
+            {
+              "name": "url",
+              "type": "any",
+              "required": true
+            },
+            {
+              "name": "allow_private",
+              "type": "any",
+              "required": false,
+              "default": null
+            }
+          ],
+          "returns": "any"
         }
       }
     }

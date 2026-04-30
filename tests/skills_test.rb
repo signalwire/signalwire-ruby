@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
+require 'tempfile'
+require 'tmpdir'
 
 # Load core dependencies
 require_relative '../lib/signalwire/swaig/function_result'
@@ -82,6 +84,46 @@ class SkillRegistryTest < Minitest::Test
       end
     ensure
       saved.each { |k, v| ENV[k] = v if v }
+    end
+  end
+
+  # ── add_skill_directory parity ────────────────────────────────────────
+  # Mirrors Python's signalwire.skills.registry.SkillRegistry.add_skill_directory
+  # (test_registry.py::TestDirectoryScanning::test_add_skill_directory_*).
+
+  def test_add_skill_directory_valid
+    Dir.mktmpdir do |tmpdir|
+      registry = SignalWire::Skills::SkillRegistry.new
+      registry.add_skill_directory(tmpdir)
+      assert_includes registry.external_paths, tmpdir
+    end
+  end
+
+  def test_add_skill_directory_not_exists
+    registry = SignalWire::Skills::SkillRegistry.new
+    err = assert_raises(ArgumentError) do
+      registry.add_skill_directory('/no/such/swrb_path/abc123')
+    end
+    assert_match(/does not exist/, err.message)
+  end
+
+  def test_add_skill_directory_not_a_directory
+    Tempfile.create('swrb_skill_file') do |f|
+      registry = SignalWire::Skills::SkillRegistry.new
+      err = assert_raises(ArgumentError) do
+        registry.add_skill_directory(f.path)
+      end
+      assert_match(/not a directory/, err.message)
+    end
+  end
+
+  def test_add_skill_directory_dedup
+    Dir.mktmpdir do |tmpdir|
+      registry = SignalWire::Skills::SkillRegistry.new
+      registry.add_skill_directory(tmpdir)
+      registry.add_skill_directory(tmpdir)
+      paths = registry.external_paths
+      assert_equal 1, paths.count(tmpdir)
     end
   end
 end
