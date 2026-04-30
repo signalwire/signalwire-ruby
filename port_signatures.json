@@ -4492,12 +4492,35 @@
                 {
                   "name": "request_data",
                   "type": "any",
-                  "required": true
+                  "required": false,
+                  "default": null
                 },
                 {
                   "name": "callback_path",
                   "type": "any",
-                  "required": true
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "on_swml_request": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "request_data",
+                  "type": "any",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "callback_path",
+                  "type": "any",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -5248,12 +5271,35 @@
                 {
                   "name": "request_data",
                   "type": "any",
-                  "required": true
+                  "required": false,
+                  "default": null
                 },
                 {
                   "name": "callback_path",
                   "type": "any",
-                  "required": true
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "on_swml_request": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "request_data",
+                  "type": "any",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "callback_path",
+                  "type": "any",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"

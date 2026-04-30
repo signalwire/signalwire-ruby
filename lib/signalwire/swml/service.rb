@@ -269,15 +269,27 @@ module SignalWire
         @routing_callbacks[path] = block
       end
 
-      # Called when a request arrives at the service's route.
-      # +request_data+ is the parsed JSON body (or nil).
-      # Returns the SWML hash to serialise as the response.
-      def on_request(request_data, callback_path)
-        if @routing_callbacks.key?(callback_path)
-          @routing_callbacks[callback_path].call(request_data)
-        else
-          @document.to_h
-        end
+      # Customization hook called when SWML is requested. Default
+      # delegates to {#on_swml_request} and returns its result.
+      # Subclasses typically override +on_swml_request+ rather than
+      # this method.
+      #
+      # Return +nil+ to use the default SWML rendering, or a Hash of
+      # modifications to merge into the document.
+      #
+      # Python parity: WebMixin#on_request(request_data, callback_path).
+      # The Python third +request+ argument is FastAPI-specific and
+      # intentionally not mirrored.
+      def on_request(request_data = nil, callback_path = nil)
+        on_swml_request(request_data, callback_path)
+      end
+
+      # Customization point for subclasses to modify SWML based on
+      # request data. The default returns nil (no modification).
+      #
+      # Python parity: WebMixin#on_swml_request(request_data, callback_path).
+      def on_swml_request(request_data = nil, callback_path = nil)
+        nil
       end
 
       # ------------------------------------------------------------------
@@ -346,6 +358,25 @@ module SignalWire
       private
       # ------------------------------------------------------------------
 
+      # Internal request dispatcher: invoked by the rack app to produce
+      # the final SWML hash for a request. Tries (in order) the
+      # +on_request+ customization hook (Python WebMixin parity), then
+      # any registered routing callback, then the default rendered
+      # document.
+      #
+      # +request_data+ is the parsed JSON body (or nil). Returns the
+      # SWML hash to serialise as the response.
+      def dispatch_request(request_data, callback_path)
+        override = on_request(request_data, callback_path)
+        return override if override.is_a?(Hash) && !override.empty?
+
+        if @routing_callbacks.key?(callback_path)
+          @routing_callbacks[callback_path].call(request_data)
+        else
+          @document.to_h
+        end
+      end
+
       def build_rack_app
         service = self
         main_route = @route
@@ -393,8 +424,10 @@ module SignalWire
               extra = service.handle_additional_route(sub_path, request_data, env)
               next extra if extra
 
-              # Fallback: routing-callback hook then the SWML document.
-              result = service.on_request(request_data, sub_path)
+              # Fallback: customization hook, routing-callback, then SWML doc.
+              # Call the private dispatcher via __send__ so subclass overrides
+              # of on_request / on_swml_request are honoured normally.
+              result = service.__send__(:dispatch_request, request_data, sub_path)
               body   = JSON.generate(result)
               [200, { 'content-type' => 'application/json' }, [body]]
             }
