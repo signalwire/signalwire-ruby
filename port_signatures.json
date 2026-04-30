@@ -203,6 +203,135 @@
         }
       }
     },
+    "signalwire.core.agent.tools.registry": {
+      "classes": {
+        "ToolRegistry": {
+          "methods": {
+            "define_tool": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": true
+                },
+                {
+                  "name": "description",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": true
+                },
+                {
+                  "name": "parameters",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "secure",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "fillers",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "swaig_fields",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "handler",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "register_swaig_function": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "func_def",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "has_function": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "get_function": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "get_all_functions": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "remove_function": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        }
+      }
+    },
     "signalwire.core.agent_base": {
       "classes": {
         "AgentBase": {
@@ -4650,6 +4779,15 @@
               ],
               "returns": "any"
             },
+            "get_all_functions": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "get_basic_auth_credentials": {
               "params": [
                 {
@@ -4675,6 +4813,20 @@
               ],
               "returns": "any"
             },
+            "get_function": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
             "handle_additional_route": {
               "params": [
                 {
@@ -4693,6 +4845,20 @@
                 },
                 {
                   "name": "_env",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "has_function": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
                   "type": "any",
                   "required": true
                 }
@@ -4842,6 +5008,20 @@
                 },
                 {
                   "name": "func_def",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "remove_function": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
                   "type": "any",
                   "required": true
                 }

@@ -103,6 +103,42 @@ module SignalWire
         @tools.keys
       end
 
+      # Whether a SWAIG function with the given name is registered.
+      # (Python parity: ToolRegistry#has_function.)
+      def has_function(name)
+        @tools.key?(name) || @swaig_functions.key?(name)
+      end
+
+      # Get a registered SWAIG function by name, or nil when absent.
+      # (Python parity: ToolRegistry#get_function.)
+      def get_function(name)
+        @tools[name] || @swaig_functions[name]
+      end
+
+      # Snapshot of all registered SWAIG functions keyed by name.
+      # (Python parity: ToolRegistry#get_all_functions.)
+      def get_all_functions
+        out = {}
+        @tools.each { |k, v| out[k] = v }
+        @swaig_functions.each { |k, v| out[k] = v }
+        out
+      end
+
+      # Remove a registered SWAIG function. Returns true on success,
+      # false when the function was not registered.
+      # (Python parity: ToolRegistry#remove_function.)
+      def remove_function(name)
+        if @tools.key?(name)
+          @tools.delete(name)
+          true
+        elsif @swaig_functions.key?(name)
+          @swaig_functions.delete(name)
+          true
+        else
+          false
+        end
+      end
+
       # Extension point: invoked between argument parsing and function
       # dispatch on POST /swaig. Returns [target, short_circuit]. If
       # short_circuit is non-nil, it's returned as the SWAIG response
