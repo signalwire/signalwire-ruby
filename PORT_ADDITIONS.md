@@ -70,6 +70,7 @@ signalwire.core.agent_base.AgentBase.add_pronunciation: port-only: mixin method 
 signalwire.core.agent_base.AgentBase.add_skill: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
 signalwire.core.agent_base.AgentBase.as_rack_app: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
 signalwire.core.agent_base.AgentBase.contexts: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
+signalwire.core.agent_base.AgentBase.create_tool_token: port-only: Ruby instance helper that delegates to SessionManager#create_token (Python keeps token creation only in SessionManager)
 signalwire.core.agent_base.AgentBase.define_contexts: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
 signalwire.core.agent_base.AgentBase.define_tool: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
 signalwire.core.agent_base.AgentBase.define_tools: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
@@ -155,6 +156,7 @@ signalwire.core.skill_base.SkillBase.version: port-only: Ruby attr_reader on ski
 signalwire.core.skill_manager.SkillManager.clear: port-only: SkillManager#clear - no direct Python equivalent (Python unloads individually)
 signalwire.core.skill_manager.SkillManager.get: port-only: SkillManager#get - Ruby shortened name; see PORT_OMISSIONS for get_skill
 signalwire.core.skill_manager.SkillManager.load: port-only: SkillManager#load - Ruby shortened name; see PORT_OMISSIONS for load_skill
+signalwire.core.skill_manager.SkillManager.loaded: port-only: same as SkillManager#loaded? - signature audit strips Ruby ?/! suffixes
 signalwire.core.skill_manager.SkillManager.loaded?: port-only: SkillManager#loaded? predicate - Ruby shortened name; see PORT_OMISSIONS for has_skill
 signalwire.core.skill_manager.SkillManager.loaded_keys: port-only: SkillManager#loaded_keys - Ruby shortened name; see PORT_OMISSIONS for list_loaded_skills
 signalwire.core.skill_manager.SkillManager.size: port-only: SkillManager#size - count of loaded skills
@@ -502,8 +504,11 @@ signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.name: port-
 signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.supports_multiple_instances?: port-only: Ruby predicate method (? suffix)
 signalwire.skills.registry.SkillRegistry.get_factory: port-only: returns class-or-factory (see PORT_OMISSIONS for Python get_skill_class)
 signalwire.skills.registry.SkillRegistry.register: port-only: explicit registry registration (Ruby ships built-ins via register_builtins!)
+signalwire.skills.registry.SkillRegistry.register_builtins: port-only: same as SkillRegistry.register_builtins! - signature audit strips Ruby ?/! suffixes
 signalwire.skills.registry.SkillRegistry.register_builtins!: port-only: Ruby bang-convention to seed the registry with built-in skills
+signalwire.skills.registry.SkillRegistry.registered: port-only: same as SkillRegistry.registered? - signature audit strips Ruby ?/! suffixes
 signalwire.skills.registry.SkillRegistry.registered?: port-only: Ruby predicate - is_registered check
+signalwire.skills.registry.SkillRegistry.reset: port-only: same as SkillRegistry.reset! - signature audit strips Ruby ?/! suffixes
 signalwire.skills.registry.SkillRegistry.reset!: port-only: Ruby bang-convention to clear the registry (used in tests)
 signalwire.skills.spider.skill.SpiderSkill.description: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
 signalwire.skills.spider.skill.SpiderSkill.instance_key: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)

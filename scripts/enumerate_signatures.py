@@ -91,10 +91,29 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
     "SignalWire::Skills::Builtin::WikipediaSearchSkill": "signalwire.skills.wikipedia_search.skill",
     "SignalWire::Relay::Client": "signalwire.relay.client",
     "SignalWire::Relay::ActionTimeoutError": "signalwire.relay.client",
-    "SignalWire::Relay::Action": "signalwire.relay.action",
+    "SignalWire::Relay::RelayError": "signalwire.relay.client",
+    # Relay actions: Python collapses every Action class under
+    # signalwire/relay/call.py alongside Call itself.
+    "SignalWire::Relay::Action": "signalwire.relay.call",
+    "SignalWire::Relay::AIAction": "signalwire.relay.call",
+    "SignalWire::Relay::CollectAction": "signalwire.relay.call",
+    "SignalWire::Relay::DetectAction": "signalwire.relay.call",
+    "SignalWire::Relay::FaxAction": "signalwire.relay.call",
+    "SignalWire::Relay::PayAction": "signalwire.relay.call",
+    "SignalWire::Relay::PlayAction": "signalwire.relay.call",
+    "SignalWire::Relay::RecordAction": "signalwire.relay.call",
+    "SignalWire::Relay::StandaloneCollectAction": "signalwire.relay.call",
+    "SignalWire::Relay::StreamAction": "signalwire.relay.call",
+    "SignalWire::Relay::TapAction": "signalwire.relay.call",
+    "SignalWire::Relay::TranscribeAction": "signalwire.relay.call",
     # Relay events: Python groups them under signalwire.relay.event
     "SignalWire::Relay::CallReceiveEvent": "signalwire.relay.event",
     "SignalWire::Relay::CallStateEvent": "signalwire.relay.event",
+    "SignalWire::Relay::CallingErrorEvent": "signalwire.relay.event",
+    "SignalWire::Relay::ConferenceEvent": "signalwire.relay.event",
+    "SignalWire::Relay::DenoiseEvent": "signalwire.relay.event",
+    "SignalWire::Relay::EchoEvent": "signalwire.relay.event",
+    "SignalWire::Relay::HoldEvent": "signalwire.relay.event",
     "SignalWire::Relay::QueueEvent": "signalwire.relay.event",
     "SignalWire::Relay::RecordEvent": "signalwire.relay.event",
     "SignalWire::Relay::TranscribeEvent": "signalwire.relay.event",
@@ -120,7 +139,10 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
     # Ruby's ``SignalWire::REST::RestClient`` -> Python's
     # ``signalwire.rest.client.RestClient``.
     "SignalWire::REST::RestClient": "signalwire.rest.client",
-    "SignalWire::REST::HttpClient": "signalwire.rest.http_client",
+    # Python keeps HttpClient + SignalWireRestError in signalwire/rest/_base.py;
+    # Ruby gives HttpClient its own file but that's a layout-only difference.
+    "SignalWire::REST::HttpClient": "signalwire.rest._base",
+    "SignalWire::REST::SignalWireRestError": "signalwire.rest._base",
     "SignalWire::REST::BaseResource": "signalwire.rest._base",
     "SignalWire::REST::CrudResource": "signalwire.rest._base",
     "SignalWire::REST::PaginatedIterator": "signalwire.rest._pagination",
@@ -150,9 +172,13 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
     "SignalWire::REST::Namespaces::CallFlowsResource": "signalwire.rest.namespaces.fabric",
     "SignalWire::REST::Namespaces::ConferenceRoomsResource": "signalwire.rest.namespaces.fabric",
     "SignalWire::REST::Namespaces::CxmlApplicationsResource": "signalwire.rest.namespaces.fabric",
+    "SignalWire::REST::Namespaces::GenericResources": "signalwire.rest.namespaces.fabric",
+    "SignalWire::REST::Namespaces::SubscribersResource": "signalwire.rest.namespaces.fabric",
     "SignalWire::REST::Namespaces::ConferenceLogs": "signalwire.rest.namespaces.logs",
     "SignalWire::REST::Namespaces::FaxLogs": "signalwire.rest.namespaces.logs",
     "SignalWire::REST::Namespaces::LogsNamespace": "signalwire.rest.namespaces.logs",
+    "SignalWire::REST::Namespaces::MessageLogs": "signalwire.rest.namespaces.logs",
+    "SignalWire::REST::Namespaces::VoiceLogs": "signalwire.rest.namespaces.logs",
     "SignalWire::REST::Namespaces::ImportedNumbersResource": "signalwire.rest.namespaces.imported_numbers",
     "SignalWire::REST::Namespaces::LookupResource": "signalwire.rest.namespaces.lookup",
     "SignalWire::REST::Namespaces::MfaResource": "signalwire.rest.namespaces.mfa",
@@ -166,6 +192,8 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
     "SignalWire::REST::Namespaces::RegistryBrands": "signalwire.rest.namespaces.registry",
     "SignalWire::REST::Namespaces::RegistryCampaigns": "signalwire.rest.namespaces.registry",
     "SignalWire::REST::Namespaces::RegistryNamespace": "signalwire.rest.namespaces.registry",
+    "SignalWire::REST::Namespaces::RegistryNumbers": "signalwire.rest.namespaces.registry",
+    "SignalWire::REST::Namespaces::RegistryOrders": "signalwire.rest.namespaces.registry",
     "SignalWire::REST::Namespaces::ShortCodesResource": "signalwire.rest.namespaces.short_codes",
     "SignalWire::REST::Namespaces::SipProfileResource": "signalwire.rest.namespaces.sip_profile",
     "SignalWire::REST::Namespaces::VerifiedCallersResource": "signalwire.rest.namespaces.verified_callers",
@@ -264,6 +292,29 @@ FREE_FN_NAME_OVERRIDES = {
     "rest_client": "RestClient",
 }
 
+# Ruby-module-to-Python-module overrides for ``module`` kinds (vs the
+# class-keyed RUBY_TO_PYTHON_MODULE_OVERRIDES above). When a Ruby module
+# (e.g. ``SignalWire::Relay``) defines its own static methods, route them
+# to the matching Python module (``signalwire.relay.event``) rather than
+# the default name-derived path (``signalwire.relay``).
+RUBY_MODULE_LEVEL_OVERRIDES = {
+    "SignalWire::Relay": "signalwire.relay.event",
+}
+
+# Port-only Ruby modules that have no Python equivalent. Project their
+# singleton methods as a synthetic class (mirroring enumerate_surface.rb)
+# so the surface- and signature-level audits see the same shape.
+RUBY_PORT_ONLY_MODULE_AS_CLASS = {
+    # SignalWire::Logging.global_level / .logger / etc. -> Logging class
+    "SignalWire::Logging": ("signalwire.logging", "Logging"),
+    # SignalWire::Runtime.execution_mode / .lambda? / etc. -> Runtime class
+    "SignalWire::Runtime": ("signalwire.runtime", "Runtime"),
+    # SignalWire::Contexts.create_simple_context -> Contexts class
+    # (matches port_surface.json shape; Python's create_simple_context
+    # lives at signalwire.core.contexts as a free function).
+    "SignalWire::Contexts": ("signalwire.contexts", "Contexts"),
+}
+
 EXCLUDED_RUBY_CLASSES = {
     "SignalWire::AgentBase::AgentBodyLimitMiddleware",
     "SignalWire::AgentBase::AgentSecurityHeadersMiddleware",
@@ -335,9 +386,18 @@ def collect(raw: dict) -> dict:
         full = type_entry.get("full_name", "")
         kind = type_entry.get("kind", "class")
         if kind == "module":
-            # Module-level functions emitted under their Python module.
-            mod_path = ruby_module_to_py(full.split("::"))
+            # Module-level static methods emit either as functions in the
+            # mapped Python module, or — for port-only Ruby modules with
+            # no Python counterpart — as methods on a synthetic class so
+            # the surface and signature audits agree on shape.
+            as_class = RUBY_PORT_ONLY_MODULE_AS_CLASS.get(full)
+            if as_class:
+                mod_path, class_name = as_class
+            else:
+                mod_path = RUBY_MODULE_LEVEL_OVERRIDES.get(full) or \
+                    ruby_module_to_py(full.split("::"))
             functions: dict = {}
+            class_methods: dict = {}
             for m in type_entry.get("methods", []):
                 if not m.get("is_static"):
                     continue
@@ -361,11 +421,21 @@ def collect(raw: dict) -> dict:
                 projected = FREE_FN_NAME_OVERRIDES.get(snake, snake)
                 sig = build_signature(m, instance_method=False)
                 sig["params"] = [p for p in sig["params"] if p.get("name")]
-                functions[projected] = sig
+                if as_class:
+                    class_methods[projected] = sig
+                else:
+                    functions[projected] = sig
             if functions:
                 out_modules.setdefault(mod_path, {})
                 out_modules[mod_path].setdefault("functions", {})
                 out_modules[mod_path]["functions"].update(functions)
+            if class_methods:
+                out_modules.setdefault(mod_path, {})
+                out_modules[mod_path].setdefault("classes", {})
+                out_modules[mod_path]["classes"].setdefault(
+                    class_name, {"methods": {}}
+                )
+                out_modules[mod_path]["classes"][class_name]["methods"].update(class_methods)
             continue
 
         resolved = resolve_class(full)
