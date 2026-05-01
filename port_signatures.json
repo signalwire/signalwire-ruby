@@ -70,9 +70,25 @@
                   "kind": "keyword",
                   "required": false,
                   "default": null
+                },
+                {
+                  "name": "log_level",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "void"
+            },
+            "app": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
             },
             "get_agent": {
               "params": [
@@ -98,6 +114,24 @@
               "returns": "any"
             },
             "host": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "log_level": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "logger": {
               "params": [
                 {
                   "name": "self",
@@ -169,6 +203,34 @@
                 {
                   "name": "self",
                   "kind": "self"
+                },
+                {
+                  "name": "event",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "context",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "host",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "port",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -261,6 +323,12 @@
                 {
                   "name": "self",
                   "kind": "self"
+                },
+                {
+                  "name": "contexts",
+                  "type": "any",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -324,6 +392,27 @@
                   "kind": "keyword",
                   "required": false,
                   "default": null
+                },
+                {
+                  "name": "numbered",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "numbered_bullets",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "subsections",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -372,9 +461,31 @@
                   "required": true
                 },
                 {
-                  "name": "text",
+                  "name": "body_arg",
                   "type": "any",
-                  "required": true
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "body",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "bullet",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "bullets",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -469,6 +580,13 @@
                   "default": null
                 },
                 {
+                  "name": "handler",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
                   "name": "secure",
                   "type": "any",
                   "kind": "keyword",
@@ -483,6 +601,41 @@
                   "default": null
                 },
                 {
+                  "name": "wait_file",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "wait_file_loops",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "webhook_url",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "required",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "is_typed_handler",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
                   "name": "swaig_fields",
                   "type": "any",
                   "kind": "keyword",
@@ -490,7 +643,7 @@
                   "default": null
                 },
                 {
-                  "name": "handler",
+                  "name": "block",
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
@@ -614,6 +767,20 @@
                   "default": null
                 },
                 {
+                  "name": "use_pom",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "token_expiry_secs",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
                   "name": "auto_answer",
                   "type": "any",
                   "kind": "keyword",
@@ -642,7 +809,63 @@
                   "default": null
                 },
                 {
-                  "name": "token_expiry_secs",
+                  "name": "default_webhook_url",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "agent_id",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "native_functions",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "schema_path",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "suppress_logs",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "enable_post_prompt_override",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "check_for_input_override",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "config_file",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "schema_validation",
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
@@ -736,6 +959,15 @@
               ],
               "returns": "any"
             },
+            "agent_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "as_rack_app": {
               "params": [
                 {
@@ -786,6 +1018,12 @@
                 {
                   "name": "self",
                   "kind": "self"
+                },
+                {
+                  "name": "contexts",
+                  "type": "any",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -805,6 +1043,15 @@
                   "name": "call_id",
                   "type": "any",
                   "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "default_webhook_url": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
                 }
               ],
               "returns": "any"
@@ -912,6 +1159,15 @@
               ],
               "returns": "any"
             },
+            "native_functions": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "on_debug_event": {
               "params": [
                 {
@@ -933,6 +1189,18 @@
                 {
                   "name": "self",
                   "kind": "self"
+                },
+                {
+                  "name": "summary",
+                  "type": "any",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "raw_data",
+                  "type": "any",
+                  "required": false,
+                  "default": null
                 },
                 {
                   "name": "block",
@@ -1022,6 +1290,24 @@
                   "name": "url",
                   "type": "any",
                   "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "skill_manager": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "use_pom": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
                 }
               ],
               "returns": "any"
@@ -1134,6 +1420,41 @@
                   "name": "name",
                   "type": "any",
                   "required": true
+                },
+                {
+                  "name": "task",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "bullets",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "criteria",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "functions",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "valid_steps",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -1418,6 +1739,12 @@
                 {
                   "name": "self",
                   "kind": "self"
+                },
+                {
+                  "name": "agent",
+                  "type": "any",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "void"
@@ -1769,10 +2096,32 @@
                   "required": true
                 },
                 {
-                  "name": "opts",
+                  "name": "type",
                   "type": "any",
-                  "kind": "var_keyword",
-                  "required": true
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "confirm",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "prompt",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "functions",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -3790,9 +4139,49 @@
                   "kind": "self"
                 },
                 {
-                  "name": "config",
+                  "name": "name_or_config",
                   "type": "any",
                   "required": true
+                },
+                {
+                  "name": "code",
+                  "type": "any",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "voice",
+                  "type": "any",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "speech_fillers",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "function_fillers",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "engine",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "model",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -3804,12 +4193,34 @@
                   "kind": "self"
                 },
                 {
-                  "name": "pattern",
+                  "name": "args",
                   "type": "any",
+                  "kind": "var_positional",
                   "required": true
                 },
                 {
                   "name": "hint",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "pattern",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "replace",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "ignore_case",
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
@@ -4059,6 +4470,13 @@
                 {
                   "name": "self",
                   "kind": "self"
+                },
+                {
+                  "name": "include_source",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -4119,6 +4537,12 @@
                 {
                   "name": "self",
                   "kind": "self"
+                },
+                {
+                  "name": "contexts",
+                  "type": "any",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -4160,6 +4584,27 @@
                 },
                 {
                   "name": "bullets",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "numbered",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "numbered_bullets",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "subsections",
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
@@ -4212,9 +4657,31 @@
                   "required": true
                 },
                 {
-                  "name": "text",
+                  "name": "body_arg",
                   "type": "any",
-                  "required": true
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "body",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "bullet",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "bullets",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -4401,6 +4868,13 @@
                   "default": null
                 },
                 {
+                  "name": "handler",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
                   "name": "secure",
                   "type": "any",
                   "kind": "keyword",
@@ -4415,6 +4889,41 @@
                   "default": null
                 },
                 {
+                  "name": "wait_file",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "wait_file_loops",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "webhook_url",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "required",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "is_typed_handler",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
                   "name": "swaig_fields",
                   "type": "any",
                   "kind": "keyword",
@@ -4422,7 +4931,7 @@
                   "default": null
                 },
                 {
-                  "name": "handler",
+                  "name": "block",
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
@@ -4505,6 +5014,41 @@
                 {
                   "name": "self",
                   "kind": "self"
+                },
+                {
+                  "name": "event",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "context",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "force_mode",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "host",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "port",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -4514,6 +5058,20 @@
                 {
                   "name": "self",
                   "kind": "self"
+                },
+                {
+                  "name": "host",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "port",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -4557,6 +5115,13 @@
                   "type": "any",
                   "required": false,
                   "default": null
+                },
+                {
+                  "name": "request",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -4576,6 +5141,13 @@
                 {
                   "name": "callback_path",
                   "type": "any",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "request",
+                  "type": "any",
+                  "kind": "keyword",
                   "required": false,
                   "default": null
                 }
@@ -4671,6 +5243,12 @@
                   "kind": "self"
                 },
                 {
+                  "name": "agent",
+                  "type": "any",
+                  "required": false,
+                  "default": null
+                },
+                {
                   "name": "params",
                   "type": "any",
                   "required": false,
@@ -4678,6 +5256,15 @@
                 }
               ],
               "returns": "void"
+            },
+            "agent": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
             },
             "cleanup": {
               "params": [
@@ -4770,6 +5357,15 @@
               ],
               "returns": "any"
             },
+            "logger": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "name": {
               "params": [
                 {
@@ -4824,6 +5420,15 @@
               ],
               "returns": "any"
             },
+            "swaig_fields": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "version": {
               "params": [
                 {
@@ -4846,9 +5451,24 @@
                 {
                   "name": "self",
                   "kind": "self"
+                },
+                {
+                  "name": "agent",
+                  "type": "any",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "void"
+            },
+            "agent": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
             },
             "clear": {
               "params": [
@@ -4907,6 +5527,15 @@
               "returns": "any"
             },
             "loaded_keys": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "logger": {
               "params": [
                 {
                   "name": "self",
@@ -5057,9 +5686,39 @@
                   "kind": "keyword",
                   "required": false,
                   "default": null
+                },
+                {
+                  "name": "schema_path",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "config_file",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "schema_validation",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "void"
+            },
+            "config_file": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
             },
             "define_tool": {
               "params": [
@@ -5161,6 +5820,13 @@
                 {
                   "name": "self",
                   "kind": "self"
+                },
+                {
+                  "name": "include_source",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -5336,6 +6002,13 @@
                   "type": "any",
                   "required": false,
                   "default": null
+                },
+                {
+                  "name": "request",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -5355,6 +6028,13 @@
                 {
                   "name": "callback_path",
                   "type": "any",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "request",
+                  "type": "any",
+                  "kind": "keyword",
                   "required": false,
                   "default": null
                 }
@@ -5477,7 +6157,25 @@
               ],
               "returns": "any"
             },
+            "schema_path": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "schema_utils": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "schema_validation": {
               "params": [
                 {
                   "name": "self",
@@ -5491,6 +6189,48 @@
                 {
                   "name": "self",
                   "kind": "self"
+                },
+                {
+                  "name": "host",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "port",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "ssl_cert",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "ssl_key",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "ssl_enabled",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "domain",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -8095,7 +8835,7 @@
                   "default": null
                 },
                 {
-                  "name": "space",
+                  "name": "host",
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
@@ -8103,6 +8843,20 @@
                 },
                 {
                   "name": "contexts",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "max_active_calls",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "space",
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
@@ -8161,6 +8915,24 @@
                   "type": "any",
                   "required": false,
                   "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "host": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "max_active_calls": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
                 }
               ],
               "returns": "any"
@@ -17421,8 +18193,31 @@
               ],
               "returns": "any"
             },
+            "last_registered": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "list_skills": {
-              "params": [],
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "logger": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
               "returns": "any"
             },
             "register": {
@@ -17449,14 +18244,19 @@
             "register_skill": {
               "params": [
                 {
-                  "name": "skill_name",
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "skill_class_or_name",
                   "type": "any",
                   "required": true
                 },
                 {
                   "name": "factory",
                   "type": "any",
-                  "required": true
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"

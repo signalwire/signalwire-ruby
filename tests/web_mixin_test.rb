@@ -22,9 +22,10 @@ class WebMixinTest < Minitest::Test
       @custom_return = nil
     end
 
-    def on_swml_request(request_data = nil, callback_path = nil)
+    def on_swml_request(request_data = nil, callback_path = nil, request: nil)
       @last_request_data = request_data
       @last_callback_path = callback_path
+      @last_request = request
       @custom_return
     end
   end

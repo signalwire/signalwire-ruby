@@ -117,6 +117,45 @@ class SkillRegistryTest < Minitest::Test
     end
   end
 
+  # --- Python parity: SkillRegistry instance logger --------------
+  def test_registry_instance_logger
+    registry = SignalWire::Skills::SkillRegistry.new
+    refute_nil registry.logger
+    assert_respond_to registry.logger, :info
+  end
+
+  # --- Python parity: SkillRegistry#list_skills (instance form) --
+  def test_registry_instance_list_skills_returns_hashes
+    registry = SignalWire::Skills::SkillRegistry.new
+    skills = registry.list_skills
+    assert_kind_of Array, skills
+    refute_empty skills
+    skills.each do |entry|
+      assert_kind_of Hash, entry
+      assert entry.key?('name'), "expected entry to have 'name' key: #{entry.inspect}"
+    end
+  end
+
+  # --- Python parity: SkillRegistry#register_skill (instance form) ---
+  def test_registry_instance_register_skill_with_class
+    fake_class = Class.new(SignalWire::Skills::SkillBase) do
+      define_method(:name)        { 'test_register_skill_class_form' }
+      define_method(:description) { 'Test' }
+      define_method(:setup)       { true }
+    end
+
+    registry = SignalWire::Skills::SkillRegistry.new
+    registry.register_skill(fake_class)
+
+    assert_equal 'test_register_skill_class_form', registry.last_registered
+    assert SignalWire::Skills::SkillRegistry.registered?('test_register_skill_class_form')
+
+    # Clean up only the entry we added so other tests still see the
+    # built-ins.
+    factories_var = SignalWire::Skills::SkillRegistry.instance_variable_get(:@factories)
+    factories_var.delete('test_register_skill_class_form')
+  end
+
   def test_add_skill_directory_dedup
     Dir.mktmpdir do |tmpdir|
       registry = SignalWire::Skills::SkillRegistry.new
@@ -181,6 +220,60 @@ class SkillManagerTest < Minitest::Test
 
     @manager.clear
     assert_equal 0, @manager.size
+  end
+
+  # --- Python parity: SkillManager(agent) -------------------------
+  def test_constructor_accepts_agent_back_pointer
+    fake_agent = Object.new
+    manager = SignalWire::Skills::SkillManager.new(fake_agent)
+    assert_same fake_agent, manager.agent
+  end
+
+  def test_constructor_default_agent_is_nil
+    manager = SignalWire::Skills::SkillManager.new
+    assert_nil manager.agent
+  end
+
+  def test_logger_is_present
+    refute_nil @manager.logger
+    assert_respond_to @manager.logger, :info
+  end
+end
+
+class SkillBaseConstructorTest < Minitest::Test
+  # --- Python parity: SkillBase(agent, params=None) -----------------
+  def setup
+    @skill_class = Class.new(SignalWire::Skills::SkillBase) do
+      define_method(:name)        { 'test_skill_base' }
+      define_method(:description) { 'Test' }
+      define_method(:setup)       { true }
+    end
+  end
+
+  def test_legacy_one_arg_form_with_params_only
+    skill = @skill_class.new('foo' => 'bar')
+    assert_nil skill.agent
+    assert_equal 'bar', skill.params['foo']
+  end
+
+  def test_two_arg_form_python_style
+    fake_agent = Object.new
+    skill = @skill_class.new(fake_agent, 'tz' => 'UTC')
+    assert_same fake_agent, skill.agent
+    assert_equal 'UTC', skill.params['tz']
+  end
+
+  def test_swaig_fields_pulled_out_of_params
+    skill = @skill_class.new(nil, 'foo' => 'bar', 'swaig_fields' => { 'k' => 'v' })
+    assert_equal({ 'k' => 'v' }, skill.swaig_fields)
+    refute skill.params.key?('swaig_fields')
+  end
+
+  def test_logger_is_namespaced
+    skill = @skill_class.new
+    refute_nil skill.logger
+    assert_respond_to skill.logger, :info
+    assert_match(/test_skill_base/, skill.logger.name)
   end
 end
 

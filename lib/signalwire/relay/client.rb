@@ -33,21 +33,50 @@ module SignalWire
     # 3. control_id -> Action tracking per Call
     # 4. tag -> dial correlation
     class Client
-      attr_reader :project_id, :protocol
+      attr_reader :project_id, :protocol, :host, :max_active_calls
 
-      def initialize(project: nil, token: nil, jwt_token: nil, space: nil,
-                     contexts: ['default'])
+      # Python parity:
+      # ``RelayClient(project=None, token=None, jwt_token=None,
+      # host=None, contexts=None, max_active_calls=None)``. Ruby v1
+      # accepted ``space:`` for the same purpose; both keyword names
+      # are honoured for backwards compat. ``host`` is the canonical
+      # Python name and now drives the WebSocket endpoint.
+      #
+      # @param project [String, nil] project ID (env: SIGNALWIRE_PROJECT_ID)
+      # @param token [String, nil] API token (env: SIGNALWIRE_API_TOKEN)
+      # @param jwt_token [String, nil] JWT token alternative
+      # @param host [String, nil] RELAY host (env: SIGNALWIRE_SPACE).
+      #   Either a bare space subdomain (``myspace``) or full hostname
+      #   (``myspace.signalwire.com``).
+      # @param contexts [Array<String>] context names to subscribe to
+      # @param max_active_calls [Integer, nil] cap on simultaneous
+      #   active inbound calls. ``nil`` means unlimited (Python parity:
+      #   matches ``RELAY_MAX_ACTIVE_CALLS`` env override).
+      # @param space [String, nil] backwards-compat alias for ``host``.
+      def initialize(project: nil, token: nil, jwt_token: nil, host: nil,
+                     contexts: ['default'], max_active_calls: nil,
+                     space: nil)
         @project_id = project || ENV['SIGNALWIRE_PROJECT_ID'] || ''
         @token      = token || ENV['SIGNALWIRE_API_TOKEN'] || ''
         @jwt_token  = jwt_token
-        @space      = space || ENV['SIGNALWIRE_SPACE'] || ''
+        # Accept either `host:` (Python parity) or legacy `space:`.
+        host_arg    = host || space
+        @space      = host_arg || ENV['SIGNALWIRE_SPACE'] || ''
         @contexts   = contexts
+
+        # Python parity: max_active_calls override + RELAY_MAX_ACTIVE_CALLS env.
+        if max_active_calls.nil?
+          env_val = ENV['RELAY_MAX_ACTIVE_CALLS']
+          @max_active_calls = env_val && !env_val.empty? ? Integer(env_val) : nil
+        else
+          @max_active_calls = [1, Integer(max_active_calls)].max
+        end
 
         raise ArgumentError, 'project is required' if @project_id.empty?
         if @token.empty? && @jwt_token.nil?
           raise ArgumentError, 'token or jwt_token is required'
         end
-        raise ArgumentError, 'space is required' if @space.empty?
+        raise ArgumentError, 'host is required' if @space.empty?
 
         @host = @space.include?('.') ? @space : "#{@space}.signalwire.com"
 

@@ -58,6 +58,46 @@ class AuthEnvVarsTest < Minitest::Test
   end
 end
 
+# --- Python parity: get_basic_auth_credentials(include_source) -------
+# Mirrors signalwire-python tests around AuthMixin.get_basic_auth_credentials
+# returning a 3-tuple including a source label when requested.
+class AuthIncludeSourceTest < Minitest::Test
+  def test_swml_service_include_source_environment
+    ENV['SWML_BASIC_AUTH_USER']     = 'envuser'
+    ENV['SWML_BASIC_AUTH_PASSWORD'] = 'envpass'
+    svc = SignalWire::SWML::Service.new(name: 'svc')
+    user, pass, source = svc.get_basic_auth_credentials(include_source: true)
+    assert_equal 'envuser', user
+    assert_equal 'envpass', pass
+    assert_equal 'environment', source
+  ensure
+    ENV.delete('SWML_BASIC_AUTH_USER')
+    ENV.delete('SWML_BASIC_AUTH_PASSWORD')
+  end
+
+  def test_swml_service_include_source_provided
+    svc = SignalWire::SWML::Service.new(name: 'svc', basic_auth: ['user1', 'pass1'])
+    user, pass, source = svc.get_basic_auth_credentials(include_source: true)
+    assert_equal 'user1', user
+    assert_equal 'pass1', pass
+    assert_equal 'provided', source
+  end
+
+  def test_swml_service_two_tuple_default
+    svc = SignalWire::SWML::Service.new(name: 'svc', basic_auth: ['u', 'p'])
+    creds = svc.get_basic_auth_credentials
+    assert_equal 2, creds.length
+  end
+
+  def test_legacy_with_source_alias_still_works
+    svc = SignalWire::SWML::Service.new(name: 'svc', basic_auth: ['u', 'p'])
+    legacy = svc.get_basic_auth_credentials_with_source
+    assert_equal 3, legacy.length
+    assert_equal 'u', legacy[0]
+    assert_equal 'p', legacy[1]
+  end
+end
+
 class AuthRackValidationTest < Minitest::Test
   include Rack::Test::Methods
 

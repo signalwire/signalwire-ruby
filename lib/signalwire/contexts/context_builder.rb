@@ -245,10 +245,21 @@ module SignalWire
       #   email, geocode a ZIP), pass that tool name in this question's
       #   +functions:+ option. Functions listed here are active ONLY for
       #   this question.
-      def add_gather_question(key:, question:, **opts)
+      # Python parity: ``add_gather_question(key, question, type='string',
+      # confirm=False, prompt=None, functions=None)``. Ruby exposes the
+      # same parameter set as keyword args.
+      def add_gather_question(key:, question:, type: 'string', confirm: false,
+                              prompt: nil, functions: nil)
         raise ArgumentError, "Must call set_gather_info before add_gather_question" if @gather_info.nil?
 
-        @gather_info.add_question(key: key, question: question, **opts)
+        @gather_info.add_question(
+          key:       key,
+          question:  question,
+          type:      type,
+          confirm:   confirm,
+          prompt:    prompt,
+          functions: functions
+        )
         self
       end
 
@@ -360,13 +371,35 @@ module SignalWire
       end
 
       # Add a new step. Returns the new Step object (not self).
-      def add_step(name)
+      #
+      # Python parity: ``Context.add_step(name, *, task=None, bullets=None,
+      # criteria=None, functions=None, valid_steps=None)``. The optional
+      # keyword arguments give a one-call configuration shortcut:
+      #
+      #   ctx.add_step("greet",
+      #     task: "Greet the caller",
+      #     bullets: ["Say hi", "Ask how can I help"],
+      #     criteria: "User has been greeted",
+      #     functions: ["weather"],
+      #     valid_steps: ["help"])
+      #
+      # Without the optional args this stays the bare ``add_step("greet")``
+      # form that returns a Step for further fluent configuration.
+      def add_step(name, task: nil, bullets: nil, criteria: nil,
+                   functions: nil, valid_steps: nil)
         raise ArgumentError, "Step '#{name}' already exists in context '#{@name}'" if @steps.key?(name)
         raise ArgumentError, "Maximum steps per context (#{MAX_STEPS_PER_CONTEXT}) exceeded" if @steps.size >= MAX_STEPS_PER_CONTEXT
 
         step = Step.new(name)
         @steps[name] = step
         @step_order << name
+
+        step.add_section('Task', task)        unless task.nil?
+        step.add_bullets('Process', bullets)  unless bullets.nil?
+        step.set_step_criteria(criteria)      unless criteria.nil?
+        step.set_functions(functions)         unless functions.nil?
+        step.set_valid_steps(valid_steps)     unless valid_steps.nil?
+
         step
       end
 
@@ -631,10 +664,15 @@ module SignalWire
     # previous step's active set. See Step#set_functions for details
     # and examples.
     class ContextBuilder
-      def initialize
+      # Python parity: ``ContextBuilder.__init__(self, agent)`` accepts
+      # an owning agent so ``validate!`` can introspect registered
+      # SWAIG tools when checking for reserved-name collisions.
+      # Ruby allows nil for standalone use (tests, idiom of building
+      # a builder before attaching).
+      def initialize(agent = nil)
         @contexts      = {}   # name => Context
         @context_order = []
-        @agent         = nil
+        @agent         = agent
       end
 
       # Attach an agent reference so +validate!+ can check

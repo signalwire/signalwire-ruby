@@ -7,6 +7,7 @@
 
 require 'thread'
 require_relative 'skill_base'
+require_relative '../logging'
 
 module SignalWire
   module Skills
@@ -18,9 +19,20 @@ module SignalWire
     #   manager.unload('datetime')
     #
     class SkillManager
-      def initialize
+      # Python parity:
+      # - ``agent`` — owning AgentBase instance (or nil)
+      # - ``logger`` — namespaced logger
+      attr_reader :agent, :logger
+
+      # Python parity: ``SkillManager.__init__(self, agent)`` —
+      # SkillManager keeps a back-pointer to its agent so loaded
+      # skills can attach prompt sections / SWAIG tools directly.
+      # Ruby allows nil for standalone use (tests, registry tools).
+      def initialize(agent = nil)
+        @agent  = agent
         @skills = {}   # instance_key => SkillBase instance
         @mutex  = Mutex.new
+        @logger = ::SignalWire::Logging.logger('signalwire.skill_manager')
       end
 
       # Load a skill instance. Calls +setup+ on the skill; raises if it fails.

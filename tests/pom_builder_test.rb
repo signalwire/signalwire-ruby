@@ -64,12 +64,19 @@ class PomBuilderTest < Minitest::Test
     assert_equal 'Back to text', @agent.get_prompt
   end
 
-  def test_add_to_nonexistent_section
+  def test_add_to_nonexistent_section_creates_it
+    # Python parity: prompt_add_to_section creates the section when
+    # it's missing (matches PromptManager#prompt_add_to_section).
     @agent.prompt_add_section('A', 'Body A')
     @agent.prompt_add_to_section('B', ' extra')
     prompt = @agent.get_prompt
-    assert_equal 1, prompt.length
-    assert_equal 'Body A', prompt[0]['body']
+    assert_equal 2, prompt.length
+    a_sec = prompt.find { |s| s['title'] == 'A' }
+    b_sec = prompt.find { |s| s['title'] == 'B' }
+    refute_nil a_sec
+    refute_nil b_sec
+    assert_equal 'Body A', a_sec['body']
+    assert_equal ' extra', b_sec['body']
   end
 
   def test_subsection_to_nonexistent_parent

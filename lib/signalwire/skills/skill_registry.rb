@@ -6,6 +6,7 @@
 # See LICENSE file in the project root for full license information.
 
 require 'thread'
+require_relative '../logging'
 
 module SignalWire
   module Skills
@@ -26,7 +27,12 @@ module SignalWire
       def initialize
         @external_paths = []
         @inst_mutex     = Mutex.new
+        @logger         = ::SignalWire::Logging.logger('skill_registry')
       end
+
+      # Python parity: ``self.logger = get_logger("skill_registry")``.
+      # Per-instance logger; the class-level API uses the same name.
+      attr_reader :logger
 
       # External skill directories registered via #add_skill_directory.
       # Mirrors Python's `_external_paths` accessor surface.
@@ -70,6 +76,70 @@ module SignalWire
         self.class.get_all_skills_schema
       end
 
+      # List all registered skill names (instance form).
+      #
+      # Python parity: ``SkillRegistry.list_skills(self)`` returns a list of
+      # dictionaries describing each skill. Ruby v1 returns the
+      # registered names plus available metadata (description / version)
+      # when the factory can be instantiated without arguments.
+      #
+      # @return [Array<Hash>]
+      def list_skills
+        self.class.send(:_list_skills_full)
+      end
+
+      # Register a skill class or factory (instance form).
+      #
+      # Python parity: ``SkillRegistry.register_skill(self, skill_class)``
+      # accepts a SkillBase subclass and stores its factory. Ruby
+      # accepts either a class with a ``new(params)`` constructor, a
+      # ``Proc`` /``Lambda``, or a 2-arg ``(name, factory)`` form for
+      # explicit naming. Returns ``self`` for chaining.
+      #
+      # @param skill_class_or_name [Class, String] either a SkillBase
+      #   subclass (Python style) or a string skill name (legacy
+      #   2-arg form).
+      # @param factory [Proc, nil] explicit factory when first arg
+      #   is a string (legacy form).
+      def register_skill(skill_class_or_name, factory = nil)
+        if skill_class_or_name.is_a?(String)
+          # Legacy 2-arg form: register_skill(name, factory)
+          self.class.register_skill(skill_class_or_name, factory)
+          return self
+        end
+
+        skill_class = skill_class_or_name
+        unless skill_class.respond_to?(:new)
+          raise ArgumentError,
+                "register_skill expects a class with .new or a (name, factory) pair"
+        end
+
+        # Pull the skill name from a class-level method or constant.
+        name = if skill_class.respond_to?(:skill_name)
+                 skill_class.skill_name
+               elsif skill_class.const_defined?(:SKILL_NAME)
+                 skill_class.const_get(:SKILL_NAME)
+               else
+                 # Try instantiating with no args to read .name from the
+                 # instance — Ruby idiom for skills that lack a
+                 # class-level constant.
+                 begin
+                   skill_class.new.name
+                 rescue StandardError
+                   nil
+                 end
+               end
+
+        raise ArgumentError, "Cannot determine skill name for #{skill_class}" if name.nil?
+
+        self.class.register_skill(name.to_s, ->(params = {}) { skill_class.new(params) })
+        @inst_mutex.synchronize { @last_registered = name.to_s }
+        self
+      end
+
+      # The most recently registered skill name (instance form).
+      attr_reader :last_registered
+
       class << self
         # Register a skill factory.
         # @param skill_name [String]
@@ -100,6 +170,29 @@ module SignalWire
         # @return [Array<String>]
         def list_skills
           @mutex.synchronize { @factories.keys.dup }
+        end
+
+        # Full skill metadata (Python instance-method parity for
+        # SkillRegistry.list_skills). Returns one dict per skill with
+        # name + description + version when available.
+        # @api private
+        def _list_skills_full
+          @mutex.synchronize do
+            @factories.keys.sort.map do |skill_name|
+              entry = { 'name' => skill_name }
+              factory = @factories[skill_name]
+              if factory.respond_to?(:call)
+                begin
+                  instance = factory.call({})
+                  entry['description'] = instance.description if instance.respond_to?(:description)
+                  entry['version']     = instance.version     if instance.respond_to?(:version)
+                rescue StandardError
+                  # Skill needs constructor args; fall back to name-only.
+                end
+              end
+              entry
+            end
+          end
         end
 
         # Check if a skill is registered.

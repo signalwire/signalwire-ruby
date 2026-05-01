@@ -8,6 +8,7 @@ require 'json'
 ENV['SIGNALWIRE_LOG_MODE'] = 'off'
 
 require_relative '../lib/signalwire'
+require_relative '../lib/signalwire/relay/client'
 
 class AgentBaseConstructionTest < Minitest::Test
   def test_default_construction
@@ -71,6 +72,275 @@ class AgentBaseConstructionTest < Minitest::Test
   ensure
     ENV.delete('SWML_BASIC_AUTH_USER')
     ENV.delete('SWML_BASIC_AUTH_PASSWORD')
+  end
+
+  # --- Python parity: extended constructor arguments ---------------
+
+  def test_use_pom_default_true
+    agent = SignalWire::AgentBase.new
+    assert_equal true, agent.use_pom
+  end
+
+  def test_use_pom_explicit_false
+    agent = SignalWire::AgentBase.new(use_pom: false)
+    assert_equal false, agent.use_pom
+  end
+
+  def test_agent_id_auto_generated
+    agent = SignalWire::AgentBase.new
+    assert_kind_of String, agent.agent_id
+    refute_empty agent.agent_id
+  end
+
+  def test_agent_id_explicit
+    agent = SignalWire::AgentBase.new(agent_id: 'my-test-agent-id')
+    assert_equal 'my-test-agent-id', agent.agent_id
+  end
+
+  def test_default_webhook_url
+    agent = SignalWire::AgentBase.new(default_webhook_url: 'https://hooks.example/swaig')
+    assert_equal 'https://hooks.example/swaig', agent.default_webhook_url
+  end
+
+  def test_native_functions_default_empty
+    agent = SignalWire::AgentBase.new
+    assert_equal [], agent.native_functions
+  end
+
+  def test_native_functions_explicit
+    agent = SignalWire::AgentBase.new(native_functions: %w[get_time check_weather])
+    assert_equal %w[get_time check_weather], agent.native_functions
+  end
+
+  def test_skill_manager_present
+    agent = SignalWire::AgentBase.new
+    refute_nil agent.skill_manager
+    assert_kind_of SignalWire::Skills::SkillManager, agent.skill_manager
+    assert_same agent, agent.skill_manager.agent
+  end
+
+  def test_get_basic_auth_credentials_with_source_param
+    agent = SignalWire::AgentBase.new(basic_auth: ['u', 'p'])
+    creds = agent.get_basic_auth_credentials(include_source: true)
+    assert_equal 3, creds.length
+    assert_equal 'u', creds[0]
+    assert_equal 'p', creds[1]
+    assert_kind_of String, creds[2]
+  end
+
+  def test_get_basic_auth_credentials_default_two_tuple
+    agent = SignalWire::AgentBase.new(basic_auth: ['u', 'p'])
+    creds = agent.get_basic_auth_credentials
+    assert_equal 2, creds.length
+  end
+
+  def test_get_basic_auth_credentials_source_environment
+    ENV['SWML_BASIC_AUTH_USER']     = 'eu'
+    ENV['SWML_BASIC_AUTH_PASSWORD'] = 'ep'
+    agent = SignalWire::AgentBase.new
+    _, _, source = agent.get_basic_auth_credentials(include_source: true)
+    assert_equal 'environment', source
+  ensure
+    ENV.delete('SWML_BASIC_AUTH_USER')
+    ENV.delete('SWML_BASIC_AUTH_PASSWORD')
+  end
+
+  # --- on_summary as both a hook AND a registration ---------------
+
+  def test_on_summary_block_registration_and_invocation
+    agent = SignalWire::AgentBase.new
+    received = []
+    agent.on_summary { |sum, raw| received << [sum, raw] }
+
+    summary = { 'topic' => 'billing' }
+    raw     = { 'call_id' => 'abc' }
+    agent.on_summary(summary, raw)
+
+    assert_equal 1, received.length
+    assert_equal summary, received.first[0]
+    assert_equal raw,     received.first[1]
+  end
+
+  def test_on_summary_no_callback_no_op
+    agent = SignalWire::AgentBase.new
+    # Calling without a registered callback should not raise.
+    assert_nil agent.on_summary({ 'topic' => 'x' }, nil)
+  end
+
+  # --- define_tool: extended Python parity params ------------------
+
+  def test_define_tool_with_wait_file_and_loops
+    agent = SignalWire::AgentBase.new
+    agent.define_tool(
+      name:            'play_tune',
+      description:     'play a tune',
+      parameters:      {},
+      wait_file:       'https://example.com/wait.mp3',
+      wait_file_loops: 3
+    ) { |_args, _raw| { 'response' => 'ok' } }
+    defs = agent.define_tools
+    tool = defs.find { |d| d['function'] == 'play_tune' }
+    refute_nil tool
+    assert_equal 'https://example.com/wait.mp3', tool['wait_file']
+    assert_equal 3, tool['wait_file_loops']
+  end
+
+  def test_define_tool_with_webhook_url
+    agent = SignalWire::AgentBase.new
+    agent.define_tool(
+      name:        'lookup',
+      description: 'lookup',
+      parameters:  {},
+      webhook_url: 'https://example.com/swaig'
+    ) { |_args, _raw| {} }
+    defs = agent.define_tools
+    tool = defs.find { |d| d['function'] == 'lookup' }
+    assert_equal 'https://example.com/swaig', tool['webhook_url']
+  end
+
+  def test_define_tool_with_required_array
+    agent = SignalWire::AgentBase.new
+    agent.define_tool(
+      name:        'verify',
+      description: 'verify',
+      parameters:  { 'type' => 'object', 'properties' => { 'a' => { 'type' => 'string' } } },
+      required:    ['a']
+    ) { |_args, _raw| {} }
+    defs = agent.define_tools
+    tool = defs.find { |d| d['function'] == 'verify' }
+    assert_includes tool['parameters']['required'], 'a'
+  end
+
+  def test_define_tool_is_typed_handler_marker
+    agent = SignalWire::AgentBase.new
+    agent.define_tool(
+      name:             't',
+      description:      'd',
+      parameters:       {},
+      is_typed_handler: true
+    ) { |_args, _raw| {} }
+    defs = agent.define_tools
+    tool = defs.find { |d| d['function'] == 't' }
+    assert_equal true, tool['is_typed_handler']
+  end
+
+  # --- Python parity: add_pattern_hint(hint, pattern, replace, ...) -
+
+  def test_add_pattern_hint_python_positional
+    agent = SignalWire::AgentBase.new
+    agent.add_pattern_hint('hello', '\\bhi\\b', 'hello there', ignore_case: true)
+    swml = agent.render_swml
+    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+    hints = ai['hints']
+    refute_nil hints
+    entry = hints.find { |h| h.is_a?(Hash) && h['hint'] == 'hello' }
+    refute_nil entry
+    assert_equal '\\bhi\\b', entry['pattern']
+    assert_equal 'hello there', entry['replace']
+    assert_equal true, entry['ignore_case']
+  end
+
+  def test_add_pattern_hint_legacy_form_still_works
+    agent = SignalWire::AgentBase.new
+    agent.add_pattern_hint('foo')  # legacy single positional
+    # Pattern stored in hints
+    hint = agent.instance_variable_get(:@hints).first
+    assert_equal 'foo', hint['pattern']
+  end
+
+  # --- Python parity: add_language(name, code, voice, ...) ---------
+
+  def test_add_language_python_positional_basic
+    agent = SignalWire::AgentBase.new
+    agent.add_language('English', 'en-US', 'en-US-Neural2-F')
+    langs = agent.instance_variable_get(:@languages)
+    assert_equal 1, langs.length
+    assert_equal 'English', langs.first['name']
+    assert_equal 'en-US', langs.first['code']
+    assert_equal 'en-US-Neural2-F', langs.first['voice']
+  end
+
+  def test_add_language_with_engine_and_model
+    agent = SignalWire::AgentBase.new
+    agent.add_language('English', 'en-US', 'josh', engine: 'elevenlabs', model: 'eleven_turbo_v2_5')
+    lang = agent.instance_variable_get(:@languages).first
+    assert_equal 'josh', lang['voice']
+    assert_equal 'elevenlabs', lang['engine']
+    assert_equal 'eleven_turbo_v2_5', lang['model']
+  end
+
+  def test_add_language_combined_voice_string_parsed
+    agent = SignalWire::AgentBase.new
+    agent.add_language('English', 'en-US', 'elevenlabs.josh:eleven_turbo_v2_5')
+    lang = agent.instance_variable_get(:@languages).first
+    assert_equal 'josh', lang['voice']
+    assert_equal 'elevenlabs', lang['engine']
+    assert_equal 'eleven_turbo_v2_5', lang['model']
+  end
+
+  def test_add_language_speech_and_function_fillers
+    agent = SignalWire::AgentBase.new
+    agent.add_language(
+      'English', 'en-US', 'voice',
+      speech_fillers:   ['um', 'uh'],
+      function_fillers: ['one moment'],
+      engine:           'eng',
+      model:            'm'
+    )
+    lang = agent.instance_variable_get(:@languages).first
+    assert_equal ['um', 'uh'], lang['speech_fillers']
+    assert_equal ['one moment'], lang['function_fillers']
+  end
+
+  def test_add_language_legacy_hash_form
+    agent = SignalWire::AgentBase.new
+    agent.add_language({ 'name' => 'Spanish', 'code' => 'es-ES', 'voice' => 'voice' })
+    lang = agent.instance_variable_get(:@languages).first
+    assert_equal 'Spanish', lang['name']
+  end
+
+  # --- Python parity: relay client host + max_active_calls ---------
+
+  def test_relay_client_accepts_host_keyword
+    client = SignalWire::Relay::Client.new(
+      project: 'p', token: 't', host: 'myspace'
+    )
+    # @host gets resolved to fully qualified hostname.
+    assert_equal 'myspace.signalwire.com', client.host
+  end
+
+  def test_relay_client_max_active_calls_default_nil
+    client = SignalWire::Relay::Client.new(project: 'p', token: 't', host: 'm')
+    assert_nil client.max_active_calls
+  end
+
+  def test_relay_client_max_active_calls_explicit
+    client = SignalWire::Relay::Client.new(
+      project: 'p', token: 't', host: 'm', max_active_calls: 7
+    )
+    assert_equal 7, client.max_active_calls
+  end
+
+  def test_relay_client_max_active_calls_floors_at_one
+    client = SignalWire::Relay::Client.new(
+      project: 'p', token: 't', host: 'm', max_active_calls: 0
+    )
+    assert_equal 1, client.max_active_calls
+  end
+
+  def test_relay_client_max_active_calls_from_env
+    ENV['RELAY_MAX_ACTIVE_CALLS'] = '42'
+    client = SignalWire::Relay::Client.new(project: 'p', token: 't', host: 'm')
+    assert_equal 42, client.max_active_calls
+  ensure
+    ENV.delete('RELAY_MAX_ACTIVE_CALLS')
+  end
+
+  def test_relay_client_legacy_space_kwarg_still_works
+    client = SignalWire::Relay::Client.new(
+      project: 'p', token: 't', space: 'oldway'
+    )
+    assert_equal 'oldway.signalwire.com', client.host
   end
 end
 

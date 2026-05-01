@@ -37,7 +37,15 @@ module SignalWire
   #
   # All configuration methods return +self+ for method chaining.
   class AgentBase < SWML::Service
-    attr_reader :logger
+    # Python parity:
+    # - ``logger`` — agent-specific structured logger (Python: ``self.log``).
+    # - ``skill_manager`` — owning SkillManager (Python's ``self.skill_manager``).
+    # - ``agent_id`` — UUID identifier from constructor or auto-generated.
+    # - ``default_webhook_url`` — base URL for SWAIG webhook fallbacks.
+    # - ``native_functions`` — names of built-in SWAIG functions to advertise.
+    # - ``use_pom`` — whether prompt-object-model rendering is enabled.
+    attr_reader :logger, :skill_manager, :agent_id, :default_webhook_url,
+                :native_functions, :use_pom
 
     # Maximum request body size (1 MB)
     MAX_BODY_SIZE = 1_048_576
@@ -47,9 +55,20 @@ module SignalWire
     # ------------------------------------------------------------------
 
     def initialize(name: 'agent', route: '/', host: '0.0.0.0', port: nil,
-                   basic_auth: nil, auto_answer: true, record_call: false,
+                   basic_auth: nil,
+                   use_pom: true,
+                   token_expiry_secs: 3600,
+                   auto_answer: true, record_call: false,
                    record_format: 'mp4', record_stereo: true,
-                   token_expiry_secs: 3600)
+                   default_webhook_url: nil,
+                   agent_id: nil,
+                   native_functions: nil,
+                   schema_path: nil,
+                   suppress_logs: false,
+                   enable_post_prompt_override: false,
+                   check_for_input_override: false,
+                   config_file: nil,
+                   schema_validation: true)
       # Resolve auth before super so we can warn about auto-generated
       # passwords. Service's built-in auth fallback uses a fresh UUID per
       # process, which is fine, but we want the agent-specific warning.
@@ -63,8 +82,11 @@ module SignalWire
                         [(ENV['SWML_BASIC_AUTH_USER'] || SecureRandom.uuid), SecureRandom.uuid]
                       end
 
-      super(name: name, route: route, host: host, port: port, basic_auth: resolved_auth)
+      super(name: name, route: route, host: host, port: port, basic_auth: resolved_auth,
+            schema_path: schema_path, config_file: config_file,
+            schema_validation: schema_validation)
       @logger = Logging.logger("AgentBase[#{name}]")
+      @suppress_logs = suppress_logs
 
       if password_auto_generated
         # Warn loudly so external callers (tests, RPC clients, MCP)
@@ -90,6 +112,31 @@ module SignalWire
       @record_format = record_format
       @record_stereo = record_stereo
 
+      # --- POM / prompt-mode flags --------------------------------------
+      # Python parity: AgentBase constructor stores ``use_pom`` to
+      # toggle POM-vs-raw prompt rendering. Ruby's POM is implicit (we
+      # always have a @pom_sections array), but we honour the flag so
+      # set_prompt_pom and friends can refuse when POM mode is off.
+      @use_pom = use_pom
+
+      # --- agent identity / config --------------------------------------
+      # Python parity: ``agent_id`` (optional explicit UUID) and
+      # ``default_webhook_url`` (used when SWAIG functions don't carry
+      # an explicit URL). ``native_functions`` lists native SWAIG
+      # callables that should appear in the SWAIG block alongside
+      # user tools.
+      @agent_id            = agent_id || SecureRandom.uuid
+      @default_webhook_url = default_webhook_url
+      @native_functions    = native_functions || []
+
+      # --- override / validation flags ----------------------------------
+      # Python parity: ``enable_post_prompt_override`` and
+      # ``check_for_input_override`` are wired through the FastAPI
+      # endpoint dispatcher. Ruby stashes them so subclass-controlled
+      # routes can opt into the same behaviour.
+      @enable_post_prompt_override = enable_post_prompt_override
+      @check_for_input_override    = check_for_input_override
+
       # --- session manager ----------------------------------------------
       @session_manager = Security::SessionManager.new(token_expiry_secs: token_expiry_secs)
 
@@ -109,7 +156,6 @@ module SignalWire
       @pronounce           = []
       @params              = {}
       @global_data         = {}
-      @native_functions    = []
       @function_includes   = []
       @internal_fillers    = {}
       @prompt_llm_params   = {}
@@ -130,7 +176,10 @@ module SignalWire
       @context_builder   = nil
 
       # --- skills -------------------------------------------------------
-      @skill_manager     = Skills::SkillManager.new
+      # Python parity: ``SkillManager(agent)`` keeps a back-pointer
+      # to the owning agent so loaded skills can attach SWAIG tools
+      # and prompt sections directly through the manager.
+      @skill_manager     = Skills::SkillManager.new(self)
       @loaded_skills     = {}    # skill_name => SkillBase
 
       # --- web ----------------------------------------------------------
@@ -182,22 +231,78 @@ module SignalWire
     end
 
     # Add a POM section.
-    def prompt_add_section(title, body = nil, bullets: nil)
+    #
+    # Python parity:
+    # ``prompt_add_section(title, body="", bullets=None,
+    # numbered=False, numbered_bullets=False, subsections=None)``.
+    #
+    # @param title [String] section title
+    # @param body  [String, nil] optional body text
+    # @param bullets [Array<String>, nil] optional bullet items
+    # @param numbered [Boolean] render as a numbered top-level entry
+    # @param numbered_bullets [Boolean] render bullets as numbered
+    # @param subsections [Array<Hash>, nil] optional pre-rendered
+    #   subsection hashes (each ``{title:, body:, bullets:}``)
+    def prompt_add_section(title, body = nil, bullets: nil,
+                           numbered: false, numbered_bullets: false,
+                           subsections: nil)
       @prompt_text = nil
       @prompt_pom  = nil
       section = { 'title' => title }
-      section['body']    = body    if body
-      section['bullets'] = bullets if bullets
+      section['body']             = body              if body
+      section['bullets']          = bullets           if bullets
+      section['numbered']         = true              if numbered
+      section['numbered_bullets'] = true              if numbered_bullets
+
+      if subsections.is_a?(Array) && !subsections.empty?
+        section['subsections'] = subsections.map do |sub|
+          h = { 'title' => sub['title'] || sub[:title] }
+          h['body']    = sub['body']    || sub[:body]    if (sub['body'] || sub[:body])
+          h['bullets'] = sub['bullets'] || sub[:bullets] if (sub['bullets'] || sub[:bullets])
+          h
+        end
+      end
+
       @pom_sections << section
       self
     end
 
-    # Append text to an existing POM section's body.
-    def prompt_add_to_section(title, text)
+    # Append content to an existing POM section, creating it if absent.
+    #
+    # Python parity:
+    # ``prompt_add_to_section(title, body=None, bullet=None,
+    # bullets=None)``. Supports appending body text, a single bullet,
+    # or a list of bullets.
+    #
+    # @param title [String] section title
+    # @param body  [String, nil] body text to append
+    # @param bullet [String, nil] single bullet to append
+    # @param bullets [Array<String>, nil] bullets to append
+    #
+    # **Backwards compat:** the original Ruby signature was
+    # ``prompt_add_to_section(title, text)``. When called with two
+    # positional arguments the second becomes ``body``; this preserves
+    # existing call sites while still supporting Python's keyword form.
+    def prompt_add_to_section(title, body_arg = nil, body: nil, bullet: nil, bullets: nil)
+      effective_body = body || body_arg
+
       sec = @pom_sections.find { |s| s['title'] == title }
-      if sec
-        sec['body'] = (sec['body'] || '') + text
+      unless sec
+        sec = { 'title' => title }
+        @pom_sections << sec
       end
+
+      if effective_body
+        sec['body'] = (sec['body'] || '') + effective_body.to_s
+      end
+
+      to_add = []
+      to_add << bullet if bullet
+      to_add.concat(bullets) if bullets.is_a?(Array)
+      unless to_add.empty?
+        sec['bullets'] = (sec['bullets'] || []) + to_add
+      end
+
       self
     end
 
@@ -335,17 +440,67 @@ module SignalWire
     # @param fillers [Hash, nil] language_code => [phrases]
     # @param swaig_fields [Hash, nil] extra fields merged into definition
     # @yield [args, raw_data] the tool handler
-    def define_tool(name:, description:, parameters: {}, secure: false,
-                    fillers: nil, swaig_fields: nil, &handler)
+    # Define a SWAIG tool.
+    #
+    # Python parity:
+    # ``define_tool(name, description, parameters, handler,
+    # secure=True, fillers=None, wait_file=None, wait_file_loops=None,
+    # webhook_url=None, required=None, is_typed_handler=False,
+    # **swaig_fields)``.
+    #
+    # @param name [String] tool name
+    # @param description [String] LLM-facing description
+    # @param parameters [Hash] JSON-Schema parameters
+    # @param handler [Proc, nil] explicit handler (alternative to a
+    #   block); kept for backward compat
+    # @param secure [Boolean] require token validation. Ruby defaults
+    #   to ``false`` (kept for backward compat); Python defaults to
+    #   ``True``. Pass ``secure: true`` to match Python.
+    # @param fillers [Hash, nil] language-keyed filler phrases
+    # @param wait_file [String, nil] URL of audio file to play while
+    #   the tool runs server-side
+    # @param wait_file_loops [Integer, nil] loop count for ``wait_file``
+    # @param webhook_url [String, nil] external endpoint to use
+    #   instead of dispatching to the local handler
+    # @param required [Array<String>, nil] required parameter names
+    # @param is_typed_handler [Boolean] handler accepts type-coerced
+    #   keyword args (parity flag; Ruby uses dynamic typing so this
+    #   is a no-op at runtime but is preserved for surface parity)
+    # @param swaig_fields [Hash, nil] additional fields merged into
+    #   the SWAIG function definition
+    # @yield [args, raw_data] tool handler body (alternative to
+    #   passing ``handler:``)
+    def define_tool(name:, description:, parameters: {}, handler: nil,
+                    secure: false, fillers: nil,
+                    wait_file: nil, wait_file_loops: nil,
+                    webhook_url: nil, required: nil,
+                    is_typed_handler: false,
+                    swaig_fields: nil, &block)
+      # Block is canonical — falls back to explicit handler kwarg.
+      effective_handler = block || handler
+
       # Normalise parameters into JSON-Schema form
       param_schema = _normalise_parameters(parameters)
+
+      # If the caller supplied required: (Python parity), inject it
+      # into the parameter schema so SWML rendering carries the list.
+      if required.is_a?(Array) && !required.empty?
+        if param_schema.is_a?(Hash) && param_schema['type'] == 'object'
+          existing = param_schema['required'] || []
+          param_schema['required'] = (existing + required).uniq
+        end
+      end
 
       tool_def = {
         'function'    => name,
         'description' => description,
         'parameters'  => param_schema
       }
-      tool_def['fillers'] = fillers if fillers && !fillers.empty?
+      tool_def['fillers']          = fillers          if fillers && !fillers.empty?
+      tool_def['wait_file']        = wait_file        if wait_file
+      tool_def['wait_file_loops']  = wait_file_loops  if wait_file_loops
+      tool_def['webhook_url']      = webhook_url      if webhook_url
+      tool_def['is_typed_handler'] = true             if is_typed_handler
 
       # Merge extra swaig fields
       if swaig_fields.is_a?(Hash)
@@ -354,7 +509,7 @@ module SignalWire
 
       @tools[name] = {
         definition: tool_def,
-        handler:    handler,
+        handler:    effective_handler,
         secure:     secure
       }
       self
@@ -459,16 +614,121 @@ module SignalWire
       self
     end
 
-    def add_pattern_hint(pattern, hint: nil, language: 'en-US')
-      entry = { 'pattern' => pattern }
-      entry['hint']     = hint     if hint
-      entry['language'] = language if language
-      @hints << entry
-      self
+    # Add a complex (pattern-matched) hint.
+    #
+    # Python parity:
+    # ``add_pattern_hint(hint, pattern, replace, ignore_case=False)``.
+    # Ruby supports both the Python-style positional form and the
+    # legacy keyword form (``add_pattern_hint(pattern, hint:, language:)``)
+    # for backward compat.
+    #
+    # @overload add_pattern_hint(hint, pattern, replace, ignore_case: false)
+    #   @param hint [String] hint to match
+    #   @param pattern [String] regex pattern
+    #   @param replace [String] replacement text
+    #   @param ignore_case [Boolean] match without regard to case
+    # @overload add_pattern_hint(pattern, hint:, language: 'en-US')
+    #   Legacy Ruby form — pattern + optional hint string and language.
+    def add_pattern_hint(*args, hint: nil, pattern: nil, replace: nil,
+                        ignore_case: false, language: 'en-US')
+      # Three positional args = Python positional shape.
+      if args.length == 3
+        h_hint, h_pattern, h_replace = args
+        @hints << {
+          'hint'        => h_hint,
+          'pattern'     => h_pattern,
+          'replace'     => h_replace,
+          'ignore_case' => ignore_case
+        }
+        return self
+      end
+
+      # Single positional ≡ legacy ``add_pattern_hint(pattern, hint:, language:)``.
+      if args.length == 1 && pattern.nil? && replace.nil?
+        legacy_pattern = args.first
+        entry = { 'pattern' => legacy_pattern }
+        entry['hint']     = hint     if hint
+        entry['language'] = language if language
+        @hints << entry
+        return self
+      end
+
+      # Pure-keyword form (Python-named keywords)
+      if pattern && hint && replace
+        @hints << {
+          'hint'        => hint,
+          'pattern'     => pattern,
+          'replace'     => replace,
+          'ignore_case' => ignore_case
+        }
+        return self
+      end
+
+      raise ArgumentError, 'add_pattern_hint: pass either (hint, pattern, replace) or use legacy (pattern, hint:, language:) form'
     end
 
-    def add_language(config)
-      @languages << config if config.is_a?(Hash)
+    # Add a language configuration.
+    #
+    # Python parity: ``add_language(name, code, voice, speech_fillers=None,
+    # function_fillers=None, engine=None, model=None)``. Ruby supports
+    # both the Python-style positional shape AND the original
+    # ``add_language(config)`` hash form.
+    #
+    # Voice argument can be either a simple voice id (``"en-US-Neural2-F"``)
+    # or a combined ``"engine.voice:model"`` string
+    # (``"elevenlabs.josh:eleven_turbo_v2_5"``); the combined form is
+    # parsed into ``engine``/``voice``/``model`` keys when ``engine``
+    # and ``model`` aren't supplied explicitly.
+    #
+    # @overload add_language(config)
+    #   @param config [Hash] preformed language config
+    # @overload add_language(name, code, voice, speech_fillers: nil,
+    #   function_fillers: nil, engine: nil, model: nil)
+    #   @param name [String] language name (e.g. ``"English"``)
+    #   @param code [String] BCP47 language code (e.g. ``"en-US"``)
+    #   @param voice [String] voice id or ``engine.voice:model`` string
+    #   @param speech_fillers [Array<String>, nil] filler phrases for
+    #     natural speech
+    #   @param function_fillers [Array<String>, nil] filler phrases
+    #     during function calls
+    #   @param engine [String, nil] explicit engine override
+    #   @param model [String, nil] explicit model override
+    def add_language(name_or_config, code = nil, voice = nil,
+                     speech_fillers: nil, function_fillers: nil,
+                     engine: nil, model: nil)
+      # Hash form (legacy / direct config)
+      if name_or_config.is_a?(Hash) && code.nil? && voice.nil?
+        @languages << name_or_config
+        return self
+      end
+
+      raise ArgumentError, 'add_language: name, code, voice are required (or pass a Hash)' if code.nil? || voice.nil?
+
+      lang = { 'name' => name_or_config, 'code' => code }
+
+      if engine || model
+        lang['voice']  = voice
+        lang['engine'] = engine if engine
+        lang['model']  = model  if model
+      elsif voice.is_a?(String) && voice.include?('.') && voice.include?(':')
+        # "engine.voice:model"
+        engine_voice, model_part = voice.split(':', 2)
+        engine_part, voice_part  = engine_voice.split('.', 2)
+        lang['voice']  = voice_part
+        lang['engine'] = engine_part
+        lang['model']  = model_part
+      else
+        lang['voice'] = voice
+      end
+
+      if speech_fillers && function_fillers
+        lang['speech_fillers']   = speech_fillers
+        lang['function_fillers'] = function_fillers
+      elsif speech_fillers || function_fillers
+        lang['fillers'] = speech_fillers || function_fillers
+      end
+
+      @languages << lang
       self
     end
 
@@ -666,13 +926,53 @@ module SignalWire
     # Contexts
     # ==================================================================
 
-    # Returns the ContextBuilder, creating one lazily. The builder is
-    # attached to this agent so +validate!+ can check user-defined tool
-    # names against reserved native tool names (+next_step+,
-    # +change_context+, +gather_submit+).
-    def define_contexts
+    # Define / retrieve the ContextBuilder for this agent.
+    #
+    # Python parity: ``define_contexts(contexts)`` accepts either a
+    # ``ContextBuilder`` (calls ``.to_dict()`` to materialise) or a
+    # raw ``dict`` and stores it on the agent. Ruby supports both
+    # forms PLUS the original lazy-getter idiom:
+    #
+    # 1. **Lazy getter** (Ruby idiom) — ``agent.define_contexts``
+    #    returns the existing builder, creating one if needed.
+    # 2. **Override with builder** — ``agent.define_contexts(other_cb)``
+    #    replaces the current builder with the supplied one (Python
+    #    parity).
+    # 3. **Override with hash** — ``agent.define_contexts({...})``
+    #    builds a fresh builder using the provided contexts hash
+    #    (Python parity for raw-dict input).
+    #
+    # @param contexts [SignalWire::Contexts::ContextBuilder, Hash, nil]
+    #   optional override
+    # @return [SignalWire::Contexts::ContextBuilder] the active builder
+    def define_contexts(contexts = nil)
+      if contexts.is_a?(Contexts::ContextBuilder)
+        @context_builder = contexts
+        @context_builder.attach_agent(self) if @context_builder.respond_to?(:attach_agent)
+        return @context_builder
+      end
+
+      if contexts.is_a?(Hash)
+        cb = Contexts::ContextBuilder.new(self)
+        contexts.each do |name, body|
+          ctx = cb.add_context(name.to_s)
+          steps = (body.is_a?(Hash) ? body['steps'] : nil) || []
+          steps.each do |step_h|
+            step_name = step_h['name'] || step_h[:name] || raise(ArgumentError, 'step missing name')
+            step = ctx.add_step(step_name)
+            step.set_text(step_h['text']) if step_h['text']
+          end
+        end
+        @context_builder = cb
+        return cb
+      end
+
+      unless contexts.nil?
+        raise ArgumentError, 'contexts must be a ContextBuilder, Hash, or nil'
+      end
+
       @context_builder ||= begin
-        cb = Contexts::ContextBuilder.new
+        cb = Contexts::ContextBuilder.new(self)
         cb.attach_agent(self) if cb.respond_to?(:attach_agent)
         cb
       end
@@ -1011,9 +1311,29 @@ module SignalWire
     # Lifecycle
     # ==================================================================
 
-    def on_summary(&block)
-      @summary_callback = block
-      self
+    # Python parity: ``on_summary(self, summary, raw_data=None)`` is a
+    # virtual hook called when a post-prompt summary is received.
+    # Ruby supports two equivalent shapes:
+    #
+    # 1. **Registration** (Ruby idiom) — pass a block to install a
+    #    callback. The block receives ``(summary, raw_data)`` when a
+    #    summary is delivered. ``on_summary { |sum, raw| ... }``
+    # 2. **Override** (Python idiom) — subclass and override
+    #    ``on_summary(summary, raw_data = nil)``. Default
+    #    implementation calls the registered block (if any) and
+    #    otherwise no-ops.
+    #
+    # @param summary [Hash, nil] the post-prompt summary
+    # @param raw_data [Hash, nil] the complete raw POST data
+    # @yield [summary, raw_data] optional callback registration
+    def on_summary(summary = nil, raw_data = nil, &block)
+      if block
+        @summary_callback = block
+        return self
+      end
+
+      @summary_callback&.call(summary, raw_data)
+      nil
     end
 
     def on_debug_event(&block)
@@ -1021,20 +1341,96 @@ module SignalWire
       self
     end
 
-    # Start the HTTP server (blocking).
-    def run
-      serve
+    # Universal run method — mirrors Python's
+    # ``WebMixin.run(event=None, context=None, force_mode=None,
+    # host=None, port=None)``.
+    #
+    # Detects execution mode (server / lambda / cgi) and routes
+    # accordingly. ``force_mode`` overrides auto-detection.
+    #
+    # @param event [Object, nil] serverless event
+    # @param context [Object, nil] serverless context
+    # @param force_mode [String, nil] one of ``"server"``, ``"lambda"``,
+    #   ``"cgi"``
+    # @param host [String, nil] override bind host (server mode)
+    # @param port [Integer, nil] override bind port (server mode)
+    def run(event: nil, context: nil, force_mode: nil, host: nil, port: nil)
+      mode = force_mode || _detect_run_mode
+
+      case mode
+      when 'lambda'
+        _run_lambda(event, context)
+      when 'cgi'
+        _run_cgi
+      else
+        serve(host: host, port: port)
+      end
     end
 
-    def serve
+    # @api private
+    def _detect_run_mode
+      return 'lambda' if ENV['AWS_LAMBDA_FUNCTION_NAME'] && !ENV['AWS_LAMBDA_FUNCTION_NAME'].empty?
+      return 'cgi'    if ENV['GATEWAY_INTERFACE']
+      'server'
+    end
+
+    # @api private
+    def _run_lambda(event, _context)
+      require 'stringio'
+      event ||= {}
+      path = event['path'] || event['rawPath'] || '/'
+      method = event['httpMethod'] || event.dig('requestContext', 'http', 'method') || 'GET'
+      body = event['body'] || ''
+      env = {
+        'PATH_INFO'      => path,
+        'REQUEST_METHOD' => method,
+        'QUERY_STRING'   => '',
+        'rack.input'     => StringIO.new(body),
+        'rack.errors'    => $stderr
+      }
+      status, headers, response_body = rack_app.call(env)
+      body_str = response_body.respond_to?(:join) ? response_body.join : response_body.to_s
+      {
+        'statusCode' => Integer(status),
+        'headers'    => headers,
+        'body'       => body_str
+      }
+    end
+
+    # @api private
+    def _run_cgi
+      require 'stringio'
+      env = {
+        'PATH_INFO'      => ENV['PATH_INFO'] || '/',
+        'REQUEST_METHOD' => ENV['REQUEST_METHOD'] || 'GET',
+        'QUERY_STRING'   => ENV['QUERY_STRING'] || '',
+        'rack.input'     => StringIO.new(''),
+        'rack.errors'    => $stderr
+      }
+      status, headers, body = rack_app.call(env)
+      body_str = body.respond_to?(:join) ? body.join : body.to_s
+      out = +"Status: #{status}\r\n"
+      headers.each { |k, v| out << "#{k}: #{v}\r\n" }
+      out << "\r\n"
+      out << body_str
+      out
+    end
+
+    # Start the HTTP server (blocking).
+    #
+    # Python parity: ``serve(host=None, port=None)``. ``host`` /
+    # ``port`` overrides default to constructor-supplied values.
+    def serve(host: nil, port: nil)
       require 'webrick'
-      @logger.info "Starting server on #{@host}:#{@port} ..."
+      bind_host = host || @host
+      bind_port = port || @port
+      @logger.info "Starting server on #{bind_host}:#{bind_port} ..."
       user, _pass = @basic_auth
       @logger.info "Basic-auth credentials — user: #{user}  password: [REDACTED]"
 
       @server = ::WEBrick::HTTPServer.new(
-        Host: @host,
-        Port: @port,
+        Host: bind_host,
+        Port: bind_port,
         Logger: WEBrick::Log.new($stderr, WEBrick::Log::WARN),
         AccessLog: []
       )
@@ -1135,9 +1531,27 @@ module SignalWire
       }
     end
 
-    # Returns [username, password]
-    def get_basic_auth_credentials
-      @basic_auth.dup
+    # Get the configured basic-auth credentials.
+    #
+    # Python parity: ``get_basic_auth_credentials(include_source=False)``.
+    # When ``include_source`` is true, returns a 3-tuple ``[user,
+    # pass, source]`` (``"environment"`` / ``"auto-generated"`` /
+    # ``"provided"``). Otherwise returns ``[user, pass]``.
+    def get_basic_auth_credentials(include_source: false)
+      u, p = @basic_auth
+      return [u, p] unless include_source
+
+      env_user = ENV['SWML_BASIC_AUTH_USER']
+      env_pass = ENV['SWML_BASIC_AUTH_PASSWORD']
+      source =
+        if env_user && !env_user.empty? && env_pass && !env_pass.empty? && u == env_user && p == env_pass
+          'environment'
+        elsif u&.start_with?('user_') && p && p.length > 20
+          'auto-generated'
+        else
+          'provided'
+        end
+      [u, p, source]
     end
 
     # ==================================================================

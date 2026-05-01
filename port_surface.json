@@ -1,13 +1,26 @@
 {
-  "generated_from": "signalwire-ruby @ ab5ec357fb1c5b7a4eb882136b7cb11a0b087c81",
+  "generated_from": "signalwire-ruby @ 9d1e3218dc71e168855e89109f8ca84dcf51d18a",
   "modules": {
+    "signalwire": {
+      "classes": {
+      },
+      "functions": [
+        "RestClient",
+        "add_skill_directory",
+        "list_skills_with_params",
+        "register_skill"
+      ]
+    },
     "signalwire.agent_server": {
       "classes": {
         "AgentServer": [
           "__init__",
+          "app",
           "get_agent",
           "get_agents",
           "host",
+          "log_level",
+          "logger",
           "port",
           "rack_app",
           "register",
@@ -50,12 +63,15 @@
           "add_pronunciation",
           "add_skill",
           "add_swaig_query_params",
+          "agent_id",
           "as_rack_app",
           "clear_post_ai_verbs",
           "clear_post_answer_verbs",
           "clear_pre_answer_verbs",
           "clear_swaig_query_params",
           "contexts",
+          "create_tool_token",
+          "default_webhook_url",
           "define_contexts",
           "define_tool",
           "define_tools",
@@ -66,16 +82,21 @@
           "extract_sip_username",
           "extract_sip_username_from_request",
           "get_basic_auth_credentials",
+          "get_contexts",
+          "get_post_prompt",
           "get_prompt",
+          "get_raw_prompt",
           "handle_additional_route",
           "has_skill?",
           "list_skills",
           "list_tool_names",
           "logger",
           "manual_set_proxy_url",
+          "native_functions",
           "on_debug_event",
           "on_function_call",
           "on_summary",
+          "pom",
           "prompt_add_section",
           "prompt_add_subsection",
           "prompt_add_to_section",
@@ -104,7 +125,10 @@
           "set_prompt_text",
           "set_pronunciations",
           "set_web_hook_url",
-          "update_global_data"
+          "skill_manager",
+          "update_global_data",
+          "use_pom",
+          "validate_tool_token"
         ]
       },
       "functions": [
@@ -285,6 +309,16 @@
 
       ]
     },
+    "signalwire.core.logging_config": {
+      "classes": {
+        "LoggingConfig": [
+          "get_execution_mode"
+        ]
+      },
+      "functions": [
+
+      ]
+    },
     "signalwire.core.security.session_manager": {
       "classes": {
         "SessionManager": [
@@ -301,6 +335,7 @@
       "classes": {
         "SkillBase": [
           "__init__",
+          "agent",
           "cleanup",
           "description",
           "get_global_data",
@@ -309,12 +344,14 @@
           "get_parameter_schema",
           "get_prompt_sections",
           "instance_key",
+          "logger",
           "name",
           "params",
           "register_tools",
           "required_env_vars",
           "setup",
           "supports_multiple_instances?",
+          "swaig_fields",
           "version"
         ]
       },
@@ -326,11 +363,13 @@
       "classes": {
         "SkillManager": [
           "__init__",
+          "agent",
           "clear",
           "get",
           "load",
           "loaded?",
           "loaded_keys",
+          "logger",
           "size",
           "unload"
         ]
@@ -581,6 +620,8 @@
           "__init__",
           "dial",
           "execute",
+          "host",
+          "max_active_calls",
           "on_call",
           "on_event",
           "on_message",
@@ -864,6 +905,25 @@
 
       ]
     },
+    "signalwire.rest._pagination": {
+      "classes": {
+        "PaginatedIterator": [
+          "__init__",
+          "data_key",
+          "done",
+          "each",
+          "http",
+          "index",
+          "items",
+          "next_item",
+          "params",
+          "path"
+        ]
+      },
+      "functions": [
+
+      ]
+    },
     "signalwire.rest.client": {
       "classes": {
         "RestClient": [
@@ -874,6 +934,7 @@
           "compat",
           "datasphere",
           "fabric",
+          "http",
           "imported_numbers",
           "logs",
           "lookup",
@@ -1680,8 +1741,14 @@
     "signalwire.skills.registry": {
       "classes": {
         "SkillRegistry": [
+          "__init__",
+          "add_skill_directory",
+          "external_paths",
+          "get_all_skills_schema",
           "get_factory",
+          "last_registered",
           "list_skills",
+          "logger",
           "register",
           "register_builtins!",
           "register_skill",
@@ -1827,30 +1894,88 @@
       "classes": {
         "Service": [
           "__init__",
+          "config_file",
           "define_tool",
           "define_tools",
           "document",
           "execute_verb",
+          "get_all_functions",
           "get_basic_auth_credentials",
+          "get_basic_auth_credentials_with_source",
           "get_full_url",
+          "get_function",
           "handle_additional_route",
+          "has_function",
           "host",
           "list_tool_names",
           "method_missing",
           "name",
           "on_function_call",
           "on_request",
+          "on_swml_request",
           "port",
           "rack_app",
           "register_routing_callback",
           "register_swaig_function",
+          "remove_function",
           "render",
           "render_main_swml",
           "render_pretty",
           "route",
+          "schema_path",
+          "schema_utils",
+          "schema_validation",
           "serve",
           "stop",
-          "swaig_pre_dispatch"
+          "swaig_pre_dispatch",
+          "validate_basic_auth"
+        ]
+      },
+      "functions": [
+
+      ]
+    },
+    "signalwire.utils": {
+      "classes": {
+        "Utils": [
+          "is_serverless_mode"
+        ]
+      },
+      "functions": [
+
+      ]
+    },
+    "signalwire.utils.schema_utils": {
+      "classes": {
+        "SchemaUtils": [
+          "__init__",
+          "full_validation_available?",
+          "generate_method_body",
+          "generate_method_signature",
+          "get_all_verb_names",
+          "get_verb_parameters",
+          "get_verb_properties",
+          "get_verb_required_properties",
+          "load_schema",
+          "schema",
+          "schema_path",
+          "validate_document",
+          "validate_verb"
+        ],
+        "SchemaValidationError": [
+          "__init__",
+          "errors",
+          "verb_name"
+        ]
+      },
+      "functions": [
+
+      ]
+    },
+    "signalwire.utils.url_validator": {
+      "classes": {
+        "UrlValidator": [
+          "validate_url"
         ]
       },
       "functions": [

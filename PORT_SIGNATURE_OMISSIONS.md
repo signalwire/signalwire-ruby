@@ -39,7 +39,27 @@ PORT_ADDITIONS.md and are inherited automatically by the signature diff.
 
 # Ruby keyword-argument idiom (Python positional with default ≡ Ruby keyword arg)
 
+signalwire.agent_server.AgentServer.__init__: kwargs-idiom — Ruby keyword constructor (`host:`, `port:`, `log_level:`) ≡ Python positional with default
+signalwire.agent_server.AgentServer.run: kwargs-idiom — Ruby `run(event:, context:, host:, port:)` ≡ Python `run(event=None, context=None, host=None, port=None)`
 signalwire.agent_server.AgentServer.register: kwargs-idiom — Ruby `register(agent, route: nil)` ≡ Python `register(agent, route=None)`
+signalwire.core.agent_base.AgentBase.__init__: kwargs-idiom — Ruby keyword constructor (21 keyword params) ≡ Python positional with default
+signalwire.core.swml_service.SWMLService.__init__: kwargs-idiom — Ruby keyword constructor (`name:`, `route:`, `host:`, `port:`, `basic_auth:`, `schema_path:`, `config_file:`, `schema_validation:`) ≡ Python positional with default
+signalwire.core.contexts.Step.add_gather_question: kwargs-idiom — Ruby keyword args (`key:`, `question:`, `type:`, `confirm:`, `prompt:`, `functions:`) ≡ Python positional with default
+signalwire.core.agent.prompt.manager.PromptManager.prompt_add_section: kwargs-idiom — Ruby `(title, body=nil, bullets:, numbered:, numbered_bullets:, subsections:)` ≡ Python positional with default
+signalwire.core.agent.prompt.manager.PromptManager.prompt_add_to_section: kwargs-idiom — Ruby `(title, body_arg=nil, body:, bullet:, bullets:)` ≡ Python positional with default
+signalwire.core.mixins.prompt_mixin.PromptMixin.prompt_add_section: kwargs-idiom — Ruby `(title, body=nil, bullets:, numbered:, numbered_bullets:, subsections:)` ≡ Python positional with default
+signalwire.core.mixins.prompt_mixin.PromptMixin.prompt_add_to_section: kwargs-idiom — Ruby `(title, body_arg=nil, body:, bullet:, bullets:)` ≡ Python positional with default
+signalwire.core.agent.tools.registry.ToolRegistry.define_tool: kwargs-idiom — Ruby keyword args (`name:`, `description:`, `parameters:`, ..., `swaig_fields:`) ≡ Python positional + `**swaig_fields`
+signalwire.core.mixins.tool_mixin.ToolMixin.define_tool: kwargs-idiom — Ruby keyword args (`name:`, `description:`, `parameters:`, ..., `swaig_fields:`) ≡ Python positional + `**swaig_fields`
+signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_language: kwargs-idiom — Ruby positional `(name, code, voice, ...)` plus `speech_fillers:`, `function_fillers:`, `engine:`, `model:` keyword args ≡ Python positional with default
+signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_pattern_hint: kwargs-idiom — Ruby splats positional args plus optional keyword `ignore_case:`; ≡ Python `(hint, pattern, replace, ignore_case=False)`
+signalwire.core.mixins.web_mixin.WebMixin.run: kwargs-idiom — Ruby `run(event:, context:, force_mode:, host:, port:)` ≡ Python `run(event=None, context=None, force_mode=None, host=None, port=None)`
+signalwire.core.mixins.web_mixin.WebMixin.serve: kwargs-idiom — Ruby `serve(host:, port:)` ≡ Python `serve(host=None, port=None)`
+signalwire.core.mixins.web_mixin.WebMixin.on_swml_request: kwargs-idiom — Ruby third positional optional + `request:` keyword ≡ Python `on_swml_request(request_data, callback_path, request)`
+signalwire.core.swml_service.SWMLService.serve: kwargs-idiom — Ruby `serve(host:, port:, ssl_cert:, ssl_key:, ssl_enabled:, domain:)` ≡ Python positional with default
+signalwire.core.swml_service.SWMLService.get_basic_auth_credentials: kwargs-idiom — Ruby `get_basic_auth_credentials(include_source:)` ≡ Python `get_basic_auth_credentials(include_source=False)`
+signalwire.core.mixins.auth_mixin.AuthMixin.get_basic_auth_credentials: kwargs-idiom — Ruby keyword `include_source:` ≡ Python positional with default
+signalwire.relay.client.RelayClient.__init__: kwargs-idiom — Ruby keyword constructor (`project:`, `token:`, `jwt_token:`, `host:`, `contexts:`, `max_active_calls:`) ≡ Python positional with default
 signalwire.agent_server.AgentServer.setup_sip_routing: kwargs-idiom — Ruby keyword args (`route:`, `auto_map:`) ≡ Python positional with default
 signalwire.core.agent.prompt.manager.PromptManager.prompt_add_subsection: kwargs-idiom — Ruby `bullets:` keyword ≡ Python positional with default
 signalwire.core.agent_base.AgentBase.enable_sip_routing: kwargs-idiom — Ruby keyword args (`auto_map:`, `path:`) ≡ Python positional with default

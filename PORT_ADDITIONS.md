@@ -54,12 +54,17 @@ spot drift from the Python reference.
 
 # Added symbols
 
+signalwire.agent_server.AgentServer.app: port-only: Ruby accessor exposing the cached Rack app (Python parity: `server.app` FastAPI instance)
 signalwire.agent_server.AgentServer.host: port-only: Ruby attr_reader exposing constructor state (idiomatic Ruby; Python uses property decorators or public fields)
+signalwire.agent_server.AgentServer.log_level: port-only: Ruby attr_reader for the constructor `log_level:` argument (Python keeps it as `self.log_level`)
+signalwire.agent_server.AgentServer.logger: port-only: Ruby attr_reader for the AgentServer's logger (Python parity: `server.logger`)
 signalwire.agent_server.AgentServer.port: port-only: Ruby attr_reader exposing constructor state (idiomatic Ruby; Python uses property decorators or public fields)
 signalwire.agent_server.AgentServer.rack_app: port-only: Ruby attr_reader exposing constructor state (idiomatic Ruby; Python uses property decorators or public fields)
 signalwire.contexts.Contexts: port-only: SignalWire::Contexts module with create_simple_context helper
 signalwire.contexts.Contexts.create_simple_context: port-only: Ruby counterpart of Python signalwire.core.contexts.create_simple_context (omitted)
 signalwire.core.agent_base.AgentBase.add_function_include: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
+signalwire.core.agent_base.AgentBase.agent_id: port-only: Ruby attr_reader for the auto-generated/explicit agent UUID (Python keeps it as `self.agent_id` instance attribute)
+signalwire.core.agent_base.AgentBase.default_webhook_url: port-only: Ruby attr_reader for the constructor `default_webhook_url:` arg (Python: `self._default_webhook_url`)
 signalwire.core.agent_base.AgentBase.add_hint: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
 signalwire.core.agent_base.AgentBase.add_hints: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
 signalwire.core.agent_base.AgentBase.add_internal_filler: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
@@ -80,7 +85,10 @@ signalwire.core.agent_base.AgentBase.enable_mcp_server: port-only: mixin method 
 signalwire.core.agent_base.AgentBase.extract_sip_username: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
 signalwire.core.agent_base.AgentBase.extract_sip_username_from_request: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
 signalwire.core.agent_base.AgentBase.get_basic_auth_credentials: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
+signalwire.core.agent_base.AgentBase.get_contexts: port-only: Ruby getter for the contexts dictionary (Python parity: PromptManager#get_contexts via PromptMixin projection)
+signalwire.core.agent_base.AgentBase.get_post_prompt: port-only: Ruby getter for the post-prompt text (Python parity: PromptManager#get_post_prompt via PromptMixin projection)
 signalwire.core.agent_base.AgentBase.get_prompt: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
+signalwire.core.agent_base.AgentBase.get_raw_prompt: port-only: Ruby getter for the raw prompt text (Python parity: PromptManager#get_raw_prompt via PromptMixin projection)
 signalwire.core.agent_base.AgentBase.has_skill?: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
 signalwire.core.agent_base.AgentBase.host: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
 signalwire.core.agent_base.AgentBase.list_skills: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
@@ -88,7 +96,9 @@ signalwire.core.agent_base.AgentBase.list_tool_names: port-only: mixin method co
 signalwire.core.agent_base.AgentBase.logger: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
 signalwire.core.agent_base.AgentBase.manual_set_proxy_url: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
 signalwire.core.agent_base.AgentBase.name: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
+signalwire.core.agent_base.AgentBase.native_functions: port-only: Ruby attr_reader for the constructor `native_functions:` arg (Python: `self.native_functions` list)
 signalwire.core.agent_base.AgentBase.on_function_call: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
+signalwire.core.agent_base.AgentBase.pom: port-only: Ruby read-only snapshot accessor for the POM section list (Python: `agent.pom` returns the live PromptObjectModel instance)
 signalwire.core.agent_base.AgentBase.port: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
 signalwire.core.agent_base.AgentBase.prompt_add_section: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
 signalwire.core.agent_base.AgentBase.prompt_add_subsection: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
@@ -116,7 +126,10 @@ signalwire.core.agent_base.AgentBase.set_prompt_llm_params: port-only: mixin met
 signalwire.core.agent_base.AgentBase.set_prompt_pom: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
 signalwire.core.agent_base.AgentBase.set_prompt_text: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
 signalwire.core.agent_base.AgentBase.set_pronunciations: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
+signalwire.core.agent_base.AgentBase.skill_manager: port-only: Ruby attr_reader for the owning SkillManager instance (Python parity: `self.skill_manager`)
 signalwire.core.agent_base.AgentBase.update_global_data: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
+signalwire.core.agent_base.AgentBase.use_pom: port-only: Ruby attr_reader for the constructor `use_pom:` flag (Python: `self._use_pom` private attribute)
+signalwire.core.agent_base.AgentBase.validate_tool_token: port-only: token-validation helper hoisted from Python's StateMixin onto AgentBase (Ruby single-inheritance + modules model)
 signalwire.core.contexts.Context.name: port-only: Ruby attr_reader exposing constructor state (idiomatic Ruby; Python uses property decorators or public fields)
 signalwire.core.contexts.Context.to_h: port-only: Ruby convention - to_h replaces Python to_dict
 signalwire.core.contexts.ContextBuilder.attach_agent: port-only: Ruby ContextBuilder attaches to an agent for method chaining
@@ -145,15 +158,20 @@ signalwire.core.function_result.FunctionResult.response: port-only: attr_reader 
 signalwire.core.function_result.FunctionResult.to_h: port-only: Ruby convention - to_h replaces to_dict
 signalwire.core.function_result.FunctionResult.to_json: port-only: Ruby convention - to_json serializer
 signalwire.core.security.session_manager.SessionManager.create_token: port-only: Ruby create_token name matches the Python generate_token/create_tool_token surface (both omitted)
+signalwire.core.skill_base.SkillBase.agent: port-only: Ruby attr_reader for the owning AgentBase (Python parity: `self.agent` instance attribute)
 signalwire.core.skill_base.SkillBase.description: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
+signalwire.core.skill_base.SkillBase.logger: port-only: Ruby attr_reader for the namespaced logger (Python parity: `self.logger`)
 signalwire.core.skill_base.SkillBase.get_param: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
 signalwire.core.skill_base.SkillBase.instance_key: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
 signalwire.core.skill_base.SkillBase.name: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
 signalwire.core.skill_base.SkillBase.params: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
 signalwire.core.skill_base.SkillBase.required_env_vars: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
 signalwire.core.skill_base.SkillBase.supports_multiple_instances?: port-only: Ruby predicate method (? suffix)
+signalwire.core.skill_base.SkillBase.swaig_fields: port-only: Ruby attr_reader for the swaig_fields override extracted from params (Python parity: `self.swaig_fields`)
 signalwire.core.skill_base.SkillBase.version: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
+signalwire.core.skill_manager.SkillManager.agent: port-only: Ruby attr_reader for the owning AgentBase (Python parity: `self.agent`)
 signalwire.core.skill_manager.SkillManager.clear: port-only: SkillManager#clear - no direct Python equivalent (Python unloads individually)
+signalwire.core.skill_manager.SkillManager.logger: port-only: Ruby attr_reader for the manager's namespaced logger (Python parity: `self.logger`)
 signalwire.core.skill_manager.SkillManager.get: port-only: SkillManager#get - Ruby shortened name; see PORT_OMISSIONS for get_skill
 signalwire.core.skill_manager.SkillManager.load: port-only: SkillManager#load - Ruby shortened name; see PORT_OMISSIONS for load_skill
 signalwire.core.skill_manager.SkillManager.loaded: port-only: same as SkillManager#loaded? - signature audit strips Ruby ?/! suffixes
@@ -231,6 +249,8 @@ signalwire.relay.call.Call.tag: port-only: Ruby attr_reader exposing constructor
 signalwire.relay.call.Call.tap_audio: port-only: Ruby Call#tap_audio - see PORT_OMISSIONS for Python tap (Ruby core method conflict)
 signalwire.relay.call.Call.to_s: port-only: Ruby Object#to_s override
 signalwire.relay.client.ActionTimeoutError: port-only: Ruby error class for action timeouts (Python uses asyncio.TimeoutError)
+signalwire.relay.client.RelayClient.host: port-only: Ruby attr_reader for the resolved RELAY host URL (Python parity: `self.host` instance attribute)
+signalwire.relay.client.RelayClient.max_active_calls: port-only: Ruby attr_reader for the constructor `max_active_calls:` arg (Python: `self._max_active_calls`)
 signalwire.relay.client.RelayClient.project_id: port-only: attr_reader for project_id on Client
 signalwire.relay.client.RelayClient.protocol: port-only: Ruby Client#protocol - see PORT_OMISSIONS for Python relay_protocol equivalent
 signalwire.relay.client.RelayClient.stop: port-only: Ruby Client#stop - see PORT_OMISSIONS for Python disconnect equivalent
@@ -502,7 +522,10 @@ signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.description
 signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.instance_key: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
 signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.name: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
 signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.supports_multiple_instances?: port-only: Ruby predicate method (? suffix)
+signalwire.skills.registry.SkillRegistry.external_paths: port-only: Ruby attr_reader for registered skill directories (Python parity: `self._external_paths`)
 signalwire.skills.registry.SkillRegistry.get_factory: port-only: returns class-or-factory (see PORT_OMISSIONS for Python get_skill_class)
+signalwire.skills.registry.SkillRegistry.last_registered: port-only: Ruby attr_reader recording the most recent skill name registered via #register_skill (test/audit helper)
+signalwire.skills.registry.SkillRegistry.logger: port-only: Ruby attr_reader for the registry's namespaced logger (Python parity: `self.logger`)
 signalwire.skills.registry.SkillRegistry.register: port-only: explicit registry registration (Ruby ships built-ins via register_builtins!)
 signalwire.skills.registry.SkillRegistry.register_builtins: port-only: same as SkillRegistry.register_builtins! - signature audit strips Ruby ?/! suffixes
 signalwire.skills.registry.SkillRegistry.register_builtins!: port-only: Ruby bang-convention to seed the registry with built-in skills
@@ -553,21 +576,32 @@ signalwire.swml.schema.Schema.verbs: port-only: consolidated Ruby SWML class (se
 signalwire.swml.service.Service: port-only: Ruby consolidated SWML service; maps to Python SWMLService
 signalwire.swml.service.Service.__init__: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
 signalwire.swml.service.Service.document: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
+signalwire.swml.service.Service.config_file: port-only: Ruby attr_reader for the constructor `config_file:` arg (Python: `self._config_file`)
 signalwire.swml.service.Service.execute_verb: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
+signalwire.swml.service.Service.get_all_functions: port-only: SWAIG hosting lifted from AgentBase (Python parity: ToolRegistry#get_all_functions)
 signalwire.swml.service.Service.get_basic_auth_credentials: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
+signalwire.swml.service.Service.get_basic_auth_credentials_with_source: port-only: backwards-compat alias for `get_basic_auth_credentials(include_source: true)` (kept for callers from the pre-Python-parity API)
+signalwire.swml.service.Service.get_function: port-only: SWAIG hosting lifted from AgentBase (Python parity: ToolRegistry#get_function)
+signalwire.swml.service.Service.has_function: port-only: SWAIG hosting lifted from AgentBase (Python parity: ToolRegistry#has_function)
 signalwire.swml.service.Service.get_full_url: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
 signalwire.swml.service.Service.host: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
 signalwire.swml.service.Service.method_missing: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
 signalwire.swml.service.Service.name: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
 signalwire.swml.service.Service.on_request: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
+signalwire.swml.service.Service.on_swml_request: port-only: extension hook on SWMLService (Python parity: WebMixin#on_swml_request — Ruby exposes the same hook directly on Service for subclass overrides)
 signalwire.swml.service.Service.port: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
 signalwire.swml.service.Service.rack_app: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
 signalwire.swml.service.Service.register_routing_callback: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
+signalwire.swml.service.Service.remove_function: port-only: SWAIG hosting lifted from AgentBase (Python parity: ToolRegistry#remove_function)
 signalwire.swml.service.Service.render: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
 signalwire.swml.service.Service.render_pretty: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
 signalwire.swml.service.Service.route: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
+signalwire.swml.service.Service.schema_path: port-only: Ruby attr_reader for the constructor `schema_path:` arg (Python: `self.schema_path`)
+signalwire.swml.service.Service.schema_utils: port-only: Ruby lazy accessor for the SchemaUtils helper (Python: `self.schema_utils` instance attribute)
+signalwire.swml.service.Service.schema_validation: port-only: Ruby attr_reader for the constructor `schema_validation:` flag (Python: `self._schema_validation`)
 signalwire.swml.service.Service.serve: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
 signalwire.swml.service.Service.stop: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
+signalwire.swml.service.Service.validate_basic_auth: port-only: timing-safe credential check on Service (Python parity: AuthMixin#validate_basic_auth)
 signalwire.swml.service.Service.define_tool: port-only: SWAIG hosting lifted from AgentBase to SWMLService per parity-rule (Phase 2 of CHECKLIST_TEMPLATE — SWMLService independently usable)
 signalwire.swml.service.Service.define_tools: port-only: SWAIG hosting lifted from AgentBase to SWMLService per parity-rule
 signalwire.swml.service.Service.list_tool_names: port-only: SWAIG hosting lifted from AgentBase to SWMLService per parity-rule
@@ -588,3 +622,23 @@ signalwire.swml.schema: port-only: Ruby module-level singleton accessor; canonic
 signalwire.utils.schema_utils.SchemaUtils.generate_method_signature: Python-source codegen helper; canonical Python signatures filter this method out (Python-only output shape)
 signalwire.utils.schema_utils.SchemaUtils.generate_method_body: Python-source codegen helper; canonical Python signatures filter this method out (Python-only output shape)
 signalwire.utils.schema_utils.SchemaUtils.full_validation_available?: @property in Python (filtered as bool-returning attribute); ports expose it as an explicit method per spec
+signalwire.utils.schema_utils.SchemaUtils.schema: port-only: Ruby attr_reader exposing the loaded schema hash (Python: `self.schema` instance attribute filtered out by surface enumeration)
+signalwire.utils.schema_utils.SchemaUtils.schema_path: port-only: Ruby attr_reader for the resolved schema file path (Python: `self.schema_path` instance attribute)
+signalwire.utils.schema_utils.SchemaValidationError.errors: port-only: Ruby attr_reader for the structured validation errors list (Python: `self.errors`)
+signalwire.utils.schema_utils.SchemaValidationError.verb_name: port-only: Ruby attr_reader for the verb that failed validation (Python: `self.verb_name`)
+signalwire.utils.url_validator.UrlValidator: port-only: SignalWire::Utils::UrlValidator helper class (Python: `signalwire.utils.url_validator.UrlValidator` filtered as static helper)
+signalwire.utils.url_validator.UrlValidator.validate_url: port-only: class-level URL validator method (Python: `validate_url` staticmethod)
+signalwire.utils.Utils: port-only: SignalWire::Utils module namespace (Python uses `signalwire.utils` package directly with no class wrapper)
+signalwire.utils.Utils.is_serverless_mode: port-only: module-level helper for detecting serverless (Lambda/CGI) mode; Python keeps the equivalent in core/logging_config.get_execution_mode
+signalwire.core.logging_config.LoggingConfig: port-only: SignalWire::Core::LoggingConfig wrapper class (Python keeps loggers as module-level helpers)
+signalwire.core.logging_config.LoggingConfig.get_execution_mode: port-only: classmethod mirror of Python's module-level `get_execution_mode` helper
+signalwire.rest._pagination.PaginatedIterator.data_key: port-only: Ruby attr_reader for the JSON-list key inside paginated responses (Python: instance attribute)
+signalwire.rest._pagination.PaginatedIterator.done: port-only: Ruby flag indicating no more pages (Python: internal boolean)
+signalwire.rest._pagination.PaginatedIterator.each: port-only: Ruby Enumerable interface (Python uses `__iter__` filtered out by surface enumeration)
+signalwire.rest._pagination.PaginatedIterator.http: port-only: Ruby attr_reader for the underlying HttpClient (Python: instance attribute)
+signalwire.rest._pagination.PaginatedIterator.index: port-only: Ruby attr_reader for the current item index inside the page (Python: instance attribute)
+signalwire.rest._pagination.PaginatedIterator.items: port-only: Ruby attr_reader for the current page's items array (Python: instance attribute)
+signalwire.rest._pagination.PaginatedIterator.next_item: port-only: Ruby cursor-advance helper (Python uses `__next__` filtered out by surface enumeration)
+signalwire.rest._pagination.PaginatedIterator.params: port-only: Ruby attr_reader for the request params hash (Python: instance attribute)
+signalwire.rest._pagination.PaginatedIterator.path: port-only: Ruby attr_reader for the request path (Python: instance attribute)
+signalwire.rest.client.RestClient.http: port-only: Ruby attr_reader for the underlying HttpClient (Python: client uses internal `_http` private attribute)

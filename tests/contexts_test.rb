@@ -20,6 +20,74 @@ class ContextsTest < Minitest::Test
     assert_instance_of CB, builder
   end
 
+  # --- Python parity: ContextBuilder(agent) ----------------------
+  def test_builder_constructor_accepts_agent
+    fake_agent = Object.new
+    builder = CB.new(fake_agent)
+    # Internally @agent is set; validate! passes a builder with no
+    # contexts because @agent path isn't reached, so we use
+    # introspection.
+    assert_same fake_agent, builder.instance_variable_get(:@agent)
+  end
+
+  def test_builder_constructor_no_arg_default_nil_agent
+    builder = CB.new
+    assert_nil builder.instance_variable_get(:@agent)
+  end
+
+  # --- Python parity: Context#add_step(name, *, task:, bullets:, ...) ---
+  def test_add_step_one_call_full_config
+    builder = CB.new
+    ctx = builder.add_context('default')
+    step = ctx.add_step(
+      'greet',
+      task:        'Greet the user',
+      bullets:     ['Say hello', 'Ask their name'],
+      criteria:    'User has been greeted',
+      functions:   ['none'],
+      valid_steps: ['greet']
+    )
+
+    h = step.to_h
+    assert_includes h['text'], 'Greet the user'
+    assert_includes h['text'], 'Say hello'
+    assert_equal 'User has been greeted', h['step_criteria']
+    assert_equal ['none'], h['functions']
+    assert_equal ['greet'], h['valid_steps']
+  end
+
+  def test_add_step_returns_step_when_no_optional_args
+    builder = CB.new
+    ctx = builder.add_context('default')
+    step = ctx.add_step('plain')
+    assert_kind_of STP, step
+    assert_equal 'plain', step.name
+  end
+
+  # --- Python parity: Step#add_gather_question explicit kwargs --
+  def test_add_gather_question_with_explicit_args
+    builder = CB.new
+    ctx = builder.add_context('default')
+    step = ctx.add_step('s1').set_text('hi')
+    step.set_gather_info(output_key: 'data')
+    step.add_gather_question(
+      key:       'email',
+      question:  'What is your email?',
+      type:      'string',
+      confirm:   true,
+      prompt:    'Verify the email is well-formed.',
+      functions: ['validate_email']
+    )
+
+    gi = step.to_h['gather_info']
+    q  = gi['questions'].first
+    assert_equal 'email', q['key']
+    assert_equal 'What is your email?', q['question']
+    assert_equal true, q['confirm']
+    assert_equal 'Verify the email is well-formed.', q['prompt']
+    assert_equal ['validate_email'], q['functions']
+  end
+
   def test_builder_add_context
     builder = CB.new
     ctx = builder.add_context('default')

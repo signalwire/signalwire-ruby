@@ -11,7 +11,17 @@ require_relative 'schema'
 module SignalWire
   module SWML
     class Service
-      attr_reader :name, :route, :host, :port
+      # Python parity:
+      # - ``name``, ``route``, ``host``, ``port`` — surface from
+      #   SWMLService.
+      # - ``schema_path`` — path to the SWML schema file (or nil to use
+      #   the gem-bundled default).
+      # - ``config_file`` — optional TOML/YAML config file path.
+      # - ``schema_validation`` — boolean flag mirroring Python's
+      #   ``self._schema_validation``. ``SWML_SKIP_SCHEMA_VALIDATION=1``
+      #   env var forces this to false.
+      attr_reader :name, :route, :host, :port,
+                  :schema_path, :config_file, :schema_validation
 
       # @param name   [String]  Human-readable service name
       # @param route  [String]  HTTP path this service responds on (default "/")
@@ -21,7 +31,8 @@ module SignalWire
       # Maximum request body size enforced on /swaig and the main route (1 MB).
       SWAIG_FN_NAME = /\A[a-zA-Z_][a-zA-Z0-9_]*\z/.freeze
 
-      def initialize(name:, route: '/', host: '0.0.0.0', port: nil, basic_auth: nil)
+      def initialize(name:, route: '/', host: '0.0.0.0', port: nil, basic_auth: nil,
+                     schema_path: nil, config_file: nil, schema_validation: true)
         @name   = name
         @route  = route.chomp('/')
         @route  = '/' if @route.empty?
@@ -31,6 +42,20 @@ module SignalWire
         @document = Document.new
         @routing_callbacks = {}
         @server = nil
+
+        # Python parity:
+        # - ``schema_path`` — explicit path to the SWML schema file.
+        #   When nil we fall back to the schema bundled with the gem
+        #   via SWML::Schema.
+        # - ``config_file`` — TOML/YAML configuration override file
+        #   (Python's ``ConfigLoader``). Ruby v1 stashes the path; the
+        #   loader is wired by AgentBase only when needed.
+        # - ``schema_validation`` — when true (default), out-bound SWML
+        #   is validated against the schema. ``SWML_SKIP_SCHEMA_VALIDATION=1``
+        #   env var overrides to false (Python parity).
+        @schema_path        = schema_path
+        @config_file        = config_file
+        @schema_validation  = schema_validation && ENV['SWML_SKIP_SCHEMA_VALIDATION'] != '1'
 
         # SWAIG tool registry — lifted from AgentBase so any Service (sidecar,
         # non-agent verb host) can register and dispatch SWAIG functions.
@@ -213,9 +238,31 @@ module SignalWire
       # Auth helpers
       # ------------------------------------------------------------------
 
-      # Returns [username, password]
-      def get_basic_auth_credentials
-        @basic_auth.dup
+      # Get the configured basic-auth credentials.
+      #
+      # Python parity: ``get_basic_auth_credentials(include_source=False)``.
+      # When ``include_source`` is true, returns a 3-tuple ``[user,
+      # pass, source]`` where ``source`` is one of ``"environment"``,
+      # ``"auto-generated"``, or ``"provided"``. Otherwise returns the
+      # 2-tuple ``[user, pass]``.
+      #
+      # @param include_source [Boolean]
+      # @return [Array(String, String)] or [Array(String, String, String)]
+      def get_basic_auth_credentials(include_source: false)
+        u, p = @basic_auth
+        return [u, p] unless include_source
+
+        env_user = ENV['SWML_BASIC_AUTH_USER']
+        env_pass = ENV['SWML_BASIC_AUTH_PASSWORD']
+        source =
+          if env_user && !env_user.empty? && env_pass && !env_pass.empty? && u == env_user && p == env_pass
+            'environment'
+          elsif u&.start_with?('user_') && p && p.length > 20
+            'auto-generated'
+          else
+            'provided'
+          end
+        [u, p, source]
       end
 
       # Validate provided basic-auth credentials against the configured ones
@@ -232,22 +279,10 @@ module SignalWire
         false
       end
 
-      # Returns [username, password, source] where source is "provided",
-      # "environment", or "generated".
-      # Python parity: AuthMixin#get_basic_auth_credentials(include_source: true).
+      # Backwards-compat alias for the legacy 3-tuple-only form.
+      # @return [Array(String, String, String)]
       def get_basic_auth_credentials_with_source
-        u, p = @basic_auth
-        env_user = ENV['SWML_BASIC_AUTH_USER']
-        env_pass = ENV['SWML_BASIC_AUTH_PASSWORD']
-        source =
-          if env_user && !env_user.empty? && env_pass && !env_pass.empty? && u == env_user && p == env_pass
-            'environment'
-          elsif u&.start_with?('user_') && p && p.length > 20
-            'generated'
-          else
-            'provided'
-          end
-        [u, p, source]
+        get_basic_auth_credentials(include_source: true)
       end
 
       # Build the full URL for this service.
@@ -280,15 +315,24 @@ module SignalWire
       # Python parity: WebMixin#on_request(request_data, callback_path).
       # The Python third +request+ argument is FastAPI-specific and
       # intentionally not mirrored.
-      def on_request(request_data = nil, callback_path = nil)
-        on_swml_request(request_data, callback_path)
+      # Python parity: ``on_request(request_data, callback_path)``. The
+      # third Python parameter (``request``) — a FastAPI ``Request`` —
+      # is propagated through Ruby as the optional ``request:`` keyword
+      # so subclasses can read query/header info when a Rack-style
+      # request is available. Default: delegate to ``on_swml_request``.
+      def on_request(request_data = nil, callback_path = nil, request: nil)
+        on_swml_request(request_data, callback_path, request: request)
       end
 
       # Customization point for subclasses to modify SWML based on
       # request data. The default returns nil (no modification).
       #
-      # Python parity: WebMixin#on_swml_request(request_data, callback_path).
-      def on_swml_request(request_data = nil, callback_path = nil)
+      # Python parity:
+      # ``on_swml_request(request_data, callback_path, request)``. The
+      # ``request:`` keyword carries the Rack request (or FastAPI
+      # ``Request`` analogue) for subclasses that need query params
+      # or headers.
+      def on_swml_request(request_data = nil, callback_path = nil, request: nil)
         nil
       end
 
@@ -329,19 +373,55 @@ module SignalWire
       end
 
       # Start serving (blocking).
-      def serve
+      #
+      # Python parity:
+      # ``serve(host=None, port=None, ssl_cert=None, ssl_key=None,
+      # ssl_enabled=None, domain=None)``. When SSL parameters are
+      # supplied the server is started with HTTPS bindings; otherwise
+      # plain HTTP. ``host``/``port`` overrides default to the
+      # constructor-provided values.
+      #
+      # @param host [String, nil] override bind host
+      # @param port [Integer, nil] override bind port
+      # @param ssl_cert [String, nil] PEM cert path
+      # @param ssl_key [String, nil] PEM key path
+      # @param ssl_enabled [Boolean, nil] explicit SSL enable
+      # @param domain [String, nil] domain for SSL config
+      def serve(host: nil, port: nil, ssl_cert: nil, ssl_key: nil,
+                ssl_enabled: nil, domain: nil)
         require 'webrick'
-        @log.info "Starting server on #{@host}:#{@port} ..."
+
+        bind_host = host || @host
+        bind_port = port || @port
+
+        if !ssl_enabled.nil?
+          @ssl_enabled = ssl_enabled
+        end
+        @domain = domain if domain
+        @ssl_cert_path = ssl_cert if ssl_cert
+        @ssl_key_path  = ssl_key  if ssl_key
+
+        @log.info "Starting server on #{bind_host}:#{bind_port} ..."
 
         user, _pass = @basic_auth
         @log.info "Basic-auth credentials — user: #{user}  password: [REDACTED]"
 
-        @server = ::WEBrick::HTTPServer.new(
-          Host: @host,
-          Port: @port,
+        webrick_opts = {
+          Host: bind_host,
+          Port: bind_port,
           Logger: WEBrick::Log.new($stderr, WEBrick::Log::WARN),
           AccessLog: []
-        )
+        }
+
+        if @ssl_enabled && @ssl_cert_path && @ssl_key_path
+          require 'webrick/https'
+          require 'openssl'
+          webrick_opts[:SSLEnable]      = true
+          webrick_opts[:SSLCertificate] = OpenSSL::X509::Certificate.new(File.read(@ssl_cert_path))
+          webrick_opts[:SSLPrivateKey]  = OpenSSL::PKey::RSA.new(File.read(@ssl_key_path))
+        end
+
+        @server = ::WEBrick::HTTPServer.new(**webrick_opts)
 
         # Rack 3+ moved Handler to the rackup gem.
         handler = begin

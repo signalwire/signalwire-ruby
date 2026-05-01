@@ -6,13 +6,20 @@
 # See LICENSE file in the project root for full license information.
 
 require_relative '../swaig/function_result'
+require_relative '../logging'
 
 module SignalWire
   module Skills
     # Base class for all skills. Subclasses override the metadata methods
     # and +register_tools+ to supply tool hashes.
     class SkillBase
-      attr_reader :params
+      # Python parity:
+      # - ``params`` — params hash passed at construction
+      # - ``agent`` — owning AgentBase instance (or nil for standalone)
+      # - ``logger`` — namespaced logger ``signalwire.skills.<name>``
+      # - ``swaig_fields`` — extra SWAIG fields merged into tool defs;
+      #   pulled out of ``params`` if provided
+      attr_reader :params, :agent, :logger, :swaig_fields
 
       def name;                       raise NotImplementedError, "#{self.class}#name"; end
       def description;                raise NotImplementedError, "#{self.class}#description"; end
@@ -20,8 +27,25 @@ module SignalWire
       def required_env_vars;          []; end
       def supports_multiple_instances?; false; end
 
-      def initialize(params = {})
+      # Python parity: ``SkillBase.__init__(self, agent, params=None)``.
+      # First positional arg is the owning AgentBase (or nil for
+      # standalone). The second is the params hash. We accept the legacy
+      # 1-arg form for backwards compatibility (``DateTimeSkill.new({...})``).
+      def initialize(agent = nil, params = nil)
+        # Backwards compat: a single Hash means params-only (no agent).
+        if agent.is_a?(Hash) && params.nil?
+          params = agent
+          agent  = nil
+        end
+        @agent  = agent
         @params = (params || {}).transform_keys(&:to_s)
+        # Python: pop swaig_fields out of params for separate access.
+        @swaig_fields = @params.delete('swaig_fields') || {}
+        @logger = ::SignalWire::Logging.logger("signalwire.skills.#{begin
+          name
+        rescue NotImplementedError
+          self.class.name
+        end}")
       end
 
       # Called once after construction. Return +true+ if the skill is ready.

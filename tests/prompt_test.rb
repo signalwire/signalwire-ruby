@@ -102,11 +102,18 @@ class PromptSectionTest < Minitest::Test
     assert_equal 'Hello World', prompt[0]['body']
   end
 
-  def test_add_to_nonexistent_section_is_noop
+  def test_add_to_nonexistent_section_creates_it
+    # Python parity: ``prompt_add_to_section`` creates the section
+    # when it doesn't exist (PromptManager#prompt_add_to_section in
+    # signalwire-python). The previous Ruby behaviour silently
+    # dropped the call; we now match Python.
     @agent.prompt_add_section('A', 'Body')
     @agent.prompt_add_to_section('NonExistent', ' extra')
     prompt = @agent.get_prompt
-    assert_equal 1, prompt.length
+    assert_equal 2, prompt.length
+    new_sec = prompt.find { |s| s['title'] == 'NonExistent' }
+    refute_nil new_sec
+    assert_equal ' extra', new_sec['body']
   end
 
   def test_add_subsection
@@ -123,6 +130,96 @@ class PromptSectionTest < Minitest::Test
     @agent.prompt_add_section('Foo', 'bar')
     assert @agent.prompt_has_section?('Foo')
     refute @agent.prompt_has_section?('Baz')
+  end
+
+  # --- Python parity: prompt_add_section numbered / numbered_bullets / subsections
+  def test_add_section_numbered
+    @agent.prompt_add_section('Steps', 'Procedure', numbered: true)
+    sec = @agent.get_prompt.first
+    assert_equal true, sec['numbered']
+  end
+
+  def test_add_section_numbered_bullets
+    @agent.prompt_add_section('Steps', 'Procedure', bullets: %w[a b c], numbered_bullets: true)
+    sec = @agent.get_prompt.first
+    assert_equal true, sec['numbered_bullets']
+  end
+
+  def test_add_section_with_subsections_kwarg
+    @agent.prompt_add_section(
+      'Main',
+      'Body',
+      subsections: [
+        { 'title' => 'Sub1', 'body' => 'b1' },
+        { 'title' => 'Sub2', 'bullets' => %w[x y] }
+      ]
+    )
+    sec = @agent.get_prompt.first
+    assert_equal 2, sec['subsections'].length
+    assert_equal 'Sub1', sec['subsections'][0]['title']
+    assert_equal 'b1',   sec['subsections'][0]['body']
+    assert_equal %w[x y], sec['subsections'][1]['bullets']
+  end
+
+  # --- Python parity: prompt_add_to_section bullet:, bullets:, body: kwargs
+  def test_add_to_section_with_single_bullet_kwarg
+    @agent.prompt_add_section('Tips', 'Body')
+    @agent.prompt_add_to_section('Tips', bullet: 'be polite')
+    sec = @agent.get_prompt.first
+    assert_equal ['be polite'], sec['bullets']
+  end
+
+  def test_add_to_section_with_bullets_array_kwarg
+    @agent.prompt_add_section('Tips', 'Body')
+    @agent.prompt_add_to_section('Tips', bullets: %w[a b])
+    sec = @agent.get_prompt.first
+    assert_equal %w[a b], sec['bullets']
+  end
+
+  def test_add_to_section_with_body_kwarg_appends
+    @agent.prompt_add_section('Intro', 'Hello')
+    @agent.prompt_add_to_section('Intro', body: ' world')
+    sec = @agent.get_prompt.first
+    assert_equal 'Hello world', sec['body']
+  end
+end
+
+# Python parity: ``define_contexts(contexts)`` accepts a builder, hash,
+# or no args (returns the existing builder).
+class DefineContextsTest < Minitest::Test
+  def setup
+    @agent = SignalWire::AgentBase.new
+  end
+
+  def test_define_contexts_zero_arg_returns_builder
+    cb = @agent.define_contexts
+    assert_kind_of SignalWire::Contexts::ContextBuilder, cb
+  end
+
+  def test_define_contexts_replaces_with_builder
+    cb1 = @agent.define_contexts
+    cb2 = SignalWire::Contexts::ContextBuilder.new(@agent)
+    @agent.define_contexts(cb2)
+    refute_same cb1, @agent.define_contexts
+    assert_same cb2, @agent.define_contexts
+  end
+
+  def test_define_contexts_accepts_hash
+    @agent.define_contexts(
+      'default' => {
+        'steps' => [
+          { 'name' => 'greet', 'text' => 'hi' }
+        ]
+      }
+    )
+    cb = @agent.define_contexts
+    ctx = cb.get_context('default')
+    refute_nil ctx
+    refute_nil ctx.get_step('greet')
+  end
+
+  def test_define_contexts_rejects_unknown_arg
+    assert_raises(ArgumentError) { @agent.define_contexts(42) }
   end
 end
 

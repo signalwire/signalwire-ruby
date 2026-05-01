@@ -3,6 +3,7 @@
 require 'minitest/autorun'
 require 'json'
 require 'fileutils'
+require 'logger'
 require 'tmpdir'
 
 require_relative '../lib/signalwire/server/agent_server'
@@ -31,6 +32,116 @@ class AgentServerTest < Minitest::Test
     server = SignalWire::AgentServer.new
     assert_equal '0.0.0.0', server.host
     assert_equal 3000, server.port
+    assert_equal 'info', server.log_level
+  end
+
+  # --- Python parity: log_level constructor arg --------------------
+  # Python: AgentServer(host, port, log_level="info")
+
+  def test_log_level_default_is_info
+    server = SignalWire::AgentServer.new
+    assert_equal 'info', server.log_level
+    refute_nil server.logger
+  end
+
+  def test_log_level_debug_lowers_threshold
+    server = SignalWire::AgentServer.new(log_level: 'debug')
+    assert_equal 'debug', server.log_level
+    assert_equal ::Logger::DEBUG, server.logger.level
+  end
+
+  def test_log_level_warning_raises_threshold
+    server = SignalWire::AgentServer.new(log_level: 'warning')
+    assert_equal ::Logger::WARN, server.logger.level
+  end
+
+  def test_log_level_error_raises_threshold
+    server = SignalWire::AgentServer.new(log_level: 'error')
+    assert_equal ::Logger::ERROR, server.logger.level
+  end
+
+  def test_log_level_unknown_falls_back_to_info
+    server = SignalWire::AgentServer.new(log_level: 'bogus')
+    assert_equal ::Logger::INFO, server.logger.level
+  end
+
+  # --- Python parity: server.app exposes the Rack/FastAPI app ------
+  # Python: ``server.app`` is the FastAPI instance.
+
+  def test_app_returns_rack_app
+    app = @server.app
+    refute_nil app
+    assert_respond_to app, :call
+  end
+
+  def test_app_is_memoised
+    a = @server.app
+    b = @server.app
+    assert_same a, b
+  end
+
+  def test_app_routes_to_health_endpoint
+    status, _, body = @server.app.call('PATH_INFO' => '/health')
+    assert_equal '200', status
+    data = JSON.parse(body.first)
+    assert_equal 'ok', data['status']
+  end
+
+  # --- Python parity: server.logger is a real logger ---------------
+
+  def test_logger_attribute_present
+    refute_nil @server.logger
+    assert_respond_to @server.logger, :info
+    assert_respond_to @server.logger, :warn
+  end
+
+  # --- Python parity: run(event=, context=, host=, port=) ----------
+
+  def test_run_routes_to_lambda_when_lambda_env_present
+    ENV['AWS_LAMBDA_FUNCTION_NAME'] = 'test-fn'
+    begin
+      result = @server.run(event: { 'path' => '/health', 'httpMethod' => 'GET' })
+      assert_kind_of Hash, result
+      assert_equal 200, result['statusCode']
+      data = JSON.parse(result['body'])
+      assert_equal 'ok', data['status']
+    ensure
+      ENV.delete('AWS_LAMBDA_FUNCTION_NAME')
+    end
+  end
+
+  def test_run_routes_to_cgi_when_gateway_interface_present
+    ENV['GATEWAY_INTERFACE'] = 'CGI/1.1'
+    ENV['PATH_INFO'] = '/health'
+    ENV['REQUEST_METHOD'] = 'GET'
+    begin
+      result = @server.run
+      assert_kind_of String, result
+      assert_includes result, 'Status: 200'
+      assert_includes result, '"status":"ok"'
+    ensure
+      ENV.delete('GATEWAY_INTERFACE')
+      ENV.delete('PATH_INFO')
+      ENV.delete('REQUEST_METHOD')
+    end
+  end
+
+  def test_detect_execution_mode_returns_server_default
+    assert_equal 'server', @server._detect_execution_mode
+  end
+
+  def test_detect_execution_mode_lambda
+    ENV['AWS_LAMBDA_FUNCTION_NAME'] = 'fn'
+    assert_equal 'lambda', @server._detect_execution_mode
+  ensure
+    ENV.delete('AWS_LAMBDA_FUNCTION_NAME')
+  end
+
+  def test_detect_execution_mode_cgi
+    ENV['GATEWAY_INTERFACE'] = 'CGI/1.1'
+    assert_equal 'cgi', @server._detect_execution_mode
+  ensure
+    ENV.delete('GATEWAY_INTERFACE')
   end
 
   def test_register_agent
