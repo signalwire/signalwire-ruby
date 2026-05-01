@@ -4,6 +4,12 @@ require 'json'
 require 'securerandom'
 require 'websocket-client-simple'
 
+require_relative 'constants'
+require_relative 'relay_event'
+require_relative 'action'
+require_relative 'call'
+require_relative 'message'
+
 module SignalWire
   module Relay
     # Raised for RELAY JSON-RPC errors.
@@ -99,6 +105,35 @@ module SignalWire
         _send_json(msg)
       end
 
+      # Return the current call_id -> Call registry (a snapshot copy).
+      # Test/audit-only surface for asserting on internal routing state;
+      # the Python reference exposes the same via +RelayClient._calls+.
+      def _calls_snapshot
+        @calls_mutex.synchronize { @calls.dup }
+      end
+
+      # Test/reconnect surface: stamp a previously issued protocol
+      # string before calling +run+ so the next signalwire.connect frame
+      # carries it (the production server replies with
+      # +session_restored: true+). Mirrors Python's +RelayClient._relay_protocol = ...+.
+      def _set_protocol(value)
+        @protocol = value
+      end
+
+      # Return the SDK's tracked authorization-state blob (Python parity:
+      # +RelayClient._authorization_state+). Captured from
+      # +signalwire.authorization.state+ events for use on reconnect.
+      def _authorization_state
+        @authorization_state
+      end
+
+      # True when the client believes the WebSocket is open. Exposed for
+      # tests that need to assert the recv loop is still alive after an
+      # injected error / handler exception.
+      def _connected?
+        @ws_mutex.synchronize { @connected }
+      end
+
       # Connect, authenticate, subscribe, and enter the read loop.
       # Blocks until stop is called.
       def run
@@ -183,20 +218,25 @@ module SignalWire
       # ------------------------------------------------------------------
 
       # Send an SMS/MMS message. Returns a Message object.
-      def send_message(to:, from:, body: nil, media: nil, context: nil,
-                       tags: nil, on_completed: nil, **kwargs)
-        raise ArgumentError, 'body or media is required' if (body.nil? || body.empty?) && (media.nil? || media.empty?)
+      #
+      # Mirrors Python's RelayClient.send_message keyword-only signature
+      # exactly. At least one of body: or media: is required.
+      def send_message(to_number:, from_number:, context: nil, body: nil,
+                       media: nil, tags: nil, region: nil, on_completed: nil)
+        if (body.nil? || body.empty?) && (media.nil? || media.empty?)
+          raise ArgumentError, 'body or media is required'
+        end
 
         msg_context = context || @contexts.first || 'default'
         params = {
           'context'     => msg_context,
-          'to_number'   => to,
-          'from_number' => from
+          'to_number'   => to_number,
+          'from_number' => from_number
         }
-        params['body']  = body if body
-        params['media'] = media if media
-        params['tags']  = tags if tags
-        kwargs.each { |k, v| params[k.to_s] = v }
+        params['body']   = body   if body
+        params['media']  = media  if media
+        params['tags']   = tags   if tags
+        params['region'] = region if region
 
         result = execute('messaging.send', params)
         message_id = result['message_id'] || ''
@@ -205,8 +245,8 @@ module SignalWire
           message_id:  message_id,
           context:     msg_context,
           direction:   'outbound',
-          from_number: from,
-          to_number:   to,
+          from_number: from_number,
+          to_number:   to_number,
           body:        body || '',
           media:       media || [],
           state:       'queued',
