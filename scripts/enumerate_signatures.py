@@ -123,6 +123,7 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
     "SignalWire::REST::HttpClient": "signalwire.rest.http_client",
     "SignalWire::REST::BaseResource": "signalwire.rest._base",
     "SignalWire::REST::CrudResource": "signalwire.rest._base",
+    "SignalWire::REST::PaginatedIterator": "signalwire.rest._pagination",
     "SignalWire::REST::Namespaces::CallingNamespace": "signalwire.rest.namespaces.calling",
     "SignalWire::REST::Namespaces::ChatResource": "signalwire.rest.namespaces.chat",
     "SignalWire::REST::Namespaces::AddressesResource": "signalwire.rest.namespaces.addresses",

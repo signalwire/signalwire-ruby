@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'http_client'
+require_relative 'pagination'
 require_relative 'phone_call_handler'
 require_relative 'namespaces/fabric'
 require_relative 'namespaces/calling'
@@ -50,7 +51,7 @@ module SignalWire
                   :compat, :addresses, :queues, :recordings, :number_groups,
                   :verified_callers, :sip_profile, :lookup, :short_codes,
                   :imported_numbers, :mfa, :registry, :logs, :project,
-                  :pubsub, :chat, :project_id
+                  :pubsub, :chat, :project_id, :http
 
       # +base_url+ overrides the derived +https://{space}+ default. The
       # audit harness uses this to point at the local fixture server.
