@@ -204,3 +204,12 @@ signalwire.relay.event.TranscribeEvent.__init__: base-spread — Ruby keyword ar
 # Single-case: kind 'keyword' vs 'var_keyword' (RelayClient.dial)
 
 signalwire.relay.client.RelayClient.dial: kwargs-spread — Ruby `dial_timeout:` keyword arg projects as keyword while Python collects late args via var_keyword
+
+# Prompt Object Model — Ruby keyword-arg idiom
+
+signalwire.pom.pom.PromptObjectModel.__init__: Ruby keyword-arg idiom — `debug:` defaults are keyword in Ruby, positional with default in Python
+signalwire.pom.pom.PromptObjectModel.to_dict: Ruby convention — to_h replaces to_dict (see SignalWire::POM::PromptObjectModel#to_h in PORT_OMISSIONS.md)
+signalwire.pom.pom.PromptObjectModel.to_json: Ruby JSON convention — `to_json(*_args)` accepts the optional state argument that Ruby's JSON.generate forwards
+signalwire.pom.pom.Section.render_markdown: Ruby keyword-arg idiom — `level:` and `section_number:` are keyword in Ruby, positional with default in Python
+signalwire.pom.pom.Section.render_xml: Ruby keyword-arg idiom — `indent:` and `section_number:` are keyword in Ruby, positional with default in Python
+signalwire.pom.pom.Section.to_dict: Ruby convention — to_h replaces to_dict (see SignalWire::POM::Section#to_h in PORT_OMISSIONS.md)

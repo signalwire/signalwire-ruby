@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 9d1e3218dc71e168855e89109f8ca84dcf51d18a",
+  "generated_from": "signalwire-ruby @ dd35a8552c3fba2153aa92bcb4ef82454451a38f",
   "modules": {
     "signalwire": {
       "classes": {
@@ -385,6 +385,43 @@
           "logger",
           "reset!",
           "suppressed?"
+        ]
+      },
+      "functions": [
+
+      ]
+    },
+    "signalwire.pom.pom": {
+      "classes": {
+        "PromptObjectModel": [
+          "__init__",
+          "add_pom_as_subsection",
+          "add_section",
+          "debug",
+          "find_section",
+          "from_json",
+          "from_yaml",
+          "render_markdown",
+          "render_xml",
+          "sections",
+          "to_h",
+          "to_json",
+          "to_yaml"
+        ],
+        "Section": [
+          "__init__",
+          "add_body",
+          "add_bullets",
+          "add_subsection",
+          "body",
+          "bullets",
+          "numbered",
+          "numbered_bullets",
+          "render_markdown",
+          "render_xml",
+          "subsections",
+          "title",
+          "to_h"
         ]
       },
       "functions": [

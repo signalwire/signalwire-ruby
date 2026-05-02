@@ -258,6 +258,11 @@ end
 #
 # Mirrors signalwire-python tests/unit/core/test_agent_base.py::
 #   TestAgentBasePromptMethods::test_set_prompt_pom_succeeds_when_use_pom_true
+#
+# Python's ``agent.pom`` is a ``signalwire.pom.pom.PromptObjectModel``
+# instance. The Ruby port returns the equivalent
+# ``SignalWire::POM::PromptObjectModel``. To get the legacy array of
+# section hashes back out, call ``agent.pom.to_h``.
 # ----------------------------------------------------------------------
 class PomAccessorTest < Minitest::Test
   def setup
@@ -269,18 +274,22 @@ class PomAccessorTest < Minitest::Test
     @agent.set_prompt_pom(sections)
     pom = @agent.pom
     refute_nil pom
-    assert_equal 1, pom.length
-    assert_equal 'Greeting', pom[0]['title']
-    assert_equal 'Hello', pom[0]['body']
+    assert_kind_of SignalWire::POM::PromptObjectModel, pom
+    as_h = pom.to_h
+    assert_equal 1, as_h.length
+    assert_equal 'Greeting', as_h[0]['title']
+    assert_equal 'Hello', as_h[0]['body']
   end
 
   def test_pom_returns_sections_after_prompt_add_section
     @agent.prompt_add_section('Topic', 'Body text')
     pom = @agent.pom
     refute_nil pom
-    assert_equal 1, pom.length
-    assert_equal 'Topic', pom[0]['title']
-    assert_equal 'Body text', pom[0]['body']
+    assert_kind_of SignalWire::POM::PromptObjectModel, pom
+    as_h = pom.to_h
+    assert_equal 1, as_h.length
+    assert_equal 'Topic', as_h[0]['title']
+    assert_equal 'Body text', as_h[0]['body']
   end
 
   def test_pom_nil_when_in_text_mode
@@ -290,17 +299,28 @@ class PomAccessorTest < Minitest::Test
     assert_nil @agent.pom
   end
 
-  def test_pom_returns_copy_not_internal_array
+  def test_pom_returns_fresh_instance_not_internal_state
     @agent.prompt_add_section('Original', 'Body')
     pom = @agent.pom
     refute_nil pom
 
-    # Mutate the returned array; internal state must be unchanged.
-    pom << { 'title' => 'Injected' }
-    pom[0]['title'] = 'Hijacked'
+    # Mutate the returned PromptObjectModel; internal state must be unchanged.
+    pom.add_section('Injected', body: 'leaked')
+    pom.sections[0].title = 'Hijacked'
 
     fresh = @agent.pom
-    assert_equal 1, fresh.length, 'caller mutation leaked into agent state'
-    assert_equal 'Original', fresh[0]['title'], 'caller mutation leaked into agent state'
+    fresh_h = fresh.to_h
+    assert_equal 1, fresh_h.length, 'caller mutation leaked into agent state'
+    assert_equal 'Original', fresh_h[0]['title'], 'caller mutation leaked into agent state'
+  end
+
+  def test_pom_renders_markdown
+    # Wire-through smoke test: agent.pom is a real PromptObjectModel
+    # so caller can call render_markdown / render_xml / to_json on it
+    # directly (matches Python's ``agent.pom.render_markdown()`` usage).
+    @agent.prompt_add_section('Topic', 'Body text')
+    md = @agent.pom.render_markdown
+    assert_includes md, '## Topic'
+    assert_includes md, 'Body text'
   end
 end

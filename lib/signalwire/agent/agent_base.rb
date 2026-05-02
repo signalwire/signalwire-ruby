@@ -332,18 +332,45 @@ module SignalWire
       nil
     end
 
-    # Read-only snapshot of the agent's POM section list.
+    # Read-only snapshot of the agent's POM as a typed
+    # {SignalWire::POM::PromptObjectModel} instance.
     #
     # Python parity: ``agent.pom`` instance attribute (agent_base.py
-    # line 209). Returns ``nil`` when raw-text prompt mode is in effect
-    # (``set_prompt_text`` was called) — mirrors Python's
-    # ``self.pom = None when use_pom=False``. Otherwise returns a duped
-    # array of duped section hashes so callers cannot corrupt internal
-    # state.
+    # line 209) is a ``PromptObjectModel`` instance. Returns ``nil`` when
+    # raw-text prompt mode is in effect (``set_prompt_text`` was called)
+    # — mirrors Python's ``self.pom = None when use_pom=False``.
+    #
+    # The returned PromptObjectModel is a fresh build of the agent's
+    # current section state, so caller mutations do not leak into agent
+    # state. Use ``agent.pom.to_h`` to retrieve the legacy
+    # array-of-hashes representation.
     def pom
       return nil if @prompt_text
+
       sections = @prompt_pom || @pom_sections
-      sections.map(&:dup)
+      pom = SignalWire::POM::PromptObjectModel.new
+      sections.each do |sec|
+        # Each section is a Hash with possibly String or Symbol keys.
+        h = sec.transform_keys(&:to_s)
+        kwargs = {
+          body: h.fetch('body', ''),
+          bullets: h['bullets'] || [],
+          numbered: h['numbered'],
+          numbered_bullets: h['numbered_bullets'] || h['numberedBullets'] || false
+        }
+        section = pom.add_section(h['title'], **kwargs)
+        (h['subsections'] || []).each do |sub|
+          sh = sub.transform_keys(&:to_s)
+          section.add_subsection(
+            sh['title'],
+            body: sh.fetch('body', ''),
+            bullets: sh['bullets'] || [],
+            numbered: sh['numbered'] || false,
+            numbered_bullets: sh['numbered_bullets'] || sh['numberedBullets'] || false
+          )
+        end
+      end
+      pom
     end
 
     # Returns the post-prompt text whatever set_post_prompt stored, or

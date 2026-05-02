@@ -65,6 +65,11 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
     "SignalWire::Skills::SkillManager": "signalwire.core.skill_manager",
     "SignalWire::Skills::SkillRegistry": "signalwire.skills.registry",
 
+    # Prompt Object Model: Ruby's SignalWire::POM::* classes mirror Python's
+    # signalwire.pom.pom.* module exactly (PromptObjectModel + Section).
+    "SignalWire::POM::PromptObjectModel": "signalwire.pom.pom",
+    "SignalWire::POM::Section": "signalwire.pom.pom",
+
     "SignalWire::AgentServer": "signalwire.agent_server",
     "SignalWire::Security::SessionManager": "signalwire.core.security.session_manager",
     "SignalWire::Prefabs::Concierge": "signalwire.prefabs.concierge",

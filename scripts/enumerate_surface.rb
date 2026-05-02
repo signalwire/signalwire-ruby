@@ -144,6 +144,10 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
   # to Python's RelayError in signalwire.relay.client (unique class name so
   # the auto-resolver already handles it, but we pin it for clarity).
   'SignalWire::Relay::ActionTimeoutError' => 'signalwire.relay.client',
+  # Prompt Object Model: Ruby's SignalWire::POM::PromptObjectModel and
+  # SignalWire::POM::Section both live in signalwire.pom.pom in Python.
+  'SignalWire::POM::PromptObjectModel' => 'signalwire.pom.pom',
+  'SignalWire::POM::Section' => 'signalwire.pom.pom'
 }.freeze
 
 # Ruby module -> Python module mapping for module-level functions.

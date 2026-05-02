@@ -32,9 +32,12 @@ port surface; the diff tool will fail the build on unexcused drift.
   Ruby's single-inheritance + modules model. Every mixin method is
   present on `AgentBase` (see PORT_ADDITIONS.md entries under
   `signalwire.core.agent_base.AgentBase.*`).
-- **POM internals** (~24 symbols under `signalwire.pom.*` and
-  `signalwire.core.pom_builder.*`): POM prompt-object-model managed
-  inline by `SignalWire::AgentBase` prompt methods.
+- **POM**: `SignalWire::POM::PromptObjectModel` and
+  `SignalWire::POM::Section` ship as the typed equivalent of Python's
+  `signalwire.pom.pom.PromptObjectModel` / `Section`, with byte-for-byte
+  Markdown / XML / JSON / YAML rendering parity. `to_dict` uses Ruby's
+  `to_h` idiom. The `PomBuilder` (Python helper) and `pom_tool` CLI
+  remain omitted.
 - **SWML internals** (~47 symbols under `signalwire.core.swml_service.*`,
   `signalwire.core.swml_builder.*`, `signalwire.core.swml_renderer.*`,
   `signalwire.core.swml_handler.*`, `signalwire.utils.schema_utils.*`):
@@ -524,30 +527,12 @@ signalwire.mcp_gateway.session_manager.SessionManager.get_service_session_count:
 signalwire.mcp_gateway.session_manager.SessionManager.get_session: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
 signalwire.mcp_gateway.session_manager.SessionManager.list_sessions: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
 signalwire.mcp_gateway.session_manager.SessionManager.shutdown: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.pom.pom.PromptObjectModel: POM prompt-object-model managed inline by SignalWire::AgentBase/Contexts; no standalone POM class
-signalwire.pom.pom.PromptObjectModel.__init__: POM prompt-object-model managed inline by SignalWire::AgentBase/Contexts; no standalone POM class
-signalwire.pom.pom.PromptObjectModel.add_pom_as_subsection: POM prompt-object-model managed inline by SignalWire::AgentBase/Contexts; no standalone POM class
-signalwire.pom.pom.PromptObjectModel.add_section: POM prompt-object-model managed inline by SignalWire::AgentBase/Contexts; no standalone POM class
-signalwire.pom.pom.PromptObjectModel.find_section: POM prompt-object-model managed inline by SignalWire::AgentBase/Contexts; no standalone POM class
-signalwire.pom.pom.PromptObjectModel.from_json: POM prompt-object-model managed inline by SignalWire::AgentBase/Contexts; no standalone POM class
-signalwire.pom.pom.PromptObjectModel.from_yaml: POM prompt-object-model managed inline by SignalWire::AgentBase/Contexts; no standalone POM class
-signalwire.pom.pom.PromptObjectModel.render_markdown: POM prompt-object-model managed inline by SignalWire::AgentBase/Contexts; no standalone POM class
-signalwire.pom.pom.PromptObjectModel.render_xml: POM prompt-object-model managed inline by SignalWire::AgentBase/Contexts; no standalone POM class
-signalwire.pom.pom.PromptObjectModel.to_dict: POM prompt-object-model managed inline by SignalWire::AgentBase/Contexts; no standalone POM class
-signalwire.pom.pom.PromptObjectModel.to_json: POM prompt-object-model managed inline by SignalWire::AgentBase/Contexts; no standalone POM class
-signalwire.pom.pom.PromptObjectModel.to_yaml: POM prompt-object-model managed inline by SignalWire::AgentBase/Contexts; no standalone POM class
-signalwire.pom.pom.Section: POM prompt-object-model managed inline by SignalWire::AgentBase/Contexts; no standalone POM class
-signalwire.pom.pom.Section.__init__: POM prompt-object-model managed inline by SignalWire::AgentBase/Contexts; no standalone POM class
-signalwire.pom.pom.Section.add_body: POM prompt-object-model managed inline by SignalWire::AgentBase/Contexts; no standalone POM class
-signalwire.pom.pom.Section.add_bullets: POM prompt-object-model managed inline by SignalWire::AgentBase/Contexts; no standalone POM class
-signalwire.pom.pom.Section.add_subsection: POM prompt-object-model managed inline by SignalWire::AgentBase/Contexts; no standalone POM class
-signalwire.pom.pom.Section.render_markdown: POM prompt-object-model managed inline by SignalWire::AgentBase/Contexts; no standalone POM class
-signalwire.pom.pom.Section.render_xml: POM prompt-object-model managed inline by SignalWire::AgentBase/Contexts; no standalone POM class
-signalwire.pom.pom.Section.to_dict: POM prompt-object-model managed inline by SignalWire::AgentBase/Contexts; no standalone POM class
-signalwire.pom.pom_tool.detect_file_format: POM prompt-object-model managed inline by SignalWire::AgentBase/Contexts; no standalone POM class
-signalwire.pom.pom_tool.load_pom: POM prompt-object-model managed inline by SignalWire::AgentBase/Contexts; no standalone POM class
-signalwire.pom.pom_tool.main: POM prompt-object-model managed inline by SignalWire::AgentBase/Contexts; no standalone POM class
-signalwire.pom.pom_tool.render_pom: POM prompt-object-model managed inline by SignalWire::AgentBase/Contexts; no standalone POM class
+signalwire.pom.pom.PromptObjectModel.to_dict: Ruby convention: to_h replaces to_dict (see SignalWire::POM::PromptObjectModel#to_h)
+signalwire.pom.pom.Section.to_dict: Ruby convention: to_h replaces to_dict (see SignalWire::POM::Section#to_h)
+signalwire.pom.pom_tool.detect_file_format: pom_tool is a Python CLI utility; Ruby ships the POM library only
+signalwire.pom.pom_tool.load_pom: pom_tool is a Python CLI utility; Ruby ships the POM library only
+signalwire.pom.pom_tool.main: pom_tool is a Python CLI utility; Ruby ships the POM library only
+signalwire.pom.pom_tool.render_pom: pom_tool is a Python CLI utility; Ruby ships the POM library only
 signalwire.prefabs.concierge.ConciergeAgent.check_availability: not_yet_implemented: concierge check_availability tool
 signalwire.prefabs.concierge.ConciergeAgent.get_directions: not_yet_implemented: concierge get_directions tool
 signalwire.prefabs.concierge.ConciergeAgent.on_summary: not_yet_implemented: concierge on_summary hook
