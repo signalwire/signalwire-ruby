@@ -31,6 +31,37 @@ class CallingMockTest < Minitest::Test
   # Lifecycle commands
   # -------------------------------------------------------------------
 
+  def test_dial_forwards_codecs_array
+    body = @client.calling.dial(
+      url: 'https://example.com/swml',
+      to: '+15551234567',
+      codecs: %w[OPUS G729 VP8 PCMA],
+    )
+    assert_kind_of Hash, body
+    assert body.key?('id')
+
+    last = MockTest.journal.last
+    assert_equal 'POST', last.method
+    assert_equal CALLS_PATH, last.path
+    assert_equal 'dial', last.body['command']
+    refute last.body.key?('id')
+    assert_equal %w[OPUS G729 VP8 PCMA], last.body['params']['codecs']
+    assert_equal '+15551234567', last.body['params']['to']
+  end
+
+  def test_dial_forwards_codecs_string
+    body = @client.calling.dial(
+      url: 'https://example.com/swml',
+      to: '+15551234567',
+      codecs: 'OPUS,G729,VP8,PCMA',
+    )
+    assert_kind_of Hash, body
+
+    last = MockTest.journal.last
+    assert_equal 'dial', last.body['command']
+    assert_equal 'OPUS,G729,VP8,PCMA', last.body['params']['codecs']
+  end
+
   def test_update
     body = @client.calling.update(id: 'call-1', state: 'hold')
     assert_kind_of Hash, body
