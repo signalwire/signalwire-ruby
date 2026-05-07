@@ -870,6 +870,20 @@
                   "kind": "keyword",
                   "required": false,
                   "default": null
+                },
+                {
+                  "name": "signing_key",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "trust_proxy_for_signature",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "void"
@@ -1290,6 +1304,15 @@
                   "name": "url",
                   "type": "any",
                   "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "signing_key": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
                 }
               ],
               "returns": "any"
@@ -5229,6 +5252,123 @@
               "returns": "any"
             }
           }
+        }
+      }
+    },
+    "signalwire.core.security.webhook_middleware": {
+      "classes": {
+        "WebhookMiddleware": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "app",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "signing_key",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": true
+                },
+                {
+                  "name": "trust_proxy",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "paths",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "methods",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "void"
+            },
+            "call": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "env",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        }
+      }
+    },
+    "signalwire.core.security.webhook_validator": {
+      "functions": {
+        "validate_request": {
+          "params": [
+            {
+              "name": "signing_key",
+              "type": "any",
+              "required": true
+            },
+            {
+              "name": "signature",
+              "type": "any",
+              "required": true
+            },
+            {
+              "name": "url",
+              "type": "any",
+              "required": true
+            },
+            {
+              "name": "params_or_raw_body",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "any"
+        },
+        "validate_webhook_signature": {
+          "params": [
+            {
+              "name": "signing_key",
+              "type": "any",
+              "required": true
+            },
+            {
+              "name": "signature",
+              "type": "any",
+              "required": true
+            },
+            {
+              "name": "url",
+              "type": "any",
+              "required": true
+            },
+            {
+              "name": "raw_body",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "any"
         }
       }
     },

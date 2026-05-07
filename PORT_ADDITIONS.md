@@ -158,6 +158,9 @@ signalwire.core.function_result.FunctionResult.response: port-only: attr_reader 
 signalwire.core.function_result.FunctionResult.to_h: port-only: Ruby convention - to_h replaces to_dict
 signalwire.core.function_result.FunctionResult.to_json: port-only: Ruby convention - to_json serializer
 signalwire.core.security.session_manager.SessionManager.create_token: port-only: Ruby create_token name matches the Python generate_token/create_tool_token surface (both omitted)
+signalwire.core.security.webhook_middleware.WebhookMiddleware: rack-middleware idiom — Python ships a FastAPI dependency factory; Ruby ships a Rack middleware class (canonical HTTP adapter shape)
+signalwire.core.security.webhook_middleware.WebhookMiddleware.__init__: rack-middleware idiom — Python ships a FastAPI dependency factory; Ruby ships a Rack middleware class (canonical HTTP adapter shape)
+signalwire.core.security.webhook_middleware.WebhookMiddleware.call: rack-middleware idiom — Rack call(env) entry point; Python equivalent is the FastAPI async dependency callable
 signalwire.core.skill_base.SkillBase.agent: port-only: Ruby attr_reader for the owning AgentBase (Python parity: `self.agent` instance attribute)
 signalwire.core.skill_base.SkillBase.description: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
 signalwire.core.skill_base.SkillBase.logger: port-only: Ruby attr_reader for the namespaced logger (Python parity: `self.logger`)

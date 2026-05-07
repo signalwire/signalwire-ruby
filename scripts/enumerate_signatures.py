@@ -72,6 +72,7 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
 
     "SignalWire::AgentServer": "signalwire.agent_server",
     "SignalWire::Security::SessionManager": "signalwire.core.security.session_manager",
+    "SignalWire::Security::WebhookMiddleware": "signalwire.core.security.webhook_middleware",
     "SignalWire::Prefabs::Concierge": "signalwire.prefabs.concierge",
     "SignalWire::Prefabs::FaqBot": "signalwire.prefabs.faq_bot",
     "SignalWire::Prefabs::InfoGatherer": "signalwire.prefabs.info_gatherer",
@@ -304,6 +305,10 @@ FREE_FN_NAME_OVERRIDES = {
 # the default name-derived path (``signalwire.relay``).
 RUBY_MODULE_LEVEL_OVERRIDES = {
     "SignalWire::Relay": "signalwire.relay.event",
+    # WebhookValidator is a Ruby module (with module_function entries) that
+    # mirrors Python's module-level webhook_validator helpers under
+    # signalwire/core/security/.
+    "SignalWire::Security::WebhookValidator": "signalwire.core.security.webhook_validator",
 }
 
 # Port-only Ruby modules that have no Python equivalent. Project their

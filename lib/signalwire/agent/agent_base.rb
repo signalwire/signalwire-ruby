@@ -17,6 +17,8 @@ require_relative '../swml/schema'
 require_relative '../swml/service'
 require_relative '../swaig/function_result'
 require_relative '../security/session_manager'
+require_relative '../security/webhook_validator'
+require_relative '../security/webhook_middleware'
 require_relative '../contexts/context_builder'
 require_relative '../skills/skill_base'
 require_relative '../skills/skill_manager'
@@ -45,7 +47,7 @@ module SignalWire
     # - ``native_functions`` — names of built-in SWAIG functions to advertise.
     # - ``use_pom`` — whether prompt-object-model rendering is enabled.
     attr_reader :logger, :skill_manager, :agent_id, :default_webhook_url,
-                :native_functions, :use_pom
+                :native_functions, :use_pom, :signing_key
 
     # Maximum request body size (1 MB)
     MAX_BODY_SIZE = 1_048_576
@@ -68,7 +70,9 @@ module SignalWire
                    enable_post_prompt_override: false,
                    check_for_input_override: false,
                    config_file: nil,
-                   schema_validation: true)
+                   schema_validation: true,
+                   signing_key: nil,
+                   trust_proxy_for_signature: false)
       # Resolve auth before super so we can warn about auto-generated
       # passwords. Service's built-in auth fallback uses a fresh UUID per
       # process, which is fine, but we want the agent-specific warning.
@@ -139,6 +143,25 @@ module SignalWire
 
       # --- session manager ----------------------------------------------
       @session_manager = Security::SessionManager.new(token_expiry_secs: token_expiry_secs)
+
+      # --- webhook signature validation (porting-sdk/webhooks.md) -------
+      # Resolution order: explicit constructor arg → SIGNALWIRE_SIGNING_KEY env.
+      # When set, _build_rack_app mounts WebhookMiddleware on the signed
+      # routes (POST /, /swaig, /post_prompt). When unset, the SDK logs a
+      # warning so production users notice unsigned traffic is being
+      # accepted.
+      @signing_key = signing_key || ENV['SIGNALWIRE_SIGNING_KEY']
+      @trust_proxy_for_signature = trust_proxy_for_signature
+      if @signing_key && !@signing_key.empty?
+        @logger.info('webhook_signature_validation_enabled') unless @suppress_logs
+      else
+        unless @suppress_logs
+          @logger.warn(
+            '[signalwire] webhook signature validation is disabled — ' \
+            'set signing_key or SIGNALWIRE_SIGNING_KEY to enable'
+          )
+        end
+      end
 
       # --- prompt state -------------------------------------------------
       @prompt_text      = nil    # raw text mode
@@ -1837,6 +1860,8 @@ module SignalWire
     def _build_rack_app
       agent = self
       main_route = @route
+      signing_key = @signing_key
+      trust_proxy = @trust_proxy_for_signature
 
       Rack::Builder.new do
         # --- public endpoints (no auth) --------------------------------
@@ -1858,6 +1883,17 @@ module SignalWire
         map main_route do
           use AgentSecurityHeadersMiddleware
           use AgentBodyLimitMiddleware, AgentBase::MAX_BODY_SIZE
+          # Webhook signature validation runs BEFORE basic auth so a
+          # spoofed but unsigned request is rejected with 403 (the spec)
+          # rather than 401 (which would expose that the key is missing).
+          # Only POSTs to the signed routes go through.
+          if signing_key && !signing_key.empty?
+            use SignalWire::Security::WebhookMiddleware,
+                signing_key: signing_key,
+                trust_proxy: trust_proxy,
+                paths: ['/', '/swaig', '/post_prompt'],
+                methods: ['POST']
+          end
           use AgentTimingSafeBasicAuth, agent
 
           run ->(env) {
@@ -1867,7 +1903,14 @@ module SignalWire
 
             request_data = nil
             if request.post? || request.put?
-              body = request.body.read
+              # Prefer the raw body stashed by WebhookMiddleware (which
+              # already read+rewound the stream). Fall back to reading the
+              # rack input directly when no validator was mounted.
+              body = env['signalwire.raw_body']
+              if body.nil?
+                body = request.body.read
+                request.body.rewind if request.body.respond_to?(:rewind)
+              end
               request_data = JSON.parse(body) rescue nil
             end
 

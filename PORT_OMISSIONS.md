@@ -368,6 +368,7 @@ signalwire.core.security_config.SecurityConfig.load_from_env: security-config cl
 signalwire.core.security_config.SecurityConfig.log_config: security-config class not ported - settings live in SignalWire::AgentBase and middleware
 signalwire.core.security_config.SecurityConfig.should_allow_host: security-config class not ported - settings live in SignalWire::AgentBase and middleware
 signalwire.core.security_config.SecurityConfig.validate_ssl_config: security-config class not ported - settings live in SignalWire::AgentBase and middleware
+signalwire.core.security.webhook_middleware.make_webhook_validation_dependency: FastAPI-only idiom — Ruby ships SignalWire::Security::WebhookMiddleware (Rack) instead; same WebhookValidator core
 signalwire.core.skill_base.SkillBase.define_tool: Ruby SignalWire::Skills::SkillBase#register_tools does this via SignalWire::AgentBase#define_tool
 signalwire.core.skill_base.SkillBase.get_instance_key: Ruby uses SignalWire::Skills::SkillBase#instance_key (attr_reader)
 signalwire.core.skill_base.SkillBase.get_skill_data: not_yet_implemented: skill-data share helpers

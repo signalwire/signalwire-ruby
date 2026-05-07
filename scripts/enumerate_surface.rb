@@ -110,6 +110,11 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
   # SessionManager is duplicated in Python (core.security + mcp_gateway). The
   # Ruby port only ships the core one.
   'SignalWire::Security::SessionManager' => 'signalwire.core.security.session_manager',
+  # Webhook signature validation: Python lives under core.security; Ruby
+  # ships the validator module + a Rack middleware (Python ships a FastAPI
+  # dependency factory in the same module — that one is in PORT_OMISSIONS.md).
+  'SignalWire::Security::WebhookValidator' => 'signalwire.core.security.webhook_validator',
+  'SignalWire::Security::WebhookMiddleware' => 'signalwire.core.security.webhook_middleware',
   # Prefabs: Ruby uses short names, Python appends "Agent".
   'SignalWire::Prefabs::Concierge' => 'signalwire.prefabs.concierge',
   'SignalWire::Prefabs::FaqBot' => 'signalwire.prefabs.faq_bot',
@@ -157,6 +162,10 @@ RUBY_MODULE_TO_PYTHON = {
   # SignalWire::Relay.parse_event -> Python's signalwire.relay.event.parse_event
   # (Ruby hoists it one level up to avoid a dedicated relay_event module).
   'SignalWire::Relay' => 'signalwire.relay.event',
+  # WebhookValidator is a Ruby module (with self.* methods) that mirrors
+  # Python's module-level webhook_validator helpers under
+  # signalwire/core/security/.
+  'SignalWire::Security::WebhookValidator' => 'signalwire.core.security.webhook_validator',
 }.freeze
 
 # Ruby class name -> Python class name (when they differ).
