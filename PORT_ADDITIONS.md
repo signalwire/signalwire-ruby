@@ -655,3 +655,4 @@ signalwire.pom.pom.Section.numbered_bullets: port-only: Ruby attr_accessor for t
 signalwire.pom.pom.Section.subsections: port-only: Ruby attr_accessor for the subsections list (Python: instance attribute)
 signalwire.pom.pom.Section.title: port-only: Ruby attr_accessor for the section title (Python: instance attribute)
 signalwire.pom.pom.Section.to_h: port-only: Ruby idiom replacing Python's to_dict (which is itself listed in PORT_OMISSIONS.md)
+signalwire.core.agent_base.AgentBase.signing_key: ruby_idiom_port_only: AgentBase exposes a `signing_key` accessor; Python keeps it as private state (no public getter). Public access in Ruby for testability and middleware mounting.
