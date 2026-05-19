@@ -12,6 +12,10 @@ name: Doc Audit (Layer C)
 #   - DOC_AUDIT_IGNORE.md                   (ignored identifiers + rationale)
 #   - port_surface.json                     (the known-symbols surface)
 
+env:
+  # Opt into Node.js 24 ahead of GitHub's 2026-06-02 default switch.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 on:
   push:
     branches: [main]

@@ -10,6 +10,10 @@ name: Surface Audit (Layer B)
 #   - ../porting-sdk/scripts/diff_port_surface.py (the diff tool)
 #   - ../porting-sdk/python_surface.json     (the canonical reference)
 
+env:
+  # Opt into Node.js 24 ahead of GitHub's 2026-06-02 default switch.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 on:
   push:
     branches: [main]
