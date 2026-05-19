@@ -27,3 +27,7 @@ Thumbs.db
 # Environment
 .env
 .env.local
+
+# Python audit-script bytecode (scripts/enumerate_*.py invocations)
+__pycache__/
+*.pyc
