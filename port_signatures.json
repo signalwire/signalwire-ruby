@@ -4205,6 +4205,13 @@
                   "kind": "keyword",
                   "required": false,
                   "default": null
+                },
+                {
+                  "name": "params",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -4300,6 +4307,20 @@
               ],
               "returns": "any"
             },
+            "get_language_params": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "code",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
             "set_function_includes": {
               "params": [
                 {
@@ -4336,6 +4357,25 @@
                 },
                 {
                   "name": "fillers",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "set_language_params": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "code",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "params",
                   "type": "any",
                   "required": true
                 }

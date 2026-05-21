@@ -68,6 +68,89 @@ class AIConfigLanguagesTest < Minitest::Test
   end
 end
 
+# Ports Python 029ca6f: per-language params via add_language(params:),
+# set_language_params, get_language_params. The params key is emitted
+# only when non-empty so existing language entries stay byte-identical.
+class AIConfigPerLanguageParamsTest < Minitest::Test
+  def setup
+    @agent = SignalWire::AgentBase.new
+  end
+
+  def languages
+    @agent.instance_variable_get(:@languages)
+  end
+
+  def test_add_language_with_params_attaches_params
+    @agent.add_language('English', 'en-US', 'josh', engine: 'elevenlabs',
+                        params: { 'stability' => 0.5, 'similarity_boost' => 0.75 })
+    assert_equal({ 'stability' => 0.5, 'similarity_boost' => 0.75 },
+                 languages[0]['params'])
+  end
+
+  def test_add_language_without_params_omits_key
+    @agent.add_language('French', 'fr-FR', 'fr-FR-Neural2-A')
+    refute languages[0].key?('params')
+  end
+
+  def test_add_language_with_empty_params_omits_key
+    @agent.add_language('French', 'fr-FR', 'v', params: {})
+    refute languages[0].key?('params')
+  end
+
+  def test_get_language_params_returns_set_hash
+    @agent.add_language('English', 'en-US', 'v', params: { 'a' => 1 })
+    assert_equal({ 'a' => 1 }, @agent.get_language_params('en-US'))
+  end
+
+  def test_get_language_params_returns_nil_when_unset
+    @agent.add_language('English', 'en-US', 'v')
+    assert_nil @agent.get_language_params('en-US')
+  end
+
+  def test_get_language_params_returns_nil_for_unknown_code
+    assert_nil @agent.get_language_params('zh-CN')
+  end
+
+  def test_set_language_params_replaces_existing
+    @agent.add_language('English', 'en-US', 'v', params: { 'a' => 1 })
+    @agent.set_language_params('en-US', { 'b' => 2 })
+    assert_equal({ 'b' => 2 }, @agent.get_language_params('en-US'))
+  end
+
+  def test_set_language_params_adds_when_unset
+    @agent.add_language('English', 'en-US', 'v')
+    @agent.set_language_params('en-US', { 'c' => 3 })
+    assert_equal({ 'c' => 3 }, @agent.get_language_params('en-US'))
+  end
+
+  def test_set_language_params_empty_hash_removes_key
+    @agent.add_language('English', 'en-US', 'v', params: { 'a' => 1 })
+    @agent.set_language_params('en-US', {})
+    assert_nil @agent.get_language_params('en-US')
+    refute languages[0].key?('params')
+  end
+
+  def test_set_language_params_unknown_code_is_noop
+    @agent.add_language('English', 'en-US', 'v')
+    @agent.set_language_params('zh-CN', { 'a' => 1 })
+    # The known language remains untouched.
+    assert_nil languages[0]['params']
+  end
+
+  def test_set_language_params_returns_self_for_chaining
+    @agent.add_language('English', 'en-US', 'v')
+    assert_same @agent, @agent.set_language_params('en-US', { 'a' => 1 })
+  end
+
+  def test_params_emitted_into_swml_when_present
+    @agent.add_language('English', 'en-US', 'josh', engine: 'elevenlabs',
+                        params: { 'stability' => 0.5 })
+    swml = @agent.render_swml
+    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+    assert_equal({ 'stability' => 0.5 }, ai['languages'][0]['params'])
+  end
+end
+
 class AIConfigPronunciationsTest < Minitest::Test
   def setup
     @agent = SignalWire::AgentBase.new

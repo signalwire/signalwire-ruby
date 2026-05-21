@@ -24,6 +24,13 @@ module SignalWire
           @no_results_msg    = get_param('no_results_message',
             default: "I couldn't find quality results for that query. Try rephrasing your search.")
 
+          # Optional prefix/postfix wrapped around every non-empty search
+          # result. Use these to give the calling agent a mechanical cue
+          # (e.g. "tell the user this came from a public web search")
+          # without needing prompt-side rules. Mirrors Python parity.
+          @response_prefix   = get_param('response_prefix',  default: '')
+          @response_postfix  = get_param('response_postfix', default: '')
+
           return false unless @api_key && !@api_key.empty?
           return false unless @search_engine_id && !@search_engine_id.empty?
           true
@@ -68,7 +75,9 @@ module SignalWire
             'api_key'          => { 'type' => 'string', 'required' => true, 'hidden' => true, 'env_var' => 'GOOGLE_SEARCH_API_KEY' },
             'search_engine_id' => { 'type' => 'string', 'required' => true, 'hidden' => true, 'env_var' => 'GOOGLE_SEARCH_ENGINE_ID' },
             'num_results'      => { 'type' => 'integer', 'default' => 3, 'min' => 1, 'max' => 10 },
-            'no_results_message' => { 'type' => 'string' }
+            'no_results_message' => { 'type' => 'string' },
+            'response_prefix'  => { 'type' => 'string', 'default' => '' },
+            'response_postfix' => { 'type' => 'string', 'default' => '' }
           }
         end
 
@@ -90,7 +99,10 @@ module SignalWire
               "=== RESULT #{i} ===\nTitle: #{r['title']}\nURL: #{r['url']}\nSnippet: #{r['snippet']}\n#{'=' * 50}"
             end.join("\n\n")
 
-            Swaig::FunctionResult.new("Web search results for '#{query}':\n\n#{formatted}")
+            response = "Web search results for '#{query}':\n\n#{formatted}"
+            response = "#{@response_prefix}\n\n#{response}"  unless @response_prefix.nil?  || @response_prefix.empty?
+            response = "#{response}\n\n#{@response_postfix}" unless @response_postfix.nil? || @response_postfix.empty?
+            Swaig::FunctionResult.new(response)
           rescue => e
             Swaig::FunctionResult.new("Sorry, I encountered an error while searching: #{e.message}")
           end

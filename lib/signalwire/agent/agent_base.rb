@@ -733,7 +733,7 @@ module SignalWire
     # @overload add_language(config)
     #   @param config [Hash] preformed language config
     # @overload add_language(name, code, voice, speech_fillers: nil,
-    #   function_fillers: nil, engine: nil, model: nil)
+    #   function_fillers: nil, engine: nil, model: nil, params: nil)
     #   @param name [String] language name (e.g. ``"English"``)
     #   @param code [String] BCP47 language code (e.g. ``"en-US"``)
     #   @param voice [String] voice id or ``engine.voice:model`` string
@@ -743,9 +743,13 @@ module SignalWire
     #     during function calls
     #   @param engine [String, nil] explicit engine override
     #   @param model [String, nil] explicit model override
+    #   @param params [Hash, nil] optional per-language params (engine-
+    #     specific tuning, voice settings, etc.). Emitted as the language
+    #     object's ``params`` key in SWML; the key is only emitted when
+    #     non-empty so existing entries stay byte-identical.
     def add_language(name_or_config, code = nil, voice = nil,
                      speech_fillers: nil, function_fillers: nil,
-                     engine: nil, model: nil)
+                     engine: nil, model: nil, params: nil)
       # Hash form (legacy / direct config)
       if name_or_config.is_a?(Hash) && code.nil? && voice.nil?
         @languages << name_or_config
@@ -778,8 +782,49 @@ module SignalWire
         lang['fillers'] = speech_fillers || function_fillers
       end
 
+      # Per-language params (engine-specific tuning, voice settings,
+      # etc.). Only emit the key when non-empty so we don't pollute
+      # SWML with empty objects.
+      lang['params'] = params if params.is_a?(Hash) && !params.empty?
+
       @languages << lang
       self
+    end
+
+    # Set (or replace) the per-language ``params`` dict on an
+    # already-added language. Useful when language entries are built up
+    # via add_language first and engine-specific tuning is added later
+    # (e.g. from a config loader). Returns self for chaining.
+    #
+    # @param code [String] language code as previously passed to
+    #   ``add_language`` (e.g. ``"en-US"``).
+    # @param params [Hash] engine-specific params hash to attach.
+    #   Empty hash removes the key.
+    # @return [self] No-op if the code isn't found.
+    def set_language_params(code, params)
+      @languages.each do |lang|
+        next unless lang.is_a?(Hash) && lang['code'] == code
+        if params.is_a?(Hash) && !params.empty?
+          lang['params'] = params
+        else
+          lang.delete('params')
+        end
+        break
+      end
+      self
+    end
+
+    # Read the per-language ``params`` hash for a previously-added
+    # language.
+    #
+    # @param code [String] language code as previously passed to ``add_language``.
+    # @return [Hash, nil] the params hash if set, ``nil`` otherwise
+    #   (including when the code is unknown).
+    def get_language_params(code)
+      @languages.each do |lang|
+        return lang['params'] if lang.is_a?(Hash) && lang['code'] == code
+      end
+      nil
     end
 
     def set_languages(languages)
