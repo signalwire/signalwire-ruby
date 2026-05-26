@@ -1,0 +1,5 @@
+run = "ruby -e 'require \"signalwire/version\"; puts SignalWire::VERSION'"
+entrypoint = "README.md"
+
+[nix]
+channel = "stable-24_05"
