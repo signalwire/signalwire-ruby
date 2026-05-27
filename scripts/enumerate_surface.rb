@@ -204,6 +204,30 @@ RUBY_EXCLUDED_CLASSES = %w[
   SignalWire::REST::Namespaces
 ].freeze
 
+# Mixin projections: Ruby collapses Python's mixin classes into
+# SignalWire::AgentBase via include/extend, so AgentBase ends up owning
+# every mixin method. To align with the canonical Python Layer B oracle
+# (which keeps these methods on their mixin classes), we project named
+# methods from AgentBase onto the corresponding mixin module path.
+#
+# Parallels MIXIN_PROJECTIONS in scripts/enumerate_signatures.py — keep
+# the two in sync when methods land on a Python mixin.
+#
+# Only methods that appear here AND are present on AgentBase get
+# projected; missing-on-AgentBase entries are silently skipped so the
+# Layer B diff reports them as real gaps. Projected methods are
+# *removed* from AgentBase so they don't double-count as port additions.
+#
+# Keys: [Python module, Python class]. Values: list of canonical Python
+# method names (i.e. already-translated; Ruby's snake_case method names
+# match here verbatim).
+MIXIN_PROJECTIONS = {
+  ['signalwire.core.mixins.ai_config_mixin', 'AIConfigMixin'] => %w[
+    get_language_params
+    set_language_params
+  ]
+}.freeze
+
 # -----------------------------------------------------------------------------
 # Name translation
 # -----------------------------------------------------------------------------
@@ -363,6 +387,26 @@ def collect_modules(python_index)
     mod, cls = translate_class(name, python_index)
     methods = enumerate_methods(m)
     modules[mod]['classes'][cls] = methods
+  end
+
+  # Mixin projection: take selected methods off AgentBase and emit them
+  # under the canonical Python mixin module/class. Parallels the
+  # MIXIN_PROJECTIONS step in scripts/enumerate_signatures.py — the two
+  # tables must stay in sync.
+  ab_entry = modules['signalwire.core.agent_base']&.[]('classes')&.[]('AgentBase')
+  if ab_entry
+    MIXIN_PROJECTIONS.each do |(target_mod, target_cls), expected|
+      present = expected & ab_entry
+      next if present.empty?
+      modules[target_mod] ||= { 'classes' => {}, 'functions' => [] }
+      modules[target_mod]['classes'][target_cls] ||= []
+      modules[target_mod]['classes'][target_cls] =
+        (modules[target_mod]['classes'][target_cls] + present).uniq.sort
+      ab_entry.reject! { |m| present.include?(m) }
+    end
+    if ab_entry.empty?
+      modules['signalwire.core.agent_base']['classes'].delete('AgentBase')
+    end
   end
 
   # Top-level signalwire functions (Ruby's top-level "def" equivalents). In

@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 451eec936cb14d73a9762af698c32b5fb22f2260",
+  "generated_from": "signalwire-ruby @ 2f870e0b64eefd9910cee3e6b20dbc22b6a55fb2",
   "modules": {
     "signalwire": {
       "classes": {
@@ -314,6 +314,17 @@
       "classes": {
         "LoggingConfig": [
           "get_execution_mode"
+        ]
+      },
+      "functions": [
+
+      ]
+    },
+    "signalwire.core.mixins.ai_config_mixin": {
+      "classes": {
+        "AIConfigMixin": [
+          "get_language_params",
+          "set_language_params"
         ]
       },
       "functions": [
