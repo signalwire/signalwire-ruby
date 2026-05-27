@@ -29,10 +29,10 @@ ruby -c lib/signalwire/agent/agent_base.rb
 bundle install
 
 # Install the gem in development mode
-gem build signalwire.gemspec && gem install signalwire-*.gem
+gem build signalwire-sdk.gemspec && gem install signalwire-sdk-*.gem
 
 # Or add to Gemfile:
-#   gem 'signalwire', path: '.'
+#   gem 'signalwire-sdk', path: '.', require: 'signalwire'
 ```
 
 ### CLI Tools

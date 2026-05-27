@@ -1,6 +1,13 @@
+require_relative 'lib/signalwire/version'
+
+# Published as `signalwire-sdk` on RubyGems because the `signalwire`
+# name belongs to the legacy SignalWire Ruby client (last released
+# 2023-11-02 at v2.5.0, "Ruby client for Signalwire" — a different
+# product from this AI Agents SDK). The library require path stays
+# `require 'signalwire'`, so user code is unchanged.
 Gem::Specification.new do |s|
-  s.name        = 'signalwire'
-  s.version     = '2.0.0'
+  s.name        = 'signalwire-sdk'
+  s.version     = SignalWire::VERSION
   s.summary     = 'SignalWire AI Agents SDK'
   s.description = 'A Ruby framework for building, deploying, and managing AI agents as microservices that interact with the SignalWire platform.'
   s.authors     = ['SignalWire']

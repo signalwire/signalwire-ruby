@@ -11,7 +11,7 @@ _Build AI voice agents, control live calls over WebSocket, and manage every Sign
 <p align="center">
   <a href="https://developer.signalwire.com/sdks/agents-sdk" target="_blank">Documentation</a> &middot;
   <a href="https://github.com/signalwire/signalwire-docs/issues/new/choose" target="_blank">Report an Issue</a> &middot;
-  <a href="https://rubygems.org/gems/signalwire" target="_blank">RubyGems</a>
+  <a href="https://rubygems.org/gems/signalwire-sdk" target="_blank">RubyGems</a>
 </p>
 
 <a href="https://discord.com/invite/F2WNYTNjuF" target="_blank"><img src="https://img.shields.io/badge/Discord%20Community-5865F2" alt="Discord" /></a>
@@ -34,8 +34,10 @@ _Build AI voice agents, control live calls over WebSocket, and manage every Sign
 | **REST Client** | Manage SignalWire resources over HTTP -- phone numbers, SIP endpoints, Fabric AI agents, video rooms, messaging, and 18+ API namespaces | [REST docs](rest/README.md) |
 
 ```bash
-gem install signalwire
+gem install signalwire-sdk
 ```
+
+> Published as `signalwire-sdk` on RubyGems. The require path is still `signalwire`, so `require 'signalwire'` works unchanged.
 
 ---
 
@@ -171,11 +173,13 @@ See the **[REST documentation](rest/README.md)** for the full guide, API referen
 
 ```bash
 # From RubyGems
-gem install signalwire
+gem install signalwire-sdk
 
 # Or in your Gemfile
-gem 'signalwire'
+gem 'signalwire-sdk', require: 'signalwire'
 ```
+
+Published as `signalwire-sdk` on RubyGems (the bare `signalwire` name belongs to the unrelated legacy SignalWire Ruby client). The `require:` hint keeps `require 'signalwire'` working unchanged.
 
 Requires Ruby >= 3.0.
 
