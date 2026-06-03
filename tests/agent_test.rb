@@ -1385,3 +1385,42 @@ class AgentPasswordNotLoggedTest < Minitest::Test
     refute_match(/password: #\{pass\}/, source)
   end
 end
+
+# --- Idiomatic-accessor alias prototype (RUBY_ERGONOMICS_MIGRATION.md) ---
+class AgentBaseIdiomaticAccessorsTest < Minitest::Test
+  def setup
+    @agent = SignalWire::AgentBase.new(name: "test")
+  end
+
+  # The Python-named originals still work (audit parity).
+  def test_python_named_originals_still_work
+    @agent.set_post_prompt('summarize the call')
+    assert_equal 'summarize the call', @agent.get_post_prompt
+  end
+
+  # The idiomatic writer + reader pair (the showcase).
+  def test_post_prompt_idiomatic_writer_and_reader
+    @agent.post_prompt = 'summarize the call'
+    assert_equal 'summarize the call', @agent.post_prompt
+    # And it's the same underlying state the Python-named getter sees.
+    assert_equal 'summarize the call', @agent.get_post_prompt
+  end
+
+  # Writer returns the assigned value (Ruby `=` semantics), not self.
+  def test_writer_returns_assigned_value
+    assert_equal 'x', (@agent.post_prompt = 'x')
+  end
+
+  # prompt_text is a symmetric raw reader/writer pair.
+  def test_prompt_text_pair
+    @agent.prompt_text = 'you are helpful'
+    assert_equal 'you are helpful', @agent.prompt_text
+    assert_equal 'you are helpful', @agent.get_raw_prompt
+  end
+
+  # prompt is a reader-only alias over the computed get_prompt.
+  def test_prompt_reader_alias
+    @agent.prompt_text = 'hello'
+    assert_equal @agent.get_prompt, @agent.prompt
+  end
+end

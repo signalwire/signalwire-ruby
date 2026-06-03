@@ -415,6 +415,37 @@ module SignalWire
       @prompt_text
     end
 
+    # ==================================================================
+    #  Idiomatic Ruby accessors (PROTOTYPE — see RUBY_ERGONOMICS_MIGRATION.md)
+    # ==================================================================
+    # Additive aliases layered over the Python-named originals above. The
+    # `get_`/`set_` methods stay (the cross-port audit matches them 1:1);
+    # these give Ruby callers the native shape: `agent.post_prompt = "..."`
+    # and `agent.prompt`. Every alias is recorded in PORT_ADDITIONS.md as a
+    # port-only symbol. This block prototypes the pattern on the prompt
+    # accessors only; the full rollout is described in the migration doc.
+
+    # Reader: the effective prompt (string in text mode, POM array otherwise).
+    # Alias of #get_prompt. Reader-only — `get_prompt` is a *computed* getter
+    # (raw text vs POM), so there is no symmetric writer; set the raw text via
+    # #prompt_text= or build a POM. This raw-vs-rendered asymmetry is the main
+    # edge case the migration doc calls out.
+    alias_method :prompt, :get_prompt
+
+    # Raw prompt text (whatever #set_prompt_text stored). Symmetric pair.
+    alias_method :prompt_text, :get_raw_prompt
+    # Writer returns the assigned value (Ruby `=` semantics), not self, so it
+    # can't chain — but `=` writers are never chained anyway.
+    def prompt_text=(text)
+      set_prompt_text(text)
+    end
+
+    # Post-prompt text. Clean symmetric reader/writer pair — the showcase case.
+    alias_method :post_prompt, :get_post_prompt
+    def post_prompt=(text)
+      set_post_prompt(text)
+    end
+
     # Returns the contexts dictionary as a serialised hash, or nil when
     # no contexts have been defined yet.
     #

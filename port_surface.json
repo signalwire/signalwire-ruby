@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 2f870e0b64eefd9910cee3e6b20dbc22b6a55fb2",
+  "generated_from": "signalwire-ruby @ f63efdf462e5b8680142fc208fbc413418fabd69",
   "modules": {
     "signalwire": {
       "classes": {
@@ -97,10 +97,13 @@
           "on_function_call",
           "on_summary",
           "pom",
+          "post_prompt",
+          "prompt",
           "prompt_add_section",
           "prompt_add_subsection",
           "prompt_add_to_section",
           "prompt_has_section?",
+          "prompt_text",
           "rack_app",
           "register_sip_username",
           "register_swaig_function",
