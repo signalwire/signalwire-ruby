@@ -4,7 +4,7 @@
 
 SWML (SignalWire Markup Language) is a JSON document format that defines how an agent behaves during a call -- 30+ verbs, an AI verb with dozens of parameters, SWAIG (SignalWire AI Gateway) function definitions with JSON Schema, post-prompt URLs, webhook authentication, language arrays, pronunciation rules, hints, global data, contexts, steps, gather configs. Writing it by hand means constructing deeply nested JSON, manually building authenticated webhook URLs, hand-coding parameter schemas, and deploying separate webhook servers for your tools. Every agent becomes a bespoke JSON engineering project.
 
-The SDK eliminates all of this. You write Python. The SDK generates correct SWML, serves it over HTTP, and handles its own webhook callbacks -- all in one process, deployable to any platform.
+The SDK eliminates all of this. You write Ruby. The SDK generates correct SWML, serves it over HTTP, and handles its own webhook callbacks -- all in one process, deployable to any platform.
 
 ---
 
@@ -26,25 +26,25 @@ Call ends → SignalWire POSTs analytics to agent's /post_prompt/ endpoint
 
 The agent auto-detects its own public URL -- including behind ngrok, load balancers, API Gateway, or any reverse proxy (via `X-Forwarded-Host`, `Forwarded` header, or `SWML_PROXY_URL_BASE` env var). It embeds Basic Auth credentials directly into the webhook URLs. It generates per-call security tokens for each function. The developer writes none of this:
 
-```python
-from signalwire import AgentBase
+```ruby
+require 'signalwire'
 
-class WeatherAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="weather", route="/weather")
-        self.prompt_add_section("Role", body="You help with weather.")
+agent = SignalWire::AgentBase.new(name: 'weather', route: '/weather')
+agent.prompt_add_section('Role', 'You help with weather.')
 
-    @AgentBase.tool(name="get_weather", description="Get weather",
-                    parameters={"type": "object",
-                                "properties": {"city": {"type": "string"}},
-                                "required": ["city"]})
-    def get_weather(self, args, raw_data):
-        city = args["city"]
-        # ... fetch weather ...
-        return SwaigFunctionResult(f"72°F and sunny in {city}")
+agent.define_tool(
+  name:        'get_weather',
+  description: 'Get weather',
+  parameters:  {
+    'city' => { 'type' => 'string', 'description' => 'The city to look up' }
+  }
+) do |args, _raw_data|
+  city = args['city']
+  # ... fetch weather ...
+  SignalWire::Swaig::FunctionResult.new("72F and sunny in #{city}")
+end
 
-agent = WeatherAgent()
-agent.run()
+agent.run
 ```
 
 That's a complete agent: HTTP server, SWML generation, authenticated webhook routing, function execution, and response formatting. The generated SWML contains the full AI configuration, function schemas, and webhook URLs pointing back to the running process -- all computed automatically.
@@ -55,13 +55,13 @@ That's a complete agent: HTTP server, SWML generation, authenticated webhook rou
 
 Raw SWML prompts are flat strings. The SDK provides structured prompt building:
 
-```python
-agent.prompt_add_section("Role", body="You are a travel booking assistant.")
-agent.prompt_add_section("Rules",
-    bullets=["Never make up flight information",
-             "Always confirm before booking",
-             "Use the search tool for real data"])
-agent.prompt_add_section("Personality", body="Friendly but professional.")
+```ruby
+agent.prompt_add_section('Role', 'You are a travel booking assistant.')
+agent.prompt_add_section('Rules', nil,
+    bullets: ['Never make up flight information',
+              'Always confirm before booking',
+              'Use the search tool for real data'])
+agent.prompt_add_section('Personality', 'Friendly but professional.')
 ```
 
 POM sections are rendered by the platform into a format the LLM understands with proper hierarchy. You can add subsections, append to existing sections, check if sections exist, and compose prompts programmatically -- including from skills that inject their own sections.
@@ -70,59 +70,48 @@ POM sections are rendered by the platform into a format the LLM understands with
 
 ## Tools: Three Ways
 
-### 1. Decorated Functions (Local Execution)
+### 1. Block-Defined Functions (Local Execution)
 
-```python
-@AgentBase.tool(name="lookup_order", description="Look up an order",
-                parameters={"type": "object",
-                            "properties": {"order_id": {"type": "string"}},
-                            "required": ["order_id"]})
-def lookup_order(self, args, raw_data):
-    order = db.get(args["order_id"])
-    result = SwaigFunctionResult(f"Order {order.id}: {order.status}")
-    result.add_action("set_global_data", {"current_order": order.to_dict()})
-    return result
+```ruby
+agent.define_tool(
+  name:        'lookup_order',
+  description: 'Look up an order',
+  parameters:  {
+    'order_id' => { 'type' => 'string', 'description' => 'The order ID to look up' }
+  }
+) do |args, _raw_data|
+  order  = db.get(args['order_id'])
+  result = SignalWire::Swaig::FunctionResult.new("Order #{order.id}: #{order.status}")
+  result.update_global_data('current_order' => order.to_h)
+  result
+end
 ```
 
 The SDK converts this into a SWAIG function definition with JSON Schema parameters, creates a secure webhook URL, routes inbound POST requests to the handler, parses arguments, and formats the response -- including the 20+ SWAIG actions (transfer, hold, context_switch, toggle_functions, etc.) that tools can return.
 
-Decorated functions also support **type-hinted parameters** -- skip the JSON Schema and let the SDK infer it from Python type hints:
-
-```python
-@AgentBase.tool(name="lookup_order")
-def lookup_order(self, order_id: str):
-    """Look up an order by ID.
-
-    Args:
-        order_id: The order identifier
-    """
-    order = db.get(order_id)
-    return SwaigFunctionResult(f"Order {order.id}: {order.status}")
-```
-
-The SDK infers the parameter schema, required fields, and description from the function signature and docstring. Explicit `parameters=` always takes precedence.
+In the Ruby SDK you always declare the parameter schema explicitly via the `parameters:` keyword, as shown above. (The Python reference also offers inferring the schema from function type hints and docstrings; Ruby has no equivalent introspection, so the `parameters:` hash is the single source of truth for a tool's arguments.)
 
 ### 2. DataMap (Server-Side Execution)
 
-```python
-data_map = (DataMap("check_stock")
-    .purpose("Check product stock levels")
-    .parameter("sku", "string", "Product SKU", required=True)
-    .webhook("GET", "https://api.warehouse.com/stock/${args.sku}")
-    .output(SwaigFunctionResult("Stock for ${args.sku}: ${response.quantity} units"))
-    .fallback_output(SwaigFunctionResult("Could not check stock right now")))
+```ruby
+data_map = SignalWire::DataMap.new('check_stock')
+           .purpose('Check product stock levels')
+           .parameter('sku', 'string', 'Product SKU', required: true)
+           .webhook('GET', 'https://api.warehouse.com/stock/${args.sku}')
+           .output(SignalWire::Swaig::FunctionResult.new('Stock for ${args.sku}: ${response.quantity} units'))
+           .fallback_output(SignalWire::Swaig::FunctionResult.new('Could not check stock right now'))
 
-agent.register_swaig_function(data_map.to_swaig_function())
+agent.register_swaig_function(data_map.to_swaig_function)
 ```
 
 DataMap tools execute on SignalWire's servers -- no webhook needed. The SDK generates the `data_map` structure in the SWML with variable expansion (`${args.*}`, `${response.*}`, `${global_data.*}`), foreach iteration, expression matching, and error handling. Your agent never receives the callback; SignalWire handles the entire API call.
 
 ### 3. Skills (Packaged Integrations)
 
-```python
-agent.add_skill("web_search", {"api_key": "...", "engine_id": "..."})
-agent.add_skill("datetime")
-agent.add_skill("math")
+```ruby
+agent.add_skill('web_search', 'api_key' => '...', 'engine_id' => '...')
+agent.add_skill('datetime')
+agent.add_skill('math')
 ```
 
 One line. The skill auto-registers its tools, injects prompt sections, adds speech hints, and validates dependencies. No manual wiring.
@@ -133,17 +122,17 @@ One line. The skill auto-registers its tools, injects prompt sections, adds spee
 
 Skills are self-contained modules that package tools, prompts, hints, and configuration into a single `add_skill()` call. Each skill:
 
-- Inherits from `SkillBase` with required `setup()` and `register_tools()` methods
-- Declares `REQUIRED_PACKAGES` and `REQUIRED_ENV_VARS` for dependency validation
-- Calls `self.define_tool()` to register SWAIG functions
-- Can inject prompt sections via `get_prompt_sections()`
-- Can provide speech hints via `get_hints()`
-- Can contribute global data via `get_global_data()`
+- Inherits from `SkillBase` with `setup` and `register_tools` methods
+- Declares `required_env_vars` for dependency validation
+- Calls `define_tool` to register SWAIG functions
+- Can inject prompt sections via `get_prompt_sections`
+- Can provide speech hints via `get_hints`
+- Can contribute global data via `get_global_data`
 - Supports multiple instances with different configs (e.g., two `web_search` skills with different engines)
 
 **Built-in skills:** `datetime`, `math`, `web_search`, `wikipedia_search`, `weather_api`, `google_maps`, `datasphere`, `datasphere_serverless`, `native_vector_search`, `spider`, `mcp_gateway`, `swml_transfer`, `play_background_file`, `info_gatherer`, `api_ninjas_trivia`, `joke`, `claude_skills`.
 
-The elegance is composability: skills don't know about each other, but they all register cleanly into the same agent. A single agent can combine web search, datetime, a custom booking tool, and a DataMap stock checker -- all declared in `__init__`, all generating correct SWML with proper function definitions, all routed to the right handler.
+The elegance is composability: skills don't know about each other, but they all register cleanly into the same agent. A single agent can combine web search, datetime, a custom booking tool, and a DataMap stock checker -- all declared as you configure the agent, all generating correct SWML with proper function definitions, all routed to the right handler.
 
 ---
 
@@ -151,26 +140,26 @@ The elegance is composability: skills don't know about each other, but they all 
 
 The contexts/steps system lets you define structured workflows declaratively. Instead of hoping the LLM follows instructions about conversation flow, you mechanically enforce it:
 
-```python
-ctx = agent.define_contexts()
+```ruby
+ctx = agent.define_contexts
 
-greeting = ctx.add_context("default")
-step1 = greeting.add_step("welcome")
-step1.set_text("Greet the user and ask how you can help.")
-step1.set_valid_steps(["collect_info"])
-step1.set_functions(["check_hours"])  # Only this tool available here
+greeting = ctx.add_context('default')
+step1 = greeting.add_step('welcome')
+step1.text = 'Greet the user and ask how you can help.'
+step1.valid_steps = %w[collect_info]
+step1.functions = %w[check_hours]  # Only this tool available here
 
-step2 = greeting.add_step("collect_info")
-step2.set_text("Collect the user's name and email.")
-step2.set_step_criteria("User has provided both name and email")
-step2.set_gather_info("user_profile")
-step2.add_gather_question("name", "What is your name?", type="string")
-step2.add_gather_question("email", "What is your email?", type="string", confirm=True)
-step2.set_valid_steps(["confirm"])
+step2 = greeting.add_step('collect_info')
+step2.text = "Collect the user's name and email."
+step2.step_criteria = 'User has provided both name and email'
+step2.set_gather_info(output_key: 'user_profile')
+step2.add_gather_question(key: 'name',  question: 'What is your name?',  type: 'string')
+step2.add_gather_question(key: 'email', question: 'What is your email?', type: 'string', confirm: true)
+step2.valid_steps = %w[confirm]
 
-step3 = greeting.add_step("confirm")
-step3.set_text("Confirm the information and say goodbye.")
-step3.set_functions("none")  # No tools -- just confirm and end
+step3 = greeting.add_step('confirm')
+step3.text = 'Confirm the information and say goodbye.'
+step3.functions = 'none'  # No tools -- just confirm and end
 ```
 
 This generates SWML with a complete contexts/steps structure. The platform enforces navigation rules, restricts which functions are available at each step, collects structured data with typed questions and confirmation, and tracks transitions with trigger attribution in the enriched call_log. The LLM can't skip steps, can't call restricted tools, and can't navigate to disallowed contexts -- not because it was told not to, but because the mechanisms don't exist in its world. This is PGI (Programmatically Governed Inference) in practice.
@@ -199,18 +188,18 @@ PGI is enforced through four layers of constraint, each operating independently.
 
 ### PGI in Practice: Blackjack
 
-```python
-betting = ctx.add_step("betting")
-betting.set_functions(["place_bet"])
-betting.set_valid_steps(["playing"])
+```ruby
+betting = ctx.add_step('betting')
+betting.functions = %w[place_bet]
+betting.valid_steps = %w[playing]
 
-playing = ctx.add_step("playing")
-playing.set_functions(["hit", "stand", "double_down"])
-playing.set_valid_steps(["hand_complete"])
+playing = ctx.add_step('playing')
+playing.functions = %w[hit stand double_down]
+playing.valid_steps = %w[hand_complete]
 
-lost = ctx.add_step("you_lost")
-lost.set_functions([])
-lost.set_valid_steps([])
+lost = ctx.add_step('you_lost')
+lost.functions = []
+lost.valid_steps = []
 ```
 
 During the betting step, the model can only call `place_bet`. It cannot deal cards, draw cards, or resolve hands because those functions are not in its schema. When the tool handler transitions to the playing step, `place_bet` disappears and `hit`, `stand`, `double_down` appear. The model's capabilities change not because it was told to behave differently, but because the available operations were mechanically replaced.
@@ -219,22 +208,22 @@ The `you_lost` step has zero functions and zero valid transitions. The game is o
 
 The tool handler demonstrates execution authority -- the model has no idea a step change is about to happen:
 
-```python
-def handle_hit(args, raw_data):
-    game = raw_data["global_data"]["game_state"]
-    card = game["deck"].pop()
-    game["player_hand"].append(card)
-    score = calculate_hand(game["player_hand"])
+```ruby
+agent.define_tool(name: 'hit', description: 'Draw another card') do |_args, raw_data|
+  game = raw_data['global_data']['game_state']
+  card = game['deck'].pop
+  game['player_hand'] << card
+  score = calculate_hand(game['player_hand'])
 
-    result = SwaigFunctionResult(
-        f"You drew {format_card(card)}. Your total is {score}."
-    )
-    result.update_global_data({"game_state": game})
+  result = SignalWire::Swaig::FunctionResult.new(
+    "You drew #{format_card(card)}. Your total is #{score}."
+  )
+  result.update_global_data('game_state' => game)
 
-    if score > 21:
-        result.swml_change_step("you_lost")
+  result.swml_change_step('you_lost') if score > 21
 
-    return result
+  result
+end
 ```
 
 The model speaks the result. The platform changes the step. The model's world changes without its participation.
@@ -257,41 +246,50 @@ The SDK's contexts/steps/function restrictions are the primitives that make PGI 
 
 ## Deployment: One `run()` Call
 
-```python
-agent = MyAgent()
-agent.run()
+```ruby
+agent = SignalWire::AgentBase.new(name: 'my_agent', route: '/')
+# ... configure prompt, tools, skills ...
+agent.run
 ```
 
 That single call auto-detects the environment and does the right thing:
 
 | Environment | Detection | What Happens |
 |-------------|-----------|--------------|
-| **Standalone** | Default | Starts uvicorn HTTP server with FastAPI |
-| **AWS Lambda** | Lambda context object | Returns Lambda-formatted response |
-| **Google Cloud Functions** | GCF environment markers | Returns Flask-compatible response |
-| **Azure Functions** | Azure context object | Returns Azure HttpResponse |
-| **CGI** | CGI environment variables | Reads stdin, writes stdout |
+| **Standalone** | Default | Starts a WEBrick HTTP server (Rack) |
+| **AWS Lambda** | `AWS_LAMBDA_FUNCTION_NAME` env var | Returns a Lambda-formatted response Hash |
+| **CGI** | `GATEWAY_INTERFACE` env var | Reads the request env, writes the response to stdout |
+| **Google Cloud Functions** | GCF environment markers | Detected by `Runtime`; served via the standard HTTP server |
+| **Azure Functions** | Azure environment markers | Detected by `Runtime`; served via the standard HTTP server |
 
-Each mode handles authentication differently (HTTP Basic Auth, API Gateway authorizers, function-level auth), constructs webhook URLs using the correct public endpoint (Lambda function URL, GCF URL, Azure app URL), and formats request/response bodies per platform. You write one agent, deploy it anywhere.
+Each mode handles authentication differently (HTTP Basic Auth, API Gateway authorizers, function-level auth), constructs webhook URLs using the correct public endpoint, and formats request/response bodies per platform. You write one agent, deploy it anywhere.
+
+In the Ruby port, `agent.run` ships dedicated request/response handling for **Lambda** and **CGI**; Google Cloud Functions and Azure Functions are recognised by the runtime detector but currently fall through to the standard HTTP server rather than emitting a platform-native response shape. (The Python reference additionally returns Flask-compatible and Azure `HttpResponse` objects for those two platforms.)
 
 For standalone mode, the SDK provides:
 - Kubernetes health (`/health`) and readiness (`/ready`) probes
-- SSL/TLS support via `SWML_SSL_ENABLED`, `SWML_SSL_CERT`, `SWML_SSL_KEY`
-- CORS configuration
-- Debug endpoint (`/debug`) for inspection
+- SSL/TLS support via the `serve(ssl_enabled:, ssl_cert:, ssl_key:)` keyword arguments
+- Debug events endpoint (`/debug_events`) for inspection
+
+(The Python reference additionally exposes SSL via `SWML_SSL_*` env vars and a CORS configuration option; the Ruby port has neither -- configure SSL through `serve` keyword arguments instead.)
 
 ---
 
 ## Multi-Agent Hosting
 
-```python
-from signalwire import AgentServer
+```ruby
+require 'signalwire'
 
-server = AgentServer(host="0.0.0.0", port=3000)
-server.register(SalesAgent(), "/sales")
-server.register(SupportAgent(), "/support")
-server.register(TriageAgent(), "/triage")
-server.run()
+sales   = SignalWire::AgentBase.new(name: 'sales',   route: '/sales')
+support = SignalWire::AgentBase.new(name: 'support', route: '/support')
+triage  = SignalWire::AgentBase.new(name: 'triage',  route: '/triage')
+# ... configure each agent's prompt, tools, skills ...
+
+server = SignalWire::AgentServer.new(host: '0.0.0.0', port: 3000)
+server.register(sales)
+server.register(support)
+server.register(triage)
+server.run
 ```
 
 One process, multiple agents, route-based dispatch. Each agent gets its own SWML endpoint and SWAIG callback routing. SIP routing can map usernames to specific agents.
@@ -300,16 +298,14 @@ One process, multiple agents, route-based dispatch. Each agent gets its own SWML
 
 ## Dynamic Configuration and Multi-Tenancy
 
-```python
-def tenant_config(query_params, body_params, headers, agent):
-    tenant = headers.get("X-Tenant-ID", "default")
-    config = load_tenant_config(tenant)
-    agent.prompt_add_section("Company", body=config["company_info"])
-    agent.set_global_data({"tenant_id": tenant, "tier": config["tier"]})
-    if config["tier"] == "premium":
-        agent.add_skill("advanced_search")
-
-agent.set_dynamic_config_callback(tenant_config)
+```ruby
+agent.set_dynamic_config_callback do |_query_params, _body, headers, ephemeral|
+  tenant = headers['X-Tenant-ID'] || 'default'
+  config = load_tenant_config(tenant)
+  ephemeral.prompt_add_section('Company', config['company_info'])
+  ephemeral.global_data = { 'tenant_id' => tenant, 'tier' => config['tier'] }
+  ephemeral.add_skill('advanced_search') if config['tier'] == 'premium'
+end
 ```
 
 Each inbound request creates an **ephemeral copy** of the agent. The callback customizes it per-request -- different prompts, skills, global data, languages, tools. The original agent is unchanged. This enables multi-tenancy from a single deployment: one agent instance serves hundreds of tenants with tailored behavior.
@@ -318,23 +314,23 @@ Each inbound request creates an **ephemeral copy** of the agent. The callback cu
 
 ## Search System
 
-The SDK includes a complete hybrid search engine for local knowledge bases:
+The SDK includes a hybrid search engine for local knowledge bases:
 
-**Building indexes:**
+**Building indexes:** The `native_vector_search` skill consumes a prebuilt `.swsearch` index. The Ruby port does not ship the `sw-search` index-building CLI (that command-line builder is only available in the Python reference); build the `.swsearch` file with the Python `sw-search` tool, then deploy it alongside your Ruby agent. The Python CLI looks like:
+
 ```bash
 sw-search ./docs --output knowledge.swsearch
-sw-search ./docs ./examples --file-types md,txt,py --chunking-strategy sentence
+sw-search ./docs ./examples --file-types md,txt,rb --chunking-strategy sentence
 sw-search validate ./knowledge.swsearch
 sw-search search ./knowledge.swsearch "how do I configure SSL?"
 ```
 
 **In agents:**
-```python
-agent.add_skill("native_vector_search", {
-    "index_path": "knowledge.swsearch",
-    "tool_name": "search_docs",
-    "description": "Search product documentation"
-})
+```ruby
+agent.add_skill('native_vector_search',
+  'index_path'  => 'knowledge.swsearch',
+  'tool_name'   => 'search_docs',
+  'description' => 'Search product documentation')
 ```
 
 The search system supports:
@@ -343,7 +339,7 @@ The search system supports:
 - **Embedding models:** mini (384d, fast), base (768d), large
 - **Hybrid search:** Vector similarity + keyword matching + filename search + metadata search
 - **Backends:** SQLite (`.swsearch` files for local/serverless) or PostgreSQL (pgvector for production)
-- **Installation tiers:** `search-queryonly` (~400MB, query only), `search` (~500MB, basic), `search-full` (~600MB, document processing), `search-all` (~700MB, everything)
+- **Installation:** the Ruby gem queries prebuilt indexes out of the box -- no extra install tiers. (The Python reference splits index building/document processing into `pip` extras such as `search-queryonly`, `search`, `search-full`, and `search-all`; that tiering is a Python-packaging concept and does not apply to the Ruby gem.)
 
 The `.swsearch` format is a self-contained SQLite database with embeddings, chunks, and metadata -- deploy it alongside your agent to Lambda or any serverless platform.
 
@@ -353,23 +349,25 @@ The `.swsearch` format is a self-contained SQLite database with embeddings, chun
 
 Production-ready patterns for common use cases:
 
-```python
-from signalwire.prefabs import InfoGathererAgent, ReceptionistAgent
+```ruby
+require 'signalwire'
 
 # Collect structured data
-agent = InfoGathererAgent(questions=[
-    {"key_name": "name", "question_text": "What is your name?"},
-    {"key_name": "issue", "question_text": "Describe your issue", "confirm": True}
+gatherer = SignalWire::Prefabs::InfoGatherer.new(questions: [
+  { 'key_name' => 'name',  'question_text' => 'What is your name?' },
+  { 'key_name' => 'issue', 'question_text' => 'Describe your issue', 'confirm' => true }
 ])
 
 # Route calls to departments
-agent = ReceptionistAgent(departments=[
-    {"name": "Sales", "number": "+15551234567", "description": "Product inquiries"},
-    {"name": "Support", "number": "+15559876543", "description": "Technical help"}
+receptionist = SignalWire::Prefabs::Receptionist.new(departments: [
+  { 'name' => 'Sales',   'number' => '+15551234567', 'description' => 'Product inquiries' },
+  { 'name' => 'Support', 'number' => '+15559876543', 'description' => 'Technical help' }
 ])
 ```
 
-Five prefabs: **InfoGatherer**, **Survey**, **Receptionist**, **FAQ**, **Concierge**. Each generates complete SWML with appropriate prompts, tools, and workflows. You instantiate, customize, deploy.
+In the Ruby port a prefab is a helper object rather than an `AgentBase` subclass: it produces the prompt sections, global data, and tool handlers that you wire into a plain `SignalWire::AgentBase.new(...)` for serving (the `examples/info_gatherer_example.rb` and `examples/receptionist_agent_example.rb` files show the full wiring).
+
+Five prefabs: **InfoGatherer**, **Survey**, **Receptionist**, **FaqBot**, **Concierge**. Each generates complete SWML with appropriate prompts, tools, and workflows. You instantiate, customize, deploy.
 
 ---
 
@@ -377,39 +375,39 @@ Five prefabs: **InfoGatherer**, **Survey**, **Receptionist**, **FAQ**, **Concier
 
 Everything the platform supports, the SDK exposes as methods:
 
-```python
+```ruby
 # LLM tuning
-agent.set_prompt_llm_params(temperature=0.3, top_p=0.9, barge_confidence=0.7)
+agent.set_prompt_llm_params(temperature: 0.3, top_p: 0.9, barge_confidence: 0.7)
 
 # Multi-language
-agent.add_language("Spanish", "es", "google.es-ES-Neural2-A",
-                   speech_fillers=["Un momento..."], function_fillers=["Buscando..."])
+agent.add_language('Spanish', 'es', 'google.es-ES-Neural2-A',
+                   speech_fillers: ['Un momento...'], function_fillers: ['Buscando...'])
 
 # Speech recognition
-agent.add_hints(["SignalWire", "SWML", "SWAIG"])
-agent.add_pronunciation("SignalWire", "Signal Wire")
+agent.add_hints(%w[SignalWire SWML SWAIG])
+agent.add_pronunciation('SignalWire', 'Signal Wire')
 
 # Vision, thinking, inner dialog
-agent.set_params({"enable_vision": True, "vision_model": "gpt-4o"})
-agent.set_params({"enable_thinking": True, "thinking_model": "o4-mini"})
+agent.params = { 'enable_vision' => true, 'vision_model' => 'gpt-4o' }
+agent.params = { 'enable_thinking' => true, 'thinking_model' => 'o4-mini' }
 
 # Interruption control
-agent.set_params({
-    "barge_match_string": "^(stop|cancel|nevermind)$",
-    "barge_min_words": 2,
-    "barge_confidence": 0.8
-})
+agent.set_params(
+  'barge_match_string' => '^(stop|cancel|nevermind)$',
+  'barge_min_words'    => 2,
+  'barge_confidence'   => 0.8
+)
 
 # Native functions with custom fillers
-agent.set_native_functions(["check_time", "wait_for_user"])
-agent.add_internal_filler("check_time", "en", ["Let me check the time..."])
+agent.native_functions = %w[check_time wait_for_user]
+agent.add_internal_filler('check_time', 'en', ['Let me check the time...'])
 
-# Call recording — enable when constructing the agent:
-# AgentBase.new(name: "my-agent", record_call: true)
+# Call recording -- enable when constructing the agent:
+# SignalWire::AgentBase.new(name: 'my-agent', record_call: true)
 
 # Call flow verbs
-agent.add_pre_answer_verb("play", {"url": "ringback.wav"})
-agent.add_post_ai_verb("hangup", {})
+agent.add_pre_answer_verb('play', { 'url' => 'ringback.wav' })
+agent.add_post_ai_verb('hangup', {})
 ```
 
 Each of these would require understanding and manually constructing the correct SWML JSON structure. The SDK provides named methods with proper defaults.
@@ -422,21 +420,23 @@ Test without deploying:
 
 ```bash
 # List available tools
-swaig-test my_agent.py --list-tools
+swaig-test my_agent.rb --list-tools
 
-# Execute a specific tool
-swaig-test my_agent.py --exec get_weather --city "San Francisco"
+# Execute a specific tool (function arguments are passed as --param key=value)
+swaig-test my_agent.rb --exec get_weather --param city="San Francisco"
 
 # Dump generated SWML for inspection
-swaig-test my_agent.py --dump-swml
+swaig-test my_agent.rb --dump-swml
 
 # Test with serverless environment simulation
-swaig-test my_agent.py --simulate-serverless lambda --dump-swml
+swaig-test my_agent.rb --simulate-serverless lambda --dump-swml
 
-# Multi-agent: select by route or class
-swaig-test multi_agent.py --route /support --list-tools
-swaig-test multi_agent.py --agent-class SalesAgent --exec check_inventory
+# Multi-agent: run the server, then target a specific agent's route by URL
+swaig-test --url http://user:pass@localhost:3000/support --list-tools
+swaig-test --url http://user:pass@localhost:3000/sales --exec check_inventory
 ```
+
+The Ruby `swaig-test` simulates the `lambda` serverless platform and passes function arguments via repeatable `--param key=value` flags. (The Python reference also offers `--route` / `--agent-class` selectors for picking an agent out of a multi-agent file in-process; the Ruby CLI has no such selectors -- point `--url` at the running agent's route instead.)
 
 ---
 
@@ -448,7 +448,7 @@ The SDK handles auth automatically:
 - **Environment variables:** `SWML_BASIC_AUTH_USER` / `SWML_BASIC_AUTH_PASSWORD`
 - **Embedded in URLs:** Webhook URLs include `user:pass@host` automatically
 - **Per-function tokens:** Secure functions get `__token=...` query params with expiration
-- **Platform-specific:** Different auth handling for Lambda, CGI, GCF, Azure (each platform has its own auth mechanism)
+- **Platform-specific:** Auth is applied per execution mode -- the standard HTTP server and the Lambda/CGI handlers each enforce Basic Auth on inbound requests
 
 ---
 
@@ -456,22 +456,22 @@ The SDK handles auth automatically:
 
 | Capability | Without SDK | With SDK |
 |-----------|-------------|----------|
-| SWML document | Hand-craft JSON | Auto-generated from Python |
+| SWML document | Hand-craft JSON | Auto-generated from Ruby |
 | Webhook server | Build and deploy separately | Built into the agent process |
-| URL routing | Manual FastAPI/Flask setup | Automatic route registration |
+| URL routing | Manual Rack/WEBrick setup | Automatic route registration |
 | Auth tokens | Manual JWT/token system | Auto-generated per call/function |
 | Proxy detection | Parse headers yourself | Automatic (ngrok, LB, CDN) |
-| Tool schemas | Write JSON Schema by hand | `@tool` decorator or `define_tool()` |
-| Serverless deploy | Platform-specific handler code | `agent.run()` auto-detects |
-| Multi-language | Manually construct language arrays | `add_language()` one-liner |
-| State machine | Manually build contexts JSON | Fluent `define_contexts()` API |
-| Structured data collection | Build gather configs by hand | `add_gather_question()` chain |
-| Search/RAG | Build entire pipeline | `add_skill("native_vector_search")` |
+| Tool schemas | Write JSON Schema by hand | `define_tool` block |
+| Serverless deploy | Platform-specific handler code | `agent.run` auto-detects |
+| Multi-language | Manually construct language arrays | `add_language` one-liner |
+| State machine | Manually build contexts JSON | Fluent `define_contexts` API |
+| Structured data collection | Build gather configs by hand | `add_gather_question` chain |
+| Search/RAG | Build entire pipeline | `add_skill('native_vector_search')` |
 | Multi-agent | Separate deployments + router | `AgentServer` with route registration |
-| Dynamic config | Custom middleware | `set_dynamic_config_callback()` |
-| Post-call analytics | Parse raw webhook payload | `on_summary()` callback |
+| Dynamic config | Custom middleware | `set_dynamic_config_callback` block |
+| Post-call analytics | Parse raw webhook payload | `on_summary` callback |
 | Health checks | Manual endpoints | Built-in `/health` and `/ready` |
-| Call recording | Manual SWML verb insertion | `enable_record_call()` |
-| SSL/TLS | Manual cert configuration | Env var driven |
+| Call recording | Manual SWML verb insertion | `record_call: true` constructor option |
+| SSL/TLS | Manual cert configuration | `serve(ssl_enabled:, ssl_cert:, ssl_key:)` |
 
-The SDK turns what would be a multi-file infrastructure project into a single Python class. The SWML is correct by construction. The webhooks route themselves. The auth is automatic. The deployment is universal. The developer focuses on what the agent should *do*, not how to wire it together.
+The SDK turns what would be a multi-file infrastructure project into a few lines of Ruby. The SWML is correct by construction. The webhooks route themselves. The auth is automatic. The deployment is universal. The developer focuses on what the agent should *do*, not how to wire it together.

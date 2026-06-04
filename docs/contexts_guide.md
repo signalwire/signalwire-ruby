@@ -73,13 +73,13 @@ When entering a context, these parameters control conversation behavior:
 
 Contexts can have their own prompts (separate from entry parameters):
 
-```python
+```ruby
 # Simple string prompt
-context.set_prompt("Context-specific guidance")
+context.prompt = 'Context-specific guidance'
 
-# POM-style sections  
-context.add_section("Department", "Billing Department")
-context.add_bullets("Services", ["Payments", "Refunds", "Account inquiries"])
+# POM-style sections
+context.add_section('Department', 'Billing Department')
+context.add_bullets('Services', %w[Payments Refunds] + ['Account inquiries'])
 ```
 
 Context prompts provide guidance that applies to all steps within that context, creating a prompt hierarchy: Base Agent Prompt → Context Prompt → Step Prompt.
@@ -106,107 +106,95 @@ The system provides fine-grained control over conversation flow:
 
 ### Basic Single-Context Workflow
 
-```python
-from signalwire import AgentBase
+```ruby
+require 'signalwire'
 
-class OnboardingAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="Onboarding Assistant", route="/onboarding")
-        
-        # Define contexts (replaces traditional prompt setup)
-        contexts = self.define_contexts()
-        
-        # Single context must be named "default"
-        workflow = contexts.add_context("default")
-        
-        # Step 1: Welcome
-        workflow.add_step("welcome") \
-            .set_text("Welcome to our service! Let's get you set up. What's your name?") \
-            .set_step_criteria("User has provided their name") \
-            .set_valid_steps(["collect_email"])
-        
-        # Step 2: Collect Email
-        workflow.add_step("collect_email") \
-            .set_text("Thanks! Now I need your email address to create your account.") \
-            .set_step_criteria("Valid email address has been provided") \
-            .set_valid_steps(["confirm_details"])
-        
-        # Step 3: Confirmation
-        workflow.add_step("confirm_details") \
-            .set_text("Perfect! Let me confirm your details before we proceed.") \
-            .set_step_criteria("User has confirmed their information") \
-            .set_valid_steps(["complete"])
-        
-        # Step 4: Completion
-        workflow.add_step("complete") \
-            .set_text("All set! Your account has been created successfully.")
-            # No valid_steps = end of workflow
+agent = SignalWire::AgentBase.new(name: 'Onboarding Assistant', route: '/onboarding')
 
-agent = OnboardingAgent()
-agent.run()
+# Define contexts (replaces traditional prompt setup)
+contexts = agent.define_contexts
 
-if __name__ == "__main__":
-    main()
+# Single context must be named "default"
+workflow = contexts.add_context('default')
+
+# Step 1: Welcome
+workflow.add_step('welcome')
+        .set_text("Welcome to our service! Let's get you set up. What's your name?")
+        .set_step_criteria('User has provided their name')
+        .set_valid_steps(%w[collect_email])
+
+# Step 2: Collect Email
+workflow.add_step('collect_email')
+        .set_text('Thanks! Now I need your email address to create your account.')
+        .set_step_criteria('Valid email address has been provided')
+        .set_valid_steps(%w[confirm_details])
+
+# Step 3: Confirmation
+workflow.add_step('confirm_details')
+        .set_text('Perfect! Let me confirm your details before we proceed.')
+        .set_step_criteria('User has confirmed their information')
+        .set_valid_steps(%w[complete])
+
+# Step 4: Completion
+workflow.add_step('complete')
+        .set_text('All set! Your account has been created successfully.')
+# No valid_steps = end of workflow
+
+agent.run
 ```
 
 ### Multi-Context Workflow
 
-```python
-class CustomerServiceAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="Customer Service", route="/service")
-        
-        # Add skills for enhanced capabilities
-        self.add_skill("datetime")
-        self.add_skill("web_search", {
-            "api_key": "your-api-key",
-            "search_engine_id": "your-engine-id"
-        })
-        
-        contexts = self.define_contexts()
-        
-        # Main triage context
-        triage = contexts.add_context("triage")
-        triage.add_step("greeting") \
-            .add_section("Current Task", "Understand the customer's need and route appropriately") \
-            .add_bullets("Required Information", [
-                "Type of issue they're experiencing",
-                "Urgency level of the problem", 
-                "Previous troubleshooting attempts"
-            ]) \
-            .set_step_criteria("Customer's need has been identified") \
-            .set_valid_contexts(["technical", "billing", "general"])
-        
-        # Technical support context
-        tech = contexts.add_context("technical")
-        tech.add_step("technical_help") \
-            .add_section("Current Task", "Help diagnose and resolve technical issues") \
-            .add_section("Available Tools", "Use web search and datetime functions for technical solutions") \
-            .set_functions(["web_search", "datetime"]) \
-            .set_step_criteria("Issue is resolved or escalated") \
-            .set_valid_contexts(["triage"])
-        
-        # Billing context (restricted functions for security)
-        billing = contexts.add_context("billing")
-        billing.add_step("billing_help") \
-            .set_text("I'll help with your billing question. For security, please provide your account verification.") \
-            .set_functions("none") \
-            .set_step_criteria("Billing issue is addressed") \
-            .set_valid_contexts(["triage"])
-        
-        # General inquiries context
-        general = contexts.add_context("general")
-        general.add_step("general_help") \
-            .set_text("I'm here to help with general questions. What can I assist you with?") \
-            .set_functions(["web_search", "datetime"]) \
-            .set_step_criteria("Question has been answered") \
-            .set_valid_contexts(["triage"])
+```ruby
+agent = SignalWire::AgentBase.new(name: 'Customer Service', route: '/service')
 
-agent = CustomerServiceAgent()
-agent.run()
+# Add skills for enhanced capabilities
+agent.add_skill('datetime')
+agent.add_skill('web_search', {
+  'api_key'          => 'your-api-key',
+  'search_engine_id' => 'your-engine-id'
+})
 
-if __name__ == "__main__":
-    main()
+contexts = agent.define_contexts
+
+# Main triage context
+triage = contexts.add_context('triage')
+triage.add_step('greeting')
+      .add_section('Current Task', "Understand the customer's need and route appropriately")
+      .add_bullets('Required Information', [
+        "Type of issue they're experiencing",
+        'Urgency level of the problem',
+        'Previous troubleshooting attempts'
+      ])
+      .set_step_criteria("Customer's need has been identified")
+      .set_valid_contexts(%w[technical billing general])
+
+# Technical support context
+tech = contexts.add_context('technical')
+tech.add_step('technical_help')
+    .add_section('Current Task', 'Help diagnose and resolve technical issues')
+    .add_section('Available Tools', 'Use web search and datetime functions for technical solutions')
+    .set_functions(%w[web_search datetime])
+    .set_step_criteria('Issue is resolved or escalated')
+    .set_valid_contexts(%w[triage])
+
+# Billing context (restricted functions for security)
+billing = contexts.add_context('billing')
+billing.add_step('billing_help')
+       .set_text("I'll help with your billing question. For security, please provide your account verification.")
+       .set_functions('none')
+       .set_step_criteria('Billing issue is addressed')
+       .set_valid_contexts(%w[triage])
+
+# General inquiries context
+general = contexts.add_context('general')
+general.add_step('general_help')
+       .set_text("I'm here to help with general questions. What can I assist you with?")
+       .set_functions(%w[web_search datetime])
+       .set_step_criteria('Question has been answered')
+       .set_valid_contexts(%w[triage])
+
+agent.run
 ```
 
 ## API Reference
@@ -215,67 +203,71 @@ if __name__ == "__main__":
 
 The main entry point for defining contexts and steps.
 
-```python
+```ruby
 # Get the builder
-contexts = self.define_contexts()
+contexts = agent.define_contexts
 
 # Create contexts
-context = contexts.add_context(name: str) -> Context
+context = contexts.add_context(name) # => Context
 ```
 
 ### Context
 
 Represents a conversation context or workflow state.
 
-```python
-class Context:
-    def add_step(self, name: str) -> Step
-        """Create a new step in this context"""
-    
-    def set_valid_contexts(self, contexts: List[str]) -> Context
-        """Set which contexts can be accessed from this context"""
-        
-    # Context entry parameters
-    def set_post_prompt(self, post_prompt: str) -> Context
-        """Override post prompt for this context"""
-    
-    def set_system_prompt(self, system_prompt: str) -> Context
-        """Trigger context switch with new system prompt"""
-        
-    def set_consolidate(self, consolidate: bool) -> Context
-        """Consolidate conversation history when entering"""
-        
-    def set_full_reset(self, full_reset: bool) -> Context
-        """Full system prompt replacement vs injection"""
-        
-    def set_user_prompt(self, user_prompt: str) -> Context
-        """Inject user message for context"""
-    
-    # Context prompts
-    def set_prompt(self, prompt: str) -> Context
-        """Set simple string prompt for context"""
+```ruby
+class Context
+  # Create a new step in this context
+  def add_step(name) # => Step
 
-    def add_section(self, title: str, body: str) -> Context
-        """Add POM section to context prompt"""
+  # Set which contexts can be accessed from this context
+  def set_valid_contexts(contexts) # => Context
 
-    def add_bullets(self, title: str, bullets: List[str]) -> Context
-        """Add POM bullet section to context prompt"""
+  # --- Context entry parameters ---
 
-    # Context isolation and fillers
-    def set_isolated(self, isolated: bool) -> Context
-        """Mark context as isolated (independent conversation state)"""
+  # Override post prompt for this context
+  def set_post_prompt(post_prompt) # => Context  (or: context.post_prompt = ...)
 
-    def set_enter_fillers(self, fillers: Dict[str, List[str]]) -> Context
-        """Set fillers spoken when entering this context"""
+  # Trigger context switch with new system prompt
+  def set_system_prompt(system_prompt) # => Context  (or: context.system_prompt = ...)
 
-    def set_exit_fillers(self, fillers: Dict[str, List[str]]) -> Context
-        """Set fillers spoken when exiting this context"""
+  # Consolidate conversation history when entering
+  def set_consolidate(consolidate) # => Context  (or: context.consolidate = ...)
 
-    def add_enter_filler(self, language_code: str, fillers: List[str]) -> Context
-        """Add enter fillers for a specific language"""
+  # Full system prompt replacement vs injection
+  def set_full_reset(full_reset) # => Context  (or: context.full_reset = ...)
 
-    def add_exit_filler(self, language_code: str, fillers: List[str]) -> Context
-        """Add exit fillers for a specific language"""
+  # Inject user message for context
+  def set_user_prompt(user_prompt) # => Context  (or: context.user_prompt = ...)
+
+  # --- Context prompts ---
+
+  # Set simple string prompt for context
+  def set_prompt(prompt) # => Context  (or: context.prompt = ...)
+
+  # Add POM section to context prompt
+  def add_section(title, body) # => Context
+
+  # Add POM bullet section to context prompt
+  def add_bullets(title, bullets) # => Context
+
+  # --- Context isolation and fillers ---
+
+  # Mark context as isolated (independent conversation state)
+  def set_isolated(isolated) # => Context  (or: context.isolated = ...)
+
+  # Set fillers spoken when entering this context (Hash of code => Array)
+  def set_enter_fillers(fillers) # => Context  (or: context.enter_fillers = ...)
+
+  # Set fillers spoken when exiting this context (Hash of code => Array)
+  def set_exit_fillers(fillers) # => Context  (or: context.exit_fillers = ...)
+
+  # Add enter fillers for a specific language
+  def add_enter_filler(language_code, fillers) # => Context
+
+  # Add exit fillers for a specific language
+  def add_exit_filler(language_code, fillers) # => Context
+end
 ```
 
 #### Methods
@@ -300,87 +292,94 @@ class Context:
 
 Represents a single step within a context workflow.
 
-```python
-class Step:
-    # Content definition (choose one approach)
-    def set_text(self, text: str) -> Step
-        """Set direct text prompt (mutually exclusive with POM sections)"""
-    
-    def add_section(self, title: str, body: str = "") -> Step
-        """Add a POM-style section (mutually exclusive with set_text)"""
-    
-    def add_bullets(self, bullets: List[str], numbered: bool = False) -> Step
-        """Add bullets to the current or most recent section"""
-    
-    # Flow control
-    def set_step_criteria(self, criteria: str) -> Step
-        """Define completion criteria for this step"""
-    
-    def set_valid_steps(self, steps: List[str]) -> Step
-        """Set which steps can be accessed next in same context"""
-    
-    def set_valid_contexts(self, contexts: List[str]) -> Step
-        """Set which contexts can be accessed from this step"""
+```ruby
+class Step
+  # --- Content definition (choose one approach) ---
 
-    # Function restrictions
-    def set_functions(self, functions: Union[List[str], str]) -> Step
-        """Restrict available functions ('none' or list of function names)"""
+  # Set direct text prompt (mutually exclusive with POM sections)
+  def set_text(text) # => Step  (or: step.text = ...)
 
-    # Reset behavior when entering step
-    def set_reset_system_prompt(self) -> Step
-        """Reset system prompt when entering this step"""
+  # Add a POM-style section (mutually exclusive with set_text)
+  def add_section(title, body) # => Step
 
-    def set_reset_user_prompt(self) -> Step
-        """Reset user prompt when entering this step"""
+  # Add a POM section with bullet points (mutually exclusive with set_text).
+  # Note: the Ruby Step#add_bullets takes a section title plus the bullet
+  # list — `add_bullets(title, bullets)`. There is no `numbered:` option.
+  def add_bullets(title, bullets) # => Step
 
-    def set_reset_consolidate(self) -> Step
-        """Consolidate conversation when entering this step"""
+  # --- Flow control ---
 
-    def set_reset_full_reset(self) -> Step
-        """Full conversation reset when entering this step"""
+  # Define completion criteria for this step
+  def set_step_criteria(criteria) # => Step  (or: step.step_criteria = ...)
+
+  # Set which steps can be accessed next in same context
+  def set_valid_steps(steps) # => Step  (or: step.valid_steps = ...)
+
+  # Set which contexts can be accessed from this step
+  def set_valid_contexts(contexts) # => Step  (or: step.valid_contexts = ...)
+
+  # --- Function restrictions ---
+
+  # Restrict available functions ('none', [], or list of function names)
+  def set_functions(functions) # => Step  (or: step.functions = ...)
+
+  # --- Reset behavior when entering step ---
+
+  # Reset system prompt when entering this step (pass the prompt text)
+  def set_reset_system_prompt(prompt) # => Step
+
+  # Reset user prompt when entering this step (pass the prompt text)
+  def set_reset_user_prompt(prompt) # => Step
+
+  # Consolidate conversation when entering this step (pass true/false)
+  def set_reset_consolidate(val) # => Step
+
+  # Full conversation reset when entering this step (pass true/false)
+  def set_reset_full_reset(val) # => Step
+end
 ```
 
 #### Content Methods
 
 **Option 1: Direct Text**
-```python
-step.set_text("Direct prompt text for the AI")
+```ruby
+step.set_text('Direct prompt text for the AI')
 ```
 
 **Option 2: POM-Style Sections**
-```python
-step.add_section("Role", "You are a helpful assistant") \
-    .add_section("Instructions", "Help users with their questions") \
-    .add_bullets(["Be friendly", "Ask clarifying questions"])
+```ruby
+step.add_section('Role', 'You are a helpful assistant')
+    .add_section('Instructions', 'Help users with their questions')
+    .add_bullets('Guidelines', ['Be friendly', 'Ask clarifying questions'])
 ```
 
 **Note**: You cannot mix `set_text()` with `add_section()` in the same step.
 
 #### Navigation Methods
 
-```python
+```ruby
 # Control step progression within context
-step.set_valid_steps(["step1", "step2"])  # Can go to step1 or step2
-step.set_valid_steps([])                   # Cannot progress (dead end)
-# No set_valid_steps() call = implicit "next" step
+step.valid_steps = %w[step1 step2]  # Can go to step1 or step2
+step.valid_steps = []               # Cannot progress (dead end)
+# No valid_steps assignment = implicit "next" step
 
 # Control context switching
-step.set_valid_contexts(["context1", "context2"])  # Can switch contexts
-step.set_valid_contexts([])                         # Trapped in current context
-# No set_valid_contexts() call = inherit from context level
+step.valid_contexts = %w[context1 context2]  # Can switch contexts
+step.valid_contexts = []                      # Trapped in current context
+# No valid_contexts assignment = inherit from context level
 ```
 
 #### Function Restriction Methods
 
-```python
+```ruby
 # Allow specific functions only
-step.set_functions(["datetime", "math"])
+step.functions = %w[datetime math]
 
 # Block all functions
-step.set_functions("none")
+step.functions = 'none'
 
 # No restriction (default - all agent functions available)
-# step.set_functions()  # Don't call this method
+# (Don't assign step.functions at all)
 ```
 
 ## Navigation and Flow Control
@@ -389,14 +388,14 @@ step.set_functions("none")
 
 The `set_valid_steps()` method controls movement within a context:
 
-```python
+```ruby
 # Explicit step list - can only go to these steps
-step.set_valid_steps(["review", "edit", "cancel"])
+step.valid_steps = %w[review edit cancel]
 
 # Empty list - dead end, cannot progress
-step.set_valid_steps([])
+step.valid_steps = []
 
-# Not called - implicit "next" step progression
+# Not assigned - implicit "next" step progression
 # (will go to the next step defined in the context)
 ```
 
@@ -404,59 +403,59 @@ step.set_valid_steps([])
 
 The `set_valid_contexts()` method controls switching between contexts:
 
-```python
+```ruby
 # Can switch to these contexts
-step.set_valid_contexts(["billing", "technical", "general"])
+step.valid_contexts = %w[billing technical general]
 
 # Trapped in current context
-step.set_valid_contexts([])
+step.valid_contexts = []
 
-# Not called - inherit from context-level settings
+# Not assigned - inherit from context-level settings
 ```
 
 ### Navigation Inheritance
 
 Context-level navigation settings are inherited by steps:
 
-```python
+```ruby
 # Set at context level
-context.set_valid_contexts(["main", "help"])
+context.valid_contexts = %w[main help]
 
 # All steps in this context can access main and help contexts
 # unless overridden at step level
-step.set_valid_contexts(["main"])  # Override - only main allowed
+step.valid_contexts = %w[main]  # Override - only main allowed
 ```
 
 ### Complete Navigation Example
 
-```python
-contexts = self.define_contexts()
+```ruby
+contexts = agent.define_contexts
 
 # Main context
-main = contexts.add_context("main")
-main.set_valid_contexts(["help", "settings"])  # Context-level setting
+main = contexts.add_context('main')
+main.valid_contexts = %w[help settings]  # Context-level setting
 
-main.add_step("welcome") \
-    .set_text("Welcome! How can I help you?") \
-    .set_valid_steps(["menu"])  # Must go to menu
-    # Inherits context-level valid_contexts
+main.add_step('welcome')
+    .set_text('Welcome! How can I help you?')
+    .set_valid_steps(%w[menu])  # Must go to menu
+# Inherits context-level valid_contexts
 
-main.add_step("menu") \
-    .set_text("Choose an option: 1) Help 2) Settings 3) Continue") \
-    .set_valid_contexts(["help", "settings", "main"])  # Override context setting
-    # No valid_steps = this is a branching point
+main.add_step('menu')
+    .set_text('Choose an option: 1) Help 2) Settings 3) Continue')
+    .set_valid_contexts(%w[help settings main])  # Override context setting
+# No valid_steps = this is a branching point
 
-# Help context  
-help_ctx = contexts.add_context("help")
-help_ctx.add_step("help_info") \
-    .set_text("Here's how to use the system...") \
-    .set_valid_contexts(["main"])  # Can return to main
+# Help context
+help_ctx = contexts.add_context('help')
+help_ctx.add_step('help_info')
+        .set_text("Here's how to use the system...")
+        .set_valid_contexts(%w[main])  # Can return to main
 
 # Settings context
-settings = contexts.add_context("settings")
-settings.add_step("settings_menu") \
-    .set_text("Choose a setting to modify...") \
-    .set_valid_contexts(["main"])  # Can return to main
+settings = contexts.add_context('settings')
+settings.add_step('settings_menu')
+        .set_text('Choose a setting to modify...')
+        .set_valid_contexts(%w[main])  # Can return to main
 ```
 
 ## Function Restrictions
@@ -465,65 +464,63 @@ Control which AI tools/functions are available in each step for enhanced securit
 
 ### Function Restriction Levels
 
-```python
+```ruby
 # No restrictions (default) - all agent functions available
-step  # Don't call set_functions()
+step  # Don't assign step.functions
 
 # Allow specific functions only
-step.set_functions(["datetime", "math", "web_search"])
+step.functions = %w[datetime math web_search]
 
 # Block all functions
-step.set_functions("none")
+step.functions = 'none'
 ```
 
 ### Security-Focused Example
 
-```python
-class SecureBankingAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="Banking Assistant", route="/banking")
-        
-        # Add potentially sensitive functions
-        self.add_skill("web_search", {"api_key": "key", "search_engine_id": "id"})
-        self.add_skill("datetime")
-        
-        contexts = self.define_contexts()
-        
-        # Public context - full access
-        public = contexts.add_context("public")
-        public.add_step("welcome") \
-            .set_text("Welcome to banking support. Are you an existing customer?") \
-            .set_functions(["datetime", "web_search"])  # Safe functions only \
-            .set_valid_contexts(["authenticated", "public"])
-        
-        # Authenticated context - restricted for security
-        auth = contexts.add_context("authenticated")
-        auth.add_step("account_access") \
-            .set_text("I can help with your account. What do you need assistance with?") \
-            .set_functions("none")  # No external functions for account data \
-            .set_valid_contexts(["public"])  # Can log out
+```ruby
+agent = SignalWire::AgentBase.new(name: 'Banking Assistant', route: '/banking')
+
+# Add potentially sensitive functions
+agent.add_skill('web_search', { 'api_key' => 'key', 'search_engine_id' => 'id' })
+agent.add_skill('datetime')
+
+contexts = agent.define_contexts
+
+# Public context - full access
+public = contexts.add_context('public')
+public.add_step('welcome')
+      .set_text('Welcome to banking support. Are you an existing customer?')
+      .set_functions(%w[datetime web_search]) # Safe functions only
+      .set_valid_contexts(%w[authenticated public])
+
+# Authenticated context - restricted for security
+auth = contexts.add_context('authenticated')
+auth.add_step('account_access')
+    .set_text('I can help with your account. What do you need assistance with?')
+    .set_functions('none')          # No external functions for account data
+    .set_valid_contexts(%w[public]) # Can log out
 ```
 
 ### Function Access Patterns
 
-```python
+```ruby
 # Progressive function access based on trust level
-contexts = self.define_contexts()
+contexts = agent.define_contexts
 
 # Low trust - limited functions
-public = contexts.add_context("public")
-public.add_step("initial_contact") \
-    .set_functions(["datetime"])  # Only safe functions
+public = contexts.add_context('public')
+public.add_step('initial_contact')
+      .set_functions(%w[datetime]) # Only safe functions
 
-# Medium trust - more functions  
-verified = contexts.add_context("verified")
-verified.add_step("verified_user") \
-    .set_functions(["datetime", "web_search"])  # Add search capability
+# Medium trust - more functions
+verified = contexts.add_context('verified')
+verified.add_step('verified_user')
+        .set_functions(%w[datetime web_search]) # Add search capability
 
 # High trust - full access
-authenticated = contexts.add_context("authenticated")
-authenticated.add_step("full_access") \
-    # No set_functions() call = all functions available
+authenticated = contexts.add_context('authenticated')
+authenticated.add_step('full_access')
+# No set_functions call = all functions available
 ```
 
 ## Step Modes
@@ -553,14 +550,14 @@ The step text supports `${variable}` expansion from `global_data` and prompt var
 
 Step criteria tell the AI when a step is done. The AI evaluates the criteria and calls `next_step` when they're met:
 
-```python
-ctx.add_step("verify") \
-    .set_text("Verify the caller's identity.") \
-    .set_step_criteria(
-        "The caller has provided their account number "
-        "AND confirmed their date of birth."
-    ) \
-    .set_valid_steps(["handle_request"])
+```ruby
+ctx.add_step('verify')
+   .set_text("Verify the caller's identity.")
+   .set_step_criteria(
+     'The caller has provided their account number ' \
+     'AND confirmed their date of birth.'
+   )
+   .set_valid_steps(%w[handle_request])
 ```
 
 ### Gather Info Mode
@@ -603,13 +600,13 @@ No tool_call/tool_result entries anywhere. Clean conversation history.
 
 #### Basic Gather Example
 
-```python
-ctx.add_step("collect_info") \
-    .set_text("Help the caller with their request.") \
-    .set_gather_info(output_key="caller_info") \
-    .add_gather_question("first_name", "What is your first name?") \
-    .add_gather_question("last_name", "What is your last name?") \
-    .add_gather_question("email", "What is your email address?")
+```ruby
+ctx.add_step('collect_info')
+   .set_text('Help the caller with their request.')
+   .set_gather_info(output_key: 'caller_info')
+   .add_gather_question(key: 'first_name', question: 'What is your first name?')
+   .add_gather_question(key: 'last_name',  question: 'What is your last name?')
+   .add_gather_question(key: 'email',      question: 'What is your email address?')
 ```
 
 This collects three pieces of information, stores them under `caller_info` in global_data, then returns to normal step mode with the step text "Help the caller with their request."
@@ -618,17 +615,17 @@ This collects three pieces of information, stores them under `caller_info` in gl
 
 The gather `prompt` is injected once as a persistent message when the first question begins:
 
-```python
-ctx.add_step("collect_profile") \
-    .set_text("Use the profile to recommend products.") \
-    .set_gather_info(
-        output_key="profile",
-        prompt="Welcome the caller and introduce yourself as a product specialist. "
-               "Explain that you need to ask a few quick questions to find the "
-               "best products for them. Be friendly and conversational."
-    ) \
-    .add_gather_question("name", "What is your name?") \
-    .add_gather_question("budget", "What is your budget?", type="number")
+```ruby
+ctx.add_step('collect_profile')
+   .set_text('Use the profile to recommend products.')
+   .set_gather_info(
+     output_key: 'profile',
+     prompt:     'Welcome the caller and introduce yourself as a product specialist. ' \
+                 'Explain that you need to ask a few quick questions to find the ' \
+                 'best products for them. Be friendly and conversational.'
+   )
+   .add_gather_question(key: 'name',   question: 'What is your name?')
+   .add_gather_question(key: 'budget', question: 'What is your budget?', type: 'number')
 ```
 
 Without a gather `prompt`, the AI jumps straight into asking the first question with no introduction.
@@ -637,30 +634,30 @@ Without a gather `prompt`, the AI jumps straight into asking the first question 
 
 Each question has a `type` that controls the JSON schema of the `answer` parameter in `gather_submit`:
 
-```python
+```ruby
 # String (default) - free text
-.add_gather_question("name", "What is your name?", type="string")
+.add_gather_question(key: 'name', question: 'What is your name?', type: 'string')
 
 # Integer - whole numbers
-.add_gather_question("age", "How old are you?", type="integer")
+.add_gather_question(key: 'age', question: 'How old are you?', type: 'integer')
 
 # Number - decimal values
-.add_gather_question("budget", "What is your budget in dollars?", type="number")
+.add_gather_question(key: 'budget', question: 'What is your budget in dollars?', type: 'number')
 
 # Boolean - yes/no questions
-.add_gather_question("has_passport", "Do you have a valid passport?", type="boolean")
+.add_gather_question(key: 'has_passport', question: 'Do you have a valid passport?', type: 'boolean')
 ```
 
 #### Confirmation Flow
 
 When `confirm=True`, the AI must read the answer back to the caller and get explicit confirmation before submitting:
 
-```python
+```ruby
 .add_gather_question(
-    "last_name",
-    "What is your last name?",
-    type="string",
-    confirm=True
+  key:      'last_name',
+  question: 'What is your last name?',
+  type:     'string',
+  confirm:  true
 )
 ```
 
@@ -675,15 +672,15 @@ How it works:
 
 Each question can have additional instructions and specific functions made available:
 
-```python
+```ruby
 .add_gather_question(
-    "home_airport",
-    "What is your home airport or nearest major city for departure?",
-    type="string",
-    confirm=True,
-    prompt="Use the resolve_airport function to validate the airport code "
-           "before submitting. If the airport is ambiguous, clarify with the user.",
-    functions=["resolve_airport"]
+  key:       'home_airport',
+  question:  'What is your home airport or nearest major city for departure?',
+  type:      'string',
+  confirm:   true,
+  prompt:    'Use the resolve_airport function to validate the airport code ' \
+             'before submitting. If the airport is ambiguous, clarify with the user.',
+  functions: %w[resolve_airport]
 )
 ```
 
@@ -693,84 +690,84 @@ The `resolve_airport` function must already be registered on the agent. The `fun
 
 Answers are stored in `global_data`, which is available in prompt variable expansion via `${key}`:
 
-```python
+```ruby
 # Store under a namespace
-.set_gather_info(output_key="profile")
+.set_gather_info(output_key: 'profile')
 # Results in: global_data.profile.first_name, global_data.profile.last_name, etc.
 # Accessible in prompts as: ${profile}
 
 # Store at top level (no output_key)
-.set_gather_info()
+.set_gather_info
 # Results in: global_data.first_name, global_data.last_name, etc.
 ```
 
 After gathering, `global_data` is refreshed so subsequent step prompts can reference the collected values:
 
-```python
-ctx.add_step("plan_trip") \
-    .set_text(
-        "The caller's travel profile is: ${profile}. "
-        "Use their name, budget, and preferences to suggest destinations."
-    )
+```ruby
+ctx.add_step('plan_trip')
+   .set_text(
+     "The caller's travel profile is: ${profile}. " \
+     'Use their name, budget, and preferences to suggest destinations.'
+   )
 ```
 
 #### Auto-Advancing After Gather
 
 With `completion_action`, the step automatically advances when the last question is answered. You can advance to the next sequential step or jump to a specific named step:
 
-```python
+```ruby
 # Advance to the next sequential step
-ctx.add_step("collect_profile") \
-    .set_text("Collect the caller's profile.") \
-    .set_gather_info(
-        output_key="profile",
-        completion_action="next_step",
-        prompt="Welcome the caller. You need to collect a few details."
-    ) \
-    .add_gather_question("name", "What is your name?") \
-    .add_gather_question("email", "What is your email?")
+ctx.add_step('collect_profile')
+   .set_text("Collect the caller's profile.")
+   .set_gather_info(
+     output_key:        'profile',
+     completion_action: 'next_step',
+     prompt:            'Welcome the caller. You need to collect a few details.'
+   )
+   .add_gather_question(key: 'name',  question: 'What is your name?')
+   .add_gather_question(key: 'email', question: 'What is your email?')
 
 # This step runs immediately after the last question is answered
-ctx.add_step("process") \
-    .set_text("You have the caller's profile in ${profile}. Help them with their request.")
+ctx.add_step('process')
+   .set_text("You have the caller's profile in ${profile}. Help them with their request.")
 ```
 
 You can also jump to a specific step by name:
 
-```python
-ctx.add_step("collect_info") \
-    .set_text("Collect caller info.") \
-    .set_gather_info(
-        output_key="info",
-        completion_action="review",  # Jump directly to "review" step
-    ) \
-    .add_gather_question("name", "What is your name?") \
-    .add_gather_question("issue", "What is your issue?")
+```ruby
+ctx.add_step('collect_info')
+   .set_text('Collect caller info.')
+   .set_gather_info(
+     output_key:        'info',
+     completion_action: 'review' # Jump directly to "review" step
+   )
+   .add_gather_question(key: 'name',  question: 'What is your name?')
+   .add_gather_question(key: 'issue', question: 'What is your issue?')
 
-ctx.add_step("other_step") \
-    .set_text("This step is skipped when coming from collect_info.")
+ctx.add_step('other_step')
+   .set_text('This step is skipped when coming from collect_info.')
 
-ctx.add_step("review") \
-    .set_text("Review the collected info in ${info} and help the caller.")
+ctx.add_step('review')
+   .set_text('Review the collected info in ${info} and help the caller.')
 ```
 
-> **Note**: The target step is validated at build time. Using `"next_step"` on the last step in a context, or naming a step that doesn't exist, will raise a `ValueError`.
+> **Note**: The target step is validated at build time. Using `"next_step"` on the last step in a context, or naming a step that doesn't exist, will raise an `ArgumentError`.
 
 #### Combining Gather with Normal Step Mode
 
 Without `completion_action` (or when set to None), the step returns to normal mode after all questions are answered:
 
-```python
-ctx.add_step("intake") \
-    .set_text(
-        "Review the caller's information in ${intake_data}. "
-        "Confirm everything looks correct, then proceed to scheduling."
-    ) \
-    .set_gather_info(output_key="intake_data") \
-    .add_gather_question("name", "What is your name?") \
-    .add_gather_question("dob", "What is your date of birth?") \
-    .add_gather_question("reason", "What is the reason for your visit?") \
-    .set_valid_steps(["schedule"])
+```ruby
+ctx.add_step('intake')
+   .set_text(
+     "Review the caller's information in ${intake_data}. " \
+     'Confirm everything looks correct, then proceed to scheduling.'
+   )
+   .set_gather_info(output_key: 'intake_data')
+   .add_gather_question(key: 'name',   question: 'What is your name?')
+   .add_gather_question(key: 'dob',    question: 'What is your date of birth?')
+   .add_gather_question(key: 'reason', question: 'What is the reason for your visit?')
+   .set_valid_steps(%w[schedule])
 ```
 
 Flow:
@@ -786,256 +783,238 @@ Flow:
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `output_key` | str | None | Key in global_data to store answers under. If None, answers stored at top level. |
-| `completion_action` | str | None | Where to go when all questions are answered: `"next_step"` to advance sequentially, or a specific step name (e.g. `"process_results"`) to jump to that step. If None, returns to normal step mode. The target is validated — `"next_step"` requires a following step, and named steps must exist in the context. |
-| `prompt` | str | None | Preamble text injected once as a persistent message when entering the gather step. |
+| `output_key` | String | `nil` | Key in global_data to store answers under. If `nil`, answers stored at top level. |
+| `completion_action` | String | `nil` | Where to go when all questions are answered: `"next_step"` to advance sequentially, or a specific step name (e.g. `"process_results"`) to jump to that step. If `nil`, returns to normal step mode. The target is validated — `"next_step"` requires a following step, and named steps must exist in the context. |
+| `prompt` | String | `nil` | Preamble text injected once as a persistent message when entering the gather step. |
 
 **`add_gather_question()` Parameters:**
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `key` | str | required | Key name for storing the answer in global_data |
-| `question` | str | required | The question text presented to the AI |
-| `type` | str | `"string"` | JSON schema type: `"string"`, `"integer"`, `"number"`, `"boolean"` |
-| `confirm` | bool | `False` | If True, AI must confirm answer with user before submitting |
-| `prompt` | str | None | Additional instruction text for this question |
-| `functions` | list | None | Function names to make visible for this question only |
+| `key` | String | required | Key name for storing the answer in global_data |
+| `question` | String | required | The question text presented to the AI |
+| `type` | String | `"string"` | JSON schema type: `"string"`, `"integer"`, `"number"`, `"boolean"` |
+| `confirm` | Boolean | `false` | If `true`, AI must confirm answer with user before submitting |
+| `prompt` | String | `nil` | Additional instruction text for this question |
+| `functions` | Array | `nil` | Function names to make visible for this question only |
 
 ## Real-World Examples
 
 ### Example 1: Technical Support Troubleshooting
 
-```python
-class TechnicalSupportAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="Tech Support", route="/tech-support")
-        
-        # Add diagnostic tools
-        self.add_skill("web_search", {"api_key": "key", "search_engine_id": "id"})
-        self.add_skill("datetime")
-        
-        contexts = self.define_contexts()
-        
-        # Initial triage
-        triage = contexts.add_context("triage")
-        triage.add_step("problem_identification") \
-            .add_section("Current Task", "Identify the type of technical issue") \
-            .add_bullets("Information to Gather", [
-                "Description of the specific problem",
-                "When did the issue start occurring?",
-                "What steps has the customer already tried?",
-                "Rate the severity level (critical/high/medium/low)"
-            ]) \
-            .set_step_criteria("Issue type and severity determined") \
-            .set_valid_contexts(["hardware", "software", "network"])
-        
-        # Hardware troubleshooting
-        hardware = contexts.add_context("hardware")
-        hardware.add_step("hardware_diagnosis") \
-            .add_section("Current Task", "Guide user through hardware diagnostics") \
-            .add_section("Available Tools", "Use web search to find hardware specifications and troubleshooting guides") \
-            .set_functions(["web_search"])  # Can search for hardware info \
-            .set_step_criteria("Hardware issue diagnosed") \
-            .set_valid_steps(["hardware_solution"])
-        
-        hardware.add_step("hardware_solution") \
-            .set_text("Based on the diagnosis, here's how to resolve the hardware issue...") \
-            .set_step_criteria("Solution provided and tested") \
-            .set_valid_contexts(["triage"])  # Can start over if needed
-        
-        # Software troubleshooting
-        software = contexts.add_context("software")
-        software.add_step("software_diagnosis") \
-            .add_section("Current Task", "Diagnose software-related issues") \
-            .add_section("Available Tools", "Use web search for software updates and datetime to check for recent changes") \
-            .set_functions(["web_search", "datetime"])  # Can check for updates \
-            .set_step_criteria("Software issue identified") \
-            .set_valid_steps(["software_fix", "escalation"])
-        
-        software.add_step("software_fix") \
-            .set_text("Let's try these software troubleshooting steps...") \
-            .set_step_criteria("Fix attempted and result confirmed") \
-            .set_valid_steps(["escalation", "resolution"])
-        
-        software.add_step("escalation") \
-            .set_text("I'll escalate this to our specialist team.") \
-            .set_functions("none")  # No tools needed for escalation \
-            .set_step_criteria("Escalation ticket created")
-        
-        software.add_step("resolution") \
-            .set_text("Great! The issue has been resolved.") \
-            .set_step_criteria("Customer confirms resolution") \
-            .set_valid_contexts(["triage"])
-        
-        # Network troubleshooting
-        network = contexts.add_context("network")
-        network.add_step("network_diagnosis") \
-            .add_section("Current Task", "Diagnose network and connectivity issues") \
-            .add_section("Available Tools", "Use web search to check service status and datetime for outage windows") \
-            .set_functions(["web_search", "datetime"])  # Check service status \
-            .set_step_criteria("Network issue diagnosed") \
-            .set_valid_steps(["network_fix"])
-        
-        network.add_step("network_fix") \
-            .set_text("Let's resolve your connectivity issue with these steps...") \
-            .set_step_criteria("Network connectivity restored") \
-            .set_valid_contexts(["triage"])
+```ruby
+agent = SignalWire::AgentBase.new(name: 'Tech Support', route: '/tech-support')
 
-agent = TechnicalSupportAgent()
-agent.run()
+# Add diagnostic tools
+agent.add_skill('web_search', { 'api_key' => 'key', 'search_engine_id' => 'id' })
+agent.add_skill('datetime')
 
-if __name__ == "__main__":
-    main()
+contexts = agent.define_contexts
+
+# Initial triage
+triage = contexts.add_context('triage')
+triage.add_step('problem_identification')
+      .add_section('Current Task', 'Identify the type of technical issue')
+      .add_bullets('Information to Gather', [
+        'Description of the specific problem',
+        'When did the issue start occurring?',
+        'What steps has the customer already tried?',
+        'Rate the severity level (critical/high/medium/low)'
+      ])
+      .set_step_criteria('Issue type and severity determined')
+      .set_valid_contexts(%w[hardware software network])
+
+# Hardware troubleshooting
+hardware = contexts.add_context('hardware')
+hardware.add_step('hardware_diagnosis')
+        .add_section('Current Task', 'Guide user through hardware diagnostics')
+        .add_section('Available Tools', 'Use web search to find hardware specifications and troubleshooting guides')
+        .set_functions(%w[web_search]) # Can search for hardware info
+        .set_step_criteria('Hardware issue diagnosed')
+        .set_valid_steps(%w[hardware_solution])
+
+hardware.add_step('hardware_solution')
+        .set_text("Based on the diagnosis, here's how to resolve the hardware issue...")
+        .set_step_criteria('Solution provided and tested')
+        .set_valid_contexts(%w[triage]) # Can start over if needed
+
+# Software troubleshooting
+software = contexts.add_context('software')
+software.add_step('software_diagnosis')
+        .add_section('Current Task', 'Diagnose software-related issues')
+        .add_section('Available Tools', 'Use web search for software updates and datetime to check for recent changes')
+        .set_functions(%w[web_search datetime]) # Can check for updates
+        .set_step_criteria('Software issue identified')
+        .set_valid_steps(%w[software_fix escalation])
+
+software.add_step('software_fix')
+        .set_text("Let's try these software troubleshooting steps...")
+        .set_step_criteria('Fix attempted and result confirmed')
+        .set_valid_steps(%w[escalation resolution])
+
+software.add_step('escalation')
+        .set_text("I'll escalate this to our specialist team.")
+        .set_functions('none') # No tools needed for escalation
+        .set_step_criteria('Escalation ticket created')
+
+software.add_step('resolution')
+        .set_text('Great! The issue has been resolved.')
+        .set_step_criteria('Customer confirms resolution')
+        .set_valid_contexts(%w[triage])
+
+# Network troubleshooting
+network = contexts.add_context('network')
+network.add_step('network_diagnosis')
+       .add_section('Current Task', 'Diagnose network and connectivity issues')
+       .add_section('Available Tools', 'Use web search to check service status and datetime for outage windows')
+       .set_functions(%w[web_search datetime]) # Check service status
+       .set_step_criteria('Network issue diagnosed')
+       .set_valid_steps(%w[network_fix])
+
+network.add_step('network_fix')
+       .set_text("Let's resolve your connectivity issue with these steps...")
+       .set_step_criteria('Network connectivity restored')
+       .set_valid_contexts(%w[triage])
+
+agent.run
 ```
 
 ### Example 2: Multi-Step Application Process
 
-```python
-class LoanApplicationAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="Loan Application", route="/loan-app")
-        
-        # Add verification tools
-        self.add_skill("datetime")  # For date validation
-        
-        contexts = self.define_contexts()
-        
-        # Single workflow context
-        application = contexts.add_context("default")
-        
-        # Step 1: Introduction and eligibility
-        application.add_step("introduction") \
-            .add_section("Current Task", "Guide customers through the loan application process") \
-            .add_bullets("Information to Provide", [
-                "Explain the process clearly",
-                "Outline what information will be needed",
-                "Set expectations for timeline and next steps"
-            ]) \
-            .set_step_criteria("Customer understands process and wants to continue") \
-            .set_valid_steps(["personal_info"])
-        
-        # Step 2: Personal information
-        application.add_step("personal_info") \
-            .add_section("Instructions", "Collect personal information") \
-            .add_bullets([
-                "Full legal name",
-                "Date of birth",
-                "Social Security Number",
-                "Phone number and email"
-            ]) \
-            .set_functions(["datetime"])  # Can validate dates \
-            .set_step_criteria("All personal information collected and verified") \
-            .set_valid_steps(["employment_info", "personal_info"])  # Can review/edit
-        
-        # Step 3: Employment information  
-        application.add_step("employment_info") \
-            .set_text("Now I need information about your employment and income.") \
-            .set_step_criteria("Employment and income information complete") \
-            .set_valid_steps(["financial_info", "personal_info"])  # Can go back
-        
-        # Step 4: Financial information
-        application.add_step("financial_info") \
-            .set_text("Let's review your financial situation including assets and debts.") \
-            .set_step_criteria("Financial information complete") \
-            .set_valid_steps(["review", "employment_info"])  # Can go back
-        
-        # Step 5: Review all information
-        application.add_step("review") \
-            .add_section("Instructions", "Review all collected information") \
-            .add_bullets([
-                "Confirm personal details",
-                "Verify employment information", 
-                "Review financial data",
-                "Ensure accuracy before submission"
-            ]) \
-            .set_step_criteria("Customer has reviewed and confirmed all information") \
-            .set_valid_steps(["submit", "personal_info", "employment_info", "financial_info"])
-        
-        # Step 6: Submission
-        application.add_step("submit") \
-            .set_text("Thank you! Your loan application has been submitted successfully. You'll receive a decision within 2-3 business days.") \
-            .set_functions("none")  # No tools needed for final message \
-            .set_step_criteria("Application submitted and confirmation provided")
-            # No valid_steps = end of process
+```ruby
+agent = SignalWire::AgentBase.new(name: 'Loan Application', route: '/loan-app')
 
-agent = LoanApplicationAgent()
-agent.run()
+# Add verification tools
+agent.add_skill('datetime') # For date validation
 
-if __name__ == "__main__":
-    main()
+contexts = agent.define_contexts
+
+# Single workflow context
+application = contexts.add_context('default')
+
+# Step 1: Introduction and eligibility
+application.add_step('introduction')
+           .add_section('Current Task', 'Guide customers through the loan application process')
+           .add_bullets('Information to Provide', [
+             'Explain the process clearly',
+             'Outline what information will be needed',
+             'Set expectations for timeline and next steps'
+           ])
+           .set_step_criteria('Customer understands process and wants to continue')
+           .set_valid_steps(%w[personal_info])
+
+# Step 2: Personal information
+application.add_step('personal_info')
+           .add_section('Instructions', 'Collect personal information')
+           .add_bullets('Required Details', [
+             'Full legal name',
+             'Date of birth',
+             'Social Security Number',
+             'Phone number and email'
+           ])
+           .set_functions(%w[datetime]) # Can validate dates
+           .set_step_criteria('All personal information collected and verified')
+           .set_valid_steps(%w[employment_info personal_info]) # Can review/edit
+
+# Step 3: Employment information
+application.add_step('employment_info')
+           .set_text('Now I need information about your employment and income.')
+           .set_step_criteria('Employment and income information complete')
+           .set_valid_steps(%w[financial_info personal_info]) # Can go back
+
+# Step 4: Financial information
+application.add_step('financial_info')
+           .set_text("Let's review your financial situation including assets and debts.")
+           .set_step_criteria('Financial information complete')
+           .set_valid_steps(%w[review employment_info]) # Can go back
+
+# Step 5: Review all information
+application.add_step('review')
+           .add_section('Instructions', 'Review all collected information')
+           .add_bullets('Items to Review', [
+             'Confirm personal details',
+             'Verify employment information',
+             'Review financial data',
+             'Ensure accuracy before submission'
+           ])
+           .set_step_criteria('Customer has reviewed and confirmed all information')
+           .set_valid_steps(%w[submit personal_info employment_info financial_info])
+
+# Step 6: Submission
+application.add_step('submit')
+           .set_text("Thank you! Your loan application has been submitted successfully. You'll receive a decision within 2-3 business days.")
+           .set_functions('none') # No tools needed for final message
+           .set_step_criteria('Application submitted and confirmation provided')
+# No valid_steps = end of process
+
+agent.run
 ```
 
 ### Example 3: E-commerce Customer Service
 
-```python
-class EcommerceServiceAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="E-commerce Support", route="/ecommerce")
-        
-        # Add tools for order management
-        self.add_skill("web_search", {"api_key": "key", "search_engine_id": "id"})
-        self.add_skill("datetime")
-        
-        contexts = self.define_contexts()
-        
-        # Main service menu
-        main = contexts.add_context("main")
-        main.add_step("service_menu") \
-            .add_section("Current Task", "Help customers with their orders and questions") \
-            .add_bullets("Service Areas Available", [
-                "Order status, modifications, and tracking",
-                "Returns and refunds",
-                "Product information and specifications",
-                "Account-related questions"
-            ]) \
-            .set_step_criteria("Customer's need has been identified") \
-            .set_valid_contexts(["orders", "returns", "products", "account"])
-        
-        # Order management context
-        orders = contexts.add_context("orders")
-        orders.add_step("order_assistance") \
-            .add_section("Current Task", "Help with order status, modifications, and tracking") \
-            .add_section("Available Tools", "Use datetime to check delivery dates and processing times") \
-            .set_functions(["datetime"])  # Can check delivery dates \
-            .set_step_criteria("Order issue resolved or escalated") \
-            .set_valid_contexts(["main"])
-        
-        # Returns and refunds context
-        returns = contexts.add_context("returns")
-        returns.add_step("return_process") \
-            .add_section("Current Task", "Guide customers through return process") \
-            .add_bullets("Return Process Steps", [
-                "Verify return eligibility",
-                "Explain return policy", 
-                "Provide return instructions",
-                "Process refund if applicable"
-            ]) \
-            .set_functions("none")  # Sensitive financial operations \
-            .set_step_criteria("Return request processed") \
-            .set_valid_contexts(["main"])
-        
-        # Product information context
-        products = contexts.add_context("products")
-        products.add_step("product_help") \
-            .add_section("Current Task", "Help customers with product questions") \
-            .add_section("Available Tools", "Use web search to find detailed product information and specifications") \
-            .set_functions(["web_search"])  # Can search for product info \
-            .set_step_criteria("Product question answered") \
-            .set_valid_contexts(["main"])
-        
-        # Account management context
-        account = contexts.add_context("account")
-        account.add_step("account_help") \
-            .set_text("I can help with account-related questions. Please verify your identity first.") \
-            .set_functions("none")  # Security-sensitive context \
-            .set_step_criteria("Account issue resolved") \
-            .set_valid_contexts(["main"])
+```ruby
+agent = SignalWire::AgentBase.new(name: 'E-commerce Support', route: '/ecommerce')
 
-agent = EcommerceServiceAgent()
-agent.run()
+# Add tools for order management
+agent.add_skill('web_search', { 'api_key' => 'key', 'search_engine_id' => 'id' })
+agent.add_skill('datetime')
 
-if __name__ == "__main__":
-    main()
+contexts = agent.define_contexts
+
+# Main service menu
+main = contexts.add_context('main')
+main.add_step('service_menu')
+    .add_section('Current Task', 'Help customers with their orders and questions')
+    .add_bullets('Service Areas Available', [
+      'Order status, modifications, and tracking',
+      'Returns and refunds',
+      'Product information and specifications',
+      'Account-related questions'
+    ])
+    .set_step_criteria("Customer's need has been identified")
+    .set_valid_contexts(%w[orders returns products account])
+
+# Order management context
+orders = contexts.add_context('orders')
+orders.add_step('order_assistance')
+      .add_section('Current Task', 'Help with order status, modifications, and tracking')
+      .add_section('Available Tools', 'Use datetime to check delivery dates and processing times')
+      .set_functions(%w[datetime]) # Can check delivery dates
+      .set_step_criteria('Order issue resolved or escalated')
+      .set_valid_contexts(%w[main])
+
+# Returns and refunds context
+returns = contexts.add_context('returns')
+returns.add_step('return_process')
+       .add_section('Current Task', 'Guide customers through return process')
+       .add_bullets('Return Process Steps', [
+         'Verify return eligibility',
+         'Explain return policy',
+         'Provide return instructions',
+         'Process refund if applicable'
+       ])
+       .set_functions('none') # Sensitive financial operations
+       .set_step_criteria('Return request processed')
+       .set_valid_contexts(%w[main])
+
+# Product information context
+products = contexts.add_context('products')
+products.add_step('product_help')
+        .add_section('Current Task', 'Help customers with product questions')
+        .add_section('Available Tools', 'Use web search to find detailed product information and specifications')
+        .set_functions(%w[web_search]) # Can search for product info
+        .set_step_criteria('Product question answered')
+        .set_valid_contexts(%w[main])
+
+# Account management context
+account = contexts.add_context('account')
+account.add_step('account_help')
+       .set_text('I can help with account-related questions. Please verify your identity first.')
+       .set_functions('none') # Security-sensitive context
+       .set_step_criteria('Account issue resolved')
+       .set_valid_contexts(%w[main])
+
+agent.run
 ```
 
 ## Best Practices
@@ -1044,107 +1023,107 @@ if __name__ == "__main__":
 
 Use descriptive step names that indicate purpose:
 
-```python
+```ruby
 # Good
-.add_step("collect_shipping_address")
-.add_step("verify_payment_method")
-.add_step("confirm_order_details")
+.add_step('collect_shipping_address')
+.add_step('verify_payment_method')
+.add_step('confirm_order_details')
 
 # Avoid
-.add_step("step1")
-.add_step("next")
-.add_step("continue")
+.add_step('step1')
+.add_step('next')
+.add_step('continue')
 ```
 
 ### 2. Meaningful Completion Criteria
 
 Define clear, testable completion criteria:
 
-```python
+```ruby
 # Good - specific and measurable
-.set_step_criteria("User has provided valid email address and confirmed subscription preferences")
-.set_step_criteria("All required fields completed and payment method verified")
+.set_step_criteria('User has provided valid email address and confirmed subscription preferences')
+.set_step_criteria('All required fields completed and payment method verified')
 
 # Avoid - vague or subjective
-.set_step_criteria("User is ready")
-.set_step_criteria("Everything is good")
+.set_step_criteria('User is ready')
+.set_step_criteria('Everything is good')
 ```
 
 ### 3. Logical Navigation Flow
 
 Design intuitive navigation that matches user expectations:
 
-```python
+```ruby
 # Allow users to go back and review
-.set_valid_steps(["review_info", "edit_details", "confirm_submission"])
+.set_valid_steps(%w[review_info edit_details confirm_submission])
 
 # Provide escape routes
-.set_valid_contexts(["main_menu", "help"])
+.set_valid_contexts(%w[main_menu help])
 
 # Consider dead ends carefully
-.set_valid_steps([])  # Only if this is truly the end
+.set_valid_steps([]) # Only if this is truly the end
 ```
 
 ### 4. Progressive Function Access
 
 Restrict functions based on security and context needs:
 
-```python
+```ruby
 # Public areas - limited functions
-public_step.set_functions(["datetime", "web_search"])
+public_step.functions = %w[datetime web_search]
 
 # Authenticated areas - more functions allowed
-auth_step.set_functions(["datetime", "web_search", "user_profile"])
+auth_step.functions = %w[datetime web_search user_profile]
 
 # Sensitive operations - minimal functions
-billing_step.set_functions("none")
+billing_step.functions = 'none'
 ```
 
 ### 5. Context Organization
 
 Organize contexts by functional area or user journey:
 
-```python
+```ruby
 # By functional area
-contexts = ["triage", "technical_support", "billing", "account_management"]
+contexts = %w[triage technical_support billing account_management]
 
-# By user journey stage  
-contexts = ["onboarding", "verification", "configuration", "completion"]
+# By user journey stage
+contexts = %w[onboarding verification configuration completion]
 
 # By security level
-contexts = ["public", "authenticated", "admin"]
+contexts = %w[public authenticated admin]
 ```
 
 ### 6. Error Handling and Recovery
 
 Provide recovery paths for common issues:
 
-```python
+```ruby
 # Allow users to retry failed steps
-.set_valid_steps(["retry_payment", "choose_different_method", "contact_support"])
+.set_valid_steps(%w[retry_payment choose_different_method contact_support])
 
 # Provide help context access
-.set_valid_contexts(["help", "main"])
+.set_valid_contexts(%w[help main])
 
 # Include validation steps
-verification_step.add_step("validation") \
-    .set_step_criteria("Data validation passed") \
-    .set_valid_steps(["proceed", "edit_data"])
+verification_ctx.add_step('validation')
+                .set_step_criteria('Data validation passed')
+                .set_valid_steps(%w[proceed edit_data])
 ```
 
 ### 7. Content Strategy
 
 Choose the right content approach for each step:
 
-```python
-# Use set_text() for simple, direct instructions
-step.set_text("Please provide your email address")
+```ruby
+# Use set_text for simple, direct instructions
+step.set_text('Please provide your email address')
 
 # Use POM sections for complex, structured content
-step.add_section("Role", "You are a technical specialist") \
-    .add_section("Context", "Customer is experiencing network issues") \
-    .add_section("Instructions", "Follow diagnostic protocol") \
-    .add_bullets(["Check connectivity", "Test speed", "Verify settings"])
+step.add_section('Role', 'You are a technical specialist')
+    .add_section('Context', 'Customer is experiencing network issues')
+    .add_section('Instructions', 'Follow diagnostic protocol')
+    .add_bullets('Steps', ['Check connectivity', 'Test speed', 'Verify settings'])
 ```
 
 ## Troubleshooting
@@ -1155,56 +1134,56 @@ step.add_section("Role", "You are a technical specialist") \
 
 **Error**: When using a single context with a name other than "default"
 
-```python
+```ruby
 # Wrong
-context = contexts.add_context("main")  # Error!
+context = contexts.add_context('main') # Error!
 
 # Correct
-context = contexts.add_context("default")
+context = contexts.add_context('default')
 ```
 
 #### 2. "Cannot mix set_text with add_section"
 
 **Error**: Using both direct text and POM sections in the same step
 
-```python
+```ruby
 # Wrong
-step.set_text("Welcome!") \
-    .add_section("Role", "Assistant")  # Error!
+step.set_text('Welcome!')
+    .add_section('Role', 'Assistant') # Error!
 
 # Correct - choose one approach
 step.set_text("Welcome! I'm your assistant.")
 # OR
-step.add_section("Role", "Assistant") \
-    .add_section("Message", "Welcome!")
+step.add_section('Role', 'Assistant')
+    .add_section('Message', 'Welcome!')
 ```
 
 #### 3. Navigation Issues
 
 **Problem**: Users getting stuck or unable to navigate
 
-```python
+```ruby
 # Check your navigation rules
-step.set_valid_steps([])  # Dead end - is this intended?
-step.set_valid_contexts([])  # Trapped in context - is this intended?
+step.valid_steps = []    # Dead end - is this intended?
+step.valid_contexts = [] # Trapped in context - is this intended?
 
 # Add appropriate navigation
-step.set_valid_steps(["next_step", "previous_step"])
-step.set_valid_contexts(["main", "help"])
+step.valid_steps = %w[next_step previous_step]
+step.valid_contexts = %w[main help]
 ```
 
 #### 4. Function Access Problems
 
 **Problem**: Functions not available when expected
 
-```python
+```ruby
 # Check function restrictions
-step.set_functions("none")  # All functions blocked
-step.set_functions(["datetime"])  # Only datetime allowed
+step.functions = 'none'        # All functions blocked
+step.functions = %w[datetime]  # Only datetime allowed
 
 # Verify function names match your agent's functions
-self.add_skill("web_search")  # Function name is "web_search"
-step.set_functions(["web_search"])  # Must match exactly
+agent.add_skill('web_search')   # Function name is "web_search"
+step.functions = %w[web_search] # Must match exactly
 ```
 
 ### Debugging Tips
@@ -1213,38 +1192,39 @@ step.set_functions(["web_search"])  # Must match exactly
 
 Add logging to understand flow:
 
-```python
-def create_step_with_logging(self, name):
-    step = context.add_step(name)
-    print(f"Created step: {name}")
-    return step
+```ruby
+def create_step_with_logging(context, name)
+  step = context.add_step(name)
+  puts "Created step: #{name}"
+  step
+end
 ```
 
 #### 2. Validate Navigation Rules
 
 Check that all referenced steps/contexts exist:
 
-```python
+```ruby
 # Ensure referenced steps exist
-.set_valid_steps(["review", "edit"])  # Both "review" and "edit" steps must exist
+.set_valid_steps(%w[review edit]) # Both "review" and "edit" steps must exist
 
-# Ensure referenced contexts exist  
-.set_valid_contexts(["main", "help"])  # Both "main" and "help" contexts must exist
+# Ensure referenced contexts exist
+.set_valid_contexts(%w[main help]) # Both "main" and "help" contexts must exist
 ```
 
 #### 3. Test Function Restrictions
 
 Verify functions are properly restricted:
 
-```python
+```ruby
 # Test with all functions
-# step  # No set_functions() call
+# step  # No functions assignment
 
 # Test with restrictions
-step.set_functions(["datetime"])
+step.functions = %w[datetime]
 
 # Test with no functions
-step.set_functions("none")
+step.functions = 'none'
 ```
 
 ## Migration from POM
@@ -1252,59 +1232,55 @@ step.set_functions("none")
 ### Converting Traditional Prompts
 
 **Before (Traditional POM):**
-```python
-class TraditionalAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="assistant", route="/assistant")
-        
-        self.prompt_add_section("Role", "You are a helpful assistant")
-        self.prompt_add_section("Instructions", "Help users with questions")
-        self.prompt_add_section("Guidelines", bullets=[
-            "Be friendly",
-            "Ask clarifying questions",
-            "Provide accurate information"
-        ])
+```ruby
+agent = SignalWire::AgentBase.new(name: 'assistant', route: '/assistant')
+
+agent.prompt_add_section('Role', 'You are a helpful assistant')
+agent.prompt_add_section('Instructions', 'Help users with questions')
+agent.prompt_add_section('Guidelines', bullets: [
+  'Be friendly',
+  'Ask clarifying questions',
+  'Provide accurate information'
+])
 ```
 
 **After (Contexts and Steps):**
-```python
-class ContextsAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="assistant", route="/assistant")
-        
-        contexts = self.define_contexts()
-        main = contexts.add_context("default")
-        
-        main.add_step("assistance") \
-            .add_section("Role", "You are a helpful assistant") \
-            .add_section("Instructions", "Help users with questions") \
-            .add_section("Guidelines", bullets=[
-                "Be friendly",
-                "Ask clarifying questions", 
-                "Provide accurate information"
-            ]) \
-            .set_step_criteria("User's question has been answered")
+```ruby
+agent = SignalWire::AgentBase.new(name: 'assistant', route: '/assistant')
+
+contexts = agent.define_contexts
+main = contexts.add_context('default')
+
+# Note: the Ruby Step adds bullets via a separate `add_bullets(title, bullets)`
+# call rather than a `bullets:` option on `add_section`.
+main.add_step('assistance')
+    .add_section('Role', 'You are a helpful assistant')
+    .add_section('Instructions', 'Help users with questions')
+    .add_bullets('Guidelines', [
+      'Be friendly',
+      'Ask clarifying questions',
+      'Provide accurate information'
+    ])
+    .set_step_criteria("User's question has been answered")
 ```
 
 ### Hybrid Approach
 
 You can use both traditional prompts and contexts in the same agent:
 
-```python
-class HybridAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="hybrid", route="/hybrid")
-        
-        # Traditional prompt sections (from skills, global settings, etc.)
-        # These will coexist with contexts
-        
-        # Define contexts for structured workflows
-        contexts = self.define_contexts()
-        workflow = contexts.add_context("default")
-        
-        workflow.add_step("structured_process") \
-            .set_text("Following the structured workflow...") \
-            .set_step_criteria("Workflow complete")
+```ruby
+agent = SignalWire::AgentBase.new(name: 'hybrid', route: '/hybrid')
+
+# Traditional prompt sections (from skills, global settings, etc.)
+# These will coexist with contexts
+
+# Define contexts for structured workflows
+contexts = agent.define_contexts
+workflow = contexts.add_context('default')
+
+workflow.add_step('structured_process')
+        .set_text('Following the structured workflow...')
+        .set_step_criteria('Workflow complete')
 ```
 
 ### Migration Strategy
@@ -1325,48 +1301,47 @@ Start with simple single-context workflows and gradually build more complex mult
 
 ### Dynamic Context Switching
 
-To switch contexts dynamically during a conversation, use `SwaigFunctionResult` with the `swml_change_context()` method:
+To switch contexts dynamically during a conversation, return a `FunctionResult` with the `swml_change_context` method from a tool handler:
 
-```python
-from signalwire import AgentBase
-from signalwire.core.function_result import SwaigFunctionResult
+```ruby
+require 'signalwire'
 
-class MultiContextAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="multi-context", route="/multi")
+agent = SignalWire::AgentBase.new(name: 'multi-context', route: '/multi')
 
-        # Define contexts using the ContextBuilder pattern
-        contexts = self.define_contexts()
+# Define contexts using the ContextBuilder pattern
+contexts = agent.define_contexts
 
-        # Sales context
-        sales = contexts.add_context("sales")
-        sales.add_section("Role", "You are a helpful sales representative.")
-        sales.add_step("greeting").set_text("Welcome customers and understand their needs.")
+# Sales context
+sales = contexts.add_context('sales')
+sales.add_section('Role', 'You are a helpful sales representative.')
+sales.add_step('greeting').set_text('Welcome customers and understand their needs.')
 
-        # Support context
-        support = contexts.add_context("support")
-        support.add_section("Role", "You are a technical support specialist.")
-        support.add_step("diagnose").set_text("Help diagnose and resolve technical issues.")
+# Support context
+support = contexts.add_context('support')
+support.add_section('Role', 'You are a technical support specialist.')
+support.add_step('diagnose').set_text('Help diagnose and resolve technical issues.')
 
-    @AgentBase.tool(
-        name="transfer_to_support",
-        description="Transfer the customer to technical support",
-        parameters={}
-    )
-    def transfer_to_support(self, args, raw_data):
-        # Use swml_change_context to switch contexts
-        return SwaigFunctionResult("Transferring you to technical support...").swml_change_context("support")
+agent.define_tool(
+  name:        'transfer_to_support',
+  description: 'Transfer the customer to technical support',
+  parameters:  {}
+) do |_args, _raw_data|
+  # Use swml_change_context to switch contexts
+  SignalWire::Swaig::FunctionResult.new('Transferring you to technical support...')
+                                   .swml_change_context('support')
+end
 
-    @AgentBase.tool(
-        name="transfer_to_sales",
-        description="Transfer the customer to sales",
-        parameters={}
-    )
-    def transfer_to_sales(self, args, raw_data):
-        return SwaigFunctionResult("Transferring you to sales...").swml_change_context("sales")
+agent.define_tool(
+  name:        'transfer_to_sales',
+  description: 'Transfer the customer to sales',
+  parameters:  {}
+) do |_args, _raw_data|
+  SignalWire::Swaig::FunctionResult.new('Transferring you to sales...')
+                                   .swml_change_context('sales')
+end
 ```
 
-For a complete example of multi-context agents with different personas, see `examples/contexts_demo.py`.
+For a complete example of multi-context agents with different personas, see `examples/contexts_demo.rb`.
 
 ---
 
@@ -1374,92 +1349,88 @@ For a complete example of multi-context agents with different personas, see `exa
 
 Collects a travel profile with typed questions and confirmation, then recommends destinations:
 
-```python
-from signalwire import AgentBase
+```ruby
+require 'signalwire'
 
-class TravelAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="Travel Agent", route="/travel")
+agent = SignalWire::AgentBase.new(name: 'Travel Agent', route: '/travel')
 
-        self.prompt_add_section("Role", "You are a friendly travel booking assistant.")
+agent.prompt_add_section('Role', 'You are a friendly travel booking assistant.')
 
-        contexts = self.define_contexts()
-        ctx = contexts.add_context("default")
+contexts = agent.define_contexts
+ctx = contexts.add_context('default')
 
-        # Step 1: Collect profile (gather mode, auto-advance)
-        ctx.add_step("collect_profile") \
-            .set_text("Collect the caller's travel profile.") \
-            .set_gather_info(
-                output_key="profile",
-                completion_action="next_step",
-                prompt="Welcome the caller and introduce yourself as a travel "
-                       "booking assistant. You need to collect a few details "
-                       "to build their travel profile. Be warm and conversational."
-            ) \
-            .add_gather_question("first_name", "What is your first name?") \
-            .add_gather_question("last_name", "What is your last name?", confirm=True) \
-            .add_gather_question("party_size", "How many people are traveling?", type="integer") \
-            .add_gather_question("budget_per_person", "What is your budget per person?", type="number") \
-            .add_gather_question("has_passport", "Do you have a valid passport?", type="boolean") \
-            .add_gather_question("home_airport", "What is your home airport?", confirm=True)
+# Step 1: Collect profile (gather mode, auto-advance)
+ctx.add_step('collect_profile')
+   .set_text("Collect the caller's travel profile.")
+   .set_gather_info(
+     output_key:        'profile',
+     completion_action: 'next_step',
+     prompt:            'Welcome the caller and introduce yourself as a travel ' \
+                        'booking assistant. You need to collect a few details ' \
+                        'to build their travel profile. Be warm and conversational.'
+   )
+   .add_gather_question(key: 'first_name', question: 'What is your first name?')
+   .add_gather_question(key: 'last_name', question: 'What is your last name?', confirm: true)
+   .add_gather_question(key: 'party_size', question: 'How many people are traveling?', type: 'integer')
+   .add_gather_question(key: 'budget_per_person', question: 'What is your budget per person?', type: 'number')
+   .add_gather_question(key: 'has_passport', question: 'Do you have a valid passport?', type: 'boolean')
+   .add_gather_question(key: 'home_airport', question: 'What is your home airport?', confirm: true)
 
-        # Step 2: Recommend destinations (normal mode)
-        ctx.add_step("plan_trip") \
-            .set_text(
-                "You now have the caller's travel profile in ${profile}. "
-                "Use their name, party size, budget, passport status, and "
-                "home airport to suggest three vacation destinations. "
-                "If they don't have a passport, only suggest domestic destinations."
-            )
+# Step 2: Recommend destinations (normal mode)
+ctx.add_step('plan_trip')
+   .set_text(
+     "You now have the caller's travel profile in ${profile}. " \
+     'Use their name, party size, budget, passport status, and ' \
+     'home airport to suggest three vacation destinations. ' \
+     "If they don't have a passport, only suggest domestic destinations."
+   )
 
-        self.add_language(name="English", code="en-US", voice="rime.spore")
+agent.add_language('English', 'en-US', 'rime.spore')
 ```
 
 ### Example 5: Support Ticket Agent (Gather + Triage)
 
 Gathers issue details, then routes to the right team using normal mode navigation:
 
-```python
-from signalwire import AgentBase
+```ruby
+require 'signalwire'
 
-class SupportAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="Support Agent", route="/support")
+agent = SignalWire::AgentBase.new(name: 'Support Agent', route: '/support')
 
-        self.prompt_add_section("Role", "You are a technical support agent.")
+agent.prompt_add_section('Role', 'You are a technical support agent.')
 
-        contexts = self.define_contexts()
-        ctx = contexts.add_context("default")
+contexts = agent.define_contexts
+ctx = contexts.add_context('default')
 
-        # Collect ticket info, then return to normal mode for triage
-        ctx.add_step("intake") \
-            .set_text(
-                "You have the caller's issue details in ${ticket}. "
-                "Based on the category and description, route them to "
-                "the appropriate team."
-            ) \
-            .set_gather_info(
-                output_key="ticket",
-                prompt="Thank the caller for contacting support. "
-                       "You need to collect some details about their issue."
-            ) \
-            .add_gather_question("name", "What is your name?") \
-            .add_gather_question("account_id", "What is your account ID?", confirm=True) \
-            .add_gather_question("category", "Is this about billing, a technical issue, or something else?") \
-            .add_gather_question("description", "Please describe the issue in detail.") \
-            .set_valid_steps(["billing_support", "tech_support", "general_support"])
+# Collect ticket info, then return to normal mode for triage
+ctx.add_step('intake')
+   .set_text(
+     "You have the caller's issue details in ${ticket}. " \
+     'Based on the category and description, route them to ' \
+     'the appropriate team.'
+   )
+   .set_gather_info(
+     output_key: 'ticket',
+     prompt:     'Thank the caller for contacting support. ' \
+                 'You need to collect some details about their issue.'
+   )
+   .add_gather_question(key: 'name', question: 'What is your name?')
+   .add_gather_question(key: 'account_id', question: 'What is your account ID?', confirm: true)
+   .add_gather_question(key: 'category', question: 'Is this about billing, a technical issue, or something else?')
+   .add_gather_question(key: 'description', question: 'Please describe the issue in detail.')
+   .set_valid_steps(%w[billing_support tech_support general_support])
 
-        ctx.add_step("billing_support") \
-            .set_text("Help the caller with their billing issue. Details: ${ticket}.")
+ctx.add_step('billing_support')
+   .set_text('Help the caller with their billing issue. Details: ${ticket}.')
 
-        ctx.add_step("tech_support") \
-            .set_text("Help the caller with their technical issue. Details: ${ticket}.") \
-            .set_functions(["run_diagnostics", "check_service_status"])
+ctx.add_step('tech_support')
+   .set_text('Help the caller with their technical issue. Details: ${ticket}.')
+   .set_functions(%w[run_diagnostics check_service_status])
 
-        ctx.add_step("general_support") \
-            .set_text("Help the caller with their general inquiry. Details: ${ticket}.")
+ctx.add_step('general_support')
+   .set_text('Help the caller with their general inquiry. Details: ${ticket}.')
 
-        self.add_language(name="English", code="en-US", voice="rime.spore")
+agent.add_language('English', 'en-US', 'rime.spore')
 ```
 
 Note: This example uses gather **without** `completion_action`. After all questions are answered, the step returns to normal mode with `valid_steps` restored. The AI uses the gathered data to decide which support step to route to.
@@ -1473,7 +1444,8 @@ Note: This example uses gather **without** `completion_action`. After all questi
 
 ### Example Files
 
-- `examples/contexts_demo.py` - Multi-context agent with personas (Franklin, Rachael, Dwight)
-- `examples/gather_info_demo.py` - Structured data collection using `set_gather_info()` and `add_gather_question()`
-- `examples/survey_agent_example.py` - Survey workflow with steps
-- `examples/info_gatherer_example.py` - Information gathering workflow
+- `examples/contexts_demo.rb` - Multi-context insurance claims agent with steps and tools
+- `examples/gather_info_demo.rb` - Structured data collection using `set_gather_info` and `add_gather_question`
+- `examples/survey_agent_example.rb` - Survey workflow with steps
+- `examples/info_gatherer_example.rb` - Information gathering workflow
+- `examples/step_function_inheritance_demo.rb` - Per-step function whitelist inheritance behavior

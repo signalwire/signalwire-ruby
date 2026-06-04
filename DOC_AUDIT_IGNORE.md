@@ -32,6 +32,7 @@ expand_path: `File.expand_path` — Ruby stdlib (used to resolve $LOAD_PATH)
 reject: `Enumerable#reject` — Ruby stdlib
 sub: `String#sub` — Ruby stdlib
 transform_keys: `Hash#transform_keys` — Ruby stdlib (Ruby 2.5+)
+clamp: `Comparable#clamp` / `Integer#clamp` — Ruby stdlib (constrain a number to a range)
 
 ## Python-decorator syntax retained in illustrative examples
 
@@ -90,3 +91,4 @@ is_valid_customer: user-defined auth helper in agent_guide example
 get_customer_config: user-defined customer-config lookup in agent_guide example
 get_customer_settings: user-defined customer-settings lookup in agent_guide example
 get_customer_tier: user-defined customer-tier lookup in agent_guide example
+customer_settings: user-defined `database.customer_settings(...)` lookup in agent_guide dynamic-config example (idiomatic Ruby rename of get_customer_settings)
