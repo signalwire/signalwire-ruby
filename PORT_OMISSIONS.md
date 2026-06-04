@@ -539,7 +539,6 @@ signalwire.relay.message.Message.is_done: Ruby uses is_done? and done? predicate
 signalwire.relay.message.Message.on: Ruby uses SignalWire::Relay::Message#on_event and #on_completed - different name
 signalwire.rest.call_handler.PhoneCallHandler: Ruby SignalWire::REST::PhoneCallHandler is an empty marker (matches Python - no methods on either)
 signalwire.rest.namespaces.calling.CallingNamespace.end: Ruby uses SignalWire::REST::Namespaces::CallingNamespace#end_call - end is a Ruby keyword
-signalwire.run_agent: Ruby agents use agent.serve directly; no top-level run_agent convenience
 signalwire.search.document_processor.DocumentProcessor: search subsystem omitted - vector search/indexing not ported
 signalwire.search.document_processor.DocumentProcessor.__init__: search subsystem omitted - vector search/indexing not ported
 signalwire.search.document_processor.DocumentProcessor.create_chunks: search subsystem omitted - vector search/indexing not ported
@@ -657,7 +656,6 @@ signalwire.skills.web_search.skill_original.WebSearchSkill.get_prompt_sections: 
 signalwire.skills.web_search.skill_original.WebSearchSkill.register_tools: search subsystem variant (Python has three parallel skill files); not ported
 signalwire.skills.web_search.skill_original.WebSearchSkill.setup: search subsystem variant (Python has three parallel skill files); not ported
 signalwire.skills.wikipedia_search.skill.WikipediaSearchSkill.get_hints: Ruby inherits the identical base SkillBase#get_hints (Python's per-skill override is a no-op placeholder returning []); not re-declared in Ruby — idiomatic, zero behavioral difference (go/rust/cpp ports also omit; ts/php/perl/java/dotnet re-declare the no-op)
-signalwire.start_agent: Ruby agents use agent.serve directly; no top-level start_agent convenience
 signalwire.utils.schema_utils.SchemaUtils: SchemaUtils consolidated into SignalWire::SWML::Schema - see port_surface.json signalwire.swml.schema
 signalwire.utils.schema_utils.SchemaUtils.__init__: SchemaUtils consolidated into SignalWire::SWML::Schema - see port_surface.json signalwire.swml.schema
 signalwire.utils.schema_utils.SchemaUtils.full_validation_available: SchemaUtils consolidated into SignalWire::SWML::Schema - see port_surface.json signalwire.swml.schema
