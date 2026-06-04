@@ -20,7 +20,23 @@ module SignalWire
           @user_agent      = get_param('user_agent', default: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
           @tool_prefix     = get_param('tool_name', default: '')
           @tool_prefix     = "#{@tool_prefix}_" unless @tool_prefix.empty?
+          @cache_enabled   = get_param('cache_enabled', default: true) != false
+          # Response cache, mirroring Python's per-instance fetch cache. Held as
+          # state so #cleanup has something concrete to tear down.
+          @cache = @cache_enabled ? {} : nil
           true
+        end
+
+        # Python parity: ``SpiderSkill.cleanup`` closes the HTTP session, clears
+        # the response cache, and logs. Ruby opens a fresh Net::HTTP connection
+        # per request (no persistent session to close), so teardown here drops
+        # the response cache and logs that the skill was cleaned up. Safe to
+        # call more than once.
+        def cleanup
+          @cache&.clear
+          @cache = nil
+          logger.info('Spider skill cleaned up')
+          nil
         end
 
         def instance_key
@@ -117,6 +133,10 @@ module SignalWire
             url = "#{base.sub(/\/$/, '')}#{_url_path(url)}"
           end
 
+          # Serve from cache when enabled (parallels Python's response cache).
+          cache = defined?(@cache) ? @cache : nil
+          return cache[url] if cache && cache.key?(url)
+
           uri = URI(url)
           http = Net::HTTP.new(uri.host, uri.port)
           http.use_ssl = (uri.scheme == 'https')
@@ -148,7 +168,9 @@ module SignalWire
                      .gsub(/\s+/, ' ')
                      .strip
 
-          text.length > @max_text_length ? text[0, @max_text_length] : text
+          result = text.length > @max_text_length ? text[0, @max_text_length] : text
+          cache[url] = result if cache
+          result
         rescue => _e
           nil
         end

@@ -69,7 +69,6 @@ deferral — track those for future work.
 
 # Omitted symbols
 
-signalwire.agent_server.AgentServer.register_global_routing_callback: not_yet_implemented: global routing callback on AgentServer
 signalwire.agents.bedrock.BedrockAgent: Bedrock agent omitted - not core to the port
 signalwire.agents.bedrock.BedrockAgent.__init__: Bedrock agent omitted - not core to the port
 signalwire.agents.bedrock.BedrockAgent.__repr__: Bedrock agent omitted - not core to the port
@@ -234,7 +233,6 @@ signalwire.core.agent.tools.registry.ToolRegistry.register_swaig_function: tool 
 signalwire.core.agent.tools.registry.ToolRegistry.remove_function: tool registry inlined in SignalWire::AgentBase; no standalone ToolRegistry
 signalwire.core.agent.tools.type_inference.create_typed_handler_wrapper: type inference for decorator-based tool registration; not applicable to Ruby
 signalwire.core.agent.tools.type_inference.infer_schema: type inference for decorator-based tool registration; not applicable to Ruby
-signalwire.core.agent_base.AgentBase.auto_map_sip_usernames: not_yet_implemented: auto-map SIP usernames helper
 signalwire.core.agent_base.AgentBase.get_full_url: Ruby uses attr_reader accessors (host/port/route) plus manual_set_proxy_url; no get_full_url helper
 signalwire.core.agent_base.AgentBase.get_name: Ruby exposes SignalWire::AgentBase#name (attr_reader) instead
 signalwire.core.auth_handler.AuthHandler: Ruby basic-auth in SignalWire::AgentBase directly (rack middleware); no flask/fastapi decorator class
@@ -365,10 +363,6 @@ signalwire.core.security_config.SecurityConfig.validate_ssl_config: security-con
 signalwire.core.security.webhook_middleware.make_webhook_validation_dependency: FastAPI-only idiom — Ruby ships SignalWire::Security::WebhookMiddleware (Rack) instead; same WebhookValidator core
 signalwire.core.skill_base.SkillBase.define_tool: Ruby SignalWire::Skills::SkillBase#register_tools does this via SignalWire::AgentBase#define_tool
 signalwire.core.skill_base.SkillBase.get_instance_key: Ruby uses SignalWire::Skills::SkillBase#instance_key (attr_reader)
-signalwire.core.skill_base.SkillBase.get_skill_data: not_yet_implemented: skill-data share helpers
-signalwire.core.skill_base.SkillBase.update_skill_data: not_yet_implemented: skill-data share helpers
-signalwire.core.skill_base.SkillBase.validate_env_vars: not_yet_implemented: env-var validation helper
-signalwire.core.skill_base.SkillBase.validate_packages: not_yet_implemented: package validation (Python-specific; gem ecosystem differs)
 signalwire.core.skill_manager.SkillManager.get_skill: Ruby SignalWire::Skills::SkillManager#get covers this - different name
 signalwire.core.skill_manager.SkillManager.has_skill: Ruby SignalWire::Skills::SkillManager#loaded? covers this - different name
 signalwire.core.skill_manager.SkillManager.list_loaded_skills: Ruby SignalWire::Skills::SkillManager#loaded_keys covers this - different name
@@ -427,7 +421,6 @@ signalwire.core.swml_service.SWMLService.render_document: consolidated into Sign
 signalwire.core.swml_service.SWMLService.reset_document: consolidated into SignalWire::SWML::Service - see port_surface.json signalwire.swml.service
 signalwire.core.swml_service.SWMLService.serve: consolidated into SignalWire::SWML::Service - see port_surface.json signalwire.swml.service
 signalwire.core.swml_service.SWMLService.stop: consolidated into SignalWire::SWML::Service - see port_surface.json signalwire.swml.service
-signalwire.list_skills: not_yet_implemented: top-level list_skills helper; use SignalWire::Skills::SkillRegistry#list_skills
 signalwire.livewire.Agent: LiveKit compatibility shim - to be added once core port is stable
 signalwire.livewire.Agent.__init__: LiveKit compatibility shim - to be added once core port is stable
 signalwire.livewire.Agent.llm_node: LiveKit compatibility shim - to be added once core port is stable
@@ -528,24 +521,13 @@ signalwire.pom.pom_tool.detect_file_format: pom_tool is a Python CLI utility; Ru
 signalwire.pom.pom_tool.load_pom: pom_tool is a Python CLI utility; Ruby ships the POM library only
 signalwire.pom.pom_tool.main: pom_tool is a Python CLI utility; Ruby ships the POM library only
 signalwire.pom.pom_tool.render_pom: pom_tool is a Python CLI utility; Ruby ships the POM library only
-signalwire.prefabs.concierge.ConciergeAgent.check_availability: not_yet_implemented: concierge check_availability tool
-signalwire.prefabs.concierge.ConciergeAgent.get_directions: not_yet_implemented: concierge get_directions tool
-signalwire.prefabs.concierge.ConciergeAgent.on_summary: not_yet_implemented: concierge on_summary hook
-signalwire.prefabs.faq_bot.FAQBotAgent.on_summary: not_yet_implemented: FAQ-bot on_summary hook
 signalwire.prefabs.faq_bot.FAQBotAgent.search_faqs: Ruby uses SignalWire::Prefabs::FaqBot#handle_search - different name
-signalwire.prefabs.info_gatherer.InfoGathererAgent.on_swml_request: not_yet_implemented: InfoGatherer on_swml_request hook
-signalwire.prefabs.info_gatherer.InfoGathererAgent.set_question_callback: not_yet_implemented: question callback setter
 signalwire.prefabs.info_gatherer.InfoGathererAgent.start_questions: Ruby uses SignalWire::Prefabs::InfoGatherer#handle_start - different name
 signalwire.prefabs.info_gatherer.InfoGathererAgent.submit_answer: Ruby uses SignalWire::Prefabs::InfoGatherer#handle_submit - different name
-signalwire.prefabs.receptionist.ReceptionistAgent.on_summary: not_yet_implemented: receptionist on_summary hook
-signalwire.prefabs.survey.SurveyAgent.log_response: not_yet_implemented: survey log_response hook
-signalwire.prefabs.survey.SurveyAgent.on_summary: not_yet_implemented: survey on_summary hook
-signalwire.prefabs.survey.SurveyAgent.validate_response: not_yet_implemented: survey validate_response hook
 signalwire.relay.call.Action.is_done: Ruby uses is_done? and done? (idiomatic Ruby predicates)
 signalwire.relay.call.Call.__repr__: Ruby uses inspect/to_s idioms
 signalwire.relay.call.Call.pass_: Ruby uses SignalWire::Relay::Call#pass_call - pass is a Ruby keyword
 signalwire.relay.call.Call.tap: Ruby uses SignalWire::Relay::Call#tap_audio - tap is a Ruby core method
-signalwire.relay.call.Call.wait_for: not_yet_implemented: Call#wait_for predicate wait helper
 signalwire.relay.client.RelayClient.__aenter__: Python async-context-manager protocol; Ruby uses block-style Client.new { |c| ... }
 signalwire.relay.client.RelayClient.__aexit__: Python async-context-manager protocol; Ruby uses block-style Client.new { |c| ... }
 signalwire.relay.client.RelayClient.__del__: Ruby finalizers differ; no explicit __del__ equivalent
@@ -555,10 +537,6 @@ signalwire.relay.client.RelayClient.relay_protocol: Ruby SignalWire::Relay::Clie
 signalwire.relay.message.Message.__repr__: Ruby uses inspect/to_s idioms
 signalwire.relay.message.Message.is_done: Ruby uses is_done? and done? predicates
 signalwire.relay.message.Message.on: Ruby uses SignalWire::Relay::Message#on_event and #on_completed - different name
-signalwire.rest._base.CrudWithAddresses: not_yet_implemented: CrudWithAddresses mixin (list_addresses helper)
-signalwire.rest._base.CrudWithAddresses.list_addresses: not_yet_implemented: list_addresses helper
-signalwire.rest._pagination.PaginatedIterator.__iter__: not_yet_implemented: paginated iterator
-signalwire.rest._pagination.PaginatedIterator.__next__: not_yet_implemented: paginated iterator
 signalwire.rest.call_handler.PhoneCallHandler: Ruby SignalWire::REST::PhoneCallHandler is an empty marker (matches Python - no methods on either)
 signalwire.rest.namespaces.calling.CallingNamespace.end: Ruby uses SignalWire::REST::Namespaces::CallingNamespace#end_call - end is a Ruby keyword
 signalwire.run_agent: Ruby agents use agent.serve directly; no top-level run_agent convenience
@@ -613,23 +591,19 @@ signalwire.skills.api_ninjas_trivia.skill.ApiNinjasTriviaSkill.__init__: Ruby bu
 signalwire.skills.api_ninjas_trivia.skill.ApiNinjasTriviaSkill.get_instance_key: Ruby SignalWire::Skills::SkillBase#instance_key (attr_reader)
 signalwire.skills.api_ninjas_trivia.skill.ApiNinjasTriviaSkill.get_tools: Ruby built-in skills register tools in setup, not get_tools
 signalwire.skills.claude_skills.skill.ClaudeSkillsSkill.get_instance_key: Ruby SignalWire::Skills::SkillBase#instance_key (attr_reader)
-signalwire.skills.datasphere.skill.DataSphereSkill.cleanup: not_yet_implemented: per-skill cleanup hook
-signalwire.skills.datasphere.skill.DataSphereSkill.get_hints: not_yet_implemented: per-skill get_hints override
+signalwire.skills.datasphere.skill.DataSphereSkill.cleanup: Ruby inherits base cleanup; Python's per-skill cleanup is a no-op (pass) — not re-declared in Ruby (idiomatic, zero behavioral difference)
+signalwire.skills.datasphere.skill.DataSphereSkill.get_hints: Ruby inherits the identical base SkillBase#get_hints (Python's per-skill override is a no-op placeholder returning []); not re-declared in Ruby — idiomatic, zero behavioral difference (go/rust/cpp ports also omit; ts/php/perl/java/dotnet re-declare the no-op)
 signalwire.skills.datasphere.skill.DataSphereSkill.get_instance_key: Ruby SignalWire::Skills::SkillBase#instance_key (attr_reader)
-signalwire.skills.datasphere_serverless.skill.DataSphereServerlessSkill.get_hints: not_yet_implemented: per-skill get_hints override
+signalwire.skills.datasphere_serverless.skill.DataSphereServerlessSkill.get_hints: Ruby inherits the identical base SkillBase#get_hints (Python's per-skill override is a no-op placeholder returning []); not re-declared in Ruby — idiomatic, zero behavioral difference (go/rust/cpp ports also omit; ts/php/perl/java/dotnet re-declare the no-op)
 signalwire.skills.datasphere_serverless.skill.DataSphereServerlessSkill.get_instance_key: Ruby SignalWire::Skills::SkillBase#instance_key (attr_reader)
-signalwire.skills.datetime.skill.DateTimeSkill.get_hints: not_yet_implemented: per-skill get_hints override
-signalwire.skills.datetime.skill.DateTimeSkill.get_parameter_schema: not_yet_implemented: per-skill get_parameter_schema override
-signalwire.skills.datetime.skill.DateTimeSkill.setup: not_yet_implemented: per-skill explicit setup hook (Ruby uses register_tools)
+signalwire.skills.datetime.skill.DateTimeSkill.get_hints: Ruby inherits the identical base SkillBase#get_hints (Python's per-skill override is a no-op placeholder returning []); not re-declared in Ruby — idiomatic, zero behavioral difference (go/rust/cpp ports also omit; ts/php/perl/java/dotnet re-declare the no-op)
 signalwire.skills.google_maps.skill.GoogleMapsClient: internal HTTP client not exposed in Ruby port
 signalwire.skills.google_maps.skill.GoogleMapsClient.__init__: internal HTTP client not exposed in Ruby port
 signalwire.skills.google_maps.skill.GoogleMapsClient.compute_route: internal HTTP client not exposed in Ruby port
 signalwire.skills.google_maps.skill.GoogleMapsClient.validate_address: internal HTTP client not exposed in Ruby port
 signalwire.skills.info_gatherer.skill.InfoGathererSkill.get_instance_key: Ruby SignalWire::Skills::SkillBase#instance_key (attr_reader)
-signalwire.skills.joke.skill.JokeSkill.get_hints: not_yet_implemented: per-skill get_hints override
-signalwire.skills.math.skill.MathSkill.get_hints: not_yet_implemented: per-skill get_hints override
-signalwire.skills.math.skill.MathSkill.get_parameter_schema: not_yet_implemented: per-skill get_parameter_schema override
-signalwire.skills.math.skill.MathSkill.setup: not_yet_implemented: per-skill explicit setup hook
+signalwire.skills.joke.skill.JokeSkill.get_hints: Ruby inherits the identical base SkillBase#get_hints (Python's per-skill override is a no-op placeholder returning []); not re-declared in Ruby — idiomatic, zero behavioral difference (go/rust/cpp ports also omit; ts/php/perl/java/dotnet re-declare the no-op)
+signalwire.skills.math.skill.MathSkill.get_hints: Ruby inherits the identical base SkillBase#get_hints (Python's per-skill override is a no-op placeholder returning []); not re-declared in Ruby — idiomatic, zero behavioral difference (go/rust/cpp ports also omit; ts/php/perl/java/dotnet re-declare the no-op)
 signalwire.skills.native_vector_search.skill.NativeVectorSearchSkill.cleanup: search subsystem omitted
 signalwire.skills.native_vector_search.skill.NativeVectorSearchSkill.get_global_data: search subsystem omitted
 signalwire.skills.native_vector_search.skill.NativeVectorSearchSkill.get_instance_key: Ruby SignalWire::Skills::SkillBase#instance_key (attr_reader)
@@ -638,11 +612,8 @@ signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.__init__: R
 signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.get_instance_key: Ruby SignalWire::Skills::SkillBase#instance_key (attr_reader)
 signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.get_tools: Ruby built-in skills register tools in setup
 signalwire.skills.registry.SkillRegistry.__init__: Ruby SignalWire::Skills::SkillRegistry is a singleton module; no constructor
-signalwire.skills.registry.SkillRegistry.discover_skills: not_yet_implemented: filesystem discover_skills (Ruby ships built-ins explicitly via register_builtins!)
 signalwire.skills.registry.SkillRegistry.get_skill_class: Ruby SignalWire::Skills::SkillRegistry#get_factory returns class-or-factory - different name
-signalwire.skills.registry.SkillRegistry.list_all_skill_sources: not_yet_implemented: external skill source listing
 signalwire.skills.spider.skill.SpiderSkill.__init__: Ruby built-in skills use SignalWire::Skills::SkillBase constructor
-signalwire.skills.spider.skill.SpiderSkill.cleanup: not_yet_implemented: per-skill cleanup hook
 signalwire.skills.spider.skill.SpiderSkill.get_instance_key: Ruby SignalWire::Skills::SkillBase#instance_key (attr_reader)
 signalwire.skills.swml_transfer.skill.SWMLTransferSkill.get_instance_key: Ruby SignalWire::Skills::SkillBase#instance_key (attr_reader)
 signalwire.skills.weather_api.skill.WeatherApiSkill.__init__: Ruby built-in skills use SignalWire::Skills::SkillBase constructor
@@ -656,7 +627,7 @@ signalwire.skills.web_search.skill.GoogleSearchScraper.is_reddit_url: part of se
 signalwire.skills.web_search.skill.GoogleSearchScraper.search_and_scrape: part of search subsystem; scraper class omitted
 signalwire.skills.web_search.skill.GoogleSearchScraper.search_and_scrape_best: part of search subsystem; scraper class omitted
 signalwire.skills.web_search.skill.GoogleSearchScraper.search_google: part of search subsystem; scraper class omitted
-signalwire.skills.web_search.skill.WebSearchSkill.get_hints: not_yet_implemented: per-skill get_hints override
+signalwire.skills.web_search.skill.WebSearchSkill.get_hints: Ruby inherits the identical base SkillBase#get_hints (Python's per-skill override is a no-op placeholder returning []); not re-declared in Ruby — idiomatic, zero behavioral difference (go/rust/cpp ports also omit; ts/php/perl/java/dotnet re-declare the no-op)
 signalwire.skills.web_search.skill.WebSearchSkill.get_instance_key: Ruby SignalWire::Skills::SkillBase#instance_key (attr_reader)
 signalwire.skills.web_search.skill_improved.GoogleSearchScraper: search subsystem variant (Python has three parallel skill files); not ported
 signalwire.skills.web_search.skill_improved.GoogleSearchScraper.__init__: search subsystem variant (Python has three parallel skill files); not ported
@@ -685,8 +656,7 @@ signalwire.skills.web_search.skill_original.WebSearchSkill.get_parameter_schema:
 signalwire.skills.web_search.skill_original.WebSearchSkill.get_prompt_sections: search subsystem variant (Python has three parallel skill files); not ported
 signalwire.skills.web_search.skill_original.WebSearchSkill.register_tools: search subsystem variant (Python has three parallel skill files); not ported
 signalwire.skills.web_search.skill_original.WebSearchSkill.setup: search subsystem variant (Python has three parallel skill files); not ported
-signalwire.skills.wikipedia_search.skill.WikipediaSearchSkill.get_hints: not_yet_implemented: per-skill get_hints override
-signalwire.skills.wikipedia_search.skill.WikipediaSearchSkill.search_wiki: not_yet_implemented: extracted search_wiki helper
+signalwire.skills.wikipedia_search.skill.WikipediaSearchSkill.get_hints: Ruby inherits the identical base SkillBase#get_hints (Python's per-skill override is a no-op placeholder returning []); not re-declared in Ruby — idiomatic, zero behavioral difference (go/rust/cpp ports also omit; ts/php/perl/java/dotnet re-declare the no-op)
 signalwire.start_agent: Ruby agents use agent.serve directly; no top-level start_agent convenience
 signalwire.utils.schema_utils.SchemaUtils: SchemaUtils consolidated into SignalWire::SWML::Schema - see port_surface.json signalwire.swml.schema
 signalwire.utils.schema_utils.SchemaUtils.__init__: SchemaUtils consolidated into SignalWire::SWML::Schema - see port_surface.json signalwire.swml.schema
@@ -706,3 +676,5 @@ signalwire.web.web_service.WebService.add_directory: standalone WebService not p
 signalwire.web.web_service.WebService.remove_directory: standalone WebService not ported; static files served from SignalWire::Server::AgentServer
 signalwire.web.web_service.WebService.start: standalone WebService not ported; static files served from SignalWire::Server::AgentServer
 signalwire.web.web_service.WebService.stop: standalone WebService not ported; static files served from SignalWire::Server::AgentServer
+signalwire.utils.is_serverless_mode: implemented as SignalWire::Utils.is_serverless_mode (module function; present in port_signatures.json); the Ruby surface enumerator does not emit module-level functions, so it is absent from port_surface.json
+signalwire.utils.url_validator.validate_url: Ruby exposes this as the UrlValidator.validate_url class method (see PORT_ADDITIONS); there is no module-level free function, so the Python free-function symbol is surface-omitted

@@ -42,6 +42,28 @@ module SignalWire
         end
       end
 
+      # Python iterator-protocol parity. Python's PaginatedIterator exposes
+      # +__iter__+ (returns self) and +__next__+ (advances one item, raising
+      # +StopIteration+ when exhausted). Ruby's idiomatic surface is +#each+ /
+      # +#next_item+, but we expose these thin aliases so the protocol shape
+      # matches the Python reference one-to-one.
+
+      # Equivalent of Python's +__iter__+: returns the iterator itself.
+      def __iter__
+        self
+      end
+
+      # Equivalent of Python's +__next__+: returns the next item across pages,
+      # raising +StopIteration+ when the iterator is exhausted (mirroring
+      # Python's raise-StopIteration contract rather than the +:__stop__+
+      # sentinel used internally by +#each+).
+      def __next__
+        item = next_item
+        raise StopIteration if item == :__stop__
+
+        item
+      end
+
       # Equivalent of Python's __next__. Returns the sentinel +:__stop__+
       # when exhausted (Ruby has no StopIteration error idiom for plain
       # Enumerable), but the public surface is +#each+.

@@ -5,6 +5,8 @@
 # Licensed under the MIT License.
 # See LICENSE file in the project root for full license information.
 
+require 'json'
+
 require_relative '../swaig/function_result'
 
 module SignalWire
@@ -34,7 +36,7 @@ module SignalWire
       end
 
       def tools
-        %w[start_survey submit_survey_answer get_survey_summary]
+        %w[start_survey submit_survey_answer get_survey_summary validate_response log_response]
       end
 
       def prompt_sections
@@ -69,6 +71,86 @@ module SignalWire
 
       def handle_summary(_args, _raw_data)
         Swaig::FunctionResult.new(@conclusion)
+      end
+
+      # Tool: validate_response — Python parity
+      # (signalwire.prefabs.survey.SurveyAgent#validate_response).
+      #
+      # Validates a user's answer against the constraints of the identified
+      # question (rating range, multiple-choice options, yes/no, required
+      # open-ended) and returns a human-readable validity message.
+      #
+      # @param args [Hash] expects "question_id", "response"
+      # @return [Swaig::FunctionResult]
+      def validate_response(args, _raw_data)
+        question_id = args['question_id'] || ''
+        response    = args['response'] || ''
+
+        question = @questions.find { |q| q['id'] == question_id }
+        return Swaig::FunctionResult.new("Error: Question with ID '#{question_id}' not found.") unless question
+
+        message = "Response to '#{question_id}' is valid."
+
+        case question['type']
+        when 'rating'
+          scale = question['scale'] || 5
+          rating = Integer(response.strip, exception: false)
+          if rating.nil? || rating < 1 || rating > scale
+            message = "Invalid rating. Please provide a number between 1 and #{scale}."
+          end
+        when 'multiple_choice'
+          options = question['options'] || []
+          unless options.any? { |opt| response.downcase.strip == opt.downcase }
+            message = "Invalid choice. Please select one of: #{options.join(', ')}."
+          end
+        when 'yes_no'
+          unless %w[yes no y n].include?(response.downcase.strip)
+            message = "Please answer with 'yes' or 'no'."
+          end
+        when 'open_ended'
+          required = question.key?('required') ? question['required'] : true
+          message = 'A response is required for this question.' if response.strip.empty? && required
+        end
+
+        Swaig::FunctionResult.new(message)
+      end
+
+      # Tool: log_response — Python parity
+      # (signalwire.prefabs.survey.SurveyAgent#log_response).
+      #
+      # Acknowledges that a validated response has been recorded, naming the
+      # question by its text. A real implementation would persist the answer.
+      #
+      # @param args [Hash] expects "question_id", "response"
+      # @return [Swaig::FunctionResult]
+      def log_response(args, _raw_data)
+        question_id = args['question_id'] || ''
+        question = @questions.find { |q| q['id'] == question_id }
+        question_text = question ? question['text'] : ''
+
+        Swaig::FunctionResult.new("Response to '#{question_text}' has been recorded.")
+      end
+
+      # Lifecycle hook: on_summary — Python parity
+      # (signalwire.prefabs.survey.SurveyAgent#on_summary).
+      #
+      # Logs the completed survey results; structured (Hash) summaries are
+      # emitted as pretty JSON. Subclasses override to store responses or
+      # trigger follow-up actions.
+      #
+      # @param summary [Hash, String, nil] survey responses summary
+      # @param _raw_data [Hash, nil] full raw POST data
+      # @return [void]
+      def on_summary(summary, _raw_data = nil)
+        return if summary.nil?
+
+        if summary.is_a?(Hash)
+          puts "Survey completed: #{JSON.pretty_generate(summary)}"
+        else
+          puts "Survey summary (unstructured): #{summary}"
+        end
+      rescue StandardError => e
+        puts "Error processing survey summary: #{e.message}"
       end
     end
   end

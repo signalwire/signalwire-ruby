@@ -134,6 +134,63 @@ module SignalWire
         @ended
       end
 
+      # Wait for a specific event, optionally filtered by a predicate.
+      #
+      # Python parity: ``Call.wait_for(event_type, predicate=None,
+      # timeout=None)``. Registers a one-shot listener for +event_type+ and
+      # blocks until the first matching event arrives (or +timeout+ seconds
+      # elapse). When +predicate+ is supplied, only events for which it
+      # returns truthy satisfy the wait. The Python coroutine resolves an
+      # asyncio future; the Ruby port blocks the calling thread on a
+      # ConditionVariable, mirroring +#wait_for_ended+'s synchronization
+      # model.
+      #
+      # @param event_type [String] the RELAY event type to wait for
+      # @param predicate [#call, nil] optional filter +->(event) { ... }+
+      # @param timeout [Numeric, nil] optional timeout in seconds
+      # @return [RelayEvent, nil] the matching event, or +nil+ on timeout
+      def wait_for(event_type, predicate: nil, timeout: nil)
+        mutex     = Mutex.new
+        cv        = ConditionVariable.new
+        result    = nil
+        satisfied = false
+
+        handler = lambda do |event|
+          mutex.synchronize do
+            next if satisfied
+            next unless predicate.nil? || predicate.call(event)
+
+            result    = event
+            satisfied = true
+            cv.broadcast
+          end
+        end
+
+        on(event_type, &handler)
+        begin
+          mutex.synchronize do
+            if timeout
+              deadline = Time.now + timeout
+              until satisfied
+                remaining = deadline - Time.now
+                break if remaining <= 0
+
+                cv.wait(mutex, remaining)
+              end
+            else
+              cv.wait(mutex) until satisfied
+            end
+          end
+          result
+        ensure
+          # Remove the one-shot listener so it doesn't fire for later events.
+          @mutex.synchronize do
+            listeners = @listeners[event_type]
+            listeners.delete(handler) if listeners
+          end
+        end
+      end
+
       # ------------------------------------------------------------------
       # Action helper
       # ------------------------------------------------------------------

@@ -88,6 +88,31 @@ module SignalWire
         self.class.send(:_list_skills_full)
       end
 
+      # Ensure built-in skills are discovered/registered (instance form).
+      #
+      # Python parity: ``SkillRegistry.discover_skills`` is a deprecated
+      # no-op there because skills load on-demand. Ruby ships its
+      # built-ins explicitly, so the faithful equivalent is to make sure
+      # they're registered — idempotent, since {register_builtins!} just
+      # re-requires the (already loaded) built-in files. Returns the
+      # registered skill names so callers can confirm discovery ran.
+      #
+      # @return [Array<String>] currently registered skill names.
+      def discover_skills
+        self.class.discover_skills
+      end
+
+      # List skill sources and the skills available from each (instance form).
+      #
+      # Python parity: ``SkillRegistry.list_all_skill_sources`` returns a
+      # hash mapping source type to skill names. This instance form folds
+      # in any directories registered via {#add_skill_directory}.
+      #
+      # @return [Hash{String => Array<String>}]
+      def list_all_skill_sources
+        self.class.list_all_skill_sources(external_paths: @external_paths)
+      end
+
       # Register a skill class or factory (instance form).
       #
       # Python parity: ``SkillRegistry.register_skill(self, skill_class)``
@@ -213,6 +238,70 @@ module SignalWire
           # We just need to require them all.
           builtin_dir = File.join(__dir__, 'builtin')
           Dir[File.join(builtin_dir, '*.rb')].sort.each { |f| require f }
+        end
+
+        # Skill names this gem ships as built-ins (derived from the file
+        # names in the +builtin/+ directory, mirroring how Python derives
+        # built-in names from subdirectories of its skills package).
+        # @return [Array<String>]
+        def builtin_skill_names
+          builtin_dir = File.join(__dir__, 'builtin')
+          Dir[File.join(builtin_dir, '*.rb')].map { |f| File.basename(f, '.rb') }.sort
+        end
+        # Internal helper — not part of the Python surface; reached via
+        # discover_skills / list_all_skill_sources.
+        private :builtin_skill_names
+
+        # Ensure built-in skills are registered and return their names.
+        #
+        # Python parity: ``SkillRegistry.discover_skills`` (a no-op there
+        # since skills load on-demand). Ruby ships built-ins explicitly,
+        # so this guarantees they're registered via {register_builtins!}
+        # (idempotent) and returns the registered skill names.
+        #
+        # @return [Array<String>] currently registered skill names.
+        def discover_skills
+          register_builtins!
+          list_skills
+        end
+
+        # List all skill sources and the skills available from each.
+        #
+        # Python parity: ``SkillRegistry.list_all_skill_sources`` returns
+        # a hash keyed by source type. Ruby has no Python-style entry
+        # points, so that bucket is always empty; +registered+ holds any
+        # skill that isn't a shipped built-in (e.g. registered via
+        # {register_skill}). +external_paths+ folds in skill subdirectory
+        # names found under any directories passed in.
+        #
+        # @param external_paths [Array<String>] directories registered via
+        #   an instance's #add_skill_directory.
+        # @return [Hash{String => Array<String>}]
+        def list_all_skill_sources(external_paths: [])
+          builtins = builtin_skill_names
+          sources = {
+            'built-in'       => builtins,
+            'external_paths' => [],
+            'entry_points'   => [],
+            'registered'     => []
+          }
+
+          external_paths.each do |path|
+            next unless File.directory?(path)
+
+            Dir.children(path).sort.each do |entry|
+              child = File.join(path, entry)
+              next unless File.directory?(child) && !entry.start_with?('__')
+
+              sources['external_paths'] << entry if File.exist?(File.join(child, 'skill.rb'))
+            end
+          end
+
+          list_skills.each do |skill_name|
+            sources['registered'] << skill_name unless builtins.include?(skill_name)
+          end
+
+          sources
         end
 
         # Get complete schema for all registered skills.

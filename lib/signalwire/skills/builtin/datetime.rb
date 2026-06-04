@@ -10,6 +10,26 @@ module SignalWire
         def name;        'datetime'; end
         def description; 'Get current date, time, and timezone information'; end
 
+        # Python parity: ``DateTimeSkill.setup`` -> ``self.validate_packages()``.
+        # Python validates that ``pytz`` is importable before the skill is
+        # usable. Ruby resolves timezones through the stdlib ``time``/``date``
+        # libraries (no third-party dependency), so setup here verifies those
+        # are loadable and returns whether the skill is ready.
+        def setup
+          require 'time'
+          require 'date'
+          true
+        rescue LoadError => e
+          logger.error("datetime skill setup failed: #{e.message}")
+          false
+        end
+
+        # Python parity: ``DateTimeSkill.get_parameter_schema`` returns only the
+        # base-class schema (the datetime skill adds no custom parameters).
+        def get_parameter_schema
+          super
+        end
+
         def register_tools
           [
             {

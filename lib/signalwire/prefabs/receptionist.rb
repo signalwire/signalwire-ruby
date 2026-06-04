@@ -69,6 +69,20 @@ module SignalWire
           Swaig::FunctionResult.new("I couldn't find that department. Available departments: #{@departments.map { |d| d['name'] }.join(', ')}")
         end
       end
+
+      # Lifecycle hook: on_summary — Python parity
+      # (signalwire.prefabs.receptionist.ReceptionistAgent#on_summary).
+      #
+      # No-op extension point: the base receptionist does not process the
+      # transfer summary. Subclasses override this to handle the summary
+      # (mirrors Python's ``def on_summary(...): pass``).
+      #
+      # @param _summary [Hash, String, nil] conversation summary
+      # @param _raw_data [Hash, nil] full raw POST data
+      # @return [void]
+      def on_summary(_summary, _raw_data = nil)
+        nil
+      end
     end
   end
 end

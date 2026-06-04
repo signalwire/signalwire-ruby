@@ -5,6 +5,8 @@
 # Licensed under the MIT License.
 # See LICENSE file in the project root for full license information.
 
+require 'json'
+
 require_relative '../swaig/function_result'
 
 module SignalWire
@@ -34,7 +36,7 @@ module SignalWire
       end
 
       def tools
-        %w[get_amenity_info get_service_info]
+        %w[get_amenity_info get_service_info check_availability get_directions]
       end
 
       def prompt_sections
@@ -86,6 +88,81 @@ module SignalWire
         else
           Swaig::FunctionResult.new("Available services: #{@services.join(', ')}")
         end
+      end
+
+      # Tool: check_availability — Python parity
+      # (signalwire.prefabs.concierge.ConciergeAgent#check_availability).
+      #
+      # Simulated booking lookup: confirms availability when the requested
+      # service is one of the venue's offered services, otherwise lists the
+      # available services.
+      #
+      # @param args [Hash] expects "service", "date", "time"
+      # @return [Swaig::FunctionResult]
+      def check_availability(args, _raw_data)
+        service = (args['service'] || '').downcase
+        date    = args['date'] || ''
+        time    = args['time'] || ''
+
+        if @services.any? { |s| s.downcase == service }
+          Swaig::FunctionResult.new(
+            "Yes, #{service} is available on #{date} at #{time}. " \
+            'Would you like to make a reservation?'
+          )
+        else
+          Swaig::FunctionResult.new(
+            "I'm sorry, we don't offer #{service} at #{@venue_name}. " \
+            "Our available services are: #{@services.join(', ')}."
+          )
+        end
+      end
+
+      # Tool: get_directions — Python parity
+      # (signalwire.prefabs.concierge.ConciergeAgent#get_directions).
+      #
+      # Returns directions to an amenity when that amenity declares a
+      # "location" detail, otherwise points the caller at the front desk.
+      #
+      # @param args [Hash] expects "location"
+      # @return [Swaig::FunctionResult]
+      def get_directions(args, _raw_data)
+        location = (args['location'] || '').downcase
+        amenity  = @amenities.find { |k, _v| k.downcase == location }&.last
+
+        if amenity.is_a?(Hash) && amenity['location']
+          where = amenity['location']
+          Swaig::FunctionResult.new(
+            "The #{location} is located at #{where}. " \
+            "From the main entrance, follow the signs to #{where}."
+          )
+        else
+          Swaig::FunctionResult.new(
+            "I don't have specific directions to #{location}. " \
+            'You can ask our staff at the front desk for assistance.'
+          )
+        end
+      end
+
+      # Lifecycle hook: on_summary — Python parity
+      # (signalwire.prefabs.concierge.ConciergeAgent#on_summary).
+      #
+      # Processes the post-prompt interaction summary. Structured (Hash)
+      # summaries are logged as pretty JSON; anything else is logged as-is.
+      # Subclasses may override to persist or forward the interaction.
+      #
+      # @param summary [Hash, String, nil] conversation summary
+      # @param _raw_data [Hash, nil] full raw POST data
+      # @return [void]
+      def on_summary(summary, _raw_data = nil)
+        return if summary.nil?
+
+        if summary.is_a?(Hash)
+          puts "Concierge interaction summary: #{JSON.pretty_generate(summary)}"
+        else
+          puts "Concierge interaction summary: #{summary}"
+        end
+      rescue StandardError => e
+        puts "Error processing summary: #{e.message}"
       end
     end
   end

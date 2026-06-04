@@ -5,6 +5,8 @@
 # Licensed under the MIT License.
 # See LICENSE file in the project root for full license information.
 
+require 'json'
+
 require_relative '../swaig/function_result'
 
 module SignalWire
@@ -61,6 +63,27 @@ module SignalWire
         else
           Swaig::FunctionResult.new("I don't have a specific answer for that. Here are the topics I can help with: #{@faqs.map { |f| f['question'] }.join('; ')}")
         end
+      end
+
+      # Lifecycle hook: on_summary — Python parity
+      # (signalwire.prefabs.faq_bot.FAQBotAgent#on_summary).
+      #
+      # Logs the post-prompt interaction summary; structured (Hash) summaries
+      # are emitted as pretty JSON. Subclasses may override to persist.
+      #
+      # @param summary [Hash, String, nil] conversation summary
+      # @param _raw_data [Hash, nil] full raw POST data
+      # @return [void]
+      def on_summary(summary, _raw_data = nil)
+        return if summary.nil?
+
+        if summary.is_a?(Hash)
+          puts "FAQ interaction summary: #{JSON.pretty_generate(summary)}"
+        else
+          puts "FAQ interaction summary: #{summary}"
+        end
+      rescue StandardError => e
+        puts "Error processing summary: #{e.message}"
       end
     end
   end

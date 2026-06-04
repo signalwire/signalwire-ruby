@@ -25,6 +25,10 @@ module SignalWire
       def description;                raise NotImplementedError, "#{self.class}#description"; end
       def version;                    '1.0.0'; end
       def required_env_vars;          []; end
+      # Python parity: ``REQUIRED_PACKAGES``. The gem names this skill
+      # needs loadable before it can run; consumed by {#validate_packages}.
+      def required_packages;          []; end
+      private :required_packages  # internal hook (mirrors Python REQUIRED_PACKAGES attr); not on the public surface
       def supports_multiple_instances?; false; end
 
       # Python parity: ``SkillBase.__init__(self, agent, params=None)``.
@@ -73,9 +77,98 @@ module SignalWire
       # Parameter schema for GUI / validation.
       def get_parameter_schema; {}; end
 
+      # Read this skill instance's namespaced data out of a raw_data hash.
+      #
+      # Python parity: ``SkillBase.get_skill_data(raw_data)`` — reads
+      # ``raw_data["global_data"][namespace]`` and returns it (or an
+      # empty hash when absent). +raw_data+ is the per-call data hash
+      # SWAIG handlers receive; +global_data+ is its agent-state bucket.
+      # Tolerates symbol or string keys for ``global_data``.
+      #
+      # @param raw_data [Hash] the raw_data passed to a SWAIG handler.
+      # @return [Hash] the namespaced skill state, or +{}+ if not present.
+      def get_skill_data(raw_data)
+        raw_data ||= {}
+        global_data = raw_data['global_data'] || raw_data[:global_data] || {}
+        global_data[skill_namespace] || {}
+      end
+
+      # Write this skill instance's namespaced data into a FunctionResult.
+      #
+      # Python parity: ``SkillBase.update_skill_data(result, data)`` —
+      # wraps +data+ under the skill namespace and calls
+      # ``result.update_global_data``. Returns +result+ so callers can
+      # chain (mirrors Python returning the result).
+      #
+      # @param result [SignalWire::Swaig::FunctionResult]
+      # @param data [Hash] the skill state to persist under the namespace.
+      # @return [SignalWire::Swaig::FunctionResult] +result+, for chaining.
+      def update_skill_data(result, data)
+        result.update_global_data(skill_namespace => data)
+        result
+      end
+
+      # Check that every required environment variable is set.
+      #
+      # Python parity: ``SkillBase.validate_env_vars`` — returns +false+
+      # (and logs the missing names) when any entry of {#required_env_vars}
+      # is absent or empty in +ENV+, otherwise +true+.
+      #
+      # @return [Boolean]
+      def validate_env_vars
+        missing = required_env_vars.reject { |var| ENV[var] && !ENV[var].empty? }
+        unless missing.empty?
+          @logger&.error("Missing required environment variables: #{missing.inspect}")
+          return false
+        end
+        true
+      end
+
+      # Check that every required gem is loadable.
+      #
+      # Python parity: ``SkillBase.validate_packages`` (Python imports the
+      # module; Ruby +require+s the gem). Returns +false+ (and logs the
+      # missing names) when any entry of {#required_packages} can't be
+      # +require+d, otherwise +true+. A successful +require+ leaves the
+      # gem loaded — matching Python's ``importlib.import_module``.
+      #
+      # @return [Boolean]
+      def validate_packages
+        missing = required_packages.reject do |package|
+          begin
+            require package
+            true
+          rescue LoadError
+            false
+          end
+        end
+        unless missing.empty?
+          @logger&.error("Missing required packages: #{missing.inspect}")
+          return false
+        end
+        true
+      end
+
       # Helper to get a param with env-var fallback.
       def get_param(key, env_var: nil, default: nil)
         @params[key.to_s] || @params[key.to_sym.to_s] || (env_var && ENV[env_var]) || default
+      end
+
+      private
+
+      # Namespaced key for this skill instance's global_data slice.
+      #
+      # Python parity: ``SkillBase._get_skill_namespace`` — uses the
+      # ``prefix`` param when present (``"skill:<prefix>"``), otherwise
+      # falls back to the instance key (``"skill:<instance_key>"``) so
+      # multiple instances don't collide in global_data.
+      #
+      # @return [String]
+      def skill_namespace
+        prefix = get_param('prefix')
+        return "skill:#{prefix}" if prefix && !prefix.to_s.empty?
+
+        "skill:#{instance_key}"
       end
     end
   end

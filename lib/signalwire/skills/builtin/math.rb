@@ -10,6 +10,19 @@ module SignalWire
         def name;        'math'; end
         def description; 'Perform basic mathematical calculations'; end
 
+        # Python parity: ``MathSkill.setup`` -> ``return True``. The math skill
+        # has no external packages or environment to validate; it is always
+        # ready once constructed.
+        def setup
+          true
+        end
+
+        # Python parity: ``MathSkill.get_parameter_schema`` returns only the
+        # base-class schema (the math skill adds no custom parameters).
+        def get_parameter_schema
+          super
+        end
+
         def register_tools
           [
             {

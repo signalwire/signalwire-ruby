@@ -172,6 +172,39 @@ module SignalWire
       self
     end
 
+    # Register a routing callback across all agents.
+    #
+    # Python parity:
+    # ``AgentServer.register_global_routing_callback(callback_fn, path)``.
+    # Adds unified routing logic to every registered agent at the same
+    # path. The +path+ is normalized (leading slash ensured, trailing
+    # slash stripped) and the callback is registered on each agent that
+    # exposes +register_routing_callback+.
+    #
+    # The callback may be supplied either as a Ruby block or as a
+    # callable (Proc/lambda) +callback_fn+ positional argument, matching
+    # Python's function-valued first parameter.
+    #
+    # @param callback_fn [#call, nil] the routing callback (Proc/lambda)
+    # @param path [String] the path to register the callback at
+    # @return [self]
+    def register_global_routing_callback(callback_fn = nil, path:, &block)
+      callback = block || callback_fn
+      raise ArgumentError, 'a callback (block or callable) is required' if callback.nil?
+
+      # Normalize the path: ensure a leading slash, strip trailing slash.
+      path = "/#{path}" unless path.start_with?('/')
+      path = path.chomp('/')
+
+      agents = @mutex.synchronize { @agents.values }
+      agents.each do |agent|
+        agent.register_routing_callback(path, &callback) if agent.respond_to?(:register_routing_callback)
+      end
+
+      @logger&.info("Registered global routing callback at #{path} on all agents")
+      self
+    end
+
     # Register a SIP username mapping to a route.
     def register_sip_username(username, route)
       route = "/#{route}" unless route.start_with?('/')

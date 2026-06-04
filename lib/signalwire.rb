@@ -85,6 +85,20 @@ module SignalWire
     _signalwire_singleton_registry.add_skill_directory(path)
   end
 
+  # List all available skills.
+  #
+  # Mirrors Python's top-level ``signalwire.list_skills()``. Delegates to
+  # {SignalWire::Skills::SkillRegistry#list_skills} on the shared
+  # singleton registry, returning one hash per skill (``name`` plus
+  # ``description`` / ``version`` when the factory can be instantiated
+  # without arguments).
+  #
+  # @return [Array<Hash>]
+  def list_skills
+    require_relative 'signalwire/skills/skill_registry'
+    _signalwire_singleton_registry.list_skills
+  end
+
   # Get complete schema for all available skills, including parameter metadata.
   #
   # Mirrors Python's ``signalwire.list_skills_with_params()``. Keys are

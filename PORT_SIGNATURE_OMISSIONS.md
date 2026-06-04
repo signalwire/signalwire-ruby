@@ -213,3 +213,9 @@ signalwire.pom.pom.PromptObjectModel.to_json: Ruby JSON convention — `to_json(
 signalwire.pom.pom.Section.render_markdown: Ruby keyword-arg idiom — `level:` and `section_number:` are keyword in Ruby, positional with default in Python
 signalwire.pom.pom.Section.render_xml: Ruby keyword-arg idiom — `indent:` and `section_number:` are keyword in Ruby, positional with default in Python
 signalwire.pom.pom.Section.to_dict: Ruby convention — to_h replaces to_dict (see SignalWire::POM::Section#to_h in PORT_OMISSIONS.md)
+
+# Cross-port parity methods — Ruby keyword-arg idiom (positional-with-default in Python)
+
+signalwire.agent_server.AgentServer.register_global_routing_callback: kwargs-idiom — Ruby `path:` keyword ≡ Python positional
+signalwire.prefabs.info_gatherer.InfoGathererAgent.on_swml_request: kwargs-idiom — Ruby third param `request:` is keyword ≡ Python positional (matches WebMixin.on_swml_request)
+signalwire.relay.call.Call.wait_for: kwargs-idiom — Ruby `predicate:`/`timeout:` keywords ≡ Python positional with default

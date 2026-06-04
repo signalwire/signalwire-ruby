@@ -55,23 +55,18 @@ module SignalWire
           }
         end
 
-        private
-
-        def handle_search(args, _raw_data)
-          query = (args['query'] || '').strip
-          if query.empty?
-            return Swaig::FunctionResult.new('Please provide a search query for Wikipedia.')
-          end
-
-          begin
-            result = search_wiki(query)
-            Swaig::FunctionResult.new(result)
-          rescue => e
-            Swaig::FunctionResult.new("Error searching Wikipedia: #{e.message}")
-          end
-        end
-
+        # Python parity: ``WikipediaSearchSkill.search_wiki(query)`` — the
+        # extracted helper that performs the two-step Wikipedia API lookup
+        # (search, then per-title extract) and returns the formatted article
+        # text (or the no-results message). Public so callers/tests can invoke
+        # the lookup directly, matching Python where the tool handler delegates
+        # to this method. ``@num_results``/``@no_results_msg`` are populated by
+        # #setup; fall back to defaults if called before setup.
         def search_wiki(query)
+          @num_results    ||= 1
+          @no_results_msg ||= "I couldn't find any Wikipedia articles for that query. " \
+                              'Try rephrasing your search or using different keywords.'
+
           # Default to en.wikipedia.org host; WIKIPEDIA_BASE_URL overrides
           # for tests and the audit fixture. The env var is the *host*; the
           # `/w/api.php` path is appended below so audit_skills_dispatch
@@ -114,6 +109,22 @@ module SignalWire
 
           return @no_results_msg if articles.empty?
           articles.join("\n\n#{'=' * 50}\n\n")
+        end
+
+        private
+
+        def handle_search(args, _raw_data)
+          query = (args['query'] || '').strip
+          if query.empty?
+            return Swaig::FunctionResult.new('Please provide a search query for Wikipedia.')
+          end
+
+          begin
+            result = search_wiki(query)
+            Swaig::FunctionResult.new(result)
+          rescue => e
+            Swaig::FunctionResult.new("Error searching Wikipedia: #{e.message}")
+          end
         end
       end
     end

@@ -155,5 +155,16 @@ module SignalWire
         @http.delete(_path(resource_id))
       end
     end
+
+    # CRUD resource that also supports listing the addresses bound to a
+    # resource. Mirrors Python's +signalwire.rest._base.CrudWithAddresses+:
+    # it adds a single +list_addresses+ helper on top of the standard
+    # list/create/get/update/delete surface, issuing
+    # +GET {base_path}/{resource_id}/addresses+.
+    class CrudWithAddresses < CrudResource
+      def list_addresses(resource_id, **params)
+        @http.get(_path(resource_id, 'addresses'), params.empty? ? nil : params)
+      end
+    end
   end
 end

@@ -31,6 +31,10 @@
           ],
           "returns": "any"
         },
+        "list_skills": {
+          "params": [],
+          "returns": "any"
+        },
         "list_skills_with_params": {
           "params": [],
           "returns": "any"
@@ -171,6 +175,34 @@
                 },
                 {
                   "name": "route",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "register_global_routing_callback": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "callback_fn",
+                  "type": "any",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "path",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": true
+                },
+                {
+                  "name": "block",
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
@@ -983,6 +1015,15 @@
               "returns": "any"
             },
             "as_rack_app": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "auto_map_sip_usernames": {
               "params": [
                 {
                   "name": "self",
@@ -5650,6 +5691,20 @@
               ],
               "returns": "any"
             },
+            "get_skill_data": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "raw_data",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
             "instance_key": {
               "params": [
                 {
@@ -5723,6 +5778,43 @@
               "returns": "any"
             },
             "swaig_fields": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "update_skill_data": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "result",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "validate_env_vars": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "validate_packages": {
               "params": [
                 {
                   "name": "self",
@@ -7151,6 +7243,44 @@
               ],
               "returns": "any"
             },
+            "check_availability": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "args",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "_raw_data",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "get_directions": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "args",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "_raw_data",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
             "global_data": {
               "params": [
                 {
@@ -7203,6 +7333,26 @@
                 {
                   "name": "self",
                   "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "on_summary": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "summary",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "_raw_data",
+                  "type": "any",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -7355,6 +7505,26 @@
               ],
               "returns": "any"
             },
+            "on_summary": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "summary",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "_raw_data",
+                  "type": "any",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
             "prompt_sections": {
               "params": [
                 {
@@ -7400,7 +7570,8 @@
                   "name": "questions",
                   "type": "any",
                   "kind": "keyword",
-                  "required": true
+                  "required": false,
+                  "default": null
                 },
                 {
                   "name": "name",
@@ -7481,6 +7652,34 @@
               ],
               "returns": "any"
             },
+            "on_swml_request": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "request_data",
+                  "type": "any",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "_callback_path",
+                  "type": "any",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "request",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
             "prompt_sections": {
               "params": [
                 {
@@ -7504,6 +7703,20 @@
                 {
                   "name": "self",
                   "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "set_question_callback": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "callback",
+                  "type": "any",
+                  "required": true
                 }
               ],
               "returns": "any"
@@ -7618,6 +7831,26 @@
                 {
                   "name": "self",
                   "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "on_summary": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "_summary",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "_raw_data",
+                  "type": "any",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -7778,11 +8011,50 @@
               ],
               "returns": "any"
             },
+            "log_response": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "args",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "_raw_data",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
             "name": {
               "params": [
                 {
                   "name": "self",
                   "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "on_summary": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "summary",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "_raw_data",
+                  "type": "any",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -7828,6 +8100,25 @@
                 {
                   "name": "self",
                   "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "validate_response": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "args",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "_raw_data",
+                  "type": "any",
+                  "required": true
                 }
               ],
               "returns": "any"
@@ -9114,6 +9405,34 @@
                   "type": "any",
                   "kind": "var_keyword",
                   "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "wait_for": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "event_type",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "predicate",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "timeout",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -12526,6 +12845,30 @@
             }
           }
         },
+        "CrudWithAddresses": {
+          "methods": {
+            "list_addresses": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "resource_id",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "params",
+                  "type": "any",
+                  "kind": "var_keyword",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        },
         "HttpClient": {
           "methods": {
             "__init__": {
@@ -15651,30 +15994,6 @@
             }
           }
         },
-        "FabricResource": {
-          "methods": {
-            "list_addresses": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "resource_id",
-                  "type": "any",
-                  "required": true
-                },
-                {
-                  "name": "params",
-                  "type": "any",
-                  "kind": "var_keyword",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            }
-          }
-        },
         "FabricTokens": {
           "methods": {
             "__init__": {
@@ -18350,6 +18669,15 @@
               ],
               "returns": "any"
             },
+            "get_parameter_schema": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "get_prompt_sections": {
               "params": [
                 {
@@ -18369,6 +18697,15 @@
               "returns": "any"
             },
             "register_tools": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "setup": {
               "params": [
                 {
                   "name": "self",
@@ -18625,6 +18962,15 @@
               ],
               "returns": "any"
             },
+            "get_parameter_schema": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "get_prompt_sections": {
               "params": [
                 {
@@ -18644,6 +18990,15 @@
               "returns": "any"
             },
             "register_tools": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "setup": {
               "params": [
                 {
                   "name": "self",
@@ -18914,6 +19269,15 @@
               ],
               "returns": "any"
             },
+            "discover_skills": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "external_paths": {
               "params": [
                 {
@@ -18943,6 +19307,15 @@
               "returns": "any"
             },
             "last_registered": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "list_all_skill_sources": {
               "params": [
                 {
                   "name": "self",
@@ -19032,6 +19405,15 @@
       "classes": {
         "SpiderSkill": {
           "methods": {
+            "cleanup": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "description": {
               "params": [
                 {
@@ -19393,6 +19775,20 @@
                 {
                   "name": "self",
                   "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "search_wiki": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "query",
+                  "type": "any",
+                  "required": true
                 }
               ],
               "returns": "any"

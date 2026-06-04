@@ -1309,6 +1309,38 @@ module SignalWire
       self
     end
 
+    # Automatically register common SIP usernames based on this agent's
+    # name and route.
+    #
+    # Python parity: ``AgentBase.auto_map_sip_usernames`` derives SIP
+    # usernames from the agent name and route (lower-cased, stripped to
+    # ``[a-z0-9_]``) plus a no-vowels variant of the name, registering
+    # each via {#register_sip_username}. Duplicates are skipped so the
+    # registered set matches Python's set-backed dedup.
+    #
+    # @return [self] for method chaining
+    def auto_map_sip_usernames
+      register = lambda do |candidate|
+        register_sip_username(candidate) unless candidate.empty? || @sip_usernames.include?(candidate)
+      end
+
+      # Register username based on agent name.
+      clean_name = @name.to_s.downcase.gsub(/[^a-z0-9_]/, '')
+      register.call(clean_name) unless clean_name.empty?
+
+      # Register username based on route (without slashes).
+      clean_route = @route.to_s.downcase.gsub(/[^a-z0-9_]/, '')
+      register.call(clean_route) if !clean_route.empty? && clean_route != clean_name
+
+      # Register a no-vowels variation when the name is long enough.
+      if clean_name.length > 3
+        no_vowels = clean_name.gsub(/[aeiou]/, '')
+        register.call(no_vowels) if no_vowels != clean_name && no_vowels.length > 2
+      end
+
+      self
+    end
+
     # Extract a SIP username from a SIP URI string.
     #
     # Parses URIs of the form "sip:user@domain" and returns the user part.

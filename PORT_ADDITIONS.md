@@ -631,6 +631,14 @@ signalwire.utils.schema_utils.SchemaValidationError.errors: port-only: Ruby attr
 signalwire.utils.schema_utils.SchemaValidationError.verb_name: port-only: Ruby attr_reader for the verb that failed validation (Python: `self.verb_name`)
 signalwire.utils.url_validator.UrlValidator: port-only: SignalWire::Utils::UrlValidator helper class (Python: `signalwire.utils.url_validator.UrlValidator` filtered as static helper)
 signalwire.utils.url_validator.UrlValidator.validate_url: port-only: class-level URL validator method (Python: `validate_url` staticmethod)
+
+# Cross-port parity batch — Ruby's reflection enumerator surfaces these
+# overrides/helpers that Python's AST enumerator does not put in its surface.
+signalwire.list_skills: port-only: top-level convenience delegating to SignalWire::Skills::SkillRegistry#list_skills (also exposed by the go + typescript ports; Python's reference surface omits its unimplemented top-level helper)
+signalwire.prefabs.concierge.ConciergeAgent.on_summary: port-only: prefab override of AgentBase#on_summary surfaced by Ruby's reflection enumerator; Python's AST enumerator treats it as the inherited signature (also surfaced by typescript)
+signalwire.prefabs.faq_bot.FAQBotAgent.on_summary: port-only: prefab override of AgentBase#on_summary; reflection-surfaced in Ruby, inherited-signature in Python (also surfaced by typescript)
+signalwire.prefabs.receptionist.ReceptionistAgent.on_summary: port-only: prefab no-op override of AgentBase#on_summary (mirrors Python's `pass`); reflection-surfaced in Ruby, inherited-signature in Python
+signalwire.prefabs.survey.SurveyAgent.on_summary: port-only: prefab override of AgentBase#on_summary; reflection-surfaced in Ruby, inherited-signature in Python (also surfaced by typescript)
 signalwire.utils.Utils: port-only: SignalWire::Utils module namespace (Python uses `signalwire.utils` package directly with no class wrapper)
 signalwire.utils.Utils.is_serverless_mode: port-only: module-level helper for detecting serverless (Lambda/CGI) mode; Python keeps the equivalent in core/logging_config.get_execution_mode
 signalwire.core.logging_config.LoggingConfig: port-only: SignalWire::Core::LoggingConfig wrapper class (Python keeps loggers as module-level helpers)

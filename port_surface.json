@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 1215dae35b837a18587f1f344fdaa6d85b7ead54",
+  "generated_from": "signalwire-ruby @ 331c9556edfa8c40871eca1791c0f2ed38ffdced",
   "modules": {
     "signalwire": {
       "classes": {
@@ -7,6 +7,7 @@
       "functions": [
         "RestClient",
         "add_skill_directory",
+        "list_skills",
         "list_skills_with_params",
         "register_skill"
       ]
@@ -24,6 +25,7 @@
           "port",
           "rack_app",
           "register",
+          "register_global_routing_callback",
           "register_sip_username",
           "run",
           "serve_static_files",
@@ -65,6 +67,7 @@
           "add_swaig_query_params",
           "agent_id",
           "as_rack_app",
+          "auto_map_sip_usernames",
           "clear_post_ai_verbs",
           "clear_post_answer_verbs",
           "clear_pre_answer_verbs",
@@ -338,7 +341,13 @@
       "classes": {
         "SessionManager": [
           "__init__",
+          "activate_session",
+          "create_session",
           "create_token",
+          "debug_token",
+          "end_session",
+          "get_session_metadata",
+          "set_session_metadata",
           "validate_token"
         ]
       },
@@ -377,6 +386,7 @@
           "get_param",
           "get_parameter_schema",
           "get_prompt_sections",
+          "get_skill_data",
           "instance_key",
           "logger",
           "name",
@@ -386,6 +396,9 @@
           "setup",
           "supports_multiple_instances?",
           "swaig_fields",
+          "update_skill_data",
+          "validate_env_vars",
+          "validate_packages",
           "version"
         ]
       },
@@ -467,10 +480,13 @@
         "ConciergeAgent": [
           "__init__",
           "amenities",
+          "check_availability",
+          "get_directions",
           "global_data",
           "handle_amenity_info",
           "handle_service_info",
           "name",
+          "on_summary",
           "prompt_sections",
           "route",
           "services",
@@ -490,6 +506,7 @@
           "global_data",
           "handle_search",
           "name",
+          "on_summary",
           "prompt_sections",
           "route",
           "tools"
@@ -507,9 +524,11 @@
           "handle_start",
           "handle_submit",
           "name",
+          "on_swml_request",
           "prompt_sections",
           "questions",
           "route",
+          "set_question_callback",
           "tools"
         ]
       },
@@ -526,6 +545,7 @@
           "greeting",
           "handle_transfer",
           "name",
+          "on_summary",
           "prompt_sections",
           "route",
           "tools"
@@ -543,12 +563,15 @@
           "handle_start",
           "handle_submit",
           "handle_summary",
+          "log_response",
           "name",
+          "on_summary",
           "prompt_sections",
           "questions",
           "route",
           "survey_name",
-          "tools"
+          "tools",
+          "validate_response"
         ]
       },
       "functions": [
@@ -627,6 +650,7 @@
           "transfer",
           "unhold",
           "user_event",
+          "wait_for",
           "wait_for_ended"
         ],
         "CollectAction": [
@@ -954,6 +978,9 @@
           "update",
           "update_method"
         ],
+        "CrudWithAddresses": [
+          "list_addresses"
+        ],
         "HttpClient": [
           "__init__",
           "base_url",
@@ -980,6 +1007,8 @@
       "classes": {
         "PaginatedIterator": [
           "__init__",
+          "__iter__",
+          "__next__",
           "data_key",
           "done",
           "each",
@@ -1263,7 +1292,7 @@
           "tokens"
         ],
         "FabricResource": [
-          "list_addresses"
+
         ],
         "FabricResourcePUT": [
 
@@ -1687,9 +1716,11 @@
       "classes": {
         "DateTimeSkill": [
           "description",
+          "get_parameter_schema",
           "get_prompt_sections",
           "name",
-          "register_tools"
+          "register_tools",
+          "setup"
         ]
       },
       "functions": [
@@ -1750,9 +1781,11 @@
       "classes": {
         "MathSkill": [
           "description",
+          "get_parameter_schema",
           "get_prompt_sections",
           "name",
-          "register_tools"
+          "register_tools",
+          "setup"
         ]
       },
       "functions": [
@@ -1814,10 +1847,12 @@
         "SkillRegistry": [
           "__init__",
           "add_skill_directory",
+          "discover_skills",
           "external_paths",
           "get_all_skills_schema",
           "get_factory",
           "last_registered",
+          "list_all_skill_sources",
           "list_skills",
           "logger",
           "register",
@@ -1834,6 +1869,7 @@
     "signalwire.skills.spider.skill": {
       "classes": {
         "SpiderSkill": [
+          "cleanup",
           "description",
           "get_hints",
           "get_parameter_schema",
@@ -1907,6 +1943,7 @@
           "get_prompt_sections",
           "name",
           "register_tools",
+          "search_wiki",
           "setup"
         ]
       },

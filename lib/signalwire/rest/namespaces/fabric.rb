@@ -3,11 +3,11 @@
 module SignalWire
   module REST
     module Namespaces
-      # Standard fabric resource with CRUD + addresses.
-      class FabricResource < CrudResource
-        def list_addresses(resource_id, **params)
-          @http.get(_path(resource_id, 'addresses'), params.empty? ? nil : params)
-        end
+      # Standard fabric resource with CRUD + addresses. Inherits the
+      # +list_addresses+ helper from +CrudWithAddresses+ (matching Python's
+      # +FabricResource(CrudWithAddresses)+ hierarchy); subclasses that use a
+      # singular sub-resource path override +list_addresses+ below.
+      class FabricResource < CrudWithAddresses
       end
 
       # Fabric resource that uses PUT for updates.
