@@ -634,7 +634,7 @@ signalwire.utils.url_validator.UrlValidator.validate_url: port-only: class-level
 
 # Cross-port parity batch — Ruby's reflection enumerator surfaces these
 # overrides/helpers that Python's AST enumerator does not put in its surface.
-signalwire.list_skills: port-only: top-level convenience delegating to SignalWire::Skills::SkillRegistry#list_skills (also exposed by the go + typescript ports; Python's reference surface omits its unimplemented top-level helper)
+signalwire.list_skills: port-only: mirrors Python's top-level list_skills() (now implemented — delegates to the skill registry, present in python_surface.json), also exposed by go + typescript; the griffe signatures enumerator doesn't capture the module-level re-export, so it reads as a Layer-A-only addition
 signalwire.prefabs.concierge.ConciergeAgent.on_summary: port-only: prefab override of AgentBase#on_summary surfaced by Ruby's reflection enumerator; Python's AST enumerator treats it as the inherited signature (also surfaced by typescript)
 signalwire.prefabs.faq_bot.FAQBotAgent.on_summary: port-only: prefab override of AgentBase#on_summary; reflection-surfaced in Ruby, inherited-signature in Python (also surfaced by typescript)
 signalwire.prefabs.receptionist.ReceptionistAgent.on_summary: port-only: prefab no-op override of AgentBase#on_summary (mirrors Python's `pass`); reflection-surfaced in Ruby, inherited-signature in Python
