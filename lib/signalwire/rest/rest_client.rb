@@ -55,7 +55,10 @@ module SignalWire
 
       # +base_url+ overrides the derived +https://{space}+ default. The
       # audit harness uses this to point at the local fixture server.
-      def initialize(project: nil, token: nil, host: nil, base_url: nil)
+      # +ca_file+ (optional) names a PEM CA bundle to trust for HTTPS in
+      # addition to the system store — for private-CA deployments; forwarded
+      # to the underlying HttpClient.
+      def initialize(project: nil, token: nil, host: nil, base_url: nil, ca_file: nil)
         project_id = project || ENV['SIGNALWIRE_PROJECT_ID'] || ''
         api_token  = token || ENV['SIGNALWIRE_API_TOKEN'] || ''
         space      = host || ENV['SIGNALWIRE_SPACE'] || ''
@@ -68,7 +71,7 @@ module SignalWire
         end
 
         @project_id = project_id
-        @http = HttpClient.new(project_id, api_token, space, base_url: base_url)
+        @http = HttpClient.new(project_id, api_token, space, base_url: base_url, ca_file: ca_file)
 
         # Fabric API
         @fabric = Namespaces::FabricNamespace.new(@http)

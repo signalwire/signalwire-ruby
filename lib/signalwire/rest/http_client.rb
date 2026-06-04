@@ -4,6 +4,7 @@ require 'net/http'
 require 'json'
 require 'uri'
 require 'base64'
+require 'openssl'
 
 module SignalWire
   module REST
@@ -28,7 +29,14 @@ module SignalWire
       # which is how the audit fixture and tests point the client at a
       # loopback server. Pass either +space+ ("acme") / a host
       # ("acme.signalwire.com") OR an explicit +base_url+ ("http://127.0.0.1:NNNN").
-      def initialize(project_id, token, space, base_url: nil)
+      #
+      # +ca_file+ (optional) names a PEM CA bundle to trust for HTTPS, for
+      # private-CA / pinned-CA deployments. When set, requests verify the peer
+      # (VERIFY_PEER) against a store seeded from the OpenSSL defaults (which
+      # honor SSL_CERT_FILE) plus that bundle. When unset, Net::HTTP's default
+      # verification (system store, VERIFY_PEER) applies unchanged. HTTPS is
+      # always verified either way — there is no VERIFY_NONE path.
+      def initialize(project_id, token, space, base_url: nil, ca_file: nil)
         if base_url && !base_url.empty?
           @base_url = base_url.sub(/\/$/, '')
         else
@@ -37,6 +45,7 @@ module SignalWire
         end
         @project_id  = project_id
         @token       = token
+        @ca_file     = (ca_file if ca_file && !ca_file.empty?)
         @auth_header = 'Basic ' + Base64.strict_encode64("#{project_id}:#{token}")
       end
 
@@ -91,7 +100,21 @@ module SignalWire
         end
 
         http = Net::HTTP.new(uri.host, uri.port)
-        http.use_ssl = (uri.scheme == 'https')
+        if uri.scheme == 'https'
+          http.use_ssl = true
+          # Always verify the server certificate. When an explicit CA bundle
+          # was supplied, trust it in addition to the OpenSSL defaults (which
+          # honor SSL_CERT_FILE); otherwise fall back to Net::HTTP's default
+          # store. Never VERIFY_NONE.
+          http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+          if @ca_file
+            require 'openssl'
+            store = OpenSSL::X509::Store.new
+            store.set_default_paths
+            store.add_file(@ca_file) if File.file?(@ca_file)
+            http.cert_store = store
+          end
+        end
 
         response = http.request(req)
 

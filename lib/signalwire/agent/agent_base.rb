@@ -1648,12 +1648,20 @@ module SignalWire
       user, _pass = @basic_auth
       @logger.info "Basic-auth credentials — user: #{user}  password: [REDACTED]"
 
-      @server = ::WEBrick::HTTPServer.new(
+      webrick_opts = {
         Host: bind_host,
         Port: bind_port,
         Logger: WEBrick::Log.new($stderr, WEBrick::Log::WARN),
         AccessLog: []
-      )
+      }
+
+      # WebMixin parity: serve HTTPS when SSL is configured (via the
+      # SWML_SSL_* env vars read in SWMLService#initialize, or a config
+      # file). Uses the same shared helper as SWMLService#serve so both
+      # bind TLS identically. No-op when SSL is off → plain HTTP.
+      _apply_webrick_ssl!(webrick_opts)
+
+      @server = ::WEBrick::HTTPServer.new(**webrick_opts)
 
       # Rack 3+ moved Handler to the rackup gem
       handler = begin

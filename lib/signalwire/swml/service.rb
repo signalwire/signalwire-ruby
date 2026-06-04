@@ -71,6 +71,20 @@ module SignalWire
                         [SecureRandom.uuid, SecureRandom.uuid]
                       end
 
+        # --- SSL/TLS (server) -------------------------------------------
+        # Python parity (SecurityConfig.load_from_env): the server can be
+        # told to serve HTTPS via three env vars, consumed by +serve+ /
+        # +AgentBase#serve+ to bind WEBrick with SSLEnable. Explicit
+        # +serve(ssl_cert:, ssl_key:, ssl_enabled:)+ kwargs still override
+        # these at call time.
+        #   SWML_SSL_ENABLED   — "true"/"1"/"yes" (case-insensitive) → on
+        #   SWML_SSL_CERT_PATH — PEM certificate path
+        #   SWML_SSL_KEY_PATH  — PEM private-key path
+        @ssl_enabled   = %w[true 1 yes].include?(ENV['SWML_SSL_ENABLED'].to_s.strip.downcase)
+        @ssl_cert_path = ENV['SWML_SSL_CERT_PATH']
+        @ssl_key_path  = ENV['SWML_SSL_KEY_PATH']
+        @domain        = ENV['SWML_DOMAIN']
+
         @log.info "Service '#{@name}' initialised (route=#{@route}, port=#{@port})"
       end
 
@@ -427,13 +441,7 @@ module SignalWire
           AccessLog: []
         }
 
-        if @ssl_enabled && @ssl_cert_path && @ssl_key_path
-          require 'webrick/https'
-          require 'openssl'
-          webrick_opts[:SSLEnable]      = true
-          webrick_opts[:SSLCertificate] = OpenSSL::X509::Certificate.new(File.read(@ssl_cert_path))
-          webrick_opts[:SSLPrivateKey]  = OpenSSL::PKey::RSA.new(File.read(@ssl_key_path))
-        end
+        _apply_webrick_ssl!(webrick_opts)
 
         @server = ::WEBrick::HTTPServer.new(**webrick_opts)
 
@@ -461,6 +469,25 @@ module SignalWire
       # ------------------------------------------------------------------
       private
       # ------------------------------------------------------------------
+
+      # Mutate a WEBrick option hash in place to enable HTTPS when SSL is
+      # configured (+@ssl_enabled+ with both a cert and key path present).
+      # Loads the PEM cert + private key with the generic +OpenSSL::PKey.read+
+      # so RSA and EC keys both work. A no-op when SSL is off or incomplete,
+      # so plain-HTTP serving is untouched. Shared by +SWMLService#serve+ and
+      # +AgentBase#serve+ (WebMixin parity) so both code paths bind TLS
+      # identically. Returns true when SSL was applied, false otherwise.
+      # @api private
+      def _apply_webrick_ssl!(opts)
+        return false unless @ssl_enabled && @ssl_cert_path && @ssl_key_path
+
+        require 'webrick/https'
+        require 'openssl'
+        opts[:SSLEnable]      = true
+        opts[:SSLCertificate] = OpenSSL::X509::Certificate.new(File.read(@ssl_cert_path))
+        opts[:SSLPrivateKey]  = OpenSSL::PKey.read(File.read(@ssl_key_path))
+        true
+      end
 
       # Internal request dispatcher: invoked by the rack app to produce
       # the final SWML hash for a request. Tries (in order) the

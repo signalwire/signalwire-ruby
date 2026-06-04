@@ -371,6 +371,17 @@ module SignalWire
         host_override = ENV['SIGNALWIRE_RELAY_HOST']
         endpoint_host = (host_override.nil? || host_override.empty?) ? @host : host_override
         url = "#{scheme}://#{endpoint_host}"
+
+        # Secure-by-default WSS: websocket-client-simple leaves a fresh
+        # SSLContext at verify_mode VERIFY_NONE unless we say otherwise, which
+        # would silently accept *any* server certificate. For a wss:// endpoint
+        # we force genuine certificate verification (VERIFY_PEER) and build the
+        # trust store from the system defaults — which honor SSL_CERT_FILE /
+        # SSL_CERT_DIR (OpenSSL) — plus an optional explicit CA bundle via
+        # SIGNALWIRE_RELAY_SSL_CA_FILE for private-CA deployments. Plain ws://
+        # (the loopback audit fixtures) gets no TLS options and is unaffected.
+        ws_options = _wss_tls_options(scheme)
+
         ready_mutex = Mutex.new
         ready_cv    = ConditionVariable.new
         ready_flag  = false
@@ -378,7 +389,7 @@ module SignalWire
 
         client_ref = self
 
-        @ws = WebSocket::Client::Simple.connect(url) do |ws|
+        @ws = WebSocket::Client::Simple.connect(url, ws_options) do |ws|
           ws.on :open do
             client_ref.send(:_on_ws_open)
             ready_mutex.synchronize do
@@ -425,6 +436,31 @@ module SignalWire
         while @running && @connected
           sleep 1
         end
+      end
+
+      # Build the TLS options hash for WebSocket::Client::Simple.connect.
+      #
+      # For a wss:// endpoint this returns +{ verify_mode:, cert_store: }+ that
+      # enforce real certificate verification (VERIFY_PEER) against a store
+      # seeded from the OpenSSL default paths (which honor the SSL_CERT_FILE /
+      # SSL_CERT_DIR env vars) plus, when set, the explicit CA bundle named by
+      # SIGNALWIRE_RELAY_SSL_CA_FILE. For any non-wss scheme (plain ws:// used
+      # by the loopback audit fixtures) it returns an empty hash so the
+      # transport stays untouched.
+      #
+      # @param scheme [String] the URL scheme ("wss" or "ws")
+      # @return [Hash] connect options ({} for plain ws://)
+      # @api private
+      def _wss_tls_options(scheme)
+        return {} unless scheme == 'wss'
+
+        require 'openssl'
+        store = OpenSSL::X509::Store.new
+        store.set_default_paths
+        ca_file = ENV['SIGNALWIRE_RELAY_SSL_CA_FILE']
+        store.add_file(ca_file) if ca_file && !ca_file.empty? && File.file?(ca_file)
+
+        { verify_mode: OpenSSL::SSL::VERIFY_PEER, cert_store: store }
       end
 
       def _on_ws_open

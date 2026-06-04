@@ -13291,6 +13291,13 @@
                   "kind": "keyword",
                   "required": false,
                   "default": null
+                },
+                {
+                  "name": "ca_file",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "void"
@@ -13641,6 +13648,13 @@
                 },
                 {
                   "name": "base_url",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "ca_file",
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
