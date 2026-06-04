@@ -772,6 +772,27 @@ module SignalWire
       def to_json(*args)
         to_h.to_json(*args)
       end
+
+      # --- Idiomatic Ruby accessors (additive aliases over set_* originals) ---
+      def end_of_speech_timeout=(v)
+        set_end_of_speech_timeout(v)
+      end
+
+      def metadata=(v)
+        set_metadata(v)
+      end
+
+      def post_process=(v)
+        set_post_process(v)
+      end
+
+      def response=(v)
+        set_response(v)
+      end
+
+      def speech_event_timeout=(v)
+        set_speech_event_timeout(v)
+      end
     end
   end
 end

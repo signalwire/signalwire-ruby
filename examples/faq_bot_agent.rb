@@ -42,7 +42,7 @@ agent.prompt_add_section('Instructions', nil, bullets: [
   'Be concise and direct in your responses.'
 ])
 
-agent.set_global_data(faq_bot.global_data)
+agent.global_data = faq_bot.global_data
 
 agent.define_tool(
   name:        'search_faq',
@@ -55,9 +55,8 @@ agent.define_tool(
 end
 
 # Post-prompt for conversation summary
-agent.set_post_prompt(
+agent.post_prompt =
   'Provide a JSON summary: {"question_type": "CATEGORY", "answered_from_kb": true/false, "follow_up_needed": true/false}'
-)
 
 agent.on_summary do |summary, _raw_data|
   puts "FAQ Bot summary: #{summary.inspect}"

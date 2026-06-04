@@ -100,8 +100,8 @@ dm = SignalWire::DataMap.new('get_weather')
 ```ruby
 ctx = agent.define_contexts.add_context('default')
 step1 = ctx.add_step('greeting')
-step1.set_text('Greet the user warmly.')
-step1.set_valid_steps(['collect_info'])
+step1.text = 'Greet the user warmly.'
+step1.valid_steps = ['collect_info']
 ```
 
 ### Module Structure

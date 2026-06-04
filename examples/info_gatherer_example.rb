@@ -42,7 +42,7 @@ gatherer.prompt_sections.each do |section|
 end
 
 # Apply global data
-agent.set_global_data(gatherer.global_data)
+agent.global_data = gatherer.global_data
 
 # Register the prefab's tool handlers
 agent.define_tool(

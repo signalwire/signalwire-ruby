@@ -54,7 +54,7 @@ survey.prompt_sections.each do |section|
 end
 
 # Apply global data
-agent.set_global_data(survey.global_data)
+agent.global_data = survey.global_data
 
 # Register the survey's tool handlers
 agent.define_tool(

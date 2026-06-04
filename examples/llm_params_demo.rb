@@ -26,7 +26,7 @@ precise.set_prompt_llm_params(
   frequency_penalty: 0.1
 )
 
-precise.set_post_prompt('Provide a brief technical summary of the key points discussed.')
+precise.post_prompt = 'Provide a brief technical summary of the key points discussed.'
 precise.set_post_prompt_llm_params(temperature: 0.1)
 
 precise.define_tool(
@@ -55,7 +55,7 @@ creative.set_prompt_llm_params(
   frequency_penalty: 0.3
 )
 
-creative.set_post_prompt('Create an artistic summary of our conversation.')
+creative.post_prompt = 'Create an artistic summary of our conversation.'
 creative.set_post_prompt_llm_params(temperature: 0.7)
 
 creative.define_tool(
@@ -91,7 +91,7 @@ support.set_prompt_llm_params(
   frequency_penalty: 0.1
 )
 
-support.set_post_prompt("Summarise the customer's issue and resolution for the ticket system.")
+support.post_prompt = "Summarise the customer's issue and resolution for the ticket system."
 support.set_post_prompt_llm_params(temperature: 0.3)
 
 support.define_tool(

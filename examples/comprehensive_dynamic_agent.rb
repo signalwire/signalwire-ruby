@@ -61,7 +61,7 @@ agent.set_dynamic_config_callback do |query_params, _body, _headers, ephemeral|
            end
 
   params['end_of_speech_timeout'] = (params['end_of_speech_timeout'] * 1.2).to_i if test_group == 'B'
-  ephemeral.set_params(params)
+  ephemeral.params = params
 
   # --- Industry-specific prompts ---
   config = INDUSTRY_CONFIGS.fetch(industry, INDUSTRY_CONFIGS['general'])

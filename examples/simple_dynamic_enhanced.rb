@@ -51,7 +51,7 @@ agent.set_dynamic_config_callback do |query_params, _body_params, _headers, clon
   # Global data
   global = { 'department' => department, 'service_level' => is_vip ? 'vip' : 'standard' }
   global['customer_id'] = customer_id unless customer_id.empty?
-  clone.set_global_data(global)
+  clone.global_data = global
 
   # Role prompt
   role = customer_id.empty? ? 'You are a professional customer service representative.' \

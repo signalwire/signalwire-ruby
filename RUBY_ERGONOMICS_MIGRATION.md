@@ -4,9 +4,34 @@ Rollout plan for giving `signalwire-ruby` a native-Ruby public surface without
 breaking cross-port audit parity. Companion to the analysis in
 `porting-sdk/PORT_PHILOSOPHY_RUBY.md` (tradeoff #1 + "escape hatch" section).
 
-**Status:** prototype landed on `AgentBase` prompt accessors; full rollout
-**proposed, not done**. This doc is the map and the cost ledger — not a
-commitment.
+**Status:** **rolled out** across the genuine config-accessor surface
+(uncommitted, pending review). Decisions locked: `X=` assignment writers,
+`prompt` + `prompt_text` for the raw-prompt pair, ~40 genuine accessors aliased
+with the rest documented as Bucket E (leave-alone). See "Rollout outcome" at
+the end.
+
+---
+
+## Scope correction (read this first)
+
+The "134" figure overcounts what should become idiomatic accessors. Of the 134
+`get_`/`set_` methods, only ~40 are genuine **config accessors**. The rest are
+**Bucket E — deliberately left as `get_`/`set_`** because aliasing them to
+nouns would be semantically wrong:
+
+- **REST API verbs** — `set_cxml_webhook(sid, url:)`, `get_media(sid, media_sid)`,
+  `get_member` … These are actions that hit the API (multi-arg, side-effecting).
+  `agent.media(sid, media_sid)` reading like an attribute but performing a GET is
+  exactly the confusion a Rubyist would object to. Leave.
+- **Skill hook/contract methods** — `get_hints`, `get_prompt_sections`,
+  `get_global_data` on `SkillBase` return defaults in the base and are overridden
+  per skill. They're behavioral hooks, not attribute reads. Leave.
+- **Class-metadata / lookups** — `get_parameter_schema`, `get_param(key, ...)`,
+  `get_step(name)`, `get_context(name)`, `get_function(name)`. Lookups with
+  arguments, not accessors. Leave.
+
+Only the agent/context/step/function-result **configuration** accessors are
+aliased.
 
 ---
 
@@ -50,6 +75,13 @@ state.
 ---
 
 ## The full inventory and the rules
+
+> **Note:** the counts in this section (80 readers, 41/13 setters, "~134
+> PORT_ADDITIONS entries", "examples = the bigger half") were the *pre-rollout
+> estimate*. The actual rollout is smaller and cheaper — see "Scope correction"
+> above and "Rollout outcome" below. In particular, most idiomatic names already
+> match Python's surface, so only **3** PORT_ADDITIONS entries were needed, not
+> ~134. The bucket *rules* below still hold; the *numbers* are superseded.
 
 ### Bucket A — `get_*` readers (80) → bare-noun `alias_method`
 
@@ -166,3 +198,96 @@ Do it per-subsystem so each is a reviewable PR, not one 134-method megachange:
   doc + examples only, no lib risk.)
 - **Scope**: full 134 + examples is a real chunk (~a day of careful work +
   review). Worth it for SDK adoption feel; not urgent. Ship per-phase.
+
+---
+
+## Rollout outcome (what actually landed)
+
+Aliases added (additive; every `get_`/`set_` original kept):
+
+| Class | Aliases | Form |
+|---|---|---|
+| `AgentBase` | `prompt`, `prompt_text[=]`, `post_prompt[=]` (prototype) + `contexts`, `function_includes=`, `global_data=`, `internal_fillers=`, `languages=`, `native_functions=`, `params=`, `post_prompt_url=`, `prompt_pom=`, `pronunciations=`, `web_hook_url=` | readers (def-wrapper) + `X=` writers |
+| `Contexts::Step` | 11 writers: `text=`, `step_criteria=`, `functions=`, `valid_steps=`, `valid_contexts=`, `skip_user_turn=`, `skip_to_next_step=`, `reset_system_prompt=`, `reset_user_prompt=`, `reset_consolidate=`, `reset_full_reset=` | `X=` |
+| `Contexts::Context` | 12 writers: `initial_step=`, `valid_steps=`, `valid_contexts=`, `post_prompt=`, `system_prompt=`, `prompt=`, `consolidate=`, `full_reset=`, `user_prompt=`, `isolated=`, `enter_fillers=`, `exit_fillers=` | `X=` |
+| `Swaig::FunctionResult` | `end_of_speech_timeout=`, `metadata=`, `post_process=`, `response=`, `speech_event_timeout=` | `X=` |
+| `SWML::Service` | `all_functions`, `basic_auth_credentials_with_source`, `function?` | readers + predicate |
+| `Utils` | `serverless?` | predicate |
+
+### Two implementation facts worth knowing
+
+1. **`def`-wrappers, not `alias_method`, for readers.** `alias_method` resolves
+   at class-definition time, so it fails if the `get_*` target is defined *below*
+   the alias in the class body (hit on `Service#all_functions` and
+   `AgentBase#contexts`). The `X=` writers don't have this problem (they call
+   `set_*` at *runtime*), but readers use `def noun = get_noun` to stay
+   placement-independent.
+
+2. **`X=` writers can't chain — and that's fine.** A Ruby `=` writer returns the
+   RHS, not `self`, so a *mid-chain* setter can't become `X=`. The chainable
+   `set_*` originals stay for fluent DSL chains
+   (`step.set_text(...).set_valid_steps(...)`); the `X=` form is for standalone
+   config (`step.text = "..."`). The example sweep reflects this — chain-terminal
+   and multi-line setters were left as `set_*`.
+
+### Audit cost
+
+Near-zero, pleasantly: most idiomatic names (`text`, `global_data`, `contexts`,
+`languages`, `params`, …) **already exist in the Python reference surface**, so
+they match with no drift. Only 3 genuinely-new Ruby names
+(`all_functions`, `basic_auth_credentials_with_source`, `function?`) needed
+`PORT_ADDITIONS.md` entries. The full 4-gate CI (TEST / SIGNATURES / DRIFT /
+NO-CHEAT) stays green.
+
+### Examples
+
+23 of the 23 candidate `examples/*.rb` files were swept (31 call sites rewritten
+to the idiomatic form); chain-terminal / mid-chain / multi-line `set_*` calls
+were intentionally left (see fact #2).
+
+### Tests
+
+Parity tests added in `tests/agent_test.rb`, `tests/contexts_test.rb`,
+`tests/function_result_test.rb` — each asserts the idiomatic form and the
+`get_`/`set_` original hit the same state, and that `X=` returns the RHS.
+
+### Not done (Bucket D remainder)
+
+`has_section`/`has_skill` already have `?` variants elsewhere; converging the
+duplicate predicate names across classes is left as tidy-up.
+
+---
+
+## Option C — hide the superseded originals from docs (applied)
+
+The idiomatic aliases are *additive*, so the `get_`/`set_` originals still
+exist (keeps old callers working + keeps the cross-port audit's reflection
+matching Python 1:1). To stop them cluttering the *documented* public API, the
+**fully-superseded** originals carry `# @!visibility private` — a YARD doc
+directive that hides them from generated docs while leaving the method
+runtime-public (so `instance_methods(false)`, and therefore the audit, still
+sees them; drift stays 0).
+
+Hidden (8): the reader/predicate originals whose idiomatic form is a strict
+replacement —
+`AgentBase#get_prompt`/`get_post_prompt`/`get_raw_prompt`/`get_contexts`,
+`SWML::Service#get_all_functions`/`get_basic_auth_credentials_with_source`/`has_function`,
+`Utils#is_serverless_mode`.
+
+**Not hidden — the chainable `set_*` setters stay documented.** A Ruby `=`
+writer can't chain (it returns the RHS), so `step.set_text(...).set_valid_steps(...)`
+remains the fluent builder form the examples use; `step.text = "..."` is the
+attribute-assignment form. Both are legitimate, distinct Ruby idioms — keeping
+both public is conventional, not noise. Hiding a `set_*` the examples chain
+would also be self-contradictory (docs hiding a method the examples call).
+
+**Residual leak (irreducible):** a still-public method answers
+`agent.get_prompt`, so it remains visible to runtime introspection
+(`agent.methods`, IRB tab-complete, `respond_to?`). Making it invisible *there*
+too would require a `method_missing` dispatch layer + an adapter manifest
+(Option D) — deliberately not done; the cost outweighs hiding 8 names from
+`ls`-in-IRB.
+
+Note: YARD isn't currently wired into this repo, so the directive is
+forward-looking — it takes effect when API docs are generated and signals
+intent to code readers now.

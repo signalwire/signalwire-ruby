@@ -46,7 +46,7 @@ agent.prompt_add_section('Role',
   'You are a helpful customer support agent. ' \
   'Use the available tools to look up information and assist the caller.')
 
-agent.set_params('attention_timeout' => 15_000)
+agent.params = { 'attention_timeout' => 15_000 }
 
 # -- Local Tools ---------------------------------------------------------------
 agent.define_tool(

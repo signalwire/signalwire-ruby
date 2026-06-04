@@ -663,3 +663,6 @@ signalwire.core.agent_base.AgentBase.signing_key: ruby_idiom_port_only: AgentBas
 signalwire.core.agent_base.AgentBase.prompt: ruby-idiom alias (reader) over get_prompt; native `agent.prompt` accessor, Python name retained for parity
 signalwire.core.agent_base.AgentBase.prompt_text: ruby-idiom alias (reader+writer) over get_raw_prompt/set_prompt_text; native `agent.prompt_text` / `agent.prompt_text=`
 signalwire.core.agent_base.AgentBase.post_prompt: ruby-idiom alias (reader+writer) over get_post_prompt/set_post_prompt; native `agent.post_prompt` / `agent.post_prompt=`
+signalwire.swml.service.Service.all_functions: ruby-idiom reader alias over get_all_functions
+signalwire.swml.service.Service.basic_auth_credentials_with_source: ruby-idiom reader alias over get_basic_auth_credentials_with_source
+signalwire.swml.service.Service.function?: ruby-idiom `?`-predicate alias over has_function

@@ -813,3 +813,38 @@ class ContextsTest < Minitest::Test
     assert_equal %w[lookup_ticket], h['support']['steps'][0]['functions']
   end
 end
+
+# --- Idiomatic Ruby accessor aliases (RUBY_ERGONOMICS_MIGRATION.md) ---
+class ContextsIdiomaticAccessorsTest < Minitest::Test
+  def setup
+    @builder = SignalWire::Contexts::ContextBuilder.new
+    @ctx     = @builder.add_context('default')
+    @step    = @ctx.add_step('s1')
+    @step.text = 'base'   # to_h requires a step to have text/POM
+  end
+
+  # Step: X= writer mirrors set_X, and the chainable set_X still works.
+  def test_step_writer_matches_setter
+    @step.text = 'you are helpful'
+    assert_equal 'you are helpful', @step.to_h['text']
+    # chainable original still returns self
+    assert_same @step, @step.set_text('again')
+  end
+
+  def test_step_valid_steps_writer
+    @step.valid_steps = %w[next done]
+    assert_equal %w[next done], @step.to_h['valid_steps']
+  end
+
+  # writer returns the RHS (Ruby = semantics), not self
+  def test_writer_returns_rhs
+    assert_equal 'x', (@step.text = 'x')
+  end
+
+  # Context: X= writer mirrors set_X (duplicate method name across Step/Context
+  # — each aliased inside its own class).
+  def test_context_writer_matches_setter
+    @ctx.system_prompt = 'be terse'
+    assert_equal 'be terse', @ctx.to_h['system_prompt']
+  end
+end

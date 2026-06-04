@@ -59,7 +59,7 @@ concierge.prompt_sections.each do |section|
   agent.prompt_add_section(section['title'], section['body'], bullets: section['bullets'])
 end
 
-agent.set_global_data(concierge.global_data)
+agent.global_data = concierge.global_data
 
 agent.define_tool(
   name:        'get_amenity_info',

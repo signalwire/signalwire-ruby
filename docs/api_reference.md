@@ -109,26 +109,30 @@ agent.serve(host="0.0.0.0", port=3000)
 
 #### Text-Based Prompts
 
-##### `set_prompt_text(text: str) -> AgentBase`
-Set the agent's prompt as raw text.
+##### `prompt_text=` (assignment) / `set_prompt_text(text)` (chainable)
+Set the agent's prompt as raw text. The `prompt_text =` assignment is the
+idiomatic Ruby form; the chainable `set_prompt_text` (returns `self`) remains for
+fluent building. (Read it back with `agent.prompt_text`.)
 
 **Parameters:**
-- `text` (str): The complete prompt text
+- `text` (String): The complete prompt text
 
 **Usage:**
-```python
-agent.set_prompt_text("You are a helpful customer service agent.")
+```ruby
+agent.prompt_text = "You are a helpful customer service agent."
 ```
 
-##### `set_post_prompt(text: str) -> AgentBase`
-Set additional text to append after the main prompt.
+##### `post_prompt=` (assignment) / `set_post_prompt(text)` (chainable)
+Set additional text to append after the main prompt. The `post_prompt =`
+assignment is the idiomatic Ruby form; the chainable `set_post_prompt` (returns
+`self`) remains for fluent building. (Read it back with `agent.post_prompt`.)
 
 **Parameters:**
-- `text` (str): Text to append after main prompt
+- `text` (String): Text to append after main prompt
 
 **Usage:**
-```python
-agent.set_post_prompt("Always be polite and professional.")
+```ruby
+agent.post_prompt = "Always be polite and professional."
 ```
 
 #### LLM Parameter Configuration
@@ -329,18 +333,20 @@ agent.add_language(
 )
 ```
 
-##### `set_languages(languages: List[Dict[str, Any]]) -> AgentBase`
-Set multiple language configurations at once.
+##### `languages=` (assignment) / `set_languages(languages)` (chainable)
+Set multiple language configurations at once. The `languages =` assignment is the
+idiomatic Ruby form; the chainable `set_languages` (returns `self`) remains for
+fluent building.
 
 **Parameters:**
-- `languages` (List[Dict]): List of language configuration dictionaries
+- `languages` (Array<Hash>): List of language configuration hashes
 
 **Usage:**
-```python
-agent.set_languages([
-    {"name": "English", "code": "en-US", "voice": "rime.spore"},
-    {"name": "Spanish", "code": "es-ES", "voice": "nova.luna"}
-])
+```ruby
+agent.languages = [
+    { "name" => "English", "code" => "en-US", "voice" => "rime.spore" },
+    { "name" => "Spanish", "code" => "es-ES", "voice" => "nova.luna" }
+]
 ```
 
 ### Speech Recognition Configuration
@@ -416,24 +422,25 @@ agent.add_pronunciation("API", "A P I")
 agent.add_pronunciation("SWML", "swim-el")
 ```
 
-##### `set_pronunciations`
+##### `pronunciations=` (assignment) / `set_pronunciations(pronunciations)` (chainable)
 
-```python
-def set_pronunciations(
-    pronunciations: List[Dict[str, Any]]
-) -> AgentBase
+```ruby
+agent.pronunciations = pronunciations   # idiomatic assignment
+agent.set_pronunciations(pronunciations) # chainable, returns self
 ```
-Set multiple pronunciation rules at once.
+Set multiple pronunciation rules at once. The `pronunciations =` assignment is the
+idiomatic Ruby form; the chainable `set_pronunciations` (returns `self`) remains
+for fluent building.
 
 **Parameters:**
-- `pronunciations` (List[Dict]): List of pronunciation rule dictionaries
+- `pronunciations` (Array<Hash>): List of pronunciation rule hashes
 
 **Usage:**
-```python
-agent.set_pronunciations([
-    {"replace": "API", "with": "A P I"},
-    {"replace": "SWML", "with": "swim-el", "ignore_case": True}
-])
+```ruby
+agent.pronunciations = [
+    { "replace" => "API", "with" => "A P I" },
+    { "replace" => "SWML", "with" => "swim-el", "ignore_case" => true }
+]
 ```
 
 ### AI Parameters Configuration
@@ -451,11 +458,14 @@ agent.set_param("ai_model", "gpt-4.1-nano")
 agent.set_param("end_of_speech_timeout", 500)
 ```
 
-##### `set_params(params: Dict[str, Any]) -> AgentBase`
-Set multiple AI parameters at once.
+##### `params=` (assignment) / `set_params(params)` (chainable)
+Set multiple AI parameters at once. The `params =` assignment is the idiomatic
+Ruby form; the chainable `set_params` (returns `self`) remains for fluent
+building. (For a single parameter, use `set_param(key, value)` — it takes two
+arguments, so it stays a method.)
 
 **Parameters:**
-- `params` (Dict[str, Any]): Dictionary of parameter key-value pairs
+- `params` (Hash): Hash of parameter key-value pairs
 
 **Common Parameters:**
 - `ai_model`: AI model to use ("gpt-4.1-nano", "gpt-4.1-mini", etc.)
@@ -467,31 +477,34 @@ Set multiple AI parameters at once.
 - `top_p`: Nucleus sampling parameter (0.0 to 1.0)
 
 **Usage:**
-```python
-agent.set_params({
-    "ai_model": "gpt-4.1-nano",
-    "end_of_speech_timeout": 500,
-    "attention_timeout": 15000,
-    "background_file_volume": -20,
-    "temperature": 0.7
-})
+```ruby
+agent.params = {
+    "ai_model" => "gpt-4.1-nano",
+    "end_of_speech_timeout" => 500,
+    "attention_timeout" => 15000,
+    "background_file_volume" => -20,
+    "temperature" => 0.7
+}
 ```
 
 ### Global Data Management
 
-##### `set_global_data(data: Dict[str, Any]) -> AgentBase`
-Set global data available to the AI and functions.
+##### `global_data=` (assignment) / `set_global_data(data)` (chainable)
+Set global data available to the AI and functions. The `global_data =` assignment
+is the idiomatic Ruby form; the chainable `set_global_data` (returns `self`)
+remains for fluent building. (To merge into existing global data instead of
+replacing it, use `update_global_data`.)
 
 **Parameters:**
-- `data` (Dict[str, Any]): Global data dictionary
+- `data` (Hash): Global data hash
 
 **Usage:**
-```python
-agent.set_global_data({
-    "company_name": "Acme Corp",
-    "support_hours": "9 AM - 5 PM EST",
-    "escalation_number": "+1-555-0123"
-})
+```ruby
+agent.global_data = {
+    "company_name" => "Acme Corp",
+    "support_hours" => "9 AM - 5 PM EST",
+    "escalation_number" => "+1-555-0123"
+}
 ```
 
 ##### `update_global_data(data: Dict[str, Any]) -> AgentBase`
@@ -749,17 +762,18 @@ end
 
 ### Native Functions
 
-##### `set_native_functions`
+##### `native_functions=` (assignment) / `set_native_functions(function_names)` (chainable)
 
-```python
-def set_native_functions(
-    function_names: List[str]
-) -> AgentBase
+```ruby
+agent.native_functions = function_names    # idiomatic assignment
+agent.set_native_functions(function_names) # chainable, returns self
 ```
-Enable specific native SWML functions.
+Enable specific native SWML functions. The `native_functions =` assignment is the
+idiomatic Ruby form; the chainable `set_native_functions` (returns `self`) remains
+for fluent building.
 
 **Parameters:**
-- `function_names` (List[str]): List of native function names to enable
+- `function_names` (Array<String>): List of native function names to enable
 
 **Available Native Functions:**
 - `transfer`: Transfer calls
@@ -769,21 +783,22 @@ Enable specific native SWML functions.
 - `send_sms`: Send SMS messages
 
 **Usage:**
-```python
-agent.set_native_functions(["transfer", "hangup", "send_sms"])
+```ruby
+agent.native_functions = ["transfer", "hangup", "send_sms"]
 ```
 
-##### `set_internal_fillers`
+##### `internal_fillers=` (assignment) / `set_internal_fillers(internal_fillers)` (chainable)
 
-```python
-def set_internal_fillers(
-    internal_fillers: Dict[str, Dict[str, List[str]]]
-) -> AgentBase
+```ruby
+agent.internal_fillers = internal_fillers    # idiomatic assignment
+agent.set_internal_fillers(internal_fillers) # chainable, returns self
 ```
-Set custom filler phrases for internal/native SWAIG functions.
+Set custom filler phrases for internal/native SWAIG functions. The
+`internal_fillers =` assignment is the idiomatic Ruby form; the chainable
+`set_internal_fillers` (returns `self`) remains for fluent building.
 
 **Parameters:**
-- `internal_fillers` (Dict[str, Dict[str, List[str]]]): Function name → language code → filler phrases
+- `internal_fillers` (Hash): Function name → language code → filler phrases
 
 **Available Internal Functions:**
 - `next_step`: Moving between workflow steps (contexts system)
@@ -794,16 +809,16 @@ Set custom filler phrases for internal/native SWAIG functions.
 - `get_visual_input`: Processing visual data
 
 **Usage:**
-```python
-agent.set_internal_fillers({
-    "next_step": {
-        "en-US": ["Moving to the next step...", "Let's continue..."],
-        "es": ["Pasando al siguiente paso...", "Continuemos..."]
+```ruby
+agent.internal_fillers = {
+    "next_step" => {
+        "en-US" => ["Moving to the next step...", "Let's continue..."],
+        "es" => ["Pasando al siguiente paso...", "Continuemos..."]
     },
-    "check_time": {
-        "en-US": ["Let me check the time...", "Getting current time..."]
+    "check_time" => {
+        "en-US" => ["Let me check the time...", "Getting current time..."]
     }
-})
+}
 ```
 
 ##### `add_internal_filler`
@@ -857,55 +872,60 @@ agent.add_function_include(
 )
 ```
 
-##### `set_function_includes`
+##### `function_includes=` (assignment) / `set_function_includes(includes)` (chainable)
 
-```python
-def set_function_includes(
-    includes: List[Dict[str, Any]]
-) -> AgentBase
+```ruby
+agent.function_includes = includes    # idiomatic assignment
+agent.set_function_includes(includes) # chainable, returns self
 ```
-Set multiple function includes at once.
+Set multiple function includes at once. The `function_includes =` assignment is
+the idiomatic Ruby form; the chainable `set_function_includes` (returns `self`)
+remains for fluent building.
 
 **Parameters:**
-- `includes` (List[Dict[str, Any]]): List of function include configurations
+- `includes` (Array<Hash>): List of function include configurations
 
 **Usage:**
-```python
-agent.set_function_includes([
+```ruby
+agent.function_includes = [
     {
-        "url": "https://service1.com/swaig",
-        "functions": ["func1", "func2"]
+        "url" => "https://service1.com/swaig",
+        "functions" => ["func1", "func2"]
     },
     {
-        "url": "https://service2.com/swaig", 
-        "functions": ["func3"],
-        "meta_data": {"priority": "high"}
+        "url" => "https://service2.com/swaig",
+        "functions" => ["func3"],
+        "meta_data" => { "priority" => "high" }
     }
-])
+]
 ```
 
 ### Webhook Configuration
 
-##### `set_web_hook_url(url: str) -> AgentBase`
-Set default webhook URL for SWAIG functions.
+##### `web_hook_url=` (assignment) / `set_web_hook_url(url)` (chainable)
+Set default webhook URL for SWAIG functions. The `web_hook_url =` assignment is
+the idiomatic Ruby form; the chainable `set_web_hook_url` (returns `self`) remains
+for fluent building.
 
 **Parameters:**
-- `url` (str): Default webhook URL
+- `url` (String): Default webhook URL
 
 **Usage:**
-```python
-agent.set_web_hook_url("https://myserver.com/webhook")
+```ruby
+agent.web_hook_url = "https://myserver.com/webhook"
 ```
 
-##### `set_post_prompt_url(url: str) -> AgentBase`
-Set URL for post-prompt processing.
+##### `post_prompt_url=` (assignment) / `set_post_prompt_url(url)` (chainable)
+Set URL for post-prompt processing. The `post_prompt_url =` assignment is the
+idiomatic Ruby form; the chainable `set_post_prompt_url` (returns `self`) remains
+for fluent building.
 
 **Parameters:**
-- `url` (str): Post-prompt webhook URL
+- `url` (String): Post-prompt webhook URL
 
 **Usage:**
-```python
-agent.set_post_prompt_url("https://myserver.com/post-prompt")
+```ruby
+agent.post_prompt_url = "https://myserver.com/post-prompt"
 ```
 
 ##### `add_swaig_query_params(params: dict) -> AgentBase`
@@ -1459,28 +1479,32 @@ result = SwaigFunctionResult()
 
 #### Response Configuration
 
-##### `set_response(response: str) -> SwaigFunctionResult`
-Set or update the natural language response text.
+##### `response=` (assignment) / `set_response(response)` (chainable)
+Set or update the natural language response text. The `response =` assignment is
+the idiomatic Ruby form; the chainable `set_response` (returns `self`) remains for
+fluent building.
 
 **Parameters:**
-- `response` (str): The text the AI should speak
+- `response` (String): The text the AI should speak
 
 **Usage:**
-```python
-result = SwaigFunctionResult()
-result.set_response("I found your order information")
+```ruby
+result = Signalwire::Swaig::FunctionResult.new
+result.response = "I found your order information"
 ```
 
-##### `set_post_process(post_process: bool) -> SwaigFunctionResult`
-Enable or disable post-processing for this result.
+##### `post_process=` (assignment) / `set_post_process(post_process)` (chainable)
+Enable or disable post-processing for this result. The `post_process =` assignment
+is the idiomatic Ruby form; the chainable `set_post_process` (returns `self`)
+remains for fluent building.
 
 **Parameters:**
-- `post_process` (bool): True to let AI respond once more before executing actions
+- `post_process` (Boolean): `true` to let AI respond once more before executing actions
 
 **Usage:**
-```python
-result = SwaigFunctionResult("I'll help you with that")
-result.set_post_process(True)  # Let AI handle follow-up questions first
+```ruby
+result = Signalwire::Swaig::FunctionResult.new("I'll help you with that")
+result.post_process = true  # Let AI handle follow-up questions first
 ```
 
 #### Action Management
@@ -1691,19 +1715,21 @@ result.remove_global_data("temporary_data")
 result.remove_global_data(["temp1", "temp2", "cache_data"])
 ```
 
-##### `set_metadata(data: Dict[str, Any]) -> SwaigFunctionResult`
-Set metadata for the conversation.
+##### `metadata=` (assignment) / `set_metadata(data)` (chainable)
+Set metadata for the conversation. The `metadata =` assignment is the idiomatic
+Ruby form; the chainable `set_metadata` (returns `self`) remains for fluent
+building (use it mid-chain, since `=` can't chain).
 
 **Parameters:**
-- `data` (Dict[str, Any]): Metadata to set
+- `data` (Hash): Metadata to set
 
 **Usage:**
-```python
-result.set_metadata({
-    "call_type": "support",
-    "priority": "high",
-    "department": "technical"
-})
+```ruby
+result.metadata = {
+    "call_type" => "support",
+    "priority" => "high",
+    "department" => "technical"
+}
 ```
 
 ##### `remove_metadata(keys: Union[str, List[str]]) -> SwaigFunctionResult`
@@ -1719,30 +1745,34 @@ result.remove_metadata(["temporary_flag", "debug_info"])
 
 ### AI Behavior Control
 
-##### `set_end_of_speech_timeout(milliseconds: int) -> SwaigFunctionResult`
-Adjust how long to wait for speech to end.
+##### `end_of_speech_timeout=` (assignment) / `set_end_of_speech_timeout(milliseconds)` (chainable)
+Adjust how long to wait for speech to end. The `end_of_speech_timeout =`
+assignment is the idiomatic Ruby form; the chainable `set_end_of_speech_timeout`
+(returns `self`) remains for fluent building.
 
 **Parameters:**
-- `milliseconds` (int): Timeout in milliseconds
+- `milliseconds` (Integer): Timeout in milliseconds
 
 **Usage:**
-```python
+```ruby
 # Shorter timeout for quick responses
-result.set_end_of_speech_timeout(300)
+result.end_of_speech_timeout = 300
 
 # Longer timeout for thoughtful responses
-result.set_end_of_speech_timeout(2000)
+result.end_of_speech_timeout = 2000
 ```
 
-##### `set_speech_event_timeout(milliseconds: int) -> SwaigFunctionResult`
-Set timeout for speech events.
+##### `speech_event_timeout=` (assignment) / `set_speech_event_timeout(milliseconds)` (chainable)
+Set timeout for speech events. The `speech_event_timeout =` assignment is the
+idiomatic Ruby form; the chainable `set_speech_event_timeout` (returns `self`)
+remains for fluent building.
 
 **Parameters:**
-- `milliseconds` (int): Timeout in milliseconds
+- `milliseconds` (Integer): Timeout in milliseconds
 
 **Usage:**
-```python
-result.set_speech_event_timeout(5000)
+```ruby
+result.speech_event_timeout = 5000
 ```
 
 ##### `wait_for_user(enabled: Optional[bool] = None, timeout: Optional[int] = None, answer_first: bool = False) -> SwaigFunctionResult`
@@ -2797,7 +2827,18 @@ support_context = contexts.add_context("support")
 
 ### Context Class
 
-The Context class represents a conversation context containing multiple steps with enhanced features:
+The Context class represents a conversation context containing multiple steps with enhanced features.
+
+Each single-value `set_*` writer below also has an idiomatic `X =` assignment
+alias — `context.system_prompt = "..."`, `context.prompt = "..."`,
+`context.post_prompt = "..."`, `context.user_prompt = "..."`,
+`context.consolidate = true`, `context.full_reset = true`,
+`context.valid_contexts = [...]`, `context.valid_steps = [...]`,
+`context.initial_step = "..."`, `context.isolated = true`,
+`context.enter_fillers = [...]`, `context.exit_fillers = [...]`. Use the `X =`
+form for standalone config; the chainable `set_*` form (returns `self`) is what
+the fluent builder examples chain with. (`add_step` / `add_section` /
+`add_bullets` are builders, not single-value setters, so they keep their names.)
 
 ```python
 class Context:

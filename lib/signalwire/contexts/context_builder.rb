@@ -316,6 +316,58 @@ module SignalWire
         step_h
       end
 
+      # --- Idiomatic Ruby accessors (additive aliases over the get_/set_ originals) ---
+      #
+      # Writers use the block `def x=(v); set_x(v); end` form so the RHS is
+      # returned (Ruby `=` semantics), not `self`. The chainable `set_*`
+      # originals stay available and untouched.
+      #
+      # Skipped: set_end (`end=` is a Ruby keyword, illegal method name);
+      # set_gather_info (keyword args, not a single-value setter).
+      def text=(v)
+        set_text(v)
+      end
+
+      def step_criteria=(v)
+        set_step_criteria(v)
+      end
+
+      def functions=(v)
+        set_functions(v)
+      end
+
+      def valid_steps=(v)
+        set_valid_steps(v)
+      end
+
+      def valid_contexts=(v)
+        set_valid_contexts(v)
+      end
+
+      def skip_user_turn=(v)
+        set_skip_user_turn(v)
+      end
+
+      def skip_to_next_step=(v)
+        set_skip_to_next_step(v)
+      end
+
+      def reset_system_prompt=(v)
+        set_reset_system_prompt(v)
+      end
+
+      def reset_user_prompt=(v)
+        set_reset_user_prompt(v)
+      end
+
+      def reset_consolidate=(v)
+        set_reset_consolidate(v)
+      end
+
+      def reset_full_reset=(v)
+        set_reset_full_reset(v)
+      end
+
       private
 
       def render_text
@@ -592,6 +644,62 @@ module SignalWire
         ctx["exit_fillers"]  = @exit_fillers  if @exit_fillers
 
         ctx
+      end
+
+      # --- Idiomatic Ruby accessors (additive aliases over the get_/set_ originals) ---
+      #
+      # Writers use the block `def x=(v); set_x(v); end` form so the RHS is
+      # returned (Ruby `=` semantics), not `self`. The chainable `set_*`
+      # originals stay available and untouched.
+      #
+      # Skipped: get_step / get_context (take a required `name` arg — lookups,
+      # not bare accessors).
+      def initial_step=(v)
+        set_initial_step(v)
+      end
+
+      def valid_contexts=(v)
+        set_valid_contexts(v)
+      end
+
+      def valid_steps=(v)
+        set_valid_steps(v)
+      end
+
+      def post_prompt=(v)
+        set_post_prompt(v)
+      end
+
+      def system_prompt=(v)
+        set_system_prompt(v)
+      end
+
+      def prompt=(v)
+        set_prompt(v)
+      end
+
+      def consolidate=(v)
+        set_consolidate(v)
+      end
+
+      def full_reset=(v)
+        set_full_reset(v)
+      end
+
+      def user_prompt=(v)
+        set_user_prompt(v)
+      end
+
+      def isolated=(v)
+        set_isolated(v)
+      end
+
+      def enter_fillers=(v)
+        set_enter_fillers(v)
+      end
+
+      def exit_fillers=(v)
+        set_exit_fillers(v)
       end
 
       # Expose internal state for validation

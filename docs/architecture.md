@@ -622,7 +622,7 @@ def configure_agent_dynamically(query_params, body_params, headers, agent)
   # Primary configuration logic — agent is the actual AgentBase instance
   tier = query_params.fetch("tier", "standard")
   if tier == "premium"
-    agent.set_params("end_of_speech_timeout" => 300)
+    agent.params = { "end_of_speech_timeout" => 300 }
     agent.add_hints(["premium support", "priority handling"])
   end
 rescue Signalwire::ConfigurationError => e

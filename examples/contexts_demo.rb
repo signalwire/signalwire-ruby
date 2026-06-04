@@ -26,8 +26,8 @@ greeting.set_text(
   'Welcome the caller warmly. Ask if they need to file a new claim ' \
   'or check the status of an existing claim.'
 )
-greeting.set_valid_steps(%w[new_claim check_status])
-greeting.set_functions(%w[check_claim_status])
+greeting.valid_steps = %w[new_claim check_status]
+greeting.functions = %w[check_claim_status]
 
 # Step 2: New Claim
 new_claim = ctx.add_step('new_claim')
@@ -41,8 +41,8 @@ new_claim.add_bullets('Required Fields', [
 new_claim.set_step_criteria(
   'All four required fields have been collected and confirmed with the caller.'
 )
-new_claim.set_valid_steps(%w[review])
-new_claim.set_functions(%w[submit_claim])
+new_claim.valid_steps = %w[review]
+new_claim.functions = %w[submit_claim]
 
 # Step 3: Check Status
 check_status = ctx.add_step('check_status')
@@ -50,8 +50,8 @@ check_status.set_text(
   'Ask the caller for their claim number, then look it up using the ' \
   'check_claim_status tool. Report the findings clearly.'
 )
-check_status.set_valid_steps(%w[greeting])
-check_status.set_functions(%w[check_claim_status])
+check_status.valid_steps = %w[greeting]
+check_status.functions = %w[check_claim_status]
 
 # Step 4: Review
 review = ctx.add_step('review')
@@ -60,8 +60,8 @@ review.set_text(
   'confirm everything is correct. If they confirm, submit the claim. ' \
   'If they want to change something, go back to new_claim.'
 )
-review.set_valid_steps(%w[new_claim])
-review.set_functions(%w[submit_claim])
+review.valid_steps = %w[new_claim]
+review.functions = %w[submit_claim]
 review.set_end(true)
 
 # --- Tools ---

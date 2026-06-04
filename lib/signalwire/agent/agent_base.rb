@@ -348,6 +348,8 @@ module SignalWire
     end
 
     # Return the current prompt: either a string (text mode) or an array (POM).
+    # @!visibility private  (idiomatic alias: #prompt; original kept for
+    #   cross-port audit parity + back-compat)
     def get_prompt
       return @prompt_text if @prompt_text
       return @prompt_pom  if @prompt_pom
@@ -402,6 +404,8 @@ module SignalWire
     # Mirrors Python's PromptManager#get_post_prompt /
     # PromptMixin#get_post_prompt — used by SWML rendering when a
     # post-prompt is configured.
+    # @!visibility private  (idiomatic alias: #post_prompt; original kept for
+    #   cross-port audit parity + back-compat)
     def get_post_prompt
       @post_prompt_text
     end
@@ -411,6 +415,8 @@ module SignalWire
     # which may return the POM array when use_pom is true.
     #
     # Mirrors Python's PromptManager#get_raw_prompt.
+    # @!visibility private  (idiomatic alias: #prompt_text; original kept for
+    #   cross-port audit parity + back-compat)
     def get_raw_prompt
       @prompt_text
     end
@@ -446,11 +452,67 @@ module SignalWire
       set_post_prompt(text)
     end
 
+    # ------------------------------------------------------------------
+    # Remaining single-class config accessors on AgentBase. Same additive
+    # pattern: `get_<name>` zero-arg readers become bare-noun
+    # `alias_method`s; single-value `set_<name>` setters become `X=`
+    # writers (block form so the writer yields the RHS, not self).
+    # Multi-arg / keyword setters (e.g. #set_language_params) stay as
+    # methods — a `=` writer takes exactly one value — and are not aliased.
+    # ------------------------------------------------------------------
+
+    # Reader: the contexts hash (or nil when none defined). Reader-only —
+    # contexts are built, not assigned. def-wrapper (not alias_method)
+    # because #get_contexts is defined later in the class body.
+    def contexts = get_contexts
+
+    def function_includes=(includes)
+      set_function_includes(includes)
+    end
+
+    def global_data=(data)
+      set_global_data(data)
+    end
+
+    def internal_fillers=(fillers)
+      set_internal_fillers(fillers)
+    end
+
+    def languages=(languages)
+      set_languages(languages)
+    end
+
+    def native_functions=(names)
+      set_native_functions(names)
+    end
+
+    def params=(params)
+      set_params(params)
+    end
+
+    def post_prompt_url=(url)
+      set_post_prompt_url(url)
+    end
+
+    def prompt_pom=(pom)
+      set_prompt_pom(pom)
+    end
+
+    def pronunciations=(pronunciations)
+      set_pronunciations(pronunciations)
+    end
+
+    def web_hook_url=(url)
+      set_web_hook_url(url)
+    end
+
     # Returns the contexts dictionary as a serialised hash, or nil when
     # no contexts have been defined yet.
     #
     # Mirrors Python's PromptManager#get_contexts which returns the
     # contexts dict or None.
+    # @!visibility private  (idiomatic alias: #contexts; original kept for
+    #   cross-port audit parity + back-compat)
     def get_contexts
       return nil if @context_builder.nil?
       @context_builder.to_h

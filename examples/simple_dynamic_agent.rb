@@ -28,7 +28,7 @@ agent.set_dynamic_config_callback do |query_params, body_params, headers, epheme
       'You work for Acme Corp. Be professional and solution-oriented.'
     )
     ephemeral.add_hints(%w[Acme AcmeCorp warranty returns])
-    ephemeral.set_global_data('company_name' => 'Acme Corp')
+    ephemeral.global_data = { 'company_name' => 'Acme Corp' }
 
   when 'globex'
     ephemeral.prompt_add_section(
@@ -36,7 +36,7 @@ agent.set_dynamic_config_callback do |query_params, body_params, headers, epheme
       'You work for Globex Corporation. Be friendly and casual.'
     )
     ephemeral.add_hints(%w[Globex shipping tracking])
-    ephemeral.set_global_data('company_name' => 'Globex Corporation')
+    ephemeral.global_data = { 'company_name' => 'Globex Corporation' }
 
   else
     ephemeral.prompt_add_section(

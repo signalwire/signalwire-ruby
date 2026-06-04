@@ -12,8 +12,13 @@ module SignalWire
     module_function
 
     # @return [Boolean] true unless the detected mode is 'server'.
+    # @!visibility private  (idiomatic alias: #serverless?; original kept for
+    #   cross-port audit parity + back-compat)
     def is_serverless_mode
       SignalWire::Core::LoggingConfig.get_execution_mode != 'server'
     end
+
+    # Idiomatic Ruby `?`-predicate alias of is_serverless_mode.
+    alias_method :serverless?, :is_serverless_mode
   end
 end

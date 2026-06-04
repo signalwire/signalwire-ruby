@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ f63efdf462e5b8680142fc208fbc413418fabd69",
+  "generated_from": "signalwire-ruby @ 1215dae35b837a18587f1f344fdaa6d85b7ead54",
   "modules": {
     "signalwire": {
       "classes": {
@@ -1965,11 +1965,14 @@
       "classes": {
         "Service": [
           "__init__",
+          "all_functions",
+          "basic_auth_credentials_with_source",
           "config_file",
           "define_tool",
           "define_tools",
           "document",
           "execute_verb",
+          "function?",
           "get_all_functions",
           "get_basic_auth_credentials",
           "get_basic_auth_credentials_with_source",

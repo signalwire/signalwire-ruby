@@ -14,19 +14,21 @@ result = SwaigFunctionResult("Hello, I'll help you with that")
 result = SwaigFunctionResult("Processing request...", post_process=True)
 ```
 
-#### `set_response(response)`
-Sets or updates the response text that the AI will speak.
+#### `response=` (assignment) / `set_response(response)` (chainable)
+Sets or updates the response text that the AI will speak. Assignment is the
+idiomatic form; the chainable `set_response` remains for fluent building.
 
 ```python
-result.set_response("I've updated your information")
+result.response = "I've updated your information"
 ```
 
-#### `set_post_process(post_process)`
-Controls whether AI gets one more turn before executing actions.
+#### `post_process=` (assignment) / `set_post_process(post_process)` (chainable)
+Controls whether AI gets one more turn before executing actions. Assignment is the
+idiomatic form; the chainable `set_post_process` remains for fluent building.
 
 ```python
-result.set_post_process(True)  # AI speaks response before executing actions
-result.set_post_process(False)  # Actions execute immediately
+result.post_process = True   # AI speaks response before executing actions
+result.post_process = False  # Actions execute immediately
 ```
 
 ---
@@ -537,18 +539,20 @@ result.stop_background_file()
 
 ### Speech Recognition Settings
 
-#### `set_end_of_speech_timeout(milliseconds)`
-Set silence timeout after speech detection for finalizing recognition.
+#### `end_of_speech_timeout=` (assignment) / `set_end_of_speech_timeout(milliseconds)` (chainable)
+Set silence timeout after speech detection for finalizing recognition. Assignment
+is the idiomatic form; the chainable `set_end_of_speech_timeout` remains for fluent building.
 
 ```python
-result.set_end_of_speech_timeout(2000)  # 2 seconds of silence
+result.end_of_speech_timeout = 2000  # 2 seconds of silence
 ```
 
-#### `set_speech_event_timeout(milliseconds)`
-Set timeout since last speech event - better for noisy environments.
+#### `speech_event_timeout=` (assignment) / `set_speech_event_timeout(milliseconds)` (chainable)
+Set timeout since last speech event - better for noisy environments. Assignment
+is the idiomatic form; the chainable `set_speech_event_timeout` remains for fluent building.
 
 ```python
-result.set_speech_event_timeout(3000)  # 3 seconds since last speech event
+result.speech_event_timeout = 3000  # 3 seconds since last speech event
 ```
 
 ---
@@ -570,11 +574,13 @@ result.remove_global_data("temporary_data")           # Single key
 result.remove_global_data(["step", "temp_value"])     # Multiple keys
 ```
 
-#### `set_metadata(data)`
-Set metadata scoped to current function's meta_data_token.
+#### `metadata=` (assignment) / `set_metadata(data)` (chainable)
+Set metadata scoped to current function's meta_data_token. Assignment is the
+idiomatic form; the chainable `set_metadata` remains for fluent building (and
+must be used mid-chain — see Method Chaining below).
 
 ```python
-result.set_metadata({"session_id": "abc123", "user_tier": "premium"})
+result.metadata = {"session_id": "abc123", "user_tier": "premium"}
 ```
 
 #### `remove_metadata(keys)`

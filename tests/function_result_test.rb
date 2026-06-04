@@ -639,3 +639,20 @@ class FunctionResultTest < Minitest::Test
     assert h["post_process"]
   end
 end
+
+# --- Idiomatic Ruby accessor aliases (RUBY_ERGONOMICS_MIGRATION.md) ---
+class FunctionResultIdiomaticAccessorsTest < Minitest::Test
+  def test_writers_mirror_setters
+    fr = SignalWire::Swaig::FunctionResult.new
+    fr.response = 'hi'
+    assert_equal 'hi', fr.to_h['response']
+    assert_equal 'x', (fr.response = 'x')   # = returns RHS
+
+    # metadata= mirrors set_metadata, which appends a set_meta_data action.
+    fr2 = SignalWire::Swaig::FunctionResult.new
+    fr2.metadata = { 'k' => 'v' }
+    actions = Array(fr2.to_h['action'])
+    assert(actions.any? { |a| a.is_a?(Hash) && a['set_meta_data'] == { 'k' => 'v' } },
+           "expected a set_meta_data action, got #{actions.inspect}")
+  end
+end

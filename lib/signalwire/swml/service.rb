@@ -130,9 +130,19 @@ module SignalWire
 
       # Whether a SWAIG function with the given name is registered.
       # (Python parity: ToolRegistry#has_function.)
+      # @!visibility private  (idiomatic alias: #function?; original kept for
+      #   cross-port audit parity + back-compat)
       def has_function(name)
         @tools.key?(name) || @swaig_functions.key?(name)
       end
+
+      # --- Idiomatic Ruby accessors/predicates (additive aliases) ---
+      # def-wrappers (not alias_method) so placement is independent of where
+      # the get_* target is defined in the class body.
+      def all_functions = get_all_functions
+      def basic_auth_credentials_with_source = get_basic_auth_credentials_with_source
+      # Ruby `?`-predicate form of has_function.
+      def function?(name) = has_function(name)
 
       # Get a registered SWAIG function by name, or nil when absent.
       # (Python parity: ToolRegistry#get_function.)
@@ -142,6 +152,8 @@ module SignalWire
 
       # Snapshot of all registered SWAIG functions keyed by name.
       # (Python parity: ToolRegistry#get_all_functions.)
+      # @!visibility private  (idiomatic alias: #all_functions; original kept
+      #   for cross-port audit parity + back-compat)
       def get_all_functions
         out = {}
         @tools.each { |k, v| out[k] = v }
@@ -281,6 +293,8 @@ module SignalWire
 
       # Backwards-compat alias for the legacy 3-tuple-only form.
       # @return [Array(String, String, String)]
+      # @!visibility private  (idiomatic alias: #basic_auth_credentials_with_source;
+      #   original kept for cross-port audit parity + back-compat)
       def get_basic_auth_credentials_with_source
         get_basic_auth_credentials(include_source: true)
       end

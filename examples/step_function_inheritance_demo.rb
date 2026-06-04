@@ -73,7 +73,7 @@ ctx.add_step('step_lookup')
      "Use lookup_account to fetch their details."
    )
    .set_functions(%w[lookup_account])
-   .set_valid_steps(%w[step_inherit])
+   .valid_steps = %w[step_inherit]
 
 # -- Step 2: NO set_functions call → inheritance --
 # Because we didn't call set_functions, this step inherits the active
@@ -86,7 +86,7 @@ ctx.add_step('step_inherit')
      "Confirm the customer's identity. (No set_functions here, so " \
      "lookup_account is still active — this is the inheritance trap.)"
    )
-   .set_valid_steps(%w[step_explicit])
+   .valid_steps = %w[step_explicit]
 
 # -- Step 3: explicit replacement --
 # Whitelist replaces the inherited set. lookup_account is now
@@ -97,7 +97,7 @@ ctx.add_step('step_explicit')
      "lookup_account is no longer available."
    )
    .set_functions(%w[process_payment])
-   .set_valid_steps(%w[step_disabled])
+   .valid_steps = %w[step_disabled]
 
 # -- Step 4: explicit disable-all --
 # Pass [] (or "none") to lock out every user-defined tool. Internal

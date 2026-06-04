@@ -5918,6 +5918,24 @@
               ],
               "returns": "void"
             },
+            "all_functions": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "basic_auth_credentials_with_source": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "config_file": {
               "params": [
                 {
@@ -6009,6 +6027,20 @@
                   "type": "any",
                   "required": false,
                   "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "function": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "any",
+                  "required": true
                 }
               ],
               "returns": "any"

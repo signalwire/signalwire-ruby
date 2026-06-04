@@ -36,7 +36,7 @@ agent.prompt_add_section(
 )
 
 # Apply global data
-agent.set_global_data(receptionist.global_data)
+agent.global_data = receptionist.global_data
 
 # Register transfer tool
 agent.define_tool(
