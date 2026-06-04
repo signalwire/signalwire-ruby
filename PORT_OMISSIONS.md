@@ -563,8 +563,6 @@ signalwire.relay.message.Message.is_done: Ruby uses is_done? and done? predicate
 signalwire.relay.message.Message.on: Ruby uses SignalWire::Relay::Message#on_event and #on_completed - different name
 signalwire.rest._base.CrudWithAddresses: not_yet_implemented: CrudWithAddresses mixin (list_addresses helper)
 signalwire.rest._base.CrudWithAddresses.list_addresses: not_yet_implemented: list_addresses helper
-signalwire.rest._pagination.PaginatedIterator: not_yet_implemented: standalone PaginatedIterator class (Ruby returns Arrays from list)
-signalwire.rest._pagination.PaginatedIterator.__init__: not_yet_implemented: paginated iterator
 signalwire.rest._pagination.PaginatedIterator.__iter__: not_yet_implemented: paginated iterator
 signalwire.rest._pagination.PaginatedIterator.__next__: not_yet_implemented: paginated iterator
 signalwire.rest.call_handler.PhoneCallHandler: Ruby SignalWire::REST::PhoneCallHandler is an empty marker (matches Python - no methods on either)
@@ -646,9 +644,7 @@ signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.__init__: R
 signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.get_instance_key: Ruby SignalWire::Skills::SkillBase#instance_key (attr_reader)
 signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.get_tools: Ruby built-in skills register tools in setup
 signalwire.skills.registry.SkillRegistry.__init__: Ruby SignalWire::Skills::SkillRegistry is a singleton module; no constructor
-signalwire.skills.registry.SkillRegistry.add_skill_directory: not_yet_implemented: external skill directory discovery
 signalwire.skills.registry.SkillRegistry.discover_skills: not_yet_implemented: filesystem discover_skills (Ruby ships built-ins explicitly via register_builtins!)
-signalwire.skills.registry.SkillRegistry.get_all_skills_schema: not_yet_implemented: aggregate schema export
 signalwire.skills.registry.SkillRegistry.get_skill_class: Ruby SignalWire::Skills::SkillRegistry#get_factory returns class-or-factory - different name
 signalwire.skills.registry.SkillRegistry.list_all_skill_sources: not_yet_implemented: external skill source listing
 signalwire.skills.spider.skill.SpiderSkill.__init__: Ruby built-in skills use SignalWire::Skills::SkillBase constructor
@@ -698,7 +694,6 @@ signalwire.skills.web_search.skill_original.WebSearchSkill.setup: search subsyst
 signalwire.skills.wikipedia_search.skill.WikipediaSearchSkill.get_hints: not_yet_implemented: per-skill get_hints override
 signalwire.skills.wikipedia_search.skill.WikipediaSearchSkill.search_wiki: not_yet_implemented: extracted search_wiki helper
 signalwire.start_agent: Ruby agents use agent.serve directly; no top-level start_agent convenience
-signalwire.utils.is_serverless_mode: not_yet_implemented: top-level is_serverless_mode helper
 signalwire.utils.schema_utils.SchemaUtils: SchemaUtils consolidated into SignalWire::SWML::Schema - see port_surface.json signalwire.swml.schema
 signalwire.utils.schema_utils.SchemaUtils.__init__: SchemaUtils consolidated into SignalWire::SWML::Schema - see port_surface.json signalwire.swml.schema
 signalwire.utils.schema_utils.SchemaUtils.full_validation_available: SchemaUtils consolidated into SignalWire::SWML::Schema - see port_surface.json signalwire.swml.schema
@@ -711,9 +706,6 @@ signalwire.utils.schema_utils.SchemaUtils.get_verb_required_properties: SchemaUt
 signalwire.utils.schema_utils.SchemaUtils.load_schema: SchemaUtils consolidated into SignalWire::SWML::Schema - see port_surface.json signalwire.swml.schema
 signalwire.utils.schema_utils.SchemaUtils.validate_document: SchemaUtils consolidated into SignalWire::SWML::Schema - see port_surface.json signalwire.swml.schema
 signalwire.utils.schema_utils.SchemaUtils.validate_verb: SchemaUtils consolidated into SignalWire::SWML::Schema - see port_surface.json signalwire.swml.schema
-signalwire.utils.schema_utils.SchemaValidationError: not_yet_implemented: named SchemaValidationError class
-signalwire.utils.schema_utils.SchemaValidationError.__init__: not_yet_implemented: named SchemaValidationError class
-signalwire.utils.url_validator.validate_url: not_yet_implemented: top-level validate_url helper
 signalwire.web.web_service.WebService: standalone WebService not ported; static files served from SignalWire::Server::AgentServer
 signalwire.web.web_service.WebService.__init__: standalone WebService not ported; static files served from SignalWire::Server::AgentServer
 signalwire.web.web_service.WebService.add_directory: standalone WebService not ported; static files served from SignalWire::Server::AgentServer
