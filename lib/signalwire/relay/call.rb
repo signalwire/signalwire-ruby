@@ -134,6 +134,55 @@ module SignalWire
         @ended
       end
 
+      # Block until the call reaches +target+, returning immediately if the
+      # call is already at or past that state. Backs the typed +wait_for_*+
+      # helpers below. Mirrors Python's +Call._wait_for_state+: states are
+      # ordered created < ringing < answered < ending < ended, and a call
+      # already at/past the target resolves with a synthetic state event
+      # (matching the legacy SDK's short-circuit).
+      def _wait_for_state(target, timeout)
+        order = CALL_STATES
+
+        rank = lambda do |s|
+          idx = order.index(s)
+          idx.nil? ? -1 : idx
+        end
+
+        if rank.call(@state) >= rank.call(target)
+          return RelayEvent.new(
+            event_type: EVENT_CALL_STATE,
+            params:     { 'call_state' => @state }
+          )
+        end
+
+        wait_for(
+          EVENT_CALL_STATE,
+          predicate: ->(e) { e.params['call_state'] == target },
+          timeout:   timeout
+        )
+      end
+
+      # Wait until the call is answered (immediate if already answered or past
+      # it). Typed wait over #wait_for. Mirrors Python's
+      # +Call.wait_for_answered(timeout)+.
+      def wait_for_answered(timeout: nil)
+        _wait_for_state(CALL_STATE_ANSWERED, timeout)
+      end
+
+      # Wait until the call is ringing (immediate if already ringing or past
+      # it). Typed wait over #wait_for. Mirrors Python's
+      # +Call.wait_for_ringing(timeout)+.
+      def wait_for_ringing(timeout: nil)
+        _wait_for_state(CALL_STATE_RINGING, timeout)
+      end
+
+      # Wait until the call is ending (immediate if already ending or past
+      # it). Typed wait over #wait_for. Mirrors Python's
+      # +Call.wait_for_ending(timeout)+.
+      def wait_for_ending(timeout: nil)
+        _wait_for_state(CALL_STATE_ENDING, timeout)
+      end
+
       # Wait for a specific event, optionally filtered by a predicate.
       #
       # Python parity: ``Call.wait_for(event_type, predicate=None,
@@ -438,6 +487,57 @@ module SignalWire
         _start_action(action, 'play', params, on_completed: on_completed)
       end
 
+      # Play text-to-speech. Typed convenience over #play.
+      #
+      # Restores the legacy +call.play_tts(text)+ ergonomics so callers don't
+      # hand-build the +{ 'type' => 'tts', 'params' => {...} }+ media shape.
+      # Mirrors Python's +Call.play_tts(text, *, language, gender, voice,
+      # volume, on_completed)+.
+      #
+      # Wire shape: play [{ 'type' => 'tts', 'params' => { 'text', language?,
+      # gender?, voice? } }] with an optional top-level +volume+.
+      def play_tts(text, language: nil, gender: nil, voice: nil, volume: nil,
+                   on_completed: nil)
+        tts = { 'text' => text }
+        tts['language'] = language if language
+        tts['gender']   = gender if gender
+        tts['voice']    = voice if voice
+        play([{ 'type' => 'tts', 'params' => tts }],
+             volume: volume, on_completed: on_completed)
+      end
+
+      # Play an audio file from a URL. Typed convenience over #play.
+      # Mirrors Python's +Call.play_audio(url, *, volume, on_completed)+.
+      #
+      # Wire shape: play [{ 'type' => 'audio', 'params' => { 'url' } }] with an
+      # optional top-level +volume+.
+      def play_audio(url, volume: nil, on_completed: nil)
+        play([{ 'type' => 'audio', 'params' => { 'url' => url } }],
+             volume: volume, on_completed: on_completed)
+      end
+
+      # Play silence for +duration+ seconds. Typed convenience over #play.
+      # Mirrors Python's +Call.play_silence(duration, *, on_completed)+.
+      #
+      # Wire shape: play [{ 'type' => 'silence', 'params' => { 'duration' } }].
+      def play_silence(duration, on_completed: nil)
+        play([{ 'type' => 'silence', 'params' => { 'duration' => duration } }],
+             on_completed: on_completed)
+      end
+
+      # Play a named ringtone by country code. Typed convenience over #play.
+      # Mirrors Python's +Call.play_ringtone(name, *, duration, volume,
+      # on_completed)+.
+      #
+      # Wire shape: play [{ 'type' => 'ringtone', 'params' => { 'name',
+      # duration? } }] with an optional top-level +volume+.
+      def play_ringtone(name, duration: nil, volume: nil, on_completed: nil)
+        ringtone = { 'name' => name }
+        ringtone['duration'] = duration if duration
+        play([{ 'type' => 'ringtone', 'params' => ringtone }],
+             volume: volume, on_completed: on_completed)
+      end
+
       # ------------------------------------------------------------------
       # Recording (returns RecordAction)
       # ------------------------------------------------------------------
@@ -474,6 +574,35 @@ module SignalWire
         _start_action(action, 'collect', params, on_completed: on_completed)
       end
 
+      # Play TTS then collect input. Typed media over #play_and_collect.
+      # Mirrors Python's +Call.prompt_tts(text, collect, *, language, gender,
+      # voice, volume, on_completed)+.
+      #
+      # Wire shape: play_and_collect [{ 'type' => 'tts', 'params' => { 'text',
+      # language?, gender?, voice? } }] with the given +collect+ object and an
+      # optional top-level +volume+.
+      def prompt_tts(text, collect, language: nil, gender: nil, voice: nil,
+                     volume: nil, on_completed: nil)
+        tts = { 'text' => text }
+        tts['language'] = language if language
+        tts['gender']   = gender if gender
+        tts['voice']    = voice if voice
+        play_and_collect([{ 'type' => 'tts', 'params' => tts }], collect,
+                         volume: volume, on_completed: on_completed)
+      end
+
+      # Play an audio file then collect input. Typed media over
+      # #play_and_collect. Mirrors Python's +Call.prompt_audio(url, collect,
+      # *, volume, on_completed)+.
+      #
+      # Wire shape: play_and_collect [{ 'type' => 'audio', 'params' =>
+      # { 'url' } }] with the given +collect+ object and an optional top-level
+      # +volume+.
+      def prompt_audio(url, collect, volume: nil, on_completed: nil)
+        play_and_collect([{ 'type' => 'audio', 'params' => { 'url' => url } }],
+                         collect, volume: volume, on_completed: on_completed)
+      end
+
       # ------------------------------------------------------------------
       # Detect
       # ------------------------------------------------------------------
@@ -486,6 +615,56 @@ module SignalWire
         kwargs.each { |k, v| params[k.to_s] = v }
         action = DetectAction.new(self, cid)
         _start_action(action, 'detect', params, on_completed: on_completed)
+      end
+
+      # Detect DTMF digits. Typed convenience over #detect.
+      # Mirrors Python's +Call.detect_digit(*, digits, timeout,
+      # on_completed)+.
+      #
+      # Wire shape: detect { 'type' => 'digit', 'params' => { digits? } } with
+      # an optional top-level +timeout+.
+      def detect_digit(digits: nil, timeout: nil, on_completed: nil)
+        params = {}
+        params['digits'] = digits if digits
+        detect({ 'type' => 'digit', 'params' => params },
+               timeout: timeout, on_completed: on_completed)
+      end
+
+      # Detect human vs answering machine (AMD). Typed convenience over
+      # #detect. Mirrors Python's +Call.detect_answering_machine(*,
+      # initial_timeout, end_silence_timeout, machine_voice_threshold,
+      # machine_words_threshold, detect_interruptions, detect_message_end,
+      # timeout, on_completed)+.
+      #
+      # Wire shape: detect { 'type' => 'machine', 'params' => { ...only the
+      # provided fields... } } with an optional top-level +timeout+.
+      def detect_answering_machine(initial_timeout: nil, end_silence_timeout: nil,
+                                   machine_voice_threshold: nil,
+                                   machine_words_threshold: nil,
+                                   detect_interruptions: nil,
+                                   detect_message_end: nil,
+                                   timeout: nil, on_completed: nil)
+        params = {}
+        params['initial_timeout']         = initial_timeout unless initial_timeout.nil?
+        params['end_silence_timeout']     = end_silence_timeout unless end_silence_timeout.nil?
+        params['machine_voice_threshold'] = machine_voice_threshold unless machine_voice_threshold.nil?
+        params['machine_words_threshold'] = machine_words_threshold unless machine_words_threshold.nil?
+        params['detect_interruptions']    = detect_interruptions unless detect_interruptions.nil?
+        params['detect_message_end']      = detect_message_end unless detect_message_end.nil?
+        detect({ 'type' => 'machine', 'params' => params },
+               timeout: timeout, on_completed: on_completed)
+      end
+
+      # Detect a fax tone (CED/CNG). Typed convenience over #detect.
+      # Mirrors Python's +Call.detect_fax(*, tone, timeout, on_completed)+.
+      #
+      # Wire shape: detect { 'type' => 'fax', 'params' => { tone? } } with an
+      # optional top-level +timeout+.
+      def detect_fax(tone: nil, timeout: nil, on_completed: nil)
+        params = {}
+        params['tone'] = tone if tone
+        detect({ 'type' => 'fax', 'params' => params },
+               timeout: timeout, on_completed: on_completed)
       end
 
       # ------------------------------------------------------------------

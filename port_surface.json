@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 331c9556edfa8c40871eca1791c0f2ed38ffdced",
+  "generated_from": "signalwire-ruby @ a80e2686ef21b080d9899b6217627d85cd422beb",
   "modules": {
     "signalwire": {
       "classes": {
@@ -612,6 +612,9 @@
           "denoise",
           "denoise_stop",
           "detect",
+          "detect_answering_machine",
+          "detect_digit",
+          "detect_fax",
           "device",
           "direction",
           "disconnect",
@@ -632,7 +635,13 @@
           "pay",
           "play",
           "play_and_collect",
+          "play_audio",
+          "play_ringtone",
+          "play_silence",
+          "play_tts",
           "project_id",
+          "prompt_audio",
+          "prompt_tts",
           "queue_enter",
           "queue_leave",
           "receive_fax",
@@ -651,7 +660,10 @@
           "unhold",
           "user_event",
           "wait_for",
-          "wait_for_ended"
+          "wait_for_answered",
+          "wait_for_ended",
+          "wait_for_ending",
+          "wait_for_ringing"
         ],
         "CollectAction": [
           "__init__",
