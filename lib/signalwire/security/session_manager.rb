@@ -8,6 +8,7 @@
 require 'openssl'
 require 'securerandom'
 require 'base64'
+require 'time'
 
 module SignalWire
   module Security
@@ -21,11 +22,21 @@ module SignalWire
     #   mgr.validate_token("lookup_order", token, "call-abc-123") # => true
     #
     class SessionManager
+      # When set true, {#debug_token} decodes token internals instead of
+      # returning +{ "error" => "debug mode not enabled" }+. Mirrors the
+      # Python reference's +_debug_mode+ attribute (off by default). Exposed
+      # as a writer only — there is no corresponding reader on the Python
+      # surface, so none is projected here.
+      attr_writer :debug_mode
+
       # @param token_expiry_secs [Integer] seconds until tokens expire (minimum 1)
       # @param secret_key [String, nil] hex-encoded secret; generated if omitted
       def initialize(token_expiry_secs: 3600, secret_key: nil)
         @token_expiry_secs = [token_expiry_secs, 1].max
         @secret_key = secret_key || SecureRandom.hex(32)
+        @debug_mode = false
+        # Per-session metadata store: { call_id => { key => value } }.
+        @session_metadata = {}
       end
 
       # Create a secure, self-contained token for a function call.
@@ -90,7 +101,142 @@ module SignalWire
         false
       end
 
+      # Return the given +call_id+, or generate a new URL-safe session
+      # identifier when none is supplied.
+      #
+      # Matches the Python reference's stateless +create_session+: the SDK
+      # does not persist sessions, it just mints an identifier callers can
+      # thread through subsequent token operations.
+      #
+      # @param call_id [String, nil] existing call ID to reuse
+      # @return [String] the resolved call ID
+      def create_session(call_id = nil)
+        return call_id unless call_id.nil? || call_id.empty?
+
+        # token_urlsafe(16) in Python yields ~22 url-safe chars from 16 bytes.
+        Base64.urlsafe_encode64(SecureRandom.bytes(16), padding: false)
+      end
+
+      # Legacy lifecycle hook retained for API compatibility with the Python
+      # reference. The session manager is stateless with respect to
+      # activation, so this accepts the call ID and reports success.
+      #
+      # @param _call_id [String]
+      # @return [Boolean] always +true+
+      def activate_session(_call_id)
+        true
+      end
+
+      # Legacy lifecycle hook retained for API compatibility with the Python
+      # reference. Clears any metadata accumulated for the session and
+      # reports success.
+      #
+      # @param call_id [String]
+      # @return [Boolean] always +true+
+      def end_session(call_id)
+        @session_metadata.delete(call_id)
+        true
+      end
+
+      # Fetch the metadata hash stored for +call_id+.
+      #
+      # The Python reference is stateless and always returns +{}+; this port
+      # keeps a real per-session store (matching the TypeScript port) so the
+      # getter/setter pair round-trips, but still returns an empty hash for
+      # unknown sessions — callers never get +nil+.
+      #
+      # @param call_id [String]
+      # @return [Hash] the session's metadata, or +{}+ if none is stored
+      def get_session_metadata(call_id)
+        # Return a copy so callers can't mutate the internal store directly.
+        (@session_metadata[call_id] || {}).dup
+      end
+
+      # Store a single +key+/+value+ pair in +call_id+'s metadata, merging
+      # with anything already recorded for that session.
+      #
+      # Signature mirrors the Python reference's
+      # +set_session_metadata(call_id, key, value)+.
+      #
+      # @param call_id [String]
+      # @param key [String]
+      # @param value [Object]
+      # @return [Boolean] always +true+
+      def set_session_metadata(call_id, key, value)
+        bucket = (@session_metadata[call_id] ||= {})
+        bucket[key] = value
+        true
+      end
+
+      # Decode a token's components for inspection WITHOUT validating it.
+      #
+      # Requires {#debug_mode=} to have been set +true+; otherwise returns
+      # +{ "error" => "debug mode not enabled" }+, matching the Python
+      # reference. The returned structure mirrors Python's nested
+      # +components+/+status+ shape (call_id and signature truncated to
+      # 8 chars + "..." when longer).
+      #
+      # @param token [String]
+      # @return [Hash] decoded components/status, or an error/malformed hash
+      def debug_token(token)
+        return { "error" => "debug mode not enabled" } unless @debug_mode
+
+        decoded = Base64.urlsafe_decode64(token)
+        parts   = decoded.split(".")
+        unless parts.length == 5
+          return {
+            "valid_format" => false,
+            "parts_count"  => parts.length,
+            "token_length" => token ? token.length : 0,
+          }
+        end
+
+        token_call_id, token_function, token_expiry, token_nonce, token_signature = parts
+
+        current_time = Time.now.to_i
+        begin
+          expiry      = Integer(token_expiry)
+          is_expired  = expiry < current_time
+          expires_in  = is_expired ? 0 : expiry - current_time
+          expiry_date = Time.at(expiry).iso8601
+        rescue ArgumentError, TypeError
+          expiry      = nil
+          is_expired  = nil
+          expires_in  = nil
+          expiry_date = nil
+        end
+
+        {
+          "valid_format" => true,
+          "components" => {
+            "call_id"     => truncate(token_call_id),
+            "function"    => token_function,
+            "expiry"      => token_expiry,
+            "expiry_date" => expiry_date,
+            "nonce"       => token_nonce,
+            "signature"   => truncate(token_signature),
+          },
+          "status" => {
+            "current_time"       => current_time,
+            "is_expired"         => is_expired,
+            "expires_in_seconds" => expires_in,
+          },
+        }
+      rescue ArgumentError, TypeError => e
+        {
+          "valid_format" => false,
+          "error"        => e.message,
+          "token_length" => token ? token.length : 0,
+        }
+      end
+
       private
+
+      # Truncate +str+ to "first8..." when longer than 8 chars, mirroring the
+      # Python reference's debug-output redaction for call_id and signature.
+      def truncate(str)
+        str.length > 8 ? "#{str[0, 8]}..." : str
+      end
 
       # Compute HMAC-SHA256 of +message+ using the instance secret key.
       # @return [String] hex digest

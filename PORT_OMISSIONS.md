@@ -348,14 +348,8 @@ signalwire.core.pom_builder.PomBuilder.render_markdown: POM builder collapsed in
 signalwire.core.pom_builder.PomBuilder.render_xml: POM builder collapsed into SignalWire::AgentBase prompt methods
 signalwire.core.pom_builder.PomBuilder.to_dict: POM builder collapsed into SignalWire::AgentBase prompt methods
 signalwire.core.pom_builder.PomBuilder.to_json: POM builder collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.security.session_manager.SessionManager.activate_session: not_yet_implemented: explicit activate_session lifecycle
-signalwire.core.security.session_manager.SessionManager.create_session: not_yet_implemented: explicit create_session (Ruby creates-on-generate_token)
 signalwire.core.security.session_manager.SessionManager.create_tool_token: Ruby SignalWire::Security::SessionManager#create_token covers this - different name
-signalwire.core.security.session_manager.SessionManager.debug_token: not_yet_implemented: debug_token introspection
-signalwire.core.security.session_manager.SessionManager.end_session: not_yet_implemented: explicit end_session lifecycle
 signalwire.core.security.session_manager.SessionManager.generate_token: Ruby SignalWire::Security::SessionManager#create_token covers this - different name
-signalwire.core.security.session_manager.SessionManager.get_session_metadata: not_yet_implemented: session metadata getter
-signalwire.core.security.session_manager.SessionManager.set_session_metadata: not_yet_implemented: session metadata setter
 signalwire.core.security.session_manager.SessionManager.validate_tool_token: Ruby SignalWire::Security::SessionManager#validate_token covers this - different name
 signalwire.core.security_config.SecurityConfig: security-config class not ported - settings live in SignalWire::AgentBase and middleware
 signalwire.core.security_config.SecurityConfig.__init__: security-config class not ported - settings live in SignalWire::AgentBase and middleware
