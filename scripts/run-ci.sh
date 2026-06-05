@@ -8,7 +8,8 @@
 #   1. bundle exec rake test              — language test runner
 #   2. signature regen                    — python adapter + signature_dump.rb
 #   3. drift gate                         — porting-sdk diff_port_signatures.py
-#   4. no-cheat gate                      — porting-sdk audit_no_cheat_tests.py
+#   4. emission gate                      — porting-sdk diff_port_emission.py
+#   5. no-cheat gate                      — porting-sdk audit_no_cheat_tests.py
 
 set -u
 set -o pipefail
@@ -76,7 +77,15 @@ run_gate "DRIFT" "diff_port_signatures vs python reference" \
         --surface-additions "$PORT_ROOT/PORT_ADDITIONS.md" \
         --omissions "$PORT_ROOT/PORT_SIGNATURE_OMISSIONS.md"
 
-# Gate 4: no-cheat
+# Gate 4: emission gate — byte-compare native FunctionResult to_h against the
+# Python to_dict() oracle over the shared 81-entry corpus. Closes the behavioral
+# (action shape/keys/values) gap the surface drift gate cannot see. Run with
+# cwd=$PORT_ROOT (set above), so the relative dump command resolves.
+run_gate "EMISSION" "diff_port_emission vs python oracle" \
+    python3 "$PORTING_SDK_DIR/scripts/diff_port_emission.py" \
+        --dump-cmd "ruby bin/emit-corpus"
+
+# Gate 5: no-cheat
 run_gate "NO-CHEAT" "audit_no_cheat_tests" \
     python3 "$PORTING_SDK_DIR/scripts/audit_no_cheat_tests.py" --root "$PORT_ROOT"
 
