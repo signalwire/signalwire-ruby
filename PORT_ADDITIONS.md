@@ -51,6 +51,16 @@ spot drift from the Python reference.
   `signalwire.relay.event.*Event.*`): Ruby exposes Python `@dataclass`
   fields as explicit attr_readers. Every event class mirrors the Python
   contract but with Ruby-style accessors.
+- **Relay value-object idiom layer** (Tier-2 idiom pass; 6 symbols on
+  `RelayEvent`, 6 on `Message`): `deconstruct_keys`/`deconstruct` for
+  Ruby 3.0 pattern matching (`case event in { call_state: }`), `to_h`/
+  `to_json` for a typed projection, and value `==`/`eql?`/`hash` so equal
+  events/messages dedupe in Sets and resolve as Hash keys. Defined once on
+  the `RelayEvent` base and inherited by all 23 typed event subclasses
+  (subclasses contribute fields via a private `_event_fields` hook, off the
+  public surface), so the audit only counts them on the base. Python's
+  `@dataclass(frozen=...)` events get structural equality + `__match_args__`
+  for free; this is the Ruby-idiomatic equivalent.
 
 # Added symbols
 
@@ -357,6 +367,13 @@ signalwire.relay.event.RelayEvent.call_id: port-only: Ruby attr_reader on relay 
 signalwire.relay.event.RelayEvent.event_type: port-only: Ruby attr_reader on relay event (Python exposes same data as dataclass field)
 signalwire.relay.event.RelayEvent.params: port-only: Ruby attr_reader on relay event (Python exposes same data as dataclass field)
 signalwire.relay.event.RelayEvent.timestamp: port-only: Ruby attr_reader on relay event (Python exposes same data as dataclass field)
+signalwire.relay.event.RelayEvent.deconstruct: port-only: Ruby 3.0 array pattern-matching hook (`in [type, call_id, ts]`); defined once on the base, inherited by every typed event subclass
+signalwire.relay.event.RelayEvent.deconstruct_keys: port-only: Ruby 3.0 hash pattern-matching hook (`case event in { call_state: }`); defined once on the base, inherited by every typed event subclass
+signalwire.relay.event.RelayEvent.eql: port-only: Ruby value-equality (`eql?`) so same-data events are interchangeable Hash keys; inherited by every typed event subclass
+signalwire.relay.event.RelayEvent.eql?: port-only: Ruby value-equality `eql?` (Layer B keeps the `?` suffix; same method as the suffix-stripped `eql` Layer A spelling above)
+signalwire.relay.event.RelayEvent.hash: port-only: Ruby `Object#hash` override paired with `==`/`eql?` so equal events share a Set/Hash bucket; inherited by every typed event subclass
+signalwire.relay.event.RelayEvent.to_h: port-only: Ruby convention - typed Hash projection (envelope + typed fields, not raw params); inherited by every typed event subclass
+signalwire.relay.event.RelayEvent.to_json: port-only: Ruby convention - JSON serializer over `to_h`; inherited by every typed event subclass
 signalwire.relay.event.SendDigitsEvent.__init__: port-only: Ruby attr_reader on relay event (Python exposes same data as dataclass field)
 signalwire.relay.event.SendDigitsEvent.control_id: port-only: Ruby attr_reader on relay event (Python exposes same data as dataclass field)
 signalwire.relay.event.SendDigitsEvent.state: port-only: Ruby attr_reader on relay event (Python exposes same data as dataclass field)
@@ -394,6 +411,13 @@ signalwire.relay.message.Message.state: port-only: Ruby attr_reader exposing con
 signalwire.relay.message.Message.tags: port-only: Ruby attr_reader exposing constructor state (idiomatic Ruby; Python uses property decorators or public fields)
 signalwire.relay.message.Message.to_number: port-only: Ruby attr_reader exposing constructor state (idiomatic Ruby; Python uses property decorators or public fields)
 signalwire.relay.message.Message.to_s: port-only: Ruby Object#to_s override
+signalwire.relay.message.Message.deconstruct: port-only: Ruby 3.0 array pattern-matching hook (`in [id, direction, state]`)
+signalwire.relay.message.Message.deconstruct_keys: port-only: Ruby 3.0 hash pattern-matching hook (`case msg in { direction:, body: }`)
+signalwire.relay.message.Message.eql: port-only: Ruby value-equality (`eql?`) over the message's value fields, ignoring completion machinery
+signalwire.relay.message.Message.eql?: port-only: Ruby value-equality `eql?` (Layer B keeps the `?` suffix; same method as the suffix-stripped `eql` Layer A spelling above)
+signalwire.relay.message.Message.hash: port-only: Ruby `Object#hash` override paired with `==`/`eql?` so equal messages share a Set/Hash bucket
+signalwire.relay.message.Message.to_h: port-only: Ruby convention - Hash projection of the message's value fields (excludes mutex/condition/callbacks)
+signalwire.relay.message.Message.to_json: port-only: Ruby convention - JSON serializer over `to_h`
 signalwire.rest._base.CrudResource.update_method: port-only: per-resource override hook for PATCH vs PUT (default update verb)
 signalwire.rest._base.HttpClient.base_url: port-only: attr_reader for base_url
 signalwire.rest._base.SignalWireRestError.body: port-only: attr_reader for error body
@@ -697,3 +721,8 @@ signalwire.swml.service.Service.function?: ruby-idiom `?`-predicate alias over h
 # constant groups carry no methods the griffe/reflection enumerator emits);
 # the SkillName convenience predicate does, hence this single excused line:
 signalwire.skills.skill_name.builtin: port-only: SignalWire::Skills::SkillName.builtin?(name) — named-constant single-source-of-truth predicate for the built-in skill set (Ruby's idiom-track equivalent of the other ports' SkillName enum membership check); add_skill still accepts the bare string, the set stays open for custom skills
+# Layer B (surface enumerator) renders the same predicate as a class-with-
+# method instead of a module free function, and keeps the `?` suffix. Both
+# spellings below describe the identical SkillName.builtin? helper above.
+signalwire.skills.skill_name.SkillName: port-only: Ruby SignalWire::Skills::SkillName named-constant module (the built-in skill set; Python uses bare strings — see the constant-groups note above)
+signalwire.skills.skill_name.SkillName.builtin?: port-only: Layer B class-form spelling of the SkillName.builtin?(name) membership predicate (same method as the Layer A `signalwire.skills.skill_name.builtin` entry above)

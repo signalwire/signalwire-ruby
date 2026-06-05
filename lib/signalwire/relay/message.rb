@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'json'
+
 module SignalWire
   module Relay
     # Represents a single SMS/MMS message.
@@ -112,6 +114,59 @@ module SignalWire
 
       def inspect
         to_s
+      end
+
+      # Semantic Hash view of the message's value fields (the completion
+      # machinery — mutex/condition/callbacks — is excluded). Symbol keys,
+      # idiomatic for Ruby. @return [Hash{Symbol => Object}]
+      def to_h
+        {
+          message_id:  @message_id,
+          context:     @context,
+          direction:   @direction,
+          from_number: @from_number,
+          to_number:   @to_number,
+          body:        @body,
+          media:       @media,
+          segments:    @segments,
+          state:       @state,
+          reason:      @reason,
+          tags:        @tags
+        }
+      end
+
+      # @return [String] JSON serialization of {#to_h}.
+      def to_json(*args)
+        to_h.to_json(*args)
+      end
+
+      # Ruby 3.0 pattern matching: +case msg; in { direction:, body: }+.
+      # @param keys [Array<Symbol>, nil]
+      # @return [Hash{Symbol => Object}]
+      def deconstruct_keys(keys)
+        h = to_h
+        return h if keys.nil?
+
+        keys.each_with_object({}) do |k, acc|
+          acc[k] = h[k] if h.key?(k)
+        end
+      end
+
+      # Array pattern matching: the stable identity triple.
+      # @return [Array]
+      def deconstruct
+        [@message_id, @direction, @state]
+      end
+
+      # Value equality over the message's data (ignores completion state).
+      def ==(other)
+        other.is_a?(Message) && to_h == other.to_h
+      end
+      alias eql? ==
+
+      # Hash parity with {#==} so equal messages share a bucket.
+      def hash
+        [self.class, to_h].hash
       end
 
       private

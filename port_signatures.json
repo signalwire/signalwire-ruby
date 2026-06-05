@@ -12416,6 +12416,43 @@
               ],
               "returns": "any"
             },
+            "deconstruct": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "deconstruct_keys": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "keys",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "eql": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "other",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
             "event_type": {
               "params": [
                 {
@@ -12435,6 +12472,15 @@
               ],
               "returns": "any"
             },
+            "hash": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "params": {
               "params": [
                 {
@@ -12449,6 +12495,30 @@
                 {
                   "name": "self",
                   "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "to_h": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "to_json": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "args",
+                  "type": "any",
+                  "kind": "var_positional",
+                  "required": true
                 }
               ],
               "returns": "any"
@@ -12949,6 +13019,29 @@
               ],
               "returns": "any"
             },
+            "deconstruct": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "deconstruct_keys": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "keys",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
             "direction": {
               "params": [
                 {
@@ -12967,7 +13060,30 @@
               ],
               "returns": "any"
             },
+            "eql": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "other",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
             "from_number": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "hash": {
               "params": [
                 {
                   "name": "self",
@@ -13085,6 +13201,30 @@
                 {
                   "name": "self",
                   "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "to_h": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "to_json": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "args",
+                  "type": "any",
+                  "kind": "var_positional",
+                  "required": true
                 }
               ],
               "returns": "any"

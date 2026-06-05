@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ a80e2686ef21b080d9899b6217627d85cd422beb",
+  "generated_from": "signalwire-ruby @ 795efc8856562a67861725bab7a1b9618fc68ca5",
   "modules": {
     "signalwire": {
       "classes": {
@@ -906,10 +906,16 @@
         "RelayEvent": [
           "__init__",
           "call_id",
+          "deconstruct",
+          "deconstruct_keys",
+          "eql?",
           "event_type",
           "from_payload",
+          "hash",
           "params",
-          "timestamp"
+          "timestamp",
+          "to_h",
+          "to_json"
         ],
         "SendDigitsEvent": [
           "__init__",
@@ -954,9 +960,13 @@
           "__init__",
           "body",
           "context",
+          "deconstruct",
+          "deconstruct_keys",
           "direction",
           "done?",
+          "eql?",
           "from_number",
+          "hash",
           "inspect",
           "is_done?",
           "media",
@@ -968,6 +978,8 @@
           "segments",
           "state",
           "tags",
+          "to_h",
+          "to_json",
           "to_number",
           "to_s",
           "wait"
@@ -1872,6 +1884,16 @@
           "register_skill",
           "registered?",
           "reset!"
+        ]
+      },
+      "functions": [
+
+      ]
+    },
+    "signalwire.skills.skill_name": {
+      "classes": {
+        "SkillName": [
+          "builtin?"
         ]
       },
       "functions": [
