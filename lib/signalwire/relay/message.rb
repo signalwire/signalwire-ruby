@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'json'
+require_relative 'constants'
 
 module SignalWire
   module Relay
@@ -58,6 +59,16 @@ module SignalWire
 
       alias_method :is_done?, :done?
 
+      # Typed predicate over {#state}, alongside the bare string. Agrees with
+      # {MessageState.terminal?} — true once the message has reached a final
+      # delivery outcome (delivered / undelivered / failed), which is exactly
+      # when {#wait} unblocks.
+      #
+      # @return [Boolean]
+      def terminal?
+        MessageState.terminal?(@state)
+      end
+
       def result
         @result
       end
@@ -104,7 +115,7 @@ module SignalWire
         end
 
         # Check terminal state
-        _resolve(event) if MESSAGE_TERMINAL_STATES.include?(new_state)
+        _resolve(event) if MessageState.terminal?(new_state)
       end
 
       def to_s

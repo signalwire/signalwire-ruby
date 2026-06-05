@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 43950aa7d1fc64d56984f8332acc8e4f731b7f51",
+  "generated_from": "signalwire-ruby @ 1d7f17c5f140bb46f5dfe51588adf8981d21f577",
   "modules": {
     "signalwire": {
       "classes": {
@@ -718,6 +718,17 @@
 
       ]
     },
+    "signalwire.relay.call_state": {
+      "classes": {
+        "CallState": [
+          "terminal?",
+          "valid?"
+        ]
+      },
+      "functions": [
+
+      ]
+    },
     "signalwire.relay.client": {
       "classes": {
         "ActionTimeoutError": [
@@ -751,6 +762,63 @@
 
       ]
     },
+    "signalwire.relay.collect_config": {
+      "classes": {
+        "CollectConfig": [
+          "__init__",
+          "continuous",
+          "deconstruct_keys",
+          "digits",
+          "eql?",
+          "hash",
+          "initial_timeout",
+          "inspect",
+          "partial_results",
+          "send_start_of_input",
+          "speech",
+          "start_input_timers",
+          "to_h",
+          "to_json",
+          "to_s"
+        ]
+      },
+      "functions": [
+
+      ]
+    },
+    "signalwire.relay.device": {
+      "classes": {
+        "Device": [
+          "__init__",
+          "deconstruct",
+          "deconstruct_keys",
+          "eql?",
+          "hash",
+          "inspect",
+          "params",
+          "phone",
+          "sip",
+          "to_h",
+          "to_json",
+          "to_s",
+          "type"
+        ]
+      },
+      "functions": [
+
+      ]
+    },
+    "signalwire.relay.dial_state": {
+      "classes": {
+        "DialState": [
+          "terminal?",
+          "valid?"
+        ]
+      },
+      "functions": [
+
+      ]
+    },
     "signalwire.relay.event": {
       "classes": {
         "CallReceiveEvent": [
@@ -771,7 +839,8 @@
           "device",
           "direction",
           "end_reason",
-          "from_payload"
+          "from_payload",
+          "terminal?"
         ],
         "CallingErrorEvent": [
           "__init__",
@@ -813,10 +882,13 @@
         ],
         "DialEvent": [
           "__init__",
+          "answered?",
           "call_data",
           "dial_state",
+          "failed?",
           "from_payload",
-          "tag"
+          "tag",
+          "terminal?"
         ],
         "EchoEvent": [
           "__init__",
@@ -861,6 +933,7 @@
           "reason",
           "segments",
           "tags",
+          "terminal?",
           "to_number"
         ],
         "PayEvent": [
@@ -978,11 +1051,23 @@
           "segments",
           "state",
           "tags",
+          "terminal?",
           "to_h",
           "to_json",
           "to_number",
           "to_s",
           "wait"
+        ]
+      },
+      "functions": [
+
+      ]
+    },
+    "signalwire.relay.message_state": {
+      "classes": {
+        "MessageState": [
+          "terminal?",
+          "valid?"
         ]
       },
       "functions": [

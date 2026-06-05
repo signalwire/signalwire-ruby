@@ -32,6 +32,44 @@ module SignalWire
       CALL_STATE_ENDED
     ].freeze
 
+    # Named, frozen view over the call-state vocabulary. Additive: the wire
+    # value stays a bare String everywhere (the events carry +call_state+ as a
+    # String, +Call#state+ is a String), and the flat +CALL_STATE_*+ constants
+    # above remain the single source of the literals. This module wraps them
+    # with the Wave-A/Tier-1 idiom — a frozen +ALL+ ordered list, a frozen
+    # +TERMINAL+ set, and a +terminal?+ predicate — so callers can ask
+    # +CallState.terminal?(state)+ instead of hard-coding +== "ended"+.
+    #
+    # Grounded in +signalwire/relay/constants.py+ (+CALL_STATES+) — the same
+    # closed, server-emitted lifecycle the Python reference enumerates. +ended+
+    # is the one terminal state (the call is gone; {Call#wait_for_ended}
+    # resolves on it).
+    module CallState
+      CREATED  = CALL_STATE_CREATED
+      RINGING  = CALL_STATE_RINGING
+      ANSWERED = CALL_STATE_ANSWERED
+      ENDING   = CALL_STATE_ENDING
+      ENDED    = CALL_STATE_ENDED
+
+      # @return [Array<String>] every call state, in lifecycle order.
+      ALL = CALL_STATES
+
+      # @return [Array<String>] states from which the call never advances.
+      TERMINAL = [CALL_STATE_ENDED].freeze
+
+      # @param state [String, nil] a +call_state+ string.
+      # @return [Boolean] true when +state+ is a terminal call state.
+      def self.terminal?(state)
+        TERMINAL.include?(state)
+      end
+
+      # @param state [String, nil]
+      # @return [Boolean] true when +state+ is a known call state.
+      def self.valid?(state)
+        ALL.include?(state)
+      end
+    end
+
     # End reasons
     END_REASON_HANGUP       = 'hangup'
     END_REASON_CANCEL       = 'cancel'
@@ -48,6 +86,53 @@ module SignalWire
     CONNECT_STATE_CONNECTED    = 'connected'
     CONNECT_STATE_DISCONNECTED = 'disconnected'
     CONNECT_STATE_FAILED       = 'failed'
+
+    # Dial states (the +dial_state+ field on calling.call.dial events)
+    DIAL_STATE_DIALING  = 'dialing'
+    DIAL_STATE_ANSWERED = 'answered'
+    DIAL_STATE_FAILED   = 'failed'
+
+    # Named, frozen view over the outbound-dial vocabulary. Unlike call/message
+    # states, the reference exposes *no* flat dial-state constants — the values
+    # are grounded in +signalwire/relay/client.py+'s
+    # +_handle_dial_event+ docstring ("``dial_state`` — ``dialing`` |
+    # ``answered`` | ``failed``") and the mock dial-dance. This module names
+    # them (+DIAL_STATE_*+ above are the single source) and adds +ALL+ +
+    # +TERMINAL+ + +terminal?+.
+    #
+    # Both +answered+ and +failed+ are terminal: {Client#dial} resolves to a
+    # {Call} on +answered+ and raises {RelayError} on +failed+; +dialing+ is
+    # the only in-flight state.
+    module DialState
+      DIALING  = DIAL_STATE_DIALING
+      ANSWERED = DIAL_STATE_ANSWERED
+      FAILED   = DIAL_STATE_FAILED
+
+      # @return [Array<String>] every dial state.
+      ALL = [
+        DIAL_STATE_DIALING,
+        DIAL_STATE_ANSWERED,
+        DIAL_STATE_FAILED
+      ].freeze
+
+      # @return [Array<String>] dial states that resolve the dial (success or failure).
+      TERMINAL = [
+        DIAL_STATE_ANSWERED,
+        DIAL_STATE_FAILED
+      ].freeze
+
+      # @param state [String, nil] a +dial_state+ string.
+      # @return [Boolean] true when +state+ resolves the dial.
+      def self.terminal?(state)
+        TERMINAL.include?(state)
+      end
+
+      # @param state [String, nil]
+      # @return [Boolean] true when +state+ is a known dial state.
+      def self.valid?(state)
+        ALL.include?(state)
+      end
+    end
 
     # Event types — calling
     EVENT_CALL_STATE      = 'calling.call.state'
@@ -89,6 +174,51 @@ module SignalWire
       MESSAGE_STATE_UNDELIVERED,
       MESSAGE_STATE_FAILED
     ].freeze
+
+    # Named, frozen view over the messaging-state vocabulary. Additive: the
+    # wire value stays a bare String (+Message#state+, the +message_state+
+    # event field). Wraps the flat +MESSAGE_STATE_*+ constants (the single
+    # source of the literals) with +ALL+ + +TERMINAL+ + +terminal?+, so callers
+    # can ask +MessageState.terminal?(state)+ instead of re-deriving the set.
+    #
+    # Grounded in +signalwire/relay/constants.py+: the terminal set is
+    # +MESSAGE_TERMINAL_STATES+ ({delivered, undelivered, failed}) — the same
+    # set the Python reference uses to resolve a sent message's final outcome.
+    module MessageState
+      QUEUED      = MESSAGE_STATE_QUEUED
+      INITIATED   = MESSAGE_STATE_INITIATED
+      SENT        = MESSAGE_STATE_SENT
+      DELIVERED   = MESSAGE_STATE_DELIVERED
+      UNDELIVERED = MESSAGE_STATE_UNDELIVERED
+      FAILED      = MESSAGE_STATE_FAILED
+      RECEIVED    = MESSAGE_STATE_RECEIVED
+
+      # @return [Array<String>] every messaging state.
+      ALL = [
+        MESSAGE_STATE_QUEUED,
+        MESSAGE_STATE_INITIATED,
+        MESSAGE_STATE_SENT,
+        MESSAGE_STATE_DELIVERED,
+        MESSAGE_STATE_UNDELIVERED,
+        MESSAGE_STATE_FAILED,
+        MESSAGE_STATE_RECEIVED
+      ].freeze
+
+      # @return [Array<String>] states after which a message will not change.
+      TERMINAL = MESSAGE_TERMINAL_STATES
+
+      # @param state [String, nil] a +message_state+ string.
+      # @return [Boolean] true when +state+ is a terminal messaging state.
+      def self.terminal?(state)
+        TERMINAL.include?(state)
+      end
+
+      # @param state [String, nil]
+      # @return [Boolean] true when +state+ is a known messaging state.
+      def self.valid?(state)
+        ALL.include?(state)
+      end
+    end
 
     # Play states
     PLAY_STATE_PLAYING  = 'playing'

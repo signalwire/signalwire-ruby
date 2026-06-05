@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'json'
+require_relative 'constants'
 
 module SignalWire
   module Relay
@@ -139,6 +140,15 @@ module SignalWire
         @end_reason = end_reason
         @direction  = direction
         @device     = device
+      end
+
+      # Typed predicate over {#call_state}, alongside the bare string.
+      # Agrees with {CallState.terminal?} — true exactly when the call has
+      # ended ({CallState::ENDED}).
+      #
+      # @return [Boolean]
+      def terminal?
+        CallState.terminal?(@call_state)
       end
 
       private
@@ -489,6 +499,25 @@ module SignalWire
         @tag        = tag
         @dial_state = dial_state
         @call_data  = call_data
+      end
+
+      # Typed predicate over {#dial_state}, alongside the bare string.
+      # Agrees with {DialState.terminal?} — true when the dial has resolved
+      # (answered or failed).
+      #
+      # @return [Boolean]
+      def terminal?
+        DialState.terminal?(@dial_state)
+      end
+
+      # @return [Boolean] true when the dial succeeded ({DialState::ANSWERED}).
+      def answered?
+        @dial_state == DialState::ANSWERED
+      end
+
+      # @return [Boolean] true when the dial failed ({DialState::FAILED}).
+      def failed?
+        @dial_state == DialState::FAILED
       end
 
       private
@@ -864,6 +893,15 @@ module SignalWire
         @message_state = message_state
         @reason        = reason
         @tags          = tags
+      end
+
+      # Typed predicate over {#message_state}, alongside the bare string.
+      # Agrees with {MessageState.terminal?} — true when the message has
+      # reached a final delivery outcome (delivered / undelivered / failed).
+      #
+      # @return [Boolean]
+      def terminal?
+        MessageState.terminal?(@message_state)
       end
 
       private

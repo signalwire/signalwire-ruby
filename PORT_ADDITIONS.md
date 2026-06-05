@@ -61,6 +61,42 @@ spot drift from the Python reference.
   public surface), so the audit only counts them on the base. Python's
   `@dataclass(frozen=...)` events get structural equality + `__match_args__`
   for free; this is the Ruby-idiomatic equivalent.
+- **Relay Tier-3 typed objects** (Tier-3 idiom pass; SELECTIVE, highest-traffic
+  relay blobs) — three additive value objects + three frozen state-enum
+  modules, all idiomatic Ruby (not another language's enum), all yielding the
+  *identical* wire shape so the raw-Hash path stays canonical:
+  - `signalwire.relay.device.Device` — types the `{ type, params }` descriptor
+    handed to `connect`/`refer`/`dial`/`tap`. Types the *shape*; `type` stays a
+    String (the discriminant is **not** schema-enumerated — `calling.{connect,
+    refer,dial,tap}.params.json` declare `type` as a bare `"string"`). `#to_h`
+    is byte identical to the hand-written literal. Carries the Wave-A relay
+    idioms (`deconstruct`/`deconstruct_keys`, `==`/`eql?`/`hash`, `to_h`/
+    `to_json`, `to_s`/`inspect`) plus `phone`/`sip` factory constructors.
+    Python passes raw `dict`s; this is the Ruby-idiomatic typed equivalent.
+  - `signalwire.relay.collect_config.CollectConfig` — types the known-shape
+    collect config the input wrappers (`collect`/`play_and_collect`/`prompt_*`)
+    already enumerate, grounded in `calling.collect.params.json` (`digits`/
+    `speech` sub-shapes + top-level toggles). `#to_h` yields only the set
+    fields (omit-when-nil), byte identical to the wrapper's wire shape. **No
+    Tier-1 enum is folded in** — the collect shape carries no schema-enumerated
+    sets (`terminators` is a free DTMF string; `language`/`model` are open
+    vocabularies). Same value-object idioms (minus array `deconstruct`).
+  - `signalwire.relay.{call_state,dial_state,message_state}` modules
+    (`CallState`/`DialState`/`MessageState`) — frozen named constants wrapping
+    the existing flat `*_STATE_*` literals (single source) with `ALL` +
+    `TERMINAL` + a `terminal?`/`valid?` predicate; the wire value stays a bare
+    String everywhere. `DialState` is new vocabulary (the reference exposes no
+    flat dial-state constants; grounded in `relay/client.py`'s
+    `_handle_dial_event` docstring `dialing | answered | failed`). The three
+    vocabularies never conflate (`answered` ∈ Call+Dial but ∉ Message;
+    `delivered` ∈ Message only; terminal sets differ). Plus typed predicate
+    accessors **alongside the bare string** on the events that already carry
+    the state: `CallStateEvent#terminal?`, `DialEvent#terminal?`/`answered?`/
+    `failed?`, `MessageStateEvent#terminal?`, `Message#terminal?` — each agrees
+    with the `*State.terminal?(string)` module call. Python keys off bare
+    string compares (`== "ended"`, `MESSAGE_TERMINAL_STATES`); these are the
+    Ruby-idiomatic named-constant equivalent. (Layer A drops the `?` suffix, so
+    `terminal`/`valid` appear there; Layer B keeps the suffixed spelling.)
 
 # Added symbols
 
@@ -418,6 +454,67 @@ signalwire.relay.message.Message.eql?: port-only: Ruby value-equality `eql?` (La
 signalwire.relay.message.Message.hash: port-only: Ruby `Object#hash` override paired with `==`/`eql?` so equal messages share a Set/Hash bucket
 signalwire.relay.message.Message.to_h: port-only: Ruby convention - Hash projection of the message's value fields (excludes mutex/condition/callbacks)
 signalwire.relay.message.Message.to_json: port-only: Ruby convention - JSON serializer over `to_h`
+
+# --- Tier-3 typed objects (relay) ---
+# Device: typed { type, params } descriptor for connect/refer/dial/tap; type stays a String (discriminant not schema-enumerated); to_h is byte-identical to the raw Hash; raw-Hash path stays canonical.
+signalwire.relay.device.Device: port-only: typed RELAY device value object ({ type, params }) for connect/refer/dial/tap; Python passes a raw dict
+signalwire.relay.device.Device.__init__: port-only: Ruby `Device.new(type, params={})` constructor (type stringified, params default {})
+signalwire.relay.device.Device.type: port-only: attr_reader for the device discriminant (a free String, not a closed enum — `calling.*.params.json` declares `type` as bare "string")
+signalwire.relay.device.Device.params: port-only: attr_reader for the device-specific params Hash
+signalwire.relay.device.Device.phone: port-only: `Device.phone(to:, from:, timeout:)` factory building the canonical phone device (omit-when-nil optionals)
+signalwire.relay.device.Device.sip: port-only: `Device.sip(to:, from:, headers:)` factory building the canonical sip device
+signalwire.relay.device.Device.to_h: port-only: wire Hash `{ "type"=>, "params"=> }` (string keys), byte-identical to the hand-written device literal
+signalwire.relay.device.Device.to_json: port-only: Ruby convention - JSON serializer over `to_h`
+signalwire.relay.device.Device.deconstruct: port-only: Ruby 3.0 array pattern-matching hook (`in [type, params]`)
+signalwire.relay.device.Device.deconstruct_keys: port-only: Ruby 3.0 hash pattern-matching hook (`in { type: "phone", params: }`)
+signalwire.relay.device.Device.eql: port-only: Ruby value-equality (`eql?`) — same type + params (Layer A suffix-stripped spelling)
+signalwire.relay.device.Device.eql?: port-only: Ruby value-equality `eql?` (Layer B keeps the `?` suffix; same method as the suffix-stripped `eql` above)
+signalwire.relay.device.Device.hash: port-only: Ruby `Object#hash` override paired with `==`/`eql?` so equal devices share a Set/Hash bucket
+signalwire.relay.device.Device.to_s: port-only: Ruby Object#to_s override
+signalwire.relay.device.Device.inspect: port-only: Ruby Object#inspect override (aliases to_s)
+# CollectConfig: typed known-shape collect config the input wrappers enumerate; grounded in calling.collect.params.json; to_h yields the identical wire shape (omit-when-nil); no Tier-1 enum (the shape has no closed sets).
+signalwire.relay.collect_config.CollectConfig: port-only: typed RELAY collect-config value object for collect/play_and_collect/prompt_*; Python passes a raw dict
+signalwire.relay.collect_config.CollectConfig.__init__: port-only: keyword constructor for the collect shape (digits/speech sub-Hashes + top-level toggles)
+signalwire.relay.collect_config.CollectConfig.digits: port-only: attr_reader for the digits sub-config
+signalwire.relay.collect_config.CollectConfig.speech: port-only: attr_reader for the speech sub-config
+signalwire.relay.collect_config.CollectConfig.initial_timeout: port-only: attr_reader for the initial_timeout toggle
+signalwire.relay.collect_config.CollectConfig.partial_results: port-only: attr_reader for the partial_results toggle
+signalwire.relay.collect_config.CollectConfig.continuous: port-only: attr_reader for the continuous toggle
+signalwire.relay.collect_config.CollectConfig.send_start_of_input: port-only: attr_reader for the send_start_of_input toggle
+signalwire.relay.collect_config.CollectConfig.start_input_timers: port-only: attr_reader for the start_input_timers toggle
+signalwire.relay.collect_config.CollectConfig.to_h: port-only: wire Hash with only the set fields (omit-when-nil), byte-identical to the wrapper's collect literal
+signalwire.relay.collect_config.CollectConfig.to_json: port-only: Ruby convention - JSON serializer over `to_h`
+signalwire.relay.collect_config.CollectConfig.deconstruct_keys: port-only: Ruby 3.0 hash pattern-matching hook (`in { initial_timeout: }`)
+signalwire.relay.collect_config.CollectConfig.eql: port-only: Ruby value-equality (`eql?`) over the projected wire shape (Layer A suffix-stripped spelling)
+signalwire.relay.collect_config.CollectConfig.eql?: port-only: Ruby value-equality `eql?` (Layer B keeps the `?` suffix; same method as the suffix-stripped `eql` above)
+signalwire.relay.collect_config.CollectConfig.hash: port-only: Ruby `Object#hash` override paired with `==`/`eql?`
+signalwire.relay.collect_config.CollectConfig.to_s: port-only: Ruby Object#to_s override
+signalwire.relay.collect_config.CollectConfig.inspect: port-only: Ruby Object#inspect override (aliases to_s)
+# RELAY state enums: frozen named-constant modules wrapping the flat *_STATE_* literals (single source) with ALL/TERMINAL/terminal?/valid?; wire value stays a bare String. Python keys off bare-string compares.
+signalwire.relay.call_state.CallState: port-only: frozen named view over the call-state vocabulary (ALL/TERMINAL + predicates); wraps the flat CALL_STATE_* literals
+signalwire.relay.call_state.CallState.terminal?: port-only: `CallState.terminal?(state)` predicate (true for `ended`); Python compares `== "ended"`
+signalwire.relay.call_state.terminal: port-only: Layer A suffix-stripped spelling of `CallState.terminal?`
+signalwire.relay.call_state.CallState.valid?: port-only: `CallState.valid?(state)` membership predicate over ALL
+signalwire.relay.call_state.valid: port-only: Layer A suffix-stripped spelling of `CallState.valid?`
+signalwire.relay.dial_state.DialState: port-only: frozen named view over the outbound-dial vocabulary (dialing/answered/failed) — new vocabulary the reference exposes no flat constants for (grounded in client.py `_handle_dial_event` docstring)
+signalwire.relay.dial_state.DialState.terminal?: port-only: `DialState.terminal?(state)` predicate (true for answered/failed — the dial resolves/rejects)
+signalwire.relay.dial_state.terminal: port-only: Layer A suffix-stripped spelling of `DialState.terminal?`
+signalwire.relay.dial_state.DialState.valid?: port-only: `DialState.valid?(state)` membership predicate over ALL
+signalwire.relay.dial_state.valid: port-only: Layer A suffix-stripped spelling of `DialState.valid?`
+signalwire.relay.message_state.MessageState: port-only: frozen named view over the messaging-state vocabulary (ALL/TERMINAL + predicates); wraps the flat MESSAGE_STATE_* literals, TERMINAL is the same object as MESSAGE_TERMINAL_STATES
+signalwire.relay.message_state.MessageState.terminal?: port-only: `MessageState.terminal?(state)` predicate (delivered/undelivered/failed); Python uses `MESSAGE_TERMINAL_STATES`
+signalwire.relay.message_state.terminal: port-only: Layer A suffix-stripped spelling of `MessageState.terminal?`
+signalwire.relay.message_state.MessageState.valid?: port-only: `MessageState.valid?(state)` membership predicate over ALL
+signalwire.relay.message_state.valid: port-only: Layer A suffix-stripped spelling of `MessageState.valid?`
+# Typed state-predicate accessors ALONGSIDE the bare string on the events/Message that already carry the state.
+signalwire.relay.event.CallStateEvent.terminal?: port-only: typed predicate over `call_state` (agrees with `CallState.terminal?`), alongside the bare string
+signalwire.relay.event.DialEvent.terminal?: port-only: typed predicate over `dial_state` (agrees with `DialState.terminal?`), alongside the bare string
+signalwire.relay.event.DialEvent.answered?: port-only: typed predicate — dial succeeded (`dial_state == "answered"`)
+signalwire.relay.event.DialEvent.failed?: port-only: typed predicate — dial failed (`dial_state == "failed"`)
+signalwire.relay.event.MessageStateEvent.terminal?: port-only: typed predicate over `message_state` (agrees with `MessageState.terminal?`), alongside the bare string
+signalwire.relay.message.Message.terminal?: port-only: typed predicate over `Message#state` (agrees with `MessageState.terminal?`), alongside the bare string
+# --- end Tier-3 typed objects ---
+
 signalwire.rest._base.CrudResource.update_method: port-only: per-resource override hook for PATCH vs PUT (default update verb)
 signalwire.rest._base.HttpClient.base_url: port-only: attr_reader for base_url
 signalwire.rest._base.SignalWireRestError.body: port-only: attr_reader for error body

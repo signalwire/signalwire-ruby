@@ -6,6 +6,8 @@ require 'websocket-client-simple'
 
 require_relative 'constants'
 require_relative 'relay_event'
+require_relative 'device'
+require_relative 'collect_config'
 require_relative 'action'
 require_relative 'call'
 require_relative 'message'

@@ -10264,6 +10264,30 @@
         }
       }
     },
+    "signalwire.relay.call_state": {
+      "functions": {
+        "terminal": {
+          "params": [
+            {
+              "name": "state",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "any"
+        },
+        "valid": {
+          "params": [
+            {
+              "name": "state",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "any"
+        }
+      }
+    },
     "signalwire.relay.client": {
       "classes": {
         "RelayClient": {
@@ -10632,6 +10656,422 @@
         }
       }
     },
+    "signalwire.relay.collect_config": {
+      "classes": {
+        "CollectConfig": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "digits",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "speech",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "initial_timeout",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "partial_results",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "continuous",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "send_start_of_input",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "start_input_timers",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "void"
+            },
+            "continuous": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "deconstruct_keys": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "keys",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "digits": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "eql": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "other",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "hash": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "initial_timeout": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "inspect": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "partial_results": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "send_start_of_input": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "speech": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "start_input_timers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "to_h": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "to_json": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "args",
+                  "type": "any",
+                  "kind": "var_positional",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "to_s": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        }
+      }
+    },
+    "signalwire.relay.device": {
+      "classes": {
+        "Device": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "type",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "params",
+                  "type": "any",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "void"
+            },
+            "deconstruct": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "deconstruct_keys": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "keys",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "eql": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "other",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "hash": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "inspect": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "params": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "phone": {
+              "params": [
+                {
+                  "name": "to",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": true
+                },
+                {
+                  "name": "from",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "timeout",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "sip": {
+              "params": [
+                {
+                  "name": "to",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": true
+                },
+                {
+                  "name": "from",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "headers",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "to_h": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "to_json": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "args",
+                  "type": "any",
+                  "kind": "var_positional",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "to_s": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "type": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        }
+      }
+    },
+    "signalwire.relay.dial_state": {
+      "functions": {
+        "terminal": {
+          "params": [
+            {
+              "name": "state",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "any"
+        },
+        "valid": {
+          "params": [
+            {
+              "name": "state",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "any"
+        }
+      }
+    },
     "signalwire.relay.event": {
       "classes": {
         "CallReceiveEvent": {
@@ -10878,6 +11318,15 @@
                   "name": "payload",
                   "type": "any",
                   "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "terminal": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
                 }
               ],
               "returns": "any"
@@ -11320,6 +11769,15 @@
               ],
               "returns": "void"
             },
+            "answered": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "call_data": {
               "params": [
                 {
@@ -11330,6 +11788,15 @@
               "returns": "any"
             },
             "dial_state": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "failed": {
               "params": [
                 {
                   "name": "self",
@@ -11349,6 +11816,15 @@
               "returns": "any"
             },
             "tag": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "terminal": {
               "params": [
                 {
                   "name": "self",
@@ -11885,6 +12361,15 @@
               "returns": "any"
             },
             "tags": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "terminal": {
               "params": [
                 {
                   "name": "self",
@@ -13205,6 +13690,15 @@
               ],
               "returns": "any"
             },
+            "terminal": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "to_h": {
               "params": [
                 {
@@ -13264,6 +13758,30 @@
               "returns": "any"
             }
           }
+        }
+      }
+    },
+    "signalwire.relay.message_state": {
+      "functions": {
+        "terminal": {
+          "params": [
+            {
+              "name": "state",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "any"
+        },
+        "valid": {
+          "params": [
+            {
+              "name": "state",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "any"
         }
       }
     },

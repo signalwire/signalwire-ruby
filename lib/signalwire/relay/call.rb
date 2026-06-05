@@ -2,6 +2,10 @@
 
 require 'securerandom'
 
+require_relative 'constants'
+require_relative 'device'
+require_relative 'collect_config'
+
 module SignalWire
   module Relay
     # Represents a live RELAY call.
