@@ -287,14 +287,14 @@ module SignalWire
       #
       # @param control_id [String, nil]
       # @param stereo [Boolean]
-      # @param format [String] "wav" or "mp3"
+      # @param format [String] "wav", "mp3", or "mp4"
       # @param direction [String] "speak", "listen", or "both"
       # @return [self]
       def record_call(control_id: nil, stereo: false, format: "wav",
                       direction: "both", terminators: nil, beep: false,
                       input_sensitivity: 44.0, initial_timeout: nil,
                       end_silence_timeout: nil, max_length: nil, status_url: nil)
-        raise ArgumentError, "format must be 'wav' or 'mp3'" unless %w[wav mp3].include?(format)
+        raise ArgumentError, "format must be 'wav', 'mp3', or 'mp4'" unless %w[wav mp3 mp4].include?(format)
         raise ArgumentError, "direction must be 'speak', 'listen', or 'both'" unless %w[speak listen both].include?(direction)
 
         record_params = {
