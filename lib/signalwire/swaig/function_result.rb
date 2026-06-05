@@ -9,6 +9,74 @@ require 'json'
 
 module SignalWire
   module Swaig
+    # ------------------------------------------------------------------
+    # Closed-set vocabularies for SWAIG verbs.
+    #
+    # Each constant's value IS the wire string, so a caller may pass the
+    # bare string (parity with the Python reference, which takes a plain
+    # +str+) or the named constant interchangeably — they are literally
+    # the same object. The +FunctionResult+ validators below reference
+    # these +ALL+ arrays directly, so the named set and the validated set
+    # can never drift apart (single source of truth).
+    #
+    # Idiom note: this mirrors +SignalWire::Relay+'s constants module
+    # (flat +NAME = 'value'+ string constants grouped into a frozen +ALL+
+    # array). These are SWAIG (SWML-verb) vocabularies and are deliberately
+    # kept DISTINCT from the RELAY codecs/directions — see the warnings on
+    # each module.
+    # ------------------------------------------------------------------
+
+    # Audio container format for the +record_call+ verb.
+    module RecordFormat
+      WAV = 'wav'
+      MP3 = 'mp3'
+      MP4 = 'mp4'
+
+      # Every valid +record_call+ format, in wire order.
+      ALL = [WAV, MP3, MP4].freeze
+    end
+
+    # Channel selection for the +record_call+ verb.
+    #
+    # DISTINCT from {TapDirection}: record uses +listen+, tap uses +hear+.
+    # Never share a constant between the two — Python validates two
+    # different lists, and conflating them is a known bug generator.
+    module RecordDirection
+      SPEAK  = 'speak'
+      LISTEN = 'listen'
+      BOTH   = 'both'
+
+      # Every valid +record_call+ direction, in wire order.
+      ALL = [SPEAK, LISTEN, BOTH].freeze
+    end
+
+    # Channel selection for the +tap+ verb.
+    #
+    # DISTINCT from {RecordDirection}: tap uses +hear+, record uses
+    # +listen+. Also distinct from the RELAY play/record/tap direction
+    # vocabulary. Never unify.
+    module TapDirection
+      SPEAK = 'speak'
+      HEAR  = 'hear'
+      BOTH  = 'both'
+
+      # Every valid +tap+ direction, in wire order.
+      ALL = [SPEAK, HEAR, BOTH].freeze
+    end
+
+    # RTP payload codec for the +tap+ verb.
+    #
+    # This is the 2-value SWAIG tap codec only. It is DELIBERATELY NOT the
+    # broader RELAY +stream+/+connect+ device-codec superset (which adds
+    # OPUS/G729/G722/VP8/H264). Never reuse this constant there.
+    module Codec
+      PCMU = 'PCMU'
+      PCMA = 'PCMA'
+
+      # Every valid +tap+ codec, in wire order.
+      ALL = [PCMU, PCMA].freeze
+    end
+
     # Response builder that tool handlers return.
     # All mutating methods return +self+ for fluent chaining.
     #
@@ -290,12 +358,12 @@ module SignalWire
       # @param format [String] "wav", "mp3", or "mp4"
       # @param direction [String] "speak", "listen", or "both"
       # @return [self]
-      def record_call(control_id: nil, stereo: false, format: "wav",
-                      direction: "both", terminators: nil, beep: false,
+      def record_call(control_id: nil, stereo: false, format: RecordFormat::WAV,
+                      direction: RecordDirection::BOTH, terminators: nil, beep: false,
                       input_sensitivity: 44.0, initial_timeout: nil,
                       end_silence_timeout: nil, max_length: nil, status_url: nil)
-        raise ArgumentError, "format must be 'wav', 'mp3', or 'mp4'" unless %w[wav mp3 mp4].include?(format)
-        raise ArgumentError, "direction must be 'speak', 'listen', or 'both'" unless %w[speak listen both].include?(direction)
+        raise ArgumentError, "format must be 'wav', 'mp3', or 'mp4'" unless RecordFormat::ALL.include?(format)
+        raise ArgumentError, "direction must be 'speak', 'listen', or 'both'" unless RecordDirection::ALL.include?(direction)
 
         record_params = {
           "stereo"            => stereo,
@@ -531,16 +599,16 @@ module SignalWire
       # @param rtp_ptime [Integer] packetization time in ms
       # @param status_url [String, nil]
       # @return [self]
-      def tap(uri, control_id: nil, direction: "both", codec: "PCMU",
+      def tap(uri, control_id: nil, direction: TapDirection::BOTH, codec: Codec::PCMU,
               rtp_ptime: 20, status_url: nil)
-        raise ArgumentError, "direction must be 'speak', 'hear', or 'both'" unless %w[speak hear both].include?(direction)
-        raise ArgumentError, "codec must be 'PCMU' or 'PCMA'" unless %w[PCMU PCMA].include?(codec)
+        raise ArgumentError, "direction must be 'speak', 'hear', or 'both'" unless TapDirection::ALL.include?(direction)
+        raise ArgumentError, "codec must be 'PCMU' or 'PCMA'" unless Codec::ALL.include?(codec)
         raise ArgumentError, "rtp_ptime must be positive" unless rtp_ptime.positive?
 
         tap_params = { "uri" => uri }
         tap_params["control_id"] = control_id if control_id
-        tap_params["direction"]  = direction  if direction != "both"
-        tap_params["codec"]      = codec      if codec != "PCMU"
+        tap_params["direction"]  = direction  if direction != TapDirection::BOTH
+        tap_params["codec"]      = codec      if codec != Codec::PCMU
         tap_params["rtp_ptime"]  = rtp_ptime  if rtp_ptime != 20
         tap_params["status_url"] = status_url if status_url
 

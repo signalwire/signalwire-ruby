@@ -7,6 +7,7 @@
 
 require 'thread'
 require_relative '../logging'
+require_relative 'skill_name'
 
 module SignalWire
   module Skills
@@ -240,13 +241,17 @@ module SignalWire
           Dir[File.join(builtin_dir, '*.rb')].sort.each { |f| require f }
         end
 
-        # Skill names this gem ships as built-ins (derived from the file
-        # names in the +builtin/+ directory, mirroring how Python derives
-        # built-in names from subdirectories of its skills package).
+        # Skill names this gem ships as built-ins.
+        #
+        # Single source of truth: this returns {SkillName::ALL}, the named
+        # constant set. The +builtin/+ directory is the runtime origin of
+        # the actual factories (one file per skill, each calling
+        # +SkillRegistry.register+ on require); the spec asserts the
+        # directory listing and {SkillName::ALL} stay identical so the
+        # named set can never silently drift from what gets registered.
         # @return [Array<String>]
         def builtin_skill_names
-          builtin_dir = File.join(__dir__, 'builtin')
-          Dir[File.join(builtin_dir, '*.rb')].map { |f| File.basename(f, '.rb') }.sort
+          SkillName::ALL.dup
         end
         # Internal helper — not part of the Python surface; reached via
         # discover_skills / list_all_skill_sources.

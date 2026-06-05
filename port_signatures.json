@@ -19808,6 +19808,20 @@
         }
       }
     },
+    "signalwire.skills.skill_name": {
+      "functions": {
+        "builtin": {
+          "params": [
+            {
+              "name": "name",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "any"
+        }
+      }
+    },
     "signalwire.skills.spider.skill": {
       "classes": {
         "SpiderSkill": {

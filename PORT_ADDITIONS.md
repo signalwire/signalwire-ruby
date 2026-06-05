@@ -674,3 +674,26 @@ signalwire.core.agent_base.AgentBase.post_prompt: ruby-idiom alias (reader+write
 signalwire.swml.service.Service.all_functions: ruby-idiom reader alias over get_all_functions
 signalwire.swml.service.Service.basic_auth_credentials_with_source: ruby-idiom reader alias over get_basic_auth_credentials_with_source
 signalwire.swml.service.Service.function?: ruby-idiom `?`-predicate alias over has_function
+
+# --- Closed-set named constants (Ruby's idiom-track answer to the other
+# ports' enums; IDIOM_PASS_JOURNAL.md §2/§4). Ruby already validated these
+# closed sets inline; these add named constants as the single source of
+# truth and rewire the existing validators to reference them (the named set
+# and the validated set are literally the same frozen object — no drift).
+# Mirrors SignalWire::Relay's constants idiom (flat NAME='value' + frozen
+# ALL). Pure-additive: record_call/tap/add_skill still accept bare strings.
+# The constant values ARE the wire strings, so they don't change any
+# signature or wire behavior and add no enumerated surface EXCEPT the one
+# convenience predicate below.
+#
+# Constant sets added (one line per set, per the idiom-pass task):
+#   - SignalWire::Swaig::RecordFormat {wav,mp3,mp4} — record_call format; validator references RecordFormat::ALL.
+#   - SignalWire::Swaig::RecordDirection {speak,listen,both} — record_call direction; validator references RecordDirection::ALL (DISTINCT from TapDirection — 'listen', not 'hear').
+#   - SignalWire::Swaig::TapDirection {speak,hear,both} — tap direction; validator references TapDirection::ALL (DISTINCT from RecordDirection — 'hear', not 'listen').
+#   - SignalWire::Swaig::Codec {PCMU,PCMA} — SWAIG tap codec; validator references Codec::ALL (the 2-value tap set only, NOT the RELAY device-codec superset).
+#   - SignalWire::Skills::SkillName (18 built-ins) — the skill registry set; SkillRegistry.builtin_skill_names now derives from SkillName::ALL, so the named set IS what AgentBase#add_skill validates against.
+#
+# Only one of these registers as enumerated signature surface (the module-
+# constant groups carry no methods the griffe/reflection enumerator emits);
+# the SkillName convenience predicate does, hence this single excused line:
+signalwire.skills.skill_name.builtin: port-only: SignalWire::Skills::SkillName.builtin?(name) — named-constant single-source-of-truth predicate for the built-in skill set (Ruby's idiom-track equivalent of the other ports' SkillName enum membership check); add_skill still accepts the bare string, the set stays open for custom skills
