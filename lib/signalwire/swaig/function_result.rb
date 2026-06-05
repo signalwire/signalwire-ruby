@@ -438,11 +438,29 @@ module SignalWire
                           recording_status_callback_method: "POST",
                           recording_status_callback_event: "completed",
                           result: nil)
+        # Validation order + message text mirror the Python reference
+        # (core/function_result.py::join_conference). Python renders its
+        # valid-value lists via an f-string over a Python list literal, i.e.
+        # "one of ['a', 'b']"; we reproduce that exact form.
+        unless %w[true false onEnter onExit].include?(beep)
+          raise ArgumentError, "beep must be one of ['true', 'false', 'onEnter', 'onExit']"
+        end
+        if !max_participants.is_a?(Integer) || max_participants <= 0 || max_participants > 250
+          raise ArgumentError, "max_participants must be a positive integer <= 250"
+        end
+        unless %w[do-not-record record-from-start].include?(record)
+          raise ArgumentError, "record must be one of ['do-not-record', 'record-from-start']"
+        end
+        unless %w[trim-silence do-not-trim].include?(trim)
+          raise ArgumentError, "trim must be one of ['trim-silence', 'do-not-trim']"
+        end
+        unless %w[GET POST].include?(status_callback_method)
+          raise ArgumentError, "status_callback_method must be one of ['GET', 'POST']"
+        end
+        unless %w[GET POST].include?(recording_status_callback_method)
+          raise ArgumentError, "recording_status_callback_method must be one of ['GET', 'POST']"
+        end
         raise ArgumentError, "name cannot be empty" if name.to_s.strip.empty?
-        raise ArgumentError, "beep must be one of: true, false, onEnter, onExit" unless %w[true false onEnter onExit].include?(beep)
-        raise ArgumentError, "max_participants must be 1..250" unless max_participants.between?(1, 250)
-        raise ArgumentError, "record must be 'do-not-record' or 'record-from-start'" unless %w[do-not-record record-from-start].include?(record)
-        raise ArgumentError, "trim must be 'trim-silence' or 'do-not-trim'" unless %w[trim-silence do-not-trim].include?(trim)
 
         all_defaults = !muted && beep == "true" && start_on_enter && !end_on_exit &&
                        wait_url.nil? && max_participants == 250 && record == "do-not-record" &&

@@ -394,10 +394,67 @@ class FunctionResultTest < Minitest::Test
     assert_raises(TypeError) { FR.new.execute_swml(42) }
   end
 
+  # ------------------------------------------------------------------
+  # join_conference — full parity with Python reference
+  # (tests/unit/core/test_function_result.py::TestJoinConference)
+  # Python raises ValueError; Ruby idiom is ArgumentError. Error message
+  # text mirrors Python's exact f-string rendering, including the
+  # "one of ['a', 'b']" list form.
+  # ------------------------------------------------------------------
+
+  # Parity: test_join_conference_simple_name_all_defaults
   def test_join_conference_simple
     r = FR.new.join_conference("my_conf")
     swml = r.action.first["SWML"]
+    # Simple form: bare conference name string, not a hash
     assert_equal "my_conf", swml["sections"]["main"][0]["join_conference"]
+  end
+
+  # Parity: test_join_conference_complex_params — every non-default param
+  # is emitted under its snake_case wire key in the object form.
+  def test_join_conference_complex_params
+    r = FR.new.join_conference(
+      "team-meeting",
+      muted: true,
+      beep: "onEnter",
+      start_on_enter: false,
+      end_on_exit: true,
+      wait_url: "https://example.com/hold-music",
+      max_participants: 50,
+      record: "record-from-start",
+      region: "us-east",
+      trim: "do-not-trim",
+      coach: "call-id-123",
+      status_callback_event: "start end",
+      status_callback: "https://example.com/callback",
+      status_callback_method: "GET",
+      recording_status_callback: "https://example.com/rec-callback",
+      recording_status_callback_method: "GET",
+      recording_status_callback_event: "in-progress",
+      result: { "key" => "value" }
+    )
+    join = r.action.first["SWML"]["sections"]["main"][0]["join_conference"]
+    assert_instance_of Hash, join
+    assert_equal "team-meeting", join["name"]
+    assert_equal true, join["muted"]
+    assert_equal "onEnter", join["beep"]
+    assert_equal false, join["start_on_enter"]
+    assert_equal true, join["end_on_exit"]
+    assert_equal "https://example.com/hold-music", join["wait_url"]
+    assert_equal 50, join["max_participants"]
+    assert_equal "record-from-start", join["record"]
+    assert_equal "us-east", join["region"]
+    assert_equal "do-not-trim", join["trim"]
+    assert_equal "call-id-123", join["coach"]
+    assert_equal "start end", join["status_callback_event"]
+    assert_equal "https://example.com/callback", join["status_callback"]
+    assert_equal "GET", join["status_callback_method"]
+    assert_equal "https://example.com/rec-callback", join["recording_status_callback"]
+    assert_equal "GET", join["recording_status_callback_method"]
+    assert_equal "in-progress", join["recording_status_callback_event"]
+    assert_equal({ "key" => "value" }, join["result"])
+    # No holdAudio key — Python uses wait_url.
+    refute join.key?("holdAudio")
   end
 
   def test_join_conference_with_options
@@ -407,10 +464,78 @@ class FunctionResultTest < Minitest::Test
     assert_equal "my_conf", join["name"]
     assert_equal true, join["muted"]
     assert_equal "record-from-start", join["record"]
+    # Defaults are omitted from the object form.
+    refute join.key?("beep")
+    refute join.key?("max_participants")
+    refute join.key?("status_callback_method")
   end
 
+  # Parity: test_join_conference_invalid_beep
+  def test_join_conference_invalid_beep
+    e = assert_raises(ArgumentError) { FR.new.join_conference("conf", beep: "invalid") }
+    assert_equal "beep must be one of ['true', 'false', 'onEnter', 'onExit']", e.message
+  end
+
+  # Parity: test_join_conference_max_participants_too_high
+  def test_join_conference_max_participants_too_high
+    e = assert_raises(ArgumentError) { FR.new.join_conference("conf", max_participants: 300) }
+    assert_equal "max_participants must be a positive integer <= 250", e.message
+  end
+
+  # Parity: test_join_conference_max_participants_zero
+  def test_join_conference_max_participants_zero
+    e = assert_raises(ArgumentError) { FR.new.join_conference("conf", max_participants: 0) }
+    assert_equal "max_participants must be a positive integer <= 250", e.message
+  end
+
+  # Parity: test_join_conference_max_participants_negative
+  def test_join_conference_max_participants_negative
+    e = assert_raises(ArgumentError) { FR.new.join_conference("conf", max_participants: -5) }
+    assert_equal "max_participants must be a positive integer <= 250", e.message
+  end
+
+  # Parity: test_join_conference_invalid_record
+  def test_join_conference_invalid_record
+    e = assert_raises(ArgumentError) { FR.new.join_conference("conf", record: "always") }
+    assert_equal "record must be one of ['do-not-record', 'record-from-start']", e.message
+  end
+
+  # Parity: test_join_conference_invalid_trim
+  def test_join_conference_invalid_trim
+    e = assert_raises(ArgumentError) { FR.new.join_conference("conf", trim: "bad-value") }
+    assert_equal "trim must be one of ['trim-silence', 'do-not-trim']", e.message
+  end
+
+  # Parity: test_join_conference_empty_name
   def test_join_conference_bad_name
-    assert_raises(ArgumentError) { FR.new.join_conference("") }
+    e = assert_raises(ArgumentError) { FR.new.join_conference("", muted: true) }
+    assert_equal "name cannot be empty", e.message
+  end
+
+  # Parity: test_join_conference_whitespace_name
+  def test_join_conference_whitespace_name
+    e = assert_raises(ArgumentError) { FR.new.join_conference("   ", muted: true) }
+    assert_equal "name cannot be empty", e.message
+  end
+
+  # Parity: test_join_conference_invalid_status_callback_method
+  # (currently MISSING in Ruby — RED until the GET/POST check is added)
+  def test_join_conference_invalid_status_callback_method
+    e = assert_raises(ArgumentError) { FR.new.join_conference("conf", status_callback_method: "PUT") }
+    assert_equal "status_callback_method must be one of ['GET', 'POST']", e.message
+  end
+
+  # Parity: test_join_conference_invalid_recording_status_callback_method
+  # (currently MISSING in Ruby — RED until the GET/POST check is added)
+  def test_join_conference_invalid_recording_status_callback_method
+    e = assert_raises(ArgumentError) { FR.new.join_conference("conf", recording_status_callback_method: "DELETE") }
+    assert_equal "recording_status_callback_method must be one of ['GET', 'POST']", e.message
+  end
+
+  # Parity: test_join_conference_chaining
+  def test_join_conference_chaining
+    r = FR.new
+    assert_same r, r.join_conference("conf")
   end
 
   def test_join_room
