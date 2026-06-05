@@ -726,3 +726,44 @@ signalwire.skills.skill_name.builtin: port-only: SignalWire::Skills::SkillName.b
 # spellings below describe the identical SkillName.builtin? helper above.
 signalwire.skills.skill_name.SkillName: port-only: Ruby SignalWire::Skills::SkillName named-constant module (the built-in skill set; Python uses bare strings — see the constant-groups note above)
 signalwire.skills.skill_name.SkillName.builtin?: port-only: Layer B class-form spelling of the SkillName.builtin?(name) membership predicate (same method as the Layer A `signalwire.skills.skill_name.builtin` entry above)
+
+# --- Tier-2 idiom FLAGSHIP: SignalWire::Swaig::ParameterSchema ---
+# (porting-sdk/IDIOM_PASS_JOURNAL.md §4 "Tier 2 flagship": the typed SWAIG
+# tool-parameter builder.) Defining a SWAIG tool's `parameters` in Python
+# (and the existing Ruby path) means hand-writing a JSON-Schema blob as
+# nested Hashes. This adds an IDIOMATIC RUBY block DSL that constructs the
+# EXACT SAME wire output — the Hash it returns is BYTE-IDENTICAL to the
+# normalised hand-written `parameters` (a `{ 'type' => 'object',
+# 'properties' => {...}, 'required' => [...] }` object, `required` omitted
+# when empty). It is a typed CONVENIENCE over the same wire shape, NOT a new
+# format: the untyped Hash path stays fully supported, so this is purely
+# ADDITIVE (no Python equivalent → port-only). Property kinds: string,
+# number, integer, boolean, enum (closed set), array (of a kind), object
+# (nested). The `enum` kind INTEGRATES the Tier-1 frozen constants
+# (RecordFormat/RecordDirection/TapDirection/Codec ::ALL) — pass any ALL
+# array as the closed set and it lands as schema `enum:[...]` (single source
+# of truth; the constant's value IS the wire string). Proven byte-identical
+# across every kind + an enum property, and end-to-end through a real
+# define_tool → render_swml → invoke, in tests/parameter_schema_test.rb (no
+# mocks). Both audit layers (signatures + surface) enumerate the new public
+# class; every public method is excused below.
+#
+# Layer A (signatures enumerator) symbols:
+signalwire.swaig.parameter_schema.ParameterSchema.array: port-only: ParameterSchema DSL verb — declare an `array` property (with `of:` element kind) in the typed SWAIG-param builder (no Python equivalent; same wire shape as a hand-written array property)
+signalwire.swaig.parameter_schema.ParameterSchema.boolean: port-only: ParameterSchema DSL verb — declare a `boolean` property in the typed SWAIG-param builder
+signalwire.swaig.parameter_schema.ParameterSchema.build: port-only: ParameterSchema.build { ... } — class-level block-DSL entrypoint returning the JSON-Schema parameters Hash
+signalwire.swaig.parameter_schema.ParameterSchema.enum: port-only: ParameterSchema DSL verb — declare a closed-set (`enum`) property; integrates the Tier-1 RecordFormat/RecordDirection/TapDirection/Codec ::ALL frozen sets
+signalwire.swaig.parameter_schema.ParameterSchema.integer: port-only: ParameterSchema DSL verb — declare an `integer` property
+signalwire.swaig.parameter_schema.ParameterSchema.number: port-only: ParameterSchema DSL verb — declare a `number` property
+signalwire.swaig.parameter_schema.ParameterSchema.object: port-only: ParameterSchema DSL verb — declare a nested `object` property (recursive block)
+signalwire.swaig.parameter_schema.ParameterSchema.require: port-only: singular fluent alias of `required` for single-property chains in the typed SWAIG-param builder
+signalwire.swaig.parameter_schema.ParameterSchema.required: port-only: ParameterSchema DSL verb — mark properties required (folds into the top-level `required` list, same shape define_tool(required:) produces)
+signalwire.swaig.parameter_schema.ParameterSchema.string: port-only: ParameterSchema DSL verb — declare a `string` property
+signalwire.swaig.parameter_schema.ParameterSchema.to_json: port-only: JSON serialization of the built parameters Hash (Ruby idiom; same wire shape)
+#
+# Layer B (surface enumerator) additionally renders the class node, the
+# constructor, and the `to_h`/`to_hash` renderers — same builder:
+signalwire.swaig.parameter_schema.ParameterSchema: port-only: the typed SWAIG tool-parameter builder class itself (Tier-2 idiom flagship; Python defines parameters as a bare nested-Hash blob, no equivalent class)
+signalwire.swaig.parameter_schema.ParameterSchema.__init__: port-only: Ruby `ParameterSchema.new` constructor (initialises empty properties/required; for fluent non-block use)
+signalwire.swaig.parameter_schema.ParameterSchema.to_h: port-only: render the built JSON-Schema parameters Hash (byte-identical to the normalised hand-written `parameters`); Ruby idiom replacing Python's hand-written Hash literal
+signalwire.swaig.parameter_schema.ParameterSchema.to_hash: port-only: Ruby implicit-conversion alias of `to_h` on the typed SWAIG-param builder

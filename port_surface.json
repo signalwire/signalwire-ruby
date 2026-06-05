@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 795efc8856562a67861725bab7a1b9618fc68ca5",
+  "generated_from": "signalwire-ruby @ 43950aa7d1fc64d56984f8332acc8e4f731b7f51",
   "modules": {
     "signalwire": {
       "classes": {
@@ -1979,6 +1979,29 @@
           "register_tools",
           "search_wiki",
           "setup"
+        ]
+      },
+      "functions": [
+
+      ]
+    },
+    "signalwire.swaig.parameter_schema": {
+      "classes": {
+        "ParameterSchema": [
+          "__init__",
+          "array",
+          "boolean",
+          "build",
+          "enum",
+          "integer",
+          "number",
+          "object",
+          "require",
+          "required",
+          "string",
+          "to_h",
+          "to_hash",
+          "to_json"
         ]
       },
       "functions": [
