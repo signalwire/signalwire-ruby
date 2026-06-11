@@ -86,7 +86,9 @@ run_gate "DRIFT" "diff_port_signatures vs python reference" \
 surface_fresh_gate() {
     git show HEAD:port_surface.json > /tmp/committed_surface.json 2>/dev/null \
         || cp "$PORT_ROOT/port_surface.json" /tmp/committed_surface.json
-    ruby scripts/enumerate_surface.rb --output "$PORT_ROOT/port_surface.json"
+    # `bundle exec` so the regen loads gems from the Gemfile (it `require`s
+    # signalwire → rack); bare `ruby` failed in CI with `cannot load -- rack`.
+    bundle exec ruby scripts/enumerate_surface.rb --output "$PORT_ROOT/port_surface.json"
     local regen_rc=$?
     if [ "$regen_rc" -ne 0 ]; then
         git checkout -- port_surface.json 2>/dev/null
