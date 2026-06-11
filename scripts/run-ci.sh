@@ -9,8 +9,8 @@
 #   2. signature regen                    — python adapter + signature_dump.rb
 #   3. drift gate                         — porting-sdk diff_port_signatures.py
 #   4. surface-fresh gate                 — porting-sdk check_surface_freshness.py
-#   5. emission gate                      — porting-sdk diff_port_emission.py
-#   6. no-cheat gate                      — porting-sdk audit_no_cheat_tests.py
+#   5. no-cheat gate                      — porting-sdk audit_no_cheat_tests.py
+#   6. emission gate                      — porting-sdk diff_port_emission.py
 
 set -u
 set -o pipefail
@@ -104,17 +104,17 @@ surface_fresh_gate() {
 run_gate "SURFACE-FRESH" "check_surface_freshness vs committed surface" \
     surface_fresh_gate
 
-# Gate 5: emission gate — byte-compare native FunctionResult to_h against the
+# Gate 5: no-cheat
+run_gate "NO-CHEAT" "audit_no_cheat_tests" \
+    python3 "$PORTING_SDK_DIR/scripts/audit_no_cheat_tests.py" --root "$PORT_ROOT"
+
+# Gate 6: emission gate — byte-compare native FunctionResult to_h against the
 # Python to_dict() oracle over the shared 81-entry corpus. Closes the behavioral
 # (action shape/keys/values) gap the surface drift gate cannot see. Run with
 # cwd=$PORT_ROOT (set above), so the relative dump command resolves.
 run_gate "EMISSION" "diff_port_emission vs python oracle" \
     python3 "$PORTING_SDK_DIR/scripts/diff_port_emission.py" \
         --dump-cmd "ruby bin/emit-corpus"
-
-# Gate 6: no-cheat
-run_gate "NO-CHEAT" "audit_no_cheat_tests" \
-    python3 "$PORTING_SDK_DIR/scripts/audit_no_cheat_tests.py" --root "$PORT_ROOT"
 
 if [ -z "$FAILED_GATES" ]; then
     echo "==> CI PASS"
