@@ -1,6 +1,6 @@
 {
   "name": "signalwire-ruby",
-  "image": "mcr.microsoft.com/devcontainers/ruby:3.3",
+  "image": "mcr.microsoft.com/devcontainers/ruby:4.0",
   "postCreateCommand": "bundle install",
   "forwardPorts": [3000, 8000],
   "customizations": {
