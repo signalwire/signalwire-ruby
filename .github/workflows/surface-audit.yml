@@ -43,13 +43,13 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.2'
+          ruby-version: '3.4.9'
           bundler-cache: true
 
       - name: Set up Python (for the diff tool)
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.14'
 
       - name: Verify port_surface.json is current
         # Uses the script's --check mode, which parses both files and compares
