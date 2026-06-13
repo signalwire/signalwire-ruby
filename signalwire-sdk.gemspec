@@ -15,7 +15,7 @@ Gem::Specification.new do |s|
   s.homepage    = 'https://github.com/signalwire/signalwire-ruby'
   s.license     = 'MIT'
 
-  s.required_ruby_version = '>= 3.0'
+  s.required_ruby_version = '>= 3.2'
 
   s.files = Dir['lib/**/*', 'bin/*', 'README.md', 'LICENSE']
   s.require_paths = ['lib']
