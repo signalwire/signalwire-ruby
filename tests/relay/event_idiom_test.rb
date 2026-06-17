@@ -14,23 +14,22 @@ require 'json'
 require_relative '../../lib/signalwire/relay/constants'
 require_relative '../../lib/signalwire/relay/relay_event'
 
-class RelayEventIdiomTest < Minitest::Test
+module RelayEventIdiomFixtures
   R = SignalWire::Relay
 
   # A real calling.call.state frame as the mock RELAY server emits it.
   def state_payload(call_id: 'abc-123')
-    {
-      'event_type' => 'calling.call.state',
-      'params' => {
-        'call_id' => call_id,
-        'timestamp' => 100.5,
-        'call_state' => 'answered',
-        'direction' => 'inbound',
-        'end_reason' => '',
-        'device' => { 'type' => 'phone', 'params' => { 'number' => '+15551112222' } }
-      }
+    params = {
+      'call_id' => call_id, 'timestamp' => 100.5, 'call_state' => 'answered',
+      'direction' => 'inbound', 'end_reason' => '',
+      'device' => { 'type' => 'phone', 'params' => { 'number' => '+15551112222' } }
     }
+    { 'event_type' => 'calling.call.state', 'params' => params }
   end
+end
+
+class RelayEventIdiomTest < Minitest::Test
+  include RelayEventIdiomFixtures
 
   # ---- Pattern matching (the headline feature) -------------------------
 
@@ -49,10 +48,8 @@ class RelayEventIdiomTest < Minitest::Test
   end
 
   def test_hash_pattern_guard_on_event_type_rejects_mismatch
-    play = R.parse_event(
-      'event_type' => 'calling.call.play',
-      'params' => { 'call_id' => 'c1', 'control_id' => 'ctl-1', 'state' => 'finished' }
-    )
+    play_params = { 'call_id' => 'c1', 'control_id' => 'ctl-1', 'state' => 'finished' }
+    play = R.parse_event('event_type' => 'calling.call.play', 'params' => play_params)
 
     branch =
       case play
@@ -137,21 +134,20 @@ class RelayEventIdiomTest < Minitest::Test
   end
 
   def test_record_event_to_h_exposes_nested_record_fields
-    event = R.parse_event(
-      'event_type' => 'calling.call.record',
-      'params' => {
-        'call_id' => 'c1', 'control_id' => 'ctl-2', 'state' => 'finished',
-        'record' => { 'url' => 'https://example.com/rec.mp3', 'duration' => 30.5, 'size' => 102_400 }
-      }
-    )
+    record = { 'url' => 'https://example.com/rec.mp3', 'duration' => 30.5, 'size' => 102_400 }
+    params = { 'call_id' => 'c1', 'control_id' => 'ctl-2', 'state' => 'finished', 'record' => record }
+    event = R.parse_event('event_type' => 'calling.call.record', 'params' => params)
     h = event.to_h
 
     assert_equal 'https://example.com/rec.mp3', h[:url]
     assert_in_delta(30.5, h[:duration])
     assert_equal 102_400, h[:size]
   end
+end
 
-  # ---- Value equality / hash / Set / Hash key --------------------------
+# Value equality / hash / Set / Hash key.
+class RelayEventEqualityTest < Minitest::Test
+  include RelayEventIdiomFixtures
 
   def test_two_events_from_same_payload_are_value_equal
     e1 = R.parse_event(state_payload)

@@ -98,16 +98,16 @@ module MockTest
 
     private
 
-    def build_entry(h)
+    def build_entry(entry)
       JournalEntry.new(
-        timestamp: h['timestamp'],
-        method: h['method'],
-        path: h['path'],
-        query_params: h['query_params'] || {},
-        headers: h['headers'] || {},
-        body: h['body'],
-        matched_route: h['matched_route'],
-        response_status: h['response_status']
+        timestamp: entry['timestamp'],
+        method: entry['method'],
+        path: entry['path'],
+        query_params: entry['query_params'] || {},
+        headers: entry['headers'] || {},
+        body: entry['body'],
+        matched_route: entry['matched_route'],
+        response_status: entry['response_status']
       )
     end
 
@@ -155,16 +155,14 @@ module MockTest
         port = resolve_port
         url  = "http://127.0.0.1:#{port}"
 
-        if probe_health(url)
-          @harness = Harness.new(url, port)
-          return @harness
-        end
-
-        spawn_server(port)
-        wait_for_health(url)
-        @harness = Harness.new(url, port)
-        @harness
+        @harness = probe_health(url) ? Harness.new(url, port) : spawn_and_build(url, port)
       end
+    end
+
+    def spawn_and_build(url, port)
+      spawn_server(port)
+      wait_for_health(url)
+      Harness.new(url, port)
     end
 
     private
@@ -177,7 +175,7 @@ module MockTest
         rescue StandardError
           nil
         end
-        return n if n && n.positive?
+        return n if n&.positive?
       end
       DEFAULT_PORT
     end
@@ -197,42 +195,36 @@ module MockTest
     end
 
     def spawn_server(port)
-      cmd = ['python', '-m', 'mock_signalwire',
-             '--host', '127.0.0.1',
-             '--port', port.to_s,
-             '--log-level', 'error']
-      # Try to inject porting-sdk/test_harness/mock_signalwire/ into
-      # PYTHONPATH so `python -m mock_signalwire` resolves without a prior
-      # `pip install -e ...`. Adjacency contract: porting-sdk next to
-      # signalwire-ruby in ~/src/. When the walk fails we still spawn —
-      # the child falls back to whatever is on the system Python's
-      # sys.path, and the readiness probe surfaces a clear timeout error
-      # if neither mode is available.
-      pkg_dir = MockTest.discover_porting_sdk_package('mock_signalwire')
-      env = ENV.to_h
-      if pkg_dir
-        sep = File::PATH_SEPARATOR
-        env['PYTHONPATH'] = if env['PYTHONPATH'].nil? || env['PYTHONPATH'].empty?
-                              pkg_dir
-                            else
-                              "#{pkg_dir}#{sep}#{env['PYTHONPATH']}"
-                            end
-      end
+      cmd = ['python', '-m', 'mock_signalwire', '--host', '127.0.0.1',
+             '--port', port.to_s, '--log-level', 'error']
       # Detach: redirect stdio to /dev/null and put the child in its own
       # process group so signals to the test runner don't cascade. The OS
       # cleans up on exit; we explicitly Process.detach so no zombie remains.
-      @pid = Process.spawn(
-        env,
-        *cmd,
-        out: '/dev/null',
-        err: '/dev/null',
-        in: '/dev/null',
-        pgroup: true
-      )
+      @pid = Process.spawn(spawn_env, *cmd,
+                           out: '/dev/null', err: '/dev/null', in: '/dev/null', pgroup: true)
       Process.detach(@pid)
     rescue Errno::ENOENT => e
       raise "mocktest: failed to spawn `python -m mock_signalwire`: #{e.message} " \
             '(set MOCK_SIGNALWIRE_PORT to use a pre-running instance)'
+    end
+
+    # Try to inject porting-sdk/test_harness/mock_signalwire/ into PYTHONPATH so
+    # `python -m mock_signalwire` resolves without a prior `pip install -e ...`.
+    # Adjacency contract: porting-sdk next to signalwire-ruby in ~/src/. When the
+    # walk fails we still spawn — the child falls back to the system Python's
+    # sys.path, and the readiness probe surfaces a clear timeout if neither works.
+    def spawn_env
+      pkg_dir = MockTest.discover_porting_sdk_package('mock_signalwire')
+      env = ENV.to_h
+      return env unless pkg_dir
+
+      current = env['PYTHONPATH']
+      env['PYTHONPATH'] = if current.nil? || current.empty?
+                            pkg_dir
+                          else
+                            "#{pkg_dir}#{File::PATH_SEPARATOR}#{current}"
+                          end
+      env
     end
 
     def wait_for_health(url)

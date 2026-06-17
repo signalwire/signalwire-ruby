@@ -1,4 +1,6 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
+
 # signature_dump.rb -- dump every public method's parameter list from the
 # SignalWire Ruby SDK as JSON. Pipes into enumerate_signatures.py which
 # applies the existing translation tables and emits port_signatures.json.
@@ -13,6 +15,68 @@
 require 'json'
 require_relative '../lib/signalwire'
 
+def method_entry(meth, name, is_constructor:, is_static:)
+  parameters = meth.parameters.map { |kind, pname| { kind: kind.to_s, name: pname.to_s } }
+  { name: name, is_constructor: is_constructor, is_static: is_static, parameters: parameters }
+end
+
+# The explicit Class arm and the else fallback both yield 'class'; keeping the
+# Class check separate documents the primary case (anything not a plain Module).
+def module_kind(mod)
+  if mod.is_a?(Class) && mod.instance_of?(Class)
+    'class'
+  elsif mod.is_a?(Module)
+    'module'
+  else
+    'class'
+  end
+end
+
+# Public instance methods declared on this class (not inherited).
+def instance_method_entries(mod)
+  return [] unless mod.is_a?(Class)
+
+  entries = constructor_entry(mod)
+  mod.instance_methods(false).sort.each do |meth_name|
+    next if meth_name == :initialize
+    next if meth_name.to_s.start_with?('_')
+
+    meth = mod.instance_method(meth_name)
+    entries << method_entry(meth, meth_name.to_s, is_constructor: false, is_static: false)
+  end
+  entries
+end
+
+def constructor_entry(mod)
+  entries = []
+  has_init = mod.method_defined?(:initialize, false) || mod.private_method_defined?(:initialize, false)
+  return entries unless has_init
+
+  begin
+    meth = mod.instance_method(:initialize)
+    entries << method_entry(meth, '<init>', is_constructor: true, is_static: false)
+  rescue NameError
+    # No initialize visible
+  end
+  entries
+end
+
+# Public singleton methods (class methods).
+def singleton_method_entries(mod)
+  mod.methods(false).sort.filter_map do |meth_name|
+    next if meth_name.to_s.start_with?('_')
+
+    method_entry(mod.method(meth_name), meth_name.to_s, is_constructor: false, is_static: true)
+  end
+end
+
+def type_entry(mod, name)
+  methods = instance_method_entries(mod) + singleton_method_entries(mod)
+  return nil if methods.empty?
+
+  { full_name: name, short_name: name.split('::').last, kind: module_kind(mod), methods: methods }
+end
+
 # Pre-load every .rb file under lib/ so reflection sees every class.
 Dir[File.join(__dir__, '..', 'lib', '**', '*.rb')].each { |f| require f }
 
@@ -22,74 +86,10 @@ ObjectSpace.each_object(Module).each do |mod|
   next if name.nil?
   next unless name.start_with?('SignalWire')
 
-  # The explicit Class arm and the else fallback both yield 'class'; keeping the
-  # Class check separate documents the primary case (anything not a plain Module).
-  kind = if mod.is_a?(Class) && mod.instance_of?(Class)
-           'class'
-         elsif mod.is_a?(Module)
-           'module'
-         else
-           'class'
-         end
-
-  methods = []
-
-  # Public instance methods declared on this class (not inherited).
-  if mod.is_a?(Class)
-    # Constructor (the `initialize` method)
-    if mod.method_defined?(:initialize, false) ||
-       mod.private_method_defined?(:initialize, false)
-      begin
-        m = mod.instance_method(:initialize)
-        methods << method_entry(m, '<init>', is_constructor: true, is_static: false)
-      rescue NameError
-        # No initialize visible
-      end
-    end
-    mod.instance_methods(false).sort.each do |meth_name|
-      next if meth_name == :initialize
-      next if meth_name.to_s.start_with?('_')
-
-      m = mod.instance_method(meth_name)
-      methods << method_entry(m, meth_name.to_s, is_constructor: false, is_static: false)
-    end
-  end
-
-  # Public singleton methods (class methods)
-  mod.methods(false).sort.each do |meth_name|
-    next if meth_name.to_s.start_with?('_')
-
-    m = mod.method(meth_name)
-    methods << method_entry(m, meth_name.to_s, is_constructor: false, is_static: true)
-  end
-
-  next if methods.empty?
-
-  types << {
-    full_name: name,
-    short_name: name.split('::').last,
-    kind: kind,
-    methods: methods
-  }
+  entry = type_entry(mod, name)
+  types << entry if entry
 end
 
 # Stable sort
 types.sort_by! { |t| t[:full_name] }
 puts JSON.pretty_generate({ types: types })
-
-BEGIN {
-  def method_entry(m, name, is_constructor:, is_static:)
-    parameters = m.parameters.map do |kind, pname|
-      {
-        kind: kind.to_s,
-        name: pname.to_s
-      }
-    end
-    {
-      name: name,
-      is_constructor: is_constructor,
-      is_static: is_static,
-      parameters: parameters
-    }
-  end
-}

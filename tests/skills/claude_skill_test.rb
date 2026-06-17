@@ -10,7 +10,7 @@ require_relative '../../lib/signalwire/skills/builtin/claude_skills'
 
 class ClaudeSkillDetailedTest < Minitest::Test
   def setup
-    @tmpdir = File.join(Dir.tmpdir, "claude_skill_test_#{$$}")
+    @tmpdir = File.join(Dir.tmpdir, "claude_skill_test_#{Process.pid}")
     FileUtils.mkdir_p(@tmpdir)
     File.write(File.join(@tmpdir, 'greeting.md'), '# Greeting\nSay hello to the user.')
     File.write(File.join(@tmpdir, 'farewell.md'), '# Farewell\nSay goodbye to the user.')

@@ -72,16 +72,15 @@ class CompatPhoneNumbersMockTest < Minitest::Test
   end
 
   def test_update_journal_records_post_with_friendly_name
-    @client.compat.phone_numbers.update(
-      'PN_UU', FriendlyName: 'updated', VoiceUrl: 'https://a.b/v'
-    )
+    @client.compat.phone_numbers.update('PN_UU', FriendlyName: 'updated', VoiceUrl: 'https://a.b/v')
     j = MockTest.journal.last
+    body = j.body
 
     assert_equal 'POST', j.method
     assert_equal "#{ACCOUNT_BASE}/IncomingPhoneNumbers/PN_UU", j.path
-    assert_kind_of Hash, j.body
-    assert_equal 'updated', j.body['FriendlyName']
-    assert_equal 'https://a.b/v', j.body['VoiceUrl']
+    assert_kind_of Hash, body
+    assert_equal 'updated', body['FriendlyName']
+    assert_equal 'https://a.b/v', body['VoiceUrl']
   end
 
   # ---- delete -----------------------------------------------------------
@@ -99,6 +98,20 @@ class CompatPhoneNumbersMockTest < Minitest::Test
     assert_equal 'DELETE', j.method
     assert_equal "#{ACCOUNT_BASE}/IncomingPhoneNumbers/PN_DEL", j.path
   end
+end
+
+# Provisioning + availability: purchase / import_number / countries / toll-free.
+class CompatPhoneNumbersProvisioningMockTest < Minitest::Test
+  ACCOUNT_BASE = '/api/laml/2010-04-01/Accounts/test_proj'
+
+  def setup
+    @client = MockTest.client
+    MockTest.reset
+  end
+
+  def teardown
+    MockTest.reset
+  end
 
   # ---- purchase (POST /IncomingPhoneNumbers) ---------------------------
 
@@ -111,16 +124,15 @@ class CompatPhoneNumbersMockTest < Minitest::Test
   end
 
   def test_purchase_journal_records_post_with_phone_number
-    @client.compat.phone_numbers.purchase(
-      PhoneNumber: '+15555550100', FriendlyName: 'Main'
-    )
+    @client.compat.phone_numbers.purchase(PhoneNumber: '+15555550100', FriendlyName: 'Main')
     j = MockTest.journal.last
+    body = j.body
 
     assert_equal 'POST', j.method
     assert_equal "#{ACCOUNT_BASE}/IncomingPhoneNumbers", j.path
-    assert_kind_of Hash, j.body
-    assert_equal '+15555550100', j.body['PhoneNumber']
-    assert_equal 'Main', j.body['FriendlyName']
+    assert_kind_of Hash, body
+    assert_equal '+15555550100', body['PhoneNumber']
+    assert_equal 'Main', body['FriendlyName']
   end
 
   # ---- import_number (POST /ImportedPhoneNumbers) ----------------------
@@ -179,12 +191,12 @@ class CompatPhoneNumbersMockTest < Minitest::Test
   def test_search_toll_free_journal_records_get_with_country_in_path
     @client.compat.phone_numbers.search_toll_free('US', AreaCode: '888')
     j = MockTest.journal.last
+    query = j.query_params
 
     assert_equal 'GET', j.method
     assert_equal "#{ACCOUNT_BASE}/AvailablePhoneNumbers/US/TollFree", j.path
     # The AreaCode should be on the query string, not body.
-    assert(j.query_params.key?('AreaCode'),
-           "expected AreaCode in query params, got #{j.query_params.keys.inspect}")
-    assert_equal ['888'], j.query_params['AreaCode']
+    assert(query.key?('AreaCode'), "expected AreaCode in query params, got #{query.keys.inspect}")
+    assert_equal ['888'], query['AreaCode']
   end
 end

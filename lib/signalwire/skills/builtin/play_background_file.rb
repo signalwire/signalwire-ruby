@@ -15,55 +15,18 @@ module SignalWire
           @tool_name = get_param('tool_name', default: 'play_background_file')
           @files     = get_param('files')
           return false unless @files.is_a?(Array) && !@files.empty?
+          return false unless @files.all? { |f| valid_file?(f) }
 
-          @files.each do |f|
-            return false unless f.is_a?(Hash) && f['key'] && f['description'] && f['url']
-          end
           true
         end
 
         def instance_key = "play_background_file_#{@tool_name}"
 
         def register_tools
-          enum_values = @files.map { |f| "start_#{f['key']}" } + ['stop']
-          descriptions = @files.map { |f| "start_#{f['key']}: #{f['description']}" }
-          descriptions << 'stop: Stop any currently playing background file'
-          param_desc = 'Action to perform. Options: ' + descriptions.join('; ')
-
-          expressions = @files.map do |f|
-            result = Swaig::FunctionResult.new(
-              "Tell the user you are now going to play #{f['description']} for them."
-            )
-            result.set_post_process(true)
-            result.play_background_file(f['url'], wait: f.fetch('wait', false))
-
-            {
-              'string' => '${args.action}',
-              'pattern' => "/start_#{f['key']}/i",
-              'output' => result.to_h
-            }
-          end
-
-          stop_result = Swaig::FunctionResult.new(
-            'Tell the user you have stopped the background file playback.'
-          ).stop_background_file
-
-          expressions << {
-            'string' => '${args.action}',
-            'pattern' => '/stop/i',
-            'output' => stop_result.to_h
-          }
-
           tool = {
             'function' => @tool_name,
             'description' => "Control background file playback for #{@tool_name.tr('_', ' ')}",
-            'parameters' => {
-              'type' => 'object',
-              'properties' => {
-                'action' => { 'type' => 'string', 'description' => param_desc, 'enum' => enum_values }
-              },
-              'required' => ['action']
-            },
+            'parameters' => tool_parameters,
             'data_map' => { 'expressions' => expressions }
           }
 
@@ -74,6 +37,63 @@ module SignalWire
           {
             'files' => { 'type' => 'array', 'required' => true,
                          'items' => { 'type' => 'object', 'required' => %w[key description url] } }
+          }
+        end
+
+        private
+
+        def tool_parameters
+          {
+            'type' => 'object',
+            'properties' => {
+              'action' => { 'type' => 'string', 'description' => action_param_desc, 'enum' => enum_values }
+            },
+            'required' => ['action']
+          }
+        end
+
+        def valid_file?(file)
+          file.is_a?(Hash) && file['key'] && file['description'] && file['url']
+        end
+
+        def enum_values
+          @files.map { |f| "start_#{f['key']}" } + ['stop']
+        end
+
+        def action_param_desc
+          descriptions = @files.map { |f| "start_#{f['key']}: #{f['description']}" }
+          descriptions << 'stop: Stop any currently playing background file'
+          "Action to perform. Options: #{descriptions.join('; ')}"
+        end
+
+        def expressions
+          exprs = @files.map { |f| start_expression(f) }
+          exprs << stop_expression
+        end
+
+        def start_expression(file)
+          result = Swaig::FunctionResult.new(
+            "Tell the user you are now going to play #{file['description']} for them."
+          )
+          result.set_post_process(true)
+          result.play_background_file(file['url'], wait: file.fetch('wait', false))
+
+          {
+            'string' => '${args.action}',
+            'pattern' => "/start_#{file['key']}/i",
+            'output' => result.to_h
+          }
+        end
+
+        def stop_expression
+          stop_result = Swaig::FunctionResult.new(
+            'Tell the user you have stopped the background file playback.'
+          ).stop_background_file
+
+          {
+            'string' => '${args.action}',
+            'pattern' => '/stop/i',
+            'output' => stop_result.to_h
           }
         end
       end

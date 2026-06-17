@@ -5,6 +5,55 @@ require_relative 'constants'
 
 module SignalWire
   module Relay
+    # JSON serialization, Ruby pattern-matching, and value-equality for
+    # {Message}. Extracted into a mixin so {Message} itself stays focused on
+    # lifecycle/completion. Relies on the host defining {#to_h} and the
+    # @message_id/@direction/@state ivars.
+    module MessageSerialization
+      def to_s
+        "Message(id=#{@message_id}, direction=#{@direction}, " \
+          "state=#{@state}, from=#{@from_number}, to=#{@to_number})"
+      end
+
+      def inspect
+        to_s
+      end
+
+      # @return [String] JSON serialization of {#to_h}.
+      def to_json(*)
+        to_h.to_json(*)
+      end
+
+      # Ruby 3.0 pattern matching: +case msg; in { direction:, body: }+.
+      # @param keys [Array<Symbol>, nil]
+      # @return [Hash{Symbol => Object}]
+      def deconstruct_keys(keys)
+        h = to_h
+        return h if keys.nil?
+
+        keys.each_with_object({}) do |k, acc|
+          acc[k] = h[k] if h.key?(k)
+        end
+      end
+
+      # Array pattern matching: the stable identity triple.
+      # @return [Array]
+      def deconstruct
+        [@message_id, @direction, @state]
+      end
+
+      # Value equality over the message's data (ignores completion state).
+      def ==(other)
+        other.is_a?(Message) && to_h == other.to_h
+      end
+      alias eql? ==
+
+      # Hash parity with {#==} so equal messages share a bucket.
+      def hash
+        [self.class, to_h].hash
+      end
+    end
+
     # Represents a single SMS/MMS message.
     #
     # For outbound messages, use message.wait to block until a terminal state
@@ -17,25 +66,9 @@ module SignalWire
       def initialize(message_id: '', context: '', direction: '', from_number: '',
                      to_number: '', body: '', media: nil, segments: 0,
                      state: '', reason: '', tags: nil)
-        @message_id  = message_id
-        @context     = context
-        @direction   = direction
-        @from_number = from_number
-        @to_number   = to_number
-        @body        = body
-        @media       = media || []
-        @segments    = segments
-        @state       = state
-        @reason      = reason
-        @tags        = tags || []
-
-        # Completion tracking
-        @mutex        = Mutex.new
-        @condition    = ConditionVariable.new
-        @done         = false
-        @result       = nil
-        @on_completed = nil
-        @listeners    = []
+        assign_value_fields(message_id:, context:, direction:, from_number:, to_number:,
+                            body:, media:, segments:, state:, reason:, tags:)
+        init_completion_tracking
       end
 
       # Set the on_completed callback.
@@ -75,17 +108,7 @@ module SignalWire
         @mutex.synchronize do
           return @result if @done
 
-          if timeout
-            deadline = Time.now + timeout
-            until @done
-              remaining = deadline - Time.now
-              raise ActionTimeoutError, "Message #{@message_id} timed out after #{timeout}s" if remaining <= 0
-
-              @condition.wait(@mutex, remaining)
-            end
-          else
-            @condition.wait(@mutex) until @done
-          end
+          timeout ? wait_until_done(timeout) : (@condition.wait(@mutex) until @done)
           @result
         end
       end
@@ -99,25 +122,10 @@ module SignalWire
         @reason = event_params['reason'] if event_params.key?('reason')
 
         event = Relay.parse_event(payload)
-
-        # Notify listeners
-        @listeners.each do |handler|
-          handler.call(event)
-        rescue StandardError => e
-          warn "[RELAY] Error in message event handler for #{@message_id}: #{e.message}"
-        end
+        notify_listeners(event)
 
         # Check terminal state
         _resolve(event) if MessageState.terminal?(new_state)
-      end
-
-      def to_s
-        "Message(id=#{@message_id}, direction=#{@direction}, " \
-          "state=#{@state}, from=#{@from_number}, to=#{@to_number})"
-      end
-
-      def inspect
-        to_s
       end
 
       # Semantic Hash view of the message's value fields (the completion
@@ -125,55 +133,50 @@ module SignalWire
       # idiomatic for Ruby. @return [Hash{Symbol => Object}]
       def to_h
         {
-          message_id: @message_id,
-          context: @context,
-          direction: @direction,
-          from_number: @from_number,
-          to_number: @to_number,
-          body: @body,
-          media: @media,
-          segments: @segments,
-          state: @state,
-          reason: @reason,
-          tags: @tags
+          message_id: @message_id, context: @context, direction: @direction,
+          from_number: @from_number, to_number: @to_number, body: @body,
+          media: @media, segments: @segments, state: @state,
+          reason: @reason, tags: @tags
         }
       end
 
-      # @return [String] JSON serialization of {#to_h}.
-      def to_json(*)
-        to_h.to_json(*)
-      end
+      include MessageSerialization
 
-      # Ruby 3.0 pattern matching: +case msg; in { direction:, body: }+.
-      # @param keys [Array<Symbol>, nil]
-      # @return [Hash{Symbol => Object}]
-      def deconstruct_keys(keys)
-        h = to_h
-        return h if keys.nil?
+      private
 
-        keys.each_with_object({}) do |k, acc|
-          acc[k] = h[k] if h.key?(k)
+      def notify_listeners(event)
+        @listeners.each do |handler|
+          handler.call(event)
+        rescue StandardError => e
+          warn "[RELAY] Error in message event handler for #{@message_id}: #{e.message}"
         end
       end
 
-      # Array pattern matching: the stable identity triple.
-      # @return [Array]
-      def deconstruct
-        [@message_id, @direction, @state]
+      # Caller holds @mutex. Blocks until @done or raises on timeout.
+      def wait_until_done(timeout)
+        deadline = Time.now + timeout
+        until @done
+          remaining = deadline - Time.now
+          raise ActionTimeoutError, "Message #{@message_id} timed out after #{timeout}s" if remaining <= 0
+
+          @condition.wait(@mutex, remaining)
+        end
       end
 
-      # Value equality over the message's data (ignores completion state).
-      def ==(other)
-        other.is_a?(Message) && to_h == other.to_h
-      end
-      alias eql? ==
-
-      # Hash parity with {#==} so equal messages share a bucket.
-      def hash
-        [self.class, to_h].hash
+      def assign_value_fields(**fields)
+        fields[:media] = fields[:media] || []
+        fields[:tags]  = fields[:tags] || []
+        fields.each { |name, value| instance_variable_set("@#{name}", value) }
       end
 
-      private
+      def init_completion_tracking
+        @mutex        = Mutex.new
+        @condition    = ConditionVariable.new
+        @done         = false
+        @result       = nil
+        @on_completed = nil
+        @listeners    = []
+      end
 
       def _resolve(event)
         @mutex.synchronize do
@@ -183,13 +186,15 @@ module SignalWire
           @done   = true
           @condition.broadcast
         end
+        invoke_on_completed(event)
+      end
+
+      def invoke_on_completed(event)
         return unless @on_completed
 
-        begin
-          @on_completed.call(event)
-        rescue StandardError => e
-          warn "[RELAY] Error in on_completed callback for message #{@message_id}: #{e.message}"
-        end
+        @on_completed.call(event)
+      rescue StandardError => e
+        warn "[RELAY] Error in on_completed callback for message #{@message_id}: #{e.message}"
       end
     end
   end

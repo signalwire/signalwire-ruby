@@ -41,14 +41,9 @@ class RelayEventDetailedTest < Minitest::Test
   end
 
   def test_record_event_with_nested_record
-    payload = {
-      'event_type' => 'calling.call.record',
-      'params' => {
-        'call_id' => 'c1', 'control_id' => 'ctl-2', 'state' => 'finished',
-        'record' => { 'url' => 'https://example.com/rec.mp3', 'duration' => 30.5, 'size' => 102_400 }
-      }
-    }
-    event = SignalWire::Relay::RecordEvent.from_payload(payload)
+    record = { 'url' => 'https://example.com/rec.mp3', 'duration' => 30.5, 'size' => 102_400 }
+    params = { 'call_id' => 'c1', 'control_id' => 'ctl-2', 'state' => 'finished', 'record' => record }
+    event = SignalWire::Relay::RecordEvent.from_payload('event_type' => 'calling.call.record', 'params' => params)
 
     assert_equal 'https://example.com/rec.mp3', event.url
     assert_in_delta(30.5, event.duration)

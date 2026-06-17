@@ -82,6 +82,31 @@ Lint/EmptyBlock:
 Lint/DuplicateBranch:
   Enabled: false
 
+# The Python reference exposes wide keyword-argument signatures (AgentBase.__init__
+# takes ~22 kwargs, define_tool ~12, etc.); the Ruby port mirrors them as keyword
+# args for surface parity. Collapsing them into an options hash would change the
+# public API and diverge from the reference signature the DRIFT gate checks.
+# ParameterLists measures arg count, not correctness — suppress it.
+Metrics/ParameterLists:
+  Enabled: false
+
+# AgentBase is the core composite class (~1280 lines). It cannot be shrunk via
+# mixin extraction: the surface enumerator (porting-sdk ruby adapter) reads
+# public_instance_methods(false), so a method moved into an included module
+# vanishes from AgentBase's surface and DRIFT flags it as an omission. The nested
+# Rack middleware classes are likewise pinned by FQN in porting-sdk's
+# RUBY_EXCLUDED_CLASSES. A per-file exclusion until a coupled extraction is done.
+Metrics/ClassLength:
+  Exclude:
+    - 'lib/signalwire/agent/agent_base.rb'
+
+# has_skill? etc.: PredicatePrefix wants has_x? -> x?, but that renames a public
+# method the cross-port surface oracle tracks (Python has has_skill). Same class
+# as the deferred accessor rename — re-enable after the coupled teach-the-checker
+# pass. Tracked: memory accessor-rename-cross-port-policy.
+Naming/PredicatePrefix:
+  Enabled: false
+
 # ---------------------------------------------------------------------------
 # TEMPORARILY DISABLED — accessor-naming idiom (get_x -> x, set_x -> x=) is a
 # real idiom win, but the rename requires a COUPLED change to porting-sdk's ruby

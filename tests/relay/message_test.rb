@@ -21,23 +21,20 @@ class RelayMessageDetailedTest < Minitest::Test
     refute_predicate msg, :done?
   end
 
+  def state_event(message_id, message_state, extra = {})
+    params = { 'message_id' => message_id, 'message_state' => message_state }.merge(extra)
+    { 'event_type' => 'messaging.state', 'params' => params }
+  end
+
   def test_message_state_dispatch
     msg = SignalWire::Relay::Message.new(message_id: 'msg-2', state: 'queued')
 
-    payload = {
-      'event_type' => 'messaging.state',
-      'params' => { 'message_id' => 'msg-2', 'message_state' => 'sent' }
-    }
-    msg._dispatch_event(payload)
+    msg._dispatch_event(state_event('msg-2', 'sent'))
 
     assert_equal 'sent', msg.state
     refute_predicate msg, :done?
 
-    payload = {
-      'event_type' => 'messaging.state',
-      'params' => { 'message_id' => 'msg-2', 'message_state' => 'delivered' }
-    }
-    msg._dispatch_event(payload)
+    msg._dispatch_event(state_event('msg-2', 'delivered'))
 
     assert_equal 'delivered', msg.state
     assert_predicate msg, :done?
@@ -48,11 +45,7 @@ class RelayMessageDetailedTest < Minitest::Test
     callback_fired = false
     msg.on_completed { callback_fired = true }
 
-    payload = {
-      'event_type' => 'messaging.state',
-      'params' => { 'message_id' => 'msg-4', 'message_state' => 'failed', 'reason' => 'carrier error' }
-    }
-    msg._dispatch_event(payload)
+    msg._dispatch_event(state_event('msg-4', 'failed', 'reason' => 'carrier error'))
 
     assert callback_fired
     assert_equal 'carrier error', msg.reason
@@ -73,20 +66,17 @@ class RelayMessageDetailedTest < Minitest::Test
     msg = SignalWire::Relay::Message.new(message_id: 'msg-3', state: 'queued')
     Thread.new do
       sleep 0.05
-      payload = {
-        'event_type' => 'messaging.state',
-        'params' => { 'message_id' => 'msg-3', 'message_state' => 'delivered' }
-      }
-      msg._dispatch_event(payload)
+      msg._dispatch_event(state_event('msg-3', 'delivered'))
     end
     result = msg.wait(timeout: 2)
 
     assert_predicate msg, :done?
     assert_kind_of SignalWire::Relay::RelayEvent, result
   end
+end
 
-  # ---- Tier-2 idiom layer: pattern matching / to_h / value equality ----
-
+# Tier-2 idiom layer: pattern matching / to_h / value equality.
+class RelayMessageIdiomTest < Minitest::Test
   def sample_message(message_id: 'msg-9', state: 'queued')
     SignalWire::Relay::Message.new(
       message_id: message_id, context: 'default', direction: 'outbound',

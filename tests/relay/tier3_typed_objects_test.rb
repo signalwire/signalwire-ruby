@@ -26,7 +26,10 @@ require 'json'
 require 'securerandom'
 require_relative 'mock_test'
 
-class RelayTier3TypedObjectsTest < Minitest::Test
+# Shared setup/teardown + dial/journal helpers for the Tier-3 typed-object
+# test classes (Device, CollectConfig, state enums), split out so no single
+# Minitest class grows unbounded.
+module RelayTier3Helpers
   R = SignalWire::Relay
 
   def setup
@@ -40,21 +43,14 @@ class RelayTier3TypedObjectsTest < Minitest::Test
     RelayMockTest.reset
   end
 
-  # ---- Helpers (identical shapes to outbound_call_mock_test) ------------
-
   # The hand-written phone device literal the existing suite uses verbatim.
   def phone_device_hash(to: '+15551112222', frm: '+15553334444')
     { 'type' => 'phone', 'params' => { 'to_number' => to, 'from_number' => frm } }
   end
 
   def dial_call(tag:, call_id:, devices:, states: %w[created answered])
-    RelayMockTest.journal.arm_dial(
-      tag: tag,
-      winner_call_id: call_id,
-      states: states,
-      node_id: 'node-mock-1',
-      device: phone_device_hash
-    )
+    RelayMockTest.journal.arm_dial(tag: tag, winner_call_id: call_id, states: states,
+                                   node_id: 'node-mock-1', device: phone_device_hash)
     call = @client.dial(devices, tag: tag, timeout: 5)
 
     assert_kind_of R::Call, call
@@ -68,10 +64,15 @@ class RelayTier3TypedObjectsTest < Minitest::Test
     refute_empty frames, "no #{method} frame in journal"
     frames.last.frame['params']
   end
+end
 
-  # ======================================================================
-  # 1. Device
-  # ======================================================================
+# ======================================================================
+# 1. Device
+# ======================================================================
+class RelayTier3DeviceTest < Minitest::Test
+  include RelayTier3Helpers
+
+  R = SignalWire::Relay
 
   # Pure: Device.to_h is byte identical to the hand-written Hash the rest of
   # the suite passes raw.
@@ -101,14 +102,11 @@ class RelayTier3TypedObjectsTest < Minitest::Test
   end
 
   def test_device_sip_shape
-    dev = R::Device.sip(to: 'sip:bob@example.com',
-                        headers: { 'X-Foo' => 'bar' })
+    dev = R::Device.sip(to: 'sip:bob@example.com', headers: { 'X-Foo' => 'bar' })
+    expected = { 'type' => 'sip',
+                 'params' => { 'to' => 'sip:bob@example.com', 'headers' => { 'X-Foo' => 'bar' } } }
 
-    assert_equal(
-      { 'type' => 'sip',
-        'params' => { 'to' => 'sip:bob@example.com', 'headers' => { 'X-Foo' => 'bar' } } },
-      dev.to_h
-    )
+    assert_equal(expected, dev.to_h)
   end
 
   # Real round-trip: a Device built object drives a real dial and lands the
@@ -121,9 +119,13 @@ class RelayTier3TypedObjectsTest < Minitest::Test
     p = last_params('calling.dial')
 
     assert_equal 't-dev', p['tag']
-    assert_equal 1, p['devices'].size
-    assert_equal 1, p['devices'][0].size
-    on_wire = p['devices'][0][0]
+    assert_single_phone_device(p['devices'])
+  end
+
+  def assert_single_phone_device(devices)
+    assert_equal 1, devices.size
+    assert_equal 1, devices[0].size
+    on_wire = devices[0][0]
     # The frame the SDK emitted is byte identical to the hand-written literal.
     assert_equal phone_device_hash, on_wire
     assert_equal 'phone', on_wire['type']
@@ -209,10 +211,15 @@ class RelayTier3TypedObjectsTest < Minitest::Test
     assert_equal 'sip', t
     assert_equal({ 'to' => 'sip:x@y' }, params)
   end
+end
 
-  # ======================================================================
-  # 2. CollectConfig
-  # ======================================================================
+# ======================================================================
+# 2. CollectConfig
+# ======================================================================
+class RelayTier3CollectConfigTest < Minitest::Test
+  include RelayTier3Helpers
+
+  R = SignalWire::Relay
 
   def test_collect_config_to_h_digits_shape
     cfg = R::CollectConfig.new(digits: { max: 4, terminators: '#' },
@@ -241,9 +248,12 @@ class RelayTier3TypedObjectsTest < Minitest::Test
     cfg = R::CollectConfig.new(digits: { max: 2 }, partial_results: false,
                                continuous: true)
     h = cfg.to_h
-    # Booleans pass through even when false (omit-when-nil, not omit-when-falsey).
-    assert_equal false, h['partial_results']
-    assert_equal true,  h['continuous']
+    # Booleans pass through even when false (omit-when-nil, not omit-when-falsey):
+    # the keys are PRESENT (omit-when-nil would drop them) and carry the bools.
+    assert h.key?('partial_results')
+    assert h.key?('continuous')
+    refute h['partial_results']
+    assert h['continuous']
   end
 
   # Real round-trip: CollectConfig.to_h matches the wrapper's wire shape. The
@@ -258,34 +268,41 @@ class RelayTier3TypedObjectsTest < Minitest::Test
     p = last_params('calling.play_and_collect')
 
     assert_equal 'C-CC', p['call_id']
+    assert_play_and_collect_shape(p, cfg)
+  end
+
+  def assert_play_and_collect_shape(params, cfg)
+    collect = params['collect']
     # collect object on the wire equals the typed config's to_h, verbatim.
-    assert_equal cfg.to_h, p['collect']
-    assert_equal 4, p['collect']['digits']['max']
-    assert_in_delta(5.0, p['collect']['initial_timeout'])
+    assert_equal cfg.to_h, collect
+    assert_equal 4, collect['digits']['max']
+    assert_in_delta(5.0, collect['initial_timeout'])
     # media + volume still ride correctly alongside.
-    assert_equal 'tts', p['play'][0]['type']
-    assert_in_delta(3.0, p['volume'])
+    assert_equal 'tts', params['play'][0]['type']
+    assert_in_delta(3.0, params['volume'])
   end
 
   # A raw collect Hash and the equivalent CollectConfig produce the SAME
   # collect frame on a real standalone collect call.
   def test_collect_config_and_raw_hash_produce_identical_collect_frame
     raw = { 'digits' => { 'max' => 4 }, 'initial_timeout' => 5.0 }
+    cfg = R::CollectConfig.new(digits: { max: 4 }, initial_timeout: 5.0)
     call = dial_call(tag: 't-cc2', call_id: 'C-CC2', devices: [[phone_device_hash]])
 
-    call.collect(raw, control_id: 'ctl-raw')
-    raw_collect = last_params('calling.collect')
-
-    cfg = R::CollectConfig.new(digits: { max: 4 }, initial_timeout: 5.0)
-    call.collect(cfg.to_h, control_id: 'ctl-typed')
-    frames = RelayMockTest.journal.journal_recv(method: 'calling.collect')
-    typed_collect = frames.last.frame['params']
+    raw_collect = collect_and_capture(call, raw, 'ctl-raw')
+    typed_collect = collect_and_capture(call, cfg.to_h, 'ctl-typed')
 
     # Compare the collect-config slice (control_id differs by design).
     %w[digits initial_timeout].each do |k|
       assert_equal raw_collect[k], typed_collect[k],
                    "collect field #{k} must match between raw and typed"
     end
+  end
+
+  # Issue a standalone collect and return the params of the resulting frame.
+  def collect_and_capture(call, collect_arg, control_id)
+    call.collect(collect_arg, control_id: control_id)
+    last_params('calling.collect')
   end
 
   def test_collect_config_value_equality_and_pattern_match
@@ -303,10 +320,15 @@ class RelayTier3TypedObjectsTest < Minitest::Test
 
     assert_in_delta(5.0, bound)
   end
+end
 
-  # ======================================================================
-  # 3. RELAY state enums
-  # ======================================================================
+# ======================================================================
+# 3. RELAY state enums
+# ======================================================================
+class RelayTier3StateEnumsTest < Minitest::Test
+  include RelayTier3Helpers
+
+  R = SignalWire::Relay
 
   # ---- CallState -------------------------------------------------------
 
@@ -338,10 +360,8 @@ class RelayTier3TypedObjectsTest < Minitest::Test
     captured = []
     call.on(R::EVENT_CALL_STATE) { |e| captured << e }
     # Dispatch a real ended state event (same path RelayClient uses).
-    call._dispatch_event(
-      'event_type' => 'calling.call.state',
-      'params' => { 'call_id' => 'C-CS', 'call_state' => 'ended' }
-    )
+    call._dispatch_event('event_type' => 'calling.call.state',
+                         'params' => { 'call_id' => 'C-CS', 'call_state' => 'ended' })
 
     refute_empty captured, 'no calling.call.state event dispatched'
     ended_ev = captured.find { |e| e.call_state == 'ended' }
@@ -381,11 +401,8 @@ class RelayTier3TypedObjectsTest < Minitest::Test
   # Typed accessors agree with the bare string over a real dial event that the
   # outbound dial flow actually dispatches.
   def test_dial_event_typed_accessors_agree_over_real_event
-    ev = R.parse_event(
-      'event_type' => 'calling.call.dial',
-      'params' => { 'tag' => 't', 'dial_state' => 'answered',
-                    'call' => { 'call_id' => 'w' } }
-    )
+    answered_params = { 'tag' => 't', 'dial_state' => 'answered', 'call' => { 'call_id' => 'w' } }
+    ev = R.parse_event('event_type' => 'calling.call.dial', 'params' => answered_params)
 
     assert_equal 'answered', ev.dial_state # string preserved
     assert_predicate ev, :answered?
@@ -393,10 +410,12 @@ class RelayTier3TypedObjectsTest < Minitest::Test
     assert_predicate ev, :terminal?
     assert_equal R::DialState.terminal?(ev.dial_state), ev.terminal?
 
-    failed = R.parse_event(
-      'event_type' => 'calling.call.dial',
-      'params' => { 'tag' => 't', 'dial_state' => 'failed', 'call' => {} }
-    )
+    assert_failed_dial_event
+  end
+
+  def assert_failed_dial_event
+    failed_params = { 'tag' => 't', 'dial_state' => 'failed', 'call' => {} }
+    failed = R.parse_event('event_type' => 'calling.call.dial', 'params' => failed_params)
 
     assert_predicate failed, :failed?
     assert_predicate failed, :terminal?
@@ -417,8 +436,13 @@ class RelayTier3TypedObjectsTest < Minitest::Test
     refute_nil final, 'no answered dial_state in the pushed events'
     assert R::DialState.terminal?(final['dial_state'])
   end
+end
 
-  # ---- MessageState ----------------------------------------------------
+# ---- MessageState ----------------------------------------------------
+class RelayTier3MessageStateTest < Minitest::Test
+  include RelayTier3Helpers
+
+  R = SignalWire::Relay
 
   def test_message_state_all_and_terminal_set
     assert_equal %w[queued initiated sent delivered undelivered failed received],
@@ -447,10 +471,8 @@ class RelayTier3TypedObjectsTest < Minitest::Test
     assert_equal R::MessageState.terminal?(msg.state), msg.terminal?
 
     # Drive a real delivered event through the actual dispatch path.
-    msg._dispatch_event(
-      'event_type' => 'messaging.state',
-      'params' => { 'message_id' => 'm1', 'message_state' => 'delivered' }
-    )
+    msg._dispatch_event('event_type' => 'messaging.state',
+                        'params' => { 'message_id' => 'm1', 'message_state' => 'delivered' })
 
     assert_equal 'delivered', msg.state # string updated
     assert_predicate msg, :terminal?, 'delivered message must be terminal'

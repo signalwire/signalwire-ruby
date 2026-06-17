@@ -8,32 +8,18 @@ class RestNamespacesDetailedTest < Minitest::Test
     @http = SignalWire::REST::HttpClient.new('proj', 'tok', 'test.signalwire.com')
   end
 
+  ALL_NAMESPACES = %i[
+    fabric calling phone_numbers datasphere video compat addresses queues
+    recordings number_groups verified_callers sip_profile lookup short_codes
+    imported_numbers mfa registry logs project pubsub chat
+  ].freeze
+
   def test_all_21_namespaces_non_nil
     client = SignalWire::REST::RestClient.new(
       project: 'proj', token: 'tok', host: 'test.signalwire.com'
     )
 
-    refute_nil client.fabric
-    refute_nil client.calling
-    refute_nil client.phone_numbers
-    refute_nil client.datasphere
-    refute_nil client.video
-    refute_nil client.compat
-    refute_nil client.addresses
-    refute_nil client.queues
-    refute_nil client.recordings
-    refute_nil client.number_groups
-    refute_nil client.verified_callers
-    refute_nil client.sip_profile
-    refute_nil client.lookup
-    refute_nil client.short_codes
-    refute_nil client.imported_numbers
-    refute_nil client.mfa
-    refute_nil client.registry
-    refute_nil client.logs
-    refute_nil client.project
-    refute_nil client.pubsub
-    refute_nil client.chat
+    ALL_NAMESPACES.each { |ns| refute_nil client.public_send(ns), "#{ns} namespace must not be nil" }
   end
 
   def test_phone_numbers_path

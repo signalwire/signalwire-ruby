@@ -21,18 +21,56 @@ module SignalWire
         end
 
         def register_tools
-          if @temp_unit == 'celsius'
-            temp_field      = 'temp_c'
-            feels_field     = 'feelslike_c'
-            unit_name       = 'Celsius'
-          else
-            temp_field      = 'temp_f'
-            feels_field     = 'feelslike_f'
-            unit_name       = 'Fahrenheit'
-          end
+          tool = {
+            'function' => @tool_name,
+            'description' => 'Get current weather information for any location',
+            'parameters' => tool_parameters,
+            'data_map' => tool_data_map
+          }
 
-          response_template =
-            'Tell the user the current weather conditions. ' \
+          [{ datamap: tool }]
+        end
+
+        private
+
+        def tool_parameters
+          {
+            'type' => 'object',
+            'properties' => {
+              'location' => { 'type' => 'string',
+                              'description' => 'The city, state, country, or location to get weather for' }
+            },
+            'required' => ['location']
+          }
+        end
+
+        def tool_data_map
+          {
+            'webhooks' => [weather_webhook],
+            'error_keys' => ['error'],
+            'output' => Swaig::FunctionResult.new(fallback_message).to_h
+          }
+        end
+
+        def weather_webhook
+          {
+            'url' => "#{base_url}/v1/current.json?key=#{@api_key}&q=${lc:enc:args.location}&aqi=no",
+            'method' => 'GET',
+            'output' => Swaig::FunctionResult.new(response_template).to_h
+          }
+        end
+
+        def temperature_fields
+          if @temp_unit == 'celsius'
+            { temp: 'temp_c', feels: 'feelslike_c', unit: 'Celsius' }
+          else
+            { temp: 'temp_f', feels: 'feelslike_f', unit: 'Fahrenheit' }
+          end
+        end
+
+        def response_template
+          temp_field, feels_field, unit_name = temperature_fields.values_at(:temp, :feels, :unit)
+          'Tell the user the current weather conditions. ' \
             "Express all temperatures in #{unit_name} using natural language numbers " \
             'without abbreviations or symbols for clear text-to-speech pronunciation. ' \
             'Current conditions: ${current.condition.text}. ' \
@@ -40,42 +78,23 @@ module SignalWire
             'Wind: ${current.wind_dir} at ${current.wind_mph} miles per hour. ' \
             'Cloud coverage: ${current.cloud} percent. ' \
             "Feels like: ${current.#{feels_field}} degrees #{unit_name}."
+        end
 
-          # Default to the WeatherAPI.com host; WEATHER_API_BASE_URL
-          # overrides for tests and the audit fixture. The `/v1/current.json`
-          # path is preserved so the audit can match on `current.json`.
+        # Default to the WeatherAPI.com host; WEATHER_API_BASE_URL
+        # overrides for tests and the audit fixture. The `/v1/current.json`
+        # path is preserved so the audit can match on `current.json`.
+        def base_url
           base = ENV.fetch('WEATHER_API_BASE_URL', nil)
           base = 'https://api.weatherapi.com' if base.nil? || base.empty?
-          base = base.sub(%r{/$}, '')
-
-          tool = {
-            'function' => @tool_name,
-            'description' => 'Get current weather information for any location',
-            'parameters' => {
-              'type' => 'object',
-              'properties' => {
-                'location' => { 'type' => 'string',
-                                'description' => 'The city, state, country, or location to get weather for' }
-              },
-              'required' => ['location']
-            },
-            'data_map' => {
-              'webhooks' => [
-                {
-                  'url' => "#{base}/v1/current.json?key=#{@api_key}&q=${lc:enc:args.location}&aqi=no",
-                  'method' => 'GET',
-                  'output' => Swaig::FunctionResult.new(response_template).to_h
-                }
-              ],
-              'error_keys' => ['error'],
-              'output' => Swaig::FunctionResult.new(
-                'Sorry, I cannot get weather information right now. Please try again later or check if the location name is correct.'
-              ).to_h
-            }
-          }
-
-          [{ datamap: tool }]
+          base.sub(%r{/$}, '')
         end
+
+        def fallback_message
+          'Sorry, I cannot get weather information right now. ' \
+            'Please try again later or check if the location name is correct.'
+        end
+
+        public
 
         def get_parameter_schema
           {

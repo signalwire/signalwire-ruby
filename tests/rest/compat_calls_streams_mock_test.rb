@@ -34,16 +34,15 @@ class CompatCallsStreamsMockTest < Minitest::Test
   end
 
   def test_start_stream_journal_records_post_to_streams_collection
-    @client.compat.calls.start_stream(
-      'CA_JX1', Url: 'wss://a.b/s', Name: 'strm-x'
-    )
+    @client.compat.calls.start_stream('CA_JX1', Url: 'wss://a.b/s', Name: 'strm-x')
     j = MockTest.journal.last
+    body = j.body
 
     assert_equal 'POST', j.method
     assert_equal '/api/laml/2010-04-01/Accounts/test_proj/Calls/CA_JX1/Streams', j.path
-    assert_kind_of Hash, j.body
-    assert_equal 'wss://a.b/s', j.body['Url']
-    assert_equal 'strm-x', j.body['Name']
+    assert_kind_of Hash, body
+    assert_equal 'wss://a.b/s', body['Url']
+    assert_equal 'strm-x', body['Name']
   end
 
   # ---- stop_stream → POST .../Streams/{stream_sid} -----------------------
