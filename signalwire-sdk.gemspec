@@ -29,6 +29,10 @@ Gem::Specification.new do |s|
 
   # Development dependencies
   s.add_development_dependency 'minitest', '>= 5.0'
-  s.add_development_dependency 'rake', '>= 13.0'
   s.add_development_dependency 'rack-test', '>= 2.0'
+  s.add_development_dependency 'rake', '>= 13.0'
+  # Lint/format quality floor (FMT + LINT gates in scripts/run-ci.sh).
+  s.add_development_dependency 'rubocop', '>= 1.80'
+  s.add_development_dependency 'rubocop-minitest', '>= 0.38'
+  s.add_development_dependency 'rubocop-performance', '>= 1.25'
 end
