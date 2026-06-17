@@ -86,8 +86,8 @@ module SignalWire
 
         url = _reconstruct_url(env)
 
-        valid = begin
-          WebhookValidator.validate_webhook_signature(@signing_key, signature, url, raw_body)
+        begin
+          valid = WebhookValidator.validate_webhook_signature(@signing_key, signature, url, raw_body)
         rescue ArgumentError, TypeError
           # Programming errors at the boundary — never leak which branch
           # tripped. Reject the request without raising.
@@ -151,21 +151,21 @@ module SignalWire
         query = env['QUERY_STRING'].to_s
         path_and_query = query.empty? ? path : "#{path}?#{query}"
 
-        proxy_base = ENV['SWML_PROXY_URL_BASE']
+        proxy_base = ENV.fetch('SWML_PROXY_URL_BASE', nil)
         return "#{proxy_base.sub(%r{/+\z}, '')}#{path_and_query}" if proxy_base && !proxy_base.empty?
 
         if @trust_proxy
           fwd_host  = env['HTTP_X_FORWARDED_HOST']
           fwd_proto = env['HTTP_X_FORWARDED_PROTO'] || 'https'
-          if fwd_host && !fwd_host.empty?
-            return "#{fwd_proto}://#{fwd_host}#{path_and_query}"
-          end
+          return "#{fwd_proto}://#{fwd_host}#{path_and_query}" if fwd_host && !fwd_host.empty?
         end
 
         scheme = env['rack.url_scheme'] || 'http'
         host = env['HTTP_HOST'] || env['SERVER_NAME']
         port = env['SERVER_PORT']
         # Only include port if it's non-standard AND not already in HTTP_HOST.
+        # The "already has a port" and "no port needed" cases both yield host but
+        # are distinct conditions; keeping them separate reads clearer than merging.
         host_with_port =
           if host && host.include?(':')
             host

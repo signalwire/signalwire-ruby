@@ -1,0 +1,96 @@
+# RuboCop config for signalwire-ruby.
+#
+# This is the LINT + FMT quality floor wired into scripts/run-ci.sh (the FMT gate
+# runs `rubocop --autocorrect` locally / `rubocop` in CI; the LINT gate is a clean
+# `rubocop` run with zero offenses). It was stood up via a one-time burndown that
+# cleared the backlog to zero.
+#
+# Discipline (mirrors the signalwire-go golangci gate + signalwire-rust clippy
+# gate): every cop here is either burned to zero by hand or guards an applicable
+# bug/idiom class. The DISABLE list is short and JUSTIFIED — a cop is turned off
+# ONLY when obeying it would change the SWAIG wire bytes / rename a wire token, or
+# when it fights faithful parity with the Python reference's structure. Type/shape
+# and naming idiom (e.g. dropping get_/set_ accessor prefixes) is NEVER a reason to
+# suppress — idiom wins, and the cross-port DRIFT checker is taught the
+# idiom-equivalence instead (porting-sdk type_aliases.yaml / the ruby adapter).
+
+plugins:
+  - rubocop-minitest
+  - rubocop-performance
+
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 3.2
+  SuggestExtensions: false
+  Exclude:
+    # Demo programs, not library surface — excluded from the blocking gate the way
+    # signalwire-go tags its examples //go:build ignore. They are not part of the
+    # audited public surface and are free to read as tutorial-style code.
+    - 'examples/**/*'
+    - 'relay/examples/**/*'
+    - 'rest/examples/**/*'
+    - 'vendor/**/*'
+
+# ---------------------------------------------------------------------------
+# Documentation: the SDK documents its public API in YARD/markdown + the
+# cross-port DOC-AUDIT gate, not via a top-of-class comment on every class.
+# Requiring Style/Documentation would add noise comments that duplicate the
+# audited doc surface.
+Style/Documentation:
+  Enabled: false
+
+# ---------------------------------------------------------------------------
+# SUPPRESSED — these fight FAITHFUL PARITY with the Python reference's
+# structure (the one carve-out the discipline above allows). NOT type/shape
+# idiom (which is never suppressed).
+
+# The cross-port test files deliberately group several related test classes per
+# file (one file per skill/feature, mirroring the Python parity-test layout).
+# One-class-per-file would fragment that intentional organization.
+Style/OneClassPerFile:
+  Enabled: false
+
+# Parity tests legitimately assert several related facts in one test method
+# (e.g. "setup returns true AND loads the stdlib AND defines Time"). Splitting
+# into one-assertion-per-test is noise that obscures the single behavior tested.
+Minitest/MultipleAssertions:
+  Enabled: false
+
+# Several parity test classes use a `build` helper (which itself asserts the
+# skill set up cleanly) as a fixture factory. Minitest/TestMethodName sees a
+# non-`test_`-prefixed public method that asserts and autocorrects it to
+# `test_build`, which breaks every caller (`skill = build`). The helper is an
+# intentional fixture, not a test case — leave it named `build`.
+Minitest/TestMethodName:
+  Enabled: false
+
+# Empty blocks in lib/ are a real bug (a no-op iterator/handler is almost always
+# a mistake), so the cop stays ON there. In tests/, an empty block is a
+# deliberate no-op SWAIG handler — `define_tool(...) { |_, _| }` — used purely to
+# register a tool whose body is irrelevant to the assertion. Exclude tests only.
+Lint/EmptyBlock:
+  Exclude:
+    - 'tests/**/*'
+
+# Every DuplicateBranch site in this codebase is an INTENTIONAL same-body branch
+# kept separate to document a distinct case: JSON-RPC method-dispatch arms that
+# share a no-op body, rescue arms handling distinct exception classes the same
+# way, and if/case arms whose conditions differ but whose result coincides
+# (host-already-has-port vs no-port; explicit 'info' vs unknown default; Class vs
+# fallback). Merging them would lose the documentation value. Each site carries
+# an explanatory comment.
+Lint/DuplicateBranch:
+  Enabled: false
+
+# ---------------------------------------------------------------------------
+# TEMPORARILY DISABLED — accessor-naming idiom (get_x -> x, set_x -> x=) is a
+# real idiom win, but the rename requires a COUPLED change to porting-sdk's ruby
+# adapter (scripts/enumerate_signatures.py MIXIN_PROJECTIONS) to teach the DRIFT
+# checker the get_x<->x equivalence, AND some get_ prefixes may be load-bearing
+# (Ruby has no method/field collision like Go's, but parity-projected names must
+# stay mapped). Re-enable after the rename + teach-the-checker lands.
+# Tracked: memory accessor-rename-cross-port-policy.
+Naming/AccessorMethodName:
+  Enabled: false
+Naming/PredicateMethod:
+  Enabled: false

@@ -8,13 +8,14 @@ module SignalWire
     module Builtin
       # User-defined custom tools.
       class CustomSkillsSkill < SkillBase
-        def name;        'custom_skills'; end
-        def description; 'Register user-defined custom tools'; end
-        def supports_multiple_instances?; true; end
+        def name = 'custom_skills'
+        def description = 'Register user-defined custom tools'
+        def supports_multiple_instances? = true
 
         def setup
           @tools_config = get_param('tools')
           return false unless @tools_config.is_a?(Array)
+
           true
         end
 
@@ -31,7 +32,7 @@ module SignalWire
               name: tool_def['name'],
               description: tool_def['description'] || "Custom tool: #{tool_def['name']}",
               parameters: tool_def['parameters'] || {},
-              handler: lambda { |args, _raw_data|
+              handler: lambda { |_args, _raw_data|
                 response = tool_def['response'] || "Custom tool #{tool_def['name']} executed."
                 Swaig::FunctionResult.new(response)
               }

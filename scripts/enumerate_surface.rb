@@ -58,7 +58,7 @@ LIB_DIR   = REPO_ROOT.join('lib')
 #   2. ./porting-sdk     (CI layout — checked out as a sibling under repo root)
 #   3. ../porting-sdk    (local layout — sibling of signalwire-ruby)
 def find_default_porting_sdk
-  env = ENV['PORTING_SDK_PATH']
+  env = ENV.fetch('PORTING_SDK_PATH', nil)
   return Pathname.new(env) if env && !env.empty?
 
   [REPO_ROOT.join('porting-sdk'), REPO_ROOT.parent.join('porting-sdk')].each do |p|
@@ -165,7 +165,7 @@ RUBY_MODULE_TO_PYTHON = {
   # WebhookValidator is a Ruby module (with self.* methods) that mirrors
   # Python's module-level webhook_validator helpers under
   # signalwire/core/security/.
-  'SignalWire::Security::WebhookValidator' => 'signalwire.core.security.webhook_validator',
+  'SignalWire::Security::WebhookValidator' => 'signalwire.core.security.webhook_validator'
 }.freeze
 
 # Ruby class name -> Python class name (when they differ).
@@ -180,7 +180,7 @@ RUBY_TO_PYTHON_CLASS_ALIASES = {
   'SignalWire::Skills::Builtin::DatasphereSkill' => 'DataSphereSkill',
   'SignalWire::Skills::Builtin::DatasphereServerlessSkill' => 'DataSphereServerlessSkill',
   # Ruby Relay::Client maps to Python RelayClient.
-  'SignalWire::Relay::Client' => 'RelayClient',
+  'SignalWire::Relay::Client' => 'RelayClient'
 }.freeze
 
 # Ruby SWML classes (Document/Schema/Service) are consolidated wrappers that
@@ -249,16 +249,12 @@ def translate_class(ruby_fqn, python_index)
   end
 
   # 2. SWML-specific mapping.
-  if RUBY_SWML_MODULE_OVERRIDES.key?(ruby_fqn)
-    return [RUBY_SWML_MODULE_OVERRIDES[ruby_fqn], ruby_fqn.split('::').last]
-  end
+  return [RUBY_SWML_MODULE_OVERRIDES[ruby_fqn], ruby_fqn.split('::').last] if RUBY_SWML_MODULE_OVERRIDES.key?(ruby_fqn)
 
   cls = ruby_fqn.split('::').last
 
   # 3. Ruby class name matches a Python class name uniquely -> use Python mod.
-  if python_index.key?(cls) && python_index[cls].length == 1
-    return [python_index[cls].first, cls]
-  end
+  return [python_index[cls].first, cls] if python_index.key?(cls) && python_index[cls].length == 1
 
   # 4. No Python match -> translate Ruby namespace to dotted snake_case path,
   # emitting under a signalwire.* module. Port-only additions show up in
@@ -295,6 +291,7 @@ def enumerate_module_methods(mod)
   mod.singleton_methods(false).map(&:to_s).each do |m|
     next if m.start_with?('_') && !m.start_with?('__')
     next if m.end_with?('=')
+
     seen[m] = true
   end
   seen.keys.sort
@@ -314,7 +311,7 @@ def enumerate_methods(klass)
   # methods on the class too).
   raw.concat(klass.singleton_methods(false).map(&:to_s))
   # initialize is private by default — include it explicitly.
-  raw << 'initialize' if klass.private_instance_methods(false).include?(:initialize)
+  raw << 'initialize' if klass.private_method_defined?(:initialize, false)
 
   seen = {}
   raw.each do |m|
@@ -323,6 +320,7 @@ def enumerate_methods(klass)
     # Skip auto-generated writer methods (attr_writer/attr_accessor). The
     # Python surface file doesn't emit setters either.
     next if m.end_with?('=')
+
     # Keep `?`- and `!`-suffixed method names as-is. Ruby predicate
     # methods (has_skill?) and bang methods (reset!) are idiomatic; they
     # show up as port additions (Python has no equivalent, so they end up
@@ -348,6 +346,7 @@ def collect_modules(python_index)
     # SignalWire module itself.
     next if name == 'SignalWire'
     next if seen_classes[name]
+
     seen_classes[name] = true
 
     # Skip excluded internal classes (middlewares, nested helpers).
@@ -363,16 +362,14 @@ def collect_modules(python_index)
     # port-only modules (Runtime, Logging) still show up.
     unless m.is_a?(Class)
       # Skip pure namespace modules with no functions of their own.
-      if m.singleton_methods(false).empty? && m.instance_methods(false).empty?
-        next
-      end
+      next if m.singleton_methods(false).empty? && m.instance_methods(false).empty?
 
       if RUBY_MODULE_TO_PYTHON.key?(name)
         target_mod = RUBY_MODULE_TO_PYTHON[name]
         fns = m.singleton_methods(false).map(&:to_s)
-              .reject { |meth| meth.start_with?('_') && !meth.start_with?('__') }
-              .reject { |meth| meth.end_with?('=') }
-              .sort
+               .reject { |meth| meth.start_with?('_') && !meth.start_with?('__') }
+               .reject { |meth| meth.end_with?('=') }
+               .sort
         modules[target_mod]['functions'] = (modules[target_mod]['functions'] + fns).uniq.sort
         next
       end
@@ -398,15 +395,14 @@ def collect_modules(python_index)
     MIXIN_PROJECTIONS.each do |(target_mod, target_cls), expected|
       present = expected & ab_entry
       next if present.empty?
+
       modules[target_mod] ||= { 'classes' => {}, 'functions' => [] }
       modules[target_mod]['classes'][target_cls] ||= []
       modules[target_mod]['classes'][target_cls] =
         (modules[target_mod]['classes'][target_cls] + present).uniq.sort
       ab_entry.reject! { |m| present.include?(m) }
     end
-    if ab_entry.empty?
-      modules['signalwire.core.agent_base']['classes'].delete('AgentBase')
-    end
+    modules['signalwire.core.agent_base']['classes'].delete('AgentBase') if ab_entry.empty?
   end
 
   # Top-level signalwire functions (Ruby's top-level "def" equivalents). In
@@ -440,7 +436,7 @@ def build_snapshot(python_surface_path)
   # entry in lib/signalwire.rb doesn't silently shrink the surface.
   $LOAD_PATH.unshift(LIB_DIR.to_s) unless $LOAD_PATH.include?(LIB_DIR.to_s)
   require 'signalwire'
-  Dir[LIB_DIR.join('signalwire/**/*.rb').to_s].sort.each { |f| require f }
+  Dir[LIB_DIR.join('signalwire/**/*.rb').to_s].each { |f| require f }
 
   mods = collect_modules(python_index)
 
@@ -454,16 +450,16 @@ def build_snapshot(python_surface_path)
       sorted_classes[cls] = entry['classes'][cls]
     end
     sorted[k] = {
-      'classes'   => sorted_classes,
+      'classes' => sorted_classes,
       'functions' => entry['functions'].sort
     }
   end
 
   {
-    'version'        => '1',
+    'version' => '1',
     'generated_from' => "signalwire-ruby @ #{git_sha}",
-    'ruby_version'   => RUBY_VERSION,
-    'modules'        => sorted
+    'ruby_version' => RUBY_VERSION,
+    'modules' => sorted
   }
 end
 
@@ -480,8 +476,8 @@ end
 
 def main(argv)
   options = {
-    output:         nil,
-    check:          false,
+    output: nil,
+    check: false,
     python_surface: PORTING_SDK_DEFAULT.join('python_surface.json')
   }
   OptionParser.new do |o|
@@ -489,7 +485,10 @@ def main(argv)
     o.on('--output PATH', 'Write JSON to this path (default: stdout)') { |v| options[:output] = Pathname.new(v) }
     o.on('--check', 'Compare against --output; exit 1 on drift') { options[:check] = true }
     o.on('--python-surface PATH', 'Path to python_surface.json') { |v| options[:python_surface] = Pathname.new(v) }
-    o.on('-h', '--help', 'Show this help') { puts o; exit 0 }
+    o.on('-h', '--help', 'Show this help') do
+      puts o
+      exit 0
+    end
   end.parse!(argv)
 
   if options[:check] && options[:output].nil?

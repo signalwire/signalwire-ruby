@@ -7,9 +7,9 @@ module SignalWire
   module Skills
     module Builtin
       class PlayBackgroundFileSkill < SkillBase
-        def name;        'play_background_file'; end
-        def description; 'Control background file playback'; end
-        def supports_multiple_instances?; true; end
+        def name = 'play_background_file'
+        def description = 'Control background file playback'
+        def supports_multiple_instances? = true
 
         def setup
           @tool_name = get_param('tool_name', default: 'play_background_file')
@@ -22,7 +22,7 @@ module SignalWire
           true
         end
 
-        def instance_key; "play_background_file_#{@tool_name}"; end
+        def instance_key = "play_background_file_#{@tool_name}"
 
         def register_tools
           enum_values = @files.map { |f| "start_#{f['key']}" } + ['stop']
@@ -38,9 +38,9 @@ module SignalWire
             result.play_background_file(f['url'], wait: f.fetch('wait', false))
 
             {
-              'string'  => '${args.action}',
+              'string' => '${args.action}',
               'pattern' => "/start_#{f['key']}/i",
-              'output'  => result.to_h
+              'output' => result.to_h
             }
           end
 
@@ -49,15 +49,15 @@ module SignalWire
           ).stop_background_file
 
           expressions << {
-            'string'  => '${args.action}',
+            'string' => '${args.action}',
             'pattern' => '/stop/i',
-            'output'  => stop_result.to_h
+            'output' => stop_result.to_h
           }
 
           tool = {
-            'function'    => @tool_name,
+            'function' => @tool_name,
             'description' => "Control background file playback for #{@tool_name.tr('_', ' ')}",
-            'parameters'  => {
+            'parameters' => {
               'type' => 'object',
               'properties' => {
                 'action' => { 'type' => 'string', 'description' => param_desc, 'enum' => enum_values }

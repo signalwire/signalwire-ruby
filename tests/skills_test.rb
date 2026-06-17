@@ -38,19 +38,22 @@ class SkillRegistryTest < Minitest::Test
 
   def test_registry_has_all_18_skills
     registered = SignalWire::Skills::SkillRegistry.list_skills.sort
+
     EXPECTED_SKILLS.each do |skill_name|
       assert_includes registered, skill_name, "Missing skill: #{skill_name}"
     end
     assert_equal 18, EXPECTED_SKILLS.size
-    assert registered.size >= 18, "Expected at least 18 skills, got #{registered.size}"
+    assert_operator registered.size, :>=, 18, "Expected at least 18 skills, got #{registered.size}"
   end
 
   def test_each_skill_can_be_instantiated
     EXPECTED_SKILLS.each do |skill_name|
       factory = SignalWire::Skills::SkillRegistry.get_factory(skill_name)
+
       refute_nil factory, "No factory for: #{skill_name}"
 
       skill = factory.call({})
+
       assert_kind_of SignalWire::Skills::SkillBase, skill, "#{skill_name} is not a SkillBase"
       assert_equal skill_name, skill.name
     end
@@ -62,6 +65,7 @@ class SkillRegistryTest < Minitest::Test
     no_env_skills.each do |skill_name|
       factory = SignalWire::Skills::SkillRegistry.get_factory(skill_name)
       skill = factory.call({})
+
       assert skill.setup, "#{skill_name} setup should succeed"
     end
   end
@@ -80,6 +84,7 @@ class SkillRegistryTest < Minitest::Test
       param_skills.each do |skill_name|
         factory = SignalWire::Skills::SkillRegistry.get_factory(skill_name)
         skill = factory.call({})
+
         refute skill.setup, "#{skill_name} setup should fail without required params"
       end
     ensure
@@ -95,6 +100,7 @@ class SkillRegistryTest < Minitest::Test
     Dir.mktmpdir do |tmpdir|
       registry = SignalWire::Skills::SkillRegistry.new
       registry.add_skill_directory(tmpdir)
+
       assert_includes registry.external_paths, tmpdir
     end
   end
@@ -120,6 +126,7 @@ class SkillRegistryTest < Minitest::Test
   # --- Python parity: SkillRegistry instance logger --------------
   def test_registry_instance_logger
     registry = SignalWire::Skills::SkillRegistry.new
+
     refute_nil registry.logger
     assert_respond_to registry.logger, :info
   end
@@ -128,6 +135,7 @@ class SkillRegistryTest < Minitest::Test
   def test_registry_instance_list_skills_returns_hashes
     registry = SignalWire::Skills::SkillRegistry.new
     skills = registry.list_skills
+
     assert_kind_of Array, skills
     refute_empty skills
     skills.each do |entry|
@@ -162,6 +170,7 @@ class SkillRegistryTest < Minitest::Test
       registry.add_skill_directory(tmpdir)
       registry.add_skill_directory(tmpdir)
       paths = registry.external_paths
+
       assert_equal 1, paths.count(tmpdir)
     end
   end
@@ -186,9 +195,11 @@ class SkillManagerTest < Minitest::Test
     factory = SignalWire::Skills::SkillRegistry.get_factory('math')
     skill = factory.call({})
     @manager.load('math', skill)
+
     assert @manager.loaded?('math')
 
     removed = @manager.unload('math')
+
     assert_equal skill, removed
     refute @manager.loaded?('math')
     assert_equal 0, @manager.size
@@ -209,6 +220,7 @@ class SkillManagerTest < Minitest::Test
     end
 
     keys = @manager.loaded_keys.sort
+
     assert_equal %w[datetime math], keys
   end
 
@@ -219,6 +231,7 @@ class SkillManagerTest < Minitest::Test
     end
 
     @manager.clear
+
     assert_equal 0, @manager.size
   end
 
@@ -226,11 +239,13 @@ class SkillManagerTest < Minitest::Test
   def test_constructor_accepts_agent_back_pointer
     fake_agent = Object.new
     manager = SignalWire::Skills::SkillManager.new(fake_agent)
+
     assert_same fake_agent, manager.agent
   end
 
   def test_constructor_default_agent_is_nil
     manager = SignalWire::Skills::SkillManager.new
+
     assert_nil manager.agent
   end
 
@@ -252,6 +267,7 @@ class SkillBaseConstructorTest < Minitest::Test
 
   def test_legacy_one_arg_form_with_params_only
     skill = @skill_class.new('foo' => 'bar')
+
     assert_nil skill.agent
     assert_equal 'bar', skill.params['foo']
   end
@@ -259,18 +275,21 @@ class SkillBaseConstructorTest < Minitest::Test
   def test_two_arg_form_python_style
     fake_agent = Object.new
     skill = @skill_class.new(fake_agent, 'tz' => 'UTC')
+
     assert_same fake_agent, skill.agent
     assert_equal 'UTC', skill.params['tz']
   end
 
   def test_swaig_fields_pulled_out_of_params
     skill = @skill_class.new(nil, 'foo' => 'bar', 'swaig_fields' => { 'k' => 'v' })
+
     assert_equal({ 'k' => 'v' }, skill.swaig_fields)
     refute skill.params.key?('swaig_fields')
   end
 
   def test_logger_is_namespaced
     skill = @skill_class.new
+
     refute_nil skill.logger
     assert_respond_to skill.logger, :info
     assert_match(/test_skill_base/, skill.logger.name)
@@ -291,8 +310,10 @@ class DateTimeSkillTest < Minitest::Test
 
   def test_register_tools_returns_two_tools
     tools = @skill.register_tools
+
     assert_equal 2, tools.size
     names = tools.map { |t| t[:name] }
+
     assert_includes names, 'get_current_time'
     assert_includes names, 'get_current_date'
   end
@@ -317,6 +338,7 @@ class DateTimeSkillTest < Minitest::Test
 
   def test_prompt_sections
     sections = @skill.get_prompt_sections
+
     assert_equal 1, sections.size
     assert_equal 'Date and Time Information', sections[0]['title']
   end
@@ -336,6 +358,7 @@ class MathSkillTest < Minitest::Test
 
   def test_register_tools_returns_one_tool
     tools = @skill.register_tools
+
     assert_equal 1, tools.size
     assert_equal 'calculate', tools[0][:name]
   end
@@ -407,6 +430,7 @@ class MathSkillTest < Minitest::Test
 
   def test_prompt_sections
     sections = @skill.get_prompt_sections
+
     assert_equal 1, sections.size
     assert_equal 'Mathematical Calculations', sections[0]['title']
   end
@@ -416,15 +440,18 @@ class InfoGathererSkillTest < Minitest::Test
   def test_setup_and_register_tools
     factory = SignalWire::Skills::SkillRegistry.get_factory('info_gatherer')
     skill = factory.call({
-      'questions' => [
-        { 'key_name' => 'name', 'question_text' => 'What is your name?' },
-        { 'key_name' => 'email', 'question_text' => 'What is your email?', 'confirm' => true }
-      ]
-    })
+                           'questions' => [
+                             { 'key_name' => 'name', 'question_text' => 'What is your name?' },
+                             { 'key_name' => 'email', 'question_text' => 'What is your email?', 'confirm' => true }
+                           ]
+                         })
+
     assert skill.setup
     tools = skill.register_tools
+
     assert_equal 2, tools.size
     names = tools.map { |t| t[:name] }
+
     assert_includes names, 'start_questions'
     assert_includes names, 'submit_answer'
   end
@@ -432,6 +459,7 @@ class InfoGathererSkillTest < Minitest::Test
   def test_setup_fails_without_questions
     factory = SignalWire::Skills::SkillRegistry.get_factory('info_gatherer')
     skill = factory.call({})
+
     refute skill.setup
   end
 end
@@ -440,17 +468,20 @@ class CustomSkillsTest < Minitest::Test
   def test_setup_and_register
     factory = SignalWire::Skills::SkillRegistry.get_factory('custom_skills')
     skill = factory.call({
-      'tools' => [
-        { 'name' => 'my_tool', 'description' => 'Does something', 'response' => 'Done!' }
-      ]
-    })
+                           'tools' => [
+                             { 'name' => 'my_tool', 'description' => 'Does something', 'response' => 'Done!' }
+                           ]
+                         })
+
     assert skill.setup
     tools = skill.register_tools
+
     assert_equal 1, tools.size
     assert_equal 'my_tool', tools[0][:name]
 
     # Execute the handler
     result = tools[0][:handler].call({}, {})
+
     assert_equal 'Done!', result.response
   end
 end
@@ -459,10 +490,13 @@ class SpiderSkillTest < Minitest::Test
   def test_register_tools_returns_three_tools
     factory = SignalWire::Skills::SkillRegistry.get_factory('spider')
     skill = factory.call({})
+
     assert skill.setup
     tools = skill.register_tools
+
     assert_equal 3, tools.size
     names = tools.map { |t| t[:name] }
+
     assert_includes names, 'scrape_url'
     assert_includes names, 'crawl_site'
     assert_includes names, 'extract_structured_data'
@@ -475,9 +509,11 @@ class JokeSkillTest < Minitest::Test
     begin
       factory = SignalWire::Skills::SkillRegistry.get_factory('joke')
       skill = factory.call({})
+
       refute skill.setup
 
       skill_with_key = factory.call({ 'api_key' => 'test_key' })
+
       assert skill_with_key.setup
     ensure
       ENV['API_NINJAS_KEY'] = saved if saved
@@ -489,8 +525,9 @@ class JokeSkillTest < Minitest::Test
     skill = factory.call({ 'api_key' => 'test_key' })
     skill.setup
     tools = skill.register_tools
+
     assert_equal 1, tools.size
-    assert tools[0].key?(:datamap), "Joke skill should return a datamap tool"
+    assert tools[0].key?(:datamap), 'Joke skill should return a datamap tool'
     assert_equal 'get_joke', tools[0][:datamap]['function']
   end
 end
@@ -501,9 +538,11 @@ class WeatherApiSkillTest < Minitest::Test
     begin
       factory = SignalWire::Skills::SkillRegistry.get_factory('weather_api')
       skill = factory.call({})
+
       refute skill.setup
 
       skill_with_key = factory.call({ 'api_key' => 'test_key' })
+
       assert skill_with_key.setup
     ensure
       ENV['WEATHER_API_KEY'] = saved if saved
@@ -515,15 +554,17 @@ class SwmlTransferSkillTest < Minitest::Test
   def test_setup_and_register
     factory = SignalWire::Skills::SkillRegistry.get_factory('swml_transfer')
     skill = factory.call({
-      'transfers' => {
-        'sales'   => { 'url' => 'https://example.com/sales', 'message' => 'Transferring to sales' },
-        'support' => { 'address' => '+15551234567', 'message' => 'Connecting to support' }
-      }
-    })
+                           'transfers' => {
+                             'sales' => { 'url' => 'https://example.com/sales', 'message' => 'Transferring to sales' },
+                             'support' => { 'address' => '+15551234567', 'message' => 'Connecting to support' }
+                           }
+                         })
+
     assert skill.setup
     tools = skill.register_tools
+
     assert_equal 1, tools.size
-    assert tools[0][:datamap]['data_map']['expressions'].size >= 3  # 2 patterns + fallback
+    assert_operator tools[0][:datamap]['data_map']['expressions'].size, :>=, 3  # 2 patterns + fallback
   end
 end
 
@@ -531,14 +572,16 @@ class PlayBackgroundFileSkillTest < Minitest::Test
   def test_setup_and_register
     factory = SignalWire::Skills::SkillRegistry.get_factory('play_background_file')
     skill = factory.call({
-      'files' => [
-        { 'key' => 'music1', 'description' => 'Background music', 'url' => 'https://example.com/music.mp3' }
-      ]
-    })
+                           'files' => [
+                             { 'key' => 'music1', 'description' => 'Background music', 'url' => 'https://example.com/music.mp3' }
+                           ]
+                         })
+
     assert skill.setup
     tools = skill.register_tools
+
     assert_equal 1, tools.size
-    assert tools[0][:datamap]['data_map']['expressions'].size >= 2  # 1 start + stop
+    assert_operator tools[0][:datamap]['data_map']['expressions'].size, :>=, 2  # 1 start + stop
   end
 end
 
@@ -548,9 +591,11 @@ class ApiNinjasTriviaSkillTest < Minitest::Test
     begin
       factory = SignalWire::Skills::SkillRegistry.get_factory('api_ninjas_trivia')
       skill = factory.call({})
+
       refute skill.setup
 
       skill_with_key = factory.call({ 'api_key' => 'test_key' })
+
       assert skill_with_key.setup
     ensure
       ENV['API_NINJAS_KEY'] = saved if saved
@@ -562,9 +607,11 @@ class NativeVectorSearchSkillTest < Minitest::Test
   def test_setup_requires_remote_url
     factory = SignalWire::Skills::SkillRegistry.get_factory('native_vector_search')
     skill = factory.call({})
+
     refute skill.setup
 
     skill_with_url = factory.call({ 'remote_url' => 'https://example.com/search' })
+
     assert skill_with_url.setup
   end
 end
@@ -572,6 +619,7 @@ end
 class SkillBaseTest < Minitest::Test
   def test_get_param_with_defaults
     skill = SignalWire::Skills::SkillBase.new({ 'foo' => 'bar', baz: 'qux' })
+
     assert_equal 'bar', skill.get_param('foo')
     assert_equal 'qux', skill.get_param('baz')
     assert_equal 'default_val', skill.get_param('missing', default: 'default_val')
@@ -581,6 +629,7 @@ class SkillBaseTest < Minitest::Test
   def test_get_param_with_env_var
     ENV['TEST_SKILL_KEY'] = 'env_value'
     skill = SignalWire::Skills::SkillBase.new({})
+
     assert_equal 'env_value', skill.get_param('missing', env_var: 'TEST_SKILL_KEY')
   ensure
     ENV.delete('TEST_SKILL_KEY')
@@ -594,9 +643,10 @@ class SkillBaseTest < Minitest::Test
 
   def test_default_methods
     skill = SignalWire::Skills::SkillBase.new({})
+
     assert_equal '1.0.0', skill.version
     assert_equal [], skill.required_env_vars
-    refute skill.supports_multiple_instances?
+    refute_predicate skill, :supports_multiple_instances?
     assert skill.setup
     assert_equal [], skill.register_tools
     assert_equal [], skill.get_hints

@@ -23,12 +23,14 @@ class ClaudeSkillDetailedTest < Minitest::Test
   def test_setup_requires_skills_path
     factory = SignalWire::Skills::SkillRegistry.get_factory('claude_skills')
     skill = factory.call({})
+
     refute skill.setup
   end
 
   def test_setup_with_valid_path
     factory = SignalWire::Skills::SkillRegistry.get_factory('claude_skills')
     skill = factory.call({ 'skills_path' => @tmpdir })
+
     assert skill.setup
   end
 
@@ -37,10 +39,12 @@ class ClaudeSkillDetailedTest < Minitest::Test
     skill = factory.call({ 'skills_path' => @tmpdir })
     skill.setup
     tools = skill.register_tools
+
     assert_equal 2, tools.size
     names = tools.map { |t| t[:name] }
-    assert names.any? { |n| n.include?('greeting') }
-    assert names.any? { |n| n.include?('farewell') }
+
+    assert(names.any? { |n| n.include?('greeting') })
+    assert(names.any? { |n| n.include?('farewell') })
   end
 
   def test_custom_tool_prefix
@@ -48,12 +52,14 @@ class ClaudeSkillDetailedTest < Minitest::Test
     skill = factory.call({ 'skills_path' => @tmpdir, 'tool_prefix' => 'sk_' })
     skill.setup
     tools = skill.register_tools
-    assert tools.all? { |t| t[:name].start_with?('sk_') }
+
+    assert(tools.all? { |t| t[:name].start_with?('sk_') })
   end
 
   def test_supports_multiple_instances
     factory = SignalWire::Skills::SkillRegistry.get_factory('claude_skills')
     skill = factory.call({})
-    assert skill.supports_multiple_instances?
+
+    assert_predicate skill, :supports_multiple_instances?
   end
 end

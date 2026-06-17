@@ -94,7 +94,11 @@ module SignalWire
         v = @verbs[verb_name]
         return {} if v.nil?
 
-        outer_props = v['definition']['properties'] rescue nil
+        outer_props = begin
+          v['definition']['properties']
+        rescue StandardError
+          nil
+        end
         return {} unless outer_props.is_a?(Hash)
 
         inner = outer_props[verb_name]
@@ -130,9 +134,7 @@ module SignalWire
       def validate_verb(verb_name, verb_config)
         return [true, []] unless @validation_enabled
 
-        unless @verbs.key?(verb_name)
-          return [false, ["Unknown verb: #{verb_name}"]]
-        end
+        return [false, ["Unknown verb: #{verb_name}"]] unless @verbs.key?(verb_name)
 
         if @full_validator
           validate_verb_full(verb_name, verb_config)
@@ -145,10 +147,8 @@ module SignalWire
       # Mirrors Python's validate_document(document). Returns
       # (false, ['Schema validator not initialized']) when no full
       # validator is wired in.
-      def validate_document(document)
-        if @full_validator.nil?
-          return [false, ['Schema validator not initialized']]
-        end
+      def validate_document(_document)
+        return [false, ['Schema validator not initialized']] if @full_validator.nil?
 
         # Reserved for full-validator wiring.
         [true, []]
@@ -170,13 +170,11 @@ module SignalWire
                    end
         end
         parts << '**kwargs'
-        doc = +"\"\"\"\n        Add the #{verb_name} verb to the current document\n        \n"
+        doc = "\"\"\"\n        Add the #{verb_name} verb to the current document\n        \n"
         keys.each do |name|
           desc = ''
           d = params[name]
-          if d.is_a?(Hash) && d['description']
-            desc = d['description'].to_s.gsub("\n", ' ').strip
-          end
+          desc = d['description'].to_s.tr("\n", ' ').strip if d.is_a?(Hash) && d['description']
           doc << "        Args:\n            #{name}: #{desc}\n"
         end
         doc << "        \n        Returns:\n            True if the verb was added successfully, False otherwise\n        \"\"\"\n"
@@ -265,9 +263,7 @@ module SignalWire
       def validate_verb_lightweight(verb_name, verb_config)
         errors = []
         get_verb_required_properties(verb_name).each do |prop|
-          unless verb_config.key?(prop)
-            errors << "Missing required property '#{prop}' for verb '#{verb_name}'"
-          end
+          errors << "Missing required property '#{prop}' for verb '#{verb_name}'" unless verb_config.key?(prop)
         end
         [errors.empty?, errors]
       end
@@ -282,11 +278,9 @@ module SignalWire
         when 'boolean' then 'bool'
         when 'array'
           item = 'Any'
-          if defn['items'].is_a?(Hash)
-            item = python_type_annotation(defn['items'])
-          end
+          item = python_type_annotation(defn['items']) if defn['items'].is_a?(Hash)
           "List[#{item}]"
-        when 'object'  then 'Dict[str, Any]'
+        when 'object' then 'Dict[str, Any]'
         else
           'Any'
         end
@@ -294,5 +288,3 @@ module SignalWire
     end
   end
 end
-
-require 'set'

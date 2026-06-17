@@ -102,6 +102,7 @@ class DateTimeSkillHookParityTest < Minitest::Test
 
   def test_setup_returns_true_and_loads_stdlib
     skill = build
+
     assert_equal true, skill.setup, 'datetime setup should report the skill is ready'
     # setup requires the stdlib it depends on; if it returned true those are loadable.
     assert defined?(Time), 'Time must be available after datetime setup'
@@ -111,12 +112,14 @@ class DateTimeSkillHookParityTest < Minitest::Test
   def test_get_parameter_schema_returns_base_schema
     skill = build
     schema = skill.get_parameter_schema
+
     assert_kind_of Hash, schema
     # Python: DateTimeSkill.get_parameter_schema returns only the base schema
     # (no custom params). The override delegates to super, so it must equal
     # what the base class produces.
     base = SignalWire::Skills::SkillBase.instance_method(:get_parameter_schema)
-                                        .bind(skill).call
+                                        .bind_call(skill)
+
     assert_equal base, schema, 'datetime schema must be exactly the base-class schema'
   end
 
@@ -124,6 +127,7 @@ class DateTimeSkillHookParityTest < Minitest::Test
     # The audit enumerator only sees public_instance_methods(false); the
     # override must be defined directly on DateTimeSkill, not just inherited.
     klass = SignalWire::Skills::Builtin::DateTimeSkill
+
     assert_includes klass.public_instance_methods(false), :get_parameter_schema
     assert_includes klass.public_instance_methods(false), :setup
   end
@@ -141,14 +145,17 @@ class MathSkillHookParityTest < Minitest::Test
   def test_get_parameter_schema_returns_base_schema
     skill = build
     schema = skill.get_parameter_schema
+
     assert_kind_of Hash, schema
     base = SignalWire::Skills::SkillBase.instance_method(:get_parameter_schema)
-                                        .bind(skill).call
+                                        .bind_call(skill)
+
     assert_equal base, schema, 'math schema must be exactly the base-class schema'
   end
 
   def test_overrides_are_own_public_methods
     klass = SignalWire::Skills::Builtin::MathSkill
+
     assert_includes klass.public_instance_methods(false), :get_parameter_schema
     assert_includes klass.public_instance_methods(false), :setup
   end
@@ -175,6 +182,7 @@ class SpiderSkillCleanupParityTest < Minitest::Test
 
   def build
     skill = SignalWire::Skills::SkillRegistry.get_factory('spider').call({})
+
     assert skill.setup
     skill
   end
@@ -186,9 +194,11 @@ class SpiderSkillCleanupParityTest < Minitest::Test
     # Drive a real fetch so the cache gets populated by real behavior.
     result = scrape.call({ 'url' => 'http://example.test/page' }, {})
     body = result.respond_to?(:response) ? result.response.to_s : result.to_s
+
     assert_includes body, 'Hello spider world', 'scrape should return extracted text'
 
     cache = skill.instance_variable_get(:@cache)
+
     refute_nil cache, 'cache should be present while the skill is live'
     refute_empty cache, 'a successful scrape should populate the cache'
 
@@ -202,6 +212,7 @@ class SpiderSkillCleanupParityTest < Minitest::Test
 
   def test_cleanup_is_own_public_method
     klass = SignalWire::Skills::Builtin::SpiderSkill
+
     assert_includes klass.public_instance_methods(false), :cleanup
   end
 end
@@ -249,6 +260,7 @@ class WikipediaSearchWikiParityTest < Minitest::Test
 
   def test_search_wiki_returns_formatted_article_text
     result = build.search_wiki('ruby language')
+
     assert_kind_of String, result
     # Real formatted output: bold title header + the extract body.
     assert_includes result, '**Ruby (programming language)**'
@@ -258,14 +270,13 @@ class WikipediaSearchWikiParityTest < Minitest::Test
   def test_search_wiki_returns_no_results_message_when_empty
     # Repoint the fixture at an empty search result to exercise that branch.
     empty = LocalHTTPFixture.new do |req|
-      if req.query['list'] == 'search'
-        ['application/json', JSON.generate({ 'query' => { 'search' => [] } })]
-      end
+      ['application/json', JSON.generate({ 'query' => { 'search' => [] } })] if req.query['list'] == 'search'
     end
     ENV['WIKIPEDIA_BASE_URL'] = empty.base_url
     begin
       skill = build
       result = skill.search_wiki('nonexistent topic zzz')
+
       assert_kind_of String, result
       assert_includes result.downcase, "couldn't find"
       refute_includes result, '**', 'no-results message should not be a formatted article'
@@ -276,6 +287,7 @@ class WikipediaSearchWikiParityTest < Minitest::Test
 
   def test_search_wiki_is_own_public_method
     klass = SignalWire::Skills::Builtin::WikipediaSearchSkill
+
     assert_includes klass.public_instance_methods(false), :search_wiki,
                     'search_wiki must be public so the surface enumerator picks it up'
   end

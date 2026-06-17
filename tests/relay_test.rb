@@ -80,9 +80,9 @@ class RelayConstantsTest < Minitest::Test
   end
 
   def test_reconnect_settings
-    assert_equal 1.0,  SignalWire::Relay::RECONNECT_MIN_DELAY
-    assert_equal 30.0, SignalWire::Relay::RECONNECT_MAX_DELAY
-    assert_equal 2.0,  SignalWire::Relay::RECONNECT_BACKOFF_FACTOR
+    assert_in_delta(1.0, SignalWire::Relay::RECONNECT_MIN_DELAY)
+    assert_in_delta(30.0, SignalWire::Relay::RECONNECT_MAX_DELAY)
+    assert_in_delta(2.0, SignalWire::Relay::RECONNECT_BACKOFF_FACTOR)
   end
 
   def test_default_host
@@ -96,13 +96,14 @@ class RelayEventParsingTest < Minitest::Test
       'event_type' => 'calling.call.state',
       'params' => {
         'call_id' => 'abc-123',
-        'timestamp' => 1234567.89
+        'timestamp' => 1_234_567.89
       }
     }
     event = SignalWire::Relay::RelayEvent.from_payload(payload)
+
     assert_equal 'calling.call.state', event.event_type
     assert_equal 'abc-123', event.call_id
-    assert_equal 1234567.89, event.timestamp
+    assert_in_delta(1_234_567.89, event.timestamp)
     assert_equal 'abc-123', event.params['call_id']
   end
 
@@ -118,6 +119,7 @@ class RelayEventParsingTest < Minitest::Test
       }
     }
     event = SignalWire::Relay::CallStateEvent.from_payload(payload)
+
     assert_instance_of SignalWire::Relay::CallStateEvent, event
     assert_equal 'answered', event.call_state
     assert_equal 'inbound', event.direction
@@ -140,6 +142,7 @@ class RelayEventParsingTest < Minitest::Test
       }
     }
     event = SignalWire::Relay::CallReceiveEvent.from_payload(payload)
+
     assert_equal 'c2', event.call_id
     assert_equal 'n1', event.node_id
     assert_equal 'p1', event.project_id
@@ -157,6 +160,7 @@ class RelayEventParsingTest < Minitest::Test
       }
     }
     event = SignalWire::Relay::PlayEvent.from_payload(payload)
+
     assert_equal 'ctl-1', event.control_id
     assert_equal 'finished', event.state
   end
@@ -171,14 +175,15 @@ class RelayEventParsingTest < Minitest::Test
         'record' => {
           'url' => 'https://example.com/rec.mp3',
           'duration' => 30.5,
-          'size' => 102400
+          'size' => 102_400
         }
       }
     }
     event = SignalWire::Relay::RecordEvent.from_payload(payload)
+
     assert_equal 'https://example.com/rec.mp3', event.url
-    assert_equal 30.5, event.duration
-    assert_equal 102400, event.size
+    assert_in_delta(30.5, event.duration)
+    assert_equal 102_400, event.size
   end
 
   def test_collect_event
@@ -192,6 +197,7 @@ class RelayEventParsingTest < Minitest::Test
       }
     }
     event = SignalWire::Relay::CollectEvent.from_payload(payload)
+
     assert_equal 'finished', event.state
     assert_equal 'digit', event.result_data['type']
   end
@@ -210,6 +216,7 @@ class RelayEventParsingTest < Minitest::Test
       }
     }
     event = SignalWire::Relay::DialEvent.from_payload(payload)
+
     assert_equal 'my-tag', event.tag
     assert_equal 'answered', event.dial_state
     assert_equal 'winner-uuid', event.call_data['call_id']
@@ -225,6 +232,7 @@ class RelayEventParsingTest < Minitest::Test
       }
     }
     event = SignalWire::Relay::ConnectEvent.from_payload(payload)
+
     assert_equal 'connected', event.connect_state
     assert_equal 'c2', event.peer['call_id']
   end
@@ -239,6 +247,7 @@ class RelayEventParsingTest < Minitest::Test
       }
     }
     event = SignalWire::Relay::DetectEvent.from_payload(payload)
+
     assert_equal 'HUMAN', event.detect.dig('params', 'event')
   end
 
@@ -259,6 +268,7 @@ class RelayEventParsingTest < Minitest::Test
       }
     }
     event = SignalWire::Relay::MessageReceiveEvent.from_payload(payload)
+
     assert_equal 'msg-1', event.message_id
     assert_equal '+15551234567', event.from_number
     assert_equal 'Hello', event.body
@@ -279,6 +289,7 @@ class RelayEventParsingTest < Minitest::Test
       }
     }
     event = SignalWire::Relay::MessageStateEvent.from_payload(payload)
+
     assert_equal 'msg-2', event.message_id
     assert_equal 'delivered', event.message_state
     assert_equal '', event.reason
@@ -291,6 +302,7 @@ class RelayEventParsingTest < Minitest::Test
       'params' => { 'control_id' => 'x', 'state' => 'playing' }
     }
     event = SignalWire::Relay.parse_event(payload)
+
     assert_instance_of SignalWire::Relay::PlayEvent, event
 
     # Unknown event types get base RelayEvent
@@ -299,11 +311,13 @@ class RelayEventParsingTest < Minitest::Test
       'params' => {}
     }
     event = SignalWire::Relay.parse_event(payload)
+
     assert_instance_of SignalWire::Relay::RelayEvent, event
   end
 
   def test_event_class_map_completeness
     map = SignalWire::Relay::EVENT_CLASS_MAP
+
     assert map.key?('calling.call.state')
     assert map.key?('calling.call.receive')
     assert map.key?('calling.call.play')
@@ -340,6 +354,7 @@ class RelayEventParsingTest < Minitest::Test
       }
     }
     event = SignalWire::Relay::ConferenceEvent.from_payload(payload)
+
     assert_equal 'conf-1', event.conference_id
     assert_equal 'standup', event.name
     assert_equal 'active', event.status
@@ -354,6 +369,7 @@ class RelayEventParsingTest < Minitest::Test
       }
     }
     event = SignalWire::Relay::CallingErrorEvent.from_payload(payload)
+
     assert_equal '500', event.code
     assert_equal 'Internal error', event.message
   end
@@ -389,7 +405,7 @@ class RelayActionTest < Minitest::Test
       @call, 'ctl-1', 'calling.call.play', %w[finished error]
     )
 
-    refute action.done?
+    refute_predicate action, :done?
     assert_nil action.result
 
     # Resolve in a thread
@@ -404,9 +420,10 @@ class RelayActionTest < Minitest::Test
     end
 
     result = action.wait(timeout: 2)
-    assert action.done?
+
+    assert_predicate action, :done?
     assert_equal event, result
-    assert action.is_done?
+    assert_predicate action, :is_done?
   end
 
   def test_action_timeout
@@ -461,13 +478,15 @@ class RelayActionTest < Minitest::Test
 
   def test_play_action_class
     action = SignalWire::Relay::PlayAction.new(@call, 'play-ctl-1')
+
     assert_equal 'play-ctl-1', action.control_id
     assert_equal @call, action.call
-    refute action.done?
+    refute_predicate action, :done?
   end
 
   def test_record_action_class
     action = SignalWire::Relay::RecordAction.new(@call, 'rec-ctl-1')
+
     assert_equal 'rec-ctl-1', action.control_id
   end
 
@@ -483,7 +502,8 @@ class RelayActionTest < Minitest::Test
       }
     )
     action._check_event(event)
-    assert action.done?
+
+    assert_predicate action, :done?
   end
 
   def test_collect_action_only_resolves_on_collect_event
@@ -495,7 +515,8 @@ class RelayActionTest < Minitest::Test
       params: { 'control_id' => 'col-ctl-1', 'state' => 'finished' }
     )
     action._check_event(play_event)
-    refute action.done?
+
+    refute_predicate action, :done?
 
     # Collect event SHOULD resolve
     collect_event = SignalWire::Relay::RelayEvent.new(
@@ -506,36 +527,43 @@ class RelayActionTest < Minitest::Test
       }
     )
     action._check_event(collect_event)
-    assert action.done?
+
+    assert_predicate action, :done?
   end
 
   def test_fax_action
     action = SignalWire::Relay::FaxAction.new(@call, 'fax-ctl-1', 'send_fax')
+
     assert_equal 'fax-ctl-1', action.control_id
   end
 
   def test_tap_action
     action = SignalWire::Relay::TapAction.new(@call, 'tap-ctl-1')
+
     assert_equal 'tap-ctl-1', action.control_id
   end
 
   def test_stream_action
     action = SignalWire::Relay::StreamAction.new(@call, 'str-ctl-1')
+
     assert_equal 'str-ctl-1', action.control_id
   end
 
   def test_pay_action
     action = SignalWire::Relay::PayAction.new(@call, 'pay-ctl-1')
+
     assert_equal 'pay-ctl-1', action.control_id
   end
 
   def test_transcribe_action
     action = SignalWire::Relay::TranscribeAction.new(@call, 'txn-ctl-1')
+
     assert_equal 'txn-ctl-1', action.control_id
   end
 
   def test_ai_action
     action = SignalWire::Relay::AIAction.new(@call, 'ai-ctl-1')
+
     assert_equal 'ai-ctl-1', action.control_id
   end
 end
@@ -580,6 +608,7 @@ class RelayCallTest < Minitest::Test
 
   def test_call_to_s
     str = @call.to_s
+
     assert_match(/call-1/, str)
     assert_match(/answered/, str)
     assert_match(/inbound/, str)
@@ -595,8 +624,9 @@ class RelayCallTest < Minitest::Test
       }
     }
     @call._dispatch_event(payload)
+
     assert_equal 'ended', @call.state
-    assert @call.ended?
+    assert_predicate @call, :ended?
   end
 
   def test_call_event_listener
@@ -616,12 +646,14 @@ class RelayCallTest < Minitest::Test
   def test_call_action_routing
     # Start a play action
     action = @call.play([{ 'type' => 'audio', 'params' => { 'url' => 'http://test.wav' } }])
+
     assert_instance_of SignalWire::Relay::PlayAction, action
-    refute action.done?
+    refute_predicate action, :done?
 
     # Verify RPC was sent
     assert_equal 1, @stub_client.executed.length
     method, params = @stub_client.executed[0]
+
     assert_equal 'calling.play', method
     assert_equal 'node-1', params['node_id']
     assert_equal 'call-1', params['call_id']
@@ -629,21 +661,25 @@ class RelayCallTest < Minitest::Test
 
   def test_call_answer
     @call.answer
+
     assert_equal 1, @stub_client.executed.length
     method, = @stub_client.executed[0]
+
     assert_equal 'calling.answer', method
   end
 
   def test_call_hangup
     @call.hangup
     method, params = @stub_client.executed[0]
+
     assert_equal 'calling.end', method
     assert_equal 'hangup', params['reason']
   end
 
   def test_call_ended_resolves_pending_actions
     action = @call.play([{ 'type' => 'tts', 'params' => { 'text' => 'hello' } }])
-    refute action.done?
+
+    refute_predicate action, :done?
 
     # Simulate call ended
     payload = {
@@ -652,8 +688,8 @@ class RelayCallTest < Minitest::Test
     }
     @call._dispatch_event(payload)
 
-    assert action.done?
-    assert @call.ended?
+    assert_predicate action, :done?
+    assert_predicate @call, :ended?
   end
 
   def test_call_start_action_on_ended_call
@@ -666,44 +702,55 @@ class RelayCallTest < Minitest::Test
     @call._dispatch_event(payload)
 
     action = @call.play([{ 'type' => 'tts', 'params' => { 'text' => 'hello' } }])
-    assert action.done?
+
+    assert_predicate action, :done?
     # No RPC should have been sent for the play (only the dispatched state event)
   end
 
   def test_call_record
     action = @call.record(audio: { 'format' => 'mp3' })
+
     assert_instance_of SignalWire::Relay::RecordAction, action
     method, params = @stub_client.executed[0]
+
     assert_equal 'calling.record', method
     assert_equal({ 'audio' => { 'format' => 'mp3' } }, params['record'])
   end
 
   def test_call_detect
     action = @call.detect({ 'type' => 'machine', 'params' => {} })
+
     assert_instance_of SignalWire::Relay::DetectAction, action
     method, = @stub_client.executed[0]
+
     assert_equal 'calling.detect', method
   end
 
   def test_call_transcribe
     action = @call.transcribe
+
     assert_instance_of SignalWire::Relay::TranscribeAction, action
     method, = @stub_client.executed[0]
+
     assert_equal 'calling.transcribe', method
   end
 
   def test_call_stream
     action = @call.stream(url: 'wss://test.example.com')
+
     assert_instance_of SignalWire::Relay::StreamAction, action
     method, params = @stub_client.executed[0]
+
     assert_equal 'calling.stream', method
     assert_equal 'wss://test.example.com', params['url']
   end
 
   def test_call_ai
     action = @call.ai(prompt: { 'text' => 'You are helpful' })
+
     assert_instance_of SignalWire::Relay::AIAction, action
     method, = @stub_client.executed[0]
+
     assert_equal 'calling.ai', method
   end
 end
@@ -719,12 +766,13 @@ class RelayMessageTest < Minitest::Test
       body: 'Hello',
       state: 'queued'
     )
+
     assert_equal 'msg-1', msg.message_id
     assert_equal 'outbound', msg.direction
     assert_equal '+15551111111', msg.from_number
     assert_equal 'Hello', msg.body
     assert_equal 'queued', msg.state
-    refute msg.done?
+    refute_predicate msg, :done?
     assert_nil msg.result
   end
 
@@ -743,8 +791,9 @@ class RelayMessageTest < Minitest::Test
       }
     }
     msg._dispatch_event(payload)
+
     assert_equal 'sent', msg.state
-    refute msg.done?
+    refute_predicate msg, :done?
 
     # Dispatch terminal state
     payload = {
@@ -755,8 +804,9 @@ class RelayMessageTest < Minitest::Test
       }
     }
     msg._dispatch_event(payload)
+
     assert_equal 'delivered', msg.state
-    assert msg.done?
+    assert_predicate msg, :done?
     assert_kind_of SignalWire::Relay::RelayEvent, msg.result
   end
 
@@ -780,7 +830,8 @@ class RelayMessageTest < Minitest::Test
     end
 
     result = msg.wait(timeout: 2)
-    assert msg.done?
+
+    assert_predicate msg, :done?
     assert_kind_of SignalWire::Relay::RelayEvent, result
   end
 
@@ -837,6 +888,7 @@ class RelayMessageTest < Minitest::Test
       to_number: '+15552222222'
     )
     str = msg.to_s
+
     assert_match(/msg-6/, str)
     assert_match(/outbound/, str)
   end
@@ -846,6 +898,7 @@ class RelayClientCreationTest < Minitest::Test
   def test_client_class_exists
     # Load client module
     require_relative '../lib/signalwire/relay/client'
+
     assert defined?(SignalWire::Relay::Client)
     assert defined?(SignalWire::Relay::RelayError)
   end
@@ -881,6 +934,7 @@ class RelayClientCreationTest < Minitest::Test
       token: 'test-token',
       space: 'example.signalwire.com'
     )
+
     assert_equal 'test-project', client.project_id
     assert_nil client.protocol
   end
@@ -893,6 +947,7 @@ class RelayClientCreationTest < Minitest::Test
       token: 'test-token',
       space: 'myspace'
     )
+
     assert_equal 'test-project', client.project_id
   end
 
@@ -900,6 +955,7 @@ class RelayClientCreationTest < Minitest::Test
     require_relative '../lib/signalwire/relay/client'
 
     err = SignalWire::Relay::RelayError.new(404, 'Not found')
+
     assert_equal 404, err.code
     assert_equal 'Not found', err.error_message
     assert_match(/404/, err.message)

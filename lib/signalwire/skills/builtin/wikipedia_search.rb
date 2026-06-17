@@ -11,13 +11,13 @@ module SignalWire
   module Skills
     module Builtin
       class WikipediaSearchSkill < SkillBase
-        def name;        'wikipedia_search'; end
-        def description; 'Search Wikipedia for information about a topic and get article summaries'; end
+        def name = 'wikipedia_search'
+        def description = 'Search Wikipedia for information about a topic and get article summaries'
 
         def setup
-          @num_results    = [1, (get_param('num_results', default: 1)).to_i].max
+          @num_results    = [1, get_param('num_results', default: 1).to_i].max
           @no_results_msg = get_param('no_results_message',
-            default: "I couldn't find any Wikipedia articles for that query. Try rephrasing your search or using different keywords.")
+                                      default: "I couldn't find any Wikipedia articles for that query. Try rephrasing your search or using different keywords.")
           true
         end
 
@@ -50,7 +50,7 @@ module SignalWire
 
         def get_parameter_schema
           {
-            'num_results'      => { 'type' => 'integer', 'default' => 1, 'min' => 1, 'max' => 5 },
+            'num_results' => { 'type' => 'integer', 'default' => 1, 'min' => 1, 'max' => 5 },
             'no_results_message' => { 'type' => 'string' }
           }
         end
@@ -71,9 +71,9 @@ module SignalWire
           # for tests and the audit fixture. The env var is the *host*; the
           # `/w/api.php` path is appended below so audit_skills_dispatch
           # can match on `api.php` in req.path.
-          base = ENV['WIKIPEDIA_BASE_URL']
+          base = ENV.fetch('WIKIPEDIA_BASE_URL', nil)
           base = 'https://en.wikipedia.org' if base.nil? || base.empty?
-          api_endpoint = "#{base.sub(/\/$/, '')}/w/api.php"
+          api_endpoint = "#{base.sub(%r{/$}, '')}/w/api.php"
 
           # Step 1: Search
           search_uri = URI("#{api_endpoint}?action=query&list=search&format=json&srsearch=#{URI.encode_www_form_component(query)}&srlimit=#{@num_results}")
@@ -108,6 +108,7 @@ module SignalWire
           end
 
           return @no_results_msg if articles.empty?
+
           articles.join("\n\n#{'=' * 50}\n\n")
         end
 
@@ -115,14 +116,12 @@ module SignalWire
 
         def handle_search(args, _raw_data)
           query = (args['query'] || '').strip
-          if query.empty?
-            return Swaig::FunctionResult.new('Please provide a search query for Wikipedia.')
-          end
+          return Swaig::FunctionResult.new('Please provide a search query for Wikipedia.') if query.empty?
 
           begin
             result = search_wiki(query)
             Swaig::FunctionResult.new(result)
-          rescue => e
+          rescue StandardError => e
             Swaig::FunctionResult.new("Error searching Wikipedia: #{e.message}")
           end
         end

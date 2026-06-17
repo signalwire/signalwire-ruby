@@ -52,9 +52,9 @@ module SignalWire
       def global_data
         {
           'survey' => {
-            'name'      => @survey_name,
+            'name' => @survey_name,
             'questions' => @questions,
-            'current'   => 0,
+            'current' => 0,
             'responses' => {}
           }
         }
@@ -104,9 +104,7 @@ module SignalWire
             message = "Invalid choice. Please select one of: #{options.join(', ')}."
           end
         when 'yes_no'
-          unless %w[yes no y n].include?(response.downcase.strip)
-            message = "Please answer with 'yes' or 'no'."
-          end
+          message = "Please answer with 'yes' or 'no'." unless %w[yes no y n].include?(response.downcase.strip)
         when 'open_ended'
           required = question.key?('required') ? question['required'] : true
           message = 'A response is required for this question.' if response.strip.empty? && required

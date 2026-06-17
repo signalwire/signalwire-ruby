@@ -11,6 +11,7 @@ class ReceptionistPrefabDetailedTest < Minitest::Test
         { 'name' => 'sales', 'description' => 'Sales dept', 'number' => '+15551235555' }
       ]
     )
+
     assert_equal 'receptionist', agent.name
     assert_equal 1, agent.departments.size
   end
@@ -19,6 +20,7 @@ class ReceptionistPrefabDetailedTest < Minitest::Test
     agent = SignalWire::Prefabs::Receptionist.new(
       departments: [{ 'name' => 'sales', 'description' => 'Sales', 'number' => '+15551235555' }]
     )
+
     assert_includes agent.tools, 'transfer_to_department'
     assert_includes agent.tools, 'collect_caller_info'
   end
@@ -28,6 +30,7 @@ class ReceptionistPrefabDetailedTest < Minitest::Test
       departments: [{ 'name' => 'sales', 'description' => 'Sales', 'number' => '+15551235555' }]
     )
     result = agent.handle_transfer({ 'department' => 'sales' }, {})
+
     assert_match(/transferring/i, result.response)
   end
 
@@ -36,6 +39,7 @@ class ReceptionistPrefabDetailedTest < Minitest::Test
       departments: [{ 'name' => 'sales', 'description' => 'Sales', 'number' => '+15551235555' }]
     )
     result = agent.handle_transfer({ 'department' => 'unknown' }, {})
+
     assert_includes result.response, 'sales'
   end
 
@@ -48,6 +52,7 @@ class ReceptionistPrefabDetailedTest < Minitest::Test
       departments: [{ 'name' => 'sales', 'description' => 'Sales', 'number' => '+15551235555' }]
     )
     data = agent.global_data
+
     assert data.key?('departments')
     assert_equal 1, data['departments'].size
   end

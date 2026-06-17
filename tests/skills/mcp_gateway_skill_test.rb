@@ -10,12 +10,14 @@ class McpGatewaySkillDetailedTest < Minitest::Test
   def test_setup_requires_gateway_url
     factory = SignalWire::Skills::SkillRegistry.get_factory('mcp_gateway')
     skill = factory.call({})
+
     refute skill.setup
   end
 
   def test_setup_with_gateway_url
     factory = SignalWire::Skills::SkillRegistry.get_factory('mcp_gateway')
     skill = factory.call({ 'gateway_url' => 'https://mcp.example.com' })
+
     assert skill.setup
   end
 
@@ -24,6 +26,7 @@ class McpGatewaySkillDetailedTest < Minitest::Test
     skill = factory.call({ 'gateway_url' => 'https://mcp.example.com' })
     skill.setup
     tools = skill.register_tools
+
     assert_equal 0, tools.size
   end
 
@@ -32,6 +35,7 @@ class McpGatewaySkillDetailedTest < Minitest::Test
     skill = factory.call({ 'gateway_url' => 'https://mcp.example.com' })
     skill.setup
     hints = skill.get_hints
+
     assert_includes hints, 'MCP'
     assert_includes hints, 'gateway'
   end
@@ -41,6 +45,7 @@ class McpGatewaySkillDetailedTest < Minitest::Test
     skill = factory.call({ 'gateway_url' => 'https://mcp.example.com' })
     skill.setup
     data = skill.get_global_data
+
     assert_equal 'https://mcp.example.com', data['mcp_gateway_url']
   end
 end

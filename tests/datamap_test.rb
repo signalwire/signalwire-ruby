@@ -23,6 +23,7 @@ class DataMapTest < Minitest::Test
     assert_equal 'test_func', dm.function_name
 
     swaig = dm.to_swaig_function
+
     assert_equal 'test_func', swaig['function']
     assert_equal 'A test function', swaig['description']
   end
@@ -34,6 +35,7 @@ class DataMapTest < Minitest::Test
   def test_description_alias
     dm = DM.new('func').description('My description')
     swaig = dm.to_swaig_function
+
     assert_equal 'My description', swaig['description']
   end
 
@@ -44,6 +46,7 @@ class DataMapTest < Minitest::Test
   def test_default_description
     dm = DM.new('do_thing')
     swaig = dm.to_swaig_function
+
     assert_equal 'Execute do_thing', swaig['description']
   end
 
@@ -57,6 +60,7 @@ class DataMapTest < Minitest::Test
 
     swaig = dm.to_swaig_function
     props = swaig['parameters']['properties']
+
     assert_equal %w[red blue green], props['color']['enum']
     assert_equal 'string', props['color']['type']
     assert_equal 'Color choice', props['color']['description']
@@ -72,6 +76,7 @@ class DataMapTest < Minitest::Test
 
     swaig = dm.to_swaig_function
     props = swaig['parameters']['properties']
+
     refute props['query'].key?('enum')
     assert_equal ['query'], swaig['parameters']['required']
   end
@@ -83,7 +88,8 @@ class DataMapTest < Minitest::Test
   def test_no_parameters
     dm = DM.new('func').purpose('test')
     swaig = dm.to_swaig_function
-    assert_equal({ "type" => "object", "properties" => {} }, swaig['parameters'])
+
+    assert_equal({ 'type' => 'object', 'properties' => {} }, swaig['parameters'])
   end
 
   # ----------------------------------------------------------------
@@ -122,6 +128,7 @@ class DataMapTest < Minitest::Test
            .output(FR.new('ok'))
 
     wh = dm.to_swaig_function['data_map']['webhooks'].first
+
     assert_equal({ 'query' => '${args.q}' }, wh['body'])
     assert_equal({ 'limit' => 10 }, wh['params'])
   end
@@ -147,7 +154,7 @@ class DataMapTest < Minitest::Test
 
   def test_foreach_without_webhook_raises
     dm = DM.new('func')
-    assert_raises(ArgumentError) { dm.foreach({ "input_key" => "r", "output_key" => "o", "append" => "t" }) }
+    assert_raises(ArgumentError) { dm.foreach({ 'input_key' => 'r', 'output_key' => 'o', 'append' => 't' }) }
   end
 
   def test_webhook_expressions_without_webhook_raises
@@ -165,6 +172,7 @@ class DataMapTest < Minitest::Test
 
     swaig = dm.to_swaig_function
     exprs = swaig['data_map']['expressions']
+
     assert_equal 1, exprs.size
     assert_equal '${args.cmd}', exprs[0]['string']
     assert_equal 'start.*', exprs[0]['pattern']
@@ -179,6 +187,7 @@ class DataMapTest < Minitest::Test
                        nomatch_output: FR.new('Not understood'))
 
     exprs = dm.to_swaig_function['data_map']['expressions']
+
     assert_equal({ 'response' => 'Confirmed' }, exprs[0]['output'])
     assert_equal({ 'response' => 'Not understood' }, exprs[0]['nomatch-output'])
   end
@@ -192,6 +201,7 @@ class DataMapTest < Minitest::Test
            .expression('${args.cmd}', /stop\s+now/, FR.new('Stopping'))
 
     exprs = dm.to_swaig_function['data_map']['expressions']
+
     assert_equal 'stop\s+now', exprs[0]['pattern']
   end
 
@@ -202,10 +212,11 @@ class DataMapTest < Minitest::Test
   def test_webhook_expressions
     dm = DM.new('func')
            .webhook('GET', 'https://example.com')
-           .webhook_expressions([{ "string" => "${response.status}", "pattern" => "ok" }])
+           .webhook_expressions([{ 'string' => '${response.status}', 'pattern' => 'ok' }])
            .output(FR.new('done'))
 
     wh = dm.to_swaig_function['data_map']['webhooks'].first
+
     assert_equal 1, wh['expressions'].size
   end
 
@@ -224,6 +235,7 @@ class DataMapTest < Minitest::Test
            .output(FR.new('Found: ${response.results[0].title}'))
 
     swaig = dm.to_swaig_function
+
     assert_equal 'search', swaig['function']
     assert_equal 'Search documents', swaig['description']
     assert_equal 'object', swaig['parameters']['type']
@@ -247,6 +259,7 @@ class DataMapTest < Minitest::Test
            .fallback_output(FR.new('All sources unavailable'))
 
     swaig = dm.to_swaig_function
+
     assert_equal 2, swaig['data_map']['webhooks'].size
     assert_equal({ 'response' => 'All sources unavailable' }, swaig['data_map']['output'])
   end
@@ -258,22 +271,24 @@ class DataMapTest < Minitest::Test
   def test_foreach
     dm = DM.new('func')
            .webhook('POST', 'https://example.com')
-           .foreach({ "input_key" => "results", "output_key" => "formatted", "max" => 3, "append" => "${this.title}\n" })
+           .foreach({ 'input_key' => 'results', 'output_key' => 'formatted', 'max' => 3,
+                      'append' => "${this.title}\n" })
            .output(FR.new('ok'))
 
     wh = dm.to_swaig_function['data_map']['webhooks'].first
+
     assert_equal 'results', wh['foreach']['input_key']
     assert_equal 3, wh['foreach']['max']
   end
 
   def test_foreach_missing_keys
     dm = DM.new('func').webhook('GET', 'https://example.com')
-    assert_raises(ArgumentError) { dm.foreach({ "input_key" => "x" }) }
+    assert_raises(ArgumentError) { dm.foreach({ 'input_key' => 'x' }) }
   end
 
   def test_foreach_must_be_hash
     dm = DM.new('func').webhook('GET', 'https://example.com')
-    assert_raises(ArgumentError) { dm.foreach("not a hash") }
+    assert_raises(ArgumentError) { dm.foreach('not a hash') }
   end
 
   # ----------------------------------------------------------------
@@ -287,6 +302,7 @@ class DataMapTest < Minitest::Test
            .output(FR.new('ok'))
 
     wh = dm.to_swaig_function['data_map']['webhooks'].first
+
     assert_equal %w[error message], wh['error_keys']
   end
 
@@ -295,6 +311,7 @@ class DataMapTest < Minitest::Test
            .error_keys(%w[error])
 
     swaig = dm.to_swaig_function
+
     assert_equal %w[error], swaig['data_map']['error_keys']
   end
 
@@ -303,6 +320,7 @@ class DataMapTest < Minitest::Test
            .global_error_keys(%w[err])
 
     swaig = dm.to_swaig_function
+
     assert_equal %w[err], swaig['data_map']['error_keys']
   end
 
@@ -317,6 +335,7 @@ class DataMapTest < Minitest::Test
            .fallback_output(FR.new('Service unavailable'))
 
     swaig = dm.to_swaig_function
+
     assert_equal({ 'response' => 'Result: ${response.data}' },
                  swaig['data_map']['webhooks'].first['output'])
     assert_equal({ 'response' => 'Service unavailable' },
@@ -334,6 +353,7 @@ class DataMapTest < Minitest::Test
            .output(result)
 
     wh = dm.to_swaig_function['data_map']['webhooks'].first
+
     assert_equal 'Transferring', wh['output']['response']
     assert_equal [{ 'transfer' => { 'dest' => '+1555' } }], wh['output']['action']
   end
@@ -356,6 +376,7 @@ class DataMapTest < Minitest::Test
     )
 
     swaig = dm.to_swaig_function
+
     assert_equal 'get_weather', swaig['function']
     assert_includes swaig['parameters']['required'], 'location'
     assert_equal %w[error], swaig['data_map']['webhooks'].first['error_keys']
@@ -372,6 +393,7 @@ class DataMapTest < Minitest::Test
     )
 
     wh = dm.to_swaig_function['data_map']['webhooks'].first
+
     assert_equal 'POST', wh['method']
     assert_equal({ 'data' => '${args.payload}' }, wh['body'])
   end
@@ -384,8 +406,9 @@ class DataMapTest < Minitest::Test
     )
 
     swaig = dm.to_swaig_function
+
     assert_equal 'ping', swaig['function']
-    assert_equal({ "type" => "object", "properties" => {} }, swaig['parameters'])
+    assert_equal({ 'type' => 'object', 'properties' => {} }, swaig['parameters'])
   end
 
   # ----------------------------------------------------------------
@@ -400,14 +423,16 @@ class DataMapTest < Minitest::Test
         '${args.command2}' => ['stop.*', FR.new('Stopping')]
       },
       parameters: {
-        'command'  => { 'type' => 'string', 'description' => 'Playback command', 'required' => true },
+        'command' => { 'type' => 'string', 'description' => 'Playback command', 'required' => true },
         'command2' => { 'type' => 'string', 'description' => 'Other command' }
       }
     )
 
     swaig = dm.to_swaig_function
+
     assert_equal 'file_control', swaig['function']
     exprs = swaig['data_map']['expressions']
+
     assert_equal 2, exprs.size
     assert_equal 'start.*', exprs[0]['pattern']
     assert_equal 'stop.*', exprs[1]['pattern']
@@ -422,7 +447,8 @@ class DataMapTest < Minitest::Test
     )
 
     swaig = dm.to_swaig_function
-    assert_equal({ "type" => "object", "properties" => {} }, swaig['parameters'])
+
+    assert_equal({ 'type' => 'object', 'properties' => {} }, swaig['parameters'])
     assert_equal 1, swaig['data_map']['expressions'].size
   end
 
@@ -432,6 +458,7 @@ class DataMapTest < Minitest::Test
 
   def test_fluent_chaining_returns_self
     dm = DM.new('func')
+
     assert_same dm, dm.purpose('test')
     assert_same dm, dm.description('test')
     assert_same dm, dm.parameter('x', 'string', 'desc')
@@ -439,7 +466,7 @@ class DataMapTest < Minitest::Test
     assert_same dm, dm.webhook('GET', 'https://example.com')
     assert_same dm, dm.body({})
     assert_same dm, dm.params({})
-    assert_same dm, dm.foreach({ "input_key" => "a", "output_key" => "b", "append" => "c" })
+    assert_same dm, dm.foreach({ 'input_key' => 'a', 'output_key' => 'b', 'append' => 'c' })
     assert_same dm, dm.output(FR.new('ok'))
     assert_same dm, dm.fallback_output(FR.new('fail'))
     assert_same dm, dm.error_keys(%w[e])

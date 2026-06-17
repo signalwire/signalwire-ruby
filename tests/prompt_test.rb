@@ -13,17 +13,20 @@ class PromptTextModeTest < Minitest::Test
 
   def test_set_prompt_text
     @agent.set_prompt_text('Hello world')
+
     assert_equal 'Hello world', @agent.get_prompt
   end
 
   def test_text_mode_returns_string
     @agent.set_prompt_text('Raw text')
+
     assert_instance_of String, @agent.get_prompt
   end
 
   def test_text_mode_clears_pom
     @agent.prompt_add_section('Sec', 'body')
     @agent.set_prompt_text('Raw text')
+
     assert_equal 'Raw text', @agent.get_prompt
   end
 
@@ -31,11 +34,13 @@ class PromptTextModeTest < Minitest::Test
     @agent.set_prompt_text('You are helpful.')
     swml = @agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+
     assert_equal 'You are helpful.', ai['prompt']['text']
   end
 
   def test_empty_prompt_returns_nil
     agent = SignalWire::AgentBase.new
+
     assert_nil agent.get_prompt
   end
 end
@@ -48,6 +53,7 @@ class PromptPomModeTest < Minitest::Test
   def test_set_prompt_pom_direct
     pom = [{ 'title' => 'Intro', 'body' => 'Hi' }]
     @agent.set_prompt_pom(pom)
+
     assert_equal pom, @agent.get_prompt
   end
 
@@ -55,6 +61,7 @@ class PromptPomModeTest < Minitest::Test
     @agent.set_prompt_text('Raw text')
     @agent.prompt_add_section('Sec', 'body')
     prompt = @agent.get_prompt
+
     assert_instance_of Array, prompt
     assert_equal 'Sec', prompt[0]['title']
   end
@@ -64,6 +71,7 @@ class PromptPomModeTest < Minitest::Test
     swml = @agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
     pom = ai['prompt']['pom']
+
     assert_instance_of Array, pom
     assert_equal 'Intro', pom[0]['title']
   end
@@ -77,6 +85,7 @@ class PromptSectionTest < Minitest::Test
   def test_add_section_basic
     @agent.prompt_add_section('Personality', 'Be helpful')
     prompt = @agent.get_prompt
+
     assert_equal 1, prompt.length
     assert_equal 'Personality', prompt[0]['title']
     assert_equal 'Be helpful', prompt[0]['body']
@@ -85,6 +94,7 @@ class PromptSectionTest < Minitest::Test
   def test_add_section_with_bullets
     @agent.prompt_add_section('Rules', nil, bullets: ['Be concise', 'Be accurate'])
     prompt = @agent.get_prompt
+
     assert_equal ['Be concise', 'Be accurate'], prompt[0]['bullets']
   end
 
@@ -92,6 +102,7 @@ class PromptSectionTest < Minitest::Test
     @agent.prompt_add_section('A', 'Body A')
     @agent.prompt_add_section('B', 'Body B')
     prompt = @agent.get_prompt
+
     assert_equal 2, prompt.length
   end
 
@@ -99,6 +110,7 @@ class PromptSectionTest < Minitest::Test
     @agent.prompt_add_section('Intro', 'Hello')
     @agent.prompt_add_to_section('Intro', ' World')
     prompt = @agent.get_prompt
+
     assert_equal 'Hello World', prompt[0]['body']
   end
 
@@ -110,24 +122,28 @@ class PromptSectionTest < Minitest::Test
     @agent.prompt_add_section('A', 'Body')
     @agent.prompt_add_to_section('NonExistent', ' extra')
     prompt = @agent.get_prompt
+
     assert_equal 2, prompt.length
     new_sec = prompt.find { |s| s['title'] == 'NonExistent' }
+
     refute_nil new_sec
     assert_equal ' extra', new_sec['body']
   end
 
   def test_add_subsection
     @agent.prompt_add_section('Main', 'Top-level body')
-    @agent.prompt_add_subsection('Main', 'Sub', 'Sub body', bullets: ['a', 'b'])
+    @agent.prompt_add_subsection('Main', 'Sub', 'Sub body', bullets: %w[a b])
     prompt = @agent.get_prompt
+
     assert_equal 1, prompt[0]['subsections'].length
     assert_equal 'Sub', prompt[0]['subsections'][0]['title']
     assert_equal 'Sub body', prompt[0]['subsections'][0]['body']
-    assert_equal ['a', 'b'], prompt[0]['subsections'][0]['bullets']
+    assert_equal %w[a b], prompt[0]['subsections'][0]['bullets']
   end
 
   def test_has_section
     @agent.prompt_add_section('Foo', 'bar')
+
     assert @agent.prompt_has_section?('Foo')
     refute @agent.prompt_has_section?('Baz')
   end
@@ -136,12 +152,14 @@ class PromptSectionTest < Minitest::Test
   def test_add_section_numbered
     @agent.prompt_add_section('Steps', 'Procedure', numbered: true)
     sec = @agent.get_prompt.first
+
     assert_equal true, sec['numbered']
   end
 
   def test_add_section_numbered_bullets
     @agent.prompt_add_section('Steps', 'Procedure', bullets: %w[a b c], numbered_bullets: true)
     sec = @agent.get_prompt.first
+
     assert_equal true, sec['numbered_bullets']
   end
 
@@ -155,6 +173,7 @@ class PromptSectionTest < Minitest::Test
       ]
     )
     sec = @agent.get_prompt.first
+
     assert_equal 2, sec['subsections'].length
     assert_equal 'Sub1', sec['subsections'][0]['title']
     assert_equal 'b1',   sec['subsections'][0]['body']
@@ -166,6 +185,7 @@ class PromptSectionTest < Minitest::Test
     @agent.prompt_add_section('Tips', 'Body')
     @agent.prompt_add_to_section('Tips', bullet: 'be polite')
     sec = @agent.get_prompt.first
+
     assert_equal ['be polite'], sec['bullets']
   end
 
@@ -173,6 +193,7 @@ class PromptSectionTest < Minitest::Test
     @agent.prompt_add_section('Tips', 'Body')
     @agent.prompt_add_to_section('Tips', bullets: %w[a b])
     sec = @agent.get_prompt.first
+
     assert_equal %w[a b], sec['bullets']
   end
 
@@ -180,6 +201,7 @@ class PromptSectionTest < Minitest::Test
     @agent.prompt_add_section('Intro', 'Hello')
     @agent.prompt_add_to_section('Intro', body: ' world')
     sec = @agent.get_prompt.first
+
     assert_equal 'Hello world', sec['body']
   end
 end
@@ -193,6 +215,7 @@ class DefineContextsTest < Minitest::Test
 
   def test_define_contexts_zero_arg_returns_builder
     cb = @agent.define_contexts
+
     assert_kind_of SignalWire::Contexts::ContextBuilder, cb
   end
 
@@ -200,6 +223,7 @@ class DefineContextsTest < Minitest::Test
     cb1 = @agent.define_contexts
     cb2 = SignalWire::Contexts::ContextBuilder.new(@agent)
     @agent.define_contexts(cb2)
+
     refute_same cb1, @agent.define_contexts
     assert_same cb2, @agent.define_contexts
   end
@@ -214,6 +238,7 @@ class DefineContextsTest < Minitest::Test
     )
     cb = @agent.define_contexts
     ctx = cb.get_context('default')
+
     refute_nil ctx
     refute_nil ctx.get_step('greet')
   end
@@ -229,14 +254,16 @@ class PromptPostPromptTest < Minitest::Test
     agent.set_post_prompt('Summarize the call')
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+
     assert_equal 'Summarize the call', ai['post_prompt']['text']
   end
 
   def test_post_prompt_url_generated
-    agent = SignalWire::AgentBase.new(basic_auth: ['u', 'p'])
+    agent = SignalWire::AgentBase.new(basic_auth: %w[u p])
     agent.set_post_prompt('Summarize')
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+
     assert_includes ai['post_prompt_url'], '/post_prompt'
   end
 end
@@ -244,6 +271,7 @@ end
 class PromptChainingTest < Minitest::Test
   def test_all_prompt_methods_return_self
     agent = SignalWire::AgentBase.new
+
     assert_same agent, agent.set_prompt_text('x')
     assert_same agent, agent.set_post_prompt('x')
     assert_same agent, agent.set_prompt_pom([])
@@ -273,9 +301,11 @@ class PomAccessorTest < Minitest::Test
     sections = [{ 'title' => 'Greeting', 'body' => 'Hello' }]
     @agent.set_prompt_pom(sections)
     pom = @agent.pom
+
     refute_nil pom
     assert_kind_of SignalWire::POM::PromptObjectModel, pom
     as_h = pom.to_h
+
     assert_equal 1, as_h.length
     assert_equal 'Greeting', as_h[0]['title']
     assert_equal 'Hello', as_h[0]['body']
@@ -284,9 +314,11 @@ class PomAccessorTest < Minitest::Test
   def test_pom_returns_sections_after_prompt_add_section
     @agent.prompt_add_section('Topic', 'Body text')
     pom = @agent.pom
+
     refute_nil pom
     assert_kind_of SignalWire::POM::PromptObjectModel, pom
     as_h = pom.to_h
+
     assert_equal 1, as_h.length
     assert_equal 'Topic', as_h[0]['title']
     assert_equal 'Body text', as_h[0]['body']
@@ -296,12 +328,14 @@ class PomAccessorTest < Minitest::Test
     # set_prompt_text disables POM mode; pom must return nil to mirror
     # Python's "self.pom is None when use_pom is False".
     @agent.set_prompt_text('plain text')
+
     assert_nil @agent.pom
   end
 
   def test_pom_returns_fresh_instance_not_internal_state
     @agent.prompt_add_section('Original', 'Body')
     pom = @agent.pom
+
     refute_nil pom
 
     # Mutate the returned PromptObjectModel; internal state must be unchanged.
@@ -310,6 +344,7 @@ class PomAccessorTest < Minitest::Test
 
     fresh = @agent.pom
     fresh_h = fresh.to_h
+
     assert_equal 1, fresh_h.length, 'caller mutation leaked into agent state'
     assert_equal 'Original', fresh_h[0]['title'], 'caller mutation leaked into agent state'
   end
@@ -320,6 +355,7 @@ class PomAccessorTest < Minitest::Test
     # directly (matches Python's ``agent.pom.render_markdown()`` usage).
     @agent.prompt_add_section('Topic', 'Body text')
     md = @agent.pom.render_markdown
+
     assert_includes md, '## Topic'
     assert_includes md, 'Body text'
   end

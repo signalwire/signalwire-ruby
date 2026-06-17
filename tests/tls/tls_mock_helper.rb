@@ -126,7 +126,7 @@ module TlsHarness
       ['python3', '-m', 'mock_signalwire',
        '--host', '127.0.0.1', '--port', TLS_SIGNALWIRE_PORT.to_s,
        '--tls', '--log-level', 'error'],
-      'SIGNALWIRE_MOCK_TLS' => '1',
+      'SIGNALWIRE_MOCK_TLS' => '1'
     )
     return nil unless pid
 
@@ -157,7 +157,7 @@ module TlsHarness
        '--ws-port', TLS_RELAY_WS_PORT.to_s,
        '--http-port', TLS_RELAY_HTTP_PORT.to_s,
        '--tls', '--log-level', 'error'],
-      'SIGNALWIRE_MOCK_TLS' => '1',
+      'SIGNALWIRE_MOCK_TLS' => '1'
     )
     return nil unless pid
 
@@ -219,11 +219,9 @@ module TlsHarness
                         pgroup: true)
     Process.detach(pid)
     at_exit do
-      begin
-        Process.kill('TERM', -Process.getpgid(pid))
-      rescue StandardError
-        # already gone
-      end
+      Process.kill('TERM', -Process.getpgid(pid))
+    rescue StandardError
+      # already gone
     end
     pid
   rescue Errno::ENOENT

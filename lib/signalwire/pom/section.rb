@@ -53,9 +53,7 @@ module SignalWire
       # Add or replace the body text for this section. Mirrors Python's
       # ``Section.add_body`` (which is documented to "Add or replace").
       def add_body(body)
-        unless body.is_a?(String)
-          raise TypeError, "body must be a string, not #{body.class.name}"
-        end
+        raise TypeError, "body must be a string, not #{body.class.name}" unless body.is_a?(String)
 
         @body = body
       end
@@ -63,9 +61,7 @@ module SignalWire
       # Append bullet points to this section. Does not replace existing
       # bullets — mirrors Python's ``self.bullets.extend(bullets)``.
       def add_bullets(bullets)
-        unless bullets.is_a?(Array)
-          raise TypeError, "bullets must be an Array, not #{bullets.class.name}"
-        end
+        raise TypeError, "bullets must be an Array, not #{bullets.class.name}" unless bullets.is_a?(Array)
 
         @bullets.concat(bullets)
       end
@@ -114,11 +110,11 @@ module SignalWire
         md << "#{@body}\n" if @body && !@body.empty?
 
         @bullets.each_with_index do |bullet, idx|
-          if @numbered_bullets
-            md << "#{idx + 1}. #{bullet}"
-          else
-            md << "- #{bullet}"
-          end
+          md << if @numbered_bullets
+                  "#{idx + 1}. #{bullet}"
+                else
+                  "- #{bullet}"
+                end
         end
 
         md << '' unless @bullets.empty?
@@ -165,11 +161,11 @@ module SignalWire
         if @bullets && !@bullets.empty?
           xml << "#{indent_str}  <bullets>"
           @bullets.each_with_index do |bullet, idx|
-            if @numbered_bullets
-              xml << "#{indent_str}    <bullet id=\"#{idx + 1}\">#{bullet}</bullet>"
-            else
-              xml << "#{indent_str}    <bullet>#{bullet}</bullet>"
-            end
+            xml << if @numbered_bullets
+                     "#{indent_str}    <bullet id=\"#{idx + 1}\">#{bullet}</bullet>"
+                   else
+                     "#{indent_str}    <bullet>#{bullet}</bullet>"
+                   end
           end
           xml << "#{indent_str}  </bullets>"
         end
@@ -179,16 +175,15 @@ module SignalWire
           any_subsection_numbered = @subsections.any? { |sub| sub.numbered }
 
           @subsections.each_with_index do |subsection, idx|
-            if !@title.nil? || !section_number.empty?
-              new_section_number =
-                if any_subsection_numbered && subsection.numbered != false
-                  section_number + [idx + 1]
-                else
-                  section_number
-                end
-            else
-              new_section_number = section_number
-            end
+            new_section_number = if !@title.nil? || !section_number.empty?
+                                   if any_subsection_numbered && subsection.numbered != false
+                                     section_number + [idx + 1]
+                                   else
+                                     section_number
+                                   end
+                                 else
+                                   section_number
+                                 end
             xml << subsection.render_xml(indent: indent + 2, section_number: new_section_number)
           end
           xml << "#{indent_str}  </subsections>"

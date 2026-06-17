@@ -34,10 +34,10 @@ module SignalWire
         #   See porting-sdk's +phone-binding.md+.
         def create(**kwargs)
           Kernel.warn(
-            "DEPRECATION: creating a webhook Fabric resource directly produces " \
-            "an orphan not bound to any phone number. Use " \
+            'DEPRECATION: creating a webhook Fabric resource directly produces ' \
+            'an orphan not bound to any phone number. Use ' \
             "#{self.class::AUTO_HELPER_NAME} instead; it updates the phone " \
-            "number and the server auto-materializes the resource. " \
+            'number and the server auto-materializes the resource. ' \
             "See porting-sdk's phone-binding.md.",
             uplevel: 1
           )
@@ -140,10 +140,10 @@ module SignalWire
         # the OpenAPI spec; routing here for those types returns 404 or 422.
         def assign_phone_route(resource_id, **kwargs)
           Kernel.warn(
-            "DEPRECATION: assign_phone_route does not bind phone numbers to " \
-            "swml_webhook/cxml_webhook/ai_agent resources -- those are " \
-            "configured via phone_numbers.set_swml_webhook / set_cxml_webhook " \
-            "/ set_ai_agent. This method applies only to a narrow set of " \
+            'DEPRECATION: assign_phone_route does not bind phone numbers to ' \
+            'swml_webhook/cxml_webhook/ai_agent resources -- those are ' \
+            'configured via phone_numbers.set_swml_webhook / set_cxml_webhook ' \
+            '/ set_ai_agent. This method applies only to a narrow set of ' \
             "legacy resource types. See porting-sdk's phone-binding.md.",
             uplevel: 1
           )

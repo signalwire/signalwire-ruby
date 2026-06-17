@@ -42,9 +42,9 @@ module SignalWire
         p  = payload['params'] || {}
         new(
           event_type: et,
-          params:     p,
-          call_id:    p['call_id'] || '',
-          timestamp:  p['timestamp'] || 0.0
+          params: p,
+          call_id: p['call_id'] || '',
+          timestamp: p['timestamp'] || 0.0
         )
       end
 
@@ -57,14 +57,14 @@ module SignalWire
       def to_h
         {
           event_type: @event_type,
-          call_id:    @call_id,
-          timestamp:  @timestamp
+          call_id: @call_id,
+          timestamp: @timestamp
         }.merge(_event_fields)
       end
 
       # @return [String] JSON serialization of {#to_h}.
-      def to_json(*args)
-        to_h.to_json(*args)
+      def to_json(*)
+        to_h.to_json(*)
       end
 
       # Ruby 3.0 pattern-matching hook for +in { key: }+ / +in { key: }+.
@@ -129,8 +129,8 @@ module SignalWire
           call_id: base.call_id, timestamp: base.timestamp,
           call_state: p['call_state'] || '',
           end_reason: p['end_reason'] || '',
-          direction:  p['direction'] || '',
-          device:     p['device'] || {}
+          direction: p['direction'] || '',
+          device: p['device'] || {}
         )
       end
 
@@ -171,13 +171,13 @@ module SignalWire
           event_type: base.event_type, params: base.params,
           call_id: base.call_id, timestamp: base.timestamp,
           call_state: p['call_state'] || '',
-          direction:  p['direction'] || '',
-          device:     p['device'] || {},
-          node_id:    p['node_id'] || '',
+          direction: p['direction'] || '',
+          device: p['device'] || {},
+          node_id: p['node_id'] || '',
           project_id: p['project_id'] || '',
-          context:    p['context'] || p['protocol'] || '',
+          context: p['context'] || p['protocol'] || '',
           segment_id: p['segment_id'] || '',
-          tag:        p['tag'] || ''
+          tag: p['tag'] || ''
         )
       end
 
@@ -214,7 +214,7 @@ module SignalWire
           event_type: base.event_type, params: base.params,
           call_id: base.call_id, timestamp: base.timestamp,
           control_id: p['control_id'] || '',
-          state:      p['state'] || ''
+          state: p['state'] || ''
         )
       end
 
@@ -243,11 +243,11 @@ module SignalWire
           event_type: base.event_type, params: base.params,
           call_id: base.call_id, timestamp: base.timestamp,
           control_id: p['control_id'] || '',
-          state:      p['state'] || '',
-          url:        rec['url'] || p['url'] || '',
-          duration:   rec['duration'] || p['duration'] || 0.0,
-          size:       rec['size'] || p['size'] || 0,
-          record:     rec
+          state: p['state'] || '',
+          url: rec['url'] || p['url'] || '',
+          duration: rec['duration'] || p['duration'] || 0.0,
+          size: rec['size'] || p['size'] || 0,
+          record: rec
         )
       end
 
@@ -279,10 +279,10 @@ module SignalWire
         new(
           event_type: base.event_type, params: base.params,
           call_id: base.call_id, timestamp: base.timestamp,
-          control_id:  p['control_id'] || '',
-          state:       p['state'] || '',
+          control_id: p['control_id'] || '',
+          state: p['state'] || '',
           result_data: p['result'] || {},
-          final:       p['final']
+          final: p['final']
         )
       end
 
@@ -313,7 +313,7 @@ module SignalWire
           event_type: base.event_type, params: base.params,
           call_id: base.call_id, timestamp: base.timestamp,
           connect_state: p['connect_state'] || '',
-          peer:          p['peer'] || {}
+          peer: p['peer'] || {}
         )
       end
 
@@ -341,7 +341,7 @@ module SignalWire
           event_type: base.event_type, params: base.params,
           call_id: base.call_id, timestamp: base.timestamp,
           control_id: p['control_id'] || '',
-          detect:     p['detect'] || {}
+          detect: p['detect'] || {}
         )
       end
 
@@ -369,7 +369,7 @@ module SignalWire
           event_type: base.event_type, params: base.params,
           call_id: base.call_id, timestamp: base.timestamp,
           control_id: p['control_id'] || '',
-          fax:        p['fax'] || {}
+          fax: p['fax'] || {}
         )
       end
 
@@ -397,9 +397,9 @@ module SignalWire
           event_type: base.event_type, params: base.params,
           call_id: base.call_id, timestamp: base.timestamp,
           control_id: p['control_id'] || '',
-          state:      p['state'] || '',
-          tap:        p['tap'] || {},
-          device:     p['device'] || {}
+          state: p['state'] || '',
+          tap: p['tap'] || {},
+          device: p['device'] || {}
         )
       end
 
@@ -429,9 +429,9 @@ module SignalWire
           event_type: base.event_type, params: base.params,
           call_id: base.call_id, timestamp: base.timestamp,
           control_id: p['control_id'] || '',
-          state:      p['state'] || '',
-          url:        p['url'] || '',
-          name:       p['name'] || ''
+          state: p['state'] || '',
+          url: p['url'] || '',
+          name: p['name'] || ''
         )
       end
 
@@ -461,7 +461,7 @@ module SignalWire
           event_type: base.event_type, params: base.params,
           call_id: base.call_id, timestamp: base.timestamp,
           control_id: p['control_id'] || '',
-          state:      p['state'] || ''
+          state: p['state'] || ''
         )
       end
 
@@ -488,9 +488,9 @@ module SignalWire
         new(
           event_type: base.event_type, params: base.params,
           call_id: base.call_id, timestamp: base.timestamp,
-          tag:        p['tag'] || '',
+          tag: p['tag'] || '',
           dial_state: p['dial_state'] || '',
-          call_data:  p['call'] || {}
+          call_data: p['call'] || {}
         )
       end
 
@@ -538,10 +538,10 @@ module SignalWire
         new(
           event_type: base.event_type, params: base.params,
           call_id: base.call_id, timestamp: base.timestamp,
-          state:                      p['state'] || '',
-          sip_refer_to:               p['sip_refer_to'] || '',
-          sip_refer_response_code:    p['sip_refer_response_code'] || '',
-          sip_notify_response_code:   p['sip_notify_response_code'] || ''
+          state: p['state'] || '',
+          sip_refer_to: p['sip_refer_to'] || '',
+          sip_refer_response_code: p['sip_refer_response_code'] || '',
+          sip_notify_response_code: p['sip_notify_response_code'] || ''
         )
       end
 
@@ -600,7 +600,7 @@ module SignalWire
           event_type: base.event_type, params: base.params,
           call_id: base.call_id, timestamp: base.timestamp,
           control_id: p['control_id'] || '',
-          state:      p['state'] || ''
+          state: p['state'] || ''
         )
       end
 
@@ -628,11 +628,11 @@ module SignalWire
           event_type: base.event_type, params: base.params,
           call_id: base.call_id, timestamp: base.timestamp,
           control_id: p['control_id'] || '',
-          status:     p['status'] || '',
-          queue_id:   p['id'] || '',
+          status: p['status'] || '',
+          queue_id: p['id'] || '',
           queue_name: p['name'] || '',
-          position:   p['position'] || 0,
-          size:       p['size'] || 0
+          position: p['position'] || 0,
+          size: p['size'] || 0
         )
       end
 
@@ -691,12 +691,12 @@ module SignalWire
         new(
           event_type: base.event_type, params: base.params,
           call_id: base.call_id, timestamp: base.timestamp,
-          control_id:   p['control_id'] || '',
-          state:        p['state'] || '',
-          url:          p['url'] || '',
+          control_id: p['control_id'] || '',
+          state: p['state'] || '',
+          url: p['url'] || '',
           recording_id: p['recording_id'] || '',
-          duration:     p['duration'] || 0.0,
-          size:         p['size'] || 0
+          duration: p['duration'] || 0.0,
+          size: p['size'] || 0
         )
       end
 
@@ -756,8 +756,8 @@ module SignalWire
           event_type: base.event_type, params: base.params,
           call_id: base.call_id, timestamp: base.timestamp,
           conference_id: p['conference_id'] || '',
-          name:          p['name'] || '',
-          status:        p['status'] || ''
+          name: p['name'] || '',
+          status: p['status'] || ''
         )
       end
 
@@ -785,7 +785,7 @@ module SignalWire
         new(
           event_type: base.event_type, params: base.params,
           call_id: base.call_id, timestamp: base.timestamp,
-          code:    p['code'] || '',
+          code: p['code'] || '',
           message: p['message'] || ''
         )
       end
@@ -814,16 +814,16 @@ module SignalWire
         new(
           event_type: base.event_type, params: base.params,
           call_id: base.call_id, timestamp: base.timestamp,
-          message_id:    p['message_id'] || '',
-          context:       p['context'] || '',
-          direction:     p['direction'] || '',
-          from_number:   p['from_number'] || '',
-          to_number:     p['to_number'] || '',
-          body:          p['body'] || '',
-          media:         p['media'] || [],
-          segments:      p['segments'] || 0,
+          message_id: p['message_id'] || '',
+          context: p['context'] || '',
+          direction: p['direction'] || '',
+          from_number: p['from_number'] || '',
+          to_number: p['to_number'] || '',
+          body: p['body'] || '',
+          media: p['media'] || [],
+          segments: p['segments'] || 0,
           message_state: p['message_state'] || '',
-          tags:          p['tags'] || []
+          tags: p['tags'] || []
         )
       end
 
@@ -864,17 +864,17 @@ module SignalWire
         new(
           event_type: base.event_type, params: base.params,
           call_id: base.call_id, timestamp: base.timestamp,
-          message_id:    p['message_id'] || '',
-          context:       p['context'] || '',
-          direction:     p['direction'] || '',
-          from_number:   p['from_number'] || '',
-          to_number:     p['to_number'] || '',
-          body:          p['body'] || '',
-          media:         p['media'] || [],
-          segments:      p['segments'] || 0,
+          message_id: p['message_id'] || '',
+          context: p['context'] || '',
+          direction: p['direction'] || '',
+          from_number: p['from_number'] || '',
+          to_number: p['to_number'] || '',
+          body: p['body'] || '',
+          media: p['media'] || [],
+          segments: p['segments'] || 0,
           message_state: p['message_state'] || '',
-          reason:        p['reason'] || '',
-          tags:          p['tags'] || []
+          reason: p['reason'] || '',
+          tags: p['tags'] || []
         )
       end
 
@@ -916,29 +916,29 @@ module SignalWire
 
     # Map event_type string to typed event class
     EVENT_CLASS_MAP = {
-      'calling.call.state'       => CallStateEvent,
-      'calling.call.receive'     => CallReceiveEvent,
-      'calling.call.play'        => PlayEvent,
-      'calling.call.record'      => RecordEvent,
-      'calling.call.collect'     => CollectEvent,
-      'calling.call.connect'     => ConnectEvent,
-      'calling.call.detect'      => DetectEvent,
-      'calling.call.fax'         => FaxEvent,
-      'calling.call.tap'         => TapEvent,
-      'calling.call.stream'      => StreamEvent,
+      'calling.call.state' => CallStateEvent,
+      'calling.call.receive' => CallReceiveEvent,
+      'calling.call.play' => PlayEvent,
+      'calling.call.record' => RecordEvent,
+      'calling.call.collect' => CollectEvent,
+      'calling.call.connect' => ConnectEvent,
+      'calling.call.detect' => DetectEvent,
+      'calling.call.fax' => FaxEvent,
+      'calling.call.tap' => TapEvent,
+      'calling.call.stream' => StreamEvent,
       'calling.call.send_digits' => SendDigitsEvent,
-      'calling.call.dial'        => DialEvent,
-      'calling.call.refer'       => ReferEvent,
-      'calling.call.denoise'     => DenoiseEvent,
-      'calling.call.pay'         => PayEvent,
-      'calling.call.queue'       => QueueEvent,
-      'calling.call.echo'        => EchoEvent,
-      'calling.call.transcribe'  => TranscribeEvent,
-      'calling.call.hold'        => HoldEvent,
-      'calling.conference'       => ConferenceEvent,
-      'calling.error'            => CallingErrorEvent,
-      'messaging.receive'        => MessageReceiveEvent,
-      'messaging.state'          => MessageStateEvent
+      'calling.call.dial' => DialEvent,
+      'calling.call.refer' => ReferEvent,
+      'calling.call.denoise' => DenoiseEvent,
+      'calling.call.pay' => PayEvent,
+      'calling.call.queue' => QueueEvent,
+      'calling.call.echo' => EchoEvent,
+      'calling.call.transcribe' => TranscribeEvent,
+      'calling.call.hold' => HoldEvent,
+      'calling.conference' => ConferenceEvent,
+      'calling.error' => CallingErrorEvent,
+      'messaging.receive' => MessageReceiveEvent,
+      'messaging.state' => MessageStateEvent
     }.freeze
 
     # Parse a raw signalwire.event params hash into a typed event object.

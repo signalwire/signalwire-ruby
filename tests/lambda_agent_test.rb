@@ -31,7 +31,7 @@ class LambdaWebhookUrlTest < Minitest::Test
     ENV['AWS_LAMBDA_FUNCTION_NAME'] = 'my-func'
     ENV['AWS_REGION']               = 'us-east-1'
 
-    agent = SignalWire::AgentBase.new(basic_auth: ['u', 'p'], route: '/')
+    agent = SignalWire::AgentBase.new(basic_auth: %w[u p], route: '/')
     agent.define_tool(name: 'test', description: 'test') { |_, _| }
 
     url = default_swaig_url(agent)
@@ -47,7 +47,7 @@ class LambdaWebhookUrlTest < Minitest::Test
     ENV['AWS_LAMBDA_FUNCTION_NAME'] = 'my-func'
     ENV['AWS_REGION']               = 'eu-west-2'
 
-    agent = SignalWire::AgentBase.new(basic_auth: ['u', 'p'], route: '/my-agent')
+    agent = SignalWire::AgentBase.new(basic_auth: %w[u p], route: '/my-agent')
     agent.define_tool(name: 'test', description: 'test') { |_, _| }
 
     url = default_swaig_url(agent)
@@ -61,10 +61,11 @@ class LambdaWebhookUrlTest < Minitest::Test
     ENV['AWS_LAMBDA_FUNCTION_NAME'] = 'ignored'
     ENV['AWS_LAMBDA_FUNCTION_URL']  = 'https://abc.lambda-url.us-west-2.on.aws'
 
-    agent = SignalWire::AgentBase.new(basic_auth: ['u', 'p'], route: '/')
+    agent = SignalWire::AgentBase.new(basic_auth: %w[u p], route: '/')
     agent.define_tool(name: 'test', description: 'test') { |_, _| }
 
     url = default_swaig_url(agent)
+
     assert_includes url, 'abc.lambda-url.us-west-2.on.aws'
     refute_includes url, 'ignored'
   end
@@ -73,19 +74,21 @@ class LambdaWebhookUrlTest < Minitest::Test
     ENV['AWS_LAMBDA_FUNCTION_NAME'] = 'my-func'
     # AWS_REGION intentionally unset
 
-    agent = SignalWire::AgentBase.new(basic_auth: ['u', 'p'], route: '/')
+    agent = SignalWire::AgentBase.new(basic_auth: %w[u p], route: '/')
     agent.define_tool(name: 'test', description: 'test') { |_, _| }
 
     url = default_swaig_url(agent)
+
     assert_includes url, 'my-func.lambda-url.us-east-1.on.aws'
   end
 
   def test_not_lambda_means_no_lambda_url
     # No Lambda env vars set; must fall back to the local server URL.
-    agent = SignalWire::AgentBase.new(basic_auth: ['u', 'p'], route: '/')
+    agent = SignalWire::AgentBase.new(basic_auth: %w[u p], route: '/')
     agent.define_tool(name: 'test', description: 'test') { |_, _| }
 
     url = default_swaig_url(agent)
+
     refute_includes url, 'lambda-url'
     assert_match %r{http://u:p@}, url
   end
@@ -108,7 +111,7 @@ class LambdaProxyRouteRegressionTest < Minitest::Test
     ENV['AWS_REGION']               = 'us-east-1'
     ENV['SWML_PROXY_URL_BASE']      = 'https://xyz.lambda-url.us-east-1.on.aws'
 
-    agent = SignalWire::AgentBase.new(basic_auth: ['u', 'p'], route: '/my-agent')
+    agent = SignalWire::AgentBase.new(basic_auth: %w[u p], route: '/my-agent')
     agent.define_tool(name: 'test', description: 'test') { |_, _| }
 
     url = default_swaig_url(agent)
@@ -126,10 +129,11 @@ class LambdaProxyRouteRegressionTest < Minitest::Test
     ENV['AWS_LAMBDA_FUNCTION_NAME'] = 'my-func'
     ENV['SWML_PROXY_URL_BASE']      = 'https://proxy.example.com'
 
-    agent = SignalWire::AgentBase.new(basic_auth: ['u', 'p'], route: '/')
+    agent = SignalWire::AgentBase.new(basic_auth: %w[u p], route: '/')
     agent.define_tool(name: 'test', description: 'test') { |_, _| }
 
     url = default_swaig_url(agent)
+
     assert_includes url, 'https://proxy.example.com/swaig'
   end
 
@@ -137,10 +141,11 @@ class LambdaProxyRouteRegressionTest < Minitest::Test
     ENV['AWS_LAMBDA_FUNCTION_NAME'] = 'my-func'
     ENV['SWML_PROXY_URL_BASE']      = 'https://proxy.example.com/'
 
-    agent = SignalWire::AgentBase.new(basic_auth: ['u', 'p'], route: '/my-agent')
+    agent = SignalWire::AgentBase.new(basic_auth: %w[u p], route: '/my-agent')
     agent.define_tool(name: 'test', description: 'test') { |_, _| }
 
     url = default_swaig_url(agent)
+
     assert_includes url, 'https://proxy.example.com/my-agent/swaig'
     refute_includes url, '//my-agent', 'trailing slash on base must not produce a double slash'
   end
@@ -155,15 +160,15 @@ class LambdaHandlerIntegrationTest < Minitest::Test
   def setup
     super
     @agent = SignalWire::AgentBase.new(
-      name:       'lambda-agent',
-      route:      '/',
-      basic_auth: ['testuser', 'testpass']
+      name: 'lambda-agent',
+      route: '/',
+      basic_auth: %w[testuser testpass]
     )
     @agent.set_prompt_text('Hello from Lambda')
     @agent.define_tool(
-      name:        'echo',
+      name: 'echo',
       description: 'Echo back a message',
-      parameters:  { 'message' => { 'type' => 'string' } }
+      parameters: { 'message' => { 'type' => 'string' } }
     ) do |args, _raw|
       SignalWire::Swaig::FunctionResult.new("echo: #{args['message']}")
     end
@@ -175,16 +180,16 @@ class LambdaHandlerIntegrationTest < Minitest::Test
   def function_url_event(method:, path:, body: nil, headers: {}, query: nil)
     merged_headers = {
       'authorization' => 'Basic ' + ['testuser:testpass'].pack('m0').chomp,
-      'content-type'  => 'application/json',
-      'host'          => 'abc.lambda-url.us-east-1.on.aws'
+      'content-type' => 'application/json',
+      'host' => 'abc.lambda-url.us-east-1.on.aws'
     }.merge(headers)
 
     event = {
-      'version'     => '2.0',
-      'routeKey'    => '$default',
-      'rawPath'     => path,
+      'version' => '2.0',
+      'routeKey' => '$default',
+      'rawPath' => path,
       'rawQueryString' => query.to_s,
-      'headers'     => merged_headers,
+      'headers' => merged_headers,
       'requestContext' => {
         'http' => { 'method' => method, 'path' => path, 'protocol' => 'HTTP/1.1' },
         'stage' => '$default'
@@ -206,6 +211,7 @@ class LambdaHandlerIntegrationTest < Minitest::Test
     assert_equal 200, resp['statusCode']
     assert_equal 'application/json', resp['headers']['content-type']
     payload = JSON.parse(resp['body'])
+
     assert_equal 'healthy', payload['status']
     refute resp['isBase64Encoded'], 'plain JSON must not be base64 encoded'
   end
@@ -226,13 +232,14 @@ class LambdaHandlerIntegrationTest < Minitest::Test
     assert payload.key?('sections')
     main = payload['sections']['main']
     ai_verb = main.find { |v| v.key?('ai') }
+
     assert ai_verb, "rendered SWML should include an 'ai' verb"
   end
 
   def test_swaig_dispatch_via_post
     body = JSON.generate(
-      'function'  => 'echo',
-      'argument'  => { 'parsed' => [{ 'message' => 'from-lambda' }] }
+      'function' => 'echo',
+      'argument' => { 'parsed' => [{ 'message' => 'from-lambda' }] }
     )
     event = function_url_event(method: 'POST', path: '/swaig', body: body)
 
@@ -240,6 +247,7 @@ class LambdaHandlerIntegrationTest < Minitest::Test
 
     assert_equal 200, resp['statusCode']
     payload = JSON.parse(resp['body'])
+
     assert_equal 'echo: from-lambda', payload['response']
   end
 
@@ -248,6 +256,7 @@ class LambdaHandlerIntegrationTest < Minitest::Test
     event['headers'].delete('authorization')
 
     resp = @handler.call(event, nil)
+
     assert_equal 401, resp['statusCode']
   end
 
@@ -256,14 +265,14 @@ class LambdaHandlerIntegrationTest < Minitest::Test
   def rest_event(method:, path:, body: nil)
     {
       'httpMethod' => method,
-      'path'       => path,
-      'headers'    => {
+      'path' => path,
+      'headers' => {
         'Authorization' => 'Basic ' + ['testuser:testpass'].pack('m0').chomp,
-        'Content-Type'  => 'application/json',
-        'Host'          => 'api.example.com'
+        'Content-Type' => 'application/json',
+        'Host' => 'api.example.com'
       },
-      'body'             => body,
-      'isBase64Encoded'  => false
+      'body' => body,
+      'isBase64Encoded' => false
     }
   end
 
@@ -271,6 +280,7 @@ class LambdaHandlerIntegrationTest < Minitest::Test
     event = rest_event(method: 'GET', path: '/health')
 
     resp = @handler.call(event, nil)
+
     assert_equal 200, resp['statusCode']
     # v1 responses include multiValueHeaders; v2 responses do not.
     assert resp.key?('multiValueHeaders'), 'v1 payload must produce v1 response shape'
@@ -289,8 +299,8 @@ class LambdaHandlerIntegrationTest < Minitest::Test
 
   def test_base64_encoded_body_is_decoded
     raw_body = JSON.generate(
-      'function'  => 'echo',
-      'argument'  => { 'parsed' => [{ 'message' => 'b64' }] }
+      'function' => 'echo',
+      'argument' => { 'parsed' => [{ 'message' => 'b64' }] }
     )
     event = function_url_event(method: 'POST', path: '/swaig', body: nil)
     require 'base64'
@@ -301,6 +311,7 @@ class LambdaHandlerIntegrationTest < Minitest::Test
 
     assert_equal 200, resp['statusCode']
     payload = JSON.parse(resp['body'])
+
     assert_equal 'echo: b64', payload['response']
   end
 
@@ -312,6 +323,7 @@ class LambdaHandlerIntegrationTest < Minitest::Test
     event['headers'].delete('authorization')
 
     resp = handler.call(event, nil)
+
     assert_equal 200, resp['statusCode']
   end
 
@@ -321,6 +333,7 @@ class LambdaHandlerIntegrationTest < Minitest::Test
     event['headers'].delete('authorization')
 
     resp = handler.call(event, nil)
+
     assert_equal 200, resp['statusCode']
   end
 

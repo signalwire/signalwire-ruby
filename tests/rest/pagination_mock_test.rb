@@ -38,7 +38,7 @@ class PaginationMockTest < Minitest::Test
       @client.http,
       FABRIC_ADDRESSES_PATH,
       { page_size: 2 },
-      'data',
+      'data'
     )
     # Constructor must not have fetched anything yet.
     assert_same @client.http, it.http
@@ -61,9 +61,10 @@ class PaginationMockTest < Minitest::Test
       @client.http,
       FABRIC_ADDRESSES_PATH,
       nil,
-      'data',
+      'data'
     )
     enum = it.each
+
     assert_kind_of Enumerator, enum
     # Still no HTTP yet - enum isn't realised.
     assert_equal [], MockTest.journal.journal
@@ -74,37 +75,38 @@ class PaginationMockTest < Minitest::Test
     # Page 1 - has a next cursor.
     MockTest.scenarios.push_scenario(
       FABRIC_ADDRESSES_ENDPOINT_ID,
-      status:   200,
+      status: 200,
       response: {
         'data' => [
           { 'id' => 'addr-1', 'name' => 'first' },
-          { 'id' => 'addr-2', 'name' => 'second' },
+          { 'id' => 'addr-2', 'name' => 'second' }
         ],
-        'links' => { 'next' => 'http://example.com/api/fabric/addresses?cursor=page2' },
-      },
+        'links' => { 'next' => 'http://example.com/api/fabric/addresses?cursor=page2' }
+      }
     )
     # Page 2 - terminal (no next).
     MockTest.scenarios.push_scenario(
       FABRIC_ADDRESSES_ENDPOINT_ID,
-      status:   200,
+      status: 200,
       response: {
-        'data'  => [{ 'id' => 'addr-3', 'name' => 'third' }],
-        'links' => {},
-      },
+        'data' => [{ 'id' => 'addr-3', 'name' => 'third' }],
+        'links' => {}
+      }
     )
 
     it = SignalWire::REST::PaginatedIterator.new(
       @client.http,
       FABRIC_ADDRESSES_PATH,
       nil,
-      'data',
+      'data'
     )
     collected = it.to_a
     # All three items, in order.
-    assert_equal %w[addr-1 addr-2 addr-3], collected.map { |x| x['id'] }
+    assert_equal(%w[addr-1 addr-2 addr-3], collected.map { |x| x['id'] })
 
     # Journal must have exactly two GETs at the same path.
     gets = MockTest.journal.journal.select { |e| e.path == FABRIC_ADDRESSES_PATH }
+
     assert_equal 2, gets.length,
                  "expected 2 paginated GETs, got #{gets.length}: " \
                  "#{gets.map { |e| [e.method, e.path, e.query_params] }}"
@@ -119,17 +121,18 @@ class PaginationMockTest < Minitest::Test
     # the sentinel :__stop__ (Ruby's equivalent of StopIteration).
     MockTest.scenarios.push_scenario(
       FABRIC_ADDRESSES_ENDPOINT_ID,
-      status:   200,
-      response: { 'data' => [{ 'id' => 'only-one' }], 'links' => {} },
+      status: 200,
+      response: { 'data' => [{ 'id' => 'only-one' }], 'links' => {} }
     )
     it = SignalWire::REST::PaginatedIterator.new(
       @client.http,
       FABRIC_ADDRESSES_PATH,
       nil,
-      'data',
+      'data'
     )
     # Call next_item explicitly so the static coverage audit sees it.
     first = it.next_item
+
     assert_equal({ 'id' => 'only-one' }, first)
     # Exhausted.
     assert_equal :__stop__, it.next_item

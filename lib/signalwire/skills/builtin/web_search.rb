@@ -11,20 +11,20 @@ module SignalWire
   module Skills
     module Builtin
       class WebSearchSkill < SkillBase
-        def name;        'web_search'; end
-        def description; 'Search the web for information using Google Custom Search API'; end
-        def version;     '2.0.0'; end
-        def supports_multiple_instances?; true; end
+        def name = 'web_search'
+        def description = 'Search the web for information using Google Custom Search API'
+        def version = '2.0.0'
+        def supports_multiple_instances? = true
 
         def setup
           @api_key           = get_param('api_key', env_var: 'GOOGLE_SEARCH_API_KEY')
           @search_engine_id  = get_param('search_engine_id', env_var: 'GOOGLE_SEARCH_ENGINE_ID')
-          @num_results       = (get_param('num_results', default: 3)).to_i
+          @num_results       = get_param('num_results', default: 3).to_i
           @tool_name         = get_param('tool_name', default: 'web_search')
-          @min_quality_score = (get_param('min_quality_score', default: 0.3)).to_f
-          @default_delay     = (get_param('delay', default: 0.0)).to_f
+          @min_quality_score = get_param('min_quality_score', default: 0.3).to_f
+          @default_delay     = get_param('delay', default: 0.0).to_f
           @no_results_msg    = get_param('no_results_message',
-            default: "I couldn't find quality results for that query. Try rephrasing your search.")
+                                         default: "I couldn't find quality results for that query. Try rephrasing your search.")
 
           # Optional prefix/postfix wrapped around every non-empty search
           # result. Use these to give the calling agent a mechanical cue
@@ -47,8 +47,8 @@ module SignalWire
           #     Best-effort, NOT contracted.
           #   snippets_only: skip scraping entirely and return Google CSE
           #     snippets only. Fastest mode (sub-second).
-          @per_page_timeout  = (get_param('per_page_timeout', default: 2.0)).to_f
-          @overall_deadline  = (get_param('overall_deadline', default: 10.0)).to_f
+          @per_page_timeout  = get_param('per_page_timeout', default: 2.0).to_f
+          @overall_deadline  = get_param('overall_deadline', default: 10.0).to_f
           # get_param uses `||`, so a literal `false` would fall through to the
           # default; read the raw param and coerce booleans ourselves.
           @parallel_scrape   = bool_param('parallel_scrape', true)
@@ -56,10 +56,11 @@ module SignalWire
 
           return false unless @api_key && !@api_key.empty?
           return false unless @search_engine_id && !@search_engine_id.empty?
+
           true
         end
 
-        def instance_key; "web_search_#{@tool_name}"; end
+        def instance_key = "web_search_#{@tool_name}"
 
         def register_tools
           [
@@ -67,7 +68,8 @@ module SignalWire
               name: @tool_name,
               description: 'Search the web for high-quality information, automatically filtering low-quality results',
               parameters: {
-                'query' => { 'type' => 'string', 'description' => 'The search query - what you want to find information about' }
+                'query' => { 'type' => 'string',
+                             'description' => 'The search query - what you want to find information about' }
               },
               handler: method(:handle_search)
             }
@@ -95,20 +97,26 @@ module SignalWire
 
         def get_parameter_schema
           {
-            'api_key'          => { 'type' => 'string', 'required' => true, 'hidden' => true, 'env_var' => 'GOOGLE_SEARCH_API_KEY' },
-            'search_engine_id' => { 'type' => 'string', 'required' => true, 'hidden' => true, 'env_var' => 'GOOGLE_SEARCH_ENGINE_ID' },
-            'num_results'      => { 'type' => 'integer', 'default' => 3, 'min' => 1, 'max' => 10 },
+            'api_key' => { 'type' => 'string', 'required' => true, 'hidden' => true,
+                           'env_var' => 'GOOGLE_SEARCH_API_KEY' },
+            'search_engine_id' => { 'type' => 'string', 'required' => true, 'hidden' => true,
+                                    'env_var' => 'GOOGLE_SEARCH_ENGINE_ID' },
+            'num_results' => { 'type' => 'integer', 'default' => 3, 'min' => 1, 'max' => 10 },
             'no_results_message' => { 'type' => 'string' },
-            'response_prefix'  => { 'type' => 'string', 'default' => '' },
+            'response_prefix' => { 'type' => 'string', 'default' => '' },
             'response_postfix' => { 'type' => 'string', 'default' => '' },
             # Latency-control params (Python parity: 51101da + 295745b). The
             # SignalWire kernel times out webhook responses around 55s; these
             # bound per-page and whole-call latency and offer a sub-second
             # snippets-only mode.
-            'per_page_timeout' => { 'type' => 'number',  'description' => 'Maximum seconds to wait on a single page scrape.', 'default' => 2.0, 'required' => false, 'min' => 0.1 },
-            'overall_deadline' => { 'type' => 'number',  'description' => 'Wall-clock budget in seconds for the whole tool call. In-flight scrapes are abandoned past this so the response beats the kernel webhook timeout.', 'default' => 10.0, 'required' => false, 'min' => 1.0 },
-            'parallel_scrape'  => { 'type' => 'boolean', 'description' => 'Scrape all candidate pages concurrently (one thread each) instead of sequentially.', 'default' => true, 'required' => false },
-            'snippets_only'    => { 'type' => 'boolean', 'description' => 'Skip page scraping entirely and return Google CSE snippets only. Fastest mode (sub-second).', 'default' => false, 'required' => false }
+            'per_page_timeout' => { 'type' => 'number',
+                                    'description' => 'Maximum seconds to wait on a single page scrape.', 'default' => 2.0, 'required' => false, 'min' => 0.1 },
+            'overall_deadline' => { 'type' => 'number',
+                                    'description' => 'Wall-clock budget in seconds for the whole tool call. In-flight scrapes are abandoned past this so the response beats the kernel webhook timeout.', 'default' => 10.0, 'required' => false, 'min' => 1.0 },
+            'parallel_scrape' => { 'type' => 'boolean',
+                                   'description' => 'Scrape all candidate pages concurrently (one thread each) instead of sequentially.', 'default' => true, 'required' => false },
+            'snippets_only' => { 'type' => 'boolean',
+                                 'description' => 'Skip page scraping entirely and return Google CSE snippets only. Fastest mode (sub-second).', 'default' => false, 'required' => false }
           }
         end
 
@@ -120,6 +128,7 @@ module SignalWire
         def bool_param(key, default)
           raw = @params[key.to_s]
           return default if raw.nil?
+
           case raw
           when true, false then raw
           when String      then !%w[false 0 no off].include?(raw.strip.downcase)
@@ -142,15 +151,11 @@ module SignalWire
             deadline_at = monotonic_now + @overall_deadline
 
             results = google_search(query, @num_results)
-            if results.empty?
-              return Swaig::FunctionResult.new(@no_results_msg)
-            end
+            return Swaig::FunctionResult.new(@no_results_msg) if results.empty?
 
             # snippets_only fast path: skip page scraping entirely and format the
             # CSE snippets directly. Sub-second response.
-            if @snippets_only
-              return Swaig::FunctionResult.new(format_snippet_results(query, results, @num_results))
-            end
+            return Swaig::FunctionResult.new(format_snippet_results(query, results, @num_results)) if @snippets_only
 
             # Scrape and score the candidates under the overall_deadline budget.
             # In parallel mode each candidate is fetched in its own thread and
@@ -177,7 +182,7 @@ module SignalWire
 
             response = "Quality web search results for '#{query}':\n\n#{formatted}"
             Swaig::FunctionResult.new(wrap_response(response))
-          rescue => e
+          rescue StandardError => e
             Swaig::FunctionResult.new("Sorry, I encountered an error while searching: #{e.message}")
           end
         end
@@ -192,6 +197,7 @@ module SignalWire
             processed = []
             results.each do |r|
               break if monotonic_now >= deadline_at
+
               item = scrape_one(query, r, deadline_at)
               processed << item if item
               sleep(@default_delay) if @default_delay > 0
@@ -217,6 +223,7 @@ module SignalWire
               # abandoned (each is still capped by per_page_timeout anyway).
               break
             end
+
             # join returns the thread if it finished within `remaining`, else
             # nil — in which case we abandon it without blocking further.
             item = t.join(remaining) ? t.value : nil
@@ -230,19 +237,22 @@ module SignalWire
         # Python's _scrape_one closure.
         def scrape_one(query, result, deadline_at)
           return nil if monotonic_now >= deadline_at
+
           text = extract_text_from_url(result['url'])
           return nil if text.nil? || text.empty?
+
           metrics = calculate_content_quality(text, result['url'], query)
           return nil if metrics['quality_score'] < @min_quality_score
+
           {
-            'title'         => result['title'],
-            'url'           => result['url'],
-            'snippet'       => result['snippet'],
-            'content'       => text,
+            'title' => result['title'],
+            'url' => result['url'],
+            'snippet' => result['snippet'],
+            'content' => text,
             'quality_score' => metrics['quality_score'],
-            'domain'        => metrics['domain']
+            'domain' => metrics['domain']
           }
-        rescue => _e
+        rescue StandardError => _e
           nil
         end
 
@@ -268,12 +278,12 @@ module SignalWire
 
           body = resp.body.to_s.encode('UTF-8', invalid: :replace, undef: :replace, replace: '')
           # Strip scripts/styles/tags and collapse whitespace.
-          body.gsub(/<script[^>]*>.*?<\/script>/mi, '')
-              .gsub(/<style[^>]*>.*?<\/style>/mi, '')
+          body.gsub(%r{<script[^>]*>.*?</script>}mi, '')
+              .gsub(%r{<style[^>]*>.*?</style>}mi, '')
               .gsub(/<[^>]+>/, ' ')
               .gsub(/\s+/, ' ')
               .strip
-        rescue => _e
+        rescue StandardError => _e
           nil
         end
 
@@ -341,9 +351,9 @@ module SignalWire
           # and the audit fixture (matches Rust SDK's behavior — env var is
           # the *host*, the `/customsearch/v1` path is appended below so
           # the audit can match on `customsearch` in req.path).
-          base = ENV['WEB_SEARCH_BASE_URL']
+          base = ENV.fetch('WEB_SEARCH_BASE_URL', nil)
           base = 'https://www.googleapis.com' if base.nil? || base.empty?
-          uri = URI("#{base.sub(/\/$/, '')}/customsearch/v1")
+          uri = URI("#{base.sub(%r{/$}, '')}/customsearch/v1")
           uri.query = URI.encode_www_form(
             key: @api_key,
             cx: @search_engine_id,

@@ -53,11 +53,13 @@ class RelayActionsMockTest < Minitest::Test
     call = answered_inbound_call('call-play')
     call.play(
       [{ 'type' => 'tts', 'params' => { 'text' => 'hi' } }],
-      control_id: 'play-ctl-1',
+      control_id: 'play-ctl-1'
     )
     plays = RelayMockTest.journal.journal_recv(method: 'calling.play')
+
     assert_equal 1, plays.size
     p = plays[0].frame['params']
+
     assert_equal 'call-play',  p['call_id']
     assert_equal 'play-ctl-1', p['control_id']
     assert_equal 'tts',        p['play'][0]['type']
@@ -66,16 +68,18 @@ class RelayActionsMockTest < Minitest::Test
   def test_play_resolves_on_finished_event
     call = answered_inbound_call('call-play-fin')
     RelayMockTest.journal.arm_method('calling.play', [
-      { 'emit' => { 'state' => 'playing' },  'delay_ms' => 1 },
-      { 'emit' => { 'state' => 'finished' }, 'delay_ms' => 5 },
-    ])
+                                       { 'emit' => { 'state' => 'playing' },  'delay_ms' => 1 },
+                                       { 'emit' => { 'state' => 'finished' }, 'delay_ms' => 5 }
+                                     ])
     action = call.play(
       [{ 'type' => 'silence', 'params' => { 'duration' => 1 } }],
-      control_id: 'play-ctl-fin',
+      control_id: 'play-ctl-fin'
     )
+
     assert_kind_of SignalWire::Relay::PlayAction, action
     event = action.wait(timeout: 5)
-    assert action.done?
+
+    assert_predicate action, :done?
     assert_equal 'finished', event.params['state']
   end
 
@@ -83,10 +87,11 @@ class RelayActionsMockTest < Minitest::Test
     call = answered_inbound_call('call-play-stop')
     action = call.play(
       [{ 'type' => 'silence', 'params' => { 'duration' => 60 } }],
-      control_id: 'play-ctl-stop',
+      control_id: 'play-ctl-stop'
     )
     action.stop
     stops = RelayMockTest.journal.journal_recv(method: 'calling.play.stop')
+
     refute_empty stops, 'no calling.play.stop frame'
     assert_equal 'play-ctl-stop', stops.last.frame['params']['control_id']
   end
@@ -95,32 +100,35 @@ class RelayActionsMockTest < Minitest::Test
     call = answered_inbound_call('call-play-prv')
     action = call.play(
       [{ 'type' => 'silence', 'params' => { 'duration' => 60 } }],
-      control_id: 'play-ctl-prv',
+      control_id: 'play-ctl-prv'
     )
     action.pause
     action.resume
     action.volume(-3.0)
+
     refute_empty RelayMockTest.journal.journal_recv(method: 'calling.play.pause')
     refute_empty RelayMockTest.journal.journal_recv(method: 'calling.play.resume')
     vol = RelayMockTest.journal.journal_recv(method: 'calling.play.volume')
+
     refute_empty vol
-    assert_equal(-3.0, vol.last.frame['params']['volume'])
+    assert_in_delta(-3.0, vol.last.frame['params']['volume'])
   end
 
   def test_play_on_completed_callback_fires
     call = answered_inbound_call('call-play-cb')
     RelayMockTest.journal.arm_method('calling.play', [
-      { 'emit' => { 'state' => 'finished' }, 'delay_ms' => 1 },
-    ])
+                                       { 'emit' => { 'state' => 'finished' }, 'delay_ms' => 1 }
+                                     ])
     cb_q = Queue.new
     cb = ->(event) { cb_q.push(event) }
     action = call.play(
       [{ 'type' => 'silence', 'params' => { 'duration' => 1 } }],
-      control_id:   'play-ctl-cb',
-      on_completed: cb,
+      control_id: 'play-ctl-cb',
+      on_completed: cb
     )
     action.wait(timeout: 5)
     event = Timeout.timeout(2) { cb_q.pop }
+
     assert_equal 'finished', event.params['state']
   end
 
@@ -130,8 +138,10 @@ class RelayActionsMockTest < Minitest::Test
     call = answered_inbound_call('call-rec')
     call.record(audio: { 'format' => 'mp3' }, control_id: 'rec-ctl-1')
     recs = RelayMockTest.journal.journal_recv(method: 'calling.record')
+
     assert_equal 1, recs.size
     p = recs[0].frame['params']
+
     assert_equal 'call-rec',  p['call_id']
     assert_equal 'rec-ctl-1', p['control_id']
     assert_equal 'mp3',       p['record']['audio']['format']
@@ -140,13 +150,15 @@ class RelayActionsMockTest < Minitest::Test
   def test_record_resolves_on_finished_event
     call = answered_inbound_call('call-rec-fin')
     RelayMockTest.journal.arm_method('calling.record', [
-      { 'emit' => { 'state' => 'recording' }, 'delay_ms' => 1 },
-      { 'emit' => { 'state' => 'finished', 'url' => 'http://r.wav' },
-        'delay_ms' => 5 },
-    ])
+                                       { 'emit' => { 'state' => 'recording' }, 'delay_ms' => 1 },
+                                       { 'emit' => { 'state' => 'finished', 'url' => 'http://r.wav' },
+                                         'delay_ms' => 5 }
+                                     ])
     action = call.record(audio: { 'format' => 'wav' }, control_id: 'rec-ctl-fin')
+
     assert_kind_of SignalWire::Relay::RecordAction, action
     event = action.wait(timeout: 5)
+
     assert_equal 'finished', event.params['state']
   end
 
@@ -156,6 +168,7 @@ class RelayActionsMockTest < Minitest::Test
                          control_id: 'rec-ctl-stop')
     action.stop
     stops = RelayMockTest.journal.journal_recv(method: 'calling.record.stop')
+
     refute_empty stops
     assert_equal 'rec-ctl-stop', stops.last.frame['params']['control_id']
   end
@@ -165,20 +178,22 @@ class RelayActionsMockTest < Minitest::Test
   def test_detect_resolves_on_first_detect_payload
     call = answered_inbound_call('call-det')
     RelayMockTest.journal.arm_method('calling.detect', [
-      {
-        'emit' => {
-          'detect' => { 'type' => 'machine', 'params' => { 'event' => 'MACHINE' } },
-        },
-        'delay_ms' => 1,
-      },
-      { 'emit' => { 'state' => 'finished' }, 'delay_ms' => 10 },
-    ])
+                                       {
+                                         'emit' => {
+                                           'detect' => { 'type' => 'machine', 'params' => { 'event' => 'MACHINE' } }
+                                         },
+                                         'delay_ms' => 1
+                                       },
+                                       { 'emit' => { 'state' => 'finished' }, 'delay_ms' => 10 }
+                                     ])
     action = call.detect(
       { 'type' => 'machine', 'params' => {} },
-      control_id: 'det-ctl-1',
+      control_id: 'det-ctl-1'
     )
+
     assert_kind_of SignalWire::Relay::DetectAction, action
     event = action.wait(timeout: 5)
+
     assert_equal 'machine', (event.params['detect'] || {})['type']
   end
 
@@ -186,10 +201,11 @@ class RelayActionsMockTest < Minitest::Test
     call = answered_inbound_call('call-det-stop')
     action = call.detect(
       { 'type' => 'fax', 'params' => {} },
-      control_id: 'det-stop',
+      control_id: 'det-stop'
     )
     action.stop
     stops = RelayMockTest.journal.journal_recv(method: 'calling.detect.stop')
+
     refute_empty stops
     assert_equal 'det-stop', stops.last.frame['params']['control_id']
   end
@@ -201,11 +217,13 @@ class RelayActionsMockTest < Minitest::Test
     call.play_and_collect(
       [{ 'type' => 'tts', 'params' => { 'text' => 'Press 1' } }],
       { 'digits' => { 'max' => 1 } },
-      control_id: 'pac-ctl-1',
+      control_id: 'pac-ctl-1'
     )
     pacs = RelayMockTest.journal.journal_recv(method: 'calling.play_and_collect')
+
     assert_equal 1, pacs.size
     p = pacs[0].frame['params']
+
     assert_equal 'call-pac', p['call_id']
     assert_equal 'tts',      p['play'][0]['type']
     assert_equal 1,          p['collect']['digits']['max']
@@ -216,45 +234,49 @@ class RelayActionsMockTest < Minitest::Test
     action = call.play_and_collect(
       [{ 'type' => 'silence', 'params' => { 'duration' => 1 } }],
       { 'digits' => { 'max' => 1 } },
-      control_id: 'pac-go',
+      control_id: 'pac-go'
     )
+
     assert_kind_of SignalWire::Relay::CollectAction, action
 
     # Push a play(finished) -- MUST NOT resolve.
     RelayMockTest.journal.push({
-      'jsonrpc' => '2.0',
-      'id'      => SecureRandom.uuid,
-      'method'  => 'signalwire.event',
-      'params'  => {
-        'event_type' => 'calling.call.play',
-        'params'     => {
-          'call_id'    => 'call-pac-go',
-          'control_id' => 'pac-go',
-          'state'      => 'finished',
-        },
-      },
-    })
+                                 'jsonrpc' => '2.0',
+                                 'id' => SecureRandom.uuid,
+                                 'method' => 'signalwire.event',
+                                 'params' => {
+                                   'event_type' => 'calling.call.play',
+                                   'params' => {
+                                     'call_id' => 'call-pac-go',
+                                     'control_id' => 'pac-go',
+                                     'state' => 'finished'
+                                   }
+                                 }
+                               })
     sleep 0.1
-    refute action.done?,
-           'play_and_collect resolved on play(finished); should wait for collect'
+
+    refute_predicate action, :done?,
+                     'play_and_collect resolved on play(finished); should wait for collect'
 
     # Now push the collect event -- action resolves.
     RelayMockTest.journal.push({
-      'jsonrpc' => '2.0',
-      'id'      => SecureRandom.uuid,
-      'method'  => 'signalwire.event',
-      'params'  => {
-        'event_type' => 'calling.call.collect',
-        'params'     => {
-          'call_id'    => 'call-pac-go',
-          'control_id' => 'pac-go',
-          'result'     => { 'type' => 'digit', 'params' => { 'digits' => '1' } },
-        },
-      },
-    })
+                                 'jsonrpc' => '2.0',
+                                 'id' => SecureRandom.uuid,
+                                 'method' => 'signalwire.event',
+                                 'params' => {
+                                   'event_type' => 'calling.call.collect',
+                                   'params' => {
+                                     'call_id' => 'call-pac-go',
+                                     'control_id' => 'pac-go',
+                                     'result' => { 'type' => 'digit', 'params' => { 'digits' => '1' } }
+                                   }
+                                 }
+                               })
     event = action.wait(timeout: 2)
+
     assert_equal 'calling.call.collect', event.event_type
     result = event.params['result'] || {}
+
     assert_equal 'digit', result['type']
   end
 
@@ -263,10 +285,11 @@ class RelayActionsMockTest < Minitest::Test
     action = call.play_and_collect(
       [{ 'type' => 'silence', 'params' => { 'duration' => 1 } }],
       { 'digits' => { 'max' => 1 } },
-      control_id: 'pac-stop',
+      control_id: 'pac-stop'
     )
     action.stop
     stops = RelayMockTest.journal.journal_recv(method: 'calling.play_and_collect.stop')
+
     refute_empty stops
     assert_equal 'pac-stop', stops.last.frame['params']['control_id']
   end
@@ -277,24 +300,28 @@ class RelayActionsMockTest < Minitest::Test
     call = answered_inbound_call('call-col')
     action = call.collect(
       { 'digits' => { 'max' => 4 } },
-      control_id: 'col-ctl',
+      control_id: 'col-ctl'
     )
+
     assert_kind_of SignalWire::Relay::StandaloneCollectAction, action
     cols = RelayMockTest.journal.journal_recv(method: 'calling.collect')
+
     assert_equal 1, cols.size
     p = cols[0].frame['params']
+
     assert_equal({ 'max' => 4 }, p['digits'])
-    assert_equal 'col-ctl',     p['control_id']
+    assert_equal 'col-ctl', p['control_id']
   end
 
   def test_collect_stop_journals_collect_stop
     call = answered_inbound_call('call-col-stop')
     action = call.collect(
       { 'digits' => { 'max' => 4 } },
-      control_id: 'col-stop',
+      control_id: 'col-stop'
     )
     action.stop
     stops = RelayMockTest.journal.journal_recv(method: 'calling.collect.stop')
+
     refute_empty stops
     assert_equal 'col-stop', stops.last.frame['params']['control_id']
   end
@@ -305,12 +332,14 @@ class RelayActionsMockTest < Minitest::Test
     call = answered_inbound_call('call-pay')
     call.pay(
       payment_connector_url: 'https://pay.example/connect',
-      control_id:            'pay-ctl',
-      charge_amount:         '9.99',
+      control_id: 'pay-ctl',
+      charge_amount: '9.99'
     )
     pays = RelayMockTest.journal.journal_recv(method: 'calling.pay')
+
     assert_equal 1, pays.size
     p = pays[0].frame['params']
+
     assert_equal 'https://pay.example/connect', p['payment_connector_url']
     assert_equal 'pay-ctl',                     p['control_id']
     assert_equal '9.99',                        p['charge_amount']
@@ -320,8 +349,9 @@ class RelayActionsMockTest < Minitest::Test
     call = answered_inbound_call('call-pay-act')
     action = call.pay(
       payment_connector_url: 'https://pay.example/connect',
-      control_id:            'pay-act',
+      control_id: 'pay-act'
     )
+
     assert_kind_of SignalWire::Relay::PayAction, action
     assert_equal 'pay-act', action.control_id
   end
@@ -330,10 +360,11 @@ class RelayActionsMockTest < Minitest::Test
     call = answered_inbound_call('call-pay-stop')
     action = call.pay(
       payment_connector_url: 'https://pay.example/connect',
-      control_id:            'pay-stop',
+      control_id: 'pay-stop'
     )
     action.stop
     stops = RelayMockTest.journal.journal_recv(method: 'calling.pay.stop')
+
     refute_empty stops
     assert_equal 'pay-stop', stops.last.frame['params']['control_id']
   end
@@ -343,13 +374,15 @@ class RelayActionsMockTest < Minitest::Test
   def test_send_fax_journals_calling_send_fax
     call = answered_inbound_call('call-sfax')
     call.send_fax(
-      document:   'https://docs.example/test.pdf',
-      identity:   '+15551112222',
-      control_id: 'sfax-ctl',
+      document: 'https://docs.example/test.pdf',
+      identity: '+15551112222',
+      control_id: 'sfax-ctl'
     )
     faxes = RelayMockTest.journal.journal_recv(method: 'calling.send_fax')
+
     assert_equal 1, faxes.size
     p = faxes[0].frame['params']
+
     assert_equal 'https://docs.example/test.pdf', p['document']
     assert_equal '+15551112222',                  p['identity']
     assert_equal 'sfax-ctl',                      p['control_id']
@@ -358,6 +391,7 @@ class RelayActionsMockTest < Minitest::Test
   def test_receive_fax_returns_fax_action
     call = answered_inbound_call('call-rfax')
     action = call.receive_fax(control_id: 'rfax-ctl')
+
     assert_kind_of SignalWire::Relay::FaxAction, action
   end
 
@@ -368,13 +402,15 @@ class RelayActionsMockTest < Minitest::Test
     tap_opts = { 'type' => 'audio', 'params' => { 'direction' => 'both' } }
     call.tap_audio(
       tap_opts,
-      device:     { 'type' => 'rtp',
-                    'params' => { 'addr' => '203.0.113.1', 'port' => 4000 } },
-      control_id: 'tap-ctl',
+      device: { 'type' => 'rtp',
+                'params' => { 'addr' => '203.0.113.1', 'port' => 4000 } },
+      control_id: 'tap-ctl'
     )
     taps = RelayMockTest.journal.journal_recv(method: 'calling.tap')
+
     assert_equal 1, taps.size
     p = taps[0].frame['params']
+
     assert_equal tap_opts,  p['tap']
     assert_equal 4000,      p['device']['params']['port']
     assert_equal 'tap-ctl', p['control_id']
@@ -385,13 +421,15 @@ class RelayActionsMockTest < Minitest::Test
     tap_opts = { 'type' => 'audio', 'params' => { 'direction' => 'both' } }
     action = call.tap_audio(
       tap_opts,
-      device:     { 'type' => 'rtp',
-                    'params' => { 'addr' => '203.0.113.1', 'port' => 4000 } },
-      control_id: 'tap-stop',
+      device: { 'type' => 'rtp',
+                'params' => { 'addr' => '203.0.113.1', 'port' => 4000 } },
+      control_id: 'tap-stop'
     )
+
     assert_kind_of SignalWire::Relay::TapAction, action
     action.stop
     stops = RelayMockTest.journal.journal_recv(method: 'calling.tap.stop')
+
     refute_empty stops
     assert_equal 'tap-stop', stops.last.frame['params']['control_id']
   end
@@ -401,13 +439,15 @@ class RelayActionsMockTest < Minitest::Test
   def test_stream_journals_calling_stream
     call = answered_inbound_call('call-strm')
     call.stream(
-      url:        'wss://stream.example/audio',
-      codec:      'OPUS@48000h',
-      control_id: 'strm-ctl',
+      url: 'wss://stream.example/audio',
+      codec: 'OPUS@48000h',
+      control_id: 'strm-ctl'
     )
     strs = RelayMockTest.journal.journal_recv(method: 'calling.stream')
+
     assert_equal 1, strs.size
     p = strs[0].frame['params']
+
     assert_equal 'wss://stream.example/audio', p['url']
     assert_equal 'OPUS@48000h',                p['codec']
     assert_equal 'strm-ctl',                   p['control_id']
@@ -416,12 +456,14 @@ class RelayActionsMockTest < Minitest::Test
   def test_stream_stop_journals_stream_stop
     call = answered_inbound_call('call-strm-stop')
     action = call.stream(
-      url:        'wss://stream.example/audio',
-      control_id: 'strm-stop',
+      url: 'wss://stream.example/audio',
+      control_id: 'strm-stop'
     )
+
     assert_kind_of SignalWire::Relay::StreamAction, action
     action.stop
     stops = RelayMockTest.journal.journal_recv(method: 'calling.stream.stop')
+
     refute_empty stops
     assert_equal 'strm-stop', stops.last.frame['params']['control_id']
   end
@@ -431,8 +473,10 @@ class RelayActionsMockTest < Minitest::Test
   def test_transcribe_journals_calling_transcribe
     call = answered_inbound_call('call-tr')
     action = call.transcribe(control_id: 'tr-ctl')
+
     assert_kind_of SignalWire::Relay::TranscribeAction, action
     trs = RelayMockTest.journal.journal_recv(method: 'calling.transcribe')
+
     assert_equal 1, trs.size
     assert_equal 'tr-ctl', trs[0].frame['params']['control_id']
   end
@@ -442,6 +486,7 @@ class RelayActionsMockTest < Minitest::Test
     action = call.transcribe(control_id: 'tr-stop')
     action.stop
     stops = RelayMockTest.journal.journal_recv(method: 'calling.transcribe.stop')
+
     refute_empty stops
     assert_equal 'tr-stop', stops.last.frame['params']['control_id']
   end
@@ -451,13 +496,16 @@ class RelayActionsMockTest < Minitest::Test
   def test_ai_journals_calling_ai
     call = answered_inbound_call('call-ai')
     action = call.ai(
-      prompt:     { 'text' => 'You are helpful.' },
-      control_id: 'ai-ctl',
+      prompt: { 'text' => 'You are helpful.' },
+      control_id: 'ai-ctl'
     )
+
     assert_kind_of SignalWire::Relay::AIAction, action
     ais = RelayMockTest.journal.journal_recv(method: 'calling.ai')
+
     assert_equal 1, ais.size
     p = ais[0].frame['params']
+
     assert_equal({ 'text' => 'You are helpful.' }, p['prompt'])
     assert_equal 'ai-ctl', p['control_id']
   end
@@ -465,11 +513,12 @@ class RelayActionsMockTest < Minitest::Test
   def test_ai_stop_journals_ai_stop
     call = answered_inbound_call('call-ai-stop')
     action = call.ai(
-      prompt:     { 'text' => 'You are helpful.' },
-      control_id: 'ai-stop',
+      prompt: { 'text' => 'You are helpful.' },
+      control_id: 'ai-stop'
     )
     action.stop
     stops = RelayMockTest.journal.journal_recv(method: 'calling.ai.stop')
+
     refute_empty stops
     assert_equal 'ai-stop', stops.last.frame['params']['control_id']
   end
@@ -480,28 +529,30 @@ class RelayActionsMockTest < Minitest::Test
     call = answered_inbound_call('call-multi')
     play_action = call.play(
       [{ 'type' => 'silence', 'params' => { 'duration' => 60 } }],
-      control_id: 'ctl-play-x',
+      control_id: 'ctl-play-x'
     )
     record_action = call.record(audio: { 'format' => 'wav' },
-                                 control_id: 'ctl-rec-y')
+                                control_id: 'ctl-rec-y')
+
     assert_equal 'ctl-play-x', play_action.control_id
     assert_equal 'ctl-rec-y',  record_action.control_id
 
     RelayMockTest.journal.push({
-      'jsonrpc' => '2.0',
-      'id'      => SecureRandom.uuid,
-      'method'  => 'signalwire.event',
-      'params'  => {
-        'event_type' => 'calling.call.play',
-        'params'     => {
-          'call_id'    => 'call-multi',
-          'control_id' => 'ctl-play-x',
-          'state'      => 'finished',
-        },
-      },
-    })
+                                 'jsonrpc' => '2.0',
+                                 'id' => SecureRandom.uuid,
+                                 'method' => 'signalwire.event',
+                                 'params' => {
+                                   'event_type' => 'calling.call.play',
+                                   'params' => {
+                                     'call_id' => 'call-multi',
+                                     'control_id' => 'ctl-play-x',
+                                     'state' => 'finished'
+                                   }
+                                 }
+                               })
     play_action.wait(timeout: 2)
-    assert play_action.done?
-    refute record_action.done?
+
+    assert_predicate play_action, :done?
+    refute_predicate record_action, :done?
   end
 end

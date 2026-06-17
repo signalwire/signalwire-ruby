@@ -14,12 +14,15 @@ class WebSearchSkillDetailedTest < Minitest::Test
     begin
       factory = SignalWire::Skills::SkillRegistry.get_factory('web_search')
       skill = factory.call({})
+
       refute skill.setup
 
       skill_partial = factory.call({ 'api_key' => 'key' })
+
       refute skill_partial.setup
 
       skill_full = factory.call({ 'api_key' => 'key', 'search_engine_id' => 'cx' })
+
       assert skill_full.setup
     ensure
       ENV['GOOGLE_SEARCH_API_KEY'] = saved_key if saved_key
@@ -32,6 +35,7 @@ class WebSearchSkillDetailedTest < Minitest::Test
     skill = factory.call({ 'api_key' => 'key', 'search_engine_id' => 'cx' })
     skill.setup
     tools = skill.register_tools
+
     assert_equal 1, tools.size
     assert_equal 'web_search', tools[0][:name]
   end
@@ -39,19 +43,22 @@ class WebSearchSkillDetailedTest < Minitest::Test
   def test_supports_multiple_instances
     factory = SignalWire::Skills::SkillRegistry.get_factory('web_search')
     skill = factory.call({ 'api_key' => 'k', 'search_engine_id' => 'cx' })
-    assert skill.supports_multiple_instances?
+
+    assert_predicate skill, :supports_multiple_instances?
   end
 
   def test_instance_key_includes_tool_name
     factory = SignalWire::Skills::SkillRegistry.get_factory('web_search')
     skill = factory.call({ 'api_key' => 'k', 'search_engine_id' => 'cx', 'tool_name' => 'custom_search' })
     skill.setup
+
     assert_includes skill.instance_key, 'custom_search'
   end
 
   def test_version
     factory = SignalWire::Skills::SkillRegistry.get_factory('web_search')
     skill = factory.call({})
+
     assert_equal '2.0.0', skill.version
   end
 
@@ -60,6 +67,7 @@ class WebSearchSkillDetailedTest < Minitest::Test
     skill = factory.call({ 'api_key' => 'k', 'search_engine_id' => 'cx' })
     skill.setup
     data = skill.get_global_data
+
     assert_equal true, data['web_search_enabled']
   end
 end
@@ -97,6 +105,7 @@ class WebSearchSkillResponsePrefixPostfixTest < Minitest::Test
     stub_search(skill, [{ 'title' => 'T', 'url' => 'http://u', 'snippet' => 'S' }])
     result = skill.send(:handle_search, { 'query' => 'cats' }, nil)
     body = result.response.to_s
+
     assert_match(/NOTE-FROM-WEB-SEARCH/, body)
     assert_match(/Snippet-only results for 'cats'/, body)
   end
@@ -106,6 +115,7 @@ class WebSearchSkillResponsePrefixPostfixTest < Minitest::Test
     stub_search(skill, [{ 'title' => 'T', 'url' => 'http://u', 'snippet' => 'S' }])
     result = skill.send(:handle_search, { 'query' => 'cats' }, nil)
     body = result.response.to_s
+
     assert_match(/CITE-THE-URL-PLEASE/, body)
   end
 
@@ -114,6 +124,7 @@ class WebSearchSkillResponsePrefixPostfixTest < Minitest::Test
     stub_search(skill, [{ 'title' => 'T', 'url' => 'http://u', 'snippet' => 'S' }])
     result = skill.send(:handle_search, { 'query' => 'cats' }, nil)
     body = result.response.to_s
+
     assert_match(/PRE-MARK/, body)
     assert_match(/POST-MARK/, body)
   end
@@ -124,6 +135,7 @@ class WebSearchSkillResponsePrefixPostfixTest < Minitest::Test
     stub_search(skill, [])
     result = skill.send(:handle_search, { 'query' => 'cats' }, nil)
     body = result.response.to_s
+
     refute_match(/SHOULD-NOT-APPEAR/, body)
     assert_match(/nothing found/, body)
   end
@@ -142,6 +154,7 @@ class WebSearchSkillResponsePrefixPostfixTest < Minitest::Test
   def test_parameter_schema_advertises_prefix_postfix
     skill = make_skill
     schema = skill.get_parameter_schema
+
     assert schema.key?('response_prefix')
     assert schema.key?('response_postfix')
   end
@@ -186,7 +199,8 @@ class WebSearchSkillLatencyControlTest < Minitest::Test
   end
 
   CSE_ITEMS = [
-    { 'title' => 'Slow One', 'url' => 'https://slow-one.example.com/p', 'snippet' => 'First CSE snippet about widgets.' },
+    { 'title' => 'Slow One', 'url' => 'https://slow-one.example.com/p',
+      'snippet' => 'First CSE snippet about widgets.' },
     { 'title' => 'Slow Two', 'url' => 'https://slow-two.example.com/p', 'snippet' => 'Second CSE snippet about widgets.' }
   ].freeze
 
@@ -202,6 +216,7 @@ class WebSearchSkillLatencyControlTest < Minitest::Test
 
   def test_schema_advertises_all_six_latency_and_response_params
     schema = make_skill.get_parameter_schema
+
     %w[response_prefix response_postfix per_page_timeout
        overall_deadline parallel_scrape snippets_only].each do |key|
       assert schema.key?(key), "setup() reads #{key} but schema omits it"
@@ -210,11 +225,12 @@ class WebSearchSkillLatencyControlTest < Minitest::Test
 
   def test_schema_latency_defaults
     schema = make_skill.get_parameter_schema
-    assert_equal 2.0,  schema['per_page_timeout']['default']
+
+    assert_in_delta(2.0, schema['per_page_timeout']['default'])
     assert_equal 'number', schema['per_page_timeout']['type']
-    assert_equal 10.0, schema['overall_deadline']['default']
+    assert_in_delta(10.0, schema['overall_deadline']['default'])
     assert_equal 'number', schema['overall_deadline']['type']
-    assert_equal true,  schema['parallel_scrape']['default']
+    assert_equal true, schema['parallel_scrape']['default']
     assert_equal 'boolean', schema['parallel_scrape']['type']
     assert_equal false, schema['snippets_only']['default']
     assert_equal 'boolean', schema['snippets_only']['type']
@@ -226,6 +242,7 @@ class WebSearchSkillLatencyControlTest < Minitest::Test
 
   def test_latency_defaults_applied_in_setup
     skill = make_skill
+
     assert_in_delta 2.0,  skill.instance_variable_get(:@per_page_timeout), 1e-9
     assert_in_delta 10.0, skill.instance_variable_get(:@overall_deadline), 1e-9
     assert_equal true,  skill.instance_variable_get(:@parallel_scrape)
@@ -236,16 +253,19 @@ class WebSearchSkillLatencyControlTest < Minitest::Test
     # Regression: get_param's `||` would turn a literal false into the
     # default true. bool_param must preserve false.
     skill = make_skill('parallel_scrape' => false)
+
     assert_equal false, skill.instance_variable_get(:@parallel_scrape)
   end
 
   def test_snippets_only_true_is_honored
     skill = make_skill('snippets_only' => true)
+
     assert_equal true, skill.instance_variable_get(:@snippets_only)
   end
 
   def test_per_page_timeout_overall_deadline_are_read
     skill = make_skill('per_page_timeout' => 3.5, 'overall_deadline' => 12.0)
+
     assert_in_delta 3.5,  skill.instance_variable_get(:@per_page_timeout), 1e-9
     assert_in_delta 12.0, skill.instance_variable_get(:@overall_deadline), 1e-9
   end
@@ -335,6 +355,7 @@ class WebSearchSkillLatencyControlTest < Minitest::Test
     # duration of this test to capture the timeouts the skill sets, without
     # opening a real socket (request raises → extract returns nil).
     skill = make_skill('per_page_timeout' => 0.25)
+
     assert_in_delta 0.25, skill.instance_variable_get(:@per_page_timeout), 1e-9
 
     captured = {}
@@ -368,6 +389,7 @@ class WebSearchSkillLatencyControlTest < Minitest::Test
     end
     result = skill.send(:handle_search, { 'query' => 'widgets' }, nil)
     body = result.response.to_s
+
     assert_match(/Snippet-only results for 'widgets'/, body)
     assert_match(/First CSE snippet about widgets\./, body)
     refute_match(/couldn't find quality results/, body)
@@ -383,6 +405,7 @@ class WebSearchSkillLatencyControlTest < Minitest::Test
     end
     result = skill.send(:handle_search, { 'query' => 'widgets' }, nil)
     body = result.response.to_s
+
     assert_match(/Quality web search results for 'widgets'/, body)
     assert_match(/Content:/, body)
   end

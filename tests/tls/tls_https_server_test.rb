@@ -45,8 +45,15 @@ class TlsHttpsServerTest < Minitest::Test
   end
 
   def teardown
-    @servers.each { |s| s.stop rescue nil }
-    @threads.each { |t| t.kill; t.join(2) }
+    @servers.each do |s|
+      s.stop
+    rescue StandardError
+      nil
+    end
+    @threads.each do |t|
+      t.kill
+      t.join(2)
+    end
     %w[SWML_SSL_ENABLED SWML_SSL_CERT_PATH SWML_SSL_KEY_PATH].each { |k| ENV.delete(k) }
   end
 
@@ -59,12 +66,12 @@ class TlsHttpsServerTest < Minitest::Test
 
   # Start +svc+ serving HTTPS in a thread (via the supplied serve block) and
   # block until /health answers over CA-trusted TLS. Returns the base URL.
-  def start_https(svc, port, &serve_block)
+  def start_https(svc, port, &)
     @servers << svc
     @threads << Thread.new do
-      serve_block.call
+      yield
     rescue StandardError => e
-      $stderr.puts "[tls_server] serve raised: #{e.class}: #{e.message}"
+      warn "[tls_server] serve raised: #{e.class}: #{e.message}"
     end
 
     base = "https://127.0.0.1:#{port}"
@@ -100,6 +107,7 @@ class TlsHttpsServerTest < Minitest::Test
 
   def assert_healthy(resp)
     payload = JSON.parse(resp.body)
+
     assert_equal 'healthy', payload['status'],
                  "verified-HTTPS /health body = #{payload.inspect}, want status=healthy"
   end
@@ -111,7 +119,7 @@ class TlsHttpsServerTest < Minitest::Test
       http = Net::HTTP.new(uri.hostname, uri.port)
       http.use_ssl = true
       http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-      http.cert_store = OpenSSL::X509::Store.new   # trusts nothing
+      http.cert_store = OpenSSL::X509::Store.new # trusts nothing
       http.open_timeout = 3
       http.read_timeout = 3
       http.get(uri.request_uri)
@@ -129,6 +137,7 @@ class TlsHttpsServerTest < Minitest::Test
       svc.serve(host: '127.0.0.1', port: port,
                 ssl_cert: @cert, ssl_key: @key, ssl_enabled: true)
     end
+
     assert_healthy(resp)
     assert_untrusted_rejected(base)
   end
@@ -146,6 +155,7 @@ class TlsHttpsServerTest < Minitest::Test
     base, resp = start_https(agent, port) do
       agent.serve(host: '127.0.0.1', port: port)
     end
+
     assert_healthy(resp)
     assert_untrusted_rejected(base)
   end

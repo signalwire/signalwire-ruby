@@ -43,7 +43,7 @@ class SkillNameTest < Minitest::Test
     assert_equal 'api_ninjas_trivia', SkillName::API_NINJAS_TRIVIA
     assert_equal 'native_vector_search', SkillName::NATIVE_VECTOR_SEARCH
     assert_equal EXPECTED.sort, SkillName::ALL.sort
-    assert SkillName::ALL.frozen?
+    assert_predicate SkillName::ALL, :frozen?
   end
 
   # ------------------------------------------------------------------
@@ -51,13 +51,14 @@ class SkillNameTest < Minitest::Test
   # ------------------------------------------------------------------
   def test_constant_and_string_resolve_to_same_factory
     pairs = {
-      SkillName::DATETIME    => 'datetime',
-      SkillName::MATH        => 'math',
+      SkillName::DATETIME => 'datetime',
+      SkillName::MATH => 'math',
       SkillName::WEATHER_API => 'weather_api'
     }
     pairs.each do |const_val, literal|
       via_const  = Registry.get_factory(const_val)
       via_string = Registry.get_factory(literal)
+
       refute_nil via_const, "no factory for constant #{const_val.inspect}"
       assert_same via_string, via_const,
                   "SkillName constant #{literal.inspect} and string resolve to different factories"
@@ -73,6 +74,7 @@ class SkillNameTest < Minitest::Test
     # builtin_skill_names is the registry's notion of the built-in set;
     # add_skill validates against the registered factories derived from it.
     registry_builtins = Registry.send(:builtin_skill_names)
+
     assert_equal SkillName::ALL.sort, registry_builtins.sort,
                  'SkillName::ALL drifted from SkillRegistry.builtin_skill_names'
   end

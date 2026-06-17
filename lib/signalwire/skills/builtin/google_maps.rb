@@ -11,14 +11,15 @@ module SignalWire
   module Skills
     module Builtin
       class GoogleMapsSkill < SkillBase
-        def name;        'google_maps'; end
-        def description; 'Validate addresses and compute driving routes using Google Maps'; end
+        def name = 'google_maps'
+        def description = 'Validate addresses and compute driving routes using Google Maps'
 
         def setup
           @api_key         = get_param('api_key', env_var: 'GOOGLE_MAPS_API_KEY')
           @lookup_tool     = get_param('lookup_tool_name', default: 'lookup_address')
           @route_tool      = get_param('route_tool_name', default: 'compute_route')
           return false unless @api_key && !@api_key.empty?
+
           true
         end
 
@@ -28,7 +29,7 @@ module SignalWire
               name: @lookup_tool,
               description: 'Validate and geocode a street address or business name using Google Maps',
               parameters: {
-                'address'  => { 'type' => 'string', 'description' => 'The address or business name to look up' },
+                'address' => { 'type' => 'string', 'description' => 'The address or business name to look up' },
                 'bias_lat' => { 'type' => 'number', 'description' => 'Latitude to bias results toward (optional)' },
                 'bias_lng' => { 'type' => 'number', 'description' => 'Longitude to bias results toward (optional)' }
               },
@@ -40,8 +41,8 @@ module SignalWire
               parameters: {
                 'origin_lat' => { 'type' => 'number', 'description' => 'Origin latitude' },
                 'origin_lng' => { 'type' => 'number', 'description' => 'Origin longitude' },
-                'dest_lat'   => { 'type' => 'number', 'description' => 'Destination latitude' },
-                'dest_lng'   => { 'type' => 'number', 'description' => 'Destination longitude' }
+                'dest_lat' => { 'type' => 'number', 'description' => 'Destination latitude' },
+                'dest_lng' => { 'type' => 'number', 'description' => 'Destination longitude' }
               },
               handler: method(:handle_route)
             }
@@ -69,9 +70,10 @@ module SignalWire
 
         def get_parameter_schema
           {
-            'api_key'          => { 'type' => 'string', 'required' => true, 'hidden' => true, 'env_var' => 'GOOGLE_MAPS_API_KEY' },
+            'api_key' => { 'type' => 'string', 'required' => true, 'hidden' => true,
+                           'env_var' => 'GOOGLE_MAPS_API_KEY' },
             'lookup_tool_name' => { 'type' => 'string', 'default' => 'lookup_address' },
-            'route_tool_name'  => { 'type' => 'string', 'default' => 'compute_route' }
+            'route_tool_name' => { 'type' => 'string', 'default' => 'compute_route' }
           }
         end
 
@@ -79,12 +81,10 @@ module SignalWire
 
         def handle_lookup(args, _raw_data)
           address = (args['address'] || '').strip
-          if address.empty?
-            return Swaig::FunctionResult.new('Please provide an address or business name to look up.')
-          end
+          return Swaig::FunctionResult.new('Please provide an address or business name to look up.') if address.empty?
 
-          bias_lat = args['bias_lat']
-          bias_lng = args['bias_lng']
+          args['bias_lat']
+          args['bias_lng']
 
           # Use Geocoding API
           params = { address: address, key: @api_key }
@@ -109,7 +109,7 @@ module SignalWire
           Swaig::FunctionResult.new(
             "Address: #{formatted}\nCoordinates: #{location['lat']}, #{location['lng']}"
           )
-        rescue => e
+        rescue StandardError => e
           Swaig::FunctionResult.new("Error looking up address: #{e.message}")
         end
 
@@ -132,8 +132,8 @@ module SignalWire
           request['X-Goog-Api-Key']    = @api_key
           request['X-Goog-FieldMask']  = 'routes.distanceMeters,routes.duration'
           request.body = {
-            origin:      { location: { latLng: { latitude: origin_lat, longitude: origin_lng } } },
-            destination: { location: { latLng: { latitude: dest_lat,   longitude: dest_lng } } },
+            origin: { location: { latLng: { latitude: origin_lat, longitude: origin_lng } } },
+            destination: { location: { latLng: { latitude: dest_lat, longitude: dest_lng } } },
             travelMode: 'DRIVE',
             routingPreference: 'TRAFFIC_AWARE'
           }.to_json
@@ -142,9 +142,7 @@ module SignalWire
           data = JSON.parse(resp.body)
 
           routes = data['routes'] || []
-          if routes.empty?
-            return Swaig::FunctionResult.new("I couldn't compute a route between those locations.")
-          end
+          return Swaig::FunctionResult.new("I couldn't compute a route between those locations.") if routes.empty?
 
           route = routes.first
           distance_m  = route['distanceMeters'] || 0
@@ -155,7 +153,7 @@ module SignalWire
           Swaig::FunctionResult.new(
             "Distance: #{'%.1f' % distance_mi} miles\nEstimated travel time: #{duration_min.to_i} minutes"
           )
-        rescue => e
+        rescue StandardError => e
           Swaig::FunctionResult.new("Error computing route: #{e.message}")
         end
       end

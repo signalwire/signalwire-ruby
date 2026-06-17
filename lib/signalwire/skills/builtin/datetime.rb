@@ -7,8 +7,8 @@ module SignalWire
   module Skills
     module Builtin
       class DateTimeSkill < SkillBase
-        def name;        'datetime'; end
-        def description; 'Get current date, time, and timezone information'; end
+        def name = 'datetime'
+        def description = 'Get current date, time, and timezone information'
 
         # Python parity: ``DateTimeSkill.setup`` -> ``self.validate_packages()``.
         # Python validates that ``pytz`` is importable before the skill is
@@ -25,8 +25,11 @@ module SignalWire
         end
 
         # Python parity: ``DateTimeSkill.get_parameter_schema`` returns only the
-        # base-class schema (the datetime skill adds no custom parameters).
-        def get_parameter_schema
+        # base-class schema (the datetime skill adds no custom parameters). The
+        # explicit super-only override is REQUIRED — the cross-port audit checks
+        # public_instance_methods(false) includes it, so it must be defined here
+        # directly, not merely inherited. rubocop:disable for that reason.
+        def get_parameter_schema # rubocop:disable Lint/UselessMethodDefinition
           super
         end
 
@@ -36,7 +39,8 @@ module SignalWire
               name: 'get_current_time',
               description: 'Get the current time, optionally in a specific timezone',
               parameters: {
-                'timezone' => { 'type' => 'string', 'description' => "Timezone name (e.g., 'America/New_York', 'Europe/London'). Defaults to UTC." }
+                'timezone' => { 'type' => 'string',
+                                'description' => "Timezone name (e.g., 'America/New_York', 'Europe/London'). Defaults to UTC." }
               },
               handler: method(:handle_get_time)
             },

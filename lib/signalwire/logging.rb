@@ -77,7 +77,7 @@ module SignalWire
         return :off
       end
 
-      raw = ENV['SIGNALWIRE_LOG_LEVEL']
+      raw = ENV.fetch('SIGNALWIRE_LOG_LEVEL', nil)
       if raw
         sym = raw.downcase.to_sym
         if LEVELS.key?(sym)

@@ -61,7 +61,9 @@ module SignalWire
         if match
           Swaig::FunctionResult.new(match['answer'])
         else
-          Swaig::FunctionResult.new("I don't have a specific answer for that. Here are the topics I can help with: #{@faqs.map { |f| f['question'] }.join('; ')}")
+          Swaig::FunctionResult.new("I don't have a specific answer for that. Here are the topics I can help with: #{@faqs.map do |f|
+            f['question']
+          end.join('; ')}")
         end
       end
 

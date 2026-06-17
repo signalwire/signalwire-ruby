@@ -29,6 +29,7 @@ class PromptObjectModelTest < Minitest::Test
 
   def test_empty_pom_has_no_sections
     pom = POM.new
+
     assert_equal [], pom.sections
   end
 
@@ -38,6 +39,7 @@ class PromptObjectModelTest < Minitest::Test
 
   def test_empty_render_xml_is_just_prompt_tags
     expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<prompt>\n</prompt>"
+
     assert_equal expected, POM.new.render_xml
   end
 
@@ -56,6 +58,7 @@ class PromptObjectModelTest < Minitest::Test
   def test_add_section_returns_section_instance
     pom = POM.new
     section = pom.add_section('Greeting')
+
     assert_kind_of Section, section
     assert_equal 'Greeting', section.title
   end
@@ -64,6 +67,7 @@ class PromptObjectModelTest < Minitest::Test
     pom = POM.new
     pom.add_section('A')
     pom.add_section('B')
+
     assert_equal %w[A B], pom.sections.map(&:title)
   end
 
@@ -71,6 +75,7 @@ class PromptObjectModelTest < Minitest::Test
     # Python parity: when bullets is a string, wrap it into a single-element list.
     pom = POM.new
     s = pom.add_section('S', body: 'b', bullets: 'one')
+
     assert_equal ['one'], s.bullets
   end
 
@@ -89,6 +94,7 @@ class PromptObjectModelTest < Minitest::Test
     pom = POM.new
     pom.add_section('Greeting', body: 'Hello')
     section = pom.find_section('Greeting')
+
     refute_nil section
     assert_equal 'Greeting', section.title
   end
@@ -102,6 +108,7 @@ class PromptObjectModelTest < Minitest::Test
     s = pom.add_section('Outer', body: 'ob')
     s.add_subsection('Inner', body: 'ib')
     found = pom.find_section('Inner')
+
     refute_nil found
     assert_equal 'ib', found.body
   end
@@ -112,6 +119,7 @@ class PromptObjectModelTest < Minitest::Test
 
   def test_section_with_title_only
     s = Section.new('Hello', body: 'b')
+
     assert_equal 'Hello', s.title
   end
 
@@ -119,8 +127,10 @@ class PromptObjectModelTest < Minitest::Test
     # Python parity: ``add_body`` replaces, not appends.
     s = Section.new('X', body: 'initial')
     s.add_body('replacement')
+
     assert_equal 'replacement', s.body
     md = s.render_markdown
+
     assert_includes md, 'replacement'
     refute_includes md, 'initial'
   end
@@ -128,12 +138,14 @@ class PromptObjectModelTest < Minitest::Test
   def test_section_add_bullets_appends
     s = Section.new('X', bullets: ['existing'])
     s.add_bullets(%w[one two])
+
     assert_equal %w[existing one two], s.bullets
   end
 
   def test_section_add_subsection_returns_section
     parent = Section.new('P', body: 'pb')
     child = parent.add_subsection('C', body: 'cb')
+
     assert_kind_of Section, child
     assert_equal 'C', child.title
     assert_includes parent.subsections, child
@@ -162,6 +174,7 @@ class PromptObjectModelTest < Minitest::Test
   def test_render_markdown_simple_section_exact
     pom = POM.new
     pom.add_section('Greeting', body: 'Hello world')
+
     assert_equal "## Greeting\n\nHello world\n", pom.render_markdown
   end
 
@@ -170,12 +183,13 @@ class PromptObjectModelTest < Minitest::Test
     pom.add_section('Greeting', body: 'Hello world')
     expected =
       "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" \
-      "<prompt>\n" \
-      "  <section>\n" \
-      "    <title>Greeting</title>\n" \
-      "    <body>Hello world</body>\n" \
-      "  </section>\n" \
+      "<prompt>\n  " \
+      "<section>\n    " \
+      "<title>Greeting</title>\n    " \
+      "<body>Hello world</body>\n  " \
+      "</section>\n" \
       '</prompt>'
+
     assert_equal expected, pom.render_xml
   end
 
@@ -183,6 +197,7 @@ class PromptObjectModelTest < Minitest::Test
     pom = POM.new
     pom.add_section('Goals', body: 'Be helpful', bullets: ['Be concise', 'Be clear'])
     expected = "## Goals\n\nBe helpful\n\n- Be concise\n- Be clear\n"
+
     assert_equal expected, pom.render_markdown
   end
 
@@ -191,16 +206,17 @@ class PromptObjectModelTest < Minitest::Test
     pom.add_section('Goals', body: 'Be helpful', bullets: ['Be concise', 'Be clear'])
     expected =
       "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" \
-      "<prompt>\n" \
-      "  <section>\n" \
-      "    <title>Goals</title>\n" \
-      "    <body>Be helpful</body>\n" \
-      "    <bullets>\n" \
-      "      <bullet>Be concise</bullet>\n" \
-      "      <bullet>Be clear</bullet>\n" \
-      "    </bullets>\n" \
-      "  </section>\n" \
+      "<prompt>\n  " \
+      "<section>\n    " \
+      "<title>Goals</title>\n    " \
+      "<body>Be helpful</body>\n    " \
+      "<bullets>\n      " \
+      "<bullet>Be concise</bullet>\n      " \
+      "<bullet>Be clear</bullet>\n    " \
+      "</bullets>\n  " \
+      "</section>\n" \
       '</prompt>'
+
     assert_equal expected, pom.render_xml
   end
 
@@ -209,6 +225,7 @@ class PromptObjectModelTest < Minitest::Test
     s = pom.add_section('Top', body: 'Top body')
     s.add_subsection('Sub1', body: 'Sub1 body', bullets: %w[a b])
     expected = "## Top\n\nTop body\n\n### Sub1\n\nSub1 body\n\n- a\n- b\n"
+
     assert_equal expected, pom.render_markdown
   end
 
@@ -218,22 +235,23 @@ class PromptObjectModelTest < Minitest::Test
     s.add_subsection('Sub1', body: 'Sub1 body', bullets: %w[a b])
     expected =
       "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" \
-      "<prompt>\n" \
-      "  <section>\n" \
-      "    <title>Top</title>\n" \
-      "    <body>Top body</body>\n" \
-      "    <subsections>\n" \
-      "      <section>\n" \
-      "        <title>Sub1</title>\n" \
-      "        <body>Sub1 body</body>\n" \
-      "        <bullets>\n" \
-      "          <bullet>a</bullet>\n" \
-      "          <bullet>b</bullet>\n" \
-      "        </bullets>\n" \
-      "      </section>\n" \
-      "    </subsections>\n" \
-      "  </section>\n" \
+      "<prompt>\n  " \
+      "<section>\n    " \
+      "<title>Top</title>\n    " \
+      "<body>Top body</body>\n    " \
+      "<subsections>\n      " \
+      "<section>\n        " \
+      "<title>Sub1</title>\n        " \
+      "<body>Sub1 body</body>\n        " \
+      "<bullets>\n          " \
+      "<bullet>a</bullet>\n          " \
+      "<bullet>b</bullet>\n        " \
+      "</bullets>\n      " \
+      "</section>\n    " \
+      "</subsections>\n  " \
+      "</section>\n" \
       '</prompt>'
+
     assert_equal expected, pom.render_xml
   end
 
@@ -242,6 +260,7 @@ class PromptObjectModelTest < Minitest::Test
     pom.add_section('S1', body: 'b1', numbered: true)
     pom.add_section('S2', body: 'b2')
     expected = "## 1. S1\n\nb1\n\n## 2. S2\n\nb2\n"
+
     assert_equal expected, pom.render_markdown
   end
 
@@ -251,16 +270,17 @@ class PromptObjectModelTest < Minitest::Test
     pom.add_section('S2', body: 'b2')
     expected =
       "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" \
-      "<prompt>\n" \
-      "  <section>\n" \
-      "    <title>1. S1</title>\n" \
-      "    <body>b1</body>\n" \
-      "  </section>\n" \
-      "  <section>\n" \
-      "    <title>2. S2</title>\n" \
-      "    <body>b2</body>\n" \
-      "  </section>\n" \
+      "<prompt>\n  " \
+      "<section>\n    " \
+      "<title>1. S1</title>\n    " \
+      "<body>b1</body>\n  " \
+      "</section>\n  " \
+      "<section>\n    " \
+      "<title>2. S2</title>\n    " \
+      "<body>b2</body>\n  " \
+      "</section>\n" \
       '</prompt>'
+
     assert_equal expected, pom.render_xml
   end
 
@@ -268,6 +288,7 @@ class PromptObjectModelTest < Minitest::Test
     pom = POM.new
     pom.add_section('X', bullets: %w[one two], numbered_bullets: true)
     expected = "## X\n\n1. one\n2. two\n"
+
     assert_equal expected, pom.render_markdown
   end
 
@@ -276,15 +297,16 @@ class PromptObjectModelTest < Minitest::Test
     pom.add_section('X', bullets: %w[one two], numbered_bullets: true)
     expected =
       "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" \
-      "<prompt>\n" \
-      "  <section>\n" \
-      "    <title>X</title>\n" \
-      "    <bullets>\n" \
-      "      <bullet id=\"1\">one</bullet>\n" \
-      "      <bullet id=\"2\">two</bullet>\n" \
-      "    </bullets>\n" \
-      "  </section>\n" \
+      "<prompt>\n  " \
+      "<section>\n    " \
+      "<title>X</title>\n    " \
+      "<bullets>\n      " \
+      "<bullet id=\"1\">one</bullet>\n      " \
+      "<bullet id=\"2\">two</bullet>\n    " \
+      "</bullets>\n  " \
+      "</section>\n" \
       '</prompt>'
+
     assert_equal expected, pom.render_xml
   end
 
@@ -321,13 +343,14 @@ class PromptObjectModelTest < Minitest::Test
     s = pom.add_section('A', body: 'ab')
     s.add_subsection('A1', body: 'a1b', bullets: ['x'])
     expected =
-      "- title: A\n" \
-      "  body: ab\n" \
-      "  subsections:\n" \
-      "  - title: A1\n" \
-      "    body: a1b\n" \
-      "    bullets:\n" \
-      "    - x\n"
+      "- title: A\n  " \
+      "body: ab\n  " \
+      "subsections:\n  " \
+      "- title: A1\n    " \
+      "body: a1b\n    " \
+      "bullets:\n    " \
+      "- x\n"
+
     assert_equal expected, pom.to_yaml
   end
 
@@ -337,6 +360,7 @@ class PromptObjectModelTest < Minitest::Test
     s.add_subsection('A1', body: 'a1b', bullets: %w[x y])
     json_str = pom.to_json
     restored = POM.from_json(json_str)
+
     assert_equal json_str, restored.to_json
   end
 
@@ -346,6 +370,7 @@ class PromptObjectModelTest < Minitest::Test
     s.add_subsection('A1', body: 'a1b', bullets: %w[x y])
     yaml_str = pom.to_yaml
     restored = POM.from_yaml(yaml_str)
+
     assert_equal yaml_str, restored.to_yaml
   end
 
@@ -354,6 +379,7 @@ class PromptObjectModelTest < Minitest::Test
     # Array of Hash section descriptors.
     data = [{ 'title' => 'B', 'body' => 'y' }]
     pom = POM.from_yaml(data)
+
     refute_nil pom.find_section('B')
   end
 
@@ -381,6 +407,7 @@ class PromptObjectModelTest < Minitest::Test
 
     host.add_pom_as_subsection('Host', guest)
     host_section = host.find_section('Host')
+
     refute_nil host_section
     assert_equal 1, host_section.subsections.length
     assert_equal 'Guest', host_section.subsections[0].title
@@ -395,6 +422,7 @@ class PromptObjectModelTest < Minitest::Test
     guest.add_section('GuestB', body: 'bb')
 
     host.add_pom_as_subsection(target, guest)
+
     assert_equal %w[GuestA GuestB], target.subsections.map(&:title)
   end
 

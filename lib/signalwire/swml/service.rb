@@ -29,7 +29,7 @@ module SignalWire
       # @param port   [Integer, nil] Port — falls back to $PORT then 3000
       # @param basic_auth [Array(String,String), nil] Explicit (user, pass) pair
       # Maximum request body size enforced on /swaig and the main route (1 MB).
-      SWAIG_FN_NAME = /\A[a-zA-Z_][a-zA-Z0-9_]*\z/.freeze
+      SWAIG_FN_NAME = /\A[a-zA-Z_][a-zA-Z0-9_]*\z/
 
       def initialize(name:, route: '/', host: '0.0.0.0', port: nil, basic_auth: nil,
                      schema_path: nil, config_file: nil, schema_validation: true)
@@ -81,9 +81,9 @@ module SignalWire
         #   SWML_SSL_CERT_PATH — PEM certificate path
         #   SWML_SSL_KEY_PATH  — PEM private-key path
         @ssl_enabled   = %w[true 1 yes].include?(ENV['SWML_SSL_ENABLED'].to_s.strip.downcase)
-        @ssl_cert_path = ENV['SWML_SSL_CERT_PATH']
-        @ssl_key_path  = ENV['SWML_SSL_KEY_PATH']
-        @domain        = ENV['SWML_DOMAIN']
+        @ssl_cert_path = ENV.fetch('SWML_SSL_CERT_PATH', nil)
+        @ssl_key_path  = ENV.fetch('SWML_SSL_KEY_PATH', nil)
+        @domain        = ENV.fetch('SWML_DOMAIN', nil)
 
         @log.info "Service '#{@name}' initialised (route=#{@route}, port=#{@port})"
       end
@@ -98,12 +98,12 @@ module SignalWire
       def define_tool(name:, description:, parameters: {}, secure: false, &handler)
         @tools[name] = {
           definition: {
-            'function'    => name,
+            'function' => name,
             'description' => description,
-            'parameters'  => parameters,
+            'parameters' => parameters
           },
-          handler:    handler,
-          secure:     secure,
+          handler: handler,
+          secure: secure
         }
         self
       end
@@ -112,6 +112,7 @@ module SignalWire
       def register_swaig_function(func_def)
         fname = func_def['function'] || func_def[:function]
         return self unless fname
+
         @swaig_functions[fname] = func_def.transform_keys(&:to_s)
         self
       end
@@ -127,6 +128,7 @@ module SignalWire
       def on_function_call(name, args, raw_data)
         tool = @tools[name]
         return nil unless tool && tool[:handler]
+
         result = tool[:handler].call(args, raw_data)
         if result.is_a?(Hash)
           result
@@ -201,7 +203,9 @@ module SignalWire
 
       # Extension point: handle GET /swaig (returns the SWML document by
       # default). AgentBase overrides to render with prompts + dynamic config.
-      def render_main_swml(_request_data = nil, request: nil)
+      # request: is part of the override signature (subclasses use it); kept here
+      # for that contract even though the base no-op ignores it.
+      def render_main_swml(_request_data = nil, request: nil) # rubocop:disable Lint/UnusedMethodArgument
         @document.to_h
       end
 
@@ -251,7 +255,7 @@ module SignalWire
                   elsif !kwargs.empty?
                     kwargs.values.first
                   else
-                    raise ArgumentError, "sleep requires an integer duration"
+                    raise ArgumentError, 'sleep requires an integer duration'
                   end
           @document.add_verb(verb_name, value)
         else
@@ -278,8 +282,8 @@ module SignalWire
         u, p = @basic_auth
         return [u, p] unless include_source
 
-        env_user = ENV['SWML_BASIC_AUTH_USER']
-        env_pass = ENV['SWML_BASIC_AUTH_PASSWORD']
+        env_user = ENV.fetch('SWML_BASIC_AUTH_USER', nil)
+        env_pass = ENV.fetch('SWML_BASIC_AUTH_PASSWORD', nil)
         source =
           if env_user && !env_user.empty? && env_pass && !env_pass.empty? && u == env_user && p == env_pass
             'environment'
@@ -298,6 +302,7 @@ module SignalWire
         require 'openssl'
         u, p = @basic_auth
         return false if u.nil? || p.nil?
+
         OpenSSL.fixed_length_secure_compare(username, u) &&
           OpenSSL.fixed_length_secure_compare(password, p)
       rescue ArgumentError
@@ -360,7 +365,7 @@ module SignalWire
       # ``request:`` keyword carries the Rack request (or FastAPI
       # ``Request`` analogue) for subclasses that need query params
       # or headers.
-      def on_swml_request(request_data = nil, callback_path = nil, request: nil)
+      def on_swml_request(_request_data = nil, _callback_path = nil, request: nil) # rubocop:disable Lint/UnusedMethodArgument
         nil
       end
 
@@ -377,9 +382,7 @@ module SignalWire
       end
 
       # Expose the underlying document (useful for tests and subclasses).
-      def document
-        @document
-      end
+      attr_reader :document
 
       # SchemaUtils helper bound to this Service. Mirrors Python's
       # self.schema_utils public instance attribute on SWMLService.
@@ -422,9 +425,7 @@ module SignalWire
         bind_host = host || @host
         bind_port = port || @port
 
-        if !ssl_enabled.nil?
-          @ssl_enabled = ssl_enabled
-        end
+        @ssl_enabled = ssl_enabled unless ssl_enabled.nil?
         @domain = domain if domain
         @ssl_cert_path = ssl_cert if ssl_cert
         @ssl_key_path  = ssl_key  if ssl_key
@@ -447,12 +448,12 @@ module SignalWire
 
         # Rack 3+ moved Handler to the rackup gem.
         handler = begin
-                    require 'rackup/handler/webrick'
-                    Rackup::Handler::WEBrick
-                  rescue LoadError
-                    require 'rack/handler/webrick'
-                    Rack::Handler::WEBrick
-                  end
+          require 'rackup/handler/webrick'
+          Rackup::Handler::WEBrick
+        rescue LoadError
+          require 'rack/handler/webrick'
+          Rack::Handler::WEBrick
+        end
         @server.mount '/', handler, rack_app
 
         trap('INT')  { stop }
@@ -468,6 +469,7 @@ module SignalWire
 
       # ------------------------------------------------------------------
       private
+
       # ------------------------------------------------------------------
 
       # Mutate a WEBrick option hash in place to enable HTTPS when SSL is
@@ -512,17 +514,17 @@ module SignalWire
         service = self
         main_route = @route
 
-        app = Rack::Builder.new do
+        Rack::Builder.new do
           # --- public endpoints (no auth) --------------------------------
           map '/health' do
-            run ->(_env) {
+            run lambda { |_env|
               body = JSON.generate({ status: 'healthy' })
               [200, { 'content-type' => 'application/json' }, [body]]
             }
           end
 
           map '/ready' do
-            run ->(_env) {
+            run lambda { |_env|
               body = JSON.generate({ status: 'ready' })
               [200, { 'content-type' => 'application/json' }, [body]]
             }
@@ -533,7 +535,7 @@ module SignalWire
             use SecurityHeadersMiddleware
             use TimingSafeBasicAuth, service
 
-            run ->(env) {
+            run lambda { |env|
               request = Rack::Request.new(env)
 
               # Determine sub-path for routing callbacks / additional routes.
@@ -543,13 +545,15 @@ module SignalWire
               request_data = nil
               if request.post? || request.put?
                 body = request.body.read
-                request_data = JSON.parse(body) rescue nil
+                request_data = begin
+                  JSON.parse(body)
+                rescue StandardError
+                  nil
+                end
               end
 
               # /swaig — handled by Service itself (lifted from AgentBase).
-              if sub_path == '/swaig'
-                next service.send(:_handle_swaig_endpoint, request, request_data, env)
-              end
+              next service.send(:_handle_swaig_endpoint, request, request_data, env) if sub_path == '/swaig'
 
               # Subclass extension hook for /post_prompt, /debug_events, /mcp, etc.
               extra = service.handle_additional_route(sub_path, request_data, env)
@@ -564,8 +568,6 @@ module SignalWire
             }
           end
         end
-
-        app
       end
 
       # Internal: handle GET/POST /swaig.
@@ -604,9 +606,7 @@ module SignalWire
         args ||= {}
 
         target, short_circuit = swaig_pre_dispatch(request_data, func_name, env)
-        if short_circuit
-          return [200, { 'content-type' => 'application/json' }, [JSON.generate(short_circuit)]]
-        end
+        return [200, { 'content-type' => 'application/json' }, [JSON.generate(short_circuit)]] if short_circuit
 
         result = target.on_function_call(func_name, args, request_data)
         if result.nil?
@@ -622,8 +622,8 @@ module SignalWire
       class SecurityHeadersMiddleware
         HEADERS = {
           'x-content-type-options' => 'nosniff',
-          'x-frame-options'        => 'DENY',
-          'cache-control'          => 'no-store, no-cache, must-revalidate'
+          'x-frame-options' => 'DENY',
+          'cache-control' => 'no-store, no-cache, must-revalidate'
         }.freeze
 
         def initialize(app)
@@ -649,9 +649,7 @@ module SignalWire
         def call(env)
           auth = Rack::Auth::Basic::Request.new(env)
 
-          unless auth.provided? && auth.basic?
-            return unauthorized
-          end
+          return unauthorized unless auth.provided? && auth.basic?
 
           user, pass = @service.get_basic_auth_credentials
           input_user, input_pass = auth.credentials
@@ -674,7 +672,7 @@ module SignalWire
           [
             401,
             {
-              'content-type'     => 'text/plain',
+              'content-type' => 'text/plain',
               'www-authenticate' => 'Basic realm="SignalWire SWML Service"'
             },
             [body]

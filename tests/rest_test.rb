@@ -6,11 +6,13 @@ require_relative '../lib/signalwire/rest/rest_client'
 class RestHttpClientTest < Minitest::Test
   def test_http_client_url_construction
     client = SignalWire::REST::HttpClient.new('proj-123', 'tok-abc', 'myspace.signalwire.com')
+
     assert_equal 'https://myspace.signalwire.com', client.base_url
   end
 
   def test_http_client_with_short_space
     client = SignalWire::REST::HttpClient.new('proj-123', 'tok-abc', 'myspace')
+
     assert_equal 'https://myspace.signalwire.com', client.base_url
   end
 end
@@ -18,6 +20,7 @@ end
 class RestSignalWireRestErrorTest < Minitest::Test
   def test_error_formatting
     err = SignalWire::REST::SignalWireRestError.new(404, 'Not Found', '/api/test', 'GET')
+
     assert_equal 404, err.status_code
     assert_equal 'Not Found', err.body
     assert_equal '/api/test', err.url
@@ -30,6 +33,7 @@ class RestSignalWireRestErrorTest < Minitest::Test
 
   def test_error_default_method
     err = SignalWire::REST::SignalWireRestError.new(500, 'Error', '/api/fail')
+
     assert_equal 'GET', err.method_name
   end
 end
@@ -52,6 +56,7 @@ class RestCrudResourceTest < Minitest::Test
   def test_crud_resource_custom_update_method
     # PhoneNumbersResource uses PUT
     klass = SignalWire::REST::Namespaces::PhoneNumbersResource
+
     assert_equal 'PUT', klass.update_method
   end
 end
@@ -63,6 +68,7 @@ class RestRestClientTest < Minitest::Test
       token: 'tok-abc',
       host: 'myspace.signalwire.com'
     )
+
     assert_instance_of SignalWire::REST::RestClient, client
   end
 
@@ -93,6 +99,7 @@ class RestRestClientTest < Minitest::Test
 
     begin
       client = SignalWire::REST::RestClient.new
+
       assert_instance_of SignalWire::REST::RestClient, client
     ensure
       ENV.delete('SIGNALWIRE_PROJECT_ID')
@@ -135,6 +142,7 @@ class RestRestClientTest < Minitest::Test
     )
 
     fabric = client.fabric
+
     refute_nil fabric.swml_scripts
     refute_nil fabric.relay_applications
     refute_nil fabric.call_flows
@@ -159,6 +167,7 @@ class RestRestClientTest < Minitest::Test
     )
 
     video = client.video
+
     refute_nil video.rooms
     refute_nil video.room_tokens
     refute_nil video.room_sessions
@@ -174,6 +183,7 @@ class RestRestClientTest < Minitest::Test
     )
 
     compat = client.compat
+
     refute_nil compat.accounts
     refute_nil compat.calls
     refute_nil compat.messages
@@ -194,6 +204,7 @@ class RestRestClientTest < Minitest::Test
     )
 
     registry = client.registry
+
     refute_nil registry.brands
     refute_nil registry.campaigns
     refute_nil registry.orders
@@ -206,6 +217,7 @@ class RestRestClientTest < Minitest::Test
     )
 
     logs = client.logs
+
     refute_nil logs.messages
     refute_nil logs.voice
     refute_nil logs.fax
@@ -218,6 +230,7 @@ class RestRestClientTest < Minitest::Test
     )
 
     datasphere = client.datasphere
+
     refute_nil datasphere.documents
   end
 
@@ -227,6 +240,7 @@ class RestRestClientTest < Minitest::Test
     )
 
     project = client.project
+
     refute_nil project.tokens
   end
 end
@@ -244,27 +258,32 @@ class RestNamespacePathsTest < Minitest::Test
 
   def test_addresses_path
     resource = SignalWire::REST::Namespaces::AddressesResource.new(@http)
+
     assert_equal '/api/relay/rest/addresses/abc', resource.send(:_path, 'abc')
   end
 
   def test_queues_path
     resource = SignalWire::REST::Namespaces::QueuesResource.new(@http)
+
     assert_equal '/api/relay/rest/queues/q1/members', resource.send(:_path, 'q1', 'members')
   end
 
   def test_recordings_path
     resource = SignalWire::REST::Namespaces::RecordingsResource.new(@http)
+
     assert_equal '/api/relay/rest/recordings/r1', resource.send(:_path, 'r1')
   end
 
   def test_number_groups_path
     resource = SignalWire::REST::Namespaces::NumberGroupsResource.new(@http)
+
     assert_equal '/api/relay/rest/number_groups/g1/number_group_memberships',
                  resource.send(:_path, 'g1', 'number_group_memberships')
   end
 
   def test_verified_callers_path
     resource = SignalWire::REST::Namespaces::VerifiedCallersResource.new(@http)
+
     assert_equal '/api/relay/rest/verified_caller_ids/vc1/verification',
                  resource.send(:_path, 'vc1', 'verification')
   end
@@ -277,39 +296,46 @@ class RestNamespacePathsTest < Minitest::Test
 
   def test_lookup_path
     resource = SignalWire::REST::Namespaces::LookupResource.new(@http)
+
     assert_equal '/api/relay/rest/lookup/phone_number/+15551234567',
                  resource.send(:_path, 'phone_number', '+15551234567')
   end
 
   def test_short_codes_path
     resource = SignalWire::REST::Namespaces::ShortCodesResource.new(@http)
+
     assert_equal '/api/relay/rest/short_codes/sc1', resource.send(:_path, 'sc1')
   end
 
   def test_imported_numbers_path
     resource = SignalWire::REST::Namespaces::ImportedNumbersResource.new(@http)
+
     assert_equal '/api/relay/rest/imported_phone_numbers',
                  resource.instance_variable_get(:@base_path)
   end
 
   def test_mfa_path
     resource = SignalWire::REST::Namespaces::MfaResource.new(@http)
+
     assert_equal '/api/relay/rest/mfa/sms', resource.send(:_path, 'sms')
     assert_equal '/api/relay/rest/mfa/req-1/verify', resource.send(:_path, 'req-1', 'verify')
   end
 
   def test_calling_path
     resource = SignalWire::REST::Namespaces::CallingNamespace.new(@http)
+
     assert_equal '/api/calling/calls', resource.instance_variable_get(:@base_path)
   end
 
   def test_pubsub_path
     resource = SignalWire::REST::Namespaces::PubSubResource.new(@http)
+
     assert_equal '/api/pubsub/tokens', resource.instance_variable_get(:@base_path)
   end
 
   def test_chat_path
     resource = SignalWire::REST::Namespaces::ChatResource.new(@http)
+
     assert_equal '/api/chat/tokens', resource.instance_variable_get(:@base_path)
   end
 end

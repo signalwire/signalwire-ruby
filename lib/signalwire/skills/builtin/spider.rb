@@ -10,14 +10,15 @@ module SignalWire
   module Skills
     module Builtin
       class SpiderSkill < SkillBase
-        def name;        'spider'; end
-        def description; 'Fast web scraping and crawling capabilities'; end
-        def supports_multiple_instances?; true; end
+        def name = 'spider'
+        def description = 'Fast web scraping and crawling capabilities'
+        def supports_multiple_instances? = true
 
         def setup
-          @max_text_length = (get_param('max_text_length', default: 10_000)).to_i
-          @timeout         = (get_param('timeout', default: 5)).to_i
-          @user_agent      = get_param('user_agent', default: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+          @max_text_length = get_param('max_text_length', default: 10_000).to_i
+          @timeout         = get_param('timeout', default: 5).to_i
+          @user_agent      = get_param('user_agent',
+                                       default: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
           @tool_prefix     = get_param('tool_name', default: '')
           @tool_prefix     = "#{@tool_prefix}_" unless @tool_prefix.empty?
           @cache_enabled   = get_param('cache_enabled', default: true) != false
@@ -67,14 +68,14 @@ module SignalWire
         end
 
         def get_hints
-          %w[scrape crawl extract web\ page website spider]
+          ['scrape', 'crawl', 'extract', 'web page', 'website', 'spider']
         end
 
         def get_parameter_schema
           {
-            'timeout'         => { 'type' => 'integer', 'default' => 5 },
+            'timeout' => { 'type' => 'integer', 'default' => 5 },
             'max_text_length' => { 'type' => 'integer', 'default' => 10_000 },
-            'user_agent'      => { 'type' => 'string' }
+            'user_agent' => { 'type' => 'string' }
           }
         end
 
@@ -85,12 +86,10 @@ module SignalWire
           return Swaig::FunctionResult.new('Please provide a URL to scrape') if url.empty?
 
           text = fetch_text(url)
-          if text.nil? || text.empty?
-            return Swaig::FunctionResult.new("Failed to fetch or no content from #{url}")
-          end
+          return Swaig::FunctionResult.new("Failed to fetch or no content from #{url}") if text.nil? || text.empty?
 
           Swaig::FunctionResult.new("Content from #{url} (#{text.length} characters):\n\n#{text}")
-        rescue => e
+        rescue StandardError => e
           Swaig::FunctionResult.new("Error scraping #{url}: #{e.message}")
         end
 
@@ -99,13 +98,11 @@ module SignalWire
           return Swaig::FunctionResult.new('Please provide a starting URL for the crawl') if url.empty?
 
           text = fetch_text(url)
-          if text.nil? || text.empty?
-            return Swaig::FunctionResult.new("No pages could be crawled from #{url}")
-          end
+          return Swaig::FunctionResult.new("No pages could be crawled from #{url}") if text.nil? || text.empty?
 
           summary = text.length > 500 ? text[0, 500] + '...' : text
           Swaig::FunctionResult.new("Crawled 1 page from #{URI(url).host}:\n\n1. #{url} (#{text.length} chars)\n   Summary: #{summary}")
-        rescue => e
+        rescue StandardError => e
           Swaig::FunctionResult.new("Error crawling #{url}: #{e.message}")
         end
 
@@ -114,12 +111,10 @@ module SignalWire
           return Swaig::FunctionResult.new('Please provide a URL') if url.empty?
 
           text = fetch_text(url)
-          if text.nil? || text.empty?
-            return Swaig::FunctionResult.new("Failed to fetch #{url}")
-          end
+          return Swaig::FunctionResult.new("Failed to fetch #{url}") if text.nil? || text.empty?
 
           Swaig::FunctionResult.new("Extracted data from #{url}:\n\nContent: #{text[0, 2000]}")
-        rescue => e
+        rescue StandardError => e
           Swaig::FunctionResult.new("Error extracting data: #{e.message}")
         end
 
@@ -128,10 +123,8 @@ module SignalWire
           # (used by audit_skills_dispatch.py to point the skill at a
           # loopback fixture). The path/query of the user-supplied URL is
           # preserved so the audit can match on it.
-          base = ENV['SPIDER_BASE_URL']
-          if base && !base.empty?
-            url = "#{base.sub(/\/$/, '')}#{_url_path(url)}"
-          end
+          base = ENV.fetch('SPIDER_BASE_URL', nil)
+          url = "#{base.sub(%r{/$}, '')}#{_url_path(url)}" if base && !base.empty?
 
           # Serve from cache when enabled (parallels Python's response cache).
           cache = defined?(@cache) ? @cache : nil
@@ -154,16 +147,14 @@ module SignalWire
           # under an `_raw_html` field; unwrap before stripping tags.
           begin
             parsed = JSON.parse(body)
-            if parsed.is_a?(Hash) && parsed['_raw_html'].is_a?(String)
-              body = parsed['_raw_html']
-            end
+            body = parsed['_raw_html'] if parsed.is_a?(Hash) && parsed['_raw_html'].is_a?(String)
           rescue JSON::ParserError
             # not JSON — treat as raw HTML
           end
 
           # Strip HTML tags
-          text = body.gsub(/<script[^>]*>.*?<\/script>/mi, '')
-                     .gsub(/<style[^>]*>.*?<\/style>/mi, '')
+          text = body.gsub(%r{<script[^>]*>.*?</script>}mi, '')
+                     .gsub(%r{<style[^>]*>.*?</style>}mi, '')
                      .gsub(/<[^>]+>/, ' ')
                      .gsub(/\s+/, ' ')
                      .strip
@@ -171,7 +162,7 @@ module SignalWire
           result = text.length > @max_text_length ? text[0, @max_text_length] : text
           cache[url] = result if cache
           result
-        rescue => _e
+        rescue StandardError => _e
           nil
         end
 

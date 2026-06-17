@@ -28,6 +28,7 @@ class FabricMockTest < Minitest::Test
 
   def test_addresses_list_returns_data_collection
     body = @client.fabric.addresses.list
+
     assert_kind_of Hash, body
     # Fabric addresses list returns 'data' arrays.
     assert(body.key?('data'),
@@ -35,6 +36,7 @@ class FabricMockTest < Minitest::Test
     assert_kind_of Array, body['data']
 
     last = MockTest.journal.last
+
     assert_equal 'GET', last.method
     assert_equal "#{FABRIC_BASE}/addresses", last.path
     assert_equal 'fabric.list_fabric_addresses', last.matched_route
@@ -42,9 +44,11 @@ class FabricMockTest < Minitest::Test
 
   def test_addresses_get_uses_address_id
     body = @client.fabric.addresses.get('addr-9001')
+
     assert_kind_of Hash, body
 
     last = MockTest.journal.last
+
     assert_equal 'GET', last.method
     assert_equal "#{FABRIC_BASE}/addresses/addr-9001", last.path
     refute_nil last.matched_route, 'spec gap: address get'
@@ -65,10 +69,12 @@ class FabricMockTest < Minitest::Test
 
   def test_call_flows_list_addresses_uses_singular_path
     body = @client.fabric.call_flows.list_addresses('cf-1')
+
     assert_kind_of Hash, body
     assert(body.key?('data') && body['data'].is_a?(Array))
 
     last = MockTest.journal.last
+
     assert_equal 'GET', last.method
     # singular 'call_flow' (NOT 'call_flows') in the addresses sub-path.
     assert_equal "#{FABRIC_BASE}/resources/call_flow/cf-1/addresses", last.path
@@ -79,10 +85,12 @@ class FabricMockTest < Minitest::Test
 
   def test_conference_rooms_list_addresses_uses_singular_path
     body = @client.fabric.conference_rooms.list_addresses('cr-1')
+
     assert_kind_of Hash, body
     assert body.key?('data')
 
     last = MockTest.journal.last
+
     assert_equal 'GET', last.method
     # singular 'conference_room'.
     assert_equal "#{FABRIC_BASE}/resources/conference_room/cr-1/addresses", last.path
@@ -93,9 +101,11 @@ class FabricMockTest < Minitest::Test
 
   def test_subscribers_get_sip_endpoint
     body = @client.fabric.subscribers.get_sip_endpoint('sub-1', 'ep-1')
+
     assert_kind_of Hash, body
 
     last = MockTest.journal.last
+
     assert_equal 'GET', last.method
     assert_equal "#{FABRIC_BASE}/resources/subscribers/sub-1/sip_endpoints/ep-1", last.path
     refute_nil last.matched_route
@@ -103,11 +113,13 @@ class FabricMockTest < Minitest::Test
 
   def test_subscribers_update_sip_endpoint_uses_patch
     body = @client.fabric.subscribers.update_sip_endpoint(
-      'sub-1', 'ep-1', username: 'renamed',
+      'sub-1', 'ep-1', username: 'renamed'
     )
+
     assert_kind_of Hash, body
 
     last = MockTest.journal.last
+
     assert_equal 'PATCH', last.method
     assert_equal "#{FABRIC_BASE}/resources/subscribers/sub-1/sip_endpoints/ep-1", last.path
     assert_kind_of Hash, last.body
@@ -116,9 +128,11 @@ class FabricMockTest < Minitest::Test
 
   def test_subscribers_delete_sip_endpoint
     body = @client.fabric.subscribers.delete_sip_endpoint('sub-1', 'ep-1')
-    assert_kind_of Hash, body  # SDK normalises 204 to {}
+
+    assert_kind_of Hash, body # SDK normalises 204 to {}
 
     last = MockTest.journal.last
+
     assert_equal 'DELETE', last.method
     assert_equal "#{FABRIC_BASE}/resources/subscribers/sub-1/sip_endpoints/ep-1", last.path
     refute_nil last.matched_route
@@ -128,9 +142,11 @@ class FabricMockTest < Minitest::Test
 
   def test_tokens_create_invite_token
     body = @client.fabric.tokens.create_invite_token(email: 'invitee@example.com')
+
     assert_kind_of Hash, body
 
     last = MockTest.journal.last
+
     assert_equal 'POST', last.method
     # subscriber/invites uses the singular 'subscriber' path segment.
     assert_equal "#{FABRIC_BASE}/subscriber/invites", last.path
@@ -140,11 +156,13 @@ class FabricMockTest < Minitest::Test
 
   def test_tokens_create_embed_token
     body = @client.fabric.tokens.create_embed_token(
-      allowed_addresses: %w[addr-1 addr-2],
+      allowed_addresses: %w[addr-1 addr-2]
     )
+
     assert_kind_of Hash, body
 
     last = MockTest.journal.last
+
     assert_equal 'POST', last.method
     assert_equal "#{FABRIC_BASE}/embeds/tokens", last.path
     assert_kind_of Hash, last.body
@@ -153,9 +171,11 @@ class FabricMockTest < Minitest::Test
 
   def test_tokens_refresh_subscriber_token
     body = @client.fabric.tokens.refresh_subscriber_token(refresh_token: 'abc-123')
+
     assert_kind_of Hash, body
 
     last = MockTest.journal.last
+
     assert_equal 'POST', last.method
     assert_equal "#{FABRIC_BASE}/subscribers/tokens/refresh", last.path
     assert_kind_of Hash, last.body
@@ -166,11 +186,13 @@ class FabricMockTest < Minitest::Test
 
   def test_resources_list_returns_data_collection
     body = @client.fabric.resources.list
+
     assert_kind_of Hash, body
     # /api/fabric/resources returns data array.
     assert(body.key?('data') && body['data'].is_a?(Array))
 
     last = MockTest.journal.last
+
     assert_equal 'GET', last.method
     assert_equal "#{FABRIC_BASE}/resources", last.path
     refute_nil last.matched_route
@@ -178,18 +200,22 @@ class FabricMockTest < Minitest::Test
 
   def test_resources_get_returns_single_resource
     body = @client.fabric.resources.get('res-1')
+
     assert_kind_of Hash, body
 
     last = MockTest.journal.last
+
     assert_equal 'GET', last.method
     assert_equal "#{FABRIC_BASE}/resources/res-1", last.path
   end
 
   def test_resources_delete
     body = @client.fabric.resources.delete('res-2')
+
     assert_kind_of Hash, body
 
     last = MockTest.journal.last
+
     assert_equal 'DELETE', last.method
     assert_equal "#{FABRIC_BASE}/resources/res-2", last.path
     refute_nil last.matched_route
@@ -197,21 +223,25 @@ class FabricMockTest < Minitest::Test
 
   def test_resources_list_addresses
     body = @client.fabric.resources.list_addresses('res-3')
+
     assert_kind_of Hash, body
     assert(body.key?('data') && body['data'].is_a?(Array))
 
     last = MockTest.journal.last
+
     assert_equal 'GET', last.method
     assert_equal "#{FABRIC_BASE}/resources/res-3/addresses", last.path
   end
 
   def test_resources_assign_domain_application
     body = @client.fabric.resources.assign_domain_application(
-      'res-4', domain_application_id: 'da-7',
+      'res-4', domain_application_id: 'da-7'
     )
+
     assert_kind_of Hash, body
 
     last = MockTest.journal.last
+
     assert_equal 'POST', last.method
     assert_equal "#{FABRIC_BASE}/resources/res-4/domain_applications", last.path
     assert_kind_of Hash, last.body

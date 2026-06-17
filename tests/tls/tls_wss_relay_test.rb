@@ -40,7 +40,11 @@ class TlsWssRelayTest < Minitest::Test
 
   def teardown
     if @handle
-      @handle[:client].stop rescue nil
+      begin
+        @handle[:client].stop
+      rescue StandardError
+        nil
+      end
       @handle[:run_thread]&.kill
       @handle[:run_thread]&.join(2)
     end
@@ -57,7 +61,7 @@ class TlsWssRelayTest < Minitest::Test
       ENV['SSL_CERT_FILE'] = ca_file
       ENV['SIGNALWIRE_RELAY_SSL_CA_FILE'] = ca_file
     else
-      ENV['SSL_CERT_FILE'] = File::NULL           # empty default store
+      ENV['SSL_CERT_FILE'] = File::NULL # empty default store
       ENV.delete('SIGNALWIRE_RELAY_SSL_CA_FILE')
     end
     ENV['SIGNALWIRE_RELAY_SCHEME'] = 'wss'
@@ -65,12 +69,12 @@ class TlsWssRelayTest < Minitest::Test
 
     client = SignalWire::Relay::Client.new(
       project: 'test_proj', token: 'test_tok',
-      space: "127.0.0.1:#{@mock[:ws_port]}", contexts: ['default'],
+      space: "127.0.0.1:#{@mock[:ws_port]}", contexts: ['default']
     )
     run_thread = Thread.new do
       client.run
     rescue StandardError => e
-      $stderr.puts "[tls_wss] client.run raised: #{e.class}: #{e.message}"
+      warn "[tls_wss] client.run raised: #{e.class}: #{e.message}"
     end
     deadline = Time.now + 12
     sleep 0.05 until (client.protocol && !client.protocol.empty?) || Time.now > deadline

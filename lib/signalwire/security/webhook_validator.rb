@@ -200,7 +200,7 @@ module SignalWire
         # Stable sort by key — preserves original order within repeated keys.
         items = items.each_with_index.sort_by { |(k, _v), idx| [k, idx] }.map(&:first)
 
-        items.map { |k, v| "#{k}#{v.nil? ? '' : v}" }.join
+        items.map { |k, v| "#{k}#{v unless v.nil?}" }.join
       end
 
       # @api private
@@ -268,7 +268,7 @@ module SignalWire
         # Look for ``:NNN`` between the host and the path / query / end.
         # Avoid false positives in ``://``, userinfo, IPv6 brackets, etc.
         no_scheme = url.sub(%r{\A[^:]+://}, '')
-        no_userinfo = no_scheme.sub(/\A[^@\/?#]*@/, '')
+        no_userinfo = no_scheme.sub(%r{\A[^@/?#]*@}, '')
         # Strip IPv6 zone if any: "[..]" then look after ]
         if no_userinfo.start_with?('[')
           after_bracket = no_userinfo.sub(/\A\[[^\]]*\]/, '')

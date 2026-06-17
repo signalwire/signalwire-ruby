@@ -5,7 +5,6 @@
 # Licensed under the MIT License.
 # See LICENSE file in the project root for full license information.
 
-require 'thread'
 require_relative '../logging'
 require_relative 'skill_name'
 
@@ -18,7 +17,7 @@ module SignalWire
     #   skill   = factory.call({ 'timezone' => 'UTC' })
     #
     class SkillRegistry
-      @factories = {}  # skill_name => lambda { |params| SkillBase }
+      @factories = {} # skill_name => lambda { |params| SkillBase }
       @mutex     = Mutex.new
 
       # Per-instance state for the skill-directory parity surface; the
@@ -52,12 +51,9 @@ module SignalWire
       #   directory.
       def add_skill_directory(path)
         @inst_mutex.synchronize do
-          unless File.exist?(path)
-            raise ArgumentError, "Skill directory does not exist: #{path}"
-          end
-          unless File.directory?(path)
-            raise ArgumentError, "Path is not a directory: #{path}"
-          end
+          raise ArgumentError, "Skill directory does not exist: #{path}" unless File.exist?(path)
+          raise ArgumentError, "Path is not a directory: #{path}" unless File.directory?(path)
+
           @external_paths << path unless @external_paths.include?(path)
         end
       end
@@ -137,7 +133,7 @@ module SignalWire
         skill_class = skill_class_or_name
         unless skill_class.respond_to?(:new)
           raise ArgumentError,
-                "register_skill expects a class with .new or a (name, factory) pair"
+                'register_skill expects a class with .new or a (name, factory) pair'
         end
 
         # Pull the skill name from a class-level method or constant.
@@ -238,7 +234,7 @@ module SignalWire
           # Each builtin file calls SkillRegistry.register on require.
           # We just need to require them all.
           builtin_dir = File.join(__dir__, 'builtin')
-          Dir[File.join(builtin_dir, '*.rb')].sort.each { |f| require f }
+          Dir[File.join(builtin_dir, '*.rb')].each { |f| require f }
         end
 
         # Skill names this gem ships as built-ins.
@@ -285,10 +281,10 @@ module SignalWire
         def list_all_skill_sources(external_paths: [])
           builtins = builtin_skill_names
           sources = {
-            'built-in'       => builtins,
+            'built-in' => builtins,
             'external_paths' => [],
-            'entry_points'   => [],
-            'registered'     => []
+            'entry_points' => [],
+            'registered' => []
           }
 
           external_paths.each do |path|
@@ -328,15 +324,11 @@ module SignalWire
               if factory.respond_to?(:call)
                 begin
                   instance = factory.call({})
-                  if instance.respond_to?(:parameter_schema)
-                    entry['parameters'] = instance.parameter_schema || {}
-                  end
+                  entry['parameters'] = instance.parameter_schema || {} if instance.respond_to?(:parameter_schema)
                   if instance.class.respond_to?(:skill_description)
                     entry['description'] = instance.class.skill_description
                   end
-                  if instance.class.respond_to?(:skill_version)
-                    entry['version'] = instance.class.skill_version
-                  end
+                  entry['version'] = instance.class.skill_version if instance.class.respond_to?(:skill_version)
                 rescue StandardError
                   # If we can't instantiate without params, fall back to
                   # the minimal entry.

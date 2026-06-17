@@ -19,6 +19,6 @@ module SignalWire
     end
 
     # Idiomatic Ruby `?`-predicate alias of is_serverless_mode.
-    alias_method :serverless?, :is_serverless_mode
+    alias serverless? is_serverless_mode
   end
 end

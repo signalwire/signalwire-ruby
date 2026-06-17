@@ -53,14 +53,10 @@ module SignalWire
       def self._from_array(data)
         pom = new
         data = [] if data.nil?
-        unless data.is_a?(Array)
-          raise ArgumentError, "POM root must be an Array, got #{data.class.name}"
-        end
+        raise ArgumentError, "POM root must be an Array, got #{data.class.name}" unless data.is_a?(Array)
 
         data.each_with_index do |sec, idx|
-          if idx.positive? && !sec.key?('title')
-            sec['title'] = 'Untitled Section'
-          end
+          sec['title'] = 'Untitled Section' if idx.positive? && !sec.key?('title')
           pom.sections << _build_section(sec)
         end
         pom
@@ -69,9 +65,7 @@ module SignalWire
       # Internal: build a Section (recursively) from a Hash section
       # descriptor. Mirrors Python's ``build_section`` inner helper.
       def self._build_section(hash, is_subsection: false)
-        unless hash.is_a?(Hash)
-          raise ArgumentError, 'Each section must be a Hash.'
-        end
+        raise ArgumentError, 'Each section must be a Hash.' unless hash.is_a?(Hash)
 
         if hash.key?('title') && !hash['title'].is_a?(String)
           raise ArgumentError, "'title' must be a string if present."
@@ -97,9 +91,7 @@ module SignalWire
                 'All sections must have either a non-empty body, non-empty bullets, or subsections'
         end
 
-        if is_subsection && !hash.key?('title')
-          raise ArgumentError, 'All subsections must have a title'
-        end
+        raise ArgumentError, 'All subsections must have a title' if is_subsection && !hash.key?('title')
 
         kwargs = {
           body: hash.fetch('body', ''),
@@ -124,9 +116,7 @@ module SignalWire
       # already has at least one section (only the first section may
       # be untitled).
       def add_section(title = nil, body: '', bullets: nil, numbered: nil, numbered_bullets: false)
-        if title.nil? && !@sections.empty?
-          raise ArgumentError, 'Only the first section can have no title'
-        end
+        raise ArgumentError, 'Only the first section can have no title' if title.nil? && !@sections.empty?
 
         bullets_list = bullets.is_a?(String) ? [bullets] : (bullets || [])
 
@@ -195,7 +185,9 @@ module SignalWire
         md = []
         section_counter = 0
         @sections.each_with_index do |section, idx|
-          if !section.title.nil?
+          if section.title.nil?
+            section_number = []
+          else
             section_counter += 1
             section_number =
               if any_section_numbered && section.numbered != false
@@ -203,13 +195,9 @@ module SignalWire
               else
                 []
               end
-          else
-            section_number = []
           end
 
-          if @debug
-            warn "Rendering section #{idx}: #{section.title} with section_number=#{section_number.inspect}"
-          end
+          warn "Rendering section #{idx}: #{section.title} with section_number=#{section_number.inspect}" if @debug
 
           md << section.render_markdown(section_number: section_number)
         end
@@ -225,7 +213,9 @@ module SignalWire
 
         section_counter = 0
         @sections.each do |section|
-          if !section.title.nil?
+          if section.title.nil?
+            section_number = []
+          else
             section_counter += 1
             section_number =
               if any_section_numbered && section.numbered != false
@@ -233,8 +223,6 @@ module SignalWire
               else
                 []
               end
-          else
-            section_number = []
           end
 
           xml << section.render_xml(indent: 1, section_number: section_number)

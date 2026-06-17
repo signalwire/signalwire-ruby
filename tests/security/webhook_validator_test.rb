@@ -29,10 +29,10 @@ module SecurityTests
 
   VECTOR_B_PARAMS = {
     'CallSid' => 'CA1234567890ABCDE',
-    'Caller'  => '+14158675309',
-    'Digits'  => '1234',
-    'From'    => '+14158675309',
-    'To'      => '+18005551212'
+    'Caller' => '+14158675309',
+    'Digits' => '1234',
+    'From' => '+14158675309',
+    'To' => '+18005551212'
   }.freeze
 
   VECTOR_B = {
@@ -87,6 +87,7 @@ class WebhookValidatorSchemeATest < Minitest::Test
   def test_negative_tampered_body
     # Vector A: same key/url, body changed → returns false.
     tampered = VECTOR_A[:raw_body].sub('answered', 'ringing')
+
     assert_equal false,
                  WV.validate_webhook_signature(
                    VECTOR_A[:signing_key],
@@ -131,6 +132,7 @@ class WebhookValidatorSchemeBTest < Minitest::Test
   def test_positive_canonical_form_vector
     # Vector B: form params via raw body → matches the canonical Twilio digest.
     body = SecurityTests.form_encoded(VECTOR_B[:params])
+
     assert_equal true,
                  WV.validate_webhook_signature(
                    VECTOR_B[:signing_key],
@@ -154,6 +156,7 @@ class WebhookValidatorSchemeBTest < Minitest::Test
   def test_positive_via_validate_request_array_of_pairs
     # validate_request also accepts pre-parsed [key, value] pairs.
     pairs = VECTOR_B[:params].to_a
+
     assert_equal true,
                  WV.validate_request(
                    VECTOR_B[:signing_key],
@@ -178,6 +181,7 @@ class WebhookValidatorSchemeBTest < Minitest::Test
     # If URL's bodySHA256 doesn't match sha256(raw_body), reject — even
     # though the HMAC-over-URL+empty would otherwise match.
     wrong_body = '{"event":"DIFFERENT"}'
+
     assert_equal false,
                  WV.validate_webhook_signature(
                    VECTOR_C[:signing_key],
@@ -212,6 +216,7 @@ class WebhookValidatorPortNormalizationTest < Minitest::Test
     url_with_port    = 'https://example.com:443/webhook'
     url_without_port = 'https://example.com/webhook'
     sig = SecurityTests.b64_sig(key, url_without_port)
+
     assert_equal true,
                  WV.validate_webhook_signature(key, sig, url_with_port, '{}')
   end
@@ -222,6 +227,7 @@ class WebhookValidatorPortNormalizationTest < Minitest::Test
     url_with_port    = 'http://example.com:80/path'
     url_without_port = 'http://example.com/path'
     sig = SecurityTests.b64_sig(key, url_with_port)
+
     assert_equal true,
                  WV.validate_webhook_signature(key, sig, url_without_port, '')
   end
@@ -232,6 +238,7 @@ class WebhookValidatorPortNormalizationTest < Minitest::Test
     key = 'test-key'
     url_8080 = 'https://example.com:8080/webhook'
     sig = SecurityTests.b64_sig(key, 'https://example.com/webhook') # signed without port
+
     assert_equal false,
                  WV.validate_webhook_signature(key, sig, url_8080, '{}')
   end
@@ -251,6 +258,7 @@ class WebhookValidatorRepeatedKeysTest < Minitest::Test
     body = 'To=a&To=b'
     expected_data = url + 'ToaTob'
     sig = Base64.strict_encode64(OpenSSL::HMAC.digest('SHA1', key, expected_data))
+
     assert_equal true, WV.validate_webhook_signature(key, sig, url, body)
   end
 
@@ -317,8 +325,10 @@ class WebhookValidatorErrorModesTest < Minitest::Test
   end
 
   def test_malformed_signature_returns_false_without_throwing
-    # Garbage signature string → false, no exception.
-    %w[xyz !!!! aaaaaaaaaaaaaaaaaaaaa %%notbase64%%].each do |garbage|
+    # Garbage signature string → false, no exception. (Explicit array, not %w[],
+    # because the deliberately-malformed "%%notbase64%%" reads as a nested
+    # percent literal inside %w[].)
+    ['xyz', '!!!!', 'aaaaaaaaaaaaaaaaaaaaa', '%%notbase64%%'].each do |garbage|
       assert_equal false,
                    WV.validate_webhook_signature(
                      VECTOR_A[:signing_key],
@@ -388,6 +398,7 @@ class WebhookValidatorConstantTimeCompareTest < Minitest::Test
     src = File.read(
       File.expand_path('../../lib/signalwire/security/webhook_validator.rb', __dir__)
     )
+
     assert_includes src, 'Rack::Utils.secure_compare',
                     'webhook_validator must use Rack::Utils.secure_compare for signature compare'
     # And it must NOT use plain == on the expected/actual digest.

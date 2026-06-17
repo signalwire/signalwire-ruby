@@ -11,7 +11,6 @@
 
 require 'minitest/autorun'
 require 'json'
-require 'set'
 require_relative '../../lib/signalwire/relay/constants'
 require_relative '../../lib/signalwire/relay/relay_event'
 
@@ -23,12 +22,12 @@ class RelayEventIdiomTest < Minitest::Test
     {
       'event_type' => 'calling.call.state',
       'params' => {
-        'call_id'    => call_id,
-        'timestamp'  => 100.5,
+        'call_id' => call_id,
+        'timestamp' => 100.5,
         'call_state' => 'answered',
-        'direction'  => 'inbound',
+        'direction' => 'inbound',
         'end_reason' => '',
-        'device'     => { 'type' => 'phone', 'params' => { 'number' => '+15551112222' } }
+        'device' => { 'type' => 'phone', 'params' => { 'number' => '+15551112222' } }
       }
     }
   end
@@ -114,7 +113,7 @@ class RelayEventIdiomTest < Minitest::Test
 
     assert_equal 'calling.call.state', h[:event_type]
     assert_equal 'abc-123', h[:call_id]
-    assert_equal 100.5, h[:timestamp]
+    assert_in_delta(100.5, h[:timestamp])
     assert_equal 'answered', h[:call_state]
     assert_equal 'inbound', h[:direction]
     assert_equal({ 'type' => 'phone', 'params' => { 'number' => '+15551112222' } }, h[:device])
@@ -122,6 +121,7 @@ class RelayEventIdiomTest < Minitest::Test
 
   def test_to_h_omits_raw_params_frame
     h = R.parse_event(state_payload).to_h
+
     refute h.key?(:params), 'to_h is the typed projection, not the raw wire frame'
   end
 
@@ -147,7 +147,7 @@ class RelayEventIdiomTest < Minitest::Test
     h = event.to_h
 
     assert_equal 'https://example.com/rec.mp3', h[:url]
-    assert_equal 30.5, h[:duration]
+    assert_in_delta(30.5, h[:duration])
     assert_equal 102_400, h[:size]
   end
 
@@ -188,8 +188,8 @@ class RelayEventIdiomTest < Minitest::Test
     set = Set.new([e1, e2, e3])
 
     assert_equal 2, set.size, 'value-equal events must dedupe; the distinct one stays'
-    assert set.include?(e1)
-    assert set.include?(e3)
+    assert_includes set, e1
+    assert_includes set, e3
   end
 
   def test_event_usable_as_hash_key_via_value_equality

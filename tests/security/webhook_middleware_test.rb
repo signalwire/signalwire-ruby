@@ -46,7 +46,7 @@ class WebhookMiddlewareTest < Minitest::Test
       ->(env) { captures.send(:inner_app).call(env) },
       signing_key: SIGNING_KEY,
       trust_proxy: true,
-      paths: nil,        # apply to every path
+      paths: nil, # apply to every path
       methods: ['POST']
     )
   end
@@ -71,7 +71,8 @@ class WebhookMiddlewareTest < Minitest::Test
 
     post '/webhook', body
 
-    assert_equal 200, last_response.status, "valid sig must pass through, got #{last_response.status}: #{last_response.body}"
+    assert_equal 200, last_response.status,
+                 "valid sig must pass through, got #{last_response.status}: #{last_response.body}"
     assert_equal 1, @app_calls.length, 'app must be called exactly once'
     # Raw body must be exposed to the downstream handler unchanged.
     assert_equal body, @raw_body_seen, 'middleware must stash the raw body on env for downstream readers'
@@ -179,10 +180,10 @@ class WebhookMiddlewareTest < Minitest::Test
     # Scheme B canonical Twilio vector via the middleware.
     params = {
       'CallSid' => 'CA1234567890ABCDE',
-      'Caller'  => '+14158675309',
-      'Digits'  => '1234',
-      'From'    => '+14158675309',
-      'To'      => '+18005551212'
+      'Caller' => '+14158675309',
+      'Digits' => '1234',
+      'From' => '+14158675309',
+      'To' => '+18005551212'
     }
     body = params.map { |k, v| "#{CGI.escape(k)}=#{CGI.escape(v)}" }.join('&')
     sig  = 'RSOYDt4T1cUTdK1PDd93/VVr8B8='
@@ -197,9 +198,9 @@ class WebhookMiddlewareTest < Minitest::Test
     response = Rack::MockRequest.new(middleware).post(
       '/myapp.php?foo=1&bar=2',
       input: body,
-      'CONTENT_TYPE'              => 'application/x-www-form-urlencoded',
-      'HTTP_X_FORWARDED_PROTO'    => 'https',
-      'HTTP_X_FORWARDED_HOST'     => 'mycompany.com',
+      'CONTENT_TYPE' => 'application/x-www-form-urlencoded',
+      'HTTP_X_FORWARDED_PROTO' => 'https',
+      'HTTP_X_FORWARDED_HOST' => 'mycompany.com',
       'HTTP_X_SIGNALWIRE_SIGNATURE' => sig
     )
 
@@ -230,8 +231,8 @@ class WebhookMiddlewareTest < Minitest::Test
     response = Rack::MockRequest.new(middleware).post(
       '/webhook',
       input: body,
-      'HTTP_X_FORWARDED_PROTO'      => 'https',
-      'HTTP_X_FORWARDED_HOST'       => 'example.org',
+      'HTTP_X_FORWARDED_PROTO' => 'https',
+      'HTTP_X_FORWARDED_HOST' => 'example.org',
       'HTTP_X_SIGNALWIRE_SIGNATURE' => sig
     )
 

@@ -32,25 +32,25 @@ class RelayInboundCallMockTest < Minitest::Test
   def state_push_frame(call_id, call_state, tag: '', direction: 'inbound')
     {
       'jsonrpc' => '2.0',
-      'id'      => SecureRandom.uuid,
-      'method'  => 'signalwire.event',
-      'params'  => {
+      'id' => SecureRandom.uuid,
+      'method' => 'signalwire.event',
+      'params' => {
         'event_type' => 'calling.call.state',
-        'params'     => {
-          'call_id'    => call_id,
-          'node_id'    => 'mock-relay-node-1',
-          'tag'        => tag,
+        'params' => {
+          'call_id' => call_id,
+          'node_id' => 'mock-relay-node-1',
+          'tag' => tag,
           'call_state' => call_state,
-          'direction'  => direction,
-          'device'     => {
-            'type'   => 'phone',
+          'direction' => direction,
+          'device' => {
+            'type' => 'phone',
             'params' => {
               'from_number' => '+15551110000',
-              'to_number'   => '+15552220000',
-            },
-          },
-        },
-      },
+              'to_number' => '+15552220000'
+            }
+          }
+        }
+      }
     }
   end
 
@@ -63,6 +63,7 @@ class RelayInboundCallMockTest < Minitest::Test
     end
     RelayMockTest.journal.inbound_call(call_id: 'c-handler', auto_states: ['created'])
     call = Timeout.timeout(5) { seen_q.pop }
+
     assert_kind_of SignalWire::Relay::Call, call
     assert_equal 'c-handler', call.call_id
   end
@@ -74,6 +75,7 @@ class RelayInboundCallMockTest < Minitest::Test
     end
     RelayMockTest.journal.inbound_call(call_id: 'c-dir', auto_states: ['created'])
     cid, dir = Timeout.timeout(5) { seen_q.pop }
+
     assert_equal 'c-dir',   cid
     assert_equal 'inbound', dir
   end
@@ -84,13 +86,14 @@ class RelayInboundCallMockTest < Minitest::Test
       seen_q.push(call.device)
     end
     RelayMockTest.journal.inbound_call(
-      call_id:     'c-from-to',
+      call_id: 'c-from-to',
       from_number: '+15551112233',
-      to_number:   '+15554445566',
-      auto_states: ['created'],
+      to_number: '+15554445566',
+      auto_states: ['created']
     )
     device = Timeout.timeout(5) { seen_q.pop }
     p = device['params'] || {}
+
     assert_equal '+15551112233', p['from_number']
     assert_equal '+15554445566', p['to_number']
   end
@@ -101,6 +104,7 @@ class RelayInboundCallMockTest < Minitest::Test
       seen_q.push(call.state)
     end
     RelayMockTest.journal.inbound_call(call_id: 'c-state', auto_states: ['created'])
+
     assert_equal 'created', Timeout.timeout(5) { seen_q.pop }
   end
 
@@ -116,6 +120,7 @@ class RelayInboundCallMockTest < Minitest::Test
     Timeout.timeout(5) { answered.pop }
     sleep 0.1
     answers = RelayMockTest.journal.journal_recv(method: 'calling.answer')
+
     refute_empty answers, 'no calling.answer frame in journal'
     assert_equal 'c-ans', answers.last.frame['params']['call_id']
   end
@@ -134,9 +139,8 @@ class RelayInboundCallMockTest < Minitest::Test
 
     RelayMockTest.journal.push(state_push_frame('c-ans-state', 'answered'))
     deadline = Time.now + 5
-    until call.state == 'answered' || Time.now > deadline
-      sleep 0.02
-    end
+    sleep 0.02 until call.state == 'answered' || Time.now > deadline
+
     assert_equal 'answered', call.state
   end
 
@@ -152,8 +156,10 @@ class RelayInboundCallMockTest < Minitest::Test
     Timeout.timeout(5) { hung_q.pop }
     sleep 0.1
     ends = RelayMockTest.journal.journal_recv(method: 'calling.end')
+
     refute_empty ends, 'no calling.end frame in journal'
     p = ends.last.frame['params']
+
     assert_equal 'c-hangup', p['call_id']
     assert_equal 'busy',     p['reason']
   end
@@ -168,6 +174,7 @@ class RelayInboundCallMockTest < Minitest::Test
     Timeout.timeout(5) { passed_q.pop }
     sleep 0.1
     passes = RelayMockTest.journal.journal_recv(method: 'calling.pass')
+
     refute_empty passes, 'no calling.pass frame in journal'
     assert_equal 'c-pass', passes.last.frame['params']['call_id']
   end
@@ -186,8 +193,9 @@ class RelayInboundCallMockTest < Minitest::Test
     a = Timeout.timeout(5) { seen_q.pop }
     b = Timeout.timeout(5) { seen_q.pop }
     ids = [a.call_id, b.call_id].sort
-    assert_equal ['c-seq-1', 'c-seq-2'], ids
-    refute_equal a.object_id, b.object_id
+
+    assert_equal %w[c-seq-1 c-seq-2], ids
+    refute_same a, b
   end
 
   def test_multiple_inbound_calls_no_state_bleed
@@ -219,6 +227,7 @@ class RelayInboundCallMockTest < Minitest::Test
 
       sleep 0.02
     end
+
     assert_equal 'answered', cb1.state
     refute_equal 'answered', cb2.state
   end
@@ -240,9 +249,8 @@ class RelayInboundCallMockTest < Minitest::Test
     RelayMockTest.journal.push(state_push_frame('c-scripted', 'answered'))
     RelayMockTest.journal.push(state_push_frame('c-scripted', 'ended'))
     deadline = Time.now + 5
-    until call.state == 'ended' || Time.now > deadline
-      sleep 0.02
-    end
+    sleep 0.02 until call.state == 'ended' || Time.now > deadline
+
     assert_equal 'ended', call.state
   end
 
@@ -256,6 +264,7 @@ class RelayInboundCallMockTest < Minitest::Test
     end
     RelayMockTest.journal.inbound_call(call_id: 'c-async', auto_states: ['created'])
     cid = Timeout.timeout(5) { seen_q.pop }
+
     assert_equal 'c-async', cid
   end
 
@@ -272,7 +281,8 @@ class RelayInboundCallMockTest < Minitest::Test
     RelayMockTest.journal.inbound_call(call_id: 'c-raise-2', auto_states: ['created'])
     sleep 0.2
     sessions = RelayMockTest.journal.sessions
-    assert sessions.any?, 'WebSocket session should still be open after handler raise'
+
+    assert_predicate sessions, :any?, 'WebSocket session should still be open after handler raise'
   end
 
   # ---- scenario_play -- full inbound flow ------------------------------
@@ -291,44 +301,44 @@ class RelayInboundCallMockTest < Minitest::Test
         'push' => {
           'frame' => {
             'jsonrpc' => '2.0',
-            'id'      => SecureRandom.uuid,
-            'method'  => 'signalwire.event',
-            'params'  => {
+            'id' => SecureRandom.uuid,
+            'method' => 'signalwire.event',
+            'params' => {
               'event_type' => 'calling.call.receive',
-              'params'     => {
-                'call_id'    => 'c-scen',
-                'node_id'    => 'mock-relay-node-1',
-                'tag'        => '',
+              'params' => {
+                'call_id' => 'c-scen',
+                'node_id' => 'mock-relay-node-1',
+                'tag' => '',
                 'call_state' => 'created',
-                'direction'  => 'inbound',
-                'device'     => {
-                  'type'   => 'phone',
+                'direction' => 'inbound',
+                'device' => {
+                  'type' => 'phone',
                   'params' => {
                     'from_number' => '+15551110000',
-                    'to_number'   => '+15552220000',
-                  },
+                    'to_number' => '+15552220000'
+                  }
                 },
-                'context'    => 'default',
-              },
-            },
-          },
-        },
+                'context' => 'default'
+              }
+            }
+          }
+        }
       },
       { 'expect_recv' => { 'method' => 'calling.answer', 'timeout_ms' => 5000 } },
       { 'push'        => { 'frame' => state_push_frame('c-scen', 'answered') } },
       { 'sleep_ms'    => 50 },
-      { 'push'        => { 'frame' => state_push_frame('c-scen', 'ended') } },
+      { 'push'        => { 'frame' => state_push_frame('c-scen', 'ended') } }
     ]
     result = RelayMockTest.journal.scenario_play(timeline)
+
     assert_equal 'completed', result['status'],
                  "scenario didn't complete: #{result.inspect}"
 
     Timeout.timeout(5) { handler_started.pop }
     call = Timeout.timeout(5) { captured_q.pop }
     deadline = Time.now + 5
-    until call.state == 'ended' || Time.now > deadline
-      sleep 0.02
-    end
+    sleep 0.02 until call.state == 'ended' || Time.now > deadline
+
     assert_equal 'ended', call.state
   end
 
@@ -343,8 +353,10 @@ class RelayInboundCallMockTest < Minitest::Test
     Timeout.timeout(5) { handler_done.pop }
 
     sends = RelayMockTest.journal.journal_send(event_type: 'calling.call.receive')
+
     refute_empty sends, 'no calling.call.receive frame in journal'
     inner = sends.last.frame['params']['params']
+
     assert_equal 'c-wire',  inner['call_id']
     assert_equal 'inbound', inner['direction']
   end
@@ -356,10 +368,11 @@ class RelayInboundCallMockTest < Minitest::Test
     h = RelayMockTest.client
     begin
       RelayMockTest.journal.inbound_call(call_id: 'c-nohandler',
-                                    auto_states: ['created'])
+                                         auto_states: ['created'])
       sleep 0.3
       sessions = RelayMockTest.journal.sessions
-      assert sessions.any?, 'session should still be open without handler'
+
+      assert_predicate sessions, :any?, 'session should still be open without handler'
     ensure
       RelayMockTest.shutdown_client(h)
     end

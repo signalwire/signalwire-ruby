@@ -40,7 +40,15 @@ module SignalWire
       end
 
       def prompt_sections
-        amenity_bullets = @amenities.map { |k, v| "#{k}: #{v.is_a?(Hash) ? v.map { |a, b| "#{a}: #{b}" }.join(', ') : v}" }
+        amenity_bullets = @amenities.map do |k, v|
+          "#{k}: #{if v.is_a?(Hash)
+                     v.map do |a, b|
+                       "#{a}: #{b}"
+                     end.join(', ')
+                   else
+                     v
+                   end}"
+        end
         service_bullets = @services.map { |s| s.to_s }
 
         sections = [
@@ -64,8 +72,8 @@ module SignalWire
       def global_data
         {
           'venue_name' => @venue_name,
-          'services'   => @services,
-          'amenities'  => @amenities
+          'services' => @services,
+          'amenities' => @amenities
         }
       end
 

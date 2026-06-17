@@ -10,8 +10,8 @@ module SignalWire
     # For outbound messages, use message.wait to block until a terminal state
     # (delivered, undelivered, failed) is reached.
     class Message
-      attr_reader :message_id, :context, :direction, :from_number, :to_number,
-                  :body, :media, :segments, :tags, :reason
+      attr_reader :message_id, :context, :direction, :from_number, :to_number, :body, :media, :segments, :tags,
+                  :reason, :result
       attr_accessor :state
 
       def initialize(message_id: '', context: '', direction: '', from_number: '',
@@ -57,7 +57,7 @@ module SignalWire
         @done
       end
 
-      alias_method :is_done?, :done?
+      alias is_done? done?
 
       # Typed predicate over {#state}, alongside the bare string. Agrees with
       # {MessageState.terminal?} — true once the message has reached a final
@@ -69,10 +69,6 @@ module SignalWire
         MessageState.terminal?(@state)
       end
 
-      def result
-        @result
-      end
-
       # Wait for the message to reach a terminal state.
       # Raises ActionTimeoutError if timeout exceeded.
       def wait(timeout: nil)
@@ -81,11 +77,10 @@ module SignalWire
 
           if timeout
             deadline = Time.now + timeout
-            while !@done
+            until @done
               remaining = deadline - Time.now
-              if remaining <= 0
-                raise ActionTimeoutError, "Message #{@message_id} timed out after #{timeout}s"
-              end
+              raise ActionTimeoutError, "Message #{@message_id} timed out after #{timeout}s" if remaining <= 0
+
               @condition.wait(@mutex, remaining)
             end
           else
@@ -107,11 +102,9 @@ module SignalWire
 
         # Notify listeners
         @listeners.each do |handler|
-          begin
-            handler.call(event)
-          rescue => e
-            $stderr.puts "[RELAY] Error in message event handler for #{@message_id}: #{e.message}"
-          end
+          handler.call(event)
+        rescue StandardError => e
+          warn "[RELAY] Error in message event handler for #{@message_id}: #{e.message}"
         end
 
         # Check terminal state
@@ -132,23 +125,23 @@ module SignalWire
       # idiomatic for Ruby. @return [Hash{Symbol => Object}]
       def to_h
         {
-          message_id:  @message_id,
-          context:     @context,
-          direction:   @direction,
+          message_id: @message_id,
+          context: @context,
+          direction: @direction,
           from_number: @from_number,
-          to_number:   @to_number,
-          body:        @body,
-          media:       @media,
-          segments:    @segments,
-          state:       @state,
-          reason:      @reason,
-          tags:        @tags
+          to_number: @to_number,
+          body: @body,
+          media: @media,
+          segments: @segments,
+          state: @state,
+          reason: @reason,
+          tags: @tags
         }
       end
 
       # @return [String] JSON serialization of {#to_h}.
-      def to_json(*args)
-        to_h.to_json(*args)
+      def to_json(*)
+        to_h.to_json(*)
       end
 
       # Ruby 3.0 pattern matching: +case msg; in { direction:, body: }+.
@@ -190,12 +183,12 @@ module SignalWire
           @done   = true
           @condition.broadcast
         end
-        if @on_completed
-          begin
-            @on_completed.call(event)
-          rescue => e
-            $stderr.puts "[RELAY] Error in on_completed callback for message #{@message_id}: #{e.message}"
-          end
+        return unless @on_completed
+
+        begin
+          @on_completed.call(event)
+        rescue StandardError => e
+          warn "[RELAY] Error in on_completed callback for message #{@message_id}: #{e.message}"
         end
       end
     end

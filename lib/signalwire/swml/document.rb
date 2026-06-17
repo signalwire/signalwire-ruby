@@ -48,9 +48,7 @@ module SignalWire
       def add_verb_to_section(section, verb_name, config)
         section = section.to_s
         @mutex.synchronize do
-          unless @sections.key?(section)
-            raise ArgumentError, "Section '#{section}' does not exist"
-          end
+          raise ArgumentError, "Section '#{section}' does not exist" unless @sections.key?(section)
 
           @sections[section] << { verb_name.to_s => config }
           true

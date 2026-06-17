@@ -2,7 +2,6 @@
 
 require 'minitest/autorun'
 require 'json'
-require 'set'
 require_relative '../../lib/signalwire/relay/constants'
 require_relative '../../lib/signalwire/relay/relay_event'
 require_relative '../../lib/signalwire/relay/message'
@@ -14,11 +13,12 @@ class RelayMessageDetailedTest < Minitest::Test
       from_number: '+15551111111', to_number: '+15552222222',
       body: 'Hello', state: 'queued'
     )
+
     assert_equal 'msg-1', msg.message_id
     assert_equal 'outbound', msg.direction
     assert_equal 'Hello', msg.body
     assert_equal 'queued', msg.state
-    refute msg.done?
+    refute_predicate msg, :done?
   end
 
   def test_message_state_dispatch
@@ -29,16 +29,18 @@ class RelayMessageDetailedTest < Minitest::Test
       'params' => { 'message_id' => 'msg-2', 'message_state' => 'sent' }
     }
     msg._dispatch_event(payload)
+
     assert_equal 'sent', msg.state
-    refute msg.done?
+    refute_predicate msg, :done?
 
     payload = {
       'event_type' => 'messaging.state',
       'params' => { 'message_id' => 'msg-2', 'message_state' => 'delivered' }
     }
     msg._dispatch_event(payload)
+
     assert_equal 'delivered', msg.state
-    assert msg.done?
+    assert_predicate msg, :done?
   end
 
   def test_message_on_completed
@@ -51,6 +53,7 @@ class RelayMessageDetailedTest < Minitest::Test
       'params' => { 'message_id' => 'msg-4', 'message_state' => 'failed', 'reason' => 'carrier error' }
     }
     msg._dispatch_event(payload)
+
     assert callback_fired
     assert_equal 'carrier error', msg.reason
   end
@@ -61,6 +64,7 @@ class RelayMessageDetailedTest < Minitest::Test
       from_number: '+15551111111', to_number: '+15552222222'
     )
     str = msg.to_s
+
     assert_match(/msg-6/, str)
     assert_match(/outbound/, str)
   end
@@ -76,7 +80,8 @@ class RelayMessageDetailedTest < Minitest::Test
       msg._dispatch_event(payload)
     end
     result = msg.wait(timeout: 2)
-    assert msg.done?
+
+    assert_predicate msg, :done?
     assert_kind_of SignalWire::Relay::RelayEvent, result
   end
 
@@ -119,7 +124,7 @@ class RelayMessageDetailedTest < Minitest::Test
         [id, direction, state]
       end
 
-    assert_equal ['msg-arr', 'outbound', 'sent'], destructured
+    assert_equal %w[msg-arr outbound sent], destructured
   end
 
   def test_message_to_h_excludes_completion_machinery
@@ -160,9 +165,11 @@ class RelayMessageDetailedTest < Minitest::Test
     m3 = sample_message(message_id: 'distinct')
 
     set = Set.new([m1, m2, m3])
+
     assert_equal 2, set.size
 
     table = { m1 => 'delivered' }
+
     assert_equal 'delivered', table[m2]
   end
 end

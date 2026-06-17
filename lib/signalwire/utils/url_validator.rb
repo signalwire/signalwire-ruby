@@ -74,13 +74,9 @@ module SignalWire
         end
 
         # URI keeps brackets in host for IPv6 literals; strip them.
-        if hostname.start_with?('[') && hostname.end_with?(']')
-          hostname = hostname[1..-2]
-        end
+        hostname = hostname[1..-2] if hostname.start_with?('[') && hostname.end_with?(']')
 
-        if allow_private || _env_allows_private?
-          return true
-        end
+        return true if allow_private || _env_allows_private?
 
         ips = _resolve(hostname)
         if ips.nil? || ips.empty?
@@ -118,9 +114,8 @@ module SignalWire
       # @param hostname [String]
       # @return [Array<String>, nil]
       def self._resolve(hostname)
-        if _resolver
-          return _resolver.call(hostname)
-        end
+        return _resolver.call(hostname) if _resolver
+
         # Literal IP shortcut (covers tests that pass IP-as-hostname URLs).
         begin
           IPAddr.new(hostname)

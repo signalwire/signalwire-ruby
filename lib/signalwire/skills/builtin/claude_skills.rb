@@ -8,9 +8,9 @@ module SignalWire
     module Builtin
       # Loads Claude SKILL.md files as agent tools.
       class ClaudeSkillsSkill < SkillBase
-        def name;        'claude_skills'; end
-        def description; 'Load Claude SKILL.md files as agent tools'; end
-        def supports_multiple_instances?; true; end
+        def name = 'claude_skills'
+        def description = 'Load Claude SKILL.md files as agent tools'
+        def supports_multiple_instances? = true
 
         def setup
           @skills_path  = get_param('skills_path')
@@ -26,7 +26,7 @@ module SignalWire
           true
         end
 
-        def instance_key; "claude_skills_#{@skills_path}"; end
+        def instance_key = "claude_skills_#{@skills_path}"
 
         def register_tools
           @discovered.map do |skill|
@@ -36,7 +36,7 @@ module SignalWire
               parameters: {
                 'arguments' => { 'type' => 'string', 'description' => 'Arguments for the skill' }
               },
-              handler: lambda { |args, _raw_data|
+              handler: lambda { |_args, _raw_data|
                 Swaig::FunctionResult.new("Skill #{skill[:name]} instructions:\n\n#{skill[:content]}")
               }
             }
@@ -55,11 +55,11 @@ module SignalWire
 
         def get_parameter_schema
           {
-            'skills_path'        => { 'type' => 'string', 'required' => true },
-            'include'            => { 'type' => 'array' },
-            'exclude'            => { 'type' => 'array' },
+            'skills_path' => { 'type' => 'string', 'required' => true },
+            'include' => { 'type' => 'array' },
+            'exclude' => { 'type' => 'array' },
             'skill_descriptions' => { 'type' => 'object' },
-            'tool_prefix'        => { 'type' => 'string', 'default' => 'claude_' }
+            'tool_prefix' => { 'type' => 'string', 'default' => 'claude_' }
           }
         end
 
@@ -79,7 +79,7 @@ module SignalWire
 
             { name: file_name, safe_name: safe_name, content: content, path: path }
           end
-        rescue => _e
+        rescue StandardError => _e
           []
         end
       end

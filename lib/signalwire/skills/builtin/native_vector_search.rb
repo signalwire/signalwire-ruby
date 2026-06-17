@@ -12,25 +12,26 @@ module SignalWire
     module Builtin
       # Network/remote mode only (as per porting manifest).
       class NativeVectorSearchSkill < SkillBase
-        def name;        'native_vector_search'; end
-        def description; 'Search document indexes using vector similarity and keyword search (local or remote)'; end
-        def supports_multiple_instances?; true; end
+        def name = 'native_vector_search'
+        def description = 'Search document indexes using vector similarity and keyword search (local or remote)'
+        def supports_multiple_instances? = true
 
         def setup
           @remote_url  = get_param('remote_url')
           @index_name  = get_param('index_name')
           @tool_name   = get_param('tool_name', default: 'search_knowledge')
           @tool_desc   = get_param('description', default: 'Search the local knowledge base for information')
-          @count       = (get_param('count', default: 3)).to_i
-          @threshold   = (get_param('similarity_threshold', default: 0.5)).to_f
+          @count       = get_param('count', default: 3).to_i
+          @threshold   = get_param('similarity_threshold', default: 0.5).to_f
           @custom_hints = get_param('hints') || []
 
           # Network mode requires remote_url
           return false unless @remote_url && !@remote_url.empty?
+
           true
         end
 
-        def instance_key; "native_vector_search_#{@tool_name}"; end
+        def instance_key = "native_vector_search_#{@tool_name}"
 
         def register_tools
           [
@@ -47,19 +48,19 @@ module SignalWire
         end
 
         def get_hints
-          base = %w[search find look\ up documentation knowledge\ base]
+          base = ['search', 'find', 'look up', 'documentation', 'knowledge base']
           base.concat(@custom_hints) if @custom_hints.is_a?(Array)
           base
         end
 
         def get_parameter_schema
           {
-            'remote_url'           => { 'type' => 'string', 'required' => true },
-            'index_name'           => { 'type' => 'string' },
-            'count'                => { 'type' => 'integer', 'default' => 3 },
+            'remote_url' => { 'type' => 'string', 'required' => true },
+            'index_name' => { 'type' => 'string' },
+            'count' => { 'type' => 'integer', 'default' => 3 },
             'similarity_threshold' => { 'type' => 'number', 'default' => 0.5 },
-            'description'          => { 'type' => 'string' },
-            'hints'                => { 'type' => 'array' }
+            'description' => { 'type' => 'string' },
+            'hints' => { 'type' => 'array' }
           }
         end
 
@@ -92,9 +93,7 @@ module SignalWire
 
             data = JSON.parse(resp.body)
             results = data['results'] || data['chunks'] || []
-            if results.empty?
-              return Swaig::FunctionResult.new("No results found for '#{query}'.")
-            end
+            return Swaig::FunctionResult.new("No results found for '#{query}'.") if results.empty?
 
             formatted = results.first(count).each_with_index.map do |r, i|
               text = r['text'] || r['content'] || r.to_json
@@ -102,7 +101,7 @@ module SignalWire
             end.join("\n\n")
 
             Swaig::FunctionResult.new("Search results for '#{query}':\n\n#{formatted}")
-          rescue => e
+          rescue StandardError => e
             Swaig::FunctionResult.new("Error searching: #{e.message}")
           end
         end

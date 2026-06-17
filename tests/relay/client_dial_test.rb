@@ -31,6 +31,7 @@ class RelayClientDialTest < Minitest::Test
     client = SignalWire::Relay::Client.new(
       project: 'test-project', token: 'test-token', space: 'example.signalwire.com'
     )
+
     assert_equal 'test-project', client.project_id
     assert_nil client.protocol
   end
@@ -39,11 +40,13 @@ class RelayClientDialTest < Minitest::Test
     client = SignalWire::Relay::Client.new(
       project: 'test-project', token: 'test-token', space: 'myspace'
     )
+
     assert_equal 'test-project', client.project_id
   end
 
   def test_relay_error
     err = SignalWire::Relay::RelayError.new(404, 'Not found')
+
     assert_equal 404, err.code
     assert_equal 'Not found', err.error_message
     assert_match(/404/, err.message)

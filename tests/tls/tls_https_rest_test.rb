@@ -42,16 +42,18 @@ class TlsHttpsRestTest < Minitest::Test
   def test_rest_client_gets_over_verified_https
     client = SignalWire::REST::RestClient.new(
       project: 'test_proj', token: 'test_tok',
-      base_url: @base, ca_file: @ca,
+      base_url: @base, ca_file: @ca
     )
 
     body = client.addresses.list(page_size: 5)
+
     assert_kind_of Hash, body
     assert body.key?('data'),
            "verified-HTTPS response missing 'data' key; got keys #{body.keys.inspect}"
     assert_kind_of Array, body['data']
 
     last = TlsHarness.signalwire_last_journal(@base, TlsHarness.trusting_store)
+
     refute_nil last, 'mock journal empty — the HTTPS GET did not reach the mock'
     assert_equal 'GET', last['method']
     assert_equal '/api/relay/rest/addresses', last['path'],
@@ -66,7 +68,7 @@ class TlsHttpsRestTest < Minitest::Test
     http = Net::HTTP.new(uri.hostname, uri.port)
     http.use_ssl = true
     http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-    http.cert_store = TlsHarness.empty_store    # trusts nothing
+    http.cert_store = TlsHarness.empty_store # trusts nothing
     http.open_timeout = 3
     http.read_timeout = 3
 

@@ -25,6 +25,7 @@ class CompatMessagesFaxesMockTest < Minitest::Test
 
   def test_messages_update_returns_message_resource
     result = @client.compat.messages.update('MM_TEST', Body: 'updated body')
+
     assert_kind_of Hash, result
     assert(result.key?('body') || result.key?('sid'),
            "expected body/sid, got #{result.keys.sort.inspect}")
@@ -33,6 +34,7 @@ class CompatMessagesFaxesMockTest < Minitest::Test
   def test_messages_update_journal_records_post_to_message
     @client.compat.messages.update('MM_U1', Body: 'x', Status: 'canceled')
     j = MockTest.journal.last
+
     assert_equal 'POST', j.method
     assert_equal '/api/laml/2010-04-01/Accounts/test_proj/Messages/MM_U1', j.path
     assert_kind_of Hash, j.body
@@ -44,6 +46,7 @@ class CompatMessagesFaxesMockTest < Minitest::Test
 
   def test_messages_get_media_returns_media_resource
     result = @client.compat.messages.get_media('MM_GM', 'ME_GM')
+
     assert_kind_of Hash, result
     assert(result.key?('content_type') || result.key?('sid'),
            "expected content_type/sid, got #{result.keys.sort.inspect}")
@@ -52,6 +55,7 @@ class CompatMessagesFaxesMockTest < Minitest::Test
   def test_messages_get_media_journal_records_get_to_media_path
     @client.compat.messages.get_media('MM_X', 'ME_X')
     j = MockTest.journal.last
+
     assert_equal 'GET', j.method
     assert_equal '/api/laml/2010-04-01/Accounts/test_proj/Messages/MM_X/Media/ME_X', j.path
   end
@@ -68,6 +72,7 @@ class CompatMessagesFaxesMockTest < Minitest::Test
   def test_messages_delete_media_journal_records_delete
     @client.compat.messages.delete_media('MM_D', 'ME_D')
     j = MockTest.journal.last
+
     assert_equal 'DELETE', j.method
     assert_equal '/api/laml/2010-04-01/Accounts/test_proj/Messages/MM_D/Media/ME_D', j.path
   end
@@ -76,6 +81,7 @@ class CompatMessagesFaxesMockTest < Minitest::Test
 
   def test_faxes_update_returns_fax_resource
     result = @client.compat.faxes.update('FX_U', Status: 'canceled')
+
     assert_kind_of Hash, result
     assert(result.key?('status') || result.key?('direction'),
            "expected status/direction, got #{result.keys.sort.inspect}")
@@ -84,6 +90,7 @@ class CompatMessagesFaxesMockTest < Minitest::Test
   def test_faxes_update_journal_records_post_with_status
     @client.compat.faxes.update('FX_U2', Status: 'canceled')
     j = MockTest.journal.last
+
     assert_equal 'POST', j.method
     assert_equal '/api/laml/2010-04-01/Accounts/test_proj/Faxes/FX_U2', j.path
     assert_kind_of Hash, j.body
@@ -94,6 +101,7 @@ class CompatMessagesFaxesMockTest < Minitest::Test
 
   def test_faxes_list_media_returns_paginated_list
     result = @client.compat.faxes.list_media('FX_LM')
+
     assert_kind_of Hash, result
     assert(result.key?('media') || result.key?('fax_media'),
            "expected media/fax_media, got #{result.keys.sort.inspect}")
@@ -102,6 +110,7 @@ class CompatMessagesFaxesMockTest < Minitest::Test
   def test_faxes_list_media_journal_records_get_to_fax_media
     @client.compat.faxes.list_media('FX_LM_X')
     j = MockTest.journal.last
+
     assert_equal 'GET', j.method
     assert_equal '/api/laml/2010-04-01/Accounts/test_proj/Faxes/FX_LM_X/Media', j.path
   end
@@ -110,6 +119,7 @@ class CompatMessagesFaxesMockTest < Minitest::Test
 
   def test_faxes_get_media_returns_fax_media_resource
     result = @client.compat.faxes.get_media('FX_GM', 'ME_GM')
+
     assert_kind_of Hash, result
     assert(result.key?('content_type') || result.key?('sid'),
            "expected content_type/sid, got #{result.keys.sort.inspect}")
@@ -118,6 +128,7 @@ class CompatMessagesFaxesMockTest < Minitest::Test
   def test_faxes_get_media_journal_records_get_to_specific_media
     @client.compat.faxes.get_media('FX_G', 'ME_G')
     j = MockTest.journal.last
+
     assert_equal 'GET', j.method
     assert_equal '/api/laml/2010-04-01/Accounts/test_proj/Faxes/FX_G/Media/ME_G', j.path
   end
@@ -126,12 +137,14 @@ class CompatMessagesFaxesMockTest < Minitest::Test
 
   def test_faxes_delete_media_no_exception
     result = @client.compat.faxes.delete_media('FX_DM', 'ME_DM')
+
     assert_kind_of Hash, result
   end
 
   def test_faxes_delete_media_journal_records_delete
     @client.compat.faxes.delete_media('FX_D', 'ME_D')
     j = MockTest.journal.last
+
     assert_equal 'DELETE', j.method
     assert_equal '/api/laml/2010-04-01/Accounts/test_proj/Faxes/FX_D/Media/ME_D', j.path
   end

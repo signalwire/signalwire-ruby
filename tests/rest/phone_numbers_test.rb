@@ -53,6 +53,7 @@ class RestPhoneNumbersBindingTest < Minitest::Test
 
   def test_update_uses_put
     @phone_numbers.update('pn-1', name: 'Main')
+
     assert_equal 'PUT', @http.last[:method]
     assert_equal "#{BASE}/pn-1", @http.last[:path]
     assert_equal({ name: 'Main' }, @http.last[:body])
@@ -60,6 +61,7 @@ class RestPhoneNumbersBindingTest < Minitest::Test
 
   def test_search_builds_query_path
     @phone_numbers.search(area_code: '512')
+
     assert_equal 'GET', @http.last[:method]
     assert_equal "#{BASE}/search", @http.last[:path]
     assert_equal({ area_code: '512' }, @http.last[:params])
@@ -73,6 +75,7 @@ class RestPhoneNumbersBindingTest < Minitest::Test
       relay_application relay_topic relay_context relay_connector
       video_room dialogflow
     ].freeze
+
     assert_equal expected.sort, SignalWire::REST::PhoneCallHandler::ALL.sort
   end
 
@@ -91,13 +94,14 @@ class RestPhoneNumbersBindingTest < Minitest::Test
   end
 
   def test_phone_call_handler_all_frozen
-    assert SignalWire::REST::PhoneCallHandler::ALL.frozen?
+    assert_predicate SignalWire::REST::PhoneCallHandler::ALL, :frozen?
   end
 
   # --- set_swml_webhook ------------------------------------------------
 
   def test_set_swml_webhook_wire_body
     @phone_numbers.set_swml_webhook('pn-1', url: 'https://example.com/swml')
+
     assert_equal 'PUT', @http.last[:method]
     assert_equal "#{BASE}/pn-1", @http.last[:path]
     assert_equal(
@@ -109,6 +113,7 @@ class RestPhoneNumbersBindingTest < Minitest::Test
   def test_set_swml_webhook_extra_kwargs_pass_through
     @phone_numbers.set_swml_webhook('pn-1', url: 'https://example.com/swml', name: 'Support')
     body = @http.last[:body]
+
     assert_equal 'Support', body[:name]
     assert_equal 'relay_script', body[:call_handler]
     assert_equal 'https://example.com/swml', body[:call_relay_script_url]
@@ -118,6 +123,7 @@ class RestPhoneNumbersBindingTest < Minitest::Test
 
   def test_set_cxml_webhook_minimal
     @phone_numbers.set_cxml_webhook('pn-1', url: 'https://example.com/voice.xml')
+
     assert_equal(
       { call_handler: 'laml_webhooks', call_request_url: 'https://example.com/voice.xml' },
       @http.last[:body]
@@ -131,6 +137,7 @@ class RestPhoneNumbersBindingTest < Minitest::Test
       fallback_url: 'https://example.com/fallback.xml',
       status_callback_url: 'https://example.com/status'
     )
+
     assert_equal(
       {
         call_handler: 'laml_webhooks',
@@ -146,6 +153,7 @@ class RestPhoneNumbersBindingTest < Minitest::Test
 
   def test_set_cxml_application_wire_body
     @phone_numbers.set_cxml_application('pn-1', application_id: 'app-1')
+
     assert_equal(
       { call_handler: 'laml_application', call_laml_application_id: 'app-1' },
       @http.last[:body]
@@ -156,6 +164,7 @@ class RestPhoneNumbersBindingTest < Minitest::Test
 
   def test_set_ai_agent_wire_body
     @phone_numbers.set_ai_agent('pn-1', agent_id: 'agent-1')
+
     assert_equal(
       { call_handler: 'ai_agent', call_ai_agent_id: 'agent-1' },
       @http.last[:body]
@@ -166,6 +175,7 @@ class RestPhoneNumbersBindingTest < Minitest::Test
 
   def test_set_call_flow_minimal
     @phone_numbers.set_call_flow('pn-1', flow_id: 'cf-1')
+
     assert_equal(
       { call_handler: 'call_flow', call_flow_id: 'cf-1' },
       @http.last[:body]
@@ -174,6 +184,7 @@ class RestPhoneNumbersBindingTest < Minitest::Test
 
   def test_set_call_flow_with_version
     @phone_numbers.set_call_flow('pn-1', flow_id: 'cf-1', version: 'current_deployed')
+
     assert_equal(
       {
         call_handler: 'call_flow',
@@ -188,6 +199,7 @@ class RestPhoneNumbersBindingTest < Minitest::Test
 
   def test_set_relay_application_wire_body
     @phone_numbers.set_relay_application('pn-1', name: 'my-app')
+
     assert_equal(
       { call_handler: 'relay_application', call_relay_application: 'my-app' },
       @http.last[:body]
@@ -198,6 +210,7 @@ class RestPhoneNumbersBindingTest < Minitest::Test
 
   def test_set_relay_topic_minimal
     @phone_numbers.set_relay_topic('pn-1', topic: 'office')
+
     assert_equal(
       { call_handler: 'relay_topic', call_relay_topic: 'office' },
       @http.last[:body]
@@ -210,6 +223,7 @@ class RestPhoneNumbersBindingTest < Minitest::Test
       topic: 'office',
       status_callback_url: 'https://example.com/status'
     )
+
     assert_equal(
       {
         call_handler: 'relay_topic',
@@ -244,6 +258,7 @@ class RestPhoneNumbersBindingTest < Minitest::Test
 
     assert_equal 1, @http.requests.size, 'should make exactly one HTTP call'
     req = @http.requests.first
+
     assert_equal 'PUT', req[:method]
     assert_equal "#{BASE}/pn-1", req[:path]
     refute_includes req[:path], '/api/fabric/resources/swml_webhooks',
@@ -259,6 +274,7 @@ class RestPhoneNumbersBindingTest < Minitest::Test
       call_relay_script_url: 'https://example.com/swml'
     )
     body = @http.last[:body]
+
     assert_equal 'relay_script', body[:call_handler]
     assert_equal 'https://example.com/swml', body[:call_relay_script_url]
   end
@@ -269,6 +285,7 @@ class RestPhoneNumbersBindingTest < Minitest::Test
       call_handler: SignalWire::REST::PhoneCallHandler::RELAY_SCRIPT,
       call_relay_script_url: 'https://example.com/swml'
     )
+
     assert_equal 'relay_script', @http.last[:body][:call_handler]
   end
 end

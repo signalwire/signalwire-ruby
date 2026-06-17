@@ -23,7 +23,11 @@ module SignalWire
 
       def initialize(departments:, name: 'receptionist', route: '/receptionist',
                      greeting: 'Thank you for calling. How can I help you today?', **_opts)
-        raise ArgumentError, 'departments must be a non-empty Array' unless departments.is_a?(Array) && !departments.empty?
+        unless departments.is_a?(Array) && !departments.empty?
+          raise ArgumentError,
+                'departments must be a non-empty Array'
+        end
+
         departments.each_with_index do |d, i|
           d = d.transform_keys(&:to_s)
           raise ArgumentError, "Department #{i} missing 'name'" unless d['name']
@@ -66,7 +70,9 @@ module SignalWire
           result.connect(dept['number'])
           result
         else
-          Swaig::FunctionResult.new("I couldn't find that department. Available departments: #{@departments.map { |d| d['name'] }.join(', ')}")
+          Swaig::FunctionResult.new("I couldn't find that department. Available departments: #{@departments.map do |d|
+            d['name']
+          end.join(', ')}")
         end
       end
 

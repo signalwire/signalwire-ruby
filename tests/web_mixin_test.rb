@@ -35,6 +35,7 @@ class WebMixinTest < Minitest::Test
     svc.custom_return = { 'custom' => true }
     rd = { 'data' => 'val' }
     result = svc.on_request(rd, '/cb')
+
     assert_equal rd, svc.last_request_data
     assert_equal '/cb', svc.last_callback_path
     assert_equal({ 'custom' => true }, result)
@@ -42,11 +43,13 @@ class WebMixinTest < Minitest::Test
 
   def test_on_swml_request_default_returns_nil
     svc = SignalWire::SWML::Service.new(name: 't')
+
     assert_nil svc.on_swml_request(nil, nil)
   end
 
   def test_on_request_default_returns_nil
     svc = SignalWire::SWML::Service.new(name: 't')
+
     assert_nil svc.on_request(nil, nil)
   end
 
@@ -54,6 +57,7 @@ class WebMixinTest < Minitest::Test
     svc = CustomService.new('t')
     svc.custom_return = nil
     result = svc.on_request(nil, nil)
+
     assert_nil result
     assert_nil svc.last_request_data
     assert_nil svc.last_callback_path

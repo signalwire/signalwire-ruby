@@ -7,15 +7,15 @@ module SignalWire
   module Skills
     module Builtin
       class InfoGathererSkill < SkillBase
-        def name;        'info_gatherer'; end
-        def description; 'Gather answers to a configurable list of questions'; end
-        def supports_multiple_instances?; true; end
+        def name = 'info_gatherer'
+        def description = 'Gather answers to a configurable list of questions'
+        def supports_multiple_instances? = true
 
         def setup
           @questions = get_param('questions')
           return false unless @questions.is_a?(Array) && !@questions.empty?
 
-          @questions.each_with_index do |q, i|
+          @questions.each_with_index do |q, _i|
             return false unless q.is_a?(Hash) && q['key_name'] && q['question_text']
           end
 
@@ -31,7 +31,7 @@ module SignalWire
           end
 
           @completion_message = get_param('completion_message',
-            default: 'Thank you! All questions have been answered.')
+                                          default: 'Thank you! All questions have been answered.')
           true
         end
 
@@ -52,8 +52,10 @@ module SignalWire
               name: @submit_tool,
               description: 'Submit an answer to the current question and move to the next one',
               parameters: {
-                'answer'            => { 'type' => 'string', 'description' => "The user's answer to the current question" },
-                'confirmed_by_user' => { 'type' => 'boolean', 'description' => 'Only set to true when the user has explicitly confirmed the answer.' }
+                'answer' => { 'type' => 'string',
+                              'description' => "The user's answer to the current question" },
+                'confirmed_by_user' => { 'type' => 'boolean',
+                                         'description' => 'Only set to true when the user has explicitly confirmed the answer.' }
               },
               handler: method(:handle_submit)
             }
@@ -63,9 +65,9 @@ module SignalWire
         def get_global_data
           {
             @namespace => {
-              'questions'      => @questions,
+              'questions' => @questions,
               'question_index' => 0,
-              'answers'        => []
+              'answers' => []
             }
           }
         end
@@ -74,7 +76,7 @@ module SignalWire
           [
             {
               'title' => "Info Gatherer (#{instance_key})",
-              'body' => "You need to gather answers to a series of questions from the user. " \
+              'body' => 'You need to gather answers to a series of questions from the user. ' \
                         "Start by asking if they are ready, then call #{@start_tool} to get the first question. " \
                         "After each answer, call #{@submit_tool} to record it and get the next question."
             }
@@ -84,14 +86,14 @@ module SignalWire
         def get_parameter_schema
           {
             'questions' => { 'type' => 'array', 'required' => true },
-            'prefix'    => { 'type' => 'string' },
+            'prefix' => { 'type' => 'string' },
             'completion_message' => { 'type' => 'string' }
           }
         end
 
         private
 
-        def handle_start(args, raw_data)
+        def handle_start(_args, raw_data)
           state = extract_state(raw_data)
           questions = state['questions'] || @questions
           index = state['question_index'] || 0
@@ -114,9 +116,7 @@ module SignalWire
           index     = state['question_index'] || 0
           answers   = state['answers'] || []
 
-          if index >= questions.size
-            return Swaig::FunctionResult.new('All questions have already been answered.')
-          end
+          return Swaig::FunctionResult.new('All questions have already been answered.') if index >= questions.size
 
           current = questions[index]
 
@@ -136,23 +136,24 @@ module SignalWire
           else
             result = Swaig::FunctionResult.new(@completion_message)
             result.toggle_functions([
-              { 'function' => @start_tool, 'active' => false },
-              { 'function' => @submit_tool, 'active' => false }
-            ])
+                                      { 'function' => @start_tool, 'active' => false },
+                                      { 'function' => @submit_tool, 'active' => false }
+                                    ])
           end
 
           result.update_global_data({
-            @namespace => {
-              'questions'      => questions,
-              'question_index' => new_index,
-              'answers'        => new_answers
-            }
-          })
+                                      @namespace => {
+                                        'questions' => questions,
+                                        'question_index' => new_index,
+                                        'answers' => new_answers
+                                      }
+                                    })
           result
         end
 
         def extract_state(raw_data)
           return {} unless raw_data.is_a?(Hash)
+
           gd = raw_data['global_data'] || {}
           gd[@namespace] || {}
         end
@@ -161,17 +162,15 @@ module SignalWire
           text = question['question_text']
           num  = index + 1
 
-          if first
-            instr = "Ask each question one at a time, wait for the user's answer, " \
-                    "then call #{@submit_tool} with their answer.\n\n" \
-                    "[Question #{num} of #{total}]: \"#{text}\""
-          else
-            instr = "Previous answer saved. [Question #{num} of #{total}]: \"#{text}\""
-          end
+          instr = if first
+                    "Ask each question one at a time, wait for the user's answer, " \
+                      "then call #{@submit_tool} with their answer.\n\n" \
+                      "[Question #{num} of #{total}]: \"#{text}\""
+                  else
+                    "Previous answer saved. [Question #{num} of #{total}]: \"#{text}\""
+                  end
 
-          if question['prompt_add'] && !question['prompt_add'].empty?
-            instr += "\nNote: #{question['prompt_add']}"
-          end
+          instr += "\nNote: #{question['prompt_add']}" if question['prompt_add'] && !question['prompt_add'].empty?
 
           if question['confirm']
             instr += "\nThis question requires confirmation. Read the answer back and ask the user to confirm."

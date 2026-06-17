@@ -36,9 +36,7 @@ module SignalWire
 
       def load_schema
         schema_path = File.join(__dir__, 'schema.json')
-        unless File.exist?(schema_path)
-          raise "SWML schema.json not found at #{schema_path}"
-        end
+        raise "SWML schema.json not found at #{schema_path}" unless File.exist?(schema_path)
 
         raw = JSON.parse(File.read(schema_path))
         defs = raw['$defs'] || {}
@@ -60,9 +58,9 @@ module SignalWire
           # The first property key is the actual verb name (e.g. "answer", "ai")
           actual_verb = props.keys.first
           @verbs[actual_verb] = {
-            'name'        => actual_verb,
+            'name' => actual_verb,
             'schema_name' => def_name,
-            'definition'  => defn
+            'definition' => defn
           }
         end
       end

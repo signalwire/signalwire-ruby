@@ -58,7 +58,7 @@ module SignalWire
         rescue RelayError => e
           code = e.code
           if code && [404, 410, '404', '410'].include?(code)
-            $stderr.puts "[RELAY] Call #{@call_id} gone during #{method} (code=#{code})"
+            warn "[RELAY] Call #{@call_id} gone during #{method} (code=#{code})"
             return {}
           end
           raise
@@ -107,11 +107,9 @@ module SignalWire
         # Notify registered listeners
         handlers = @mutex.synchronize { (@listeners[event_type] || []).dup }
         handlers.each do |handler|
-          begin
-            handler.call(event)
-          rescue => e
-            $stderr.puts "[RELAY] Error in event handler for #{event_type}: #{e.message}"
-          end
+          handler.call(event)
+        rescue StandardError => e
+          warn "[RELAY] Error in event handler for #{event_type}: #{e.message}"
         end
       end
 
@@ -122,9 +120,10 @@ module SignalWire
 
           if timeout
             deadline = Time.now + timeout
-            while !@ended
+            until @ended
               remaining = deadline - Time.now
               break if remaining <= 0
+
               @ended_cv.wait(@mutex, remaining)
             end
           else
@@ -155,14 +154,14 @@ module SignalWire
         if rank.call(@state) >= rank.call(target)
           return RelayEvent.new(
             event_type: EVENT_CALL_STATE,
-            params:     { 'call_state' => @state }
+            params: { 'call_state' => @state }
           )
         end
 
         wait_for(
           EVENT_CALL_STATE,
           predicate: ->(e) { e.params['call_state'] == target },
-          timeout:   timeout
+          timeout: timeout
         )
       end
 
@@ -250,7 +249,7 @@ module SignalWire
 
       def _start_action(action, method, params, on_completed: nil)
         if @state == CALL_STATE_ENDED
-          $stderr.puts "[RELAY] Call #{@call_id} already ended, skipping #{method}"
+          warn "[RELAY] Call #{@call_id} already ended, skipping #{method}"
           gone_event = RelayEvent.new(event_type: '', params: {})
           action._resolve(gone_event)
           return action
@@ -259,7 +258,7 @@ module SignalWire
         @actions[action.control_id] = action
         begin
           result = _execute(method, params)
-        rescue => exc
+        rescue StandardError
           @actions.delete(action.control_id)
           action._resolve(RelayEvent.new(event_type: '', params: {}))
           raise

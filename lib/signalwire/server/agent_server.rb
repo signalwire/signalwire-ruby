@@ -6,7 +6,6 @@
 # See LICENSE file in the project root for full license information.
 
 require 'json'
-require 'thread'
 require_relative '../logging'
 
 module SignalWire
@@ -31,32 +30,32 @@ module SignalWire
     # MIME types for static file serving.
     MIME_TYPES = {
       '.html' => 'text/html',
-      '.htm'  => 'text/html',
-      '.css'  => 'text/css',
-      '.js'   => 'application/javascript',
+      '.htm' => 'text/html',
+      '.css' => 'text/css',
+      '.js' => 'application/javascript',
       '.json' => 'application/json',
-      '.png'  => 'image/png',
-      '.jpg'  => 'image/jpeg',
+      '.png' => 'image/png',
+      '.jpg' => 'image/jpeg',
       '.jpeg' => 'image/jpeg',
-      '.gif'  => 'image/gif',
-      '.svg'  => 'image/svg+xml',
-      '.ico'  => 'image/x-icon',
-      '.txt'  => 'text/plain',
-      '.xml'  => 'application/xml',
+      '.gif' => 'image/gif',
+      '.svg' => 'image/svg+xml',
+      '.ico' => 'image/x-icon',
+      '.txt' => 'text/plain',
+      '.xml' => 'application/xml',
       '.woff' => 'font/woff',
       '.woff2' => 'font/woff2',
-      '.ttf'  => 'font/ttf',
-      '.eot'  => 'application/vnd.ms-fontobject',
-      '.map'  => 'application/json',
+      '.ttf' => 'font/ttf',
+      '.eot' => 'application/vnd.ms-fontobject',
+      '.map' => 'application/json',
       '.webp' => 'image/webp',
-      '.pdf'  => 'application/pdf'
+      '.pdf' => 'application/pdf'
     }.freeze
 
     # Security headers applied to static file responses.
     STATIC_SECURITY_HEADERS = {
       'x-content-type-options' => 'nosniff',
-      'x-frame-options'        => 'DENY',
-      'cache-control'          => 'no-store, no-cache, must-revalidate'
+      'x-frame-options' => 'DENY',
+      'cache-control' => 'no-store, no-cache, must-revalidate'
     }.freeze
 
     # Construct an AgentServer.
@@ -75,12 +74,12 @@ module SignalWire
       @host      = host
       @port      = port
       @log_level = log_level.to_s.downcase
-      @agents = {}   # route => agent object
-      @sip_routes = {}  # username => route
+      @agents = {} # route => agent object
+      @sip_routes = {} # username => route
       @static_routes = {} # route => directory
       @mutex  = Mutex.new
 
-      @logger = Logging.logger("AgentServer")
+      @logger = Logging.logger('AgentServer')
       _apply_log_level(@logger, @log_level)
     end
 
@@ -96,13 +95,15 @@ module SignalWire
     # @api private
     def _apply_log_level(logger, level)
       require 'logger'
+      # 'info' and the else fallback both map to INFO; the explicit 'info' arm
+      # documents it as a known level rather than an unrecognized default.
       mapped = case level
                when 'debug'                then ::Logger::DEBUG
                when 'info'                 then ::Logger::INFO
                when 'warning', 'warn'      then ::Logger::WARN
                when 'error'                then ::Logger::ERROR
                when 'critical', 'fatal'    then ::Logger::FATAL
-               else                              ::Logger::INFO
+               else ::Logger::INFO
                end
       if logger.respond_to?(:level=)
         logger.level = mapped
@@ -111,13 +112,15 @@ module SignalWire
         # via instance_variable so .level reads return the mapped
         # value. We add a singleton accessor.
         logger.instance_variable_set(:@level, mapped)
-        unless logger.respond_to?(:level)
-          logger.define_singleton_method(:level) { @level }
-        end
+        logger.define_singleton_method(:level) { @level } unless logger.respond_to?(:level)
       end
       mapped
     rescue StandardError
-      ::Logger::INFO rescue nil
+      begin
+        ::Logger::INFO
+      rescue StandardError
+        nil
+      end
     end
 
     # Register an agent at a given route.
@@ -129,6 +132,7 @@ module SignalWire
 
       @mutex.synchronize do
         raise ArgumentError, "Route already registered: #{route}" if @agents.key?(route)
+
         @agents[route] = agent
       end
       self
@@ -163,7 +167,7 @@ module SignalWire
       @sip_route = route
       if auto_map
         @mutex.synchronize do
-          @agents.each do |r, agent|
+          @agents.each do |r, _agent|
             username = r.sub(%r{^/}, '').tr('/', '_')
             @sip_routes[username] = r
           end
@@ -263,6 +267,7 @@ module SignalWire
     def _detect_execution_mode
       return 'lambda' if ENV['AWS_LAMBDA_FUNCTION_NAME'] && !ENV['AWS_LAMBDA_FUNCTION_NAME'].empty?
       return 'cgi'    if ENV['GATEWAY_INTERFACE']
+
       'server'
     end
 
@@ -293,16 +298,16 @@ module SignalWire
       require 'stringio'
       path_info = (ENV['PATH_INFO'] || '').strip
       env = {
-        'PATH_INFO'      => path_info,
+        'PATH_INFO' => path_info,
         'REQUEST_METHOD' => ENV['REQUEST_METHOD'] || 'GET',
-        'QUERY_STRING'   => ENV['QUERY_STRING']   || '',
-        'rack.input'     => StringIO.new(''),
-        'rack.errors'    => $stderr
+        'QUERY_STRING' => ENV['QUERY_STRING'] || '',
+        'rack.input' => StringIO.new(''),
+        'rack.errors' => $stderr
       }
       status, headers, body = rack_app.call(env)
       body_str = body.respond_to?(:join) ? body.join : body.to_s
 
-      out = +"Status: #{status}\r\n"
+      out = "Status: #{status}\r\n"
       headers.each { |k, v| out << "#{k}: #{v}\r\n" }
       out << "\r\n"
       out << body_str
@@ -320,30 +325,29 @@ module SignalWire
       method = event['httpMethod'] || event.dig('requestContext', 'http', 'method') || 'GET'
       body = event['body'] || ''
       env = {
-        'PATH_INFO'      => path,
+        'PATH_INFO' => path,
         'REQUEST_METHOD' => method,
-        'QUERY_STRING'   => '',
-        'rack.input'     => StringIO.new(body),
-        'rack.errors'    => $stderr
+        'QUERY_STRING' => '',
+        'rack.input' => StringIO.new(body),
+        'rack.errors' => $stderr
       }
       status, headers, response_body = rack_app.call(env)
       body_str = response_body.respond_to?(:join) ? response_body.join : response_body.to_s
       {
         'statusCode' => Integer(status),
-        'headers'    => headers,
-        'body'       => body_str
+        'headers' => headers,
+        'body' => body_str
       }
     end
 
     # Build a Rack application that routes requests to the appropriate agent.
     # @return [Proc] a Rack-compatible app
     def rack_app
-      agents        = @agents
-      sip_routes    = @sip_routes
+      agents = @agents
       static_routes = @static_routes
       server        = self
 
-      Proc.new do |env|
+      proc do |env|
         path = env['PATH_INFO'] || '/'
 
         case path
@@ -370,11 +374,9 @@ module SignalWire
             matched_route = nil
 
             agents.each do |route, a|
-              if path == route || path.start_with?("#{route}/")
-                if matched_route.nil? || route.length > matched_route.length
-                  matched_route = route
-                  agent = a
-                end
+              if (path == route || path.start_with?("#{route}/")) && (matched_route.nil? || route.length > matched_route.length)
+                matched_route = route
+                agent = a
               end
             end
 
@@ -403,11 +405,9 @@ module SignalWire
       matched_dir   = nil
 
       static_routes.each do |route, directory|
-        if path == route || path.start_with?("#{route}/")
-          if matched_route.nil? || route.length > matched_route.length
-            matched_route = route
-            matched_dir   = directory
-          end
+        if (path == route || path.start_with?("#{route}/")) && (matched_route.nil? || route.length > matched_route.length)
+          matched_route = route
+          matched_dir   = directory
         end
       end
 
@@ -427,20 +427,19 @@ module SignalWire
       resolved  = File.expand_path(file_path)
 
       # Ensure resolved path is still under the served directory
-      unless resolved.start_with?(matched_dir + '/')  || resolved == matched_dir
+      unless resolved.start_with?(matched_dir + '/') || resolved == matched_dir
         body = JSON.generate({ error: 'Forbidden' })
         return ['403', STATIC_SECURITY_HEADERS.merge('Content-Type' => 'application/json'), [body]]
       end
 
-      if File.file?(resolved) && File.readable?(resolved)
-        ext = File.extname(resolved).downcase
-        content_type = MIME_TYPES[ext] || 'application/octet-stream'
-        content = File.binread(resolved)
-        headers = STATIC_SECURITY_HEADERS.merge('Content-Type' => content_type, 'Content-Length' => content.bytesize.to_s)
-        ['200', headers, [content]]
-      else
-        nil
-      end
+      return unless File.file?(resolved) && File.readable?(resolved)
+
+      ext = File.extname(resolved).downcase
+      content_type = MIME_TYPES[ext] || 'application/octet-stream'
+      content = File.binread(resolved)
+      headers = STATIC_SECURITY_HEADERS.merge('Content-Type' => content_type,
+                                              'Content-Length' => content.bytesize.to_s)
+      ['200', headers, [content]]
     end
   end
 end

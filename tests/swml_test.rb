@@ -27,24 +27,28 @@ class LoggingTest < Minitest::Test
 
   def test_set_global_level
     SignalWire::Logging.global_level = :debug
+
     assert_equal :debug, SignalWire::Logging.global_level
   end
 
   def test_env_log_level
     ENV['SIGNALWIRE_LOG_LEVEL'] = 'debug'
     SignalWire::Logging.reset!
+
     assert_equal :debug, SignalWire::Logging.global_level
   end
 
   def test_env_log_mode_off
     ENV['SIGNALWIRE_LOG_MODE'] = 'off'
     SignalWire::Logging.reset!
-    assert SignalWire::Logging.suppressed?
+
+    assert_predicate SignalWire::Logging, :suppressed?
     assert_equal :off, SignalWire::Logging.global_level
   end
 
   def test_logger_creation
     logger = SignalWire::Logging.logger('test')
+
     assert_equal 'test', logger.name
   end
 
@@ -57,9 +61,11 @@ class LoggingTest < Minitest::Test
 
     logger.debug('should not appear')
     logger.info('should not appear')
+
     assert_equal '', out.string
 
     logger.warn('this should appear')
+
     assert_includes out.string, 'WARN'
     assert_includes out.string, 'this should appear'
   end
@@ -72,11 +78,13 @@ class LoggingTest < Minitest::Test
     logger.instance_variable_set(:@output, out)
 
     logger.error('should not appear even at error')
+
     assert_equal '', out.string
   end
 
   def test_levels_hash
     expected = { debug: 0, info: 1, warn: 2, error: 3, off: 4 }
+
     assert_equal expected, SignalWire::Logging::LEVELS
   end
 
@@ -108,12 +116,14 @@ class DocumentTest < Minitest::Test
 
   def test_add_section_duplicate_returns_false
     @doc.add_section('dup')
+
     refute @doc.add_section('dup')
   end
 
   def test_add_verb_to_main
     @doc.add_verb('answer', {})
     verbs = @doc.get_verbs
+
     assert_equal 1, verbs.length
     assert_equal({ 'answer' => {} }, verbs.first)
   end
@@ -121,6 +131,7 @@ class DocumentTest < Minitest::Test
   def test_add_verb_sleep_integer
     @doc.add_verb('sleep', 2000)
     verbs = @doc.get_verbs
+
     assert_equal({ 'sleep' => 2000 }, verbs.first)
   end
 
@@ -128,6 +139,7 @@ class DocumentTest < Minitest::Test
     @doc.add_section('intro')
     @doc.add_verb_to_section('intro', 'play', { 'url' => 'http://example.com/audio.mp3' })
     verbs = @doc.get_verbs('intro')
+
     assert_equal 1, verbs.length
   end
 
@@ -141,6 +153,7 @@ class DocumentTest < Minitest::Test
     @doc.add_verb('answer', {})
     @doc.add_section('extra')
     @doc.reset
+
     assert @doc.has_section?('main')
     refute @doc.has_section?('extra')
     assert_equal [], @doc.get_verbs
@@ -149,6 +162,7 @@ class DocumentTest < Minitest::Test
   def test_to_h
     @doc.add_verb('answer', {})
     h = @doc.to_h
+
     assert_equal '1.0.0', h['version']
     assert_kind_of Hash, h['sections']
     assert_equal 1, h['sections']['main'].length
@@ -158,14 +172,17 @@ class DocumentTest < Minitest::Test
     @doc.add_verb('answer', {})
     json = @doc.render
     parsed = JSON.parse(json)
+
     assert_equal '1.0.0', parsed['version']
   end
 
   def test_render_pretty
     @doc.add_verb('hangup', {})
     pretty = @doc.render_pretty
+
     assert_includes pretty, "\n"
     parsed = JSON.parse(pretty)
+
     assert_equal '1.0.0', parsed['version']
   end
 
@@ -173,6 +190,7 @@ class DocumentTest < Minitest::Test
     @doc.add_verb('answer', {})
     verbs = @doc.get_verbs
     verbs.clear
+
     assert_equal 1, @doc.get_verbs.length
   end
 end
@@ -183,12 +201,14 @@ end
 class SchemaTest < Minitest::Test
   def test_loads_38_verbs
     schema = SignalWire::SWML::Schema.new
+
     assert_equal 38, schema.verb_count,
                  "Expected 38 verbs, got #{schema.verb_count}: #{schema.verb_names.join(', ')}"
   end
 
   def test_known_verbs_present
     schema = SignalWire::SWML::Schema.new
+
     %w[answer ai hangup play sleep connect record send_sms transfer].each do |v|
       assert schema.valid_verb?(v), "Expected verb '#{v}' to be valid"
     end
@@ -196,6 +216,7 @@ class SchemaTest < Minitest::Test
 
   def test_invalid_verb_rejected
     schema = SignalWire::SWML::Schema.new
+
     refute schema.valid_verb?('not_a_verb')
     refute schema.valid_verb?('explode')
   end
@@ -203,12 +224,14 @@ class SchemaTest < Minitest::Test
   def test_verb_names_sorted
     schema = SignalWire::SWML::Schema.new
     names = schema.verb_names
+
     assert_equal names.sort, names
   end
 
   def test_get_verb_returns_definition
     schema = SignalWire::SWML::Schema.new
     defn = schema.get_verb('answer')
+
     assert_kind_of Hash, defn
     assert_equal 'answer', defn['name']
     assert_equal 'Answer', defn['schema_name']
@@ -217,12 +240,14 @@ class SchemaTest < Minitest::Test
 
   def test_get_verb_nil_for_unknown
     schema = SignalWire::SWML::Schema.new
+
     assert_nil schema.get_verb('nonexistent')
   end
 
   def test_singleton
     s1 = SignalWire::SWML.schema
     s2 = SignalWire::SWML.schema
+
     assert_same s1, s2
   end
 end
@@ -248,6 +273,7 @@ class ServiceTest < Minitest::Test
 
   def test_creation
     svc = SignalWire::SWML::Service.new(name: 'test')
+
     assert_equal 'test', svc.name
     assert_equal '/', svc.route
     assert_equal '0.0.0.0', svc.host
@@ -256,18 +282,21 @@ class ServiceTest < Minitest::Test
 
   def test_custom_route
     svc = SignalWire::SWML::Service.new(name: 'test', route: '/my-agent')
+
     assert_equal '/my-agent', svc.route
   end
 
   def test_port_from_env
     ENV['PORT'] = '8080'
     svc = SignalWire::SWML::Service.new(name: 'test')
+
     assert_equal 8080, svc.port
   end
 
   def test_explicit_port_overrides_env
     ENV['PORT'] = '8080'
     svc = SignalWire::SWML::Service.new(name: 'test', port: 9999)
+
     assert_equal 9999, svc.port
   end
 
@@ -277,6 +306,7 @@ class ServiceTest < Minitest::Test
     svc = SignalWire::SWML::Service.new(name: 'test')
     svc.answer
     verbs = svc.document.get_verbs
+
     assert_equal 1, verbs.length
     assert_equal({ 'answer' => {} }, verbs.first)
   end
@@ -285,6 +315,7 @@ class ServiceTest < Minitest::Test
     svc = SignalWire::SWML::Service.new(name: 'test')
     svc.hangup
     verbs = svc.document.get_verbs
+
     assert_equal({ 'hangup' => {} }, verbs.first)
   end
 
@@ -292,6 +323,7 @@ class ServiceTest < Minitest::Test
     svc = SignalWire::SWML::Service.new(name: 'test')
     svc.play(url: 'http://example.com/ring.mp3')
     verbs = svc.document.get_verbs
+
     assert_equal({ 'play' => { 'url' => 'http://example.com/ring.mp3' } }, verbs.first)
   end
 
@@ -299,6 +331,7 @@ class ServiceTest < Minitest::Test
     svc = SignalWire::SWML::Service.new(name: 'test')
     svc.sleep(2000)
     verbs = svc.document.get_verbs
+
     assert_equal({ 'sleep' => 2000 }, verbs.first)
   end
 
@@ -306,21 +339,24 @@ class ServiceTest < Minitest::Test
     svc = SignalWire::SWML::Service.new(name: 'test')
     svc.sleep(duration: 500)
     verbs = svc.document.get_verbs
+
     assert_equal({ 'sleep' => 500 }, verbs.first)
   end
 
   def test_respond_to_valid_verbs
     svc = SignalWire::SWML::Service.new(name: 'test')
-    assert svc.respond_to?(:answer)
-    assert svc.respond_to?(:hangup)
-    assert svc.respond_to?(:ai)
-    assert svc.respond_to?(:sleep)
+
+    assert_respond_to svc, :answer
+    assert_respond_to svc, :hangup
+    assert_respond_to svc, :ai
+    assert_respond_to svc, :sleep
   end
 
   def test_respond_to_invalid_verb
     svc = SignalWire::SWML::Service.new(name: 'test')
-    refute svc.respond_to?(:explode)
-    refute svc.respond_to?(:not_a_verb)
+
+    refute_respond_to svc, :explode
+    refute_respond_to svc, :not_a_verb
   end
 
   def test_invalid_method_raises
@@ -332,6 +368,7 @@ class ServiceTest < Minitest::Test
     svc = SignalWire::SWML::Service.new(name: 'test')
     svc.play(url: 'http://example.com/a.mp3', volume: nil)
     verbs = svc.document.get_verbs
+
     assert_equal({ 'play' => { 'url' => 'http://example.com/a.mp3' } }, verbs.first)
   end
 
@@ -347,6 +384,7 @@ class ServiceTest < Minitest::Test
 
   def test_explicit_auth
     svc = SignalWire::SWML::Service.new(name: 'test', basic_auth: %w[alice s3cret])
+
     assert_equal %w[alice s3cret], svc.get_basic_auth_credentials
   end
 
@@ -354,6 +392,7 @@ class ServiceTest < Minitest::Test
     ENV['SWML_BASIC_AUTH_USER']     = 'envuser'
     ENV['SWML_BASIC_AUTH_PASSWORD'] = 'envpass'
     svc = SignalWire::SWML::Service.new(name: 'test')
+
     assert_equal %w[envuser envpass], svc.get_basic_auth_credentials
   end
 
@@ -361,11 +400,13 @@ class ServiceTest < Minitest::Test
     ENV['SWML_BASIC_AUTH_USER']     = 'envuser'
     ENV['SWML_BASIC_AUTH_PASSWORD'] = 'envpass'
     svc = SignalWire::SWML::Service.new(name: 'test', basic_auth: %w[explicit pass])
+
     assert_equal %w[explicit pass], svc.get_basic_auth_credentials
   end
 
   def test_get_full_url
     svc = SignalWire::SWML::Service.new(name: 'test', port: 5000)
+
     assert_equal 'http://0.0.0.0:5000/', svc.get_full_url
   end
 
@@ -373,11 +414,13 @@ class ServiceTest < Minitest::Test
     svc = SignalWire::SWML::Service.new(
       name: 'test', port: 5000, basic_auth: %w[user pass]
     )
+
     assert_equal 'http://user:pass@0.0.0.0:5000/', svc.get_full_url(include_auth: true)
   end
 
   def test_get_full_url_with_custom_route
     svc = SignalWire::SWML::Service.new(name: 'test', port: 5000, route: '/bot')
+
     assert_equal 'http://0.0.0.0:5000/bot', svc.get_full_url
   end
 
@@ -388,6 +431,7 @@ class ServiceTest < Minitest::Test
     svc.answer
     json = svc.render
     parsed = JSON.parse(json)
+
     assert_equal '1.0.0', parsed['version']
     assert_equal 1, parsed['sections']['main'].length
   end
@@ -422,15 +466,19 @@ class ServiceRackTest < Minitest::Test
 
   def test_health_endpoint
     get '/health'
+
     assert_equal 200, last_response.status
     body = JSON.parse(last_response.body)
+
     assert_equal 'healthy', body['status']
   end
 
   def test_ready_endpoint
     get '/ready'
+
     assert_equal 200, last_response.status
     body = JSON.parse(last_response.body)
+
     assert_equal 'ready', body['status']
   end
 
@@ -438,20 +486,24 @@ class ServiceRackTest < Minitest::Test
 
   def test_swml_without_auth_returns_401
     get '/'
+
     assert_equal 401, last_response.status
   end
 
   def test_swml_with_wrong_auth_returns_401
     authorize 'wrong', 'creds'
     get '/'
+
     assert_equal 401, last_response.status
   end
 
   def test_swml_with_correct_auth_returns_200
     authorize 'testuser', 'testpass'
     get '/'
+
     assert_equal 200, last_response.status
     body = JSON.parse(last_response.body)
+
     assert_equal '1.0.0', body['version']
     assert_equal 3, body['sections']['main'].length
   end
@@ -459,6 +511,7 @@ class ServiceRackTest < Minitest::Test
   def test_swml_content_type
     authorize 'testuser', 'testpass'
     get '/'
+
     assert_equal 'application/json', last_response.content_type
   end
 
@@ -468,6 +521,7 @@ class ServiceRackTest < Minitest::Test
     authorize 'testuser', 'testpass'
     get '/'
     headers = last_response.headers
+
     assert_equal 'nosniff',                              headers['x-content-type-options']
     assert_equal 'DENY',                                 headers['x-frame-options']
     assert_equal 'no-store, no-cache, must-revalidate',  headers['cache-control']
@@ -484,6 +538,7 @@ class ServiceRackTest < Minitest::Test
   def test_post_with_json_body
     authorize 'testuser', 'testpass'
     post '/', JSON.generate({ 'action' => 'test' }), 'CONTENT_TYPE' => 'application/json'
+
     assert_equal 200, last_response.status
   end
 
@@ -496,8 +551,10 @@ class ServiceRackTest < Minitest::Test
 
     authorize 'testuser', 'testpass'
     post '/custom', JSON.generate({ 'foo' => 'bar' }), 'CONTENT_TYPE' => 'application/json'
+
     assert_equal 200, last_response.status
     body = JSON.parse(last_response.body)
+
     assert_equal true, body['custom']
     assert_equal({ 'foo' => 'bar' }, body['received'])
   end
@@ -510,8 +567,8 @@ class TimingSafeAuthTest < Minitest::Test
   def test_secure_compare_is_used
     # Verify that Rack::Utils responds to secure_compare,
     # confirming our middleware has the primitive available.
-    assert Rack::Utils.respond_to?(:secure_compare),
-           'Rack::Utils.secure_compare must be available for timing-safe auth'
+    assert_respond_to Rack::Utils, :secure_compare,
+                      'Rack::Utils.secure_compare must be available for timing-safe auth'
   end
 
   def test_secure_compare_works

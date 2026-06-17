@@ -8,12 +8,12 @@ module SignalWire
   module Skills
     module Builtin
       class SwmlTransferSkill < SkillBase
-        def name;        'swml_transfer'; end
-        def description; 'Transfer calls between agents based on pattern matching'; end
-        def supports_multiple_instances?; true; end
+        def name = 'swml_transfer'
+        def description = 'Transfer calls between agents based on pattern matching'
+        def supports_multiple_instances? = true
 
         def setup
-          @transfers       = get_param('transfers')
+          @transfers = get_param('transfers')
           return false unless @transfers.is_a?(Hash) && !@transfers.empty?
 
           @tool_name       = get_param('tool_name', default: 'transfer_call')
@@ -24,9 +24,10 @@ module SignalWire
           @required_fields = get_param('required_fields') || {}
 
           # Validate each transfer
-          @transfers.each do |pattern, config|
+          @transfers.each do |_pattern, config|
             return false unless config.is_a?(Hash)
             return false unless config.key?('url') || config.key?('address')
+
             config['message']        ||= 'Transferring you now...'
             config['return_message'] ||= 'The transfer is complete. How else can I help you?'
             config['post_process']     = true  unless config.key?('post_process')
@@ -35,12 +36,12 @@ module SignalWire
           true
         end
 
-        def instance_key; "swml_transfer_#{@tool_name}"; end
+        def instance_key = "swml_transfer_#{@tool_name}"
 
         def register_tools
           dm = DataMap.new(@tool_name)
-                .description(@desc)
-                .parameter(@param_name, 'string', @param_desc, required: true)
+                      .description(@desc)
+                      .parameter(@param_name, 'string', @param_desc, required: true)
 
           @required_fields.each do |field, field_desc|
             dm.parameter(field, 'string', field_desc, required: true)
@@ -69,22 +70,23 @@ module SignalWire
         def get_hints
           hints = []
           @transfers&.each_key do |pattern|
-            clean = pattern.gsub(%r{^/|/[i]*$}, '')
+            clean = pattern.gsub(%r{^/|/i*$}, '')
             next if clean.empty? || clean.start_with?('.')
+
             if clean.include?('|')
               clean.split('|').each { |p| hints << p.strip.downcase }
             else
               hints << clean.downcase
             end
           end
-          hints.concat(%w[transfer connect speak\ to talk\ to])
+          hints.concat(['transfer', 'connect', 'speak to', 'talk to'])
         end
 
         def get_prompt_sections
           return [] unless @transfers && !@transfers.empty?
 
           bullets = @transfers.map do |pattern, config|
-            clean = pattern.gsub(%r{^/|/[i]*$}, '')
+            clean = pattern.gsub(%r{^/|/i*$}, '')
             dest = config['url'] || config['address']
             "\"#{clean}\" - transfers to #{dest}"
           end
@@ -101,9 +103,9 @@ module SignalWire
 
         def get_parameter_schema
           {
-            'transfers'       => { 'type' => 'object', 'required' => true },
-            'description'     => { 'type' => 'string', 'default' => 'Transfer call based on pattern matching' },
-            'parameter_name'  => { 'type' => 'string', 'default' => 'transfer_type' },
+            'transfers' => { 'type' => 'object', 'required' => true },
+            'description' => { 'type' => 'string', 'default' => 'Transfer call based on pattern matching' },
+            'parameter_name' => { 'type' => 'string', 'default' => 'transfer_type' },
             'default_message' => { 'type' => 'string', 'default' => 'Please specify a valid transfer type.' },
             'required_fields' => { 'type' => 'object', 'default' => {} }
           }

@@ -50,7 +50,7 @@ class SwaigClosedSetsTest < Minitest::Test
     assert_equal 'mp3', RecordFormat::MP3
     assert_equal 'mp4', RecordFormat::MP4
     assert_equal %w[wav mp3 mp4], RecordFormat::ALL
-    assert RecordFormat::ALL.frozen?
+    assert_predicate RecordFormat::ALL, :frozen?
   end
 
   # (b) constant and bare string => byte-identical action.
@@ -64,6 +64,7 @@ class SwaigClosedSetsTest < Minitest::Test
     }.each do |const_val, literal|
       via_const  = FR.new.record_call(format: const_val)
       via_string = FR.new.record_call(format: literal)
+
       assert_equal via_string.to_h, via_const.to_h,
                    "record_call format #{literal.inspect}: constant vs string diverged"
       assert_equal literal, record_params(via_const)['format']
@@ -91,17 +92,18 @@ class SwaigClosedSetsTest < Minitest::Test
     assert_equal 'listen', RecordDirection::LISTEN
     assert_equal 'both',   RecordDirection::BOTH
     assert_equal %w[speak listen both], RecordDirection::ALL
-    assert RecordDirection::ALL.frozen?
+    assert_predicate RecordDirection::ALL, :frozen?
   end
 
   def test_record_direction_constant_matches_bare_string
     {
-      RecordDirection::SPEAK  => 'speak',
+      RecordDirection::SPEAK => 'speak',
       RecordDirection::LISTEN => 'listen',
-      RecordDirection::BOTH   => 'both'
+      RecordDirection::BOTH => 'both'
     }.each do |const_val, literal|
       via_const  = FR.new.record_call(direction: const_val)
       via_string = FR.new.record_call(direction: literal)
+
       assert_equal via_string.to_h, via_const.to_h,
                    "record_call direction #{literal.inspect}: constant vs string diverged"
       assert_equal literal, record_params(via_const)['direction']
@@ -110,6 +112,7 @@ class SwaigClosedSetsTest < Minitest::Test
 
   def test_record_direction_set_is_exactly_validated
     RecordDirection::ALL.each { |dir| FR.new.record_call(direction: dir) }
+
     refute_includes RecordDirection::ALL, 'hear' # tap's word, NOT record's
     err = assert_raises(ArgumentError) { FR.new.record_call(direction: 'hear') }
     assert_match(/direction must be/, err.message)
@@ -124,17 +127,18 @@ class SwaigClosedSetsTest < Minitest::Test
     assert_equal 'hear',  TapDirection::HEAR
     assert_equal 'both',  TapDirection::BOTH
     assert_equal %w[speak hear both], TapDirection::ALL
-    assert TapDirection::ALL.frozen?
+    assert_predicate TapDirection::ALL, :frozen?
   end
 
   def test_tap_direction_constant_matches_bare_string
     {
       TapDirection::SPEAK => 'speak',
-      TapDirection::HEAR  => 'hear',
-      TapDirection::BOTH  => 'both'
+      TapDirection::HEAR => 'hear',
+      TapDirection::BOTH => 'both'
     }.each do |const_val, literal|
       via_const  = FR.new.tap('rtp://10.0.0.1:9000', direction: const_val)
       via_string = FR.new.tap('rtp://10.0.0.1:9000', direction: literal)
+
       assert_equal via_string.to_h, via_const.to_h,
                    "tap direction #{literal.inspect}: constant vs string diverged"
     end
@@ -142,6 +146,7 @@ class SwaigClosedSetsTest < Minitest::Test
 
   def test_tap_direction_set_is_exactly_validated
     TapDirection::ALL.each { |dir| FR.new.tap('rtp://x', direction: dir) }
+
     refute_includes TapDirection::ALL, 'listen' # record's word, NOT tap's
     err = assert_raises(ArgumentError) { FR.new.tap('rtp://x', direction: 'listen') }
     assert_match(/direction must be/, err.message)
@@ -155,7 +160,7 @@ class SwaigClosedSetsTest < Minitest::Test
     assert_equal 'PCMU', Codec::PCMU
     assert_equal 'PCMA', Codec::PCMA
     assert_equal %w[PCMU PCMA], Codec::ALL
-    assert Codec::ALL.frozen?
+    assert_predicate Codec::ALL, :frozen?
   end
 
   def test_codec_constant_matches_bare_string
@@ -165,6 +170,7 @@ class SwaigClosedSetsTest < Minitest::Test
     }.each do |const_val, literal|
       via_const  = FR.new.tap('rtp://10.0.0.1:9000', codec: const_val)
       via_string = FR.new.tap('rtp://10.0.0.1:9000', codec: literal)
+
       assert_equal via_string.to_h, via_const.to_h,
                    "tap codec #{literal.inspect}: constant vs string diverged"
     end

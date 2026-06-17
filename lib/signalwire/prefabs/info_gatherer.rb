@@ -33,6 +33,7 @@ module SignalWire
       def initialize(questions: nil, name: 'info_gatherer', route: '/info_gatherer', **_opts)
         unless questions.nil?
           raise ArgumentError, 'questions must be a non-empty Array' unless questions.is_a?(Array) && !questions.empty?
+
           questions.each_with_index do |q, i|
             raise ArgumentError, "Question #{i} missing key_name" unless q['key_name'] || q[:key_name]
             raise ArgumentError, "Question #{i} missing question_text" unless q['question_text'] || q[:question_text]
@@ -126,7 +127,10 @@ module SignalWire
 
         begin
           questions = @question_callback.call(query_params, body_params, headers)
-          raise ArgumentError, 'callback must return a non-empty Array' unless questions.is_a?(Array) && !questions.empty?
+          unless questions.is_a?(Array) && !questions.empty?
+            raise ArgumentError,
+                  'callback must return a non-empty Array'
+          end
 
           normalized = questions.map { |q| q.transform_keys(&:to_s) }
           { 'global_data' => fresh_global_data(normalized) }

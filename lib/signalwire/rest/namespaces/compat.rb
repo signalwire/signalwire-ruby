@@ -9,7 +9,7 @@ module SignalWire
           super(http, '/api/laml/2010-04-01/Accounts')
         end
 
-        def list(**params)  = @http.get(@base_path, params.empty? ? nil : params)
+        def list(**params) = @http.get(@base_path, params.empty? ? nil : params)
         def create(**kwargs) = @http.post(@base_path, kwargs)
         def get(sid)         = @http.get(_path(sid))
         def update(sid, **kwargs) = @http.post(_path(sid), kwargs)
@@ -125,7 +125,7 @@ module SignalWire
       # Compat phone number management.
       class CompatPhoneNumbers < BaseResource
         def initialize(http, base)
-          super(http, base)
+          super
           @available_base = base.sub('/IncomingPhoneNumbers', '/AvailablePhoneNumbers')
         end
 

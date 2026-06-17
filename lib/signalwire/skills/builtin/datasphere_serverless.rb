@@ -10,20 +10,20 @@ module SignalWire
   module Skills
     module Builtin
       class DatasphereServerlessSkill < SkillBase
-        def name;        'datasphere_serverless'; end
-        def description; 'Search knowledge using SignalWire DataSphere with serverless DataMap execution'; end
-        def supports_multiple_instances?; true; end
+        def name = 'datasphere_serverless'
+        def description = 'Search knowledge using SignalWire DataSphere with serverless DataMap execution'
+        def supports_multiple_instances? = true
 
         def setup
           @space_name  = get_param('space_name')
           @project_id  = get_param('project_id', env_var: 'SIGNALWIRE_PROJECT_ID')
           @token       = get_param('token', env_var: 'SIGNALWIRE_TOKEN')
           @document_id = get_param('document_id')
-          @count       = (get_param('count', default: 1)).to_i
-          @distance    = (get_param('distance', default: 3.0)).to_f
+          @count       = get_param('count', default: 1).to_i
+          @distance    = get_param('distance', default: 3.0).to_f
           @tool_name   = get_param('tool_name', default: 'search_knowledge')
           @no_results_msg = get_param('no_results_message',
-            default: "I couldn't find any relevant information in the knowledge base.")
+                                      default: "I couldn't find any relevant information in the knowledge base.")
 
           %w[space_name project_id token document_id].each do |k|
             return false if instance_variable_get("@#{k}").nil? || instance_variable_get("@#{k}").to_s.empty?
@@ -34,32 +34,32 @@ module SignalWire
           true
         end
 
-        def instance_key; "datasphere_serverless_#{@tool_name}"; end
+        def instance_key = "datasphere_serverless_#{@tool_name}"
 
         def register_tools
           dm = DataMap.new(@tool_name)
-                .description('Search the knowledge base for information on any topic and return relevant results')
-                .parameter('query', 'string', 'The search query', required: true)
-                .webhook('POST', @api_url,
-                         headers: {
-                           'Content-Type'  => 'application/json',
-                           'Authorization' => "Basic #{@auth_header}"
-                         })
-                .params({
-                  'document_id'  => @document_id,
-                  'query_string' => '${args.query}',
-                  'count'        => @count,
-                  'distance'     => @distance
-                })
-                .foreach({
-                  'input_key'  => 'chunks',
-                  'output_key' => 'formatted_results',
-                  'max'        => @count,
-                  'append'     => "=== RESULT ===\n${this.text}\n#{'=' * 50}\n\n"
-                })
-                .output(Swaig::FunctionResult.new('I found results for "${args.query}":\n\n${formatted_results}'))
-                .error_keys(%w[error])
-                .fallback_output(Swaig::FunctionResult.new(@no_results_msg))
+                      .description('Search the knowledge base for information on any topic and return relevant results')
+                      .parameter('query', 'string', 'The search query', required: true)
+                      .webhook('POST', @api_url,
+                               headers: {
+                                 'Content-Type' => 'application/json',
+                                 'Authorization' => "Basic #{@auth_header}"
+                               })
+                      .params({
+                                'document_id' => @document_id,
+                                'query_string' => '${args.query}',
+                                'count' => @count,
+                                'distance' => @distance
+                              })
+                      .foreach({
+                                 'input_key' => 'chunks',
+                                 'output_key' => 'formatted_results',
+                                 'max' => @count,
+                                 'append' => "=== RESULT ===\n${this.text}\n#{'=' * 50}\n\n"
+                               })
+                      .output(Swaig::FunctionResult.new('I found results for "${args.query}":\n\n${formatted_results}'))
+                      .error_keys(%w[error])
+                      .fallback_output(Swaig::FunctionResult.new(@no_results_msg))
 
           [{ datamap: dm.to_swaig_function }]
         end
@@ -67,8 +67,8 @@ module SignalWire
         def get_global_data
           {
             'datasphere_serverless_enabled' => true,
-            'document_id'                   => @document_id,
-            'knowledge_provider'            => 'SignalWire DataSphere (Serverless)'
+            'document_id' => @document_id,
+            'knowledge_provider' => 'SignalWire DataSphere (Serverless)'
           }
         end
 
@@ -89,12 +89,12 @@ module SignalWire
 
         def get_parameter_schema
           {
-            'space_name'  => { 'type' => 'string', 'required' => true },
-            'project_id'  => { 'type' => 'string', 'required' => true },
-            'token'       => { 'type' => 'string', 'required' => true, 'hidden' => true },
+            'space_name' => { 'type' => 'string', 'required' => true },
+            'project_id' => { 'type' => 'string', 'required' => true },
+            'token' => { 'type' => 'string', 'required' => true, 'hidden' => true },
             'document_id' => { 'type' => 'string', 'required' => true },
-            'count'       => { 'type' => 'integer', 'default' => 1 },
-            'distance'    => { 'type' => 'number', 'default' => 3.0 }
+            'count' => { 'type' => 'integer', 'default' => 1 },
+            'distance' => { 'type' => 'number', 'default' => 3.0 }
           }
         end
       end

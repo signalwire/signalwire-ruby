@@ -37,11 +37,15 @@ module MockTest
   # Body is decoded as a generic Ruby value (Hash for JSON objects, String for
   # form-encoded / non-JSON bodies). Helpers below coerce to the most common
   # shapes used by the test assertions.
+  # :method is the HTTP method field name from the wire — keeping it (rather than
+  # renaming to dodge the Struct#method override) preserves the journal mirroring.
+  # rubocop:disable Lint/StructNewOverride
   JournalEntry = Struct.new(
     :timestamp, :method, :path, :query_params, :headers, :body,
     :matched_route, :response_status,
-    keyword_init: true,
+    keyword_init: true
   ) do
+    # rubocop:enable Lint/StructNewOverride
     # Returns the body as a Hash if it's a JSON object, else nil.
     def body_hash
       body.is_a?(Hash) ? body : nil
@@ -96,14 +100,14 @@ module MockTest
 
     def build_entry(h)
       JournalEntry.new(
-        timestamp:       h['timestamp'],
-        method:          h['method'],
-        path:            h['path'],
-        query_params:    h['query_params'] || {},
-        headers:         h['headers'] || {},
-        body:            h['body'],
-        matched_route:   h['matched_route'],
-        response_status: h['response_status'],
+        timestamp: h['timestamp'],
+        method: h['method'],
+        path: h['path'],
+        query_params: h['query_params'] || {},
+        headers: h['headers'] || {},
+        body: h['body'],
+        matched_route: h['matched_route'],
+        response_status: h['response_status']
       )
     end
 
@@ -111,9 +115,7 @@ module MockTest
       uri = URI("#{@url}#{path}")
       Net::HTTP.start(uri.hostname, uri.port) do |http|
         resp = http.get(uri.request_uri)
-        unless resp.is_a?(Net::HTTPSuccess)
-          raise "mocktest: GET #{path} failed: #{resp.code} #{resp.body}"
-        end
+        raise "mocktest: GET #{path} failed: #{resp.code} #{resp.body}" unless resp.is_a?(Net::HTTPSuccess)
 
         resp.body
       end
@@ -126,9 +128,7 @@ module MockTest
         req['Content-Type'] = 'application/json'
         req.body = body if body
         resp = http.request(req)
-        unless resp.is_a?(Net::HTTPSuccess)
-          raise "mocktest: POST #{path} failed: #{resp.code} #{resp.body}"
-        end
+        raise "mocktest: POST #{path} failed: #{resp.code} #{resp.body}" unless resp.is_a?(Net::HTTPSuccess)
 
         resp.body
       end
@@ -170,9 +170,13 @@ module MockTest
     private
 
     def resolve_port
-      raw = ENV['MOCK_SIGNALWIRE_PORT']
+      raw = ENV.fetch('MOCK_SIGNALWIRE_PORT', nil)
       if raw && !raw.empty?
-        n = Integer(raw, 10) rescue nil
+        n = begin
+          Integer(raw, 10)
+        rescue StandardError
+          nil
+        end
         return n if n && n.positive?
       end
       DEFAULT_PORT
@@ -208,8 +212,11 @@ module MockTest
       env = ENV.to_h
       if pkg_dir
         sep = File::PATH_SEPARATOR
-        env['PYTHONPATH'] = env['PYTHONPATH'].nil? || env['PYTHONPATH'].empty? \
-          ? pkg_dir : "#{pkg_dir}#{sep}#{env['PYTHONPATH']}"
+        env['PYTHONPATH'] = if env['PYTHONPATH'].nil? || env['PYTHONPATH'].empty?
+                              pkg_dir
+                            else
+                              "#{pkg_dir}#{sep}#{env['PYTHONPATH']}"
+                            end
       end
       # Detach: redirect stdio to /dev/null and put the child in its own
       # process group so signals to the test runner don't cascade. The OS
@@ -219,13 +226,13 @@ module MockTest
         *cmd,
         out: '/dev/null',
         err: '/dev/null',
-        in:  '/dev/null',
-        pgroup: true,
+        in: '/dev/null',
+        pgroup: true
       )
       Process.detach(@pid)
     rescue Errno::ENOENT => e
       raise "mocktest: failed to spawn `python -m mock_signalwire`: #{e.message} " \
-            "(set MOCK_SIGNALWIRE_PORT to use a pre-running instance)"
+            '(set MOCK_SIGNALWIRE_PORT to use a pre-running instance)'
     end
 
     def wait_for_health(url)
@@ -235,7 +242,7 @@ module MockTest
 
         sleep 0.15
       end
-      raise "mocktest: `python -m mock_signalwire` did not become ready " \
+      raise 'mocktest: `python -m mock_signalwire` did not become ready ' \
             "within #{STARTUP_TIMEOUT_S}s on #{url} " \
             '(clone porting-sdk next to signalwire-ruby so tests can find ' \
             'porting-sdk/test_harness/mock_signalwire/, or pip install ' \
@@ -276,9 +283,9 @@ module MockTest
   def client
     h = harness
     SignalWire::REST::RestClient.new(
-      project:  'test_proj',
-      token:    'test_tok',
-      base_url: h.url,
+      project: 'test_proj',
+      token: 'test_tok',
+      base_url: h.url
     )
   end
 

@@ -23,7 +23,7 @@ module SignalWire
 
     # Thin wrapper around Net::HTTP with Basic Auth and JSON handling.
     class HttpClient
-      attr_reader :base_url
+      attr_reader :base_url, :project_id
 
       # +base_url+ overrides the derived +https://{space}+ value when set,
       # which is how the audit fixture and tests point the client at a
@@ -38,7 +38,7 @@ module SignalWire
       # always verified either way — there is no VERIFY_NONE path.
       def initialize(project_id, token, space, base_url: nil, ca_file: nil)
         if base_url && !base_url.empty?
-          @base_url = base_url.sub(/\/$/, '')
+          @base_url = base_url.sub(%r{/$}, '')
         else
           host       = space.include?('.') ? space : "#{space}.signalwire.com"
           @base_url  = "https://#{host}"
@@ -47,10 +47,6 @@ module SignalWire
         @token       = token
         @ca_file     = (ca_file if ca_file && !ca_file.empty?)
         @auth_header = 'Basic ' + Base64.strict_encode64("#{project_id}:#{token}")
-      end
-
-      def project_id
-        @project_id
       end
 
       def get(path, params = nil)
@@ -77,9 +73,7 @@ module SignalWire
 
       def _request(method, path, body: nil, params: nil)
         uri = URI("#{@base_url}#{path}")
-        if params && !params.empty?
-          uri.query = URI.encode_www_form(params)
-        end
+        uri.query = URI.encode_www_form(params) if params && !params.empty?
 
         req = case method
               when 'GET'    then Net::HTTP::Get.new(uri)
@@ -95,9 +89,7 @@ module SignalWire
         req['Accept']        = 'application/json'
         req['User-Agent']    = 'signalwire-agents-ruby-rest/1.0'
 
-        if body && %w[POST PUT PATCH].include?(method)
-          req.body = JSON.generate(body)
-        end
+        req.body = JSON.generate(body) if body && %w[POST PUT PATCH].include?(method)
 
         http = Net::HTTP.new(uri.host, uri.port)
         if uri.scheme == 'https'
@@ -120,10 +112,10 @@ module SignalWire
 
         unless response.is_a?(Net::HTTPSuccess)
           err_body = begin
-                       JSON.parse(response.body)
-                     rescue
-                       response.body
-                     end
+            JSON.parse(response.body)
+          rescue StandardError
+            response.body
+          end
           raise SignalWireRestError.new(response.code.to_i, err_body, path, method)
         end
 
@@ -153,8 +145,8 @@ module SignalWire
         @update_method || 'PATCH'
       end
 
-      def self.update_method=(m)
-        @update_method = m
+      class << self
+        attr_writer :update_method
       end
 
       def list(**params)

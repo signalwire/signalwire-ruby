@@ -11,6 +11,7 @@ class ConciergePrefabDetailedTest < Minitest::Test
       services: ['room service', 'spa'],
       amenities: { 'pool' => { 'hours' => '7 AM - 10 PM' } }
     )
+
     assert_equal 'concierge', agent.name
     assert_equal 'Grand Hotel', agent.venue_name
     assert_equal 2, agent.services.size
@@ -20,6 +21,7 @@ class ConciergePrefabDetailedTest < Minitest::Test
     agent = SignalWire::Prefabs::Concierge.new(
       venue_name: 'Test', services: ['test'], amenities: {}
     )
+
     assert_includes agent.tools, 'get_amenity_info'
     assert_includes agent.tools, 'get_service_info'
   end
@@ -31,6 +33,7 @@ class ConciergePrefabDetailedTest < Minitest::Test
       amenities: { 'pool' => { 'hours' => '7-10' } }
     )
     result = agent.handle_amenity_info({ 'amenity' => 'pool' }, {})
+
     assert_includes result.response, '7-10'
   end
 
@@ -40,6 +43,7 @@ class ConciergePrefabDetailedTest < Minitest::Test
       amenities: { 'pool' => 'Open daily' }
     )
     result = agent.handle_amenity_info({ 'amenity' => 'gym' }, {})
+
     assert_includes result.response, 'pool'
   end
 
@@ -50,6 +54,7 @@ class ConciergePrefabDetailedTest < Minitest::Test
       amenities: {}
     )
     result = agent.handle_service_info({ 'service' => 'room' }, {})
+
     assert_includes result.response, 'room service'
   end
 
@@ -58,6 +63,7 @@ class ConciergePrefabDetailedTest < Minitest::Test
       venue_name: 'Hotel', services: ['spa'], amenities: {}
     )
     data = agent.global_data
+
     assert_equal 'Hotel', data['venue_name']
     assert_includes data['services'], 'spa'
   end

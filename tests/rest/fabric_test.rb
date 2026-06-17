@@ -11,6 +11,7 @@ class RestFabricDetailedTest < Minitest::Test
       project: 'proj', token: 'tok', host: 'test.signalwire.com'
     )
     fabric = client.fabric
+
     refute_nil fabric.swml_scripts
     refute_nil fabric.relay_applications
     refute_nil fabric.call_flows
@@ -47,6 +48,7 @@ class RestFabricDetailedTest < Minitest::Test
       http, '/api/fabric/resources'
     )
     stderr = capture_warn { resources.assign_phone_route('r-1', phone_number: '+15551234567') }
+
     assert_match(/DEPRECATION/, stderr)
     assert_match(/phone_numbers\.set_swml_webhook/, stderr)
     # But the method still works -- call actually went through.
@@ -62,6 +64,7 @@ class RestFabricDetailedTest < Minitest::Test
     stderr = capture_warn do
       webhook.create(name: 'x', primary_request_url: 'https://example.com/swml')
     end
+
     assert_match(/DEPRECATION/, stderr)
     assert_match(/phone_numbers\.set_swml_webhook/, stderr)
     # Still works.
@@ -77,6 +80,7 @@ class RestFabricDetailedTest < Minitest::Test
     stderr = capture_warn do
       webhook.create(name: 'x', primary_request_url: 'https://example.com/cxml')
     end
+
     assert_match(/DEPRECATION/, stderr)
     assert_match(/phone_numbers\.set_cxml_webhook/, stderr)
     assert_equal 'POST', http.last[:method]
@@ -91,6 +95,7 @@ class RestFabricDetailedTest < Minitest::Test
       http, '/api/fabric/resources/swml_webhooks'
     )
     stderr = capture_warn { webhook.list }
+
     assert_equal '', stderr
   end
 
@@ -100,6 +105,7 @@ class RestFabricDetailedTest < Minitest::Test
       http, '/api/fabric/resources/swml_webhooks'
     )
     stderr = capture_warn { webhook.delete('r-1') }
+
     assert_equal '', stderr
   end
 

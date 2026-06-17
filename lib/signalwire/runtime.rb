@@ -36,22 +36,22 @@ module SignalWire
       return :cgi if ENV['GATEWAY_INTERFACE'] && !ENV['GATEWAY_INTERFACE'].empty?
 
       # AWS Lambda
-      if (ENV['AWS_LAMBDA_FUNCTION_NAME'] && !ENV['AWS_LAMBDA_FUNCTION_NAME'].empty?) ||
-         (ENV['LAMBDA_TASK_ROOT'] && !ENV['LAMBDA_TASK_ROOT'].empty?)
+      if (ENV.fetch('AWS_LAMBDA_FUNCTION_NAME', nil) && !ENV['AWS_LAMBDA_FUNCTION_NAME'].empty?) ||
+         (ENV.fetch('LAMBDA_TASK_ROOT', nil) && !ENV['LAMBDA_TASK_ROOT'].empty?)
         return :lambda
       end
 
       # Google Cloud Functions / Cloud Run
-      if (ENV['FUNCTION_TARGET'] && !ENV['FUNCTION_TARGET'].empty?) ||
-         (ENV['K_SERVICE'] && !ENV['K_SERVICE'].empty?) ||
-         (ENV['GOOGLE_CLOUD_PROJECT'] && !ENV['GOOGLE_CLOUD_PROJECT'].empty?)
+      if (ENV.fetch('FUNCTION_TARGET', nil) && !ENV['FUNCTION_TARGET'].empty?) ||
+         (ENV.fetch('K_SERVICE', nil) && !ENV['K_SERVICE'].empty?) ||
+         (ENV.fetch('GOOGLE_CLOUD_PROJECT', nil) && !ENV['GOOGLE_CLOUD_PROJECT'].empty?)
         return :google_cloud_function
       end
 
       # Azure Functions
-      if (ENV['AZURE_FUNCTIONS_ENVIRONMENT'] && !ENV['AZURE_FUNCTIONS_ENVIRONMENT'].empty?) ||
-         (ENV['FUNCTIONS_WORKER_RUNTIME'] && !ENV['FUNCTIONS_WORKER_RUNTIME'].empty?) ||
-         (ENV['AzureWebJobsStorage'] && !ENV['AzureWebJobsStorage'].empty?)
+      if (ENV.fetch('AZURE_FUNCTIONS_ENVIRONMENT', nil) && !ENV['AZURE_FUNCTIONS_ENVIRONMENT'].empty?) ||
+         (ENV.fetch('FUNCTIONS_WORKER_RUNTIME', nil) && !ENV['FUNCTIONS_WORKER_RUNTIME'].empty?) ||
+         (ENV.fetch('AzureWebJobsStorage', nil) && !ENV['AzureWebJobsStorage'].empty?)
         return :azure_function
       end
 
@@ -68,8 +68,7 @@ module SignalWire
     # @return [Boolean]
     def self.serverless?
       mode = execution_mode
-      mode == :lambda || mode == :cgi ||
-        mode == :google_cloud_function || mode == :azure_function
+      %i[lambda cgi google_cloud_function azure_function].include?(mode)
     end
 
     # Construct the base URL for the current Lambda function.
@@ -83,13 +82,13 @@ module SignalWire
     #
     # @return [String, nil]
     def self.lambda_base_url
-      explicit = ENV['AWS_LAMBDA_FUNCTION_URL']
+      explicit = ENV.fetch('AWS_LAMBDA_FUNCTION_URL', nil)
       return explicit.chomp('/') if explicit && !explicit.empty?
 
-      function_name = ENV['AWS_LAMBDA_FUNCTION_NAME']
+      function_name = ENV.fetch('AWS_LAMBDA_FUNCTION_NAME', nil)
       return nil if function_name.nil? || function_name.empty?
 
-      region = ENV['AWS_REGION']
+      region = ENV.fetch('AWS_REGION', nil)
       region = 'us-east-1' if region.nil? || region.empty?
 
       "https://#{function_name}.lambda-url.#{region}.on.aws"

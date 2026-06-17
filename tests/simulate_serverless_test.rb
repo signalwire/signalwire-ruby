@@ -30,7 +30,7 @@ module SimulateServerlessTestHelpers
   # at the given route, plus one tool per entry in `tools`. Each tool is
   # a hash: { name:, description:, block: ->(args, raw) { ... } }.
   # Returns the Tempfile (caller is responsible for unlinking).
-  def write_agent_file(route:, auth: ['u', 'p'], tools: default_tools, extra: '')
+  def write_agent_file(route:, auth: %w[u p], tools: default_tools, extra: '')
     file = Tempfile.new(['agent', '.rb'])
     file.write(<<~RUBY)
       require 'signalwire'
@@ -115,22 +115,22 @@ class SimulatorEnvLifecycleTest < Minitest::Test
   include SimulateServerlessTestHelpers
 
   def test_activate_sets_lambda_env_vars
-    assert_nil ENV['AWS_LAMBDA_FUNCTION_NAME']
+    assert_nil ENV.fetch('AWS_LAMBDA_FUNCTION_NAME', nil)
 
     with_simulator do
-      refute_nil ENV['AWS_LAMBDA_FUNCTION_NAME'],
+      refute_nil ENV.fetch('AWS_LAMBDA_FUNCTION_NAME', nil),
                  'AWS_LAMBDA_FUNCTION_NAME should be set during simulation'
-      refute_nil ENV['LAMBDA_TASK_ROOT'],
+      refute_nil ENV.fetch('LAMBDA_TASK_ROOT', nil),
                  'LAMBDA_TASK_ROOT should be set during simulation'
-      refute_nil ENV['AWS_REGION'],
+      refute_nil ENV.fetch('AWS_REGION', nil),
                  'AWS_REGION should be set during simulation'
       assert_equal :lambda, SignalWire::Runtime.execution_mode
     end
 
     # After deactivate, everything should be back to unset.
-    assert_nil ENV['AWS_LAMBDA_FUNCTION_NAME']
-    assert_nil ENV['LAMBDA_TASK_ROOT']
-    assert_nil ENV['AWS_REGION']
+    assert_nil ENV.fetch('AWS_LAMBDA_FUNCTION_NAME', nil)
+    assert_nil ENV.fetch('LAMBDA_TASK_ROOT', nil)
+    assert_nil ENV.fetch('AWS_REGION', nil)
     assert_equal :server, SignalWire::Runtime.execution_mode
   end
 
@@ -139,23 +139,23 @@ class SimulatorEnvLifecycleTest < Minitest::Test
 
     with_simulator do
       # Simulator replaces it with its preset
-      refute_equal 'pre-existing', ENV['AWS_LAMBDA_FUNCTION_NAME']
+      refute_equal 'pre-existing', ENV.fetch('AWS_LAMBDA_FUNCTION_NAME', nil)
     end
 
     # And restores the caller's original value
-    assert_equal 'pre-existing', ENV['AWS_LAMBDA_FUNCTION_NAME']
+    assert_equal 'pre-existing', ENV.fetch('AWS_LAMBDA_FUNCTION_NAME', nil)
   end
 
   def test_activate_clears_swml_proxy_url_base
     ENV['SWML_PROXY_URL_BASE'] = 'https://proxy.example.com'
 
     with_simulator do
-      assert_nil ENV['SWML_PROXY_URL_BASE'],
+      assert_nil ENV.fetch('SWML_PROXY_URL_BASE', nil),
                  'SWML_PROXY_URL_BASE must be cleared during simulation so Lambda URL takes effect'
     end
 
     # Outer value must come back afterwards
-    assert_equal 'https://proxy.example.com', ENV['SWML_PROXY_URL_BASE']
+    assert_equal 'https://proxy.example.com', ENV.fetch('SWML_PROXY_URL_BASE', nil)
   end
 
   def test_env_restored_when_block_raises
@@ -166,15 +166,15 @@ class SimulatorEnvLifecycleTest < Minitest::Test
       sim = SwaigTest::ServerlessSimulator.new('lambda')
       sim.with_simulation do
         # Simulator is active; sanity-check then raise
-        refute_equal 'outer-value', ENV['AWS_LAMBDA_FUNCTION_NAME']
-        assert_nil ENV['SWML_PROXY_URL_BASE']
+        refute_equal 'outer-value', ENV.fetch('AWS_LAMBDA_FUNCTION_NAME', nil)
+        assert_nil ENV.fetch('SWML_PROXY_URL_BASE', nil)
         raise 'boom'
       end
     end
 
     # ensure-path restoration
-    assert_equal 'outer-value',               ENV['AWS_LAMBDA_FUNCTION_NAME']
-    assert_equal 'https://outer.example.com', ENV['SWML_PROXY_URL_BASE']
+    assert_equal 'outer-value',               ENV.fetch('AWS_LAMBDA_FUNCTION_NAME', nil)
+    assert_equal 'https://outer.example.com', ENV.fetch('SWML_PROXY_URL_BASE', nil)
   end
 end
 
@@ -201,6 +201,7 @@ class SimulateLambdaDumpSwmlTest < Minitest::Test
     assert_equal :ok, status, "CLI exited non-zero: #{err}"
     swml = JSON.parse(out)
     url = swml['sections']['main'].find { |v| v.key?('ai') }['ai']['SWAIG']['defaults']['web_hook_url']
+
     assert_includes url, 'lambda-url.us-east-1.on.aws',
                     'simulator must drive the Lambda base URL'
     assert_includes url, '/swaig'
@@ -219,6 +220,7 @@ class SimulateLambdaDumpSwmlTest < Minitest::Test
     assert_equal :ok, status, "CLI exited non-zero: #{err}"
     swml = JSON.parse(out)
     url = swml['sections']['main'].find { |v| v.key?('ai') }['ai']['SWAIG']['defaults']['web_hook_url']
+
     assert_includes url, '/my-agent/swaig',
                     "expected '/my-agent/swaig' in webhook URL, got #{url.inspect}"
     refute_match %r{lambda-url\.[^/]+/swaig$}, url,
@@ -247,7 +249,7 @@ class SimulateLambdaDumpSwmlTest < Minitest::Test
                  "expected Lambda-style URL with route, got #{url.inspect}"
 
     # And the outer env var must be restored by the time the CLI exits.
-    assert_equal 'https://outer-proxy.example.com', ENV['SWML_PROXY_URL_BASE'],
+    assert_equal 'https://outer-proxy.example.com', ENV.fetch('SWML_PROXY_URL_BASE', nil),
                  'outer SWML_PROXY_URL_BASE must be restored after CLI completes'
   end
 
@@ -262,6 +264,7 @@ class SimulateLambdaDumpSwmlTest < Minitest::Test
 
     assert_equal :ok, status, "CLI exited non-zero: #{err}"
     parsed = JSON.parse(out)
+
     assert parsed['sections']['main'].any? { |v| v.key?('ai') },
            'default render path should emit a SWML document with an ai verb'
   end
@@ -290,6 +293,7 @@ class SimulateLambdaExecTest < Minitest::Test
 
     assert_equal :ok, status, "CLI exited non-zero: #{err}"
     result = JSON.parse(out)
+
     assert_equal 'echo: hello', result['response']
   end
 
@@ -303,6 +307,7 @@ class SimulateLambdaExecTest < Minitest::Test
 
     assert_equal :ok, status, "CLI exited non-zero: #{err}"
     result = JSON.parse(out)
+
     assert_equal 'echo: routed', result['response']
   end
 
@@ -314,10 +319,10 @@ class SimulateLambdaExecTest < Minitest::Test
     @agent_file = write_agent_file(
       route: '/',
       tools: [{
-        name:        'boom',
+        name: 'boom',
         description: 'Always raises',
-        parameters:  {},
-        body:        "raise 'simulated tool failure'"
+        parameters: {},
+        body: "raise 'simulated tool failure'"
       }]
     )
 
@@ -329,8 +334,8 @@ class SimulateLambdaExecTest < Minitest::Test
        '--exec', 'boom', '--raw']
     )
 
-    assert_equal 'outer-func',                ENV['AWS_LAMBDA_FUNCTION_NAME']
-    assert_equal 'https://outer.example.com', ENV['SWML_PROXY_URL_BASE']
+    assert_equal 'outer-func',                ENV.fetch('AWS_LAMBDA_FUNCTION_NAME', nil)
+    assert_equal 'https://outer.example.com', ENV.fetch('SWML_PROXY_URL_BASE', nil)
   end
 end
 
@@ -350,7 +355,7 @@ class SimulateServerlessPlatformValidationTest < Minitest::Test
   def test_gcf_is_rejected_with_clear_error
     @agent_file = write_agent_file(route: '/')
 
-    out, err, status = capture_cli(
+    _, err, status = capture_cli(
       [@agent_file.path, '--simulate-serverless', 'gcf', '--dump-swml']
     )
 

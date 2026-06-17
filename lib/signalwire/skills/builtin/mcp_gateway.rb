@@ -12,8 +12,8 @@ module SignalWire
     module Builtin
       # Bridge MCP servers with SWAIG functions.
       class McpGatewaySkill < SkillBase
-        def name;        'mcp_gateway'; end
-        def description; 'Bridge MCP servers with SWAIG functions'; end
+        def name = 'mcp_gateway'
+        def description = 'Bridge MCP servers with SWAIG functions'
 
         def setup
           @gateway_url   = get_param('gateway_url')
@@ -22,7 +22,7 @@ module SignalWire
           @auth_password = get_param('auth_password')
           @services      = get_param('services') || []
           @tool_prefix   = get_param('tool_prefix', default: 'mcp_')
-          @timeout       = (get_param('request_timeout', default: 30)).to_i
+          @timeout       = get_param('request_timeout', default: 30).to_i
 
           return false unless @gateway_url && !@gateway_url.empty?
 
@@ -53,8 +53,8 @@ module SignalWire
         def get_global_data
           {
             'mcp_gateway_url' => @gateway_url,
-            'mcp_session_id'  => nil,
-            'mcp_services'    => @services
+            'mcp_session_id' => nil,
+            'mcp_services' => @services
           }
         end
 
@@ -71,12 +71,12 @@ module SignalWire
 
         def get_parameter_schema
           {
-            'gateway_url'     => { 'type' => 'string', 'required' => true },
-            'auth_token'      => { 'type' => 'string', 'hidden' => true },
-            'auth_user'       => { 'type' => 'string' },
-            'auth_password'   => { 'type' => 'string', 'hidden' => true },
-            'services'        => { 'type' => 'array' },
-            'tool_prefix'     => { 'type' => 'string', 'default' => 'mcp_' },
+            'gateway_url' => { 'type' => 'string', 'required' => true },
+            'auth_token' => { 'type' => 'string', 'hidden' => true },
+            'auth_user' => { 'type' => 'string' },
+            'auth_password' => { 'type' => 'string', 'hidden' => true },
+            'services' => { 'type' => 'array' },
+            'tool_prefix' => { 'type' => 'string', 'default' => 'mcp_' },
             'request_timeout' => { 'type' => 'integer', 'default' => 30 }
           }
         end
@@ -87,7 +87,7 @@ module SignalWire
           # In a real implementation, this would query the MCP gateway for available tools.
           # For the port, we return an empty list since we don't have a gateway to query.
           []
-        rescue => _e
+        rescue StandardError => _e
           []
         end
 
@@ -108,7 +108,7 @@ module SignalWire
           resp = http.request(req)
           data = JSON.parse(resp.body)
           Swaig::FunctionResult.new(data['result'] || data.to_json)
-        rescue => e
+        rescue StandardError => e
           Swaig::FunctionResult.new("MCP tool error: #{e.message}")
         end
       end

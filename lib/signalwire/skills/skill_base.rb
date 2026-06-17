@@ -21,15 +21,15 @@ module SignalWire
       #   pulled out of ``params`` if provided
       attr_reader :params, :agent, :logger, :swaig_fields
 
-      def name;                       raise NotImplementedError, "#{self.class}#name"; end
-      def description;                raise NotImplementedError, "#{self.class}#description"; end
-      def version;                    '1.0.0'; end
-      def required_env_vars;          []; end
+      def name = raise(NotImplementedError, "#{self.class}#name")
+      def description = raise(NotImplementedError, "#{self.class}#description")
+      def version = '1.0.0'
+      def required_env_vars = []
       # Python parity: ``REQUIRED_PACKAGES``. The gem names this skill
       # needs loadable before it can run; consumed by {#validate_packages}.
-      def required_packages;          []; end
-      private :required_packages  # internal hook (mirrors Python REQUIRED_PACKAGES attr); not on the public surface
-      def supports_multiple_instances?; false; end
+      def required_packages = []
+      private :required_packages # internal hook (mirrors Python REQUIRED_PACKAGES attr); not on the public surface
+      def supports_multiple_instances? = false
 
       # Python parity: ``SkillBase.__init__(self, agent, params=None)``.
       # First positional arg is the owning AgentBase (or nil for
@@ -53,29 +53,29 @@ module SignalWire
       end
 
       # Called once after construction. Return +true+ if the skill is ready.
-      def setup; true; end
+      def setup = true
 
       # Return an Array of tool definition hashes. Each hash should have:
       #   :name, :description, :parameters, :handler (lambda/proc)
-      def register_tools; []; end
+      def register_tools = []
 
       # Speech recognition hints.
-      def get_hints; []; end
+      def get_hints = []
 
       # Global data to merge into the agent.
-      def get_global_data; {}; end
+      def get_global_data = {}
 
       # Prompt sections to add to the agent.
-      def get_prompt_sections; []; end
+      def get_prompt_sections = []
 
       # Called when the skill is unloaded.
       def cleanup; end
 
       # Unique key for tracking this skill instance.
-      def instance_key; name; end
+      def instance_key = name
 
       # Parameter schema for GUI / validation.
-      def get_parameter_schema; {}; end
+      def get_parameter_schema = {}
 
       # Read this skill instance's namespaced data out of a raw_data hash.
       #
@@ -116,7 +116,7 @@ module SignalWire
       #
       # @return [Boolean]
       def validate_env_vars
-        missing = required_env_vars.reject { |var| ENV[var] && !ENV[var].empty? }
+        missing = required_env_vars.reject { |var| ENV.fetch(var, nil) && !ENV[var].empty? }
         unless missing.empty?
           @logger&.error("Missing required environment variables: #{missing.inspect}")
           return false
@@ -135,12 +135,10 @@ module SignalWire
       # @return [Boolean]
       def validate_packages
         missing = required_packages.reject do |package|
-          begin
-            require package
-            true
-          rescue LoadError
-            false
-          end
+          require package
+          true
+        rescue LoadError
+          false
         end
         unless missing.empty?
           @logger&.error("Missing required packages: #{missing.inspect}")
@@ -151,7 +149,7 @@ module SignalWire
 
       # Helper to get a param with env-var fallback.
       def get_param(key, env_var: nil, default: nil)
-        @params[key.to_s] || @params[key.to_sym.to_s] || (env_var && ENV[env_var]) || default
+        @params[key.to_s] || @params[key.to_sym.to_s] || (env_var && ENV.fetch(env_var, nil)) || default
       end
 
       private

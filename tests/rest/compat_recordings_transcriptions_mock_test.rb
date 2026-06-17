@@ -28,6 +28,7 @@ class CompatRecordingsTranscriptionsMockTest < Minitest::Test
 
   def test_recordings_list_returns_paginated
     result = @client.compat.recordings.list
+
     assert_kind_of Hash, result
     assert(result.key?('recordings'),
            "expected 'recordings' key, got #{result.keys.sort.inspect}")
@@ -37,6 +38,7 @@ class CompatRecordingsTranscriptionsMockTest < Minitest::Test
   def test_recordings_list_journal_records_get
     @client.compat.recordings.list
     j = MockTest.journal.last
+
     assert_equal 'GET', j.method
     assert_equal "#{ACCOUNT_BASE}/Recordings", j.path
   end
@@ -45,6 +47,7 @@ class CompatRecordingsTranscriptionsMockTest < Minitest::Test
 
   def test_recordings_get_returns_recording_resource
     result = @client.compat.recordings.get('RE_TEST')
+
     assert_kind_of Hash, result
     assert(result.key?('sid') || result.key?('call_sid'),
            "expected sid/call_sid, got #{result.keys.sort.inspect}")
@@ -53,6 +56,7 @@ class CompatRecordingsTranscriptionsMockTest < Minitest::Test
   def test_recordings_get_journal_records_get_with_sid
     @client.compat.recordings.get('RE_GET')
     j = MockTest.journal.last
+
     assert_equal 'GET', j.method
     assert_equal "#{ACCOUNT_BASE}/Recordings/RE_GET", j.path
   end
@@ -61,12 +65,14 @@ class CompatRecordingsTranscriptionsMockTest < Minitest::Test
 
   def test_recordings_delete_no_exception
     result = @client.compat.recordings.delete('RE_D')
+
     assert_kind_of Hash, result
   end
 
   def test_recordings_delete_journal_records_delete
     @client.compat.recordings.delete('RE_DEL')
     j = MockTest.journal.last
+
     assert_equal 'DELETE', j.method
     assert_equal "#{ACCOUNT_BASE}/Recordings/RE_DEL", j.path
   end
@@ -75,6 +81,7 @@ class CompatRecordingsTranscriptionsMockTest < Minitest::Test
 
   def test_transcriptions_list_returns_paginated
     result = @client.compat.transcriptions.list
+
     assert_kind_of Hash, result
     assert(result.key?('transcriptions'),
            "expected 'transcriptions' key, got #{result.keys.sort.inspect}")
@@ -84,6 +91,7 @@ class CompatRecordingsTranscriptionsMockTest < Minitest::Test
   def test_transcriptions_list_journal_records_get
     @client.compat.transcriptions.list
     j = MockTest.journal.last
+
     assert_equal 'GET', j.method
     assert_equal "#{ACCOUNT_BASE}/Transcriptions", j.path
   end
@@ -92,6 +100,7 @@ class CompatRecordingsTranscriptionsMockTest < Minitest::Test
 
   def test_transcriptions_get_returns_transcription_resource
     result = @client.compat.transcriptions.get('TR_TEST')
+
     assert_kind_of Hash, result
     assert(result.key?('sid') || result.key?('duration'),
            "expected sid/duration, got #{result.keys.sort.inspect}")
@@ -100,6 +109,7 @@ class CompatRecordingsTranscriptionsMockTest < Minitest::Test
   def test_transcriptions_get_journal_records_get_with_sid
     @client.compat.transcriptions.get('TR_GET')
     j = MockTest.journal.last
+
     assert_equal 'GET', j.method
     assert_equal "#{ACCOUNT_BASE}/Transcriptions/TR_GET", j.path
   end
@@ -108,12 +118,14 @@ class CompatRecordingsTranscriptionsMockTest < Minitest::Test
 
   def test_transcriptions_delete_no_exception
     result = @client.compat.transcriptions.delete('TR_D')
+
     assert_kind_of Hash, result
   end
 
   def test_transcriptions_delete_journal_records_delete
     @client.compat.transcriptions.delete('TR_DEL')
     j = MockTest.journal.last
+
     assert_equal 'DELETE', j.method
     assert_equal "#{ACCOUNT_BASE}/Transcriptions/TR_DEL", j.path
   end

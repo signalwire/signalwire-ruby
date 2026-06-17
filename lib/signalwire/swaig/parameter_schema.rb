@@ -257,7 +257,7 @@ module SignalWire
       # @return [Hash]
       def to_h
         schema = {
-          'type'       => OBJECT,
+          'type' => OBJECT,
           'properties' => @properties
         }
         schema['required'] = @required unless @required.empty?
@@ -266,8 +266,8 @@ module SignalWire
       alias to_hash to_h
 
       # @return [String] JSON serialization of {#to_h}
-      def to_json(*args)
-        to_h.to_json(*args)
+      def to_json(*)
+        to_h.to_json(*)
       end
 
       private

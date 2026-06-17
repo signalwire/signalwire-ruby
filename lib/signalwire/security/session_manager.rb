@@ -76,7 +76,7 @@ module SignalWire
         return false if call_id.nil? || call_id.empty?
 
         decoded = Base64.urlsafe_decode64(token)
-        parts   = decoded.split(".")
+        parts   = decoded.split('.')
         return false unless parts.length == 5
 
         token_call_id, token_function, token_expiry, token_nonce, token_signature = parts
@@ -92,7 +92,7 @@ module SignalWire
         return false if expiry < Time.now.to_i
 
         # Recompute HMAC and compare with timing-safe comparison
-        message           = "#{token_call_id}:#{token_function}:#{token_expiry}:#{token_nonce}"
+        message = "#{token_call_id}:#{token_function}:#{token_expiry}:#{token_nonce}"
         expected_signature = compute_hmac(message)
 
         secure_compare(token_signature, expected_signature)
@@ -179,15 +179,15 @@ module SignalWire
       # @param token [String]
       # @return [Hash] decoded components/status, or an error/malformed hash
       def debug_token(token)
-        return { "error" => "debug mode not enabled" } unless @debug_mode
+        return { 'error' => 'debug mode not enabled' } unless @debug_mode
 
         decoded = Base64.urlsafe_decode64(token)
-        parts   = decoded.split(".")
+        parts   = decoded.split('.')
         unless parts.length == 5
           return {
-            "valid_format" => false,
-            "parts_count"  => parts.length,
-            "token_length" => token ? token.length : 0,
+            'valid_format' => false,
+            'parts_count' => parts.length,
+            'token_length' => token ? token.length : 0
           }
         end
 
@@ -200,33 +200,33 @@ module SignalWire
           expires_in  = is_expired ? 0 : expiry - current_time
           expiry_date = Time.at(expiry).iso8601
         rescue ArgumentError, TypeError
-          expiry      = nil
+          nil
           is_expired  = nil
           expires_in  = nil
           expiry_date = nil
         end
 
         {
-          "valid_format" => true,
-          "components" => {
-            "call_id"     => truncate(token_call_id),
-            "function"    => token_function,
-            "expiry"      => token_expiry,
-            "expiry_date" => expiry_date,
-            "nonce"       => token_nonce,
-            "signature"   => truncate(token_signature),
+          'valid_format' => true,
+          'components' => {
+            'call_id' => truncate(token_call_id),
+            'function' => token_function,
+            'expiry' => token_expiry,
+            'expiry_date' => expiry_date,
+            'nonce' => token_nonce,
+            'signature' => truncate(token_signature)
           },
-          "status" => {
-            "current_time"       => current_time,
-            "is_expired"         => is_expired,
-            "expires_in_seconds" => expires_in,
-          },
+          'status' => {
+            'current_time' => current_time,
+            'is_expired' => is_expired,
+            'expires_in_seconds' => expires_in
+          }
         }
       rescue ArgumentError, TypeError => e
         {
-          "valid_format" => false,
-          "error"        => e.message,
-          "token_length" => token ? token.length : 0,
+          'valid_format' => false,
+          'error' => e.message,
+          'token_length' => token ? token.length : 0
         }
       end
 
@@ -241,7 +241,7 @@ module SignalWire
       # Compute HMAC-SHA256 of +message+ using the instance secret key.
       # @return [String] hex digest
       def compute_hmac(message)
-        OpenSSL::HMAC.hexdigest("SHA256", @secret_key, message)
+        OpenSSL::HMAC.hexdigest('SHA256', @secret_key, message)
       end
 
       # Timing-safe string comparison.
@@ -261,8 +261,8 @@ module SignalWire
       rescue NoMethodError
         # Fallback for older Ruby without fixed_length_secure_compare:
         # compare HMAC of both values so timing doesn't leak content.
-        ha = OpenSSL::HMAC.digest("SHA256", @secret_key, a.to_s)
-        hb = OpenSSL::HMAC.digest("SHA256", @secret_key, b.to_s)
+        ha = OpenSSL::HMAC.digest('SHA256', @secret_key, a.to_s)
+        hb = OpenSSL::HMAC.digest('SHA256', @secret_key, b.to_s)
         ha == hb
       end
     end

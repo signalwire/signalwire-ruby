@@ -12,6 +12,7 @@ class InfoGathererPrefabDetailedTest < Minitest::Test
         { 'key_name' => 'email', 'question_text' => 'What is your email?' }
       ]
     )
+
     assert_equal 'info_gatherer', agent.name
     assert_equal '/info_gatherer', agent.route
     assert_equal 2, agent.questions.size
@@ -21,6 +22,7 @@ class InfoGathererPrefabDetailedTest < Minitest::Test
     agent = SignalWire::Prefabs::InfoGatherer.new(
       questions: [{ 'key_name' => 'name', 'question_text' => 'Name?' }]
     )
+
     assert_includes agent.tools, 'start_questions'
     assert_includes agent.tools, 'submit_answer'
   end
@@ -30,6 +32,7 @@ class InfoGathererPrefabDetailedTest < Minitest::Test
       questions: [{ 'key_name' => 'name', 'question_text' => 'What is your name?' }]
     )
     result = agent.handle_start({}, {})
+
     assert_match(/What is your name/, result.response)
   end
 
@@ -38,6 +41,7 @@ class InfoGathererPrefabDetailedTest < Minitest::Test
       questions: [{ 'key_name' => 'name', 'question_text' => 'Name?' }]
     )
     result = agent.handle_submit({ 'answer' => 'Alice' }, {})
+
     assert_includes result.response, 'Alice'
   end
 
@@ -50,6 +54,7 @@ class InfoGathererPrefabDetailedTest < Minitest::Test
       questions: [{ 'key_name' => 'name', 'question_text' => 'Name?' }]
     )
     sections = agent.prompt_sections
+
     assert_equal 1, sections.size
     assert_equal 'Info Gatherer', sections[0]['title']
   end
@@ -59,6 +64,7 @@ class InfoGathererPrefabDetailedTest < Minitest::Test
       questions: [{ 'key_name' => 'name', 'question_text' => 'Name?' }]
     )
     data = agent.global_data
+
     assert data.key?('info_gatherer')
     assert_equal 0, data['info_gatherer']['question_index']
   end
@@ -68,6 +74,7 @@ class InfoGathererPrefabDetailedTest < Minitest::Test
       questions: [{ 'key_name' => 'name', 'question_text' => 'Name?' }],
       name: 'custom', route: '/custom'
     )
+
     assert_equal 'custom', agent.name
     assert_equal '/custom', agent.route
   end

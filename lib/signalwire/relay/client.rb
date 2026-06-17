@@ -68,16 +68,14 @@ module SignalWire
 
         # Python parity: max_active_calls override + RELAY_MAX_ACTIVE_CALLS env.
         if max_active_calls.nil?
-          env_val = ENV['RELAY_MAX_ACTIVE_CALLS']
+          env_val = ENV.fetch('RELAY_MAX_ACTIVE_CALLS', nil)
           @max_active_calls = env_val && !env_val.empty? ? Integer(env_val) : nil
         else
           @max_active_calls = [1, Integer(max_active_calls)].max
         end
 
         raise ArgumentError, 'project is required' if @project_id.empty?
-        if @token.empty? && @jwt_token.nil?
-          raise ArgumentError, 'token or jwt_token is required'
-        end
+        raise ArgumentError, 'token or jwt_token is required' if @token.empty? && @jwt_token.nil?
         raise ArgumentError, 'host is required' if @space.empty?
 
         @host = @space.include?('.') ? @space : "#{@space}.signalwire.com"
@@ -172,8 +170,8 @@ module SignalWire
         while @running
           begin
             _connect_and_run
-          rescue => e
-            $stderr.puts "[RELAY] Connection error: #{e.message}"
+          rescue StandardError => e
+            warn "[RELAY] Connection error: #{e.message}"
           end
           break unless @running
 
@@ -181,7 +179,7 @@ module SignalWire
           _reject_all_pending('Disconnected')
 
           # Exponential backoff reconnect
-          $stderr.puts "[RELAY] Reconnecting in #{@reconnect_delay}s..."
+          warn "[RELAY] Reconnecting in #{@reconnect_delay}s..."
           sleep(@reconnect_delay)
           @reconnect_delay = [
             @reconnect_delay * RECONNECT_BACKOFF_FACTOR,
@@ -221,7 +219,7 @@ module SignalWire
           params = { 'tag' => dial_tag, 'devices' => devices }
           kwargs.each { |k, v| params[k.to_s] = v }
           execute('calling.dial', params)
-        rescue => e
+        rescue StandardError
           @dials_mutex.synchronize { @pending_dials.delete(dial_tag) }
           raise
         end
@@ -241,6 +239,7 @@ module SignalWire
 
         @dials_mutex.synchronize { @pending_dials.delete(dial_tag) }
         raise RelayError.new(-1, entry[:error]) if entry[:error]
+
         entry[:call]
       end
 
@@ -254,14 +253,12 @@ module SignalWire
       # exactly. At least one of body: or media: is required.
       def send_message(to_number:, from_number:, context: nil, body: nil,
                        media: nil, tags: nil, region: nil, on_completed: nil)
-        if (body.nil? || body.empty?) && (media.nil? || media.empty?)
-          raise ArgumentError, 'body or media is required'
-        end
+        raise ArgumentError, 'body or media is required' if (body.nil? || body.empty?) && (media.nil? || media.empty?)
 
         msg_context = context || @contexts.first || 'default'
         params = {
-          'context'     => msg_context,
-          'to_number'   => to_number,
+          'context' => msg_context,
+          'to_number' => to_number,
           'from_number' => from_number
         }
         params['body']   = body   if body
@@ -273,15 +270,15 @@ module SignalWire
         message_id = result['message_id'] || ''
 
         msg = Message.new(
-          message_id:  message_id,
-          context:     msg_context,
-          direction:   'outbound',
+          message_id: message_id,
+          context: msg_context,
+          direction: 'outbound',
           from_number: from_number,
-          to_number:   to_number,
-          body:        body || '',
-          media:       media || [],
-          state:       'queued',
-          tags:        tags || []
+          to_number: to_number,
+          body: body || '',
+          media: media || [],
+          state: 'queued',
+          tags: tags || []
         )
         msg._set_on_completed(on_completed) if on_completed
         @messages_mutex.synchronize { @messages[message_id] = msg } unless message_id.empty?
@@ -317,9 +314,9 @@ module SignalWire
 
         msg = {
           'jsonrpc' => '2.0',
-          'id'      => id,
-          'method'  => method,
-          'params'  => params
+          'id' => id,
+          'method' => method,
+          'params' => params
         }
 
         entry = { mutex: Mutex.new, cv: ConditionVariable.new, result: nil, error: nil }
@@ -348,9 +345,7 @@ module SignalWire
         # Check result code for non-connect methods
         if method != METHOD_SIGNALWIRE_CONNECT
           code = result['code']
-          if code && !code.to_s.match?(/\A2\d\d\z/)
-            raise RelayError.new(code, result['message'] || 'Unknown error')
-          end
+          raise RelayError.new(code, result['message'] || 'Unknown error') if code && !code.to_s.match?(/\A2\d\d\z/)
         end
 
         result
@@ -368,10 +363,10 @@ module SignalWire
         # SIGNALWIRE_RELAY_HOST and SIGNALWIRE_RELAY_SCHEME env vars let
         # the audit harness redirect the client there without touching the
         # production credential resolution.
-        scheme       = ENV['SIGNALWIRE_RELAY_SCHEME']
-        scheme       = scheme.nil? || scheme.empty? ? 'wss' : scheme
-        host_override = ENV['SIGNALWIRE_RELAY_HOST']
-        endpoint_host = (host_override.nil? || host_override.empty?) ? @host : host_override
+        scheme       = ENV.fetch('SIGNALWIRE_RELAY_SCHEME', nil)
+        scheme       = 'wss' if scheme.nil? || scheme.empty?
+        host_override = ENV.fetch('SIGNALWIRE_RELAY_HOST', nil)
+        endpoint_host = host_override.nil? || host_override.empty? ? @host : host_override
         url = "#{scheme}://#{endpoint_host}"
 
         # Secure-by-default WSS: websocket-client-simple leaves a fresh
@@ -435,9 +430,7 @@ module SignalWire
         _authenticate
 
         # Keep reading until disconnected
-        while @running && @connected
-          sleep 1
-        end
+        sleep 1 while @running && @connected
       end
 
       # Build the TLS options hash for WebSocket::Client::Simple.connect.
@@ -459,7 +452,7 @@ module SignalWire
         require 'openssl'
         store = OpenSSL::X509::Store.new
         store.set_default_paths
-        ca_file = ENV['SIGNALWIRE_RELAY_SSL_CA_FILE']
+        ca_file = ENV.fetch('SIGNALWIRE_RELAY_SSL_CA_FILE', nil)
         store.add_file(ca_file) if ca_file && !ca_file.empty? && File.file?(ca_file)
 
         { verify_mode: OpenSSL::SSL::VERIFY_PEER, cert_store: store }
@@ -475,7 +468,7 @@ module SignalWire
         begin
           msg = JSON.parse(data)
         rescue JSON::ParserError => e
-          $stderr.puts "[RELAY] Failed to parse message: #{e.message}"
+          warn "[RELAY] Failed to parse message: #{e.message}"
           return
         end
 
@@ -500,8 +493,8 @@ module SignalWire
 
       def _authenticate
         params = {
-          'version'    => PROTOCOL_VERSION,
-          'agent'      => AGENT_STRING,
+          'version' => PROTOCOL_VERSION,
+          'agent' => AGENT_STRING,
           'event_acks' => true
         }
 
@@ -510,7 +503,7 @@ module SignalWire
         else
           params['authentication'] = {
             'project' => @project_id,
-            'token'   => @token
+            'token' => @token
           }
           # Audit fixtures and Blade-aware servers also accept the
           # credentials at the top level. Python's RELAY emits them in
@@ -599,8 +592,8 @@ module SignalWire
         if @on_event_handler
           begin
             @on_event_handler.call(event_type, event_params, outer_params)
-          rescue => e
-            $stderr.puts "[RELAY] Error in on_event handler: #{e.message}"
+          rescue StandardError => e
+            warn "[RELAY] Error in on_event handler: #{e.message}"
           end
         end
 
@@ -640,23 +633,21 @@ module SignalWire
           has_pending = @dials_mutex.synchronize { @pending_dials.key?(tag) }
           if !tag.empty? && has_pending
             has_call = @calls_mutex.synchronize { @calls.key?(call_id) }
-            unless has_call || call_id.empty?
-              _register_dial_leg(tag, event_params)
-            end
+            _register_dial_leg(tag, event_params) unless has_call || call_id.empty?
           end
           # Fall through to normal routing
         end
 
         # Normal routing by call_id
-        unless call_id.empty?
-          call = @calls_mutex.synchronize { @calls[call_id] }
-          if call
-            call._dispatch_event(outer_params)
-            if call.state == CALL_STATE_ENDED
-              @calls_mutex.synchronize { @calls.delete(call_id) }
-            end
-          end
-        end
+        return if call_id.empty?
+
+        call = @calls_mutex.synchronize { @calls[call_id] }
+        return unless call
+
+        call._dispatch_event(outer_params)
+        return unless call.state == CALL_STATE_ENDED
+
+        @calls_mutex.synchronize { @calls.delete(call_id) }
       end
 
       def _handle_disconnect(msg)
@@ -677,27 +668,25 @@ module SignalWire
         event_params = payload['params'] || {}
         call = Call.new(
           self,
-          call_id:    event_params['call_id'] || '',
-          node_id:    event_params['node_id'] || '',
+          call_id: event_params['call_id'] || '',
+          node_id: event_params['node_id'] || '',
           project_id: event_params['project_id'] || '',
-          context:    event_params['context'] || event_params['protocol'] || '',
-          tag:        event_params['tag'] || '',
-          direction:  event_params['direction'] || 'inbound',
-          device:     event_params['device'] || {},
-          state:      event_params['call_state'] || '',
+          context: event_params['context'] || event_params['protocol'] || '',
+          tag: event_params['tag'] || '',
+          direction: event_params['direction'] || 'inbound',
+          device: event_params['device'] || {},
+          state: event_params['call_state'] || '',
           segment_id: event_params['segment_id'] || ''
         )
 
         @calls_mutex.synchronize { @calls[call.call_id] = call }
 
-        if @on_call_handler
-          Thread.new do
-            begin
-              @on_call_handler.call(call)
-            rescue => e
-              $stderr.puts "[RELAY] Error in on_call handler: #{e.message}"
-            end
-          end
+        return unless @on_call_handler
+
+        Thread.new do
+          @on_call_handler.call(call)
+        rescue StandardError => e
+          warn "[RELAY] Error in on_call handler: #{e.message}"
         end
       end
 
@@ -719,13 +708,13 @@ module SignalWire
           unless call
             call = Call.new(
               self,
-              call_id:    call_id,
-              node_id:    node_id,
+              call_id: call_id,
+              node_id: node_id,
               project_id: @project_id,
-              tag:        call_info['tag'] || tag,
-              direction:  'outbound',
-              device:     call_info['device'] || {},
-              state:      CALL_STATE_ANSWERED
+              tag: call_info['tag'] || tag,
+              direction: 'outbound',
+              device: call_info['device'] || {},
+              state: CALL_STATE_ANSWERED
             )
             @calls_mutex.synchronize { @calls[call_id] = call }
           end
@@ -749,13 +738,13 @@ module SignalWire
 
         call = Call.new(
           self,
-          call_id:    call_id,
-          node_id:    event_params['node_id'] || '',
+          call_id: call_id,
+          node_id: event_params['node_id'] || '',
           project_id: @project_id,
-          tag:        tag,
-          direction:  'outbound',
-          device:     event_params['device'] || {},
-          state:      event_params['call_state'] || ''
+          tag: tag,
+          direction: 'outbound',
+          device: event_params['device'] || {},
+          state: event_params['call_state'] || ''
         )
         @calls_mutex.synchronize { @calls[call_id] = call }
       end
@@ -763,26 +752,24 @@ module SignalWire
       def _handle_inbound_message(payload)
         event_params = payload['params'] || {}
         msg = Message.new(
-          message_id:  event_params['message_id'] || '',
-          context:     event_params['context'] || '',
-          direction:   'inbound',
+          message_id: event_params['message_id'] || '',
+          context: event_params['context'] || '',
+          direction: 'inbound',
           from_number: event_params['from_number'] || '',
-          to_number:   event_params['to_number'] || '',
-          body:        event_params['body'] || '',
-          media:       event_params['media'] || [],
-          segments:    event_params['segments'] || 0,
-          state:       event_params['message_state'] || 'received',
-          tags:        event_params['tags'] || []
+          to_number: event_params['to_number'] || '',
+          body: event_params['body'] || '',
+          media: event_params['media'] || [],
+          segments: event_params['segments'] || 0,
+          state: event_params['message_state'] || 'received',
+          tags: event_params['tags'] || []
         )
 
-        if @on_message_handler
-          Thread.new do
-            begin
-              @on_message_handler.call(msg)
-            rescue => e
-              $stderr.puts "[RELAY] Error in on_message handler: #{e.message}"
-            end
-          end
+        return unless @on_message_handler
+
+        Thread.new do
+          @on_message_handler.call(msg)
+        rescue StandardError => e
+          warn "[RELAY] Error in on_message handler: #{e.message}"
         end
       end
 
@@ -796,9 +783,9 @@ module SignalWire
         msg._dispatch_event(payload)
 
         # Clean up terminal messages
-        if msg.done?
-          @messages_mutex.synchronize { @messages.delete(message_id) }
-        end
+        return unless msg.done?
+
+        @messages_mutex.synchronize { @messages.delete(message_id) }
       end
 
       def _reject_all_pending(reason)

@@ -45,7 +45,7 @@ module SignalWire
       end
 
       def env_set?(name)
-        v = ENV[name]
+        v = ENV.fetch(name, nil)
         !v.nil? && !v.empty?
       end
       private_class_method :env_set?

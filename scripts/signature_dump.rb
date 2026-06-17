@@ -11,11 +11,10 @@
 # typed divergence.
 
 require 'json'
-require 'set'
 require_relative '../lib/signalwire'
 
 # Pre-load every .rb file under lib/ so reflection sees every class.
-Dir[File.join(__dir__, '..', 'lib', '**', '*.rb')].sort.each { |f| require f }
+Dir[File.join(__dir__, '..', 'lib', '**', '*.rb')].each { |f| require f }
 
 types = []
 ObjectSpace.each_object(Module).each do |mod|
@@ -23,6 +22,8 @@ ObjectSpace.each_object(Module).each do |mod|
   next if name.nil?
   next unless name.start_with?('SignalWire')
 
+  # The explicit Class arm and the else fallback both yield 'class'; keeping the
+  # Class check separate documents the primary case (anything not a plain Module).
   kind = if mod.is_a?(Class) && mod.instance_of?(Class)
            'class'
          elsif mod.is_a?(Module)
@@ -36,8 +37,8 @@ ObjectSpace.each_object(Module).each do |mod|
   # Public instance methods declared on this class (not inherited).
   if mod.is_a?(Class)
     # Constructor (the `initialize` method)
-    if mod.instance_methods(false).include?(:initialize) ||
-       mod.private_instance_methods(false).include?(:initialize)
+    if mod.method_defined?(:initialize, false) ||
+       mod.private_method_defined?(:initialize, false)
       begin
         m = mod.instance_method(:initialize)
         methods << method_entry(m, '<init>', is_constructor: true, is_static: false)
@@ -48,6 +49,7 @@ ObjectSpace.each_object(Module).each do |mod|
     mod.instance_methods(false).sort.each do |meth_name|
       next if meth_name == :initialize
       next if meth_name.to_s.start_with?('_')
+
       m = mod.instance_method(meth_name)
       methods << method_entry(m, meth_name.to_s, is_constructor: false, is_static: false)
     end
@@ -56,6 +58,7 @@ ObjectSpace.each_object(Module).each do |mod|
   # Public singleton methods (class methods)
   mod.methods(false).sort.each do |meth_name|
     next if meth_name.to_s.start_with?('_')
+
     m = mod.method(meth_name)
     methods << method_entry(m, meth_name.to_s, is_constructor: false, is_static: true)
   end
@@ -66,7 +69,7 @@ ObjectSpace.each_object(Module).each do |mod|
     full_name: name,
     short_name: name.split('::').last,
     kind: kind,
-    methods: methods,
+    methods: methods
   }
 end
 
@@ -79,14 +82,14 @@ BEGIN {
     parameters = m.parameters.map do |kind, pname|
       {
         kind: kind.to_s,
-        name: pname.to_s,
+        name: pname.to_s
       }
     end
     {
       name: name,
       is_constructor: is_constructor,
       is_static: is_static,
-      parameters: parameters,
+      parameters: parameters
     }
   end
 }

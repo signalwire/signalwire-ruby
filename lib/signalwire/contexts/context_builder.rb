@@ -38,11 +38,11 @@ module SignalWire
       end
 
       def to_h
-        h = { "key" => @key, "question" => @question }
-        h["type"]      = @type      if @type != 'string'
-        h["confirm"]   = true       if @confirm
-        h["prompt"]    = @prompt    if @prompt
-        h["functions"] = @functions if @functions
+        h = { 'key' => @key, 'question' => @question }
+        h['type']      = @type      if @type != 'string'
+        h['confirm']   = true       if @confirm
+        h['prompt']    = @prompt    if @prompt
+        h['functions'] = @functions if @functions
         h
       end
     end
@@ -62,23 +62,23 @@ module SignalWire
       # Add a question. Returns +self+ for chaining.
       def add_question(key:, question:, **opts)
         @questions << GatherQuestion.new(
-          key:       key,
-          question:  question,
-          type:      opts.fetch(:type, 'string'),
-          confirm:   opts.fetch(:confirm, false),
-          prompt:    opts[:prompt],
+          key: key,
+          question: question,
+          type: opts.fetch(:type, 'string'),
+          confirm: opts.fetch(:confirm, false),
+          prompt: opts[:prompt],
           functions: opts[:functions]
         )
         self
       end
 
       def to_h
-        raise ArgumentError, "gather_info must have at least one question" if @questions.empty?
+        raise ArgumentError, 'gather_info must have at least one question' if @questions.empty?
 
-        h = { "questions" => @questions.map(&:to_h) }
-        h["prompt"]            = @prompt            if @prompt
-        h["output_key"]        = @output_key        if @output_key
-        h["completion_action"] = @completion_action if @completion_action
+        h = { 'questions' => @questions.map(&:to_h) }
+        h['prompt']            = @prompt            if @prompt
+        h['output_key']        = @output_key        if @output_key
+        h['completion_action'] = @completion_action if @completion_action
         h
       end
     end
@@ -93,7 +93,7 @@ module SignalWire
         @name = name
         @text = nil
         @step_criteria   = nil
-        @functions       = nil  # nil | "none" | Array<String>
+        @functions       = nil # nil | "none" | Array<String>
         @valid_steps     = nil
         @valid_contexts  = nil
         @sections        = []
@@ -113,7 +113,7 @@ module SignalWire
 
       # Set the step's prompt text directly. Mutually exclusive with POM sections.
       def set_text(text)
-        raise ArgumentError, "Cannot use set_text when POM sections have been added" if @sections.any?
+        raise ArgumentError, 'Cannot use set_text when POM sections have been added' if @sections.any?
 
         @text = text
         self
@@ -121,17 +121,17 @@ module SignalWire
 
       # Add a POM section (title + body). Mutually exclusive with +set_text+.
       def add_section(title, body)
-        raise ArgumentError, "Cannot add POM sections when set_text has been used" unless @text.nil?
+        raise ArgumentError, 'Cannot add POM sections when set_text has been used' unless @text.nil?
 
-        @sections << { "title" => title, "body" => body }
+        @sections << { 'title' => title, 'body' => body }
         self
       end
 
       # Add a POM section with bullet points. Mutually exclusive with +set_text+.
       def add_bullets(title, bullets)
-        raise ArgumentError, "Cannot add POM sections when set_text has been used" unless @text.nil?
+        raise ArgumentError, 'Cannot add POM sections when set_text has been used' unless @text.nil?
 
-        @sections << { "title" => title, "bullets" => bullets }
+        @sections << { 'title' => title, 'bullets' => bullets }
         self
       end
 
@@ -217,9 +217,9 @@ module SignalWire
       # After calling this, use +add_gather_question+ to define questions.
       def set_gather_info(output_key: nil, completion_action: nil, prompt: nil)
         @gather_info = GatherInfo.new(
-          output_key:        output_key,
+          output_key: output_key,
           completion_action: completion_action,
-          prompt:            prompt
+          prompt: prompt
         )
         self
       end
@@ -250,14 +250,14 @@ module SignalWire
       # same parameter set as keyword args.
       def add_gather_question(key:, question:, type: 'string', confirm: false,
                               prompt: nil, functions: nil)
-        raise ArgumentError, "Must call set_gather_info before add_gather_question" if @gather_info.nil?
+        raise ArgumentError, 'Must call set_gather_info before add_gather_question' if @gather_info.nil?
 
         @gather_info.add_question(
-          key:       key,
-          question:  question,
-          type:      type,
-          confirm:   confirm,
-          prompt:    prompt,
+          key: key,
+          question: question,
+          type: type,
+          confirm: confirm,
+          prompt: prompt,
           functions: functions
         )
         self
@@ -292,26 +292,26 @@ module SignalWire
 
       def to_h
         step_h = {
-          "name" => @name,
-          "text" => render_text
+          'name' => @name,
+          'text' => render_text
         }
 
-        step_h["step_criteria"]    = @step_criteria   if @step_criteria
-        step_h["functions"]        = @functions        unless @functions.nil?
-        step_h["valid_steps"]      = @valid_steps      if @valid_steps
-        step_h["valid_contexts"]   = @valid_contexts   if @valid_contexts
-        step_h["end"]              = true               if @end
-        step_h["skip_user_turn"]   = true               if @skip_user_turn
-        step_h["skip_to_next_step"] = true              if @skip_to_next_step
+        step_h['step_criteria']    = @step_criteria if @step_criteria
+        step_h['functions']        = @functions        unless @functions.nil?
+        step_h['valid_steps']      = @valid_steps      if @valid_steps
+        step_h['valid_contexts']   = @valid_contexts   if @valid_contexts
+        step_h['end']              = true               if @end
+        step_h['skip_user_turn']   = true               if @skip_user_turn
+        step_h['skip_to_next_step'] = true              if @skip_to_next_step
 
         reset = {}
-        reset["system_prompt"] = @reset_system_prompt if @reset_system_prompt
-        reset["user_prompt"]   = @reset_user_prompt   if @reset_user_prompt
-        reset["consolidate"]   = @reset_consolidate   if @reset_consolidate
-        reset["full_reset"]    = @reset_full_reset    if @reset_full_reset
-        step_h["reset"] = reset if reset.any?
+        reset['system_prompt'] = @reset_system_prompt if @reset_system_prompt
+        reset['user_prompt']   = @reset_user_prompt   if @reset_user_prompt
+        reset['consolidate']   = @reset_consolidate   if @reset_consolidate
+        reset['full_reset']    = @reset_full_reset    if @reset_full_reset
+        step_h['reset'] = reset if reset.any?
 
-        step_h["gather_info"] = @gather_info.to_h if @gather_info
+        step_h['gather_info'] = @gather_info.to_h if @gather_info
 
         step_h
       end
@@ -377,14 +377,14 @@ module SignalWire
 
         parts = []
         @sections.each do |section|
-          if section.key?("bullets")
+          if section.key?('bullets')
             parts << "## #{section['title']}"
-            section["bullets"].each { |b| parts << "- #{b}" }
+            section['bullets'].each { |b| parts << "- #{b}" }
           else
             parts << "## #{section['title']}"
-            parts << section["body"]
+            parts << section['body']
           end
-          parts << "" # spacing
+          parts << '' # spacing
         end
         parts.join("\n").strip
       end
@@ -396,7 +396,7 @@ module SignalWire
 
       def initialize(name)
         @name = name
-        @steps      = {}   # name => Step
+        @steps      = {} # name => Step
         @step_order = []
 
         # Navigation
@@ -440,7 +440,10 @@ module SignalWire
       def add_step(name, task: nil, bullets: nil, criteria: nil,
                    functions: nil, valid_steps: nil)
         raise ArgumentError, "Step '#{name}' already exists in context '#{@name}'" if @steps.key?(name)
-        raise ArgumentError, "Maximum steps per context (#{MAX_STEPS_PER_CONTEXT}) exceeded" if @steps.size >= MAX_STEPS_PER_CONTEXT
+        if @steps.size >= MAX_STEPS_PER_CONTEXT
+          raise ArgumentError,
+                "Maximum steps per context (#{MAX_STEPS_PER_CONTEXT}) exceeded"
+        end
 
         step = Step.new(name)
         @steps[name] = step
@@ -505,14 +508,17 @@ module SignalWire
       end
 
       def set_system_prompt(prompt)
-        raise ArgumentError, "Cannot use set_system_prompt when POM system sections exist" if @system_prompt_sections.any?
+        if @system_prompt_sections.any?
+          raise ArgumentError,
+                'Cannot use set_system_prompt when POM system sections exist'
+        end
 
         @system_prompt = prompt
         self
       end
 
       def set_prompt(prompt)
-        raise ArgumentError, "Cannot use set_prompt when POM prompt sections exist" if @prompt_sections.any?
+        raise ArgumentError, 'Cannot use set_prompt when POM prompt sections exist' if @prompt_sections.any?
 
         @prompt_text = prompt
         self
@@ -558,33 +564,39 @@ module SignalWire
 
       # Add a POM section to the context prompt.
       def add_section(title, body)
-        raise ArgumentError, "Cannot add POM sections when set_prompt has been used" unless @prompt_text.nil?
+        raise ArgumentError, 'Cannot add POM sections when set_prompt has been used' unless @prompt_text.nil?
 
-        @prompt_sections << { "title" => title, "body" => body }
+        @prompt_sections << { 'title' => title, 'body' => body }
         self
       end
 
       # Add a POM section with bullets to the context prompt.
       def add_bullets(title, bullets)
-        raise ArgumentError, "Cannot add POM sections when set_prompt has been used" unless @prompt_text.nil?
+        raise ArgumentError, 'Cannot add POM sections when set_prompt has been used' unless @prompt_text.nil?
 
-        @prompt_sections << { "title" => title, "bullets" => bullets }
+        @prompt_sections << { 'title' => title, 'bullets' => bullets }
         self
       end
 
       # Add a POM section to the system prompt.
       def add_system_section(title, body)
-        raise ArgumentError, "Cannot add POM system sections when set_system_prompt has been used" unless @system_prompt.nil?
+        unless @system_prompt.nil?
+          raise ArgumentError,
+                'Cannot add POM system sections when set_system_prompt has been used'
+        end
 
-        @system_prompt_sections << { "title" => title, "body" => body }
+        @system_prompt_sections << { 'title' => title, 'body' => body }
         self
       end
 
       # Add a POM section with bullets to the system prompt.
       def add_system_bullets(title, bullets)
-        raise ArgumentError, "Cannot add POM system sections when set_system_prompt has been used" unless @system_prompt.nil?
+        unless @system_prompt.nil?
+          raise ArgumentError,
+                'Cannot add POM system sections when set_system_prompt has been used'
+        end
 
-        @system_prompt_sections << { "title" => title, "bullets" => bullets }
+        @system_prompt_sections << { 'title' => title, 'bullets' => bullets }
         self
       end
 
@@ -618,30 +630,30 @@ module SignalWire
         raise ArgumentError, "Context '#{@name}' has no steps defined" if @steps.empty?
 
         ctx = {
-          "steps" => @step_order.map { |n| @steps[n].to_h }
+          'steps' => @step_order.map { |n| @steps[n].to_h }
         }
 
-        ctx["valid_contexts"] = @valid_contexts if @valid_contexts
-        ctx["valid_steps"]    = @valid_steps    if @valid_steps
-        ctx["initial_step"]   = @initial_step   if @initial_step
-        ctx["post_prompt"]    = @post_prompt    if @post_prompt
+        ctx['valid_contexts'] = @valid_contexts if @valid_contexts
+        ctx['valid_steps']    = @valid_steps    if @valid_steps
+        ctx['initial_step']   = @initial_step   if @initial_step
+        ctx['post_prompt']    = @post_prompt    if @post_prompt
 
         sys = render_system_prompt
-        ctx["system_prompt"] = sys if sys
+        ctx['system_prompt'] = sys if sys
 
-        ctx["consolidate"]  = @consolidate  if @consolidate
-        ctx["full_reset"]   = @full_reset   if @full_reset
-        ctx["user_prompt"]  = @user_prompt  if @user_prompt
-        ctx["isolated"]     = @isolated     if @isolated
+        ctx['consolidate']  = @consolidate  if @consolidate
+        ctx['full_reset']   = @full_reset   if @full_reset
+        ctx['user_prompt']  = @user_prompt  if @user_prompt
+        ctx['isolated']     = @isolated     if @isolated
 
         if @prompt_sections.any?
-          ctx["pom"] = @prompt_sections
+          ctx['pom'] = @prompt_sections
         elsif @prompt_text
-          ctx["prompt"] = @prompt_text
+          ctx['prompt'] = @prompt_text
         end
 
-        ctx["enter_fillers"] = @enter_fillers if @enter_fillers
-        ctx["exit_fillers"]  = @exit_fillers  if @exit_fillers
+        ctx['enter_fillers'] = @enter_fillers if @enter_fillers
+        ctx['exit_fillers']  = @exit_fillers  if @exit_fillers
 
         ctx
       end
@@ -704,9 +716,9 @@ module SignalWire
 
       # Expose internal state for validation
       # @api private
-      def _steps;        @steps;        end
-      def _step_order;   @step_order;   end
-      def _initial_step; @initial_step; end
+      def _steps = @steps
+      def _step_order = @step_order
+      def _initial_step = @initial_step
 
       private
 
@@ -720,14 +732,14 @@ module SignalWire
       def render_sections(sections)
         parts = []
         sections.each do |s|
-          if s.key?("bullets")
+          if s.key?('bullets')
             parts << "## #{s['title']}"
-            s["bullets"].each { |b| parts << "- #{b}" }
+            s['bullets'].each { |b| parts << "- #{b}" }
           else
             parts << "## #{s['title']}"
-            parts << s["body"]
+            parts << s['body']
           end
-          parts << ""
+          parts << ''
         end
         parts.join("\n").strip
       end
@@ -778,7 +790,7 @@ module SignalWire
       # Ruby allows nil for standalone use (tests, idiom of building
       # a builder before attaching).
       def initialize(agent = nil)
-        @contexts      = {}   # name => Context
+        @contexts      = {} # name => Context
         @context_order = []
         @agent         = agent
       end
@@ -818,7 +830,7 @@ module SignalWire
 
       # Validate the full configuration. Raises ArgumentError on problems.
       def validate!
-        raise ArgumentError, "At least one context must be defined" if @contexts.empty?
+        raise ArgumentError, 'At least one context must be defined' if @contexts.empty?
 
         # Single context must be named "default"
         if @contexts.size == 1
@@ -834,25 +846,25 @@ module SignalWire
         # Validate initial_step references a real step in the context
         @contexts.each do |ctx_name, ctx|
           is = ctx._initial_step
-          if is && !ctx._steps.key?(is)
-            available = ctx._steps.keys.sort
-            raise ArgumentError,
-                  "Context '#{ctx_name}' has initial_step='#{is}' but that step does " \
-                  "not exist. Available steps: #{available.inspect}"
-          end
+          next unless is && !ctx._steps.key?(is)
+
+          available = ctx._steps.keys.sort
+          raise ArgumentError,
+                "Context '#{ctx_name}' has initial_step='#{is}' but that step does " \
+                "not exist. Available steps: #{available.inspect}"
         end
 
         # Validate step references in valid_steps
         @contexts.each do |ctx_name, ctx|
           ctx._steps.each do |step_name, step|
             step_h = step.to_h
-            if step_h["valid_steps"]
-              step_h["valid_steps"].each do |vs|
-                next if vs == "next"
-                unless ctx._steps.key?(vs)
-                  raise ArgumentError,
-                        "Step '#{step_name}' in context '#{ctx_name}' references unknown step '#{vs}'"
-                end
+            next unless step_h['valid_steps']
+
+            step_h['valid_steps'].each do |vs|
+              next if vs == 'next'
+              unless ctx._steps.key?(vs)
+                raise ArgumentError,
+                      "Step '#{step_name}' in context '#{ctx_name}' references unknown step '#{vs}'"
               end
             end
           end
@@ -861,12 +873,12 @@ module SignalWire
         # Validate context references at context level
         @contexts.each do |ctx_name, ctx|
           ctx_h = ctx.to_h
-          if ctx_h["valid_contexts"]
-            ctx_h["valid_contexts"].each do |vc|
-              unless @contexts.key?(vc)
-                raise ArgumentError,
-                      "Context '#{ctx_name}' references unknown context '#{vc}'"
-              end
+          next unless ctx_h['valid_contexts']
+
+          ctx_h['valid_contexts'].each do |vc|
+            unless @contexts.key?(vc)
+              raise ArgumentError,
+                    "Context '#{ctx_name}' references unknown context '#{vc}'"
             end
           end
         end
@@ -875,12 +887,12 @@ module SignalWire
         @contexts.each do |ctx_name, ctx|
           ctx._steps.each do |step_name, step|
             step_h = step.to_h
-            if step_h["valid_contexts"]
-              step_h["valid_contexts"].each do |vc|
-                unless @contexts.key?(vc)
-                  raise ArgumentError,
-                        "Step '#{step_name}' in context '#{ctx_name}' references unknown context '#{vc}'"
-                end
+            next unless step_h['valid_contexts']
+
+            step_h['valid_contexts'].each do |vc|
+              unless @contexts.key?(vc)
+                raise ArgumentError,
+                      "Step '#{step_name}' in context '#{ctx_name}' references unknown context '#{vc}'"
               end
             end
           end
@@ -890,31 +902,35 @@ module SignalWire
         @contexts.each do |ctx_name, ctx|
           ctx._steps.each do |step_name, step|
             step_h = step.to_h
-            next unless step_h.key?("gather_info")
+            next unless step_h.key?('gather_info')
 
-            gi = step_h["gather_info"]
-            questions = gi["questions"] || []
-            raise ArgumentError,
-                  "Step '#{step_name}' in context '#{ctx_name}' has gather_info with no questions" if questions.empty?
+            gi = step_h['gather_info']
+            questions = gi['questions'] || []
+            if questions.empty?
+              raise ArgumentError,
+                    "Step '#{step_name}' in context '#{ctx_name}' has gather_info with no questions"
+            end
 
             keys_seen = Set.new
             questions.each do |q|
-              raise ArgumentError,
-                    "Step '#{step_name}' in context '#{ctx_name}' has duplicate gather_info question key '#{q['key']}'" if keys_seen.include?(q["key"])
-              keys_seen << q["key"]
+              if keys_seen.include?(q['key'])
+                raise ArgumentError,
+                      "Step '#{step_name}' in context '#{ctx_name}' has duplicate gather_info question key '#{q['key']}'"
+              end
+              keys_seen << q['key']
             end
 
-            action = gi["completion_action"]
+            action = gi['completion_action']
             if action
-              if action == "next_step"
+              if action == 'next_step'
                 idx = ctx._step_order.index(step_name)
                 if idx >= ctx._step_order.size - 1
                   raise ArgumentError,
                         "Step '#{step_name}' in context '#{ctx_name}' has gather_info " \
                         "completion_action='next_step' but it is the last step in the " \
                         "context. Either (1) add another step after '#{step_name}', " \
-                        "(2) set completion_action to the name of an existing step in " \
-                        "this context to jump to it, or (3) set completion_action=nil " \
+                        '(2) set completion_action to the name of an existing step in ' \
+                        'this context to jump to it, or (3) set completion_action=nil ' \
                         "(default) to stay in '#{step_name}' after gathering completes."
                 end
               elsif !ctx._steps.key?(action)
@@ -923,7 +939,7 @@ module SignalWire
                       "Step '#{step_name}' in context '#{ctx_name}' has gather_info " \
                       "completion_action='#{action}' but '#{action}' is not a step in " \
                       "this context. Valid options: 'next_step' (advance to the next " \
-                      "sequential step), nil (stay in the current step), or one of " \
+                      'sequential step), nil (stay in the current step), or one of ' \
                       "#{available.inspect}."
               end
             end
@@ -941,10 +957,10 @@ module SignalWire
           if colliding.any?
             raise ArgumentError,
                   "Tool name(s) #{colliding.inspect} collide with reserved native " \
-                  "tools auto-injected by contexts/steps. The names " \
+                  'tools auto-injected by contexts/steps. The names ' \
                   "#{RESERVED_NATIVE_TOOL_NAMES.sort.inspect} are reserved and " \
-                  "cannot be used for user-defined SWAIG tools when contexts/steps " \
-                  "are in use. Rename your tool(s) to avoid the collision."
+                  'cannot be used for user-defined SWAIG tools when contexts/steps ' \
+                  'are in use. Rename your tool(s) to avoid the collision.'
           end
         end
 

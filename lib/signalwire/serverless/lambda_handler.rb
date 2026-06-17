@@ -92,29 +92,29 @@ module SignalWire
         body_io, content_length = extract_body(event)
 
         env = {
-          'REQUEST_METHOD'    => method,
-          'SCRIPT_NAME'       => '',
-          'PATH_INFO'         => path,
-          'QUERY_STRING'      => query,
-          'SERVER_NAME'       => headers['host'] || 'lambda',
-          'SERVER_PORT'       => (headers['x-forwarded-port'] || '443'),
-          'SERVER_PROTOCOL'   => 'HTTP/1.1',
-          'HTTP_VERSION'      => 'HTTP/1.1',
-          'rack.version'      => [1, 6],
-          'rack.url_scheme'   => headers['x-forwarded-proto'] || 'https',
-          'rack.input'        => body_io,
-          'rack.errors'       => $stderr,
-          'rack.multithread'  => false,
+          'REQUEST_METHOD' => method,
+          'SCRIPT_NAME' => '',
+          'PATH_INFO' => path,
+          'QUERY_STRING' => query,
+          'SERVER_NAME' => headers['host'] || 'lambda',
+          'SERVER_PORT' => headers['x-forwarded-port'] || '443',
+          'SERVER_PROTOCOL' => 'HTTP/1.1',
+          'HTTP_VERSION' => 'HTTP/1.1',
+          'rack.version' => [1, 6],
+          'rack.url_scheme' => headers['x-forwarded-proto'] || 'https',
+          'rack.input' => body_io,
+          'rack.errors' => $stderr,
+          'rack.multithread' => false,
           'rack.multiprocess' => false,
-          'rack.run_once'     => true,
-          'rack.hijack?'      => false,
+          'rack.run_once' => true,
+          'rack.hijack?' => false,
           'signalwire.lambda_event' => event
         }
         env['CONTENT_LENGTH'] = content_length.to_s if content_length
         env['CONTENT_TYPE']   = headers['content-type'] if headers['content-type']
 
         headers.each do |name, value|
-          next if name == 'content-type' || name == 'content-length'
+          next if %w[content-type content-length].include?(name)
 
           env["HTTP_#{name.tr('-', '_').upcase}"] = value
         end
@@ -148,9 +148,7 @@ module SignalWire
       end
 
       def extract_query_string(event, _version)
-        if event['rawQueryString'] && !event['rawQueryString'].empty?
-          return event['rawQueryString']
-        end
+        return event['rawQueryString'] if event['rawQueryString'] && !event['rawQueryString'].empty?
 
         params = event['multiValueQueryStringParameters'] || event['queryStringParameters']
         return '' if params.nil? || params.empty?
@@ -193,7 +191,7 @@ module SignalWire
       # ------------------------------------------------------------------
 
       def build_response(event, status, headers, body)
-        payload  = collect_body(body)
+        payload = collect_body(body)
         encoded, is_base64 = maybe_base64(payload, headers)
 
         flat_headers = {}
@@ -210,20 +208,20 @@ module SignalWire
 
         if detect_version(event) == 2
           response = {
-            'statusCode'      => status.to_i,
-            'headers'         => flat_headers,
-            'body'            => encoded,
+            'statusCode' => status.to_i,
+            'headers' => flat_headers,
+            'body' => encoded,
             'isBase64Encoded' => is_base64
           }
           response['cookies'] = multi_headers['set-cookie'] if multi_headers.key?('set-cookie')
           response
         else
           {
-            'statusCode'        => status.to_i,
-            'headers'           => flat_headers,
+            'statusCode' => status.to_i,
+            'headers' => flat_headers,
             'multiValueHeaders' => multi_headers,
-            'body'              => encoded,
-            'isBase64Encoded'   => is_base64
+            'body' => encoded,
+            'isBase64Encoded' => is_base64
           }
         end
       end
