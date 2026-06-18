@@ -11,16 +11,25 @@ require_relative 'mock_test'
 
 # Shared mock lifecycle, base paths, and POST-body assertion helper.
 module CompatConferencesSupport
-  ACCOUNT_BASE = '/api/laml/2010-04-01/Accounts/test_proj'
-  CONF_BASE    = "#{ACCOUNT_BASE}/Conferences".freeze
-
-  def setup
-    @client = MockTest.client
-    MockTest.reset
+  # Parallelize: each test's client uses a unique project + auth-scoped harness,
+  # so the shared mock is concurrency-safe. Parallelism stress-proves isolation.
+  def self.included(base)
+    base.parallelize_me!
   end
 
-  def teardown
-    MockTest.reset
+  def setup
+    h = MockTest.client
+    @client  = h[:client]
+    @mock    = h[:mock]
+    @project = h[:project]
+  end
+
+  def account_base
+    "/api/laml/2010-04-01/Accounts/#{@project}"
+  end
+
+  def conf_base
+    "#{account_base}/Conferences"
   end
 
   # Assert the last journaled request was a POST to +path+ with a Hash body,
@@ -51,10 +60,10 @@ class CompatConferencesMockTest < Minitest::Test
 
   def test_list_journal_records_get_to_conferences
     @client.compat.conferences.list
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'GET', j.method
-    assert_equal CONF_BASE, j.path
+    assert_equal conf_base, j.path
     refute_nil j.matched_route, 'spec gap: conferences.list'
   end
 
@@ -68,10 +77,10 @@ class CompatConferencesMockTest < Minitest::Test
 
   def test_get_journal_records_get_with_sid
     @client.compat.conferences.get('CF_GETSID')
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'GET', j.method
-    assert_equal "#{CONF_BASE}/CF_GETSID", j.path
+    assert_equal "#{conf_base}/CF_GETSID", j.path
   end
 
   def test_update_returns_updated_conference
@@ -85,7 +94,7 @@ class CompatConferencesMockTest < Minitest::Test
     @client.compat.conferences.update(
       'CF_UPD', Status: 'completed', AnnounceUrl: 'https://a.b'
     )
-    body = assert_post_with_body(MockTest.journal.last, "#{CONF_BASE}/CF_UPD")
+    body = assert_post_with_body(@mock.last, "#{conf_base}/CF_UPD")
 
     assert_equal 'completed', body['Status']
     assert_equal 'https://a.b', body['AnnounceUrl']
@@ -103,10 +112,10 @@ class CompatConferencesMockTest < Minitest::Test
 
   def test_get_participant_journal_records_get
     @client.compat.conferences.get_participant('CF_GP', 'CA_GP')
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'GET', j.method
-    assert_equal "#{CONF_BASE}/CF_GP/Participants/CA_GP", j.path
+    assert_equal "#{conf_base}/CF_GP/Participants/CA_GP", j.path
   end
 
   def test_update_participant_returns_participant_resource
@@ -120,7 +129,7 @@ class CompatConferencesMockTest < Minitest::Test
     @client.compat.conferences.update_participant(
       'CF_M', 'CA_M', Muted: true, Hold: false
     )
-    body = assert_post_with_body(MockTest.journal.last, "#{CONF_BASE}/CF_M/Participants/CA_M")
+    body = assert_post_with_body(@mock.last, "#{conf_base}/CF_M/Participants/CA_M")
 
     assert body['Muted']
     refute body['Hold']
@@ -137,10 +146,10 @@ class CompatConferencesMockTest < Minitest::Test
 
   def test_remove_participant_journal_records_delete
     @client.compat.conferences.remove_participant('CF_RM', 'CA_RM')
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'DELETE', j.method
-    assert_equal "#{CONF_BASE}/CF_RM/Participants/CA_RM", j.path
+    assert_equal "#{conf_base}/CF_RM/Participants/CA_RM", j.path
   end
 end
 
@@ -161,10 +170,10 @@ class CompatConferencesMediaMockTest < Minitest::Test
 
   def test_list_recordings_journal_records_get
     @client.compat.conferences.list_recordings('CF_LRX')
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'GET', j.method
-    assert_equal "#{CONF_BASE}/CF_LRX/Recordings", j.path
+    assert_equal "#{conf_base}/CF_LRX/Recordings", j.path
   end
 
   def test_get_recording_returns_recording_resource
@@ -177,10 +186,10 @@ class CompatConferencesMediaMockTest < Minitest::Test
 
   def test_get_recording_journal_records_get
     @client.compat.conferences.get_recording('CF_GRX', 'RE_GRX')
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'GET', j.method
-    assert_equal "#{CONF_BASE}/CF_GRX/Recordings/RE_GRX", j.path
+    assert_equal "#{conf_base}/CF_GRX/Recordings/RE_GRX", j.path
   end
 
   def test_update_recording_returns_recording_resource
@@ -192,10 +201,10 @@ class CompatConferencesMediaMockTest < Minitest::Test
 
   def test_update_recording_journal_records_post_with_status
     @client.compat.conferences.update_recording('CF_UR', 'RE_UR', Status: 'paused')
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'POST', j.method
-    assert_equal "#{CONF_BASE}/CF_UR/Recordings/RE_UR", j.path
+    assert_equal "#{conf_base}/CF_UR/Recordings/RE_UR", j.path
     assert_kind_of Hash, j.body
     assert_equal 'paused', j.body['Status']
   end
@@ -208,10 +217,10 @@ class CompatConferencesMediaMockTest < Minitest::Test
 
   def test_delete_recording_journal_records_delete
     @client.compat.conferences.delete_recording('CF_DRX', 'RE_DRX')
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'DELETE', j.method
-    assert_equal "#{CONF_BASE}/CF_DRX/Recordings/RE_DRX", j.path
+    assert_equal "#{conf_base}/CF_DRX/Recordings/RE_DRX", j.path
   end
 
   # ---- Streams --------------------------------------------------------
@@ -227,10 +236,10 @@ class CompatConferencesMediaMockTest < Minitest::Test
     @client.compat.conferences.start_stream(
       'CF_SSX', Url: 'wss://a.b/s', Name: 'strm'
     )
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'POST', j.method
-    assert_equal "#{CONF_BASE}/CF_SSX/Streams", j.path
+    assert_equal "#{conf_base}/CF_SSX/Streams", j.path
     assert_kind_of Hash, j.body
     assert_equal 'wss://a.b/s', j.body['Url']
   end
@@ -248,10 +257,10 @@ class CompatConferencesMediaMockTest < Minitest::Test
     @client.compat.conferences.stop_stream(
       'CF_TSX', 'ST_TSX', Status: 'stopped'
     )
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'POST', j.method
-    assert_equal "#{CONF_BASE}/CF_TSX/Streams/ST_TSX", j.path
+    assert_equal "#{conf_base}/CF_TSX/Streams/ST_TSX", j.path
     assert_kind_of Hash, j.body
     assert_equal 'stopped', j.body['Status']
   end

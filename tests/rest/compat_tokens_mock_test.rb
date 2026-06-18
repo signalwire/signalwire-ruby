@@ -11,16 +11,22 @@ require 'minitest/autorun'
 require_relative 'mock_test'
 
 class CompatTokensMockTest < Minitest::Test
-  ACCOUNT_BASE = '/api/laml/2010-04-01/Accounts/test_proj'
-  TOKENS_BASE  = "#{ACCOUNT_BASE}/tokens".freeze
+  # Parallelize: per-client unique-project + auth-scoped harness isolates each test.
+  parallelize_me!
 
   def setup
-    @client = MockTest.client
-    MockTest.reset
+    h = MockTest.client
+    @client  = h[:client]
+    @mock    = h[:mock]
+    @project = h[:project]
   end
 
-  def teardown
-    MockTest.reset
+  def account_base
+    "/api/laml/2010-04-01/Accounts/#{@project}"
+  end
+
+  def tokens_base
+    "#{account_base}/tokens"
   end
 
   # ---- create ----------------------------------------------------------
@@ -35,9 +41,9 @@ class CompatTokensMockTest < Minitest::Test
 
   def test_create_journal_records_post_with_ttl
     @client.compat.tokens.create(Ttl: 3600, Name: 'api-key')
-    j = MockTest.journal.last
+    j = @mock.last
 
-    assert_journal_request(j, 'POST', TOKENS_BASE)
+    assert_journal_request(j, 'POST', tokens_base)
     assert_equal 3600, j.body['Ttl']
     assert_equal 'api-key', j.body['Name']
   end
@@ -53,10 +59,10 @@ class CompatTokensMockTest < Minitest::Test
 
   def test_update_journal_records_patch_with_ttl
     @client.compat.tokens.update('TK_UU', Ttl: 7200)
-    j = MockTest.journal.last
+    j = @mock.last
     # CompatTokens.update uses PATCH (BaseResource.update -> http.patch).
     assert_equal 'PATCH', j.method
-    assert_equal "#{TOKENS_BASE}/TK_UU", j.path
+    assert_equal "#{tokens_base}/TK_UU", j.path
     assert_kind_of Hash, j.body
     assert_equal 7200, j.body['Ttl']
   end
@@ -71,10 +77,10 @@ class CompatTokensMockTest < Minitest::Test
 
   def test_delete_journal_records_delete
     @client.compat.tokens.delete('TK_DEL')
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'DELETE', j.method
-    assert_equal "#{TOKENS_BASE}/TK_DEL", j.path
+    assert_equal "#{tokens_base}/TK_DEL", j.path
   end
 
   private

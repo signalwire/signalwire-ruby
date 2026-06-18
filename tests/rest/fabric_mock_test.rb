@@ -15,22 +15,26 @@ require_relative 'mock_test'
 # Shared fixture + journal/collection assertion helpers for the Fabric mock
 # test classes below.
 module FabricMockHelpers
+  # Parallelize: each test's client uses a unique project + auth-scoped harness,
+  # so the shared mock is concurrency-safe. Parallelism stress-proves isolation.
+  def self.included(base)
+    base.parallelize_me!
+  end
+
   FABRIC_BASE = '/api/fabric'
 
   def setup
-    @client = MockTest.client
-    MockTest.reset
-  end
-
-  def teardown
-    MockTest.reset
+    h = MockTest.client
+    @client  = h[:client]
+    @mock    = h[:mock]
+    @project = h[:project]
   end
 
   # Assert the last journalled request's method + path, and optionally that a
   # route matched (+:matched+) or the exact matched_route id. Returns the
   # journal entry for any further per-field assertions.
   def assert_last_request(method, path, route: nil)
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal method, last.method
     assert_equal path, last.path
@@ -78,7 +82,7 @@ class FabricMockTest < Minitest::Test
     end
     assert_match(/cXML applications cannot/, err.message)
     # Nothing should have hit the wire.
-    assert_equal [], MockTest.journal.journal
+    assert_equal [], @mock.journal
   end
 
   # ---- CallFlowsResource.list_addresses — singular path ---------------

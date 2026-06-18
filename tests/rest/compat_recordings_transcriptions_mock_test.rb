@@ -13,15 +13,18 @@ require 'minitest/autorun'
 require_relative 'mock_test'
 
 class CompatRecordingsTranscriptionsMockTest < Minitest::Test
-  ACCOUNT_BASE = '/api/laml/2010-04-01/Accounts/test_proj'
+  # Parallelize: per-client unique-project + auth-scoped harness isolates each test.
+  parallelize_me!
 
   def setup
-    @client = MockTest.client
-    MockTest.reset
+    h = MockTest.client
+    @client  = h[:client]
+    @mock    = h[:mock]
+    @project = h[:project]
   end
 
-  def teardown
-    MockTest.reset
+  def account_base
+    "/api/laml/2010-04-01/Accounts/#{@project}"
   end
 
   # ---- Recordings.list -------------------------------------------------
@@ -37,10 +40,10 @@ class CompatRecordingsTranscriptionsMockTest < Minitest::Test
 
   def test_recordings_list_journal_records_get
     @client.compat.recordings.list
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'GET', j.method
-    assert_equal "#{ACCOUNT_BASE}/Recordings", j.path
+    assert_equal "#{account_base}/Recordings", j.path
   end
 
   # ---- Recordings.get --------------------------------------------------
@@ -55,10 +58,10 @@ class CompatRecordingsTranscriptionsMockTest < Minitest::Test
 
   def test_recordings_get_journal_records_get_with_sid
     @client.compat.recordings.get('RE_GET')
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'GET', j.method
-    assert_equal "#{ACCOUNT_BASE}/Recordings/RE_GET", j.path
+    assert_equal "#{account_base}/Recordings/RE_GET", j.path
   end
 
   # ---- Recordings.delete ----------------------------------------------
@@ -71,10 +74,10 @@ class CompatRecordingsTranscriptionsMockTest < Minitest::Test
 
   def test_recordings_delete_journal_records_delete
     @client.compat.recordings.delete('RE_DEL')
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'DELETE', j.method
-    assert_equal "#{ACCOUNT_BASE}/Recordings/RE_DEL", j.path
+    assert_equal "#{account_base}/Recordings/RE_DEL", j.path
   end
 
   # ---- Transcriptions.list --------------------------------------------
@@ -90,10 +93,10 @@ class CompatRecordingsTranscriptionsMockTest < Minitest::Test
 
   def test_transcriptions_list_journal_records_get
     @client.compat.transcriptions.list
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'GET', j.method
-    assert_equal "#{ACCOUNT_BASE}/Transcriptions", j.path
+    assert_equal "#{account_base}/Transcriptions", j.path
   end
 
   # ---- Transcriptions.get ---------------------------------------------
@@ -108,10 +111,10 @@ class CompatRecordingsTranscriptionsMockTest < Minitest::Test
 
   def test_transcriptions_get_journal_records_get_with_sid
     @client.compat.transcriptions.get('TR_GET')
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'GET', j.method
-    assert_equal "#{ACCOUNT_BASE}/Transcriptions/TR_GET", j.path
+    assert_equal "#{account_base}/Transcriptions/TR_GET", j.path
   end
 
   # ---- Transcriptions.delete ------------------------------------------
@@ -124,9 +127,9 @@ class CompatRecordingsTranscriptionsMockTest < Minitest::Test
 
   def test_transcriptions_delete_journal_records_delete
     @client.compat.transcriptions.delete('TR_DEL')
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'DELETE', j.method
-    assert_equal "#{ACCOUNT_BASE}/Transcriptions/TR_DEL", j.path
+    assert_equal "#{account_base}/Transcriptions/TR_DEL", j.path
   end
 end

@@ -28,15 +28,19 @@ require_relative 'mock_test'
 
 # Shared fixture + dial/journal helpers for the Call-convenience mock tests.
 module RelayConvenienceHelpers
+  # Parallelize: per-client session scoping isolates each test's journal/scenarios.
+  def self.included(base)
+    base.parallelize_me!
+  end
+
   def setup
-    RelayMockTest.reset
     @handle = RelayMockTest.client
     @client = @handle[:client]
+    @mock   = @handle[:mock]
   end
 
   def teardown
     RelayMockTest.shutdown_client(@handle) if @handle
-    RelayMockTest.reset
   end
 
   def phone_device(to: '+15551112222', frm: '+15553334444')
@@ -46,8 +50,8 @@ module RelayConvenienceHelpers
   # Dial a single-leg call through the mock and return the resolved Call.
   # The winner ends in the requested final state (default `answered`).
   def dial_call(tag:, call_id:, states: %w[created answered])
-    RelayMockTest.journal.arm_dial(tag: tag, winner_call_id: call_id, states: states,
-                                   node_id: 'node-mock-1', device: phone_device)
+    @mock.arm_dial(tag: tag, winner_call_id: call_id, states: states,
+                   node_id: 'node-mock-1', device: phone_device)
     call = @client.dial([[phone_device]], tag: tag, timeout: 5)
 
     assert_kind_of SignalWire::Relay::Call, call
@@ -57,7 +61,7 @@ module RelayConvenienceHelpers
 
   # Pull the single calling.<method> frame's params off the journal.
   def last_params(method)
-    frames = RelayMockTest.journal.journal_recv(method: method)
+    frames = @mock.journal_recv(method: method)
 
     refute_empty frames, "no #{method} frame in journal"
     frames.last.frame['params']

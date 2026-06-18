@@ -10,13 +10,14 @@ require 'minitest/autorun'
 require_relative 'mock_test'
 
 class CompatCallsStreamsMockTest < Minitest::Test
-  def setup
-    @client = MockTest.client
-    MockTest.reset
-  end
+  # Parallelize: per-client unique-project + auth-scoped harness isolates each test.
+  parallelize_me!
 
-  def teardown
-    MockTest.reset
+  def setup
+    h = MockTest.client
+    @client  = h[:client]
+    @mock    = h[:mock]
+    @project = h[:project]
   end
 
   # ---- start_stream → POST /Calls/{sid}/Streams --------------------------
@@ -35,11 +36,11 @@ class CompatCallsStreamsMockTest < Minitest::Test
 
   def test_start_stream_journal_records_post_to_streams_collection
     @client.compat.calls.start_stream('CA_JX1', Url: 'wss://a.b/s', Name: 'strm-x')
-    j = MockTest.journal.last
+    j = @mock.last
     body = j.body
 
     assert_equal 'POST', j.method
-    assert_equal '/api/laml/2010-04-01/Accounts/test_proj/Calls/CA_JX1/Streams', j.path
+    assert_equal "/api/laml/2010-04-01/Accounts/#{@project}/Calls/CA_JX1/Streams", j.path
     assert_kind_of Hash, body
     assert_equal 'wss://a.b/s', body['Url']
     assert_equal 'strm-x', body['Name']
@@ -61,10 +62,10 @@ class CompatCallsStreamsMockTest < Minitest::Test
     @client.compat.calls.stop_stream(
       'CA_S1', 'ST_S1', Status: 'stopped'
     )
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'POST', j.method
-    assert_equal '/api/laml/2010-04-01/Accounts/test_proj/Calls/CA_S1/Streams/ST_S1', j.path
+    assert_equal "/api/laml/2010-04-01/Accounts/#{@project}/Calls/CA_S1/Streams/ST_S1", j.path
     assert_kind_of Hash, j.body
     assert_equal 'stopped', j.body['Status']
   end
@@ -85,10 +86,10 @@ class CompatCallsStreamsMockTest < Minitest::Test
     @client.compat.calls.update_recording(
       'CA_R1', 'RE_R1', Status: 'paused'
     )
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'POST', j.method
-    assert_equal '/api/laml/2010-04-01/Accounts/test_proj/Calls/CA_R1/Recordings/RE_R1', j.path
+    assert_equal "/api/laml/2010-04-01/Accounts/#{@project}/Calls/CA_R1/Recordings/RE_R1", j.path
     assert_kind_of Hash, j.body
     assert_equal 'paused', j.body['Status']
   end

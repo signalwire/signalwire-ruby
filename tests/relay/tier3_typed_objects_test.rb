@@ -32,15 +32,21 @@ require_relative 'mock_test'
 module RelayTier3Helpers
   R = SignalWire::Relay
 
+  # Parallelize: per-client session scoping isolates each test's dial journals.
+  def self.included(base)
+    base.parallelize_me!
+  end
+
   def setup
-    RelayMockTest.reset
+    # No global reset: @mock is scoped to this client's session and starts
+    # empty, keeping the shared mock parallel-safe.
     @handle = RelayMockTest.client
     @client = @handle[:client]
+    @mock   = @handle[:mock]
   end
 
   def teardown
     RelayMockTest.shutdown_client(@handle) if @handle
-    RelayMockTest.reset
   end
 
   # The hand-written phone device literal the existing suite uses verbatim.
@@ -49,8 +55,8 @@ module RelayTier3Helpers
   end
 
   def dial_call(tag:, call_id:, devices:, states: %w[created answered])
-    RelayMockTest.journal.arm_dial(tag: tag, winner_call_id: call_id, states: states,
-                                   node_id: 'node-mock-1', device: phone_device_hash)
+    @mock.arm_dial(tag: tag, winner_call_id: call_id, states: states,
+                   node_id: 'node-mock-1', device: phone_device_hash)
     call = @client.dial(devices, tag: tag, timeout: 5)
 
     assert_kind_of R::Call, call
@@ -59,7 +65,7 @@ module RelayTier3Helpers
   end
 
   def last_params(method)
-    frames = RelayMockTest.journal.journal_recv(method: method)
+    frames = @mock.journal_recv(method: method)
 
     refute_empty frames, "no #{method} frame in journal"
     frames.last.frame['params']
@@ -155,7 +161,7 @@ class RelayTier3DeviceTest < Minitest::Test
     dial_call(tag: 't-raw', call_id: 'W-RAW', devices: [[phone_device_hash]])
     raw_frame = last_params('calling.dial')['devices']
 
-    RelayMockTest.reset
+    @mock.reset
     # Typed-Device dial (same data).
     dev = R::Device.phone(to: '+15551112222', from: '+15553334444')
     dial_call(tag: 't-typed', call_id: 'W-TYP', devices: [[dev.to_h]])
@@ -427,7 +433,7 @@ class RelayTier3StateEnumsTest < Minitest::Test
   # classifies as terminal.
   def test_dial_state_terminal_over_real_dispatched_dial_event
     dial_call(tag: 't-ds', call_id: 'WIN-DS', devices: [[phone_device_hash]])
-    sends = RelayMockTest.journal.journal_send(event_type: 'calling.call.dial')
+    sends = @mock.journal_send(event_type: 'calling.call.dial')
 
     refute_empty sends, 'mock did not push a calling.call.dial event'
     final = sends.map { |e| (e.frame['params'] || {})['params'] }

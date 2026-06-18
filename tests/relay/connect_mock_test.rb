@@ -23,14 +23,21 @@ require_relative 'mock_test'
 # classes. The suite is split into topic classes so no single class grows
 # unbounded; they all mix in this module.
 module RelayConnectHelpers
+  # Run this class's tests in parallel threads. Session isolation (each client
+  # gets its own server session id + scoped harness) makes the shared mock
+  # safe under concurrency, so parallelism stress-proves the isolation.
+  def self.included(base)
+    base.parallelize_me!
+  end
+
   def setup
-    RelayMockTest.reset
+    # No global reset: each client's @handle[:mock] is session-scoped and
+    # starts empty, so connect-frame counts stay parallel-safe.
     @handle = nil
   end
 
   def teardown
     RelayMockTest.shutdown_client(@handle) if @handle
-    RelayMockTest.reset
   end
 
   # Open a raw WS, send +frame+, and return the raw response with matching id.
@@ -102,9 +109,10 @@ module RelayConnectHelpers
     issued_protocol
   end
 
-  # All journaled signalwire.connect frames received by the mock.
+  # The signalwire.connect frames THIS test's client sent, read through its
+  # session-scoped harness (so a parallel test's connect is never counted).
   def connect_frames
-    RelayMockTest.journal.journal_recv(method: SignalWire::Relay::METHOD_SIGNALWIRE_CONNECT)
+    @handle[:mock].journal_recv(method: SignalWire::Relay::METHOD_SIGNALWIRE_CONNECT)
   end
 
   def connect_protocol(entry)

@@ -16,15 +16,19 @@ require_relative 'mock_test'
 
 # Shared mock lifecycle, base path, and journal assertion helpers.
 module VideoMockSupport
+  # Parallelize: each test's client uses a unique project + auth-scoped harness,
+  # so the shared mock is concurrency-safe. Parallelism stress-proves isolation.
+  def self.included(base)
+    base.parallelize_me!
+  end
+
   VIDEO_BASE = '/api/video'
 
   def setup
-    @client = MockTest.client
-    MockTest.reset
-  end
-
-  def teardown
-    MockTest.reset
+    h = MockTest.client
+    @client  = h[:client]
+    @mock    = h[:mock]
+    @project = h[:project]
   end
 
   # Assert +body+ is a paginated collection: a Hash with an Array 'data' key.
@@ -36,7 +40,7 @@ module VideoMockSupport
 
   # Assert the last journaled request was a GET to +path+.
   def assert_journaled_get(path)
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'GET', last.method
     assert_equal path, last.path
@@ -59,7 +63,7 @@ class VideoMockTest < Minitest::Test
     # /api/video/rooms/{id}/streams returns a paginated list ('data').
     assert_data_collection(@client.video.rooms.list_streams('room-1'))
     assert_journaled_get("#{VIDEO_BASE}/rooms/room-1/streams")
-    refute_nil MockTest.journal.last.matched_route, 'spec gap: rooms streams list'
+    refute_nil @mock.last.matched_route, 'spec gap: rooms streams list'
   end
 
   def test_rooms_create_stream_posts_kwargs_in_body
@@ -67,7 +71,7 @@ class VideoMockTest < Minitest::Test
 
     assert_kind_of Hash, body
 
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'POST', last.method
     assert_equal "#{VIDEO_BASE}/rooms/room-1/streams", last.path
@@ -85,7 +89,7 @@ class VideoMockTest < Minitest::Test
   def test_room_sessions_get_returns_session_object
     assert_kind_of Hash, @client.video.room_sessions.get('sess-abc')
     assert_journaled_get("#{VIDEO_BASE}/room_sessions/sess-abc")
-    refute_nil MockTest.journal.last.matched_route
+    refute_nil @mock.last.matched_route
   end
 
   def test_room_sessions_list_events_uses_events_subpath
@@ -116,7 +120,7 @@ class VideoMockTest < Minitest::Test
 
     assert_kind_of Hash, body
 
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'DELETE', last.method
     assert_equal "#{VIDEO_BASE}/room_recordings/rec-del", last.path
@@ -151,12 +155,12 @@ class VideoConferencesMockTest < Minitest::Test
   def test_conference_tokens_get_returns_single_token
     assert_kind_of Hash, @client.video.conference_tokens.get('tok-1')
     assert_journaled_get("#{VIDEO_BASE}/conference_tokens/tok-1")
-    refute_nil MockTest.journal.last.matched_route
+    refute_nil @mock.last.matched_route
   end
 
   def test_conference_tokens_reset_posts_to_reset_subpath
     assert_kind_of Hash, @client.video.conference_tokens.reset('tok-2')
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'POST', last.method
     assert_equal "#{VIDEO_BASE}/conference_tokens/tok-2/reset", last.path
@@ -170,7 +174,7 @@ class VideoConferencesMockTest < Minitest::Test
 
     assert_kind_of Hash, body
 
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'GET', last.method
     assert_equal "#{VIDEO_BASE}/streams/stream-1", last.path
@@ -181,7 +185,7 @@ class VideoConferencesMockTest < Minitest::Test
 
     assert_kind_of Hash, body
 
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'PUT', last.method
     assert_equal "#{VIDEO_BASE}/streams/stream-2", last.path
@@ -194,7 +198,7 @@ class VideoConferencesMockTest < Minitest::Test
 
     assert_kind_of Hash, body # SDK turns 204 into {}
 
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'DELETE', last.method
     assert_equal "#{VIDEO_BASE}/streams/stream-3", last.path

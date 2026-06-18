@@ -19,15 +19,20 @@ require_relative 'mock_test'
 
 # Shared setup + answered-call helper for the action mock test groups below.
 class RelayActionsTestBase < Minitest::Test
+  # Parallelize: each test's client owns a distinct server session + scoped
+  # harness, so action scenarios/journals never cross between concurrent tests.
+  # Subclasses inherit this (Minitest's parallelize_me! defines a test_order
+  # method, which subclasses inherit).
+  parallelize_me!
+
   def setup
-    RelayMockTest.reset
     @handle = RelayMockTest.client
     @client = @handle[:client]
+    @mock   = @handle[:mock]
   end
 
   def teardown
     RelayMockTest.shutdown_client(@handle) if @handle
-    RelayMockTest.reset
   end
 
   # ---- Helper: establish an answered inbound call ----------------------
@@ -36,7 +41,7 @@ class RelayActionsTestBase < Minitest::Test
     captured_q = Queue.new
     handler_done = Queue.new
     @client.on_call { |call| _capture_answered_call(call, captured_q, handler_done) }
-    RelayMockTest.journal.inbound_call(call_id: call_id, auto_states: ['created'])
+    @mock.inbound_call(call_id: call_id, auto_states: ['created'])
     Timeout.timeout(5) { handler_done.pop }
     call = Timeout.timeout(5) { captured_q.pop }
     # Mark answered so subsequent actions don't think it's gone.
@@ -52,15 +57,15 @@ class RelayActionsTestBase < Minitest::Test
 
   # Push a signalwire.event frame carrying a calling.* event onto the mock.
   def push_call_event(event_type, params)
-    RelayMockTest.journal.push({
-                                 'jsonrpc' => '2.0', 'id' => SecureRandom.uuid, 'method' => 'signalwire.event',
-                                 'params' => { 'event_type' => event_type, 'params' => params }
-                               })
+    @mock.push({
+                 'jsonrpc' => '2.0', 'id' => SecureRandom.uuid, 'method' => 'signalwire.event',
+                 'params' => { 'event_type' => event_type, 'params' => params }
+               })
   end
 
   # Journaled outbound frames recorded for a RELAY method.
   def recv(method)
-    RelayMockTest.journal.journal_recv(method: method)
+    @mock.journal_recv(method: method)
   end
 end
 
@@ -81,10 +86,10 @@ class RelayPlayActionTest < RelayActionsTestBase
 
   def test_play_resolves_on_finished_event
     call = answered_inbound_call('call-play-fin')
-    RelayMockTest.journal.arm_method('calling.play', [
-                                       { 'emit' => { 'state' => 'playing' },  'delay_ms' => 1 },
-                                       { 'emit' => { 'state' => 'finished' }, 'delay_ms' => 5 }
-                                     ])
+    @mock.arm_method('calling.play', [
+                       { 'emit' => { 'state' => 'playing' }, 'delay_ms' => 1 },
+                       { 'emit' => { 'state' => 'finished' }, 'delay_ms' => 5 }
+                     ])
     action = call.play([{ 'type' => 'silence', 'params' => { 'duration' => 1 } }], control_id: 'play-ctl-fin')
 
     assert_kind_of SignalWire::Relay::PlayAction, action
@@ -121,7 +126,7 @@ class RelayPlayActionTest < RelayActionsTestBase
 
   def test_play_on_completed_callback_fires
     call = answered_inbound_call('call-play-cb')
-    RelayMockTest.journal.arm_method('calling.play', [{ 'emit' => { 'state' => 'finished' }, 'delay_ms' => 1 }])
+    @mock.arm_method('calling.play', [{ 'emit' => { 'state' => 'finished' }, 'delay_ms' => 1 }])
     cb_q = Queue.new
     cb = ->(event) { cb_q.push(event) }
     action = call.play([{ 'type' => 'silence', 'params' => { 'duration' => 1 } }],
@@ -150,10 +155,10 @@ class RelayRecordActionTest < RelayActionsTestBase
 
   def test_record_resolves_on_finished_event
     call = answered_inbound_call('call-rec-fin')
-    RelayMockTest.journal.arm_method('calling.record',
-                                     [{ 'emit' => { 'state' => 'recording' }, 'delay_ms' => 1 },
-                                      { 'emit' => { 'state' => 'finished', 'url' => 'http://r.wav' },
-                                        'delay_ms' => 5 }])
+    @mock.arm_method('calling.record',
+                     [{ 'emit' => { 'state' => 'recording' }, 'delay_ms' => 1 },
+                      { 'emit' => { 'state' => 'finished', 'url' => 'http://r.wav' },
+                        'delay_ms' => 5 }])
     action = call.record(audio: { 'format' => 'wav' }, control_id: 'rec-ctl-fin')
 
     assert_kind_of SignalWire::Relay::RecordAction, action
@@ -178,9 +183,9 @@ class RelayDetectActionTest < RelayActionsTestBase
   def test_detect_resolves_on_first_detect_payload
     call = answered_inbound_call('call-det')
     machine_detect = { 'detect' => { 'type' => 'machine', 'params' => { 'event' => 'MACHINE' } } }
-    RelayMockTest.journal.arm_method('calling.detect',
-                                     [{ 'emit' => machine_detect, 'delay_ms' => 1 },
-                                      { 'emit' => { 'state' => 'finished' }, 'delay_ms' => 10 }])
+    @mock.arm_method('calling.detect',
+                     [{ 'emit' => machine_detect, 'delay_ms' => 1 },
+                      { 'emit' => { 'state' => 'finished' }, 'delay_ms' => 10 }])
     action = call.detect({ 'type' => 'machine', 'params' => {} }, control_id: 'det-ctl-1')
 
     assert_kind_of SignalWire::Relay::DetectAction, action

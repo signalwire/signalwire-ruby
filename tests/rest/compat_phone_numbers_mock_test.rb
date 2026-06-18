@@ -13,15 +13,18 @@ require 'minitest/autorun'
 require_relative 'mock_test'
 
 class CompatPhoneNumbersMockTest < Minitest::Test
-  ACCOUNT_BASE = '/api/laml/2010-04-01/Accounts/test_proj'
+  # Parallelize: per-client unique-project + auth-scoped harness isolates each test.
+  parallelize_me!
 
   def setup
-    @client = MockTest.client
-    MockTest.reset
+    h = MockTest.client
+    @client  = h[:client]
+    @mock    = h[:mock]
+    @project = h[:project]
   end
 
-  def teardown
-    MockTest.reset
+  def account_base
+    "/api/laml/2010-04-01/Accounts/#{@project}"
   end
 
   # ---- list -------------------------------------------------------------
@@ -37,10 +40,10 @@ class CompatPhoneNumbersMockTest < Minitest::Test
 
   def test_list_journal_records_get_to_incoming_phone_numbers
     @client.compat.phone_numbers.list
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'GET', j.method
-    assert_equal "#{ACCOUNT_BASE}/IncomingPhoneNumbers", j.path
+    assert_equal "#{account_base}/IncomingPhoneNumbers", j.path
   end
 
   # ---- get --------------------------------------------------------------
@@ -55,10 +58,10 @@ class CompatPhoneNumbersMockTest < Minitest::Test
 
   def test_get_journal_records_get_with_sid
     @client.compat.phone_numbers.get('PN_GET')
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'GET', j.method
-    assert_equal "#{ACCOUNT_BASE}/IncomingPhoneNumbers/PN_GET", j.path
+    assert_equal "#{account_base}/IncomingPhoneNumbers/PN_GET", j.path
   end
 
   # ---- update -----------------------------------------------------------
@@ -73,11 +76,11 @@ class CompatPhoneNumbersMockTest < Minitest::Test
 
   def test_update_journal_records_post_with_friendly_name
     @client.compat.phone_numbers.update('PN_UU', FriendlyName: 'updated', VoiceUrl: 'https://a.b/v')
-    j = MockTest.journal.last
+    j = @mock.last
     body = j.body
 
     assert_equal 'POST', j.method
-    assert_equal "#{ACCOUNT_BASE}/IncomingPhoneNumbers/PN_UU", j.path
+    assert_equal "#{account_base}/IncomingPhoneNumbers/PN_UU", j.path
     assert_kind_of Hash, body
     assert_equal 'updated', body['FriendlyName']
     assert_equal 'https://a.b/v', body['VoiceUrl']
@@ -93,24 +96,27 @@ class CompatPhoneNumbersMockTest < Minitest::Test
 
   def test_delete_journal_records_delete_at_phone_number_path
     @client.compat.phone_numbers.delete('PN_DEL')
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'DELETE', j.method
-    assert_equal "#{ACCOUNT_BASE}/IncomingPhoneNumbers/PN_DEL", j.path
+    assert_equal "#{account_base}/IncomingPhoneNumbers/PN_DEL", j.path
   end
 end
 
 # Provisioning + availability: purchase / import_number / countries / toll-free.
 class CompatPhoneNumbersProvisioningMockTest < Minitest::Test
-  ACCOUNT_BASE = '/api/laml/2010-04-01/Accounts/test_proj'
+  # Parallelize: per-client unique-project + auth-scoped harness isolates each test.
+  parallelize_me!
 
   def setup
-    @client = MockTest.client
-    MockTest.reset
+    h = MockTest.client
+    @client  = h[:client]
+    @mock    = h[:mock]
+    @project = h[:project]
   end
 
-  def teardown
-    MockTest.reset
+  def account_base
+    "/api/laml/2010-04-01/Accounts/#{@project}"
   end
 
   # ---- purchase (POST /IncomingPhoneNumbers) ---------------------------
@@ -125,11 +131,11 @@ class CompatPhoneNumbersProvisioningMockTest < Minitest::Test
 
   def test_purchase_journal_records_post_with_phone_number
     @client.compat.phone_numbers.purchase(PhoneNumber: '+15555550100', FriendlyName: 'Main')
-    j = MockTest.journal.last
+    j = @mock.last
     body = j.body
 
     assert_equal 'POST', j.method
-    assert_equal "#{ACCOUNT_BASE}/IncomingPhoneNumbers", j.path
+    assert_equal "#{account_base}/IncomingPhoneNumbers", j.path
     assert_kind_of Hash, body
     assert_equal '+15555550100', body['PhoneNumber']
     assert_equal 'Main', body['FriendlyName']
@@ -149,11 +155,11 @@ class CompatPhoneNumbersProvisioningMockTest < Minitest::Test
     @client.compat.phone_numbers.import_number(
       PhoneNumber: '+15555550111', VoiceUrl: 'https://a.b/v'
     )
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'POST', j.method
     # Note the path is ImportedPhoneNumbers, not IncomingPhoneNumbers.
-    assert_equal "#{ACCOUNT_BASE}/ImportedPhoneNumbers", j.path
+    assert_equal "#{account_base}/ImportedPhoneNumbers", j.path
     assert_kind_of Hash, j.body
     assert_equal '+15555550111', j.body['PhoneNumber']
   end
@@ -171,10 +177,10 @@ class CompatPhoneNumbersProvisioningMockTest < Minitest::Test
 
   def test_list_available_countries_journal_records_get
     @client.compat.phone_numbers.list_available_countries
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'GET', j.method
-    assert_equal "#{ACCOUNT_BASE}/AvailablePhoneNumbers", j.path
+    assert_equal "#{account_base}/AvailablePhoneNumbers", j.path
   end
 
   # ---- search_toll_free (GET /AvailablePhoneNumbers/{c}/TollFree) -----
@@ -190,11 +196,11 @@ class CompatPhoneNumbersProvisioningMockTest < Minitest::Test
 
   def test_search_toll_free_journal_records_get_with_country_in_path
     @client.compat.phone_numbers.search_toll_free('US', AreaCode: '888')
-    j = MockTest.journal.last
+    j = @mock.last
     query = j.query_params
 
     assert_equal 'GET', j.method
-    assert_equal "#{ACCOUNT_BASE}/AvailablePhoneNumbers/US/TollFree", j.path
+    assert_equal "#{account_base}/AvailablePhoneNumbers/US/TollFree", j.path
     # The AreaCode should be on the query string, not body.
     assert(query.key?('AreaCode'), "expected AreaCode in query params, got #{query.keys.inspect}")
     assert_equal ['888'], query['AreaCode']
