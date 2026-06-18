@@ -71,7 +71,7 @@ module SwaigTest
   # a shell session) never inherit leaked state.
   module RuntimeEnvIsolation
     def self.snapshot(keys = LAMBDA_SIMULATION_ENV_VARS)
-      keys.each_with_object({}) { |k, h| h[k] = ENV[k] }
+      keys.each_with_object({}) { |k, h| h[k] = ENV.fetch(k, nil) }
     end
 
     def self.restore(snapshot)
@@ -94,9 +94,9 @@ module SwaigTest
   class ServerlessSimulator
     LAMBDA_PRESETS = {
       'AWS_LAMBDA_FUNCTION_NAME' => 'test-agent-function',
-      'LAMBDA_TASK_ROOT'         => '/var/task',
-      'AWS_REGION'               => 'us-east-1',
-      '_HANDLER'                 => 'lambda_function.handler'
+      'LAMBDA_TASK_ROOT' => '/var/task',
+      'AWS_REGION' => 'us-east-1',
+      '_HANDLER' => 'lambda_function.handler'
     }.freeze
 
     attr_reader :platform, :overrides
@@ -136,12 +136,13 @@ module SwaigTest
 
       @io.puts "Activated #{@platform} environment simulation"
       preset_for_platform.each_key do |k|
-        @io.puts "  #{k}: #{ENV[k]}"
+        @io.puts "  #{k}: #{ENV.fetch(k, nil)}"
       end
     end
 
     def deactivate
       return unless @active
+
       RuntimeEnvIsolation.restore(@snapshot) if @snapshot
       @snapshot = nil
       @active   = false
@@ -162,7 +163,7 @@ module SwaigTest
     def preset_for_platform
       case @platform
       when 'lambda' then LAMBDA_PRESETS
-      else {}  # unreachable — validated in CLI
+      else {} # unreachable — validated in CLI
       end
     end
   end
@@ -195,7 +196,7 @@ module SwaigTest
         'function' => func_name,
         'argument' => { 'parsed' => [params || {}] }
       )
-      auth  = basic_auth_header
+      auth = basic_auth_header
       headers = { 'content-type' => 'application/json' }
       headers['authorization'] = auth if auth
 
@@ -210,7 +211,7 @@ module SwaigTest
     def build_event(method, path, body: nil, headers: nil)
       base_headers = {
         'host' => ENV['AWS_LAMBDA_FUNCTION_URL']&.then { |u| URI.parse(u).host } ||
-                  "#{ENV['AWS_LAMBDA_FUNCTION_NAME']}.lambda-url.#{ENV['AWS_REGION']}.on.aws"
+                  "#{ENV.fetch('AWS_LAMBDA_FUNCTION_NAME', nil)}.lambda-url.#{ENV.fetch('AWS_REGION', nil)}.on.aws"
       }
       base_headers.merge!(headers) if headers
 
@@ -221,13 +222,13 @@ module SwaigTest
       end
 
       event = {
-        'version'        => '2.0',
-        'routeKey'       => '$default',
-        'rawPath'        => path,
+        'version' => '2.0',
+        'routeKey' => '$default',
+        'rawPath' => path,
         'rawQueryString' => '',
-        'headers'        => base_headers,
+        'headers' => base_headers,
         'requestContext' => {
-          'http'  => { 'method' => method, 'path' => path, 'protocol' => 'HTTP/1.1' },
+          'http' => { 'method' => method, 'path' => path, 'protocol' => 'HTTP/1.1' },
           'stage' => '$default'
         }
       }
@@ -244,7 +245,7 @@ module SwaigTest
       # ourselves against it.
       if @agent.respond_to?(:get_basic_auth_credentials)
         user, pass = @agent.get_basic_auth_credentials
-        return "Basic " + ["#{user}:#{pass}"].pack('m0').chomp if user && pass
+        return 'Basic ' + ["#{user}:#{pass}"].pack('m0').chomp if user && pass
       end
       nil
     end
@@ -252,6 +253,7 @@ module SwaigTest
     def ensure_success!(resp, description)
       status = resp['statusCode'].to_i
       return if status >= 200 && status < 300
+
       raise "Simulator: #{description} returned HTTP #{status}: #{resp['body']}"
     end
 
@@ -267,16 +269,16 @@ module SwaigTest
 
     def initialize(argv = ARGV)
       @options = {
-        url:                 nil,
-        agent_file:          nil,
-        file:                nil,
+        url: nil,
+        agent_file: nil,
+        file: nil,
         simulate_serverless: nil,
-        dump_swml:           false,
-        list_tools:          false,
-        exec:                nil,
-        params:              {},
-        raw:                 false,
-        verbose:             false
+        dump_swml: false,
+        list_tools: false,
+        exec: nil,
+        params: {},
+        raw: false,
+        verbose: false
       }
       parse_options(argv)
     end
@@ -295,7 +297,7 @@ module SwaigTest
       elsif @options[:exec]
         exec_function
       else
-        $stderr.puts "Error: specify --dump-swml, --list-tools, or --exec NAME"
+        warn 'Error: specify --dump-swml, --list-tools, or --exec NAME'
         exit 1
       end
     end
@@ -304,52 +306,52 @@ module SwaigTest
 
     def parse_options(argv)
       parser = OptionParser.new do |opts|
-        opts.banner = "Usage: swaig-test [agent_file] [options]"
+        opts.banner = 'Usage: swaig-test [agent_file] [options]'
 
-        opts.on("--url URL", "Agent URL with embedded auth (http://user:pass@host:port/route)") do |v|
+        opts.on('--url URL', 'Agent URL with embedded auth (http://user:pass@host:port/route)') do |v|
           @options[:url] = v
         end
 
-        opts.on("--simulate-serverless PLATFORM",
+        opts.on('--simulate-serverless PLATFORM',
                 "Simulate the named serverless platform (loads agent file locally). Supported: #{IMPLEMENTED_SERVERLESS_PLATFORMS.join(', ')}") do |v|
           @options[:simulate_serverless] = v
         end
 
-        opts.on("--file PATH", "--example PATH",
-                "Load a SWML::Service subclass from PATH in-process and read its tool registry directly (no HTTP, no simulator). Required for --list-tools on a non-AgentBase Service.") do |v|
+        opts.on('--file PATH', '--example PATH',
+                'Load a SWML::Service subclass from PATH in-process and read its tool registry directly (no HTTP, no simulator). Required for --list-tools on a non-AgentBase Service.') do |v|
           @options[:file] = v
         end
 
-        opts.on("--dump-swml", "GET SWML document and pretty-print it") do
+        opts.on('--dump-swml', 'GET SWML document and pretty-print it') do
           @options[:dump_swml] = true
         end
 
-        opts.on("--list-tools", "List available SWAIG functions") do
+        opts.on('--list-tools', 'List available SWAIG functions') do
           @options[:list_tools] = true
         end
 
-        opts.on("--exec NAME", "Execute a SWAIG function by name") do |v|
+        opts.on('--exec NAME', 'Execute a SWAIG function by name') do |v|
           @options[:exec] = v
         end
 
-        opts.on("--param KEY=VALUE", "Set a parameter (repeatable)") do |v|
+        opts.on('--param KEY=VALUE', 'Set a parameter (repeatable)') do |v|
           key, value = v.split('=', 2)
           if key && value
             @options[:params][key] = parse_param_value(value)
           else
-            $stderr.puts "Warning: ignoring malformed --param '#{v}' (expected key=value)"
+            warn "Warning: ignoring malformed --param '#{v}' (expected key=value)"
           end
         end
 
-        opts.on("--raw", "Output compact JSON instead of pretty-printed") do
+        opts.on('--raw', 'Output compact JSON instead of pretty-printed') do
           @options[:raw] = true
         end
 
-        opts.on("--verbose", "Show request/response details") do
+        opts.on('--verbose', 'Show request/response details') do
           @options[:verbose] = true
         end
 
-        opts.on("-h", "--help", "Show this help") do
+        opts.on('-h', '--help', 'Show this help') do
           puts opts
           exit 0
         end
@@ -361,7 +363,7 @@ module SwaigTest
       # file path. This is the only way to invoke file mode, so we keep
       # it outside of validate_options! for clearer error messages.
       if remaining.length > 1
-        $stderr.puts "Error: at most one positional agent file may be given; got #{remaining.inspect}"
+        warn "Error: at most one positional agent file may be given; got #{remaining.inspect}"
         exit 1
       elsif remaining.length == 1
         @options[:agent_file] = remaining.first
@@ -381,16 +383,16 @@ module SwaigTest
 
       # Classic URL mode from here down.
       unless @options[:url]
-        $stderr.puts "Error: --url is required (or pass --file PATH for in-process file mode, or pass an agent file with --simulate-serverless PLATFORM)"
+        warn 'Error: --url is required (or pass --file PATH for in-process file mode, or pass an agent file with --simulate-serverless PLATFORM)'
         exit 1
       end
 
       actions = [@options[:dump_swml], @options[:list_tools], !!@options[:exec]].count(true)
       if actions == 0
-        $stderr.puts "Error: specify one of --dump-swml, --list-tools, or --exec NAME"
+        warn 'Error: specify one of --dump-swml, --list-tools, or --exec NAME'
         exit 1
       elsif actions > 1
-        $stderr.puts "Error: specify only one of --dump-swml, --list-tools, or --exec NAME"
+        warn 'Error: specify only one of --dump-swml, --list-tools, or --exec NAME'
         exit 1
       end
     end
@@ -400,29 +402,29 @@ module SwaigTest
       # runtime registry, since that is the gap on non-AgentBase services.
       # URL/simulator combinations are rejected to avoid ambiguous dispatch.
       if @options[:url]
-        $stderr.puts "Error: --file and --url are mutually exclusive"
+        warn 'Error: --file and --url are mutually exclusive'
         exit 1
       end
 
       if @options[:simulate_serverless]
-        $stderr.puts "Error: --file and --simulate-serverless are mutually exclusive"
+        warn 'Error: --file and --simulate-serverless are mutually exclusive'
         exit 1
       end
 
       unless File.exist?(@options[:file])
-        $stderr.puts "Error: file not found: #{@options[:file]}"
+        warn "Error: file not found: #{@options[:file]}"
         exit 1
       end
 
       unless @options[:list_tools]
-        $stderr.puts "Error: --file mode currently supports only --list-tools"
+        warn 'Error: --file mode currently supports only --list-tools'
         exit 1
       end
 
-      if @options[:dump_swml] || @options[:exec]
-        $stderr.puts "Error: --file mode does not support --dump-swml or --exec (use --url or --simulate-serverless lambda for those)"
-        exit 1
-      end
+      return unless @options[:dump_swml] || @options[:exec]
+
+      warn 'Error: --file mode does not support --dump-swml or --exec (use --url or --simulate-serverless lambda for those)'
+      exit 1
     end
 
     def validate_simulate_serverless_options!
@@ -430,38 +432,38 @@ module SwaigTest
 
       unless IMPLEMENTED_SERVERLESS_PLATFORMS.include?(platform)
         if RECOGNISED_SERVERLESS_PLATFORMS.include?(platform)
-          $stderr.puts "Error: --simulate-serverless #{platform.inspect} is not implemented in this SDK yet."
-          $stderr.puts "       Phase 9 (serverless support) has only shipped for: #{IMPLEMENTED_SERVERLESS_PLATFORMS.join(', ')}."
-          $stderr.puts "       Add the #{platform} handler adapter before enabling it here."
+          warn "Error: --simulate-serverless #{platform.inspect} is not implemented in this SDK yet."
+          warn "       Phase 9 (serverless support) has only shipped for: #{IMPLEMENTED_SERVERLESS_PLATFORMS.join(', ')}."
+          warn "       Add the #{platform} handler adapter before enabling it here."
         else
-          $stderr.puts "Error: unknown serverless platform #{platform.inspect}."
-          $stderr.puts "       Supported: #{IMPLEMENTED_SERVERLESS_PLATFORMS.join(', ')}."
+          warn "Error: unknown serverless platform #{platform.inspect}."
+          warn "       Supported: #{IMPLEMENTED_SERVERLESS_PLATFORMS.join(', ')}."
         end
         exit 1
       end
 
       unless @options[:agent_file]
-        $stderr.puts "Error: --simulate-serverless requires a positional agent file argument"
-        $stderr.puts "Usage: swaig-test AGENT_FILE --simulate-serverless #{platform} [--dump-swml | --exec NAME]"
+        warn 'Error: --simulate-serverless requires a positional agent file argument'
+        warn "Usage: swaig-test AGENT_FILE --simulate-serverless #{platform} [--dump-swml | --exec NAME]"
         exit 1
       end
 
       unless File.exist?(@options[:agent_file])
-        $stderr.puts "Error: agent file not found: #{@options[:agent_file]}"
+        warn "Error: agent file not found: #{@options[:agent_file]}"
         exit 1
       end
 
       # Simulated mode cannot combine with --url (different dispatch paths).
       if @options[:url]
-        $stderr.puts "Error: --simulate-serverless and --url are mutually exclusive"
+        warn 'Error: --simulate-serverless and --url are mutually exclusive'
         exit 1
       end
 
       actions = [@options[:dump_swml], @options[:list_tools], !!@options[:exec]].count(true)
-      if actions > 1
-        $stderr.puts "Error: specify at most one of --dump-swml, --list-tools, or --exec NAME"
-        exit 1
-      end
+      return unless actions > 1
+
+      warn 'Error: specify at most one of --dump-swml, --list-tools, or --exec NAME'
+      exit 1
     end
 
     def parse_param_value(value)
@@ -488,11 +490,9 @@ module SwaigTest
     def auth_header
       user = parsed_uri.user
       pass = parsed_uri.password
-      if user && pass
-        "Basic " + ["#{URI.decode_www_form_component(user)}:#{URI.decode_www_form_component(pass)}"].pack('m0')
-      else
-        nil
-      end
+      return unless user && pass
+
+      'Basic ' + ["#{URI.decode_www_form_component(user)}:#{URI.decode_www_form_component(pass)}"].pack('m0')
     end
 
     def make_request(method, path, body: nil)
@@ -505,13 +505,13 @@ module SwaigTest
       uri.password = nil
 
       if @options[:verbose]
-        $stderr.puts ">> #{method.upcase} #{uri}"
-        $stderr.puts ">> Authorization: Basic <redacted>" if auth_header
+        warn ">> #{method.upcase} #{uri}"
+        warn '>> Authorization: Basic <redacted>' if auth_header
         if body
-          $stderr.puts ">> Content-Type: application/json"
-          $stderr.puts ">> Body: #{body}"
+          warn '>> Content-Type: application/json'
+          warn ">> Body: #{body}"
         end
-        $stderr.puts ""
+        warn ''
       end
 
       http = Net::HTTP.new(uri.host, uri.port)
@@ -532,9 +532,9 @@ module SwaigTest
       response = http.request(req)
 
       if @options[:verbose]
-        $stderr.puts "<< HTTP #{response.code} #{response.message}"
-        response.each_header { |k, v| $stderr.puts "<< #{k}: #{v}" }
-        $stderr.puts ""
+        warn "<< HTTP #{response.code} #{response.message}"
+        response.each_header { |k, v| warn "<< #{k}: #{v}" }
+        warn ''
       end
 
       response
@@ -552,16 +552,16 @@ module SwaigTest
       response = make_request(:get, '/')
 
       unless response.is_a?(Net::HTTPSuccess)
-        $stderr.puts "Error: HTTP #{response.code} #{response.message}"
-        $stderr.puts response.body if @options[:verbose]
+        warn "Error: HTTP #{response.code} #{response.message}"
+        warn response.body if @options[:verbose]
         exit 1
       end
 
       data = JSON.parse(response.body)
       puts format_json(data)
     rescue JSON::ParserError => e
-      $stderr.puts "Error: invalid JSON response: #{e.message}"
-      $stderr.puts response.body if @options[:verbose]
+      warn "Error: invalid JSON response: #{e.message}"
+      warn response.body if @options[:verbose]
       exit 1
     end
 
@@ -569,7 +569,7 @@ module SwaigTest
       response = make_request(:get, '/')
 
       unless response.is_a?(Net::HTTPSuccess)
-        $stderr.puts "Error: HTTP #{response.code} #{response.message}"
+        warn "Error: HTTP #{response.code} #{response.message}"
         exit 1
       end
 
@@ -577,12 +577,12 @@ module SwaigTest
       functions = extract_functions(swml)
 
       if functions.empty?
-        puts "No SWAIG functions found."
+        puts 'No SWAIG functions found.'
         return
       end
 
-      puts "SWAIG Functions:"
-      puts "-" * 60
+      puts 'SWAIG Functions:'
+      puts '-' * 60
       functions.each do |func|
         name = func['function'] || '(unnamed)'
         desc = func['description'] || '(no description)'
@@ -591,18 +591,26 @@ module SwaigTest
 
         params = func['parameters']
         if params.is_a?(Hash) && params['properties'].is_a?(Hash) && !params['properties'].empty?
-          puts "    Parameters:"
+          puts '    Parameters:'
           params['properties'].each do |pname, pdef|
-            ptype = pdef['type'] || 'any' rescue 'any'
-            pdesc = pdef['description'] || '' rescue ''
+            ptype = begin
+              pdef['type'] || 'any'
+            rescue StandardError
+              'any'
+            end
+            pdesc = begin
+              pdef['description'] || ''
+            rescue StandardError
+              ''
+            end
             required = (params['required'] || []).include?(pname) ? ' (required)' : ''
             puts "      - #{pname}: #{ptype}#{required} #{pdesc}"
           end
         end
-        puts ""
+        puts ''
       end
     rescue JSON::ParserError => e
-      $stderr.puts "Error: invalid JSON response: #{e.message}"
+      warn "Error: invalid JSON response: #{e.message}"
       exit 1
     end
 
@@ -618,15 +626,15 @@ module SwaigTest
       response = make_request(:post, '/swaig', body: JSON.generate(payload))
 
       unless response.is_a?(Net::HTTPSuccess)
-        $stderr.puts "Error: HTTP #{response.code} #{response.message}"
-        $stderr.puts response.body if @options[:verbose]
+        warn "Error: HTTP #{response.code} #{response.message}"
+        warn response.body if @options[:verbose]
         exit 1
       end
 
       data = JSON.parse(response.body)
       puts format_json(data)
     rescue JSON::ParserError => e
-      $stderr.puts "Error: invalid JSON response: #{e.message}"
+      warn "Error: invalid JSON response: #{e.message}"
       exit 1
     end
 
@@ -638,12 +646,12 @@ module SwaigTest
       main = sections['main'] || []
 
       main.each do |verb|
-        if verb.is_a?(Hash) && verb.key?('ai')
-          ai = verb['ai']
-          swaig = ai['SWAIG'] || {}
-          funcs = swaig['functions'] || []
-          functions.concat(funcs)
-        end
+        next unless verb.is_a?(Hash) && verb.key?('ai')
+
+        ai = verb['ai']
+        swaig = ai['SWAIG'] || {}
+        funcs = swaig['functions'] || []
+        functions.concat(funcs)
       end
 
       functions
@@ -664,7 +672,7 @@ module SwaigTest
       simulator.with_simulation do
         agent = load_agent_file(@options[:agent_file])
         unless agent
-          $stderr.puts "Error: agent file #{@options[:agent_file].inspect} did not expose an AGENT constant (expected SignalWire::AgentBase)."
+          warn "Error: agent file #{@options[:agent_file].inspect} did not expose an AGENT constant (expected SignalWire::AgentBase)."
           exit 1
         end
 
@@ -701,6 +709,7 @@ module SwaigTest
 
       Object.constants.each do |c|
         next if c == :AGENT
+
         value = Object.const_get(c)
         return value if value.is_a?(SignalWire::AgentBase)
       end
@@ -710,11 +719,11 @@ module SwaigTest
 
     def render_functions_list(functions)
       if functions.empty?
-        puts "No SWAIG functions found."
+        puts 'No SWAIG functions found.'
         return
       end
-      puts "SWAIG Functions:"
-      puts "-" * 60
+      puts 'SWAIG Functions:'
+      puts '-' * 60
       functions.each do |func|
         name = func['function'] || '(unnamed)'
         desc = func['description'] || '(no description)'
@@ -723,7 +732,7 @@ module SwaigTest
 
         properties, required = extract_param_properties(func['parameters'])
         unless properties.empty?
-          puts "    Parameters:"
+          puts '    Parameters:'
           properties.each do |pname, pdef|
             ptype = (pdef.is_a?(Hash) ? pdef['type'] : nil) || 'any'
             pdesc = (pdef.is_a?(Hash) ? pdef['description'] : nil) || ''
@@ -731,7 +740,7 @@ module SwaigTest
             puts "      - #{pname}: #{ptype}#{req_marker} #{pdesc}".rstrip
           end
         end
-        puts ""
+        puts ''
       end
     end
 
@@ -740,6 +749,7 @@ module SwaigTest
     # Returns [properties_hash, required_array].
     def extract_param_properties(params)
       return [{}, []] unless params.is_a?(Hash)
+
       if params['properties'].is_a?(Hash)
         [params['properties'], Array(params['required']).map(&:to_s)]
       elsif params['type'] == 'object'
@@ -766,7 +776,7 @@ module SwaigTest
 
       service = load_service_from_file(@options[:file])
       unless service
-        $stderr.puts "Error: file #{@options[:file].inspect} did not expose a SignalWire::SWML::Service subclass."
+        warn "Error: file #{@options[:file].inspect} did not expose a SignalWire::SWML::Service subclass."
         exit 1
       end
 
@@ -810,16 +820,16 @@ module SwaigTest
       # Fallback: if no NEW subclass was defined (e.g. running the same
       # file twice in the same process), pick any user subclass.
       candidate ||= ObjectSpace.each_object(Class)
-                    .select { |c| service_subclass?(c, service_class) }
-                    .sort_by { |c| c.name.to_s }
-                    .last
+                               .select { |c| service_subclass?(c, service_class) }
+                               .sort_by { |c| c.name.to_s }
+                               .last
 
       return nil unless candidate
 
       instantiate_service(candidate)
     rescue StandardError => e
-      $stderr.puts "Error loading #{path}: #{e.class}: #{e.message}"
-      $stderr.puts e.backtrace.first(8).join("\n") if @options[:verbose]
+      warn "Error loading #{path}: #{e.class}: #{e.message}"
+      warn e.backtrace.first(8).join("\n") if @options[:verbose]
       exit 1
     end
 
@@ -827,6 +837,7 @@ module SwaigTest
       return false unless klass.is_a?(Class)
       return false if klass == service_class
       return false if defined?(SignalWire::AgentBase) && klass == SignalWire::AgentBase
+
       klass.ancestors.include?(service_class)
     rescue StandardError
       false
@@ -861,12 +872,11 @@ module SwaigTest
 
     def stringify_tool(defn)
       return {} unless defn.is_a?(Hash)
+
       defn.transform_keys(&:to_s)
     end
   end
 end
 
 # Run when invoked directly
-if __FILE__ == $PROGRAM_NAME
-  SwaigTest::CLI.new.run
-end
+SwaigTest::CLI.new.run if __FILE__ == $PROGRAM_NAME

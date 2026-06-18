@@ -35,4 +35,5 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'rubocop', '>= 1.80'
   s.add_development_dependency 'rubocop-minitest', '>= 0.38'
   s.add_development_dependency 'rubocop-performance', '>= 1.25'
+  s.metadata['rubygems_mfa_required'] = 'true'
 end
