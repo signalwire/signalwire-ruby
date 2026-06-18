@@ -12,13 +12,14 @@ require 'minitest/autorun'
 require_relative 'mock_test'
 
 class CompatMessagesFaxesMockTest < Minitest::Test
-  def setup
-    @client = MockTest.client
-    MockTest.reset
-  end
+  # Parallelize: per-client unique-project + auth-scoped harness isolates each test.
+  parallelize_me!
 
-  def teardown
-    MockTest.reset
+  def setup
+    h = MockTest.client
+    @client  = h[:client]
+    @mock    = h[:mock]
+    @project = h[:project]
   end
 
   # ---- Messages.update --------------------------------------------------
@@ -33,9 +34,9 @@ class CompatMessagesFaxesMockTest < Minitest::Test
 
   def test_messages_update_journal_records_post_to_message
     @client.compat.messages.update('MM_U1', Body: 'x', Status: 'canceled')
-    j = MockTest.journal.last
+    j = @mock.last
 
-    assert_journal_request(j, 'POST', '/api/laml/2010-04-01/Accounts/test_proj/Messages/MM_U1')
+    assert_journal_request(j, 'POST', "/api/laml/2010-04-01/Accounts/#{@project}/Messages/MM_U1")
     assert_equal 'x', j.body['Body']
     assert_equal 'canceled', j.body['Status']
   end
@@ -52,10 +53,10 @@ class CompatMessagesFaxesMockTest < Minitest::Test
 
   def test_messages_get_media_journal_records_get_to_media_path
     @client.compat.messages.get_media('MM_X', 'ME_X')
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'GET', j.method
-    assert_equal '/api/laml/2010-04-01/Accounts/test_proj/Messages/MM_X/Media/ME_X', j.path
+    assert_equal "/api/laml/2010-04-01/Accounts/#{@project}/Messages/MM_X/Media/ME_X", j.path
   end
 
   # ---- Messages.delete_media -------------------------------------------
@@ -69,10 +70,10 @@ class CompatMessagesFaxesMockTest < Minitest::Test
 
   def test_messages_delete_media_journal_records_delete
     @client.compat.messages.delete_media('MM_D', 'ME_D')
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'DELETE', j.method
-    assert_equal '/api/laml/2010-04-01/Accounts/test_proj/Messages/MM_D/Media/ME_D', j.path
+    assert_equal "/api/laml/2010-04-01/Accounts/#{@project}/Messages/MM_D/Media/ME_D", j.path
   end
 
   # ---- Faxes.update -----------------------------------------------------
@@ -87,10 +88,10 @@ class CompatMessagesFaxesMockTest < Minitest::Test
 
   def test_faxes_update_journal_records_post_with_status
     @client.compat.faxes.update('FX_U2', Status: 'canceled')
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'POST', j.method
-    assert_equal '/api/laml/2010-04-01/Accounts/test_proj/Faxes/FX_U2', j.path
+    assert_equal "/api/laml/2010-04-01/Accounts/#{@project}/Faxes/FX_U2", j.path
     assert_kind_of Hash, j.body
     assert_equal 'canceled', j.body['Status']
   end
@@ -107,10 +108,10 @@ class CompatMessagesFaxesMockTest < Minitest::Test
 
   def test_faxes_list_media_journal_records_get_to_fax_media
     @client.compat.faxes.list_media('FX_LM_X')
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'GET', j.method
-    assert_equal '/api/laml/2010-04-01/Accounts/test_proj/Faxes/FX_LM_X/Media', j.path
+    assert_equal "/api/laml/2010-04-01/Accounts/#{@project}/Faxes/FX_LM_X/Media", j.path
   end
 
   # ---- Faxes.get_media --------------------------------------------------
@@ -125,10 +126,10 @@ class CompatMessagesFaxesMockTest < Minitest::Test
 
   def test_faxes_get_media_journal_records_get_to_specific_media
     @client.compat.faxes.get_media('FX_G', 'ME_G')
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'GET', j.method
-    assert_equal '/api/laml/2010-04-01/Accounts/test_proj/Faxes/FX_G/Media/ME_G', j.path
+    assert_equal "/api/laml/2010-04-01/Accounts/#{@project}/Faxes/FX_G/Media/ME_G", j.path
   end
 
   # ---- Faxes.delete_media ----------------------------------------------
@@ -141,10 +142,10 @@ class CompatMessagesFaxesMockTest < Minitest::Test
 
   def test_faxes_delete_media_journal_records_delete
     @client.compat.faxes.delete_media('FX_D', 'ME_D')
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'DELETE', j.method
-    assert_equal '/api/laml/2010-04-01/Accounts/test_proj/Faxes/FX_D/Media/ME_D', j.path
+    assert_equal "/api/laml/2010-04-01/Accounts/#{@project}/Faxes/FX_D/Media/ME_D", j.path
   end
 
   private

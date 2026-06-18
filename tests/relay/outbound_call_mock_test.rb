@@ -17,15 +17,19 @@ require_relative 'mock_test'
 
 # Shared fixture + dial/journal helpers for the outbound-call (dial) tests.
 module RelayOutboundCallHelpers
+  # Parallelize: per-client session scoping isolates each test's dial scenarios.
+  def self.included(base)
+    base.parallelize_me!
+  end
+
   def setup
-    RelayMockTest.reset
     @handle = RelayMockTest.client
     @client = @handle[:client]
+    @mock   = @handle[:mock]
   end
 
   def teardown
     RelayMockTest.shutdown_client(@handle) if @handle
-    RelayMockTest.reset
   end
 
   def phone_device(to: '+15551112222', frm: '+15553334444')
@@ -36,14 +40,14 @@ module RelayOutboundCallHelpers
   # +arm:+ extra arm_dial kwargs (states/losers/delay_ms/...); +dial:+ extra
   # dial kwargs (max_duration/...); +devices:+ the device matrix to dial.
   def arm_and_dial(tag:, winner:, states: %w[created answered], arm: {}, dial: {}, devices: nil)
-    RelayMockTest.journal.arm_dial(tag: tag, winner_call_id: winner, states: states,
-                                   node_id: 'node-mock-1', device: phone_device, **arm)
+    @mock.arm_dial(tag: tag, winner_call_id: winner, states: states,
+                   node_id: 'node-mock-1', device: phone_device, **arm)
     @client.dial(devices || [[phone_device]], tag: tag, timeout: 5, **dial)
   end
 
   # The single calling.dial frame's params (asserts exactly one was sent).
   def sole_dial_params
-    dials = RelayMockTest.journal.journal_recv(method: 'calling.dial')
+    dials = @mock.journal_recv(method: 'calling.dial')
 
     assert_equal 1, dials.size
     dials[0].frame['params']
@@ -117,13 +121,13 @@ class RelayOutboundCallMockTest < Minitest::Test
 
     winner = { 'call_id' => 'auto-tag-winner', 'node_id' => 'node-mock-1', 'tag' => tag,
                'device' => phone_device, 'dial_winner' => true }
-    RelayMockTest.journal.push(call_dial_event(tag, 'answered', winner))
+    @mock.push(call_dial_event(tag, 'answered', winner))
   end
 
   # Poll for the calling.dial frame; return its tag (or nil after ~2s).
   def wait_for_dial_tag
     40.times do
-      entries = RelayMockTest.journal.journal_recv(method: 'calling.dial')
+      entries = @mock.journal_recv(method: 'calling.dial')
       return entries.last.frame['params']['tag'] unless entries.empty?
 
       sleep 0.05
@@ -136,7 +140,7 @@ class RelayOutboundCallMockTest < Minitest::Test
   def test_dial_failed_raises_relay_error
     pusher = Thread.new do
       wait_for_dial_tag
-      RelayMockTest.journal.push(call_dial_event('t-fail', 'failed', {}))
+      @mock.push(call_dial_event('t-fail', 'failed', {}))
     end
     err = assert_raises(SignalWire::Relay::RelayError) do
       @client.dial([[phone_device]], tag: 't-fail', timeout: 5)
@@ -178,7 +182,7 @@ class RelayOutboundCallWireMockTest < Minitest::Test
 
   # The single answered calling.call.dial event's inner params.
   def sole_answered_dial_event
-    sends = RelayMockTest.journal.journal_send(event_type: 'calling.call.dial')
+    sends = @mock.journal_send(event_type: 'calling.call.dial')
 
     refute_empty sends, 'no calling.call.dial event was pushed'
     finals = sends.select do |e|
@@ -210,9 +214,9 @@ class RelayOutboundCallWireMockTest < Minitest::Test
 
   # The pushed calling.call.state events' inner params for +call_id+.
   def sent_call_states(call_id)
-    RelayMockTest.journal.journal_send(event_type: 'calling.call.state')
-                 .map { |e| e.frame['params']['params'] }
-                 .select { |p| p['call_id'] == call_id }
+    @mock.journal_send(event_type: 'calling.call.state')
+         .map { |e| e.frame['params']['params'] }
+         .select { |p| p['call_id'] == call_id }
   end
 
   # ---- Devices shape on the wire ---------------------------------------
@@ -251,7 +255,7 @@ class RelayOutboundCallWireMockTest < Minitest::Test
   def test_dialed_call_can_send_subsequent_command
     call = arm_and_dial(tag: 't-after', winner: 'WIN-AFTER')
     call.hangup
-    end_frames = RelayMockTest.journal.journal_recv(method: 'calling.end')
+    end_frames = @mock.journal_recv(method: 'calling.end')
 
     refute_empty end_frames, 'no calling.end frame in journal'
     assert_equal 'WIN-AFTER', end_frames.last.frame['params']['call_id']
@@ -260,7 +264,7 @@ class RelayOutboundCallWireMockTest < Minitest::Test
   def test_dialed_call_can_play
     call = arm_and_dial(tag: 't-play', winner: 'WIN-PLAY')
     call.play([{ 'type' => 'tts', 'params' => { 'text' => 'hi' } }])
-    play_frames = RelayMockTest.journal.journal_recv(method: 'calling.play')
+    play_frames = @mock.journal_recv(method: 'calling.play')
 
     refute_empty play_frames, 'no calling.play frame after dial'
     p = play_frames.last.frame['params']
@@ -281,7 +285,7 @@ class RelayOutboundCallWireMockTest < Minitest::Test
 
   def test_dial_frame_uses_jsonrpc_envelope
     arm_and_dial(tag: 't-rpc', winner: 'W')
-    dials = RelayMockTest.journal.journal_recv(method: 'calling.dial')
+    dials = @mock.journal_recv(method: 'calling.dial')
 
     assert_equal 1, dials.size
     f = dials[0].frame

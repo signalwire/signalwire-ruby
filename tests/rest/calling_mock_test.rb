@@ -8,7 +8,7 @@
 #
 # 1. Calls the SDK method (no transport patching).
 # 2. Asserts on the response body shape that the mock returns from the spec.
-# 3. Asserts on MockTest.journal.last so we know the SDK sent the right
+# 3. Asserts on @mock.last so we know the SDK sent the right
 #    wire request — method, path, command field, and (where applicable)
 #    the id and any keyword params.
 
@@ -19,15 +19,19 @@ require_relative 'mock_test'
 # The suite is split into topic classes so no single class grows unbounded;
 # they all mix in this module.
 module CallingMockHelpers
+  # Parallelize: each test's client uses a unique project + auth-scoped harness,
+  # so the shared mock is concurrency-safe. Parallelism stress-proves isolation.
+  def self.included(base)
+    base.parallelize_me!
+  end
+
   CALLS_PATH = '/api/calling/calls'
 
   def setup
-    @client = MockTest.client
-    MockTest.reset
-  end
-
-  def teardown
-    MockTest.reset
+    h = MockTest.client
+    @client  = h[:client]
+    @mock    = h[:mock]
+    @project = h[:project]
   end
 
   # Assert the common calling-command journal shape and return the entry.
@@ -40,7 +44,7 @@ module CallingMockHelpers
     assert_kind_of Hash, body
     assert body.key?('id')
 
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_command_envelope(last, command, id)
     params.each { |k, v| assert_equal v, last.body['params'][k], "params[#{k.inspect}]" }

@@ -9,16 +9,22 @@ require 'minitest/autorun'
 require_relative 'mock_test'
 
 class CompatQueuesMockTest < Minitest::Test
-  ACCOUNT_BASE = '/api/laml/2010-04-01/Accounts/test_proj'
-  QUEUES_BASE  = "#{ACCOUNT_BASE}/Queues".freeze
+  # Parallelize: per-client unique-project + auth-scoped harness isolates each test.
+  parallelize_me!
 
   def setup
-    @client = MockTest.client
-    MockTest.reset
+    h = MockTest.client
+    @client  = h[:client]
+    @mock    = h[:mock]
+    @project = h[:project]
   end
 
-  def teardown
-    MockTest.reset
+  def account_base
+    "/api/laml/2010-04-01/Accounts/#{@project}"
+  end
+
+  def queues_base
+    "#{account_base}/Queues"
   end
 
   # ---- update ----------------------------------------------------------
@@ -34,7 +40,7 @@ class CompatQueuesMockTest < Minitest::Test
   # Assert the last journal entry was a POST to +path+ with a Hash body,
   # returning that body for further per-field assertions.
   def assert_post_body(path)
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'POST', j.method
     assert_equal path, j.path
@@ -44,7 +50,7 @@ class CompatQueuesMockTest < Minitest::Test
 
   def test_update_journal_records_post_with_friendly_name
     @client.compat.queues.update('QU_UU', FriendlyName: 'renamed', MaxSize: 200)
-    body = assert_post_body("#{QUEUES_BASE}/QU_UU")
+    body = assert_post_body("#{queues_base}/QU_UU")
 
     assert_equal 'renamed', body['FriendlyName']
     assert_equal 200, body['MaxSize']
@@ -63,10 +69,10 @@ class CompatQueuesMockTest < Minitest::Test
 
   def test_list_members_journal_records_get
     @client.compat.queues.list_members('QU_LMX')
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'GET', j.method
-    assert_equal "#{QUEUES_BASE}/QU_LMX/Members", j.path
+    assert_equal "#{queues_base}/QU_LMX/Members", j.path
   end
 
   # ---- get_member -----------------------------------------------------
@@ -81,10 +87,10 @@ class CompatQueuesMockTest < Minitest::Test
 
   def test_get_member_journal_records_get
     @client.compat.queues.get_member('QU_GMX', 'CA_GMX')
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'GET', j.method
-    assert_equal "#{QUEUES_BASE}/QU_GMX/Members/CA_GMX", j.path
+    assert_equal "#{queues_base}/QU_GMX/Members/CA_GMX", j.path
   end
 
   # ---- dequeue_member -------------------------------------------------
@@ -102,7 +108,7 @@ class CompatQueuesMockTest < Minitest::Test
     @client.compat.queues.dequeue_member(
       'QU_DMX', 'CA_DMX', Url: 'https://a.b/url', Method: 'POST'
     )
-    body = assert_post_body("#{QUEUES_BASE}/QU_DMX/Members/CA_DMX")
+    body = assert_post_body("#{queues_base}/QU_DMX/Members/CA_DMX")
 
     assert_equal 'https://a.b/url', body['Url']
     assert_equal 'POST', body['Method']

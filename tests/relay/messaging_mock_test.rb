@@ -12,15 +12,19 @@ require_relative 'mock_test'
 
 # Shared fixture + send/event/assert helpers for the messaging mock tests.
 module RelayMessagingHelpers
+  # Parallelize: per-client session scoping isolates each test's journal/pushes.
+  def self.included(base)
+    base.parallelize_me!
+  end
+
   def setup
-    RelayMockTest.reset
     @handle = RelayMockTest.client
     @client = @handle[:client]
+    @mock   = @handle[:mock]
   end
 
   def teardown
     RelayMockTest.shutdown_client(@handle) if @handle
-    RelayMockTest.reset
   end
 
   # Send a message with the standard test numbers; +body+ defaults to 'hi'.
@@ -31,7 +35,7 @@ module RelayMessagingHelpers
 
   # The single messaging.send frame's params (asserts exactly one was sent).
   def sole_send_params
-    sends = RelayMockTest.journal.journal_recv(method: 'messaging.send')
+    sends = @mock.journal_recv(method: 'messaging.send')
 
     assert_equal 1, sends.size
     sends[0].frame['params']
@@ -39,12 +43,12 @@ module RelayMessagingHelpers
 
   # Push a signalwire.event frame with the given event_type + inner params.
   def push_event(event_type, params)
-    RelayMockTest.journal.push({
-                                 'jsonrpc' => '2.0',
-                                 'id' => SecureRandom.uuid,
-                                 'method' => 'signalwire.event',
-                                 'params' => { 'event_type' => event_type, 'params' => params }
-                               })
+    @mock.push({
+                 'jsonrpc' => '2.0',
+                 'id' => SecureRandom.uuid,
+                 'method' => 'signalwire.event',
+                 'params' => { 'event_type' => event_type, 'params' => params }
+               })
   end
 
   def push_message_state(message_id, state, extra: {})

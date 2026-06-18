@@ -11,13 +11,14 @@ require 'minitest/autorun'
 require_relative 'mock_test'
 
 class LogsMockTest < Minitest::Test
-  def setup
-    @client = MockTest.client
-    MockTest.reset
-  end
+  # Parallelize: per-client unique-project + auth-scoped harness isolates each test.
+  parallelize_me!
 
-  def teardown
-    MockTest.reset
+  def setup
+    h = MockTest.client
+    @client  = h[:client]
+    @mock    = h[:mock]
+    @project = h[:project]
   end
 
   # ---- Message Logs — /api/messaging/logs -----------------------------
@@ -27,7 +28,7 @@ class LogsMockTest < Minitest::Test
 
     assert_kind_of Hash, body
 
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'GET', last.method
     assert_equal '/api/messaging/logs', last.path
@@ -40,7 +41,7 @@ class LogsMockTest < Minitest::Test
     assert_kind_of Hash, body
     # Single-log endpoint returns one resource object, not a collection.
 
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'GET', last.method
     assert_equal '/api/messaging/logs/ml-42', last.path
@@ -54,7 +55,7 @@ class LogsMockTest < Minitest::Test
 
     assert_kind_of Hash, body
 
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'GET', last.method
     assert_equal '/api/voice/logs', last.path
@@ -66,7 +67,7 @@ class LogsMockTest < Minitest::Test
 
     assert_kind_of Hash, body
 
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'GET', last.method
     assert_equal '/api/voice/logs/vl-99', last.path
@@ -79,7 +80,7 @@ class LogsMockTest < Minitest::Test
 
     assert_kind_of Hash, body
 
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'GET', last.method
     assert_equal '/api/fax/logs', last.path
@@ -91,7 +92,7 @@ class LogsMockTest < Minitest::Test
 
     assert_kind_of Hash, body
 
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'GET', last.method
     assert_equal '/api/fax/logs/fl-7', last.path
@@ -104,7 +105,7 @@ class LogsMockTest < Minitest::Test
 
     assert_kind_of Hash, body
 
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'GET', last.method
     # The conferences logs spec lives under /api/logs/conferences.

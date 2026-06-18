@@ -17,6 +17,9 @@ require 'minitest/autorun'
 require_relative 'mock_test'
 
 class PaginationMockTest < Minitest::Test
+  # Parallelize: per-client unique-project + auth-scoped harness isolates each test.
+  parallelize_me!
+
   # Pick an endpoint that the scenario store can override. We use
   # GET /api/fabric/addresses because (a) it has a stable spec-derived
   # endpoint id and (b) the mock returns data + links shape by default.
@@ -24,12 +27,10 @@ class PaginationMockTest < Minitest::Test
   FABRIC_ADDRESSES_ENDPOINT_ID = 'fabric.list_fabric_addresses'
 
   def setup
-    @client = MockTest.client
-    MockTest.reset
-  end
-
-  def teardown
-    MockTest.reset
+    h = MockTest.client
+    @client  = h[:client]
+    @mock    = h[:mock]
+    @project = h[:project]
   end
 
   def test_init_state
@@ -38,7 +39,7 @@ class PaginationMockTest < Minitest::Test
 
     assert_init_state(iter)
     # Journal must be empty - no HTTP went out.
-    assert_equal [], MockTest.journal.journal
+    assert_equal [], @mock.journal
   end
 
   # Constructor must not have fetched anything yet.
@@ -62,7 +63,7 @@ class PaginationMockTest < Minitest::Test
 
     assert_kind_of Enumerator, enum
     # Still no HTTP yet - enum isn't realised.
-    assert_equal [], MockTest.journal.journal
+    assert_equal [], @mock.journal
   end
 
   def test_next_pages_through_all_items
@@ -77,7 +78,7 @@ class PaginationMockTest < Minitest::Test
 
   def assert_two_paginated_gets
     # Journal must have exactly two GETs at the same path.
-    gets = MockTest.journal.journal.select { |e| e.path == FABRIC_ADDRESSES_PATH }
+    gets = @mock.journal.select { |e| e.path == FABRIC_ADDRESSES_PATH }
     summary = gets.map { |e| [e.method, e.path, e.query_params] }
 
     assert_equal 2, gets.length, "expected 2 paginated GETs, got #{gets.length}: #{summary}"
@@ -90,7 +91,7 @@ class PaginationMockTest < Minitest::Test
 
   # Stage one page on the addresses endpoint with the given data + links.
   def push_page(data, links)
-    MockTest.scenarios.push_scenario(
+    @mock.push_scenario(
       FABRIC_ADDRESSES_ENDPOINT_ID,
       status: 200,
       response: { 'data' => data, 'links' => links }

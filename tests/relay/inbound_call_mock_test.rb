@@ -20,15 +20,22 @@ module RelayInboundCallHelpers
   TIMEOUT = 5
   STATE_DEADLINE = 5
 
+  # Parallelize: each test's client owns a distinct server session + scoped
+  # harness, so inbound-call pushes target only that test's client.
+  def self.included(base)
+    base.parallelize_me!
+  end
+
   def setup
-    RelayMockTest.reset
+    # No global reset: @mock is scoped to this client's session and starts
+    # empty, so the shared mock stays parallel-safe.
     @handle = RelayMockTest.client
     @client = @handle[:client]
+    @mock   = @handle[:mock]
   end
 
   def teardown
     RelayMockTest.shutdown_client(@handle) if @handle
-    RelayMockTest.reset
   end
 
   # A signalwire.event JSON-RPC frame wrapping +event_type+ + inner params.
@@ -61,7 +68,7 @@ module RelayInboundCallHelpers
     mapper ||= ->(call) { call }
     queue = Queue.new
     @client.on_call { |call| queue.push(mapper.call(call)) }
-    RelayMockTest.journal.inbound_call(call_id: call_id, auto_states: ['created'], **)
+    @mock.inbound_call(call_id: call_id, auto_states: ['created'], **)
     Timeout.timeout(TIMEOUT) { queue.pop }
   end
 
@@ -73,7 +80,7 @@ module RelayInboundCallHelpers
 
   # Fire a bare inbound call (created state) without registering a handler.
   def fire_inbound(call_id)
-    RelayMockTest.journal.inbound_call(call_id: call_id, auto_states: ['created'])
+    @mock.inbound_call(call_id: call_id, auto_states: ['created'])
   end
 
   # Spin (briefly) until +block+ returns truthy or the deadline passes.
@@ -84,7 +91,7 @@ module RelayInboundCallHelpers
 
   # Assert a frame for +method+ was journalled and (optionally) carries call_id.
   def assert_journalled(method, call_id: nil)
-    frames = RelayMockTest.journal.journal_recv(method: method)
+    frames = @mock.journal_recv(method: method)
 
     refute_empty frames, "no #{method} frame in journal"
     last = frames.last.frame['params']
@@ -139,7 +146,7 @@ class RelayInboundCallMockTest < Minitest::Test
       c.answer
       c
     end
-    RelayMockTest.journal.push(state_push_frame('c-ans-state', 'answered'))
+    @mock.push(state_push_frame('c-ans-state', 'answered'))
     wait_until_state(call, 'answered')
 
     assert_equal 'answered', call.state
@@ -181,7 +188,7 @@ class RelayInboundCallMockTest < Minitest::Test
   def test_multiple_inbound_calls_no_state_bleed
     fetch = answer_two_inbound_calls('cb-1', 'cb-2')
 
-    RelayMockTest.journal.push(state_push_frame('cb-1', 'answered'))
+    @mock.push(state_push_frame('cb-1', 'answered'))
     wait_until { fetch.call('cb-1')&.state == 'answered' }
 
     assert_equal 'answered', fetch.call('cb-1').state
@@ -221,8 +228,8 @@ class RelayInboundCallMockTest < Minitest::Test
       c.answer
       c
     end
-    RelayMockTest.journal.push(state_push_frame('c-scripted', 'answered'))
-    RelayMockTest.journal.push(state_push_frame('c-scripted', 'ended'))
+    @mock.push(state_push_frame('c-scripted', 'answered'))
+    @mock.push(state_push_frame('c-scripted', 'ended'))
     wait_until_state(call, 'ended')
 
     assert_equal 'ended', call.state
@@ -248,7 +255,7 @@ class RelayInboundCallFlowMockTest < Minitest::Test
     # Drive a follow-up round-trip to prove the connection survived.
     fire_inbound('c-raise-2')
     sleep 0.2
-    sessions = RelayMockTest.journal.sessions
+    sessions = @mock.sessions
 
     assert_predicate sessions, :any?, 'WebSocket session should still be open after handler raise'
   end
@@ -270,7 +277,7 @@ class RelayInboundCallFlowMockTest < Minitest::Test
 
   def test_scenario_play_full_inbound_flow
     captured_q, started_q = register_capturing_answer_handler
-    result = RelayMockTest.journal.scenario_play(full_inbound_timeline)
+    result = @mock.scenario_play(full_inbound_timeline)
 
     assert_equal 'completed', result['status'], "scenario didn't complete: #{result.inspect}"
 
@@ -318,7 +325,7 @@ class RelayInboundCallFlowMockTest < Minitest::Test
 
   def test_inbound_call_journal_send_records_calling_call_receive
     receive_inbound(call_id: 'c-wire')
-    sends = RelayMockTest.journal.journal_send(event_type: 'calling.call.receive')
+    sends = @mock.journal_send(event_type: 'calling.call.receive')
 
     refute_empty sends, 'no calling.call.receive frame in journal'
     inner = sends.last.frame['params']['params']
@@ -332,10 +339,11 @@ class RelayInboundCallFlowMockTest < Minitest::Test
   def test_inbound_without_handler_does_not_crash
     # Use a fresh client so there's no registered handler from prior tests.
     h = RelayMockTest.client
+    hmock = h[:mock]
     begin
-      RelayMockTest.journal.inbound_call(call_id: 'c-nohandler', auto_states: ['created'])
+      hmock.inbound_call(call_id: 'c-nohandler', auto_states: ['created'])
       sleep 0.3
-      sessions = RelayMockTest.journal.sessions
+      sessions = hmock.sessions
 
       assert_predicate sessions, :any?, 'session should still be open without handler'
     ensure

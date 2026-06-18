@@ -15,21 +15,25 @@ require_relative 'mock_test'
 
 # Shared setup + journal assertions for the small-namespace mock tests.
 module SmallNamespacesHelpers
+  # Parallelize: each test's client uses a unique project + auth-scoped harness,
+  # so the shared mock is concurrency-safe. Parallelism stress-proves isolation.
+  def self.included(base)
+    base.parallelize_me!
+  end
+
   RELAY_BASE = '/api/relay/rest'
 
   def setup
-    @client = MockTest.client
-    MockTest.reset
-  end
-
-  def teardown
-    MockTest.reset
+    h = MockTest.client
+    @client  = h[:client]
+    @mock    = h[:mock]
+    @project = h[:project]
   end
 
   # Assert the last journaled request used +method+ against +path+ (matched).
   # Returns the journal entry for further assertions.
   def assert_request(method, path)
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal method, last.method
     assert_equal path, last.path
@@ -81,7 +85,7 @@ class SmallNamespacesMockTest < Minitest::Test
 
     assert_kind_of Hash, body
     assert body.key?('id')
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'GET', last.method
     assert_equal "#{RELAY_BASE}/addresses/addr-123", last.path
@@ -92,7 +96,7 @@ class SmallNamespacesMockTest < Minitest::Test
     body = @client.addresses.delete('addr-123')
     # 204 on delete returns {}.
     assert_kind_of Hash, body
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'DELETE', last.method
     assert_equal "#{RELAY_BASE}/addresses/addr-123", last.path
@@ -108,7 +112,7 @@ class SmallNamespacesMockTest < Minitest::Test
     assert_kind_of Hash, body
     assert body.key?('data')
     assert_kind_of Array, body['data']
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'GET', last.method
     assert_equal "#{RELAY_BASE}/recordings", last.path
@@ -121,7 +125,7 @@ class SmallNamespacesMockTest < Minitest::Test
     assert_kind_of Hash, body
     # The Recording schema has an 'id' field.
     assert body.key?('id')
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'GET', last.method
     assert_equal "#{RELAY_BASE}/recordings/rec-123", last.path
@@ -131,7 +135,7 @@ class SmallNamespacesMockTest < Minitest::Test
     body = @client.recordings.delete('rec-123')
 
     assert_kind_of Hash, body
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'DELETE', last.method
     assert_equal "#{RELAY_BASE}/recordings/rec-123", last.path
@@ -147,7 +151,7 @@ class SmallNamespacesMockTest < Minitest::Test
     assert_kind_of Hash, body
     assert body.key?('data')
     assert_kind_of Array, body['data']
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'GET', last.method
     assert_equal "#{RELAY_BASE}/short_codes", last.path
@@ -158,7 +162,7 @@ class SmallNamespacesMockTest < Minitest::Test
 
     assert_kind_of Hash, body
     assert body.key?('id')
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'GET', last.method
     assert_equal "#{RELAY_BASE}/short_codes/sc-1", last.path
@@ -169,7 +173,7 @@ class SmallNamespacesMockTest < Minitest::Test
 
     assert_kind_of Hash, body
     assert body.key?('id')
-    last = MockTest.journal.last
+    last = @mock.last
     # short_codes uses PUT for update per CrudResource override.
     assert_equal 'PUT', last.method
     assert_equal "#{RELAY_BASE}/short_codes/sc-1", last.path
@@ -239,7 +243,7 @@ class SmallNamespacesMockTestPartTwo < Minitest::Test
     assert_kind_of Hash, body
     assert body.key?('data')
     assert_kind_of Array, body['data']
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'GET', last.method
     assert_equal "#{RELAY_BASE}/number_groups/ng-1/number_group_memberships", last.path
@@ -250,7 +254,7 @@ class SmallNamespacesMockTestPartTwo < Minitest::Test
     body = @client.number_groups.delete_membership('mem-1')
 
     assert_kind_of Hash, body
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'DELETE', last.method
     assert_equal "#{RELAY_BASE}/number_group_memberships/mem-1", last.path
@@ -265,7 +269,7 @@ class SmallNamespacesMockTestPartTwo < Minitest::Test
 
     assert_kind_of Hash, body
     assert body.key?('id')
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'PATCH', last.method
     assert_equal '/api/project/tokens/tok-1', last.path
@@ -278,7 +282,7 @@ class SmallNamespacesMockTestPartTwo < Minitest::Test
     body = @client.project.tokens.delete('tok-1')
 
     assert_kind_of Hash, body
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'DELETE', last.method
     assert_equal '/api/project/tokens/tok-1', last.path
@@ -294,7 +298,7 @@ class SmallNamespacesMockTestPartTwo < Minitest::Test
     assert_kind_of Hash, body
     # The DatasphereChunk schema has an 'id'.
     assert body.key?('id')
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'GET', last.method
     assert_equal '/api/datasphere/documents/doc-1/chunks/chunk-99', last.path
@@ -308,7 +312,7 @@ class SmallNamespacesMockTestPartTwo < Minitest::Test
     assert_kind_of Hash, body
     # A queue member has 'queue_id' and 'call_id' per the spec example.
     assert(body.key?('queue_id') || body.key?('call_id'))
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'GET', last.method
     assert_equal "#{RELAY_BASE}/queues/q-1/members/mem-7", last.path

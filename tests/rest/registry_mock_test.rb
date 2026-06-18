@@ -11,15 +11,16 @@ require 'minitest/autorun'
 require_relative 'mock_test'
 
 class RegistryMockTest < Minitest::Test
+  # Parallelize: per-client unique-project + auth-scoped harness isolates each test.
+  parallelize_me!
+
   REG_BASE = '/api/relay/rest/registry/beta'
 
   def setup
-    @client = MockTest.client
-    MockTest.reset
-  end
-
-  def teardown
-    MockTest.reset
+    h = MockTest.client
+    @client  = h[:client]
+    @mock    = h[:mock]
+    @project = h[:project]
   end
 
   # ---- Brands ---------------------------------------------------------
@@ -29,7 +30,7 @@ class RegistryMockTest < Minitest::Test
 
     assert_kind_of Hash, body
 
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'GET', last.method
     assert_equal "#{REG_BASE}/brands", last.path
@@ -42,7 +43,7 @@ class RegistryMockTest < Minitest::Test
     assert_kind_of Hash, body
     # Single-brand endpoint synthesises one resource object.
 
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'GET', last.method
     assert_equal "#{REG_BASE}/brands/brand-77", last.path
@@ -53,7 +54,7 @@ class RegistryMockTest < Minitest::Test
 
     assert_kind_of Hash, body
 
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'GET', last.method
     assert_equal "#{REG_BASE}/brands/brand-1/campaigns", last.path
@@ -67,7 +68,7 @@ class RegistryMockTest < Minitest::Test
 
     assert_kind_of Hash, body
 
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'POST', last.method
     assert_equal "#{REG_BASE}/brands/brand-2/campaigns", last.path
@@ -87,7 +88,7 @@ class RegistryMockTest < Minitest::Test
 
     assert_kind_of Hash, body
 
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'GET', last.method
     assert_equal "#{REG_BASE}/campaigns/camp-1", last.path
@@ -100,7 +101,7 @@ class RegistryMockTest < Minitest::Test
 
     assert_kind_of Hash, body
 
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'PUT', last.method
     assert_equal "#{REG_BASE}/campaigns/camp-2", last.path
@@ -113,7 +114,7 @@ class RegistryMockTest < Minitest::Test
 
     assert_kind_of Hash, body
 
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'GET', last.method
     assert_equal "#{REG_BASE}/campaigns/camp-3/numbers", last.path
@@ -127,7 +128,7 @@ class RegistryMockTest < Minitest::Test
 
     assert_kind_of Hash, body
 
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'POST', last.method
     assert_equal "#{REG_BASE}/campaigns/camp-4/orders", last.path
@@ -142,7 +143,7 @@ class RegistryMockTest < Minitest::Test
 
     assert_kind_of Hash, body
 
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'GET', last.method
     assert_equal "#{REG_BASE}/orders/order-1", last.path
@@ -156,7 +157,7 @@ class RegistryMockTest < Minitest::Test
     # SDK turns 204/empty into {} so we still get a dict back.
     assert_kind_of Hash, body
 
-    last = MockTest.journal.last
+    last = @mock.last
 
     assert_equal 'DELETE', last.method
     assert_equal "#{REG_BASE}/numbers/num-1", last.path

@@ -12,15 +12,18 @@ require 'minitest/autorun'
 require_relative 'mock_test'
 
 class CompatMiscMockTest < Minitest::Test
-  ACCOUNT_BASE = '/api/laml/2010-04-01/Accounts/test_proj'
+  # Parallelize: per-client unique-project + auth-scoped harness isolates each test.
+  parallelize_me!
 
   def setup
-    @client = MockTest.client
-    MockTest.reset
+    h = MockTest.client
+    @client  = h[:client]
+    @mock    = h[:mock]
+    @project = h[:project]
   end
 
-  def teardown
-    MockTest.reset
+  def account_base
+    "/api/laml/2010-04-01/Accounts/#{@project}"
   end
 
   # ---- Applications.update --------------------------------------------
@@ -37,11 +40,11 @@ class CompatMiscMockTest < Minitest::Test
     @client.compat.applications.update(
       'AP_UU', FriendlyName: 'renamed', VoiceUrl: 'https://a.b/v'
     )
-    j = MockTest.journal.last
+    j = @mock.last
     body = j.body
 
     assert_equal 'POST', j.method
-    assert_equal "#{ACCOUNT_BASE}/Applications/AP_UU", j.path
+    assert_equal "#{account_base}/Applications/AP_UU", j.path
     assert_kind_of Hash, body
     assert_equal 'renamed', body['FriendlyName']
     assert_equal 'https://a.b/v', body['VoiceUrl']
@@ -61,11 +64,11 @@ class CompatMiscMockTest < Minitest::Test
     @client.compat.laml_bins.update(
       'LB_UU', FriendlyName: 'renamed', Contents: '<Response/>'
     )
-    j = MockTest.journal.last
+    j = @mock.last
     body = j.body
 
     assert_equal 'POST', j.method
-    assert_equal "#{ACCOUNT_BASE}/LamlBins/LB_UU", j.path
+    assert_equal "#{account_base}/LamlBins/LB_UU", j.path
     assert_kind_of Hash, body
     assert_equal 'renamed', body['FriendlyName']
     assert_equal '<Response/>', body['Contents']

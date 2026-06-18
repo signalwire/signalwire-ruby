@@ -135,6 +135,15 @@ module SignalWire
         # Session state
         @protocol            = nil
         @authorization_state = nil
+        # Server-assigned session id from the connect handshake. Kept off the
+        # public surface (single-underscore reader, like +_set_protocol+ and
+        # +_authorization_state+, so the surface oracle excludes it) and never
+        # widens the developer-facing API. Test-harness support only: the
+        # mock-relay tests read it (via +_session_id+) to scope the shared
+        # mock's journal to their own connection. This mirrors the frozen
+        # TypeScript port's private +_sessionId+ capture; Python's RelayClient
+        # doesn't surface it either, so no public-surface parity is affected.
+        @session_id          = nil
         @ws                  = nil
         @running             = false
         @connected           = false
@@ -200,6 +209,18 @@ module SignalWire
       # +signalwire.authorization.state+ events for use on reconnect.
       def _authorization_state
         @authorization_state
+      end
+
+      # Return the server-assigned session id captured from the connect
+      # handshake. Internal/test surface only (single-underscore => excluded
+      # from the public surface oracle, like +_set_protocol+): the mock-relay
+      # test harness reads it to scope its journal/scenario calls to this
+      # connection so the shared mock is safe under parallel test execution.
+      # Mirrors the frozen TypeScript port's private +_sessionId+; not part of
+      # Python's public surface. +nil+ until +run+/+connect+ completes the
+      # handshake.
+      def _session_id
+        @session_id
       end
 
       # True when the client believes the WebSocket is open. Exposed for
@@ -537,6 +558,11 @@ module SignalWire
 
         result = execute(METHOD_SIGNALWIRE_CONNECT, params)
         @protocol = result['protocol'] if result['protocol']
+        # Capture the server-assigned session id from the ConnectResult. Stays
+        # internal (test-harness only, via +_session_id+) to scope the shared
+        # mock relay's journal to this connection for parallel-safe tests;
+        # mirrors the frozen TypeScript port's +_sessionId+ capture.
+        @session_id = result['sessionid'] if result['sessionid']
       end
 
       def _apply_session_restore(params)

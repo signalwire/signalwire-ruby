@@ -11,15 +11,16 @@ require 'minitest/autorun'
 require_relative 'mock_test'
 
 class CompatAccountsMockTest < Minitest::Test
+  # Parallelize: per-client unique-project + auth-scoped harness isolates each test.
+  parallelize_me!
+
   ACCOUNTS_BASE = '/api/laml/2010-04-01/Accounts'
 
   def setup
-    @client = MockTest.client
-    MockTest.reset
-  end
-
-  def teardown
-    MockTest.reset
+    h = MockTest.client
+    @client  = h[:client]
+    @mock    = h[:mock]
+    @project = h[:project]
   end
 
   # Assert a journaled response carried a 2xx/3xx status.
@@ -48,7 +49,7 @@ class CompatAccountsMockTest < Minitest::Test
 
   def test_create_journal_records_post_to_accounts
     @client.compat.accounts.create(FriendlyName: 'Sub-B')
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'POST', j.method
     # Accounts.create lives at the top-level Accounts collection - no
@@ -71,7 +72,7 @@ class CompatAccountsMockTest < Minitest::Test
 
   def test_get_journal_records_get_with_sid
     @client.compat.accounts.get('AC_SAMPLE_SID')
-    j = MockTest.journal.last
+    j = @mock.last
 
     assert_equal 'GET', j.method
     assert_equal "#{ACCOUNTS_BASE}/AC_SAMPLE_SID", j.path
@@ -90,7 +91,7 @@ class CompatAccountsMockTest < Minitest::Test
 
   def test_update_journal_records_post_to_account_path
     @client.compat.accounts.update('AC_X', FriendlyName: 'NewName')
-    j = MockTest.journal.last
+    j = @mock.last
     # Twilio-compat update is POST (not PATCH/PUT).
     assert_equal 'POST', j.method
     assert_equal "#{ACCOUNTS_BASE}/AC_X", j.path

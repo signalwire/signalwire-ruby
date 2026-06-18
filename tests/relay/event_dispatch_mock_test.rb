@@ -15,22 +15,29 @@ require_relative 'mock_test'
 
 # Shared mock lifecycle + frame helpers for the event-dispatch test classes.
 module RelayEventDispatchSupport
+  # Parallelize: per-client session scoping isolates each test's journal/pushes.
+  def self.included(base)
+    base.parallelize_me!
+  end
+
   def setup
-    RelayMockTest.reset
+    # No global reset: the per-client @mock is scoped to this connection's
+    # session id and starts with an empty (scoped) journal, so the shared mock
+    # is safe under parallel execution.
     @handle = RelayMockTest.client
     @client = @handle[:client]
+    @mock   = @handle[:mock]
   end
 
   def teardown
     RelayMockTest.shutdown_client(@handle) if @handle
-    RelayMockTest.reset
   end
 
   def answered_call(call_id = 'evt-call-1')
     captured_q = Queue.new
     handler_done = Queue.new
     @client.on_call { |call| _answer_and_signal(call, captured_q, handler_done) }
-    RelayMockTest.journal.inbound_call(call_id: call_id, auto_states: ['created'])
+    @mock.inbound_call(call_id: call_id, auto_states: ['created'])
     Timeout.timeout(5) { handler_done.pop }
     call = Timeout.timeout(5) { captured_q.pop }
     call.state = 'answered'
@@ -54,10 +61,10 @@ module RelayEventDispatchSupport
 
   # Push a calling.call.play "finished" event for the given call/control id.
   def push_play_finished(call_id, control_id)
-    RelayMockTest.journal.push(bare_event_frame(
-                                 'calling.call.play',
-                                 { 'call_id' => call_id, 'control_id' => control_id, 'state' => 'finished' }
-                               ))
+    @mock.push(bare_event_frame(
+                 'calling.call.play',
+                 { 'call_id' => call_id, 'control_id' => control_id, 'state' => 'finished' }
+               ))
   end
 
   # Start a 60s silence playback on +call+ under the given control id.
@@ -68,16 +75,16 @@ module RelayEventDispatchSupport
   # Journaled 'recv' frames carrying the given id that include a 'result'
   # (i.e. ACK/PONG responses the SDK sent back).
   def recv_results_for(frame_id)
-    RelayMockTest.journal.journal.select do |e|
+    @mock.journal.select do |e|
       e.direction == 'recv' && e.frame['id'] == frame_id && e.frame.key?('result')
     end
   end
 
   # All 'recv' frames carrying the given id (for diagnostics).
   def recv_frames_for(frame_id)
-    RelayMockTest.journal.journal
-                 .select { |e| e.direction == 'recv' && e.frame['id'] == frame_id }
-                 .map(&:frame)
+    @mock.journal
+         .select { |e| e.direction == 'recv' && e.frame['id'] == frame_id }
+         .map(&:frame)
   end
 end
 
@@ -90,7 +97,7 @@ class RelayEventDispatchMockTest < Minitest::Test
     call = answered_call('ec-rec-pa')
     action = call.record(audio: { 'format' => 'wav' }, control_id: 'ec-rec-pa-1')
     action.pause(behavior: 'continuous')
-    pauses = RelayMockTest.journal.journal_recv(method: 'calling.record.pause')
+    pauses = @mock.journal_recv(method: 'calling.record.pause')
 
     refute_empty pauses
     p = pauses.last.frame['params']
@@ -103,7 +110,7 @@ class RelayEventDispatchMockTest < Minitest::Test
     call = answered_call('ec-rec-re')
     action = call.record(audio: { 'format' => 'wav' }, control_id: 'ec-rec-re-1')
     action.resume
-    resumes = RelayMockTest.journal.journal_recv(method: 'calling.record.resume')
+    resumes = @mock.journal_recv(method: 'calling.record.resume')
 
     refute_empty resumes
     assert_equal 'ec-rec-re-1', resumes.last.frame['params']['control_id']
@@ -113,7 +120,7 @@ class RelayEventDispatchMockTest < Minitest::Test
     call = answered_call('ec-col-sit')
     digits = { 'digits' => { 'max' => 4 }, 'start_input_timers' => false }
     call.collect(digits, control_id: 'ec-col-sit-1').start_input_timers
-    starts = RelayMockTest.journal.journal_recv(method: 'calling.collect.start_input_timers')
+    starts = @mock.journal_recv(method: 'calling.collect.start_input_timers')
 
     refute_empty starts
     assert_equal 'ec-col-sit-1', starts.last.frame['params']['control_id']
@@ -126,7 +133,7 @@ class RelayEventDispatchMockTest < Minitest::Test
       control_id: 'ec-pvol-1'
     )
     action.volume(-5.5)
-    vol = RelayMockTest.journal.journal_recv(method: 'calling.play.volume')
+    vol = @mock.journal_recv(method: 'calling.play.volume')
 
     refute_empty vol
     assert_in_delta(-5.5, vol.last.frame['params']['volume'])
@@ -135,25 +142,25 @@ class RelayEventDispatchMockTest < Minitest::Test
   # ---- Unknown event types ---------------------------------------------
 
   def test_unknown_event_type_does_not_crash
-    RelayMockTest.journal.push(bare_event_frame('nonsense.unknown', { 'foo' => 'bar' }))
+    @mock.push(bare_event_frame('nonsense.unknown', { 'foo' => 'bar' }))
     sleep 0.1
 
     assert_predicate @client, :_connected?, 'client should still be connected'
   end
 
   def test_event_with_bad_call_id_is_dropped
-    RelayMockTest.journal.push(bare_event_frame(
-                                 'calling.call.play',
-                                 { 'call_id' => 'no-such-call-bogus', 'control_id' => 'stranger',
-                                   'state' => 'playing' }
-                               ))
+    @mock.push(bare_event_frame(
+                 'calling.call.play',
+                 { 'call_id' => 'no-such-call-bogus', 'control_id' => 'stranger',
+                   'state' => 'playing' }
+               ))
     sleep 0.1
 
     assert_predicate @client, :_connected?
   end
 
   def test_event_with_empty_event_type_is_dropped
-    RelayMockTest.journal.push(bare_event_frame('', { 'call_id' => 'x' }))
+    @mock.push(bare_event_frame('', { 'call_id' => 'x' }))
     sleep 0.1
 
     assert_predicate @client, :_connected?
@@ -196,7 +203,7 @@ class RelayEventDispatchConcurrencyMockTest < Minitest::Test
   def test_event_ack_sent_back_to_server
     evt_id = 'evt-ack-test-1'
     params = { 'call_id' => 'anything', 'control_id' => 'x', 'state' => 'playing' }
-    RelayMockTest.journal.push(bare_event_frame('calling.call.play', params, id: evt_id))
+    @mock.push(bare_event_frame('calling.call.play', params, id: evt_id))
     sleep 0.3
 
     refute_empty(
@@ -214,7 +221,7 @@ class RelayEventDispatchConcurrencyMockTest < Minitest::Test
     call = @client.dial([[device]], tag: 'ec-tag-route', timeout: 5)
 
     assert_equal 'WINTAG', call.call_id
-    sends = RelayMockTest.journal.journal_send(event_type: 'calling.call.dial')
+    sends = @mock.journal_send(event_type: 'calling.call.dial')
 
     refute_empty sends, 'no calling.call.dial event in journal'
     inner = sends.last.frame['params']['params']
@@ -224,7 +231,7 @@ class RelayEventDispatchConcurrencyMockTest < Minitest::Test
   end
 
   def arm_tag_dial(tag, winner_call_id)
-    RelayMockTest.journal.arm_dial(
+    @mock.arm_dial(
       tag: tag, winner_call_id: winner_call_id, states: %w[created answered],
       node_id: 'n', device: { 'type' => 'phone', 'params' => {} }
     )
@@ -237,7 +244,7 @@ class RelayEventDispatchStateMockTest < Minitest::Test
 
   def test_server_ping_acked_by_sdk
     ping_id = 'ping-test-1'
-    RelayMockTest.journal.push(
+    @mock.push(
       { 'jsonrpc' => '2.0', 'id' => ping_id, 'method' => 'signalwire.ping', 'params' => {} }
     )
     sleep 0.3
@@ -250,10 +257,10 @@ class RelayEventDispatchStateMockTest < Minitest::Test
   # ---- Authorization state ---------------------------------------------
 
   def test_authorization_state_event_captured
-    RelayMockTest.journal.push(bare_event_frame(
-                                 'signalwire.authorization.state',
-                                 { 'authorization_state' => 'test-auth-state-blob' }
-                               ))
+    @mock.push(bare_event_frame(
+                 'signalwire.authorization.state',
+                 { 'authorization_state' => 'test-auth-state-blob' }
+               ))
     deadline = Time.now + 5
     sleep 0.02 until @client._authorization_state || Time.now > deadline
 
@@ -263,10 +270,10 @@ class RelayEventDispatchStateMockTest < Minitest::Test
   # ---- calling.error event ---------------------------------------------
 
   def test_calling_error_event_does_not_crash
-    RelayMockTest.journal.push(bare_event_frame(
-                                 'calling.error',
-                                 { 'code' => '5001', 'message' => 'synthetic error' }
-                               ))
+    @mock.push(bare_event_frame(
+                 'calling.error',
+                 { 'code' => '5001', 'message' => 'synthetic error' }
+               ))
     sleep 0.1
 
     assert_predicate @client, :_connected?
@@ -276,10 +283,10 @@ class RelayEventDispatchStateMockTest < Minitest::Test
 
   def test_call_state_event_updates_state
     call = answered_call('ec-stt')
-    RelayMockTest.journal.push(bare_event_frame(
-                                 'calling.call.state',
-                                 { 'call_id' => 'ec-stt', 'call_state' => 'ending', 'direction' => 'inbound' }
-                               ))
+    @mock.push(bare_event_frame(
+                 'calling.call.state',
+                 { 'call_id' => 'ec-stt', 'call_state' => 'ending', 'direction' => 'inbound' }
+               ))
     deadline = Time.now + 5
     sleep 0.02 until call.state == 'ending' || Time.now > deadline
 
@@ -291,7 +298,7 @@ class RelayEventDispatchStateMockTest < Minitest::Test
     fired_q = Queue.new
     call.on('calling.call.play') { |event| fired_q.push(event) }
     params = { 'call_id' => 'ec-list', 'control_id' => 'x', 'state' => 'playing' }
-    RelayMockTest.journal.push(bare_event_frame('calling.call.play', params))
+    @mock.push(bare_event_frame('calling.call.play', params))
     event = Timeout.timeout(2) { fired_q.pop }
 
     assert_equal 'calling.call.play', event.event_type
