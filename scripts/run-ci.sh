@@ -116,6 +116,34 @@ run_gate "EMISSION" "diff_port_emission vs python oracle" \
     python3 "$PORTING_SDK_DIR/scripts/diff_port_emission.py" \
         --dump-cmd "ruby bin/emit-corpus"
 
+# Gate 7: surface-diff — diff the port's public surface against the Python
+# reference (omissions + additions). The signature DRIFT gate (Layer A) checks
+# method *signatures*; this checks surface *membership* — it catches public
+# symbols the port has that Python doesn't (e.g. helpers leaked onto the surface
+# by a refactor) and vice-versa. Mirrors the CI "Verify symbol-level parity"
+# job so local == CI. Regenerate the surface in place, diff, then restore the
+# committed copy unconditionally.
+surface_diff_gate() {
+    git show HEAD:port_surface.json > /tmp/committed_surface_diff.json 2>/dev/null \
+        || cp "$PORT_ROOT/port_surface.json" /tmp/committed_surface_diff.json
+    bundle exec ruby scripts/enumerate_surface.rb --output "$PORT_ROOT/port_surface.json"
+    local regen_rc=$?
+    if [ "$regen_rc" -ne 0 ]; then
+        git checkout -- port_surface.json 2>/dev/null
+        return $regen_rc
+    fi
+    python3 "$PORTING_SDK_DIR/scripts/diff_port_surface.py" \
+        --reference "$PORTING_SDK_DIR/python_surface.json" \
+        --port-surface "$PORT_ROOT/port_surface.json" \
+        --omissions "$PORT_ROOT/PORT_OMISSIONS.md" \
+        --additions "$PORT_ROOT/PORT_ADDITIONS.md"
+    local check_rc=$?
+    git checkout -- port_surface.json 2>/dev/null
+    return $check_rc
+}
+run_gate "SURFACE-DIFF" "diff_port_surface vs python reference" \
+    surface_diff_gate
+
 if [ -z "$FAILED_GATES" ]; then
     echo "==> CI PASS"
     exit 0

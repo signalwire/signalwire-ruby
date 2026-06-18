@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ db69f0fe821ed79c799bc759a24f824dd7205d8b",
+  "generated_from": "signalwire-ruby @ 2a06612d0b92fc28275c0c22a2bacd08e81e2ab6",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -37,8 +37,7 @@
     "signalwire.contexts": {
       "classes": {
         "Contexts": [
-          "create_simple_context",
-          "render_pom_sections"
+          "create_simple_context"
         ]
       },
       "functions": []
@@ -62,7 +61,6 @@
           "add_skill",
           "add_swaig_query_params",
           "agent_id",
-          "answer_entry",
           "as_rack_app",
           "auto_map_sip_usernames",
           "clear_post_ai_verbs",
@@ -105,7 +103,6 @@
           "prompt_has_section?",
           "prompt_text",
           "rack_app",
-          "record_call_entry",
           "register_sip_username",
           "register_swaig_function",
           "remove_skill",
@@ -133,8 +130,7 @@
           "skill_manager",
           "update_global_data",
           "use_pom",
-          "validate_tool_token",
-          "webrick_handler"
+          "validate_tool_token"
         ]
       },
       "functions": []
@@ -1004,12 +1000,6 @@
       },
       "functions": []
     },
-    "signalwire.relay.message_serialization": {
-      "classes": {
-        "MessageSerialization": []
-      },
-      "functions": []
-    },
     "signalwire.relay.message_state": {
       "classes": {
         "MessageState": [
@@ -1832,12 +1822,6 @@
       },
       "functions": []
     },
-    "signalwire.skills.skill_introspection": {
-      "classes": {
-        "SkillIntrospection": []
-      },
-      "functions": []
-    },
     "signalwire.skills.skill_name": {
       "classes": {
         "SkillName": [
@@ -2049,7 +2033,6 @@
           "get_verb_properties",
           "get_verb_required_properties",
           "load_schema",
-          "method_body_kwargs_lines",
           "schema",
           "schema_path",
           "validate_document",
