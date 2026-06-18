@@ -106,19 +106,12 @@ module SignalWire
     # @param nomatch_output [Swaig::FunctionResult, Hash, nil] result when pattern does not match
     def expression(test_value, pattern, output, nomatch_output: nil)
       pattern_str = pattern.is_a?(Regexp) ? pattern.source : pattern.to_s
-      output_h = output.respond_to?(:to_h) ? output.to_h : output
-
       expr_def = {
         'string' => test_value,
         'pattern' => pattern_str,
-        'output' => output_h
+        'output' => to_h_if_possible(output)
       }
-
-      if nomatch_output
-        nomatch_h = nomatch_output.respond_to?(:to_h) ? nomatch_output.to_h : nomatch_output
-        expr_def['nomatch-output'] = nomatch_h
-      end
-
+      expr_def['nomatch-output'] = to_h_if_possible(nomatch_output) if nomatch_output
       @expressions << expr_def
       self
     end
@@ -189,7 +182,7 @@ module SignalWire
     def output(result)
       raise ArgumentError, 'Must add webhook before setting output' if @webhooks.empty?
 
-      @webhooks.last['output'] = result.respond_to?(:to_h) ? result.to_h : result
+      @webhooks.last['output'] = to_h_if_possible(result)
       self
     end
 
@@ -197,7 +190,7 @@ module SignalWire
     #
     # @param result [Swaig::FunctionResult, Hash]
     def fallback_output(result)
-      @fallback_output = result.respond_to?(:to_h) ? result.to_h : result
+      @fallback_output = to_h_if_possible(result)
       self
     end
 
@@ -222,29 +215,11 @@ module SignalWire
     #
     # @return [Hash] with keys: "function", "description", "parameters", "data_map"
     def to_swaig_function
-      # Build parameter schema
-      if @parameters.any?
-        param_schema = {
-          'type' => 'object',
-          'properties' => @parameters.dup
-        }
-        param_schema['required'] = @required_params.dup if @required_params.any?
-      else
-        param_schema = { 'type' => 'object', 'properties' => {} }
-      end
-
-      # Build data_map
-      data_map = {}
-      data_map['expressions'] = @expressions if @expressions.any?
-      data_map['webhooks']    = @webhooks          if @webhooks.any?
-      data_map['output']      = @fallback_output   if @fallback_output
-      data_map['error_keys']  = @global_error_keys if @global_error_keys.any?
-
       {
         'function' => @function_name,
         'description' => @purpose_text.empty? ? "Execute #{@function_name}" : @purpose_text,
-        'parameters' => param_schema,
-        'data_map' => data_map
+        'parameters' => build_param_schema,
+        'data_map' => build_data_map
       }
     end
 
@@ -266,18 +241,7 @@ module SignalWire
     def self.create_simple_api_tool(name:, url:, response_template:, parameters: nil,
                                     method: 'GET', headers: nil, body: nil, error_keys: nil)
       dm = new(name)
-
-      if parameters
-        parameters.each do |pname, pdef|
-          dm.parameter(
-            pname,
-            pdef.fetch('type', 'string'),
-            pdef.fetch('description', "#{pname} parameter"),
-            required: pdef.fetch('required', false)
-          )
-        end
-      end
-
+      add_parameters(dm, parameters)
       dm.webhook(method, url, headers: headers)
       dm.body(body) if body
       dm.error_keys(error_keys) if error_keys
@@ -293,23 +257,47 @@ module SignalWire
     # @return [DataMap]
     def self.create_expression_tool(name:, patterns:, parameters: nil)
       dm = new(name)
-
-      if parameters
-        parameters.each do |pname, pdef|
-          dm.parameter(
-            pname,
-            pdef.fetch('type', 'string'),
-            pdef.fetch('description', "#{pname} parameter"),
-            required: pdef.fetch('required', false)
-          )
-        end
-      end
-
+      add_parameters(dm, parameters)
       patterns.each do |test_value, (pattern, result)|
         dm.expression(test_value, pattern, result)
       end
-
       dm
+    end
+
+    # Apply a parameters Hash (name => {type, description, required}) to +dm+.
+    def self.add_parameters(builder, parameters)
+      parameters&.each do |pname, pdef|
+        builder.parameter(
+          pname,
+          pdef.fetch('type', 'string'),
+          pdef.fetch('description', "#{pname} parameter"),
+          required: pdef.fetch('required', false)
+        )
+      end
+    end
+    private_class_method :add_parameters
+
+    private
+
+    def to_h_if_possible(value)
+      value.respond_to?(:to_h) ? value.to_h : value
+    end
+
+    def build_param_schema
+      return { 'type' => 'object', 'properties' => {} } unless @parameters.any?
+
+      schema = { 'type' => 'object', 'properties' => @parameters.dup }
+      schema['required'] = @required_params.dup if @required_params.any?
+      schema
+    end
+
+    def build_data_map
+      data_map = {}
+      data_map['expressions'] = @expressions          if @expressions.any?
+      data_map['webhooks']    = @webhooks             if @webhooks.any?
+      data_map['output']      = @fallback_output      if @fallback_output
+      data_map['error_keys']  = @global_error_keys    if @global_error_keys.any?
+      data_map
     end
   end
 end

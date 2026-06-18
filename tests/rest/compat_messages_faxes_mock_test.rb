@@ -35,9 +35,7 @@ class CompatMessagesFaxesMockTest < Minitest::Test
     @client.compat.messages.update('MM_U1', Body: 'x', Status: 'canceled')
     j = MockTest.journal.last
 
-    assert_equal 'POST', j.method
-    assert_equal '/api/laml/2010-04-01/Accounts/test_proj/Messages/MM_U1', j.path
-    assert_kind_of Hash, j.body
+    assert_journal_request(j, 'POST', '/api/laml/2010-04-01/Accounts/test_proj/Messages/MM_U1')
     assert_equal 'x', j.body['Body']
     assert_equal 'canceled', j.body['Status']
   end
@@ -147,5 +145,14 @@ class CompatMessagesFaxesMockTest < Minitest::Test
 
     assert_equal 'DELETE', j.method
     assert_equal '/api/laml/2010-04-01/Accounts/test_proj/Faxes/FX_D/Media/ME_D', j.path
+  end
+
+  private
+
+  # Assert a journal entry's HTTP method, path, and that it carries a Hash body.
+  def assert_journal_request(entry, method, path)
+    assert_equal method, entry.method
+    assert_equal path, entry.path
+    assert_kind_of Hash, entry.body
   end
 end

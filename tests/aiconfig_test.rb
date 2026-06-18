@@ -288,14 +288,16 @@ class AIConfigFunctionIncludesTest < Minitest::Test
     agent = SignalWire::AgentBase.new
     agent.add_function_include('https://example.com/funcs', %w[fn1 fn2],
                                meta_data: { 'key' => 'val' })
-    swml = agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
-    inc = ai['SWAIG']['includes']
+    inc = rendered_ai(agent)['SWAIG']['includes']
 
     assert_equal 1, inc.length
-    assert_equal 'https://example.com/funcs', inc[0]['url']
-    assert_equal %w[fn1 fn2], inc[0]['functions']
-    assert_equal({ 'key' => 'val' }, inc[0]['meta_data'])
+    assert_equal({ 'url' => 'https://example.com/funcs', 'functions' => %w[fn1 fn2],
+                   'meta_data' => { 'key' => 'val' } },
+                 inc[0])
+  end
+
+  def rendered_ai(agent)
+    agent.render_swml['sections']['main'].find { |v| v.key?('ai') }['ai']
   end
 
   def test_set_function_includes
@@ -314,29 +316,29 @@ class AIConfigLLMParamsTest < Minitest::Test
     agent = SignalWire::AgentBase.new
     agent.set_prompt_text('Hello')
     agent.set_prompt_llm_params(temperature: 0.3, top_p: 0.9)
-    swml = agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+    ai = agent.render_swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+    prompt = ai['prompt']
 
-    assert_in_delta(0.3, ai['prompt']['temperature'])
-    assert_in_delta(0.9, ai['prompt']['top_p'])
-    assert_equal 'Hello', ai['prompt']['text']
+    assert_in_delta(0.3, prompt['temperature'])
+    assert_in_delta(0.9, prompt['top_p'])
+    assert_equal 'Hello', prompt['text']
   end
 
   def test_set_post_prompt_llm_params
     agent = SignalWire::AgentBase.new
     agent.set_post_prompt('Summarize')
     agent.set_post_prompt_llm_params(model: 'gpt-4o-mini', temperature: 0.5)
-    swml = agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+    ai = agent.render_swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+    post = ai['post_prompt']
 
-    assert_in_delta(0.5, ai['post_prompt']['temperature'])
-    assert_equal 'gpt-4o-mini', ai['post_prompt']['model']
-    assert_equal 'Summarize', ai['post_prompt']['text']
+    assert_in_delta(0.5, post['temperature'])
+    assert_equal 'gpt-4o-mini', post['model']
+    assert_equal 'Summarize', post['text']
   end
 end
 
 class AIConfigChainingTest < Minitest::Test
-  def test_all_ai_config_methods_return_self
+  def test_hint_and_language_setters_return_self
     agent = SignalWire::AgentBase.new
 
     assert_same agent, agent.add_hint('x')
@@ -346,6 +348,11 @@ class AIConfigChainingTest < Minitest::Test
     assert_same agent, agent.set_languages([])
     assert_same agent, agent.add_pronunciation('a', 'b')
     assert_same agent, agent.set_pronunciations([])
+  end
+
+  def test_param_and_data_setters_return_self
+    agent = SignalWire::AgentBase.new
+
     assert_same agent, agent.set_param('k', 'v')
     assert_same agent, agent.set_params({})
     assert_same agent, agent.set_global_data({})
@@ -353,6 +360,11 @@ class AIConfigChainingTest < Minitest::Test
     assert_same agent, agent.set_native_functions([])
     assert_same agent, agent.set_internal_fillers({})
     assert_same agent, agent.add_internal_filler('f', 'en', ['x'])
+  end
+
+  def test_function_and_llm_setters_return_self
+    agent = SignalWire::AgentBase.new
+
     assert_same agent, agent.enable_debug_events
     assert_same agent, agent.add_function_include('url', ['f'])
     assert_same agent, agent.set_function_includes([])

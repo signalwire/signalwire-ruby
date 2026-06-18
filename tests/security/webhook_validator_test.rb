@@ -75,48 +75,44 @@ class WebhookValidatorSchemeATest < Minitest::Test
 
   def test_positive_canonical_vector
     # Vector A: known JSON body + URL + key produces the known hex digest.
-    assert_equal true,
-                 WV.validate_webhook_signature(
-                   VECTOR_A[:signing_key],
-                   VECTOR_A[:expected],
-                   VECTOR_A[:url],
-                   VECTOR_A[:raw_body]
-                 )
+    assert WV.validate_webhook_signature(
+      VECTOR_A[:signing_key],
+      VECTOR_A[:expected],
+      VECTOR_A[:url],
+      VECTOR_A[:raw_body]
+    )
   end
 
   def test_negative_tampered_body
     # Vector A: same key/url, body changed → returns false.
     tampered = VECTOR_A[:raw_body].sub('answered', 'ringing')
 
-    assert_equal false,
-                 WV.validate_webhook_signature(
-                   VECTOR_A[:signing_key],
-                   VECTOR_A[:expected],
-                   VECTOR_A[:url],
-                   tampered
-                 )
+    refute WV.validate_webhook_signature(
+      VECTOR_A[:signing_key],
+      VECTOR_A[:expected],
+      VECTOR_A[:url],
+      tampered
+    )
   end
 
   def test_negative_wrong_key
     # Different signing key against the same vector → false.
-    assert_equal false,
-                 WV.validate_webhook_signature(
-                   'wrong-key',
-                   VECTOR_A[:expected],
-                   VECTOR_A[:url],
-                   VECTOR_A[:raw_body]
-                 )
+    refute WV.validate_webhook_signature(
+      'wrong-key',
+      VECTOR_A[:expected],
+      VECTOR_A[:url],
+      VECTOR_A[:raw_body]
+    )
   end
 
   def test_negative_wrong_url
     # Same body/key, different URL path → false (URL is part of the digest).
-    assert_equal false,
-                 WV.validate_webhook_signature(
-                   VECTOR_A[:signing_key],
-                   VECTOR_A[:expected],
-                   'https://example.ngrok.io/different',
-                   VECTOR_A[:raw_body]
-                 )
+    refute WV.validate_webhook_signature(
+      VECTOR_A[:signing_key],
+      VECTOR_A[:expected],
+      'https://example.ngrok.io/different',
+      VECTOR_A[:raw_body]
+    )
   end
 end
 
@@ -133,48 +129,44 @@ class WebhookValidatorSchemeBTest < Minitest::Test
     # Vector B: form params via raw body → matches the canonical Twilio digest.
     body = SecurityTests.form_encoded(VECTOR_B[:params])
 
-    assert_equal true,
-                 WV.validate_webhook_signature(
-                   VECTOR_B[:signing_key],
-                   VECTOR_B[:expected],
-                   VECTOR_B[:url],
-                   body
-                 )
+    assert WV.validate_webhook_signature(
+      VECTOR_B[:signing_key],
+      VECTOR_B[:expected],
+      VECTOR_B[:url],
+      body
+    )
   end
 
   def test_positive_via_validate_request_dict
     # validate_request(..., Hash) goes straight to Scheme B with parsed params.
-    assert_equal true,
-                 WV.validate_request(
-                   VECTOR_B[:signing_key],
-                   VECTOR_B[:expected],
-                   VECTOR_B[:url],
-                   VECTOR_B[:params]
-                 )
+    assert WV.validate_request(
+      VECTOR_B[:signing_key],
+      VECTOR_B[:expected],
+      VECTOR_B[:url],
+      VECTOR_B[:params]
+    )
   end
 
   def test_positive_via_validate_request_array_of_pairs
     # validate_request also accepts pre-parsed [key, value] pairs.
     pairs = VECTOR_B[:params].to_a
 
-    assert_equal true,
-                 WV.validate_request(
-                   VECTOR_B[:signing_key],
-                   VECTOR_B[:expected],
-                   VECTOR_B[:url],
-                   pairs
-                 )
+    assert WV.validate_request(
+      VECTOR_B[:signing_key],
+      VECTOR_B[:expected],
+      VECTOR_B[:url],
+      pairs
+    )
   end
 
   def test_body_sha256_canonical_vector
     # Vector C: JSON body on compat surface, signature over URL with bodySHA256.
-    assert_equal true,
-                 WV.validate_webhook_signature(
-                   VECTOR_C[:signing_key],
-                   VECTOR_C[:expected],
-                   VECTOR_C[:url],
-                   VECTOR_C[:raw_body]
-                 )
+    assert WV.validate_webhook_signature(
+      VECTOR_C[:signing_key],
+      VECTOR_C[:expected],
+      VECTOR_C[:url],
+      VECTOR_C[:raw_body]
+    )
   end
 
   def test_body_sha256_mismatch_rejected
@@ -182,13 +174,12 @@ class WebhookValidatorSchemeBTest < Minitest::Test
     # though the HMAC-over-URL+empty would otherwise match.
     wrong_body = '{"event":"DIFFERENT"}'
 
-    assert_equal false,
-                 WV.validate_webhook_signature(
-                   VECTOR_C[:signing_key],
-                   VECTOR_C[:expected],
-                   VECTOR_C[:url],
-                   wrong_body
-                 )
+    refute WV.validate_webhook_signature(
+      VECTOR_C[:signing_key],
+      VECTOR_C[:expected],
+      VECTOR_C[:url],
+      wrong_body
+    )
   end
 end
 
@@ -206,8 +197,7 @@ class WebhookValidatorPortNormalizationTest < Minitest::Test
     url_without_port = 'https://example.com/webhook'
     sig = SecurityTests.b64_sig(key, url_with_port)
     # raw_body is a non-form body; Scheme B falls back to empty params.
-    assert_equal true,
-                 WV.validate_webhook_signature(key, sig, url_without_port, '{}')
+    assert WV.validate_webhook_signature(key, sig, url_without_port, '{}')
   end
 
   def test_signature_without_port_accepted_when_request_has_standard_port
@@ -217,8 +207,7 @@ class WebhookValidatorPortNormalizationTest < Minitest::Test
     url_without_port = 'https://example.com/webhook'
     sig = SecurityTests.b64_sig(key, url_without_port)
 
-    assert_equal true,
-                 WV.validate_webhook_signature(key, sig, url_with_port, '{}')
+    assert WV.validate_webhook_signature(key, sig, url_with_port, '{}')
   end
 
   def test_http_port_80_normalization
@@ -228,19 +217,17 @@ class WebhookValidatorPortNormalizationTest < Minitest::Test
     url_without_port = 'http://example.com/path'
     sig = SecurityTests.b64_sig(key, url_with_port)
 
-    assert_equal true,
-                 WV.validate_webhook_signature(key, sig, url_without_port, '')
+    assert WV.validate_webhook_signature(key, sig, url_without_port, '')
   end
 
   def test_non_standard_port_only_tries_as_is
     # A non-standard port must NOT be silently stripped during validation;
     # signing string is taken verbatim so a mismatch must still fail.
     key = 'test-key'
-    url_8080 = 'https://example.com:8080/webhook'
+    url_with_port = 'https://example.com:8080/webhook'
     sig = SecurityTests.b64_sig(key, 'https://example.com/webhook') # signed without port
 
-    assert_equal false,
-                 WV.validate_webhook_signature(key, sig, url_8080, '{}')
+    refute WV.validate_webhook_signature(key, sig, url_with_port, '{}')
   end
 end
 
@@ -256,10 +243,10 @@ class WebhookValidatorRepeatedKeysTest < Minitest::Test
     key = 'test-key'
     url = 'https://example.com/hook'
     body = 'To=a&To=b'
-    expected_data = url + 'ToaTob'
+    expected_data = "#{url}ToaTob"
     sig = Base64.strict_encode64(OpenSSL::HMAC.digest('SHA1', key, expected_data))
 
-    assert_equal true, WV.validate_webhook_signature(key, sig, url, body)
+    assert WV.validate_webhook_signature(key, sig, url, body)
   end
 
   def test_repeated_keys_swapped_order_is_a_different_signature
@@ -268,11 +255,11 @@ class WebhookValidatorRepeatedKeysTest < Minitest::Test
     url = 'https://example.com/hook'
     body_ab = 'To=a&To=b'
     body_ba = 'To=b&To=a'
-    data_ab = url + 'ToaTob'
+    data_ab = "#{url}ToaTob"
     sig_for_ab = Base64.strict_encode64(OpenSSL::HMAC.digest('SHA1', key, data_ab))
 
-    assert_equal true,  WV.validate_webhook_signature(key, sig_for_ab, url, body_ab)
-    assert_equal false, WV.validate_webhook_signature(key, sig_for_ab, url, body_ba)
+    assert WV.validate_webhook_signature(key, sig_for_ab, url, body_ab)
+    refute WV.validate_webhook_signature(key, sig_for_ab, url, body_ba)
   end
 end
 
@@ -286,20 +273,8 @@ class WebhookValidatorErrorModesTest < Minitest::Test
 
   def test_missing_signature_returns_false
     # Empty / nil signature header → false, no exception.
-    assert_equal false,
-                 WV.validate_webhook_signature(
-                   VECTOR_A[:signing_key],
-                   '',
-                   VECTOR_A[:url],
-                   VECTOR_A[:raw_body]
-                 )
-    assert_equal false,
-                 WV.validate_webhook_signature(
-                   VECTOR_A[:signing_key],
-                   nil,
-                   VECTOR_A[:url],
-                   VECTOR_A[:raw_body]
-                 )
+    refute validate_vector_a_with_signature('')
+    refute validate_vector_a_with_signature(nil)
   end
 
   def test_missing_signing_key_raises_argument_error
@@ -329,14 +304,17 @@ class WebhookValidatorErrorModesTest < Minitest::Test
     # because the deliberately-malformed "%%notbase64%%" reads as a nested
     # percent literal inside %w[].)
     ['xyz', '!!!!', 'aaaaaaaaaaaaaaaaaaaaa', '%%notbase64%%'].each do |garbage|
-      assert_equal false,
-                   WV.validate_webhook_signature(
-                     VECTOR_A[:signing_key],
-                     garbage,
-                     VECTOR_A[:url],
-                     VECTOR_A[:raw_body]
-                   )
+      refute validate_vector_a_with_signature(garbage)
     end
+  end
+
+  private
+
+  # Validate VECTOR_A's url/body against the given signature header.
+  def validate_vector_a_with_signature(signature)
+    WV.validate_webhook_signature(
+      VECTOR_A[:signing_key], signature, VECTOR_A[:url], VECTOR_A[:raw_body]
+    )
   end
 end
 
@@ -351,24 +329,22 @@ class WebhookValidateRequestDispatchTest < Minitest::Test
 
   def test_string_arg_delegates_to_combined_validator
     # A String 4th arg behaves identically to validate_webhook_signature.
-    assert_equal true,
-                 WV.validate_request(
-                   VECTOR_A[:signing_key],
-                   VECTOR_A[:expected],
-                   VECTOR_A[:url],
-                   VECTOR_A[:raw_body]
-                 )
+    assert WV.validate_request(
+      VECTOR_A[:signing_key],
+      VECTOR_A[:expected],
+      VECTOR_A[:url],
+      VECTOR_A[:raw_body]
+    )
   end
 
   def test_hash_arg_runs_scheme_b_directly
     # A Hash 4th arg goes straight to Scheme B with parsed params.
-    assert_equal true,
-                 WV.validate_request(
-                   VECTOR_B[:signing_key],
-                   VECTOR_B[:expected],
-                   VECTOR_B[:url],
-                   VECTOR_B[:params]
-                 )
+    assert WV.validate_request(
+      VECTOR_B[:signing_key],
+      VECTOR_B[:expected],
+      VECTOR_B[:url],
+      VECTOR_B[:params]
+    )
   end
 
   def test_invalid_arg_type_raises_type_error

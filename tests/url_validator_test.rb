@@ -12,7 +12,9 @@
 require 'minitest/autorun'
 require_relative '../lib/signalwire/utils/url_validator'
 
-class UrlValidatorTest < Minitest::Test
+# Shared resolver/env stubbing for the UrlValidator test classes. Stubs the
+# DNS resolver via the .resolver= setter so the suite stays hermetic.
+module UrlValidatorTestHelpers
   V = SignalWire::Utils::UrlValidator
 
   def setup
@@ -38,6 +40,10 @@ class UrlValidatorTest < Minitest::Test
   def stub_failed_resolver
     V._resolver = ->(_host) {}
   end
+end
+
+class UrlValidatorTest < Minitest::Test
+  include UrlValidatorTestHelpers
 
   # --- Scheme ----------------------------------------------------------
 
@@ -76,8 +82,12 @@ class UrlValidatorTest < Minitest::Test
 
     refute V.validate_url('http://nonexistent.invalid')
   end
+end
 
-  # --- Blocked ranges --------------------------------------------------
+# Blocked-range rejections (loopback / RFC1918 / link-local / IPv6 private).
+# Split from UrlValidatorTest to keep each class within budget.
+class UrlValidatorBlockedRangesTest < Minitest::Test
+  include UrlValidatorTestHelpers
 
   def test_loopback_ipv4_rejected
     stub_resolver('127.0.0.1')

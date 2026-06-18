@@ -2287,5 +2287,24 @@ module SignalWire
         ]
       end
     end
+
+    # Internal helpers extracted during the lint burndown (Metrics cops) for
+    # locality, but they are implementation details with no Python-reference
+    # counterpart. Declared private here at the end of the class — after every
+    # one is defined — so they stay off the audited public surface (restoring the
+    # encapsulation the pre-extraction inline code had). Placed last because the
+    # methods span multiple public/private regions above.
+    private :add_context_step, :add_pom_section, :append_section_bullets, :apply_compound_voice
+    private :apply_dynamic_config, :apply_language_fillers, :apply_language_voice, :attach_context_builder
+    private :basic_auth_source, :build_context_builder_from_hash, :build_pattern_hint, :build_section
+    private :build_subsection, :build_subsections, :build_tool_definition, :build_tool_param_schema
+    private :coerce_function_result, :compound_voice?, :define_skill_tool, :find_or_create_section
+    private :hash_language_form?, :invoke_debug_event_callback, :invoke_summary_callback, :join_rack_body
+    private :keyword_hint_form?, :legacy_hint_form?, :legacy_pattern_hint, :log_server_startup
+    private :matches_env_auth?, :mcp_input_schema, :mcp_tool_entry, :merge_skill_hints_and_data
+    private :merge_skill_prompt_sections, :optional_tool_fields, :rack_env, :register_no_vowels_variation
+    private :register_skill_tools, :replace_hint, :sanitize_sip_username, :section_pom_kwargs
+    private :secure_token_ok?, :sym_or_str, :verb_entries, :warn_unexpected_function_result
+    private :warn_unknown_filler_name, :warn_unknown_filler_names, :webrick_opts
   end
 end

@@ -28,21 +28,27 @@ module SignalWire
           (@tools_config || []).filter_map do |tool_def|
             next unless tool_def.is_a?(Hash) && tool_def['name']
 
-            {
-              name: tool_def['name'],
-              description: tool_def['description'] || "Custom tool: #{tool_def['name']}",
-              parameters: tool_def['parameters'] || {},
-              handler: lambda { |_args, _raw_data|
-                response = tool_def['response'] || "Custom tool #{tool_def['name']} executed."
-                Swaig::FunctionResult.new(response)
-              }
-            }
+            build_custom_tool(tool_def)
           end
         end
 
         def get_parameter_schema
           {
             'tools' => { 'type' => 'array', 'required' => true }
+          }
+        end
+
+        private
+
+        def build_custom_tool(tool_def)
+          {
+            name: tool_def['name'],
+            description: tool_def['description'] || "Custom tool: #{tool_def['name']}",
+            parameters: tool_def['parameters'] || {},
+            handler: lambda { |_args, _raw_data|
+              response = tool_def['response'] || "Custom tool #{tool_def['name']} executed."
+              Swaig::FunctionResult.new(response)
+            }
           }
         end
       end

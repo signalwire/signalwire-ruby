@@ -28,7 +28,7 @@ module RuntimeEnvIsolation
 
   def setup
     super
-    @saved_env = RUNTIME_ENV_VARS.each_with_object({}) { |k, h| h[k] = ENV.fetch(k, nil) }
+    @saved_env = RUNTIME_ENV_VARS.to_h { |k| [k, ENV.fetch(k, nil)] }
     RUNTIME_ENV_VARS.each { |k| ENV.delete(k) }
   end
 
@@ -142,7 +142,7 @@ class RuntimeLambdaBaseUrlTest < Minitest::Test
                  SignalWire::Runtime.lambda_base_url
   end
 
-  def test_region_defaults_to_us_east_1
+  def test_region_defaults_to_us_east1
     ENV['AWS_LAMBDA_FUNCTION_NAME'] = 'my-func'
 
     assert_equal 'https://my-func.lambda-url.us-east-1.on.aws',

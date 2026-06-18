@@ -38,14 +38,10 @@ class PlayBackgroundSkillDetailedTest < Minitest::Test
 
   def test_expressions_include_start_and_stop
     factory = SignalWire::Skills::SkillRegistry.get_factory('play_background_file')
-    skill = factory.call({
-                           'files' => [
-                             { 'key' => 'bgm', 'description' => 'BGM', 'url' => 'https://example.com/bgm.mp3' }
-                           ]
-                         })
+    files = [{ 'key' => 'bgm', 'description' => 'BGM', 'url' => 'https://example.com/bgm.mp3' }]
+    skill = factory.call({ 'files' => files })
     skill.setup
-    tools = skill.register_tools
-    exprs = tools[0][:datamap]['data_map']['expressions']
+    exprs = skill.register_tools[0].dig(:datamap, 'data_map', 'expressions')
     patterns = exprs.map { |e| e['pattern'] }
 
     assert(patterns.any? { |p| p.include?('start_bgm') })

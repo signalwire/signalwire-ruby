@@ -76,7 +76,7 @@ module SignalWire
       class CompatConferences < BaseResource
         def list(**params)     = @http.get(@base_path, params.empty? ? nil : params)
         def get(sid)           = @http.get(_path(sid))
-        def update(sid, **kw)  = @http.post(_path(sid), kw)
+        def update(sid, **params) = @http.post(_path(sid), params)
 
         # Participants
         def list_participants(conference_sid, **params)
@@ -216,6 +216,12 @@ module SignalWire
           @faxes          = CompatFaxes.new(http, "#{base}/Faxes")
           @conferences    = CompatConferences.new(http, "#{base}/Conferences")
           @phone_numbers  = CompatPhoneNumbers.new(http, "#{base}/IncomingPhoneNumbers")
+          init_remaining_resources(http, base)
+        end
+
+        private
+
+        def init_remaining_resources(http, base)
           @applications   = CompatApplications.new(http, "#{base}/Applications")
           @laml_bins      = CompatLamlBins.new(http, "#{base}/LamlBins")
           @queues         = CompatQueues.new(http, "#{base}/Queues")

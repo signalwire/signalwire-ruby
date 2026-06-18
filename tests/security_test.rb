@@ -73,10 +73,15 @@ class SessionManagerTest < Minitest::Test
     refute short_mgr.validate_token('fn', token, 'call-1'),
            'Expired token must not validate'
   end
+end
 
-  # ------------------------------------------------------------------
-  # Tampered token
-  # ------------------------------------------------------------------
+# Tampered / malformed tokens, custom keys, and expiry clamping.
+class SessionManagerTamperTest < Minitest::Test
+  SM = SignalWire::Security::SessionManager
+
+  def setup
+    @mgr = SM.new(token_expiry_secs: 3600)
+  end
 
   def test_tampered_signature_fails
     token = @mgr.create_token('fn', 'call-1')
@@ -85,7 +90,7 @@ class SessionManagerTest < Minitest::Test
 
     # Flip a character in the signature
     sig = parts[4]
-    tampered_sig = sig[0] == 'a' ? 'b' + sig[1..] : 'a' + sig[1..]
+    tampered_sig = sig[0] == 'a' ? "b#{sig[1..]}" : "a#{sig[1..]}"
     parts[4] = tampered_sig
 
     tampered_token = Base64.urlsafe_encode64(parts.join('.'), padding: false)
@@ -160,7 +165,7 @@ class SessionManagerTest < Minitest::Test
 
   def test_different_secret_key_fails
     mgr_a = SM.new(secret_key: 'aaaaaaaabbbbbbbbccccccccdddddddd' * 2)
-    mgr_b = SM.new(secret_key: ('1111111122222222333333334444444' * 2) + '55')
+    mgr_b = SM.new(secret_key: "#{'1111111122222222333333334444444' * 2}55")
 
     token = mgr_a.create_token('fn', 'call-1')
 
@@ -197,10 +202,15 @@ class SessionManagerTest < Minitest::Test
     # With 1-second minimum, token should be valid immediately
     assert mgr.validate_token('fn', token, 'call-1')
   end
+end
 
-  # ------------------------------------------------------------------
-  # create_session — mints / reuses a call_id (Python parity)
-  # ------------------------------------------------------------------
+# create_session / lifecycle / metadata — mints / reuses a call_id (Python parity)
+class SessionManagerSessionTest < Minitest::Test
+  SM = SignalWire::Security::SessionManager
+
+  def setup
+    @mgr = SM.new(token_expiry_secs: 3600)
+  end
 
   def test_create_session_returns_provided_call_id
     assert_equal 'my-call-id', @mgr.create_session('my-call-id'),
@@ -234,12 +244,12 @@ class SessionManagerTest < Minitest::Test
   # ------------------------------------------------------------------
 
   def test_activate_session_returns_true
-    assert_equal true, @mgr.activate_session('call-1')
-    assert_equal true, @mgr.activate_session('any-other-id')
+    assert @mgr.activate_session('call-1')
+    assert @mgr.activate_session('any-other-id')
   end
 
   def test_end_session_returns_true
-    assert_equal true, @mgr.end_session('call-1')
+    assert @mgr.end_session('call-1')
   end
 
   # ------------------------------------------------------------------
@@ -253,7 +263,7 @@ class SessionManagerTest < Minitest::Test
   end
 
   def test_set_and_get_session_metadata_roundtrip
-    assert_equal true, @mgr.set_session_metadata('call-1', 'caller', 'Jane Doe')
+    assert @mgr.set_session_metadata('call-1', 'caller', 'Jane Doe')
     assert_equal({ 'caller' => 'Jane Doe' }, @mgr.get_session_metadata('call-1'),
                  'stored metadata must be readable back with the exact value')
   end
@@ -302,28 +312,25 @@ class SessionManagerTest < Minitest::Test
 
   def test_full_session_lifecycle
     call_id = @mgr.create_session
-
-    refute_empty call_id
-
-    assert_equal true, @mgr.activate_session(call_id)
-
     @mgr.set_session_metadata(call_id, 'caller_name', 'Pat')
     @mgr.set_session_metadata(call_id, 'intent', 'refund')
+    expected = { 'caller_name' => 'Pat', 'intent' => 'refund' }
 
-    assert_equal(
-      { 'caller_name' => 'Pat', 'intent' => 'refund' },
-      @mgr.get_session_metadata(call_id),
-      'metadata accumulated during the session must be retrievable'
-    )
-
-    assert_equal true, @mgr.end_session(call_id)
-    assert_equal({}, @mgr.get_session_metadata(call_id),
-                 'ending a session must clear its metadata')
+    refute_empty call_id
+    assert @mgr.activate_session(call_id)
+    assert_equal(expected, @mgr.get_session_metadata(call_id), 'metadata must round-trip')
+    assert @mgr.end_session(call_id)
+    assert_equal({}, @mgr.get_session_metadata(call_id), 'ending a session clears metadata')
   end
+end
 
-  # ------------------------------------------------------------------
-  # debug_token — gated decode without validation
-  # ------------------------------------------------------------------
+# debug_token — gated decode without validation
+class SessionManagerDebugTest < Minitest::Test
+  SM = SignalWire::Security::SessionManager
+
+  def setup
+    @mgr = SM.new(token_expiry_secs: 3600)
+  end
 
   def test_debug_token_disabled_by_default
     token = @mgr.create_token('get_time', 'call-42')
@@ -336,16 +343,22 @@ class SessionManagerTest < Minitest::Test
   def test_debug_token_decodes_components_when_enabled
     @mgr.debug_mode = true
     token = @mgr.create_token('get_time', 'call-99')
-    info = @mgr.debug_token(token)
+    components = @mgr.debug_token(token)['components']
 
-    assert_equal true, info['valid_format']
-    assert_equal 'get_time', info['components']['function']
+    assert_equal 'get_time', components['function']
     # "call-99" is 7 chars, so it is NOT truncated.
-    assert_equal 'call-99', info['components']['call_id']
+    assert_equal 'call-99', components['call_id']
     # signature is 64 hex chars -> truncated to 8 + "..."
-    assert_match(/\A[0-9a-f]{8}\.\.\.\z/, info['components']['signature'])
-    refute_empty info['components']['nonce']
-    assert_equal false, info['status']['is_expired']
+    assert_match(/\A[0-9a-f]{8}\.\.\.\z/, components['signature'])
+    refute_empty components['nonce']
+  end
+
+  def test_debug_token_status_when_enabled
+    @mgr.debug_mode = true
+    info = @mgr.debug_token(@mgr.create_token('get_time', 'call-99'))
+
+    assert info['valid_format']
+    refute info['status']['is_expired']
     assert_kind_of Integer, info['status']['current_time']
     assert_operator info['status']['expires_in_seconds'], :>, 0,
                     'a freshly minted token should report positive seconds remaining'
@@ -368,8 +381,8 @@ class SessionManagerTest < Minitest::Test
     sleep 2
     info = short.debug_token(token)
 
-    assert_equal true, info['valid_format']
-    assert_equal true, info['status']['is_expired']
+    assert info['valid_format']
+    assert info['status']['is_expired']
     assert_equal 0, info['status']['expires_in_seconds']
   end
 
@@ -377,7 +390,7 @@ class SessionManagerTest < Minitest::Test
     @mgr.debug_mode = true
     info = @mgr.debug_token('not-valid-base64!!!')
 
-    assert_equal false, info['valid_format']
+    refute info['valid_format']
   end
 
   def test_debug_token_wrong_part_count_when_enabled
@@ -385,7 +398,7 @@ class SessionManagerTest < Minitest::Test
     bad = Base64.urlsafe_encode64('a.b.c', padding: false)
     info = @mgr.debug_token(bad)
 
-    assert_equal false, info['valid_format']
+    refute info['valid_format']
     assert_equal 3, info['parts_count']
   end
 end

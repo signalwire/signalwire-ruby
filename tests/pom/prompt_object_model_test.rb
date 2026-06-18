@@ -166,10 +166,35 @@ class PromptObjectModelTest < Minitest::Test
     err = assert_raises(TypeError) { Section.new('X', body: 'b', bullets: 'oops') }
     assert_match(/bullets must be an Array/, err.message)
   end
+end
 
-  # ---------------------------------------------------------------------------
-  # Exact-string rendering parity (mirrors test_pom_render_parity.py)
-  # ---------------------------------------------------------------------------
+# Exact-string rendering parity (mirrors test_pom_render_parity.py)
+class PomRenderTest < Minitest::Test
+  POM = SignalWire::POM::PromptObjectModel
+  Section = SignalWire::POM::Section
+
+  XML_WITH_BULLETS = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" \
+                     "<prompt>\n  <section>\n    <title>Goals</title>\n    " \
+                     "<body>Be helpful</body>\n    <bullets>\n      " \
+                     "<bullet>Be concise</bullet>\n      <bullet>Be clear</bullet>\n    " \
+                     "</bullets>\n  </section>\n</prompt>"
+  XML_WITH_SUBSECTION = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" \
+                        "<prompt>\n  <section>\n    <title>Top</title>\n    " \
+                        "<body>Top body</body>\n    <subsections>\n      " \
+                        "<section>\n        <title>Sub1</title>\n        " \
+                        "<body>Sub1 body</body>\n        <bullets>\n          " \
+                        "<bullet>a</bullet>\n          <bullet>b</bullet>\n        " \
+                        "</bullets>\n      </section>\n    </subsections>\n  " \
+                        "</section>\n</prompt>"
+  XML_NUMBERED = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" \
+                 "<prompt>\n  <section>\n    <title>1. S1</title>\n    " \
+                 "<body>b1</body>\n  </section>\n  <section>\n    " \
+                 "<title>2. S2</title>\n    <body>b2</body>\n  </section>\n</prompt>"
+  XML_NUMBERED_BULLETS = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" \
+                         "<prompt>\n  <section>\n    <title>X</title>\n    " \
+                         "<bullets>\n      <bullet id=\"1\">one</bullet>\n      " \
+                         "<bullet id=\"2\">two</bullet>\n    </bullets>\n  " \
+                         "</section>\n</prompt>"
 
   def test_render_markdown_simple_section_exact
     pom = POM.new
@@ -181,14 +206,9 @@ class PromptObjectModelTest < Minitest::Test
   def test_render_xml_simple_section_exact
     pom = POM.new
     pom.add_section('Greeting', body: 'Hello world')
-    expected =
-      "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" \
-      "<prompt>\n  " \
-      "<section>\n    " \
-      "<title>Greeting</title>\n    " \
-      "<body>Hello world</body>\n  " \
-      "</section>\n" \
-      '</prompt>'
+    expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" \
+               "<prompt>\n  <section>\n    <title>Greeting</title>\n    " \
+               "<body>Hello world</body>\n  </section>\n</prompt>"
 
     assert_equal expected, pom.render_xml
   end
@@ -204,20 +224,8 @@ class PromptObjectModelTest < Minitest::Test
   def test_render_xml_with_bullets
     pom = POM.new
     pom.add_section('Goals', body: 'Be helpful', bullets: ['Be concise', 'Be clear'])
-    expected =
-      "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" \
-      "<prompt>\n  " \
-      "<section>\n    " \
-      "<title>Goals</title>\n    " \
-      "<body>Be helpful</body>\n    " \
-      "<bullets>\n      " \
-      "<bullet>Be concise</bullet>\n      " \
-      "<bullet>Be clear</bullet>\n    " \
-      "</bullets>\n  " \
-      "</section>\n" \
-      '</prompt>'
 
-    assert_equal expected, pom.render_xml
+    assert_equal XML_WITH_BULLETS, pom.render_xml
   end
 
   def test_render_markdown_with_subsection
@@ -233,26 +241,8 @@ class PromptObjectModelTest < Minitest::Test
     pom = POM.new
     s = pom.add_section('Top', body: 'Top body')
     s.add_subsection('Sub1', body: 'Sub1 body', bullets: %w[a b])
-    expected =
-      "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" \
-      "<prompt>\n  " \
-      "<section>\n    " \
-      "<title>Top</title>\n    " \
-      "<body>Top body</body>\n    " \
-      "<subsections>\n      " \
-      "<section>\n        " \
-      "<title>Sub1</title>\n        " \
-      "<body>Sub1 body</body>\n        " \
-      "<bullets>\n          " \
-      "<bullet>a</bullet>\n          " \
-      "<bullet>b</bullet>\n        " \
-      "</bullets>\n      " \
-      "</section>\n    " \
-      "</subsections>\n  " \
-      "</section>\n" \
-      '</prompt>'
 
-    assert_equal expected, pom.render_xml
+    assert_equal XML_WITH_SUBSECTION, pom.render_xml
   end
 
   def test_render_markdown_numbered_propagates_to_siblings
@@ -268,20 +258,8 @@ class PromptObjectModelTest < Minitest::Test
     pom = POM.new
     pom.add_section('S1', body: 'b1', numbered: true)
     pom.add_section('S2', body: 'b2')
-    expected =
-      "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" \
-      "<prompt>\n  " \
-      "<section>\n    " \
-      "<title>1. S1</title>\n    " \
-      "<body>b1</body>\n  " \
-      "</section>\n  " \
-      "<section>\n    " \
-      "<title>2. S2</title>\n    " \
-      "<body>b2</body>\n  " \
-      "</section>\n" \
-      '</prompt>'
 
-    assert_equal expected, pom.render_xml
+    assert_equal XML_NUMBERED, pom.render_xml
   end
 
   def test_render_markdown_numbered_bullets
@@ -295,63 +273,50 @@ class PromptObjectModelTest < Minitest::Test
   def test_render_xml_numbered_bullets_use_id_attr
     pom = POM.new
     pom.add_section('X', bullets: %w[one two], numbered_bullets: true)
-    expected =
-      "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" \
-      "<prompt>\n  " \
-      "<section>\n    " \
-      "<title>X</title>\n    " \
-      "<bullets>\n      " \
-      "<bullet id=\"1\">one</bullet>\n      " \
-      "<bullet id=\"2\">two</bullet>\n    " \
-      "</bullets>\n  " \
-      "</section>\n" \
-      '</prompt>'
 
-    assert_equal expected, pom.render_xml
+    assert_equal XML_NUMBERED_BULLETS, pom.render_xml
   end
+end
 
-  # ---------------------------------------------------------------------------
-  # JSON / YAML round-trip with exact key order
-  # ---------------------------------------------------------------------------
+# JSON / YAML round-trip with exact key order
+class PomSerializationTest < Minitest::Test
+  POM = SignalWire::POM::PromptObjectModel
+  Section = SignalWire::POM::Section
+
+  EXPECTED_JSON = <<~JSON.chomp
+    [
+      {
+        "title": "A",
+        "body": "ab",
+        "subsections": [
+          {
+            "title": "A1",
+            "body": "a1b",
+            "bullets": [
+              "x"
+            ]
+          }
+        ]
+      }
+    ]
+  JSON
+  EXPECTED_YAML = "- title: A\n  body: ab\n  subsections:\n  " \
+                  "- title: A1\n    body: a1b\n    bullets:\n    - x\n"
 
   def test_to_json_exact_shape
     pom = POM.new
     s = pom.add_section('A', body: 'ab')
     s.add_subsection('A1', body: 'a1b', bullets: ['x'])
-    expected = <<~JSON.chomp
-      [
-        {
-          "title": "A",
-          "body": "ab",
-          "subsections": [
-            {
-              "title": "A1",
-              "body": "a1b",
-              "bullets": [
-                "x"
-              ]
-            }
-          ]
-        }
-      ]
-    JSON
-    assert_equal expected, pom.to_json
+
+    assert_equal EXPECTED_JSON, pom.to_json
   end
 
   def test_to_yaml_exact_shape
     pom = POM.new
     s = pom.add_section('A', body: 'ab')
     s.add_subsection('A1', body: 'a1b', bullets: ['x'])
-    expected =
-      "- title: A\n  " \
-      "body: ab\n  " \
-      "subsections:\n  " \
-      "- title: A1\n    " \
-      "body: a1b\n    " \
-      "bullets:\n    " \
-      "- x\n"
 
-    assert_equal expected, pom.to_yaml
+    assert_equal EXPECTED_YAML, pom.to_yaml
   end
 
   def test_from_json_round_trip_preserves_structure
@@ -406,12 +371,12 @@ class PromptObjectModelTest < Minitest::Test
     guest.add_section('Guest', body: 'gb')
 
     host.add_pom_as_subsection('Host', guest)
-    host_section = host.find_section('Host')
+    subs = host.find_section('Host')&.subsections
 
-    refute_nil host_section
-    assert_equal 1, host_section.subsections.length
-    assert_equal 'Guest', host_section.subsections[0].title
-    assert_equal 'gb', host_section.subsections[0].body
+    refute_nil subs
+    assert_equal 1, subs.length
+    assert_equal 'Guest', subs[0].title
+    assert_equal 'gb', subs[0].body
   end
 
   def test_add_pom_to_section_object_directly

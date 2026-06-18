@@ -7,14 +7,18 @@ require_relative '../../lib/signalwire/skills/skill_registry'
 require_relative '../../lib/signalwire/skills/builtin/info_gatherer'
 
 class InfoGathererSkillDetailedTest < Minitest::Test
-  def test_setup_and_register_tools
+  def build_skill_with_questions
     factory = SignalWire::Skills::SkillRegistry.get_factory('info_gatherer')
-    skill = factory.call({
-                           'questions' => [
-                             { 'key_name' => 'name', 'question_text' => 'What is your name?' },
-                             { 'key_name' => 'email', 'question_text' => 'What is your email?', 'confirm' => true }
-                           ]
-                         })
+    factory.call({
+                   'questions' => [
+                     { 'key_name' => 'name', 'question_text' => 'What is your name?' },
+                     { 'key_name' => 'email', 'question_text' => 'What is your email?', 'confirm' => true }
+                   ]
+                 })
+  end
+
+  def test_setup_and_register_tools
+    skill = build_skill_with_questions
 
     assert skill.setup
     tools = skill.register_tools

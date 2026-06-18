@@ -8,25 +8,23 @@ require_relative '../../lib/signalwire/skills/skill_registry'
 require_relative '../../lib/signalwire/skills/builtin/web_search'
 
 class WebSearchSkillDetailedTest < Minitest::Test
+  SEARCH_ENV_VARS = %w[GOOGLE_SEARCH_API_KEY GOOGLE_SEARCH_ENGINE_ID].freeze
+
+  # Clear the Google-search env vars for the block, restoring them afterward.
+  def without_search_env
+    saved = SEARCH_ENV_VARS.to_h { |k| [k, ENV.delete(k)] }
+    yield
+  ensure
+    saved.each { |k, v| ENV[k] = v if v }
+  end
+
   def test_setup_requires_api_key_and_engine_id
-    saved_key = ENV.delete('GOOGLE_SEARCH_API_KEY')
-    saved_cx  = ENV.delete('GOOGLE_SEARCH_ENGINE_ID')
-    begin
+    without_search_env do
       factory = SignalWire::Skills::SkillRegistry.get_factory('web_search')
-      skill = factory.call({})
 
-      refute skill.setup
-
-      skill_partial = factory.call({ 'api_key' => 'key' })
-
-      refute skill_partial.setup
-
-      skill_full = factory.call({ 'api_key' => 'key', 'search_engine_id' => 'cx' })
-
-      assert skill_full.setup
-    ensure
-      ENV['GOOGLE_SEARCH_API_KEY'] = saved_key if saved_key
-      ENV['GOOGLE_SEARCH_ENGINE_ID'] = saved_cx if saved_cx
+      refute factory.call({}).setup
+      refute factory.call({ 'api_key' => 'key' }).setup
+      assert factory.call({ 'api_key' => 'key', 'search_engine_id' => 'cx' }).setup
     end
   end
 
@@ -172,7 +170,23 @@ end
 # so the deadline path is deterministic and needs no real HTTP / mock
 # server. (The deadline is wall-clock-enforced in handle_search, so a
 # sleeping scrape exercises it faithfully.)
-class WebSearchSkillLatencyControlTest < Minitest::Test
+# Shared skill factory + scrape stubs + CSE fixtures for the latency-control
+# web-search tests.
+module WebSearchLatencyHelpers
+  CSE_ITEMS = [
+    { 'title' => 'Slow One', 'url' => 'https://slow-one.example.com/p',
+      'snippet' => 'First CSE snippet about widgets.' },
+    { 'title' => 'Slow Two', 'url' => 'https://slow-two.example.com/p', 'snippet' => 'Second CSE snippet about widgets.' }
+  ].freeze
+
+  # Three items, so a sequential run can dispatch some-but-not-all before
+  # the deadline cuts it off.
+  CSE_ITEMS3 = [
+    { 'title' => 'One',   'url' => 'https://one.example.com/p',   'snippet' => 'First snippet about widgets.' },
+    { 'title' => 'Two',   'url' => 'https://two.example.com/p',   'snippet' => 'Second snippet about widgets.' },
+    { 'title' => 'Three', 'url' => 'https://three.example.com/p', 'snippet' => 'Third snippet about widgets.' }
+  ].freeze
+
   def make_skill(params = {})
     factory = SignalWire::Skills::SkillRegistry.get_factory('web_search')
     skill = factory.call({ 'api_key' => 'k', 'search_engine_id' => 'cx',
@@ -198,19 +212,51 @@ class WebSearchSkillLatencyControlTest < Minitest::Test
     end
   end
 
-  CSE_ITEMS = [
-    { 'title' => 'Slow One', 'url' => 'https://slow-one.example.com/p',
-      'snippet' => 'First CSE snippet about widgets.' },
-    { 'title' => 'Slow Two', 'url' => 'https://slow-two.example.com/p', 'snippet' => 'Second CSE snippet about widgets.' }
-  ].freeze
+  # Run handle_search('widgets') against +skill+, returning [elapsed, body].
+  def run_search_with_timing(skill)
+    started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    result = skill.send(:handle_search, { 'query' => 'widgets' }, nil)
+    elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
+    [elapsed, result.response.to_s]
+  end
 
-  # Three items, so a sequential run can dispatch some-but-not-all before
-  # the deadline cuts it off.
-  CSE_ITEMS3 = [
-    { 'title' => 'One',   'url' => 'https://one.example.com/p',   'snippet' => 'First snippet about widgets.' },
-    { 'title' => 'Two',   'url' => 'https://two.example.com/p',   'snippet' => 'Second snippet about widgets.' },
-    { 'title' => 'Three', 'url' => 'https://three.example.com/p', 'snippet' => 'Third snippet about widgets.' }
-  ].freeze
+  # Assert +body+ is the snippet-only fallback for +query+ (not the empty
+  # "no quality results" message), optionally containing +snippet+.
+  def assert_snippet_fallback(body, query, snippet: nil)
+    assert_match(/Snippet-only results for '#{query}'/, body)
+    refute_match(/couldn't find quality results/, body)
+    assert_match(/#{Regexp.escape(snippet)}/, body) if snippet
+  end
+
+  # A fake Net::HTTP that records the open/read timeouts set on it into
+  # +captured+ and raises on request (so no socket opens).
+  def fake_timeout_http(captured)
+    fake = Object.new
+    fake.define_singleton_method(:use_ssl=) { |_v| }
+    fake.define_singleton_method(:open_timeout=) { |v| captured[:open] = v }
+    fake.define_singleton_method(:read_timeout=) { |v| captured[:read] = v }
+    fake.define_singleton_method(:request) { |_req| raise 'no network in test' }
+    fake
+  end
+
+  # Stub Net::HTTP.new for the block with #fake_timeout_http and return the
+  # captured {open:, read:} timeouts.
+  def capture_http_timeouts
+    captured = {}
+    fake_http = fake_timeout_http(captured)
+    original_new = Net::HTTP.method(:new)
+    Net::HTTP.singleton_class.send(:define_method, :new) { |*_a, **_k| fake_http }
+    begin
+      yield
+    ensure
+      Net::HTTP.singleton_class.send(:define_method, :new, original_new)
+    end
+    captured
+  end
+end
+
+class WebSearchSkillLatencySchemaTest < Minitest::Test
+  include WebSearchLatencyHelpers
 
   # ---- schema --------------------------------------------------------
 
@@ -223,20 +269,27 @@ class WebSearchSkillLatencyControlTest < Minitest::Test
     end
   end
 
+  # Assert a schema param advertises the expected default + type.
+  def assert_schema_param(schema, key, default:, type:)
+    assert_equal type, schema[key]['type']
+    assert_in_delta(default, schema[key]['default']) if type == 'number'
+    assert_equal default, schema[key]['default'] if type == 'boolean'
+  end
+
   def test_schema_latency_defaults
     schema = make_skill.get_parameter_schema
 
-    assert_in_delta(2.0, schema['per_page_timeout']['default'])
-    assert_equal 'number', schema['per_page_timeout']['type']
-    assert_in_delta(10.0, schema['overall_deadline']['default'])
-    assert_equal 'number', schema['overall_deadline']['type']
-    assert_equal true, schema['parallel_scrape']['default']
-    assert_equal 'boolean', schema['parallel_scrape']['type']
-    assert_equal false, schema['snippets_only']['default']
-    assert_equal 'boolean', schema['snippets_only']['type']
+    assert_schema_param(schema, 'per_page_timeout', default: 2.0, type: 'number')
+    assert_schema_param(schema, 'overall_deadline', default: 10.0, type: 'number')
+    assert_schema_param(schema, 'parallel_scrape', default: true, type: 'boolean')
+    assert_schema_param(schema, 'snippets_only', default: false, type: 'boolean')
     assert_equal false, schema['per_page_timeout']['required']
     assert_equal false, schema['overall_deadline']['required']
   end
+end
+
+class WebSearchSkillLatencyControlTest < Minitest::Test
+  include WebSearchLatencyHelpers
 
   # ---- defaults applied in setup ------------------------------------
 
@@ -280,10 +333,7 @@ class WebSearchSkillLatencyControlTest < Minitest::Test
     # wall-clock budget; proving the fast path never touches it.
     stub_extract_sleep(skill, 30, counter)
 
-    started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    result = skill.send(:handle_search, { 'query' => 'widgets' }, nil)
-    elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
-    body = result.response.to_s
+    elapsed, body = run_search_with_timing(skill)
 
     assert_equal 0, counter[:n], 'snippets_only must not scrape any page'
     assert_match(/Snippet-only results for 'widgets'/, body)
@@ -302,19 +352,13 @@ class WebSearchSkillLatencyControlTest < Minitest::Test
     # abandon them and return the snippet fallback.
     stub_extract_sleep(skill, 30, counter)
 
-    started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    result = skill.send(:handle_search, { 'query' => 'widgets' }, nil)
-    elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
-    body = result.response.to_s
+    elapsed, body = run_search_with_timing(skill)
 
     # CONTRACT: returns within ~deadline + slack despite the hung scrapes.
     assert_operator elapsed, :>=, 0.9, 'should wait out roughly the deadline'
-    assert_operator elapsed, :<, 5.0,
-                    "should not block on the 30s scrapes; took #{elapsed}s"
+    assert_operator elapsed, :<, 5.0, "should not block on the 30s scrapes; took #{elapsed}s"
     # CONTRACT: non-empty snippet fallback, NOT the empty no-results msg.
-    assert_match(/Snippet-only results for 'widgets'/, body)
-    assert_match(/First CSE snippet about widgets\./, body)
-    refute_match(/couldn't find quality results/, body)
+    assert_snippet_fallback(body, 'widgets', snippet: 'First CSE snippet about widgets.')
     refute_empty body
   end
 
@@ -333,45 +377,26 @@ class WebSearchSkillLatencyControlTest < Minitest::Test
     stub_search(skill, CSE_ITEMS3)
     stub_extract_sleep(skill, 0.6, counter)
 
-    started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    result = skill.send(:handle_search, { 'query' => 'widgets' }, nil)
-    elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
-    body = result.response.to_s
+    elapsed, body = run_search_with_timing(skill)
 
     assert_operator counter[:n], :<, CSE_ITEMS3.length,
                     'sequential mode must stop dispatching past the deadline'
     # And it returned shortly after the deadline, not after all 3 sleeps (1.8s).
-    assert_operator elapsed, :<, 1.7,
-                    "should break out near the deadline; took #{elapsed}s"
-    assert_match(/Snippet-only results for 'widgets'/, body)
-    refute_match(/couldn't find quality results/, body)
+    assert_operator elapsed, :<, 1.7, "should break out near the deadline; took #{elapsed}s"
+    assert_snippet_fallback(body, 'widgets')
   end
 
   # ---- per_page_timeout bounds a single fetch -----------------------
 
   def test_per_page_timeout_passed_to_http_layer
     # extract_text_from_url is where per_page_timeout is applied to
-    # Net::HTTP open_timeout/read_timeout. Override Net::HTTP.new for the
-    # duration of this test to capture the timeouts the skill sets, without
-    # opening a real socket (request raises → extract returns nil).
+    # Net::HTTP open_timeout/read_timeout. capture_http_timeouts records the
+    # timeouts the skill sets, without opening a real socket.
     skill = make_skill('per_page_timeout' => 0.25)
 
     assert_in_delta 0.25, skill.instance_variable_get(:@per_page_timeout), 1e-9
 
-    captured = {}
-    fake_http = Object.new
-    fake_http.define_singleton_method(:use_ssl=) { |_v| }
-    fake_http.define_singleton_method(:open_timeout=) { |v| captured[:open] = v }
-    fake_http.define_singleton_method(:read_timeout=) { |v| captured[:read] = v }
-    fake_http.define_singleton_method(:request) { |_req| raise 'no network in test' }
-
-    original_new = Net::HTTP.method(:new)
-    Net::HTTP.singleton_class.send(:define_method, :new) { |*_a, **_k| fake_http }
-    begin
-      skill.send(:extract_text_from_url, 'https://example.com/p')
-    ensure
-      Net::HTTP.singleton_class.send(:define_method, :new, original_new)
-    end
+    captured = capture_http_timeouts { skill.send(:extract_text_from_url, 'https://example.com/p') }
 
     assert_in_delta 0.25, captured[:open], 1e-9
     assert_in_delta 0.25, captured[:read], 1e-9
@@ -390,9 +415,7 @@ class WebSearchSkillLatencyControlTest < Minitest::Test
     result = skill.send(:handle_search, { 'query' => 'widgets' }, nil)
     body = result.response.to_s
 
-    assert_match(/Snippet-only results for 'widgets'/, body)
-    assert_match(/First CSE snippet about widgets\./, body)
-    refute_match(/couldn't find quality results/, body)
+    assert_snippet_fallback(body, 'widgets', snippet: 'First CSE snippet about widgets.')
   end
 
   # ---- successful scrape still produces the quality header ----------

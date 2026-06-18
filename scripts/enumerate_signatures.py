@@ -336,6 +336,13 @@ EXCLUDED_RUBY_CLASSES = {
     "SignalWire::SWML::Service::TimingSafeBasicAuth",
     "SignalWire::Logging::Logger",
     "SignalWire::REST::Namespaces",
+    # Internal implementation classes extracted during the lint burndown purely
+    # to satisfy Metrics cops — no Python counterpart, file-local, not public
+    # surface. Excluded from both the signature and surface enumerators
+    # (mirrors RUBY_EXCLUDED_CLASSES in scripts/enumerate_surface.rb).
+    "SignalWire::Skills::Builtin::SafeEvaluator",
+    "SignalWire::Skills::Builtin::MathTokenizer",
+    "SignalWire::POM::SectionBuilder",
 }
 
 
@@ -398,6 +405,12 @@ def collect(raw: dict) -> dict:
     for type_entry in raw.get("types", []):
         full = type_entry.get("full_name", "")
         kind = type_entry.get("kind", "class")
+        if full in EXCLUDED_RUBY_CLASSES:
+            # Internal implementation modules/classes (e.g. helpers extracted
+            # during the lint burndown) with no Python counterpart — drop them
+            # entirely from the audited surface (applies to both module- and
+            # class-kind entries).
+            continue
         if kind == "module":
             # Module-level static methods emit either as functions in the
             # mapped Python module, or — for port-only Ruby modules with

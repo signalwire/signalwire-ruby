@@ -21,19 +21,22 @@ class PomBuilderTest < Minitest::Test
     prompt = @agent.get_prompt
 
     assert_equal 3, prompt.length
+    assert_identity_section(prompt[0])
+    assert_rules_section(prompt[1])
+    assert_knowledge_section(prompt[2])
+  end
 
-    identity = prompt[0]
-
+  def assert_identity_section(identity)
     assert_equal 'Identity', identity['title']
     assert_equal 'You are a helpful assistant', identity['body']
+  end
 
-    rules = prompt[1]
-
+  def assert_rules_section(rules)
     assert_equal 'Rules', rules['title']
     assert_equal 3, rules['bullets'].length
+  end
 
-    knowledge = prompt[2]
-
+  def assert_knowledge_section(knowledge)
     assert_equal 'Knowledge', knowledge['title']
     assert_equal 1, knowledge['subsections'].length
     sub = knowledge['subsections'][0]
@@ -45,10 +48,10 @@ class PomBuilderTest < Minitest::Test
   def test_pom_renders_in_swml_correctly
     @agent.prompt_add_section('Task', 'Help users', bullets: ['Be friendly'])
     swml = @agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+    prompt = swml['sections']['main'].find { |v| v.key?('ai') }['ai']['prompt']
 
-    assert ai['prompt'].key?('pom')
-    pom = ai['prompt']['pom']
+    assert prompt.key?('pom')
+    pom = prompt['pom']
 
     assert_equal 1, pom.length
     assert_equal 'Task', pom[0]['title']
@@ -59,20 +62,25 @@ class PomBuilderTest < Minitest::Test
 
     assert_equal 'Raw text', @agent.get_prompt
 
-    @agent.prompt_add_section('Section', 'Body')
-    prompt = @agent.get_prompt
+    assert_section_then_pom_modes
 
-    assert_instance_of Array, prompt
+    @agent.set_prompt_text('Back to text')
+
+    assert_equal 'Back to text', @agent.get_prompt
+  end
+
+  # Switching into section mode then explicit POM mode each yields an Array
+  # prompt, and the POM mode reflects the directly-set section.
+  def assert_section_then_pom_modes
+    @agent.prompt_add_section('Section', 'Body')
+
+    assert_instance_of Array, @agent.get_prompt
 
     @agent.set_prompt_pom([{ 'title' => 'Direct', 'body' => 'POM' }])
     prompt = @agent.get_prompt
 
     assert_instance_of Array, prompt
     assert_equal 'Direct', prompt[0]['title']
-
-    @agent.set_prompt_text('Back to text')
-
-    assert_equal 'Back to text', @agent.get_prompt
   end
 
   def test_add_to_nonexistent_section_creates_it

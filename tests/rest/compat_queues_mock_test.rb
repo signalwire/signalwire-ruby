@@ -10,7 +10,7 @@ require_relative 'mock_test'
 
 class CompatQueuesMockTest < Minitest::Test
   ACCOUNT_BASE = '/api/laml/2010-04-01/Accounts/test_proj'
-  QUEUES_BASE  = "#{ACCOUNT_BASE}/Queues"
+  QUEUES_BASE  = "#{ACCOUNT_BASE}/Queues".freeze
 
   def setup
     @client = MockTest.client
@@ -31,15 +31,23 @@ class CompatQueuesMockTest < Minitest::Test
     assert(result.key?('friendly_name') || result.key?('sid'))
   end
 
-  def test_update_journal_records_post_with_friendly_name
-    @client.compat.queues.update('QU_UU', FriendlyName: 'renamed', MaxSize: 200)
+  # Assert the last journal entry was a POST to +path+ with a Hash body,
+  # returning that body for further per-field assertions.
+  def assert_post_body(path)
     j = MockTest.journal.last
 
     assert_equal 'POST', j.method
-    assert_equal "#{QUEUES_BASE}/QU_UU", j.path
+    assert_equal path, j.path
     assert_kind_of Hash, j.body
-    assert_equal 'renamed', j.body['FriendlyName']
-    assert_equal 200, j.body['MaxSize']
+    j.body
+  end
+
+  def test_update_journal_records_post_with_friendly_name
+    @client.compat.queues.update('QU_UU', FriendlyName: 'renamed', MaxSize: 200)
+    body = assert_post_body("#{QUEUES_BASE}/QU_UU")
+
+    assert_equal 'renamed', body['FriendlyName']
+    assert_equal 200, body['MaxSize']
   end
 
   # ---- list_members ---------------------------------------------------
@@ -94,12 +102,9 @@ class CompatQueuesMockTest < Minitest::Test
     @client.compat.queues.dequeue_member(
       'QU_DMX', 'CA_DMX', Url: 'https://a.b/url', Method: 'POST'
     )
-    j = MockTest.journal.last
+    body = assert_post_body("#{QUEUES_BASE}/QU_DMX/Members/CA_DMX")
 
-    assert_equal 'POST', j.method
-    assert_equal "#{QUEUES_BASE}/QU_DMX/Members/CA_DMX", j.path
-    assert_kind_of Hash, j.body
-    assert_equal 'https://a.b/url', j.body['Url']
-    assert_equal 'POST', j.body['Method']
+    assert_equal 'https://a.b/url', body['Url']
+    assert_equal 'POST', body['Method']
   end
 end

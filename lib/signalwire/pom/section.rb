@@ -31,19 +31,11 @@ module SignalWire
       # snake_case in Ruby; the camelCase ``numberedBullets`` form used
       # by Python's JSON/YAML serialization is preserved on the wire.
       def initialize(title = nil, body: '', bullets: nil, numbered: nil, numbered_bullets: false)
+        validate_body!(body)
+        validate_bullets!(bullets)
+
         @title = title
-
-        unless body.is_a?(String)
-          raise TypeError,
-                "body must be a string, not #{body.class.name}. " \
-                'If you meant to pass a list of bullet points, use bullets parameter instead.'
-        end
         @body = body
-
-        if !bullets.nil? && !bullets.is_a?(Array)
-          raise TypeError, "bullets must be an Array or nil, not #{bullets.class.name}"
-        end
-
         @bullets = bullets || []
         @subsections = []
         @numbered = numbered
@@ -83,16 +75,20 @@ module SignalWire
       # Convert the section to a Hash representation suitable for JSON or
       # YAML serialization. Keys are emitted in the same order as Python
       # so cross-port string comparisons line up.
+      # rubocop:disable Metrics/CyclomaticComplexity -- wire-critical: each guard
+      # emits one key in exact Python order; flattening to one branch per field is
+      # the clearest expression and must not be split (key order is the contract).
       def to_h
         data = {}
         data['title'] = @title unless @title.nil?
-        data['body'] = @body if @body && !@body.empty?
-        data['bullets'] = @bullets if @bullets && !@bullets.empty?
-        data['subsections'] = @subsections.map(&:to_h) if @subsections && !@subsections.empty?
+        data['body'] = @body if present?(@body)
+        data['bullets'] = @bullets if present?(@bullets)
+        data['subsections'] = @subsections.map(&:to_h) if present?(@subsections)
         data['numbered'] = @numbered if @numbered
         data['numberedBullets'] = @numbered_bullets if @numbered_bullets
         data
       end
+      # rubocop:enable Metrics/CyclomaticComplexity
 
       # Render this section and all its subsections as Markdown. The
       # output is byte-for-byte identical to Python's
@@ -101,42 +97,17 @@ module SignalWire
         md = []
         section_number = [] if section_number.nil?
 
-        unless @title.nil?
-          prefix = ''
-          prefix = "#{section_number.join('.')}. " unless section_number.empty?
-          md << "#{'#' * level} #{prefix}#{@title}\n"
-        end
+        md << "#{'#' * level} #{number_prefix(section_number)}#{@title}\n" unless @title.nil?
 
-        md << "#{@body}\n" if @body && !@body.empty?
+        md << "#{@body}\n" if present?(@body)
 
         @bullets.each_with_index do |bullet, idx|
-          md << if @numbered_bullets
-                  "#{idx + 1}. #{bullet}"
-                else
-                  "- #{bullet}"
-                end
+          md << (@numbered_bullets ? "#{idx + 1}. #{bullet}" : "- #{bullet}")
         end
 
         md << '' unless @bullets.empty?
 
-        any_subsection_numbered = @subsections.any? { |sub| sub.numbered }
-
-        @subsections.each_with_index do |subsection, idx|
-          if !@title.nil? || !section_number.empty?
-            new_section_number =
-              if any_subsection_numbered && subsection.numbered != false
-                section_number + [idx + 1]
-              else
-                section_number
-              end
-            next_level = level + 1
-          else
-            new_section_number = section_number
-            next_level = level
-          end
-
-          md << subsection.render_markdown(level: next_level, section_number: new_section_number)
-        end
+        render_markdown_subsections(md, level, section_number)
 
         md.join("\n")
       end
@@ -150,47 +121,94 @@ module SignalWire
 
         xml << "#{indent_str}<section>"
 
-        unless @title.nil?
-          prefix = ''
-          prefix = "#{section_number.join('.')}. " unless section_number.empty?
-          xml << "#{indent_str}  <title>#{prefix}#{@title}</title>"
-        end
+        xml << "#{indent_str}  <title>#{number_prefix(section_number)}#{@title}</title>" unless @title.nil?
 
-        xml << "#{indent_str}  <body>#{@body}</body>" if @body && !@body.empty?
+        xml << "#{indent_str}  <body>#{@body}</body>" if present?(@body)
 
-        if @bullets && !@bullets.empty?
-          xml << "#{indent_str}  <bullets>"
-          @bullets.each_with_index do |bullet, idx|
-            xml << if @numbered_bullets
-                     "#{indent_str}    <bullet id=\"#{idx + 1}\">#{bullet}</bullet>"
-                   else
-                     "#{indent_str}    <bullet>#{bullet}</bullet>"
-                   end
-          end
-          xml << "#{indent_str}  </bullets>"
-        end
-
-        if @subsections && !@subsections.empty?
-          xml << "#{indent_str}  <subsections>"
-          any_subsection_numbered = @subsections.any? { |sub| sub.numbered }
-
-          @subsections.each_with_index do |subsection, idx|
-            new_section_number = if !@title.nil? || !section_number.empty?
-                                   if any_subsection_numbered && subsection.numbered != false
-                                     section_number + [idx + 1]
-                                   else
-                                     section_number
-                                   end
-                                 else
-                                   section_number
-                                 end
-            xml << subsection.render_xml(indent: indent + 2, section_number: new_section_number)
-          end
-          xml << "#{indent_str}  </subsections>"
-        end
+        render_xml_bullets(xml, indent_str) if present?(@bullets)
+        render_xml_subsections(xml, indent_str, indent, section_number) if present?(@subsections)
 
         xml << "#{indent_str}</section>"
         xml.join("\n")
+      end
+
+      private
+
+      def validate_body!(body)
+        return if body.is_a?(String)
+
+        raise TypeError,
+              "body must be a string, not #{body.class.name}. " \
+              'If you meant to pass a list of bullet points, use bullets parameter instead.'
+      end
+
+      def validate_bullets!(bullets)
+        return if bullets.nil? || bullets.is_a?(Array)
+
+        raise TypeError, "bullets must be an Array or nil, not #{bullets.class.name}"
+      end
+
+      # True when the value is non-nil and non-empty (string or array).
+      def present?(value)
+        value && !value.empty?
+      end
+
+      # The "N.N. " prefix when this section is numbered, else "".
+      def number_prefix(section_number)
+        return '' if section_number.empty?
+
+        "#{section_number.join('.')}. "
+      end
+
+      # Subsections only inherit/extend numbering when this section is itself
+      # titled or already numbered. Mirrors Python's render guard exactly.
+      def titled_or_numbered?(section_number)
+        !@title.nil? || !section_number.empty?
+      end
+
+      def child_section_number(section_number, subsection, idx, any_subsection_numbered)
+        if any_subsection_numbered && subsection.numbered != false
+          section_number + [idx + 1]
+        else
+          section_number
+        end
+      end
+
+      def render_markdown_subsections(lines, level, section_number)
+        any_subsection_numbered = @subsections.any?(&:numbered)
+        nested = titled_or_numbered?(section_number)
+        next_level = nested ? level + 1 : level
+
+        @subsections.each_with_index do |subsection, idx|
+          new_section_number =
+            nested ? child_section_number(section_number, subsection, idx, any_subsection_numbered) : section_number
+          lines << subsection.render_markdown(level: next_level, section_number: new_section_number)
+        end
+      end
+
+      def render_xml_bullets(xml, indent_str)
+        xml << "#{indent_str}  <bullets>"
+        @bullets.each_with_index do |bullet, idx|
+          xml << if @numbered_bullets
+                   "#{indent_str}    <bullet id=\"#{idx + 1}\">#{bullet}</bullet>"
+                 else
+                   "#{indent_str}    <bullet>#{bullet}</bullet>"
+                 end
+        end
+        xml << "#{indent_str}  </bullets>"
+      end
+
+      def render_xml_subsections(xml, indent_str, indent, section_number)
+        xml << "#{indent_str}  <subsections>"
+        any_subsection_numbered = @subsections.any?(&:numbered)
+        nested = titled_or_numbered?(section_number)
+
+        @subsections.each_with_index do |subsection, idx|
+          new_section_number =
+            nested ? child_section_number(section_number, subsection, idx, any_subsection_numbered) : section_number
+          xml << subsection.render_xml(indent: indent + 2, section_number: new_section_number)
+        end
+        xml << "#{indent_str}  </subsections>"
       end
     end
   end

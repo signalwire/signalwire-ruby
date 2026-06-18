@@ -203,8 +203,14 @@ module SignalWire
 
         def initialize(http)
           base = '/api/fabric/resources'
+          init_put_resources(http, base)
+          init_patch_resources(http, base)
+          init_special_resources(http, base)
+        end
 
-          # PUT-update resources
+        private
+
+        def init_put_resources(http, base)
           @swml_scripts           = FabricResourcePUT.new(http, "#{base}/swml_scripts")
           @relay_applications     = FabricResourcePUT.new(http, "#{base}/relay_applications")
           @call_flows             = CallFlowsResource.new(http, "#{base}/call_flows")
@@ -214,17 +220,19 @@ module SignalWire
           @sip_endpoints          = FabricResourcePUT.new(http, "#{base}/sip_endpoints")
           @cxml_scripts           = FabricResourcePUT.new(http, "#{base}/cxml_scripts")
           @cxml_applications      = CxmlApplicationsResource.new(http, "#{base}/cxml_applications")
+        end
 
-          # PATCH-update resources
-          # swml_webhooks and cxml_webhooks are normally auto-materialized by
-          # phone_numbers.set_swml_webhook / set_cxml_webhook. Direct create
-          # still works for backcompat but emits a deprecation warning.
+        # swml_webhooks and cxml_webhooks are normally auto-materialized by
+        # phone_numbers.set_swml_webhook / set_cxml_webhook. Direct create
+        # still works for backcompat but emits a deprecation warning.
+        def init_patch_resources(http, base)
           @swml_webhooks = SwmlWebhooksResource.new(http, "#{base}/swml_webhooks")
           @ai_agents     = FabricResource.new(http, "#{base}/ai_agents")
           @sip_gateways  = FabricResource.new(http, "#{base}/sip_gateways")
           @cxml_webhooks = CxmlWebhooksResource.new(http, "#{base}/cxml_webhooks")
+        end
 
-          # Special resources
+        def init_special_resources(http, base)
           @resources = GenericResources.new(http, base)
           @addresses = FabricAddresses.new(http, '/api/fabric/addresses')
           @tokens    = FabricTokens.new(http)

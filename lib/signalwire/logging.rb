@@ -77,16 +77,17 @@ module SignalWire
         return :off
       end
 
-      raw = ENV.fetch('SIGNALWIRE_LOG_LEVEL', nil)
-      if raw
-        sym = raw.downcase.to_sym
-        if LEVELS.key?(sym)
-          @global_level = sym
-          return sym
-        end
-      end
+      level_from_env_var || :info # default — not cached so env changes take effect
+    end
 
-      :info # default — not cached so env changes take effect
+    private_class_method def self.level_from_env_var
+      raw = ENV.fetch('SIGNALWIRE_LOG_LEVEL', nil)
+      return nil unless raw
+
+      sym = raw.downcase.to_sym
+      return nil unless LEVELS.key?(sym)
+
+      @global_level = sym
     end
   end
 end

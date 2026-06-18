@@ -89,26 +89,8 @@ module SignalWire
         question = @questions.find { |q| q['id'] == question_id }
         return Swaig::FunctionResult.new("Error: Question with ID '#{question_id}' not found.") unless question
 
-        message = "Response to '#{question_id}' is valid."
-
-        case question['type']
-        when 'rating'
-          scale = question['scale'] || 5
-          rating = Integer(response.strip, exception: false)
-          if rating.nil? || rating < 1 || rating > scale
-            message = "Invalid rating. Please provide a number between 1 and #{scale}."
-          end
-        when 'multiple_choice'
-          options = question['options'] || []
-          unless options.any? { |opt| response.downcase.strip == opt.downcase }
-            message = "Invalid choice. Please select one of: #{options.join(', ')}."
-          end
-        when 'yes_no'
-          message = "Please answer with 'yes' or 'no'." unless %w[yes no y n].include?(response.downcase.strip)
-        when 'open_ended'
-          required = question.key?('required') ? question['required'] : true
-          message = 'A response is required for this question.' if response.strip.empty? && required
-        end
+        valid = "Response to '#{question_id}' is valid."
+        message = validation_message(question, response) || valid
 
         Swaig::FunctionResult.new(message)
       end
@@ -149,6 +131,45 @@ module SignalWire
         end
       rescue StandardError => e
         puts "Error processing survey summary: #{e.message}"
+      end
+
+      private
+
+      # Return an error message for an invalid response, or +nil+ when the
+      # response is valid for the question's type.
+      def validation_message(question, response)
+        case question['type']
+        when 'rating'          then rating_error(question, response)
+        when 'multiple_choice' then multiple_choice_error(question, response)
+        when 'yes_no'          then yes_no_error(response)
+        when 'open_ended'      then open_ended_error(question, response)
+        end
+      end
+
+      def rating_error(question, response)
+        scale = question['scale'] || 5
+        rating = Integer(response.strip, exception: false)
+        return unless rating.nil? || rating < 1 || rating > scale
+
+        "Invalid rating. Please provide a number between 1 and #{scale}."
+      end
+
+      def multiple_choice_error(question, response)
+        options = question['options'] || []
+        return if options.any? { |opt| response.downcase.strip == opt.downcase }
+
+        "Invalid choice. Please select one of: #{options.join(', ')}."
+      end
+
+      def yes_no_error(response)
+        return if %w[yes no y n].include?(response.downcase.strip)
+
+        "Please answer with 'yes' or 'no'."
+      end
+
+      def open_ended_error(question, response)
+        required = question.key?('required') ? question['required'] : true
+        'A response is required for this question.' if response.strip.empty? && required
       end
     end
   end

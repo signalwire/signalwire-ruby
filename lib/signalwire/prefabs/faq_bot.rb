@@ -58,13 +58,12 @@ module SignalWire
       def handle_search(args, _raw_data)
         query = (args['query'] || '').downcase
         match = @faqs.find { |f| f['question'].downcase.include?(query) || query.include?(f['question'].downcase) }
-        if match
-          Swaig::FunctionResult.new(match['answer'])
-        else
-          Swaig::FunctionResult.new("I don't have a specific answer for that. Here are the topics I can help with: #{@faqs.map do |f|
-            f['question']
-          end.join('; ')}")
-        end
+        return Swaig::FunctionResult.new(match['answer']) if match
+
+        topics = @faqs.map { |f| f['question'] }.join('; ')
+        Swaig::FunctionResult.new(
+          "I don't have a specific answer for that. Here are the topics I can help with: #{topics}"
+        )
       end
 
       # Lifecycle hook: on_summary — Python parity

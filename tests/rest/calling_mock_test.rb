@@ -15,7 +15,10 @@
 require 'minitest/autorun'
 require_relative 'mock_test'
 
-class CallingMockTest < Minitest::Test
+# Shared setup/teardown + the calling-command journal assertion helpers.
+# The suite is split into topic classes so no single class grows unbounded;
+# they all mix in this module.
+module CallingMockHelpers
   CALLS_PATH = '/api/calling/calls'
 
   def setup
@@ -27,60 +30,67 @@ class CallingMockTest < Minitest::Test
     MockTest.reset
   end
 
+  # Assert the common calling-command journal shape and return the entry.
+  #
+  # Every calling command POSTs to CALLS_PATH with a 'command' field and the
+  # call id (or, for commands that embed the id in params like dial/update,
+  # no top-level 'id' — pass id: nil to assert its absence). +params+ maps
+  # param keys to expected values under last.body['params'].
+  def assert_call_command(body, command:, id: nil, params: {})
+    assert_kind_of Hash, body
+    assert body.key?('id')
+
+    last = MockTest.journal.last
+
+    assert_command_envelope(last, command, id)
+    params.each { |k, v| assert_equal v, last.body['params'][k], "params[#{k.inspect}]" }
+    last
+  end
+
+  # Assert the POST/path/command/id envelope shared by every calling command.
+  def assert_command_envelope(last, command, id)
+    assert_equal 'POST', last.method
+    assert_equal CALLS_PATH, last.path
+    assert_equal command, last.body['command']
+    if id
+      assert_equal id, last.body['id']
+    else
+      refute last.body.key?('id')
+    end
+  end
+end
+
+class CallingMockTest < Minitest::Test
+  include CallingMockHelpers
+
   # -------------------------------------------------------------------
   # Lifecycle commands
   # -------------------------------------------------------------------
 
   def test_dial_forwards_codecs_array
     body = @client.calling.dial(
-      url: 'https://example.com/swml',
-      to: '+15551234567',
-      codecs: %w[OPUS G729 VP8 PCMA]
+      url: 'https://example.com/swml', to: '+15551234567', codecs: %w[OPUS G729 VP8 PCMA]
     )
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'dial', last.body['command']
-    refute last.body.key?('id')
-    assert_equal %w[OPUS G729 VP8 PCMA], last.body['params']['codecs']
-    assert_equal '+15551234567', last.body['params']['to']
+    assert_call_command(body, command: 'dial',
+                              params: { 'codecs' => %w[OPUS G729 VP8 PCMA], 'to' => '+15551234567' })
   end
 
   def test_dial_forwards_codecs_string
     body = @client.calling.dial(
-      url: 'https://example.com/swml',
-      to: '+15551234567',
-      codecs: 'OPUS,G729,VP8,PCMA'
+      url: 'https://example.com/swml', to: '+15551234567', codecs: 'OPUS,G729,VP8,PCMA'
     )
 
-    assert_kind_of Hash, body
-
-    last = MockTest.journal.last
-
-    assert_equal 'dial', last.body['command']
-    assert_equal 'OPUS,G729,VP8,PCMA', last.body['params']['codecs']
+    assert_call_command(body, command: 'dial', params: { 'codecs' => 'OPUS,G729,VP8,PCMA' })
   end
 
   def test_update
     body = @client.calling.update(id: 'call-1', state: 'hold')
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
+    last = assert_call_command(body, command: 'update',
+                                     params: { 'id' => 'call-1', 'state' => 'hold' })
 
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
     refute_nil last.matched_route
-    assert_equal 'update', last.body['command']
-    refute last.body.key?('id')
-    assert_equal 'call-1', last.body['params']['id']
-    assert_equal 'hold', last.body['params']['state']
   end
 
   def test_transfer
@@ -88,32 +98,15 @@ class CallingMockTest < Minitest::Test
       'call-123', destination: '+15551234567', from_number: '+15559876543'
     )
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.transfer', last.body['command']
-    assert_equal 'call-123', last.body['id']
-    assert_equal '+15551234567', last.body['params']['destination']
-    assert_equal '+15559876543', last.body['params']['from_number']
+    assert_call_command(body, command: 'calling.transfer', id: 'call-123',
+                              params: { 'destination' => '+15551234567', 'from_number' => '+15559876543' })
   end
 
   def test_disconnect
     body = @client.calling.disconnect('call-456', reason: 'busy')
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.disconnect', last.body['command']
-    assert_equal 'call-456', last.body['id']
-    assert_equal 'busy', last.body['params']['reason']
+    assert_call_command(body, command: 'calling.disconnect', id: 'call-456',
+                              params: { 'reason' => 'busy' })
   end
 
   # -------------------------------------------------------------------
@@ -123,60 +116,29 @@ class CallingMockTest < Minitest::Test
   def test_play_pause
     body = @client.calling.play_pause('call-1', control_id: 'ctrl-1')
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.play.pause', last.body['command']
-    assert_equal 'call-1', last.body['id']
-    assert_equal 'ctrl-1', last.body['params']['control_id']
+    assert_call_command(body, command: 'calling.play.pause', id: 'call-1',
+                              params: { 'control_id' => 'ctrl-1' })
   end
 
   def test_play_resume
     body = @client.calling.play_resume('call-1', control_id: 'ctrl-1')
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.play.resume', last.body['command']
-    assert_equal 'call-1', last.body['id']
-    assert_equal 'ctrl-1', last.body['params']['control_id']
+    assert_call_command(body, command: 'calling.play.resume', id: 'call-1',
+                              params: { 'control_id' => 'ctrl-1' })
   end
 
   def test_play_stop
     body = @client.calling.play_stop('call-1', control_id: 'ctrl-1')
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.play.stop', last.body['command']
-    assert_equal 'call-1', last.body['id']
-    assert_equal 'ctrl-1', last.body['params']['control_id']
+    assert_call_command(body, command: 'calling.play.stop', id: 'call-1',
+                              params: { 'control_id' => 'ctrl-1' })
   end
 
   def test_play_volume
     body = @client.calling.play_volume('call-1', control_id: 'ctrl-1', volume: 2.5)
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
+    last = assert_call_command(body, command: 'calling.play.volume', id: 'call-1')
 
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.play.volume', last.body['command']
-    assert_equal 'call-1', last.body['id']
     assert_in_delta 2.5, last.body['params']['volume'], 0.0001
   end
 
@@ -187,46 +149,22 @@ class CallingMockTest < Minitest::Test
   def test_record
     body = @client.calling.record('call-1', record: { 'format' => 'mp3' })
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.record', last.body['command']
-    assert_equal 'call-1', last.body['id']
-    assert_equal({ 'format' => 'mp3' }, last.body['params']['record'])
+    assert_call_command(body, command: 'calling.record', id: 'call-1',
+                              params: { 'record' => { 'format' => 'mp3' } })
   end
 
   def test_record_pause
     body = @client.calling.record_pause('call-1', control_id: 'rec-1')
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.record.pause', last.body['command']
-    assert_equal 'call-1', last.body['id']
-    assert_equal 'rec-1', last.body['params']['control_id']
+    assert_call_command(body, command: 'calling.record.pause', id: 'call-1',
+                              params: { 'control_id' => 'rec-1' })
   end
 
   def test_record_resume
     body = @client.calling.record_resume('call-1', control_id: 'rec-1')
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.record.resume', last.body['command']
-    assert_equal 'call-1', last.body['id']
-    assert_equal 'rec-1', last.body['params']['control_id']
+    assert_call_command(body, command: 'calling.record.resume', id: 'call-1',
+                              params: { 'control_id' => 'rec-1' })
   end
 
   # -------------------------------------------------------------------
@@ -236,47 +174,28 @@ class CallingMockTest < Minitest::Test
   def test_collect
     body = @client.calling.collect('call-1', initial_timeout: 5, digits: { 'max' => 4 })
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.collect', last.body['command']
-    assert_equal 'call-1', last.body['id']
-    assert_equal 5, last.body['params']['initial_timeout']
+    assert_call_command(body, command: 'calling.collect', id: 'call-1',
+                              params: { 'initial_timeout' => 5 })
   end
 
   def test_collect_stop
     body = @client.calling.collect_stop('call-1', control_id: 'col-1')
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.collect.stop', last.body['command']
-    assert_equal 'call-1', last.body['id']
-    assert_equal 'col-1', last.body['params']['control_id']
+    assert_call_command(body, command: 'calling.collect.stop', id: 'call-1',
+                              params: { 'control_id' => 'col-1' })
   end
 
   def test_collect_start_input_timers
     body = @client.calling.collect_start_input_timers('call-1', control_id: 'col-1')
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.collect.start_input_timers', last.body['command']
-    assert_equal 'call-1', last.body['id']
-    assert_equal 'col-1', last.body['params']['control_id']
+    assert_call_command(body, command: 'calling.collect.start_input_timers', id: 'call-1',
+                              params: { 'control_id' => 'col-1' })
   end
+end
+
+# Detect / tap / stream / denoise / transcribe, AI, live, fax, refer, user_event.
+class CallingMockMediaTest < Minitest::Test
+  include CallingMockHelpers
 
   # -------------------------------------------------------------------
   # Detect / tap / stream / denoise / transcribe
@@ -285,31 +204,16 @@ class CallingMockTest < Minitest::Test
   def test_detect
     body = @client.calling.detect('call-1', detect: { 'type' => 'machine', 'params' => {} })
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
+    last = assert_call_command(body, command: 'calling.detect', id: 'call-1')
 
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.detect', last.body['command']
-    assert_equal 'call-1', last.body['id']
     assert_equal 'machine', last.body['params']['detect']['type']
   end
 
   def test_detect_stop
     body = @client.calling.detect_stop('call-1', control_id: 'det-1')
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.detect.stop', last.body['command']
-    assert_equal 'call-1', last.body['id']
-    assert_equal 'det-1', last.body['params']['control_id']
+    assert_call_command(body, command: 'calling.detect.stop', id: 'call-1',
+                              params: { 'control_id' => 'det-1' })
   end
 
   def test_tap
@@ -317,90 +221,42 @@ class CallingMockTest < Minitest::Test
       'call-1', tap: { 'type' => 'audio' }, device: { 'type' => 'rtp' }
     )
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.tap', last.body['command']
-    assert_equal 'call-1', last.body['id']
-    assert_equal({ 'type' => 'audio' }, last.body['params']['tap'])
+    assert_call_command(body, command: 'calling.tap', id: 'call-1',
+                              params: { 'tap' => { 'type' => 'audio' } })
   end
 
   def test_tap_stop
     body = @client.calling.tap_stop('call-1', control_id: 'tap-1')
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.tap.stop', last.body['command']
-    assert_equal 'call-1', last.body['id']
-    assert_equal 'tap-1', last.body['params']['control_id']
+    assert_call_command(body, command: 'calling.tap.stop', id: 'call-1',
+                              params: { 'control_id' => 'tap-1' })
   end
 
   def test_stream
     body = @client.calling.stream('call-1', url: 'wss://example.com/audio')
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.stream', last.body['command']
-    assert_equal 'call-1', last.body['id']
-    assert_equal 'wss://example.com/audio', last.body['params']['url']
+    assert_call_command(body, command: 'calling.stream', id: 'call-1',
+                              params: { 'url' => 'wss://example.com/audio' })
   end
 
   def test_stream_stop
     body = @client.calling.stream_stop('call-1', control_id: 'stream-1')
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.stream.stop', last.body['command']
-    assert_equal 'call-1', last.body['id']
-    assert_equal 'stream-1', last.body['params']['control_id']
+    assert_call_command(body, command: 'calling.stream.stop', id: 'call-1',
+                              params: { 'control_id' => 'stream-1' })
   end
 
   def test_denoise
     body = @client.calling.denoise('call-1')
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.denoise', last.body['command']
-    assert_equal 'call-1', last.body['id']
+    assert_call_command(body, command: 'calling.denoise', id: 'call-1')
   end
 
   def test_denoise_stop
     body = @client.calling.denoise_stop('call-1', control_id: 'dn-1')
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.denoise.stop', last.body['command']
-    assert_equal 'call-1', last.body['id']
-    assert_equal 'dn-1', last.body['params']['control_id']
+    assert_call_command(body, command: 'calling.denoise.stop', id: 'call-1',
+                              params: { 'control_id' => 'dn-1' })
   end
 
   def test_transcribe
@@ -408,31 +264,15 @@ class CallingMockTest < Minitest::Test
       'call-1', language: 'en-US', transcribe: { 'engine' => 'google' }
     )
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.transcribe', last.body['command']
-    assert_equal 'call-1', last.body['id']
-    assert_equal 'en-US', last.body['params']['language']
+    assert_call_command(body, command: 'calling.transcribe', id: 'call-1',
+                              params: { 'language' => 'en-US' })
   end
 
   def test_transcribe_stop
     body = @client.calling.transcribe_stop('call-1', control_id: 'tr-1')
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.transcribe.stop', last.body['command']
-    assert_equal 'call-1', last.body['id']
-    assert_equal 'tr-1', last.body['params']['control_id']
+    assert_call_command(body, command: 'calling.transcribe.stop', id: 'call-1',
+                              params: { 'control_id' => 'tr-1' })
   end
 
   # -------------------------------------------------------------------
@@ -442,43 +282,19 @@ class CallingMockTest < Minitest::Test
   def test_ai_hold
     body = @client.calling.ai_hold('call-1')
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.ai_hold', last.body['command']
-    assert_equal 'call-1', last.body['id']
+    assert_call_command(body, command: 'calling.ai_hold', id: 'call-1')
   end
 
   def test_ai_unhold
     body = @client.calling.ai_unhold('call-1')
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.ai_unhold', last.body['command']
-    assert_equal 'call-1', last.body['id']
+    assert_call_command(body, command: 'calling.ai_unhold', id: 'call-1')
   end
 
   def test_ai_stop
     body = @client.calling.ai_stop('call-1')
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.ai.stop', last.body['command']
-    assert_equal 'call-1', last.body['id']
+    assert_call_command(body, command: 'calling.ai.stop', id: 'call-1')
   end
 
   # -------------------------------------------------------------------
@@ -488,16 +304,8 @@ class CallingMockTest < Minitest::Test
   def test_live_transcribe
     body = @client.calling.live_transcribe('call-1', language: 'en-US')
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.live_transcribe', last.body['command']
-    assert_equal 'call-1', last.body['id']
-    assert_equal 'en-US', last.body['params']['language']
+    assert_call_command(body, command: 'calling.live_transcribe', id: 'call-1',
+                              params: { 'language' => 'en-US' })
   end
 
   def test_live_translate
@@ -505,17 +313,8 @@ class CallingMockTest < Minitest::Test
       'call-1', source_language: 'en', target_language: 'es'
     )
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.live_translate', last.body['command']
-    assert_equal 'call-1', last.body['id']
-    assert_equal 'en', last.body['params']['source_language']
-    assert_equal 'es', last.body['params']['target_language']
+    assert_call_command(body, command: 'calling.live_translate', id: 'call-1',
+                              params: { 'source_language' => 'en', 'target_language' => 'es' })
   end
 
   # -------------------------------------------------------------------
@@ -525,29 +324,13 @@ class CallingMockTest < Minitest::Test
   def test_send_fax_stop
     body = @client.calling.send_fax_stop('call-1')
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.send_fax.stop', last.body['command']
-    assert_equal 'call-1', last.body['id']
+    assert_call_command(body, command: 'calling.send_fax.stop', id: 'call-1')
   end
 
   def test_receive_fax_stop
     body = @client.calling.receive_fax_stop('call-1')
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.receive_fax.stop', last.body['command']
-    assert_equal 'call-1', last.body['id']
+    assert_call_command(body, command: 'calling.receive_fax.stop', id: 'call-1')
   end
 
   # -------------------------------------------------------------------
@@ -557,16 +340,8 @@ class CallingMockTest < Minitest::Test
   def test_refer
     body = @client.calling.refer('call-1', to: 'sip:other@example.com')
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.refer', last.body['command']
-    assert_equal 'call-1', last.body['id']
-    assert_equal 'sip:other@example.com', last.body['params']['to']
+    assert_call_command(body, command: 'calling.refer', id: 'call-1',
+                              params: { 'to' => 'sip:other@example.com' })
   end
 
   def test_user_event
@@ -574,16 +349,7 @@ class CallingMockTest < Minitest::Test
       'call-1', event_name: 'my-event', payload: { 'foo' => 'bar' }
     )
 
-    assert_kind_of Hash, body
-    assert body.key?('id')
-
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal CALLS_PATH, last.path
-    assert_equal 'calling.user_event', last.body['command']
-    assert_equal 'call-1', last.body['id']
-    assert_equal 'my-event', last.body['params']['event_name']
-    assert_equal({ 'foo' => 'bar' }, last.body['params']['payload'])
+    assert_call_command(body, command: 'calling.user_event', id: 'call-1',
+                              params: { 'event_name' => 'my-event', 'payload' => { 'foo' => 'bar' } })
   end
 end

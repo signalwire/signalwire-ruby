@@ -130,26 +130,26 @@ class PaginatedIteratorProtocolParityTest < Minitest::Test
   end
 
   def test_iter_returns_self
-    it = make_iterator
+    iter = make_iterator
 
-    assert_same it, it.__iter__, '__iter__ must return the iterator itself'
+    assert_same iter, iter.__iter__, '__iter__ must return the iterator itself'
   end
 
   def test_next_yields_items_then_raises_stop_iteration
-    it = make_iterator
+    iter = make_iterator
 
-    assert_equal({ 'id' => 1 }, it.__next__)
-    assert_equal({ 'id' => 2 }, it.__next__)
-    assert_equal({ 'id' => 3 }, it.__next__) # crosses the page boundary
+    assert_equal({ 'id' => 1 }, iter.__next__)
+    assert_equal({ 'id' => 2 }, iter.__next__)
+    assert_equal({ 'id' => 3 }, iter.__next__) # crosses the page boundary
 
-    assert_raises(StopIteration) { it.__next__ }
+    assert_raises(StopIteration) { iter.__next__ }
   end
 
   def test_next_drives_full_collection_across_pages
-    it = make_iterator
+    iter = make_iterator
     collected = []
     loop do
-      collected << it.__next__
+      collected << iter.__next__
     rescue StopIteration
       break
     end
@@ -283,16 +283,19 @@ class CallWaitForParityTest < Minitest::Test
     )
   end
 
+  # Dispatch a calling.call.state event with the given call_state.
+  def dispatch_state(call, state)
+    call._dispatch_event(
+      'event_type' => 'calling.call.state',
+      'params' => { 'call_id' => 'call-1', 'call_state' => state }
+    )
+  end
+
   def test_returns_matching_event
     call = make_call
-    payload = {
-      'event_type' => 'calling.call.state',
-      'params' => { 'call_id' => 'call-1', 'call_state' => 'ringing' }
-    }
-
     Thread.new do
       sleep 0.05
-      call._dispatch_event(payload)
+      dispatch_state(call, 'ringing')
     end
 
     event = call.wait_for('calling.call.state', timeout: 2)
@@ -304,26 +307,16 @@ class CallWaitForParityTest < Minitest::Test
 
   def test_predicate_filters_non_matching_events
     call = make_call
-
     Thread.new do
-      sleep 0.03
       # First event fails the predicate, second satisfies it.
-      call._dispatch_event(
-        'event_type' => 'calling.call.state',
-        'params' => { 'call_id' => 'call-1', 'call_state' => 'ringing' }
-      )
       sleep 0.03
-      call._dispatch_event(
-        'event_type' => 'calling.call.state',
-        'params' => { 'call_id' => 'call-1', 'call_state' => 'answered' }
-      )
+      dispatch_state(call, 'ringing')
+      sleep 0.03
+      dispatch_state(call, 'answered')
     end
 
-    event = call.wait_for(
-      'calling.call.state',
-      predicate: ->(e) { e.params['call_state'] == 'answered' },
-      timeout: 2
-    )
+    answered = ->(e) { e.params['call_state'] == 'answered' }
+    event = call.wait_for('calling.call.state', predicate: answered, timeout: 2)
 
     assert_equal 'answered', event.params['call_state']
   end
@@ -341,10 +334,7 @@ class CallWaitForParityTest < Minitest::Test
     call = make_call
     Thread.new do
       sleep 0.02
-      call._dispatch_event(
-        'event_type' => 'calling.call.state',
-        'params' => { 'call_id' => 'call-1', 'call_state' => 'ringing' }
-      )
+      dispatch_state(call, 'ringing')
     end
     call.wait_for('calling.call.state', timeout: 2)
 

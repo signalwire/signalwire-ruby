@@ -13,18 +13,22 @@ class RelayClientDialTest < Minitest::Test
     assert defined?(SignalWire::Relay::Client)
   end
 
+  CREDENTIAL_ENV_VARS = %w[SIGNALWIRE_PROJECT_ID SIGNALWIRE_API_TOKEN SIGNALWIRE_SPACE].freeze
+
   def test_client_requires_credentials
-    old_project = ENV.delete('SIGNALWIRE_PROJECT_ID')
-    old_token = ENV.delete('SIGNALWIRE_API_TOKEN')
-    old_space = ENV.delete('SIGNALWIRE_SPACE')
-    begin
+    without_credential_env do
       assert_raises(ArgumentError) { SignalWire::Relay::Client.new }
       assert_raises(ArgumentError) { SignalWire::Relay::Client.new(project: 'proj', token: 'tok') }
-    ensure
-      ENV['SIGNALWIRE_PROJECT_ID'] = old_project if old_project
-      ENV['SIGNALWIRE_API_TOKEN'] = old_token if old_token
-      ENV['SIGNALWIRE_SPACE'] = old_space if old_space
     end
+  end
+
+  # Clear the credential env vars for the duration of the block, restoring
+  # any previously-set values afterward.
+  def without_credential_env
+    saved = CREDENTIAL_ENV_VARS.to_h { |k| [k, ENV.delete(k)] }
+    yield
+  ensure
+    saved.each { |k, v| ENV[k] = v if v }
   end
 
   def test_client_creation_with_options

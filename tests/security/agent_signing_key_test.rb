@@ -27,7 +27,7 @@ module AgentSigningKeyHelpers
   end
 
   def basic_auth_header(user, pass)
-    'Basic ' + ["#{user}:#{pass}"].pack('m0')
+    "Basic #{["#{user}:#{pass}"].pack('m0')}"
   end
 end
 
@@ -85,17 +85,19 @@ class AgentWebhookSignatureRouteEnforcementTest < Minitest::Test
   SIGNING_KEY = 'PSKtest1234567890abcdef'
 
   def app
-    @agent ||= begin
-      a = SignalWire::AgentBase.new(
-        basic_auth: %w[u p],
-        signing_key: SIGNING_KEY,
-        trust_proxy_for_signature: true,
-        suppress_logs: true
-      )
-      a.set_prompt_text('Hello')
-      a
-    end
+    @agent ||= build_signed_agent
     @agent.rack_app
+  end
+
+  def build_signed_agent
+    agent = SignalWire::AgentBase.new(
+      basic_auth: %w[u p],
+      signing_key: SIGNING_KEY,
+      trust_proxy_for_signature: true,
+      suppress_logs: true
+    )
+    agent.set_prompt_text('Hello')
+    agent
   end
 
   def signed_post(path, body, content_type: 'application/json')
@@ -119,7 +121,7 @@ class AgentWebhookSignatureRouteEnforcementTest < Minitest::Test
 
   # --- root SWML endpoint -------------------------------------------------
 
-  def test_root_post_unsigned_rejected_with_403
+  def test_root_post_unsigned_rejected_with_forbidden
     unsigned_post('/', '{"call_id":"abc"}')
 
     assert_equal 403, last_response.status
@@ -205,7 +207,7 @@ class AgentWithoutSigningKeyTest < Minitest::Test
   end
 
   def test_unsigned_post_works_without_signing_key
-    header 'Authorization', 'Basic ' + ['u:p'].pack('m0')
+    header 'Authorization', "Basic #{['u:p'].pack('m0')}"
     header 'CONTENT_TYPE', 'application/json'
     post '/', '{"call_id":"abc"}'
     # 200 from the SWML endpoint — proves no validator is in the chain.

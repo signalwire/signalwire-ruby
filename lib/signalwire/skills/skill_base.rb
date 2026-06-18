@@ -45,11 +45,7 @@ module SignalWire
         @params = (params || {}).transform_keys(&:to_s)
         # Python: pop swaig_fields out of params for separate access.
         @swaig_fields = @params.delete('swaig_fields') || {}
-        @logger = ::SignalWire::Logging.logger("signalwire.skills.#{begin
-          name
-        rescue NotImplementedError
-          self.class.name
-        end}")
+        @logger = ::SignalWire::Logging.logger("signalwire.skills.#{logger_name_segment}")
       end
 
       # Called once after construction. Return +true+ if the skill is ready.
@@ -134,12 +130,7 @@ module SignalWire
       #
       # @return [Boolean]
       def validate_packages
-        missing = required_packages.reject do |package|
-          require package
-          true
-        rescue LoadError
-          false
-        end
+        missing = required_packages.reject { |package| require_package(package) }
         unless missing.empty?
           @logger&.error("Missing required packages: #{missing.inspect}")
           return false
@@ -153,6 +144,22 @@ module SignalWire
       end
 
       private
+
+      # Logger namespace segment: the skill +name+, or the class name when
+      # +name+ is still the abstract NotImplementedError raiser.
+      def logger_name_segment
+        name
+      rescue NotImplementedError
+        self.class.name
+      end
+
+      # +require+ a single gem; returns true on success, false on LoadError.
+      def require_package(package)
+        require package
+        true
+      rescue LoadError
+        false
+      end
 
       # Namespaced key for this skill instance's global_data slice.
       #

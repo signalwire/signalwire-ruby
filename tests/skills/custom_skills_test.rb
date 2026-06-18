@@ -9,21 +9,15 @@ require_relative '../../lib/signalwire/skills/builtin/custom_skills'
 class CustomSkillsDetailedTest < Minitest::Test
   def test_setup_and_register
     factory = SignalWire::Skills::SkillRegistry.get_factory('custom_skills')
-    skill = factory.call({
-                           'tools' => [
-                             { 'name' => 'my_tool', 'description' => 'Does something', 'response' => 'Done!' }
-                           ]
-                         })
+    tool = { 'name' => 'my_tool', 'description' => 'Does something', 'response' => 'Done!' }
+    skill = factory.call({ 'tools' => [tool] })
 
     assert skill.setup
     tools = skill.register_tools
 
     assert_equal 1, tools.size
     assert_equal 'my_tool', tools[0][:name]
-
-    result = tools[0][:handler].call({}, {})
-
-    assert_equal 'Done!', result.response
+    assert_equal 'Done!', tools[0][:handler].call({}, {}).response
   end
 
   def test_setup_fails_without_tools

@@ -41,13 +41,18 @@ class RecordingHttpClient
   end
 end
 
-class RestPhoneNumbersBindingTest < Minitest::Test
+# Shared setup + base path for the phone-numbers binding test classes.
+module RestPhoneNumbersSupport
   BASE = '/api/relay/rest/phone_numbers'
 
   def setup
     @http = RecordingHttpClient.new
     @phone_numbers = SignalWire::REST::Namespaces::PhoneNumbersResource.new(@http)
   end
+end
+
+class RestPhoneNumbersBindingTest < Minitest::Test
+  include RestPhoneNumbersSupport
 
   # --- CRUD baseline ---------------------------------------------------
 
@@ -80,22 +85,25 @@ class RestPhoneNumbersBindingTest < Minitest::Test
   end
 
   def test_phone_call_handler_constants_match_wire_values
-    assert_equal 'relay_script',      SignalWire::REST::PhoneCallHandler::RELAY_SCRIPT
-    assert_equal 'laml_webhooks',     SignalWire::REST::PhoneCallHandler::LAML_WEBHOOKS
-    assert_equal 'laml_application',  SignalWire::REST::PhoneCallHandler::LAML_APPLICATION
-    assert_equal 'ai_agent',          SignalWire::REST::PhoneCallHandler::AI_AGENT
-    assert_equal 'call_flow',         SignalWire::REST::PhoneCallHandler::CALL_FLOW
-    assert_equal 'relay_application', SignalWire::REST::PhoneCallHandler::RELAY_APPLICATION
-    assert_equal 'relay_topic',       SignalWire::REST::PhoneCallHandler::RELAY_TOPIC
-    assert_equal 'relay_context',     SignalWire::REST::PhoneCallHandler::RELAY_CONTEXT
-    assert_equal 'relay_connector',   SignalWire::REST::PhoneCallHandler::RELAY_CONNECTOR
-    assert_equal 'video_room',        SignalWire::REST::PhoneCallHandler::VIDEO_ROOM
-    assert_equal 'dialogflow',        SignalWire::REST::PhoneCallHandler::DIALOGFLOW
+    handler = SignalWire::REST::PhoneCallHandler
+
+    {
+      RELAY_SCRIPT: 'relay_script', LAML_WEBHOOKS: 'laml_webhooks',
+      LAML_APPLICATION: 'laml_application', AI_AGENT: 'ai_agent', CALL_FLOW: 'call_flow',
+      RELAY_APPLICATION: 'relay_application', RELAY_TOPIC: 'relay_topic',
+      RELAY_CONTEXT: 'relay_context', RELAY_CONNECTOR: 'relay_connector',
+      VIDEO_ROOM: 'video_room', DIALOGFLOW: 'dialogflow'
+    }.each { |const, wire| assert_equal wire, handler.const_get(const) }
   end
 
   def test_phone_call_handler_all_frozen
     assert_predicate SignalWire::REST::PhoneCallHandler::ALL, :frozen?
   end
+end
+
+# Typed webhook/application binding helpers → wire body assertions.
+class RestPhoneNumbersWebhookTest < Minitest::Test
+  include RestPhoneNumbersSupport
 
   # --- set_swml_webhook ------------------------------------------------
 
@@ -132,21 +140,16 @@ class RestPhoneNumbersBindingTest < Minitest::Test
 
   def test_set_cxml_webhook_with_fallback_and_status
     @phone_numbers.set_cxml_webhook(
-      'pn-1',
-      url: 'https://example.com/voice.xml',
-      fallback_url: 'https://example.com/fallback.xml',
-      status_callback_url: 'https://example.com/status'
+      'pn-1', url: 'https://example.com/voice.xml',
+              fallback_url: 'https://example.com/fallback.xml',
+              status_callback_url: 'https://example.com/status'
     )
 
-    assert_equal(
-      {
-        call_handler: 'laml_webhooks',
-        call_request_url: 'https://example.com/voice.xml',
-        call_fallback_url: 'https://example.com/fallback.xml',
-        call_status_callback_url: 'https://example.com/status'
-      },
-      @http.last[:body]
-    )
+    assert_equal({ call_handler: 'laml_webhooks',
+                   call_request_url: 'https://example.com/voice.xml',
+                   call_fallback_url: 'https://example.com/fallback.xml',
+                   call_status_callback_url: 'https://example.com/status' },
+                 @http.last[:body])
   end
 
   # --- set_cxml_application --------------------------------------------
@@ -218,11 +221,8 @@ class RestPhoneNumbersBindingTest < Minitest::Test
   end
 
   def test_set_relay_topic_with_status_callback
-    @phone_numbers.set_relay_topic(
-      'pn-1',
-      topic: 'office',
-      status_callback_url: 'https://example.com/status'
-    )
+    @phone_numbers.set_relay_topic('pn-1', topic: 'office',
+                                           status_callback_url: 'https://example.com/status')
 
     assert_equal(
       {
@@ -233,8 +233,11 @@ class RestPhoneNumbersBindingTest < Minitest::Test
       @http.last[:body]
     )
   end
+end
 
-  # --- Helper coverage -------------------------------------------------
+# Helper coverage, single-PUT binding, and enum-vs-wire-string serialization.
+class RestPhoneNumbersCoverageTest < Minitest::Test
+  include RestPhoneNumbersSupport
 
   def test_all_seven_typed_helpers_present
     %i[

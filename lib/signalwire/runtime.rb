@@ -31,32 +31,27 @@ module SignalWire
     # GATEWAY_INTERFACE should still be treated as CGI.
     #
     # @return [Symbol] one of the values in {MODES}
+    # Ordered (mode, signal-env-vars) detection table. Order is load-bearing:
+    # CGI is checked before Lambda so a Lambda emulator that also sets
+    # GATEWAY_INTERFACE is still treated as CGI.
+    MODE_SIGNALS = [
+      [:cgi,                    %w[GATEWAY_INTERFACE]],
+      [:lambda,                 %w[AWS_LAMBDA_FUNCTION_NAME LAMBDA_TASK_ROOT]],
+      [:google_cloud_function,  %w[FUNCTION_TARGET K_SERVICE GOOGLE_CLOUD_PROJECT]],
+      [:azure_function,         %w[AZURE_FUNCTIONS_ENVIRONMENT FUNCTIONS_WORKER_RUNTIME AzureWebJobsStorage]]
+    ].freeze
+
     def self.execution_mode
-      # CGI environment (e.g. Apache mod_cgi)
-      return :cgi if ENV['GATEWAY_INTERFACE'] && !ENV['GATEWAY_INTERFACE'].empty?
-
-      # AWS Lambda
-      if (ENV.fetch('AWS_LAMBDA_FUNCTION_NAME', nil) && !ENV['AWS_LAMBDA_FUNCTION_NAME'].empty?) ||
-         (ENV.fetch('LAMBDA_TASK_ROOT', nil) && !ENV['LAMBDA_TASK_ROOT'].empty?)
-        return :lambda
-      end
-
-      # Google Cloud Functions / Cloud Run
-      if (ENV.fetch('FUNCTION_TARGET', nil) && !ENV['FUNCTION_TARGET'].empty?) ||
-         (ENV.fetch('K_SERVICE', nil) && !ENV['K_SERVICE'].empty?) ||
-         (ENV.fetch('GOOGLE_CLOUD_PROJECT', nil) && !ENV['GOOGLE_CLOUD_PROJECT'].empty?)
-        return :google_cloud_function
-      end
-
-      # Azure Functions
-      if (ENV.fetch('AZURE_FUNCTIONS_ENVIRONMENT', nil) && !ENV['AZURE_FUNCTIONS_ENVIRONMENT'].empty?) ||
-         (ENV.fetch('FUNCTIONS_WORKER_RUNTIME', nil) && !ENV['FUNCTIONS_WORKER_RUNTIME'].empty?) ||
-         (ENV.fetch('AzureWebJobsStorage', nil) && !ENV['AzureWebJobsStorage'].empty?)
-        return :azure_function
-      end
-
+      MODE_SIGNALS.each { |mode, vars| return mode if env_present?(*vars) }
       :server
     end
+
+    # True when any of the named environment variables is set and non-empty.
+    # @return [Boolean]
+    def self.env_present?(*names)
+      names.any? { |name| (v = ENV.fetch(name, nil)) && !v.empty? }
+    end
+    private_class_method :env_present?
 
     # True when the SDK is running inside AWS Lambda.
     # @return [Boolean]

@@ -93,24 +93,21 @@ class SwaigTestCLIParsingTest < Minitest::Test
   end
 
   def test_missing_url_exits
-    assert_raises(SystemExit) do
-      cli = SwaigTest::CLI.new(['--dump-swml'])
-      cli.run
-    end
+    cli = SwaigTest::CLI.new(['--dump-swml'])
+
+    assert_raises(SystemExit) { cli.run }
   end
 
   def test_no_action_exits
-    assert_raises(SystemExit) do
-      cli = SwaigTest::CLI.new(['--url', 'http://u:p@h:80/'])
-      cli.run
-    end
+    cli = SwaigTest::CLI.new(['--url', 'http://u:p@h:80/'])
+
+    assert_raises(SystemExit) { cli.run }
   end
 
   def test_multiple_actions_exits
-    assert_raises(SystemExit) do
-      cli = SwaigTest::CLI.new(['--url', 'http://u:p@h:80/', '--dump-swml', '--list-tools'])
-      cli.run
-    end
+    cli = SwaigTest::CLI.new(['--url', 'http://u:p@h:80/', '--dump-swml', '--list-tools'])
+
+    assert_raises(SystemExit) { cli.run }
   end
 end
 
@@ -118,41 +115,43 @@ end
 class SwaigTestCLIIntegrationTest < Minitest::Test
   def setup
     @port = find_available_port
+    @agent = build_test_agent(@port)
+    @rack_app = @agent.rack_app
+    @server = build_server(@port, @rack_app)
+    @server_thread = Thread.new { @server.start }
+    wait_for_server('127.0.0.1', @port)
+  end
 
-    @agent = SignalWire::AgentBase.new(
-      name: 'cli_test_agent',
-      basic_auth: %w[testuser testpass],
-      port: @port,
-      host: '127.0.0.1'
+  def build_test_agent(port)
+    agent = SignalWire::AgentBase.new(
+      name: 'cli_test_agent', basic_auth: %w[testuser testpass], port: port, host: '127.0.0.1'
     )
-    @agent.set_prompt_text('You are a test agent')
-    @agent.define_tool(
+    agent.set_prompt_text('You are a test agent')
+    define_greet_tool(agent)
+    agent
+  end
+
+  def define_greet_tool(agent)
+    agent.define_tool(
       name: 'greet',
       description: 'Greet someone by name',
-      parameters: {
-        'name' => { 'type' => 'string', 'description' => 'Person name' }
-      }
+      parameters: { 'name' => { 'type' => 'string', 'description' => 'Person name' } }
     ) do |args, _raw|
       SignalWire::Swaig::FunctionResult.new("Hello, #{args['name']}!")
     end
+  end
 
-    @rack_app = @agent.rack_app
-
-    # Start a real server in a thread
+  def build_server(port, rack_app)
     require 'webrick'
     require 'rackup/handler/webrick'
-
-    @server = WEBrick::HTTPServer.new(
+    server = WEBrick::HTTPServer.new(
       BindAddress: '127.0.0.1',
-      Port: @port,
+      Port: port,
       Logger: WEBrick::Log.new(File.open(File::NULL, 'w'), WEBrick::Log::FATAL),
       AccessLog: []
     )
-    @server.mount('/', Rackup::Handler::WEBrick, @rack_app)
-    @server_thread = Thread.new { @server.start }
-
-    # Wait for server to be ready
-    wait_for_server('127.0.0.1', @port)
+    server.mount('/', Rackup::Handler::WEBrick, rack_app)
+    server
   end
 
   def teardown
@@ -161,13 +160,7 @@ class SwaigTestCLIIntegrationTest < Minitest::Test
   end
 
   def test_dump_swml_integration
-    output = capture_stdout do
-      cli = SwaigTest::CLI.new([
-                                 '--url', "http://testuser:testpass@127.0.0.1:#{@port}/",
-                                 '--dump-swml'
-                               ])
-      cli.run
-    end
+    output = run_cli('--dump-swml')
 
     swml = JSON.parse(output)
 
@@ -176,27 +169,14 @@ class SwaigTestCLIIntegrationTest < Minitest::Test
   end
 
   def test_list_tools_integration
-    output = capture_stdout do
-      cli = SwaigTest::CLI.new([
-                                 '--url', "http://testuser:testpass@127.0.0.1:#{@port}/",
-                                 '--list-tools'
-                               ])
-      cli.run
-    end
+    output = run_cli('--list-tools')
 
     assert_includes output, 'greet'
     assert_includes output, 'Greet someone by name'
   end
 
   def test_exec_function_integration
-    output = capture_stdout do
-      cli = SwaigTest::CLI.new([
-                                 '--url', "http://testuser:testpass@127.0.0.1:#{@port}/",
-                                 '--exec', 'greet',
-                                 '--param', 'name=World'
-                               ])
-      cli.run
-    end
+    output = run_cli('--exec', 'greet', '--param', 'name=World')
 
     result = JSON.parse(output)
 
@@ -204,15 +184,7 @@ class SwaigTestCLIIntegrationTest < Minitest::Test
   end
 
   def test_exec_raw_output
-    output = capture_stdout do
-      cli = SwaigTest::CLI.new([
-                                 '--url', "http://testuser:testpass@127.0.0.1:#{@port}/",
-                                 '--exec', 'greet',
-                                 '--param', 'name=Test',
-                                 '--raw'
-                               ])
-      cli.run
-    end
+    output = run_cli('--exec', 'greet', '--param', 'name=Test', '--raw')
 
     # Raw output should be compact (single line)
     refute_includes output.strip, "\n"
@@ -249,6 +221,19 @@ class SwaigTestCLIIntegrationTest < Minitest::Test
     $stdout.string
   ensure
     $stdout = old_stdout
+  end
+
+  # Base URL for the in-test server with credentials.
+  def server_url
+    "http://testuser:testpass@127.0.0.1:#{@port}/"
+  end
+
+  # Run the CLI with +extra_args+ (prepended with --url server_url) and return
+  # its captured stdout.
+  def run_cli(*extra_args)
+    capture_stdout do
+      SwaigTest::CLI.new(['--url', server_url, *extra_args]).run
+    end
   end
 end
 

@@ -62,54 +62,46 @@ module SignalWire
         project_id = project || ENV['SIGNALWIRE_PROJECT_ID'] || ''
         api_token  = token || ENV['SIGNALWIRE_API_TOKEN'] || ''
         space      = host || ENV['SIGNALWIRE_SPACE'] || ''
-
-        if project_id.empty? || api_token.empty? || (space.empty? && (base_url.nil? || base_url.empty?))
-          raise ArgumentError,
-                'project, token, and host are required. ' \
-                'Provide them as arguments or set SIGNALWIRE_PROJECT_ID, ' \
-                'SIGNALWIRE_API_TOKEN, and SIGNALWIRE_SPACE environment variables.'
-        end
+        validate_credentials!(project_id, api_token, space, base_url)
 
         @project_id = project_id
         @http = HttpClient.new(project_id, api_token, space, base_url: base_url, ca_file: ca_file)
+        init_namespaces(project_id)
+      end
 
-        # Fabric API
-        @fabric = Namespaces::FabricNamespace.new(@http)
+      # ivar name → namespace class for the single-arg (@http) namespaces.
+      # +compat+ is wired separately (it also takes the project id).
+      SIMPLE_NAMESPACES = {
+        fabric: Namespaces::FabricNamespace, calling: Namespaces::CallingNamespace,
+        phone_numbers: Namespaces::PhoneNumbersResource, addresses: Namespaces::AddressesResource,
+        queues: Namespaces::QueuesResource, recordings: Namespaces::RecordingsResource,
+        number_groups: Namespaces::NumberGroupsResource,
+        verified_callers: Namespaces::VerifiedCallersResource,
+        sip_profile: Namespaces::SipProfileResource, lookup: Namespaces::LookupResource,
+        short_codes: Namespaces::ShortCodesResource,
+        imported_numbers: Namespaces::ImportedNumbersResource, mfa: Namespaces::MfaResource,
+        registry: Namespaces::RegistryNamespace, datasphere: Namespaces::DatasphereNamespace,
+        video: Namespaces::VideoNamespace, logs: Namespaces::LogsNamespace,
+        project: Namespaces::ProjectNamespace, pubsub: Namespaces::PubSubResource,
+        chat: Namespaces::ChatResource
+      }.freeze
 
-        # Calling API
-        @calling = Namespaces::CallingNamespace.new(@http)
+      private
 
-        # Relay REST resources
-        @phone_numbers    = Namespaces::PhoneNumbersResource.new(@http)
-        @addresses        = Namespaces::AddressesResource.new(@http)
-        @queues           = Namespaces::QueuesResource.new(@http)
-        @recordings       = Namespaces::RecordingsResource.new(@http)
-        @number_groups    = Namespaces::NumberGroupsResource.new(@http)
-        @verified_callers = Namespaces::VerifiedCallersResource.new(@http)
-        @sip_profile      = Namespaces::SipProfileResource.new(@http)
-        @lookup           = Namespaces::LookupResource.new(@http)
-        @short_codes      = Namespaces::ShortCodesResource.new(@http)
-        @imported_numbers = Namespaces::ImportedNumbersResource.new(@http)
-        @mfa              = Namespaces::MfaResource.new(@http)
-        @registry         = Namespaces::RegistryNamespace.new(@http)
+      def validate_credentials!(project_id, api_token, space, base_url)
+        return unless project_id.empty? || api_token.empty? ||
+                      (space.empty? && (base_url.nil? || base_url.empty?))
 
-        # Datasphere API
-        @datasphere = Namespaces::DatasphereNamespace.new(@http)
+        raise ArgumentError,
+              'project, token, and host are required. ' \
+              'Provide them as arguments or set SIGNALWIRE_PROJECT_ID, ' \
+              'SIGNALWIRE_API_TOKEN, and SIGNALWIRE_SPACE environment variables.'
+      end
 
-        # Video API
-        @video = Namespaces::VideoNamespace.new(@http)
-
-        # Logs
-        @logs = Namespaces::LogsNamespace.new(@http)
-
-        # Project management
-        @project = Namespaces::ProjectNamespace.new(@http)
-
-        # PubSub & Chat
-        @pubsub = Namespaces::PubSubResource.new(@http)
-        @chat   = Namespaces::ChatResource.new(@http)
-
-        # Compatibility (Twilio-compatible) API
+      def init_namespaces(project_id)
+        SIMPLE_NAMESPACES.each do |name, klass|
+          instance_variable_set("@#{name}", klass.new(@http))
+        end
         @compat = Namespaces::CompatNamespace.new(@http, project_id)
       end
     end

@@ -28,7 +28,8 @@ class ParitySkill < SignalWire::Skills::SkillBase
   def supports_multiple_instances? = true
 
   def required_env_vars = ['PARITY_REQUIRED_VAR']
-  def required_packages = ['json'] # stdlib gem, always loadable
+  # 'json' is a stdlib gem, always loadable.
+  def required_packages = ['json']
 
   # Multi-instance key, mirroring the built-in skills' shape.
   def instance_key
@@ -37,11 +38,13 @@ class ParitySkill < SignalWire::Skills::SkillBase
   end
 end
 
-class SkillBaseDataHelpersTest < Minitest::Test
+class SkillBaseHelpersTestBase < Minitest::Test
   def make_skill(params = {})
     ParitySkill.new(nil, params)
   end
+end
 
+class SkillBaseDataHelpersTest < SkillBaseHelpersTestBase
   # --- get_skill_data -------------------------------------------------
 
   def test_get_skill_data_returns_stored_namespaced_hash
@@ -120,9 +123,10 @@ class SkillBaseDataHelpersTest < Minitest::Test
 
     assert_equal payload, skill.get_skill_data(raw_data)
   end
+end
 
-  # --- validate_env_vars ---------------------------------------------
-
+# --- validate_env_vars + validate_packages ---------------------------
+class SkillBaseValidationTest < SkillBaseHelpersTestBase
   def test_validate_env_vars_false_when_required_var_unset_then_true_when_set
     saved = ENV.delete('PARITY_REQUIRED_VAR')
     begin
@@ -236,21 +240,20 @@ class SkillRegistryDiscoveryTest < Minitest::Test
   def test_list_all_skill_sources_registered_excludes_built_ins
     # A freshly registered non-built-in skill shows up under 'registered',
     # and no built-in name leaks into that bucket.
-    SignalWire::Skills::SkillRegistry.register_skill(
-      'parity_extra_skill', ->(_params = {}) { ParitySkill.new(nil, {}) }
-    )
-    begin
+    with_extra_registered_skill('parity_extra_skill') do
       sources = SignalWire::Skills::SkillRegistry.list_all_skill_sources
 
       assert_includes sources['registered'], 'parity_extra_skill'
-      builtins = sources['built-in']
-
-      assert_empty(sources['registered'] & builtins,
+      assert_empty(sources['registered'] & sources['built-in'],
                    'built-in skills must not appear under registered')
-    ensure
-      SignalWire::Skills::SkillRegistry
-        .instance_variable_get(:@factories).delete('parity_extra_skill')
     end
+  end
+
+  def with_extra_registered_skill(name)
+    SignalWire::Skills::SkillRegistry.register_skill(name, ->(_params = {}) { ParitySkill.new(nil, {}) })
+    yield
+  ensure
+    SignalWire::Skills::SkillRegistry.instance_variable_get(:@factories).delete(name)
   end
 end
 

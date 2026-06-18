@@ -9,9 +9,10 @@
 require 'minitest/autorun'
 require_relative 'mock_test'
 
-class CompatConferencesMockTest < Minitest::Test
+# Shared mock lifecycle, base paths, and POST-body assertion helper.
+module CompatConferencesSupport
   ACCOUNT_BASE = '/api/laml/2010-04-01/Accounts/test_proj'
-  CONF_BASE    = "#{ACCOUNT_BASE}/Conferences"
+  CONF_BASE    = "#{ACCOUNT_BASE}/Conferences".freeze
 
   def setup
     @client = MockTest.client
@@ -21,6 +22,19 @@ class CompatConferencesMockTest < Minitest::Test
   def teardown
     MockTest.reset
   end
+
+  # Assert the last journaled request was a POST to +path+ with a Hash body,
+  # returning that body for further field assertions.
+  def assert_post_with_body(journal_entry, path)
+    assert_equal 'POST', journal_entry.method
+    assert_equal path, journal_entry.path
+    assert_kind_of Hash, journal_entry.body
+    journal_entry.body
+  end
+end
+
+class CompatConferencesMockTest < Minitest::Test
+  include CompatConferencesSupport
 
   # ---- Conference itself ----------------------------------------------
 
@@ -71,13 +85,10 @@ class CompatConferencesMockTest < Minitest::Test
     @client.compat.conferences.update(
       'CF_UPD', Status: 'completed', AnnounceUrl: 'https://a.b'
     )
-    j = MockTest.journal.last
+    body = assert_post_with_body(MockTest.journal.last, "#{CONF_BASE}/CF_UPD")
 
-    assert_equal 'POST', j.method
-    assert_equal "#{CONF_BASE}/CF_UPD", j.path
-    assert_kind_of Hash, j.body
-    assert_equal 'completed', j.body['Status']
-    assert_equal 'https://a.b', j.body['AnnounceUrl']
+    assert_equal 'completed', body['Status']
+    assert_equal 'https://a.b', body['AnnounceUrl']
   end
 
   # ---- Participants ---------------------------------------------------
@@ -109,13 +120,10 @@ class CompatConferencesMockTest < Minitest::Test
     @client.compat.conferences.update_participant(
       'CF_M', 'CA_M', Muted: true, Hold: false
     )
-    j = MockTest.journal.last
+    body = assert_post_with_body(MockTest.journal.last, "#{CONF_BASE}/CF_M/Participants/CA_M")
 
-    assert_equal 'POST', j.method
-    assert_equal "#{CONF_BASE}/CF_M/Participants/CA_M", j.path
-    assert_kind_of Hash, j.body
-    assert_equal true, j.body['Muted']
-    assert_equal false, j.body['Hold']
+    assert body['Muted']
+    refute body['Hold']
   end
 
   def test_remove_participant_returns_empty_or_object
@@ -134,6 +142,11 @@ class CompatConferencesMockTest < Minitest::Test
     assert_equal 'DELETE', j.method
     assert_equal "#{CONF_BASE}/CF_RM/Participants/CA_RM", j.path
   end
+end
+
+# Conference recording + stream sub-resources.
+class CompatConferencesMediaMockTest < Minitest::Test
+  include CompatConferencesSupport
 
   # ---- Recordings -----------------------------------------------------
 

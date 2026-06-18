@@ -14,7 +14,20 @@ require_relative '../lib/signalwire/skills/skill_registry'
 # Load all built-in skills
 SignalWire::Skills::SkillRegistry.register_builtins!
 
+# Shared env-var save/restore helper for the skills tests.
+module SkillsTestHelpers
+  # Clear +names+ for the duration of the block, restoring prior values after.
+  def without_env_vars(*names)
+    saved = names.flatten.to_h { |k| [k, ENV.delete(k)] }
+    yield
+  ensure
+    saved.each { |k, v| ENV[k] = v if v }
+  end
+end
+
 class SkillRegistryTest < Minitest::Test
+  include SkillsTestHelpers
+
   EXPECTED_SKILLS = %w[
     api_ninjas_trivia
     claude_skills
@@ -70,27 +83,31 @@ class SkillRegistryTest < Minitest::Test
     end
   end
 
-  def test_skills_requiring_params_fail_setup_without_them
-    # These skills require API keys / params — clear env vars that might be set
-    env_vars_to_clear = %w[
-      API_NINJAS_KEY WEATHER_API_KEY GOOGLE_SEARCH_API_KEY
-      GOOGLE_SEARCH_ENGINE_ID GOOGLE_MAPS_API_KEY
-      SIGNALWIRE_PROJECT_ID SIGNALWIRE_TOKEN
-    ]
-    saved = env_vars_to_clear.map { |k| [k, ENV.delete(k)] }.to_h
+  # Skills requiring API keys / params, with the env vars that could satisfy
+  # them (cleared so setup must fail).
+  PARAM_SKILL_ENV = %w[
+    API_NINJAS_KEY WEATHER_API_KEY GOOGLE_SEARCH_API_KEY
+    GOOGLE_SEARCH_ENGINE_ID GOOGLE_MAPS_API_KEY
+    SIGNALWIRE_PROJECT_ID SIGNALWIRE_TOKEN
+  ].freeze
+  PARAM_SKILLS = %w[joke weather_api web_search datasphere datasphere_serverless
+                    google_maps native_vector_search].freeze
 
-    begin
-      param_skills = %w[joke weather_api web_search datasphere datasphere_serverless google_maps native_vector_search]
-      param_skills.each do |skill_name|
-        factory = SignalWire::Skills::SkillRegistry.get_factory(skill_name)
-        skill = factory.call({})
+  def test_skills_requiring_params_fail_setup_without_them
+    without_env_vars(PARAM_SKILL_ENV) do
+      PARAM_SKILLS.each do |skill_name|
+        skill = SignalWire::Skills::SkillRegistry.get_factory(skill_name).call({})
 
         refute skill.setup, "#{skill_name} setup should fail without required params"
       end
-    ensure
-      saved.each { |k, v| ENV[k] = v if v }
     end
   end
+end
+
+# Registry directory-scanning + instance-API coverage (split from
+# SkillRegistryTest to keep each class under the size limit).
+class SkillRegistryDirectoryTest < Minitest::Test
+  include SkillsTestHelpers
 
   # ── add_skill_directory parity ────────────────────────────────────────
   # Mirrors Python's signalwire.skills.registry.SkillRegistry.add_skill_directory
@@ -145,15 +162,17 @@ class SkillRegistryTest < Minitest::Test
   end
 
   # --- Python parity: SkillRegistry#register_skill (instance form) ---
-  def test_registry_instance_register_skill_with_class
-    fake_class = Class.new(SignalWire::Skills::SkillBase) do
-      define_method(:name)        { 'test_register_skill_class_form' }
+  def fake_skill_class(skill_name)
+    Class.new(SignalWire::Skills::SkillBase) do
+      define_method(:name)        { skill_name }
       define_method(:description) { 'Test' }
       define_method(:setup)       { true }
     end
+  end
 
+  def test_registry_instance_register_skill_with_class
     registry = SignalWire::Skills::SkillRegistry.new
-    registry.register_skill(fake_class)
+    registry.register_skill(fake_skill_class('test_register_skill_class_form'))
 
     assert_equal 'test_register_skill_class_form', registry.last_registered
     assert SignalWire::Skills::SkillRegistry.registered?('test_register_skill_class_form')
@@ -437,14 +456,20 @@ class MathSkillTest < Minitest::Test
 end
 
 class InfoGathererSkillTest < Minitest::Test
+  def build_info_gatherer
+    SignalWire::Skills::SkillRegistry.get_factory('info_gatherer').call({
+                                                                          'questions' => [
+                                                                            { 'key_name' => 'name',
+                                                                              'question_text' => 'What is your name?' },
+                                                                            { 'key_name' => 'email',
+                                                                              'question_text' => 'What is your email?',
+                                                                              'confirm' => true }
+                                                                          ]
+                                                                        })
+  end
+
   def test_setup_and_register_tools
-    factory = SignalWire::Skills::SkillRegistry.get_factory('info_gatherer')
-    skill = factory.call({
-                           'questions' => [
-                             { 'key_name' => 'name', 'question_text' => 'What is your name?' },
-                             { 'key_name' => 'email', 'question_text' => 'What is your email?', 'confirm' => true }
-                           ]
-                         })
+    skill = build_info_gatherer
 
     assert skill.setup
     tools = skill.register_tools
@@ -465,13 +490,18 @@ class InfoGathererSkillTest < Minitest::Test
 end
 
 class CustomSkillsTest < Minitest::Test
+  def build_custom_skills
+    SignalWire::Skills::SkillRegistry.get_factory('custom_skills').call({
+                                                                          'tools' => [
+                                                                            { 'name' => 'my_tool',
+                                                                              'description' => 'Does something',
+                                                                              'response' => 'Done!' }
+                                                                          ]
+                                                                        })
+  end
+
   def test_setup_and_register
-    factory = SignalWire::Skills::SkillRegistry.get_factory('custom_skills')
-    skill = factory.call({
-                           'tools' => [
-                             { 'name' => 'my_tool', 'description' => 'Does something', 'response' => 'Done!' }
-                           ]
-                         })
+    skill = build_custom_skills
 
     assert skill.setup
     tools = skill.register_tools
@@ -551,14 +581,14 @@ class WeatherApiSkillTest < Minitest::Test
 end
 
 class SwmlTransferSkillTest < Minitest::Test
+  TRANSFERS = {
+    'sales' => { 'url' => 'https://example.com/sales', 'message' => 'Transferring to sales' },
+    'support' => { 'address' => '+15551234567', 'message' => 'Connecting to support' }
+  }.freeze
+
   def test_setup_and_register
     factory = SignalWire::Skills::SkillRegistry.get_factory('swml_transfer')
-    skill = factory.call({
-                           'transfers' => {
-                             'sales' => { 'url' => 'https://example.com/sales', 'message' => 'Transferring to sales' },
-                             'support' => { 'address' => '+15551234567', 'message' => 'Connecting to support' }
-                           }
-                         })
+    skill = factory.call({ 'transfers' => TRANSFERS })
 
     assert skill.setup
     tools = skill.register_tools
@@ -641,19 +671,24 @@ class SkillBaseTest < Minitest::Test
     assert_raises(NotImplementedError) { skill.description }
   end
 
-  def test_default_methods
+  def test_default_scalar_methods
     skill = SignalWire::Skills::SkillBase.new({})
 
     assert_equal '1.0.0', skill.version
     assert_equal [], skill.required_env_vars
     refute_predicate skill, :supports_multiple_instances?
     assert skill.setup
+    assert_nil skill.cleanup
+  end
+
+  def test_default_collection_methods
+    skill = SignalWire::Skills::SkillBase.new({})
+
     assert_equal [], skill.register_tools
     assert_equal [], skill.get_hints
     assert_equal({}, skill.get_global_data)
     assert_equal [], skill.get_prompt_sections
     assert_equal({}, skill.get_parameter_schema)
-    assert_nil skill.cleanup
   end
 end
 

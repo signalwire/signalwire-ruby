@@ -45,26 +45,7 @@ module SignalWire
         end
 
         def register_tools
-          [
-            {
-              name: "#{@tool_prefix}scrape_url",
-              description: 'Extract text content from a single web page',
-              parameters: { 'url' => { 'type' => 'string', 'description' => 'The URL to scrape' } },
-              handler: method(:handle_scrape)
-            },
-            {
-              name: "#{@tool_prefix}crawl_site",
-              description: 'Crawl multiple pages starting from a URL',
-              parameters: { 'start_url' => { 'type' => 'string', 'description' => 'Starting URL for the crawl' } },
-              handler: method(:handle_crawl)
-            },
-            {
-              name: "#{@tool_prefix}extract_structured_data",
-              description: 'Extract specific data from a web page using selectors',
-              parameters: { 'url' => { 'type' => 'string', 'description' => 'The URL to scrape' } },
-              handler: method(:handle_extract)
-            }
-          ]
+          [scrape_tool, crawl_tool, extract_tool]
         end
 
         def get_hints
@@ -80,6 +61,33 @@ module SignalWire
         end
 
         private
+
+        def scrape_tool
+          {
+            name: "#{@tool_prefix}scrape_url",
+            description: 'Extract text content from a single web page',
+            parameters: { 'url' => { 'type' => 'string', 'description' => 'The URL to scrape' } },
+            handler: method(:handle_scrape)
+          }
+        end
+
+        def crawl_tool
+          {
+            name: "#{@tool_prefix}crawl_site",
+            description: 'Crawl multiple pages starting from a URL',
+            parameters: { 'start_url' => { 'type' => 'string', 'description' => 'Starting URL for the crawl' } },
+            handler: method(:handle_crawl)
+          }
+        end
+
+        def extract_tool
+          {
+            name: "#{@tool_prefix}extract_structured_data",
+            description: 'Extract specific data from a web page using selectors',
+            parameters: { 'url' => { 'type' => 'string', 'description' => 'The URL to scrape' } },
+            handler: method(:handle_extract)
+          }
+        end
 
         def handle_scrape(args, _raw_data)
           url = (args['url'] || '').strip
@@ -100,10 +108,15 @@ module SignalWire
           text = fetch_text(url)
           return Swaig::FunctionResult.new("No pages could be crawled from #{url}") if text.nil? || text.empty?
 
-          summary = text.length > 500 ? text[0, 500] + '...' : text
-          Swaig::FunctionResult.new("Crawled 1 page from #{URI(url).host}:\n\n1. #{url} (#{text.length} chars)\n   Summary: #{summary}")
+          Swaig::FunctionResult.new(crawl_summary(url, text))
         rescue StandardError => e
           Swaig::FunctionResult.new("Error crawling #{url}: #{e.message}")
+        end
+
+        def crawl_summary(url, text)
+          summary = text.length > 500 ? "#{text[0, 500]}..." : text
+          "Crawled 1 page from #{URI(url).host}:\n\n" \
+            "1. #{url} (#{text.length} chars)\n   Summary: #{summary}"
         end
 
         def handle_extract(args, _raw_data)
@@ -119,17 +132,36 @@ module SignalWire
         end
 
         def fetch_text(url)
-          # SPIDER_BASE_URL redirects every fetch through a configured host
-          # (used by audit_skills_dispatch.py to point the skill at a
-          # loopback fixture). The path/query of the user-supplied URL is
-          # preserved so the audit can match on it.
+          url = redirect_url(url)
+          return @cache[url] if cache_hit?(url)
+
+          body = http_get(url)
+          return nil if body.nil?
+
+          result = strip_html(unwrap_html(body))[0, @max_text_length]
+          @cache[url] = result if @cache
+          result
+        rescue StandardError => _e
+          nil
+        end
+
+        def cache_hit?(url)
+          defined?(@cache) && @cache&.key?(url)
+        end
+
+        # SPIDER_BASE_URL redirects every fetch through a configured host
+        # (used by audit_skills_dispatch.py to point the skill at a loopback
+        # fixture). The path/query of the user-supplied URL is preserved so
+        # the audit can match on it.
+        def redirect_url(url)
           base = ENV.fetch('SPIDER_BASE_URL', nil)
-          url = "#{base.sub(%r{/$}, '')}#{_url_path(url)}" if base && !base.empty?
+          return url unless base && !base.empty?
 
-          # Serve from cache when enabled (parallels Python's response cache).
-          cache = defined?(@cache) ? @cache : nil
-          return cache[url] if cache && cache.key?(url)
+          "#{base.sub(%r{/$}, '')}#{_url_path(url)}"
+        end
 
+        # Perform the GET and return the decoded body, or nil on non-success.
+        def http_get(url)
           uri = URI(url)
           http = Net::HTTP.new(uri.host, uri.port)
           http.use_ssl = (uri.scheme == 'https')
@@ -142,28 +174,24 @@ module SignalWire
           resp = http.request(req)
           return nil unless resp.is_a?(Net::HTTPSuccess)
 
-          body = resp.body.encode('UTF-8', invalid: :replace, undef: :replace, replace: '')
-          # Some upstreams (and the audit fixture) wrap the HTML in JSON
-          # under an `_raw_html` field; unwrap before stripping tags.
-          begin
-            parsed = JSON.parse(body)
-            body = parsed['_raw_html'] if parsed.is_a?(Hash) && parsed['_raw_html'].is_a?(String)
-          rescue JSON::ParserError
-            # not JSON — treat as raw HTML
-          end
+          resp.body.encode('UTF-8', invalid: :replace, undef: :replace, replace: '')
+        end
 
-          # Strip HTML tags
-          text = body.gsub(%r{<script[^>]*>.*?</script>}mi, '')
-                     .gsub(%r{<style[^>]*>.*?</style>}mi, '')
-                     .gsub(/<[^>]+>/, ' ')
-                     .gsub(/\s+/, ' ')
-                     .strip
+        # Some upstreams (and the audit fixture) wrap the HTML in JSON under an
+        # `_raw_html` field; unwrap before stripping tags. Non-JSON is raw HTML.
+        def unwrap_html(body)
+          parsed = JSON.parse(body)
+          parsed.is_a?(Hash) && parsed['_raw_html'].is_a?(String) ? parsed['_raw_html'] : body
+        rescue JSON::ParserError
+          body
+        end
 
-          result = text.length > @max_text_length ? text[0, @max_text_length] : text
-          cache[url] = result if cache
-          result
-        rescue StandardError => _e
-          nil
+        def strip_html(body)
+          body.gsub(%r{<script[^>]*>.*?</script>}mi, '')
+              .gsub(%r{<style[^>]*>.*?</style>}mi, '')
+              .gsub(/<[^>]+>/, ' ')
+              .gsub(/\s+/, ' ')
+              .strip
         end
 
         # Extract the path-and-query portion of a URL. Used by

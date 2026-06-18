@@ -10,12 +10,11 @@ require_relative '../../lib/signalwire/skills/builtin/swml_transfer'
 class SwmlTransferSkillDetailedTest < Minitest::Test
   def test_setup_and_register
     factory = SignalWire::Skills::SkillRegistry.get_factory('swml_transfer')
-    skill = factory.call({
-                           'transfers' => {
-                             'sales' => { 'url' => 'https://example.com/sales', 'message' => 'Transferring to sales' },
-                             'support' => { 'address' => '+15551234567', 'message' => 'Connecting to support' }
-                           }
-                         })
+    transfers = {
+      'sales' => { 'url' => 'https://example.com/sales', 'message' => 'Transferring to sales' },
+      'support' => { 'address' => '+15551234567', 'message' => 'Connecting to support' }
+    }
+    skill = factory.call({ 'transfers' => transfers })
 
     assert skill.setup
     tools = skill.register_tools

@@ -38,12 +38,13 @@ class CompatMiscMockTest < Minitest::Test
       'AP_UU', FriendlyName: 'renamed', VoiceUrl: 'https://a.b/v'
     )
     j = MockTest.journal.last
+    body = j.body
 
     assert_equal 'POST', j.method
     assert_equal "#{ACCOUNT_BASE}/Applications/AP_UU", j.path
-    assert_kind_of Hash, j.body
-    assert_equal 'renamed', j.body['FriendlyName']
-    assert_equal 'https://a.b/v', j.body['VoiceUrl']
+    assert_kind_of Hash, body
+    assert_equal 'renamed', body['FriendlyName']
+    assert_equal 'https://a.b/v', body['VoiceUrl']
   end
 
   # ---- LamlBins.update ------------------------------------------------
@@ -61,11 +62,12 @@ class CompatMiscMockTest < Minitest::Test
       'LB_UU', FriendlyName: 'renamed', Contents: '<Response/>'
     )
     j = MockTest.journal.last
+    body = j.body
 
     assert_equal 'POST', j.method
     assert_equal "#{ACCOUNT_BASE}/LamlBins/LB_UU", j.path
-    assert_kind_of Hash, j.body
-    assert_equal 'renamed', j.body['FriendlyName']
-    assert_equal '<Response/>', j.body['Contents']
+    assert_kind_of Hash, body
+    assert_equal 'renamed', body['FriendlyName']
+    assert_equal '<Response/>', body['Contents']
   end
 end

@@ -90,21 +90,65 @@ Lint/DuplicateBranch:
 Metrics/ParameterLists:
   Enabled: false
 
-# AgentBase is the core composite class (~1280 lines). It cannot be shrunk via
-# mixin extraction: the surface enumerator (porting-sdk ruby adapter) reads
-# public_instance_methods(false), so a method moved into an included module
-# vanishes from AgentBase's surface and DRIFT flags it as an omission. The nested
-# Rack middleware classes are likewise pinned by FQN in porting-sdk's
-# RUBY_EXCLUDED_CLASSES. A per-file exclusion until a coupled extraction is done.
+# These classes/modules each map 1:1 to a single Python reference class whose
+# public method surface the cross-port enumerator reads via
+# public_instance_methods(false) / instance_methods(false). Splitting them via
+# mixin/module extraction would drop those public methods from the enumerated
+# surface and break the DRIFT gate (proven: it regressed exactly this way during
+# the burndown). ClassLength measures SIZE, not correctness — the methods that
+# make these classes "too long" ARE the parity surface. Private internals were
+# already extracted; the residual line count is irreducible without de-parity-ing.
+# Per-file exclusion until/unless a coupled adapter extraction is designed.
 Metrics/ClassLength:
   Exclude:
     - 'lib/signalwire/agent/agent_base.rb'
+    - 'lib/signalwire/swaig/function_result.rb'
+    - 'lib/signalwire/relay/call.rb'
+    - 'lib/signalwire/relay/client.rb'
+    - 'lib/signalwire/server/agent_server.rb'
+    - 'lib/signalwire/datamap/data_map.rb'
+    - 'lib/signalwire/utils/schema_utils.rb'
+    - 'lib/signalwire/contexts/context_builder.rb'
+    - 'lib/signalwire/pom/section.rb'
+    - 'lib/signalwire/skills/builtin/spider.rb'
+    - 'lib/signalwire/prefabs/concierge.rb'
+
+# Same surface-bearing-unit rationale as Metrics/ClassLength, for the one
+# module surface that exceeds the threshold.
+Metrics/ModuleLength:
+  Exclude:
+    - 'lib/signalwire/security/webhook_validator.rb'
+
+# Prefer keyword args for boolean defaults — a good cop in general, but a known
+# false positive on FLUENT SINGLE-ARGUMENT TOGGLES, which is exactly these sites:
+# FunctionResult#replace_in_history(text = true) (String OR true, called
+# positionally as `.replace_in_history('summary text')`),
+# #enable_functions_on_timeout(enabled = true) / #enable_extensive_data(enabled =
+# true) (called positionally as `.enable_functions_on_timeout(false)` in tests),
+# and SchemaUtils#initialize(schema_path = nil, schema_validation = true) (a
+# constructor mirroring Python's positional-or-keyword `SchemaUtils(schema_path,
+# schema_validation)`). Forcing keyword-only here would BREAK existing positional
+# callers and diverge from Python's positional_or_keyword params. Positional is
+# the correct idiom for these; the cop is wrong for the pattern.
+Style/OptionalBooleanParameter:
+  Enabled: false
 
 # has_skill? etc.: PredicatePrefix wants has_x? -> x?, but that renames a public
 # method the cross-port surface oracle tracks (Python has has_skill). Same class
 # as the deferred accessor rename — re-enable after the coupled teach-the-checker
 # pass. Tracked: memory accessor-rename-cross-port-policy.
 Naming/PredicatePrefix:
+  Enabled: false
+
+# assert_equal true/false, x is intentional EXACT-boolean verification of wire /
+# parsed values (e.g. `assert_equal false, rec['record_call']['stereo']` checks
+# the SWML emits literal false vs. nil/omitted; CLI flag parsed to literal false
+# vs. the string "false"). The cop's preferred assert(x)/refute(x) would pass for
+# any truthy/falsy value including nil — strictly WEAKER. Suppressed to preserve
+# test strength (the rule fights faithful test semantics, not type-shape idiom).
+Minitest/AssertTruthy:
+  Enabled: false
+Minitest/RefuteFalse:
   Enabled: false
 
 # ---------------------------------------------------------------------------

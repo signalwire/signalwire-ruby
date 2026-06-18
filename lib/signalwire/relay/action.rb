@@ -55,13 +55,7 @@ module SignalWire
           @completed = true
           @condition.broadcast
         end
-        return unless @on_completed
-
-        begin
-          @on_completed.call(event)
-        rescue StandardError => e
-          warn "[RELAY] Error in on_completed callback for #{@control_id}: #{e.message}"
-        end
+        _fire_on_completed(event)
       end
 
       # Wait for the action to complete. Returns the terminal event.
@@ -71,13 +65,7 @@ module SignalWire
           return @result if @completed
 
           if timeout
-            deadline = Time.now + timeout
-            until @completed
-              remaining = deadline - Time.now
-              raise ActionTimeoutError, "Action #{@control_id} timed out after #{timeout}s" if remaining <= 0
-
-              @condition.wait(@mutex, remaining)
-            end
+            _wait_with_timeout(timeout)
           else
             @condition.wait(@mutex) until @completed
           end
@@ -90,6 +78,30 @@ module SignalWire
       end
 
       alias is_done? done?
+
+      private
+
+      # Fire the on_completed callback outside the mutex, swallowing errors.
+      def _fire_on_completed(event)
+        return unless @on_completed
+
+        begin
+          @on_completed.call(event)
+        rescue StandardError => e
+          warn "[RELAY] Error in on_completed callback for #{@control_id}: #{e.message}"
+        end
+      end
+
+      # Block on the condition variable until completed or the deadline passes.
+      def _wait_with_timeout(timeout)
+        deadline = Time.now + timeout
+        until @completed
+          remaining = deadline - Time.now
+          raise ActionTimeoutError, "Action #{@control_id} timed out after #{timeout}s" if remaining <= 0
+
+          @condition.wait(@mutex, remaining)
+        end
+      end
     end
 
     # Handle for an active play operation.

@@ -255,9 +255,10 @@ end
 # =========================================================================
 # Service tests
 # =========================================================================
-class ServiceTest < Minitest::Test
+# Shared setup/teardown for the SWML::Service test classes: silence logging
+# and clear the auth/port env vars around each test.
+module ServiceTestEnv
   def setup
-    # Suppress log output during tests
     SignalWire::Logging.global_level = :off
     ENV.delete('SWML_BASIC_AUTH_USER')
     ENV.delete('SWML_BASIC_AUTH_PASSWORD')
@@ -270,6 +271,10 @@ class ServiceTest < Minitest::Test
     ENV.delete('SWML_BASIC_AUTH_PASSWORD')
     ENV.delete('PORT')
   end
+end
+
+class ServiceTest < Minitest::Test
+  include ServiceTestEnv
 
   def test_creation
     svc = SignalWire::SWML::Service.new(name: 'test')
@@ -371,6 +376,12 @@ class ServiceTest < Minitest::Test
 
     assert_equal({ 'play' => { 'url' => 'http://example.com/a.mp3' } }, verbs.first)
   end
+end
+
+# SWML::Service auth + URL coverage (split from ServiceTest to keep each class
+# under the size limit).
+class ServiceAuthAndUrlTest < Minitest::Test
+  include ServiceTestEnv
 
   # -- Auth ---------------------------------------------------------------
 
@@ -484,20 +495,20 @@ class ServiceRackTest < Minitest::Test
 
   # -- SWML endpoint with auth -------------------------------------------
 
-  def test_swml_without_auth_returns_401
+  def test_swml_without_auth_returns401
     get '/'
 
     assert_equal 401, last_response.status
   end
 
-  def test_swml_with_wrong_auth_returns_401
+  def test_swml_with_wrong_auth_returns401
     authorize 'wrong', 'creds'
     get '/'
 
     assert_equal 401, last_response.status
   end
 
-  def test_swml_with_correct_auth_returns_200
+  def test_swml_with_correct_auth_returns200
     authorize 'testuser', 'testpass'
     get '/'
 

@@ -133,12 +133,12 @@ class PromptSectionTest < Minitest::Test
   def test_add_subsection
     @agent.prompt_add_section('Main', 'Top-level body')
     @agent.prompt_add_subsection('Main', 'Sub', 'Sub body', bullets: %w[a b])
-    prompt = @agent.get_prompt
+    subsections = @agent.get_prompt[0]['subsections']
 
-    assert_equal 1, prompt[0]['subsections'].length
-    assert_equal 'Sub', prompt[0]['subsections'][0]['title']
-    assert_equal 'Sub body', prompt[0]['subsections'][0]['body']
-    assert_equal %w[a b], prompt[0]['subsections'][0]['bullets']
+    assert_equal 1, subsections.length
+    assert_equal 'Sub', subsections[0]['title']
+    assert_equal 'Sub body', subsections[0]['body']
+    assert_equal %w[a b], subsections[0]['bullets']
   end
 
   def test_has_section
@@ -153,31 +153,28 @@ class PromptSectionTest < Minitest::Test
     @agent.prompt_add_section('Steps', 'Procedure', numbered: true)
     sec = @agent.get_prompt.first
 
-    assert_equal true, sec['numbered']
+    assert sec['numbered']
   end
 
   def test_add_section_numbered_bullets
     @agent.prompt_add_section('Steps', 'Procedure', bullets: %w[a b c], numbered_bullets: true)
     sec = @agent.get_prompt.first
 
-    assert_equal true, sec['numbered_bullets']
+    assert sec['numbered_bullets']
   end
 
   def test_add_section_with_subsections_kwarg
     @agent.prompt_add_section(
-      'Main',
-      'Body',
-      subsections: [
-        { 'title' => 'Sub1', 'body' => 'b1' },
-        { 'title' => 'Sub2', 'bullets' => %w[x y] }
-      ]
+      'Main', 'Body',
+      subsections: [{ 'title' => 'Sub1', 'body' => 'b1' },
+                    { 'title' => 'Sub2', 'bullets' => %w[x y] }]
     )
-    sec = @agent.get_prompt.first
+    subs = @agent.get_prompt.first['subsections']
 
-    assert_equal 2, sec['subsections'].length
-    assert_equal 'Sub1', sec['subsections'][0]['title']
-    assert_equal 'b1',   sec['subsections'][0]['body']
-    assert_equal %w[x y], sec['subsections'][1]['bullets']
+    assert_equal 2, subs.length
+    assert_equal 'Sub1', subs[0]['title']
+    assert_equal 'b1',   subs[0]['body']
+    assert_equal %w[x y], subs[1]['bullets']
   end
 
   # --- Python parity: prompt_add_to_section bullet:, bullets:, body: kwargs
@@ -229,15 +226,8 @@ class DefineContextsTest < Minitest::Test
   end
 
   def test_define_contexts_accepts_hash
-    @agent.define_contexts(
-      'default' => {
-        'steps' => [
-          { 'name' => 'greet', 'text' => 'hi' }
-        ]
-      }
-    )
-    cb = @agent.define_contexts
-    ctx = cb.get_context('default')
+    @agent.define_contexts('default' => { 'steps' => [{ 'name' => 'greet', 'text' => 'hi' }] })
+    ctx = @agent.define_contexts.get_context('default')
 
     refute_nil ctx
     refute_nil ctx.get_step('greet')

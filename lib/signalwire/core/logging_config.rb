@@ -27,22 +27,31 @@ module SignalWire
       #   'azure_function', or 'server'.
       def get_execution_mode
         return 'cgi' if env_set?('GATEWAY_INTERFACE')
-        return 'lambda' if env_set?('AWS_LAMBDA_FUNCTION_NAME') || env_set?('LAMBDA_TASK_ROOT')
-
-        if env_set?('FUNCTION_TARGET') ||
-           env_set?('K_SERVICE') ||
-           env_set?('GOOGLE_CLOUD_PROJECT')
-          return 'google_cloud_function'
-        end
-
-        if env_set?('AZURE_FUNCTIONS_ENVIRONMENT') ||
-           env_set?('FUNCTIONS_WORKER_RUNTIME') ||
-           env_set?('AzureWebJobsStorage')
-          return 'azure_function'
-        end
+        return 'lambda' if lambda_env?
+        return 'google_cloud_function' if google_cloud_function_env?
+        return 'azure_function' if azure_function_env?
 
         'server'
       end
+
+      def lambda_env?
+        env_set?('AWS_LAMBDA_FUNCTION_NAME') || env_set?('LAMBDA_TASK_ROOT')
+      end
+      private_class_method :lambda_env?
+
+      def google_cloud_function_env?
+        env_set?('FUNCTION_TARGET') ||
+          env_set?('K_SERVICE') ||
+          env_set?('GOOGLE_CLOUD_PROJECT')
+      end
+      private_class_method :google_cloud_function_env?
+
+      def azure_function_env?
+        env_set?('AZURE_FUNCTIONS_ENVIRONMENT') ||
+          env_set?('FUNCTIONS_WORKER_RUNTIME') ||
+          env_set?('AzureWebJobsStorage')
+      end
+      private_class_method :azure_function_env?
 
       def env_set?(name)
         v = ENV.fetch(name, nil)

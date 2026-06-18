@@ -50,21 +50,22 @@ class SkillNameTest < Minitest::Test
   # (b) named constant and bare string load the SAME skill
   # ------------------------------------------------------------------
   def test_constant_and_string_resolve_to_same_factory
-    pairs = {
+    {
       SkillName::DATETIME => 'datetime',
       SkillName::MATH => 'math',
       SkillName::WEATHER_API => 'weather_api'
-    }
-    pairs.each do |const_val, literal|
-      via_const  = Registry.get_factory(const_val)
-      via_string = Registry.get_factory(literal)
+    }.each { |const_val, literal| assert_same_factory(const_val, literal) }
+  end
 
-      refute_nil via_const, "no factory for constant #{const_val.inspect}"
-      assert_same via_string, via_const,
-                  "SkillName constant #{literal.inspect} and string resolve to different factories"
-      # The skill the factory builds reports the same name either way.
-      assert_equal literal, via_const.call({}).name
-    end
+  def assert_same_factory(const_val, literal)
+    via_const  = Registry.get_factory(const_val)
+    via_string = Registry.get_factory(literal)
+
+    refute_nil via_const, "no factory for constant #{const_val.inspect}"
+    assert_same via_string, via_const,
+                "SkillName constant #{literal.inspect} and string resolve to different factories"
+    # The skill the factory builds reports the same name either way.
+    assert_equal literal, via_const.call({}).name
   end
 
   # ------------------------------------------------------------------
@@ -90,23 +91,7 @@ class SkillNameTest < Minitest::Test
   # (no "Unknown skill" raise at the validation step) and an out-of-set
   # name is rejected. We stub nothing — add_skill calls the live registry.
   def test_add_skill_accepts_every_constant_and_rejects_out_of_set
-    SkillName::ALL.each do |name|
-      agent = SignalWire::AgentBase.new(suppress_logs: true)
-      # add_skill raises ArgumentError "Unknown skill" ONLY when the name
-      # is not in the validated set; a successful load proves acceptance.
-      # Some skills surface their own load-time errors after the gate — we
-      # only care that the validation gate let the name through, so we
-      # treat the "Unknown skill" message as the single rejection signal.
-      begin
-        agent.add_skill(name)
-      rescue ArgumentError => e
-        refute_match(/Unknown skill/, e.message,
-                     "#{name.inspect} should pass the add_skill validation gate")
-      rescue StandardError
-        # A skill's own constructor/load error is fine — the name was
-        # accepted by the validation gate, which is what we assert here.
-      end
-    end
+    SkillName::ALL.each { |name| assert_add_skill_accepts(name) }
 
     # An out-of-set name is rejected by the same gate.
     refute_includes SkillName::ALL, 'datetiem' # the classic typo
@@ -115,10 +100,26 @@ class SkillNameTest < Minitest::Test
     assert_match(/Unknown skill/, err.message)
   end
 
+  # add_skill raises ArgumentError "Unknown skill" ONLY when the name is not
+  # in the validated set; a successful load proves acceptance. Some skills
+  # surface their own load-time errors after the gate — we only care that the
+  # validation gate let the name through, so the "Unknown skill" message is
+  # the single rejection signal.
+  def assert_add_skill_accepts(name)
+    agent = SignalWire::AgentBase.new(suppress_logs: true)
+    agent.add_skill(name)
+  rescue ArgumentError => e
+    refute_match(/Unknown skill/, e.message,
+                 "#{name.inspect} should pass the add_skill validation gate")
+  rescue StandardError
+    # A skill's own constructor/load error is fine — the name was accepted by
+    # the validation gate, which is what we assert here.
+  end
+
   def test_builtin_predicate
     assert SkillName.builtin?('datetime')
     assert SkillName.builtin?(SkillName::WEB_SEARCH)
-    refute SkillName.builtin?('datetiem')      # typo
+    refute SkillName.builtin?('datetiem') # typo
     refute SkillName.builtin?('my_custom_skill') # open set: custom names ok
   end
 end

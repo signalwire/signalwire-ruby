@@ -10,7 +10,22 @@ ENV['SIGNALWIRE_LOG_MODE'] = 'off'
 require_relative '../lib/signalwire'
 require_relative '../lib/signalwire/relay/client'
 
+# Shared SWML-rendering helpers for the agent tests.
+module AgentRenderHelpers
+  # The 'ai' verb block from a rendered SWML document's main section.
+  def ai_section(swml)
+    swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+  end
+
+  # render_swml then return its ai section.
+  def rendered_ai(agent)
+    ai_section(agent.render_swml)
+  end
+end
+
 class AgentBaseConstructionTest < Minitest::Test
+  include AgentRenderHelpers
+
   def test_default_construction
     agent = SignalWire::AgentBase.new
 
@@ -134,7 +149,11 @@ class AgentBaseConstructionTest < Minitest::Test
     assert_kind_of SignalWire::Skills::SkillManager, agent.skill_manager
     assert_same agent, agent.skill_manager.agent
   end
+end
 
+# get_basic_auth_credentials accessor coverage (split from
+# AgentBaseConstructionTest to keep each class under the size limit).
+class AgentBasicAuthCredentialsTest < Minitest::Test
   def test_get_basic_auth_credentials_with_source_param
     agent = SignalWire::AgentBase.new(basic_auth: %w[u p])
     creds = agent.get_basic_auth_credentials(include_source: true)
@@ -163,6 +182,12 @@ class AgentBaseConstructionTest < Minitest::Test
     ENV.delete('SWML_BASIC_AUTH_USER')
     ENV.delete('SWML_BASIC_AUTH_PASSWORD')
   end
+end
+
+# on_summary hook registration (split from AgentBaseConstructionTest to keep
+# each class under the size limit).
+class AgentConstructionSummaryTest < Minitest::Test
+  include AgentRenderHelpers
 
   # --- on_summary as both a hook AND a registration ---------------
 
@@ -185,20 +210,22 @@ class AgentBaseConstructionTest < Minitest::Test
     # Calling without a registered callback should not raise.
     assert_nil agent.on_summary({ 'topic' => 'x' }, nil)
   end
+end
+
+# define_tool params, hints, languages, and relay-client construction (split
+# from AgentBaseConstructionTest to keep each class under the size limit).
+class AgentConstructionToolsAndLanguagesTest < Minitest::Test
+  include AgentRenderHelpers
 
   # --- define_tool: extended Python parity params ------------------
 
   def test_define_tool_with_wait_file_and_loops
     agent = SignalWire::AgentBase.new
-    agent.define_tool(
-      name: 'play_tune',
-      description: 'play a tune',
-      parameters: {},
-      wait_file: 'https://example.com/wait.mp3',
-      wait_file_loops: 3
-    ) { |_args, _raw| { 'response' => 'ok' } }
-    defs = agent.define_tools
-    tool = defs.find { |d| d['function'] == 'play_tune' }
+    agent.define_tool(name: 'play_tune', description: 'play a tune', parameters: {},
+                      wait_file: 'https://example.com/wait.mp3', wait_file_loops: 3) do |_args, _raw|
+      { 'response' => 'ok' }
+    end
+    tool = agent.define_tools.find { |d| d['function'] == 'play_tune' }
 
     refute_nil tool
     assert_equal 'https://example.com/wait.mp3', tool['wait_file']
@@ -252,9 +279,7 @@ class AgentBaseConstructionTest < Minitest::Test
   def test_add_pattern_hint_python_positional
     agent = SignalWire::AgentBase.new
     agent.add_pattern_hint('hello', '\\bhi\\b', 'hello there', ignore_case: true)
-    swml = agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
-    hints = ai['hints']
+    hints = rendered_ai(agent)['hints']
 
     refute_nil hints
     entry = hints.find { |h| h.is_a?(Hash) && h['hint'] == 'hello' }
@@ -273,6 +298,12 @@ class AgentBaseConstructionTest < Minitest::Test
 
     assert_equal 'foo', hint['pattern']
   end
+end
+
+# add_language + relay-client construction (split from
+# AgentConstructionToolsAndLanguagesTest to keep each class under the limit).
+class AgentConstructionLanguagesAndRelayTest < Minitest::Test
+  include AgentRenderHelpers
 
   # --- Python parity: add_language(name, code, voice, ...) ---------
 
@@ -309,13 +340,8 @@ class AgentBaseConstructionTest < Minitest::Test
 
   def test_add_language_speech_and_function_fillers
     agent = SignalWire::AgentBase.new
-    agent.add_language(
-      'English', 'en-US', 'voice',
-      speech_fillers: %w[um uh],
-      function_fillers: ['one moment'],
-      engine: 'eng',
-      model: 'm'
-    )
+    agent.add_language('English', 'en-US', 'voice', speech_fillers: %w[um uh],
+                                                    function_fillers: ['one moment'], engine: 'eng', model: 'm')
     lang = agent.instance_variable_get(:@languages).first
 
     assert_equal %w[um uh], lang['speech_fillers']
@@ -407,10 +433,12 @@ class AgentPromptTest < Minitest::Test
     prompt = @agent.get_prompt
 
     assert_equal 2, prompt.length
-    assert_equal 'Personality', prompt[0]['title']
-    assert_equal 'Be helpful', prompt[0]['body']
-    assert_equal 'Rules', prompt[1]['title']
-    assert_equal ['Be concise', 'Be accurate'], prompt[1]['bullets']
+    personality, rules = prompt
+
+    assert_equal 'Personality', personality['title']
+    assert_equal 'Be helpful', personality['body']
+    assert_equal 'Rules', rules['title']
+    assert_equal ['Be concise', 'Be accurate'], rules['bullets']
   end
 
   def test_prompt_add_to_section
@@ -424,12 +452,14 @@ class AgentPromptTest < Minitest::Test
   def test_prompt_add_subsection
     @agent.prompt_add_section('Main', 'Top-level body')
     @agent.prompt_add_subsection('Main', 'Sub', 'Sub body', bullets: %w[a b])
-    prompt = @agent.get_prompt
+    subsections = @agent.get_prompt[0]['subsections']
 
-    assert_equal 1, prompt[0]['subsections'].length
-    assert_equal 'Sub', prompt[0]['subsections'][0]['title']
-    assert_equal 'Sub body', prompt[0]['subsections'][0]['body']
-    assert_equal %w[a b], prompt[0]['subsections'][0]['bullets']
+    assert_equal 1, subsections.length
+    sub = subsections[0]
+
+    assert_equal 'Sub', sub['title']
+    assert_equal 'Sub body', sub['body']
+    assert_equal %w[a b], sub['bullets']
   end
 
   def test_prompt_has_section
@@ -473,14 +503,10 @@ class AgentToolTest < Minitest::Test
   end
 
   def test_define_tool_with_block
-    @agent.define_tool(
-      name: 'greet',
-      description: 'Say hello',
-      parameters: { 'name' => { 'type' => 'string', 'description' => 'Name' } }
-    ) do |args, _raw|
+    @agent.define_tool(name: 'greet', description: 'Say hello',
+                       parameters: { 'name' => { 'type' => 'string', 'description' => 'Name' } }) do |args, _raw|
       SignalWire::Swaig::FunctionResult.new("Hello, #{args['name']}!")
     end
-
     tools = @agent.define_tools
 
     assert_equal 1, tools.length
@@ -489,12 +515,8 @@ class AgentToolTest < Minitest::Test
   end
 
   def test_register_swaig_function
-    dm_func = {
-      'function' => 'weather',
-      'description' => 'Get weather',
-      'parameters' => { 'type' => 'object', 'properties' => {} },
-      'data_map' => { 'webhooks' => [] }
-    }
+    dm_func = { 'function' => 'weather', 'description' => 'Get weather',
+                'parameters' => { 'type' => 'object', 'properties' => {} }, 'data_map' => { 'webhooks' => [] } }
     @agent.register_swaig_function(dm_func)
     tools = @agent.define_tools
 
@@ -546,6 +568,8 @@ end
 # AI Config tests
 # =========================================================================
 class AgentAIConfigTest < Minitest::Test
+  include AgentRenderHelpers
+
   def setup
     @agent = SignalWire::AgentBase.new
   end
@@ -629,11 +653,20 @@ class AgentAIConfigTest < Minitest::Test
 
     assert_includes ai['SWAIG']['native_functions'], 'check_for_input'
   end
+end
+
+# Pronunciations, internal fillers, function includes, and LLM params (split
+# from AgentAIConfigTest to keep each class under the size limit).
+class AgentAIConfigFillersAndIncludesTest < Minitest::Test
+  include AgentRenderHelpers
+
+  def setup
+    @agent = SignalWire::AgentBase.new
+  end
 
   def test_add_pronunciation
     @agent.add_pronunciation('SW', 'SignalWire')
-    swml = @agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+    ai = rendered_ai(@agent)
 
     assert_equal 'SW', ai['pronounce'][0]['replace']
     assert_equal 'SignalWire', ai['pronounce'][0]['with']
@@ -642,26 +675,20 @@ class AgentAIConfigTest < Minitest::Test
   def test_set_pronunciations
     rules = [{ 'replace' => 'AI', 'with' => 'Artificial Intelligence' }]
     @agent.set_pronunciations(rules)
-    swml = @agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
 
-    assert_equal 1, ai['pronounce'].length
+    assert_equal 1, rendered_ai(@agent)['pronounce'].length
   end
 
   def test_set_internal_fillers
-    @agent.set_internal_fillers({
-                                  'next_step' => { 'en-US' => ['Moving on...'] }
-                                })
-    swml = @agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+    @agent.set_internal_fillers({ 'next_step' => { 'en-US' => ['Moving on...'] } })
+    ai = rendered_ai(@agent)
 
     assert_equal ['Moving on...'], ai['SWAIG']['internal_fillers']['next_step']['en-US']
   end
 
   def test_add_internal_filler
     @agent.add_internal_filler('check_time', 'en-US', ['Checking time...'])
-    swml = @agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+    ai = rendered_ai(@agent)
 
     assert_equal ['Checking time...'], ai['SWAIG']['internal_fillers']['check_time']['en-US']
   end
@@ -678,9 +705,7 @@ class AgentAIConfigTest < Minitest::Test
   def test_add_function_include
     @agent.add_function_include('https://example.com/funcs', %w[fn1 fn2],
                                 meta_data: { 'key' => 'val' })
-    swml = @agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
-    inc = ai['SWAIG']['includes']
+    inc = rendered_ai(@agent)['SWAIG']['includes']
 
     assert_equal 1, inc.length
     assert_equal 'https://example.com/funcs', inc[0]['url']
@@ -691,32 +716,28 @@ class AgentAIConfigTest < Minitest::Test
   def test_set_function_includes
     includes = [{ 'url' => 'https://a.com', 'functions' => ['f1'] }]
     @agent.set_function_includes(includes)
-    swml = @agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
 
-    assert_equal 1, ai['SWAIG']['includes'].length
+    assert_equal 1, rendered_ai(@agent)['SWAIG']['includes'].length
   end
 
   def test_set_prompt_llm_params
     @agent.set_prompt_text('Hello')
     @agent.set_prompt_llm_params(temperature: 0.3, top_p: 0.9)
-    swml = @agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+    prompt = rendered_ai(@agent)['prompt']
 
-    assert_in_delta(0.3, ai['prompt']['temperature'])
-    assert_in_delta(0.9, ai['prompt']['top_p'])
-    assert_equal 'Hello', ai['prompt']['text']
+    assert_in_delta(0.3, prompt['temperature'])
+    assert_in_delta(0.9, prompt['top_p'])
+    assert_equal 'Hello', prompt['text']
   end
 
   def test_set_post_prompt_llm_params
     @agent.set_post_prompt('Summarize')
     @agent.set_post_prompt_llm_params(model: 'gpt-4o-mini', temperature: 0.5)
-    swml = @agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+    post = rendered_ai(@agent)['post_prompt']
 
-    assert_in_delta(0.5, ai['post_prompt']['temperature'])
-    assert_equal 'gpt-4o-mini', ai['post_prompt']['model']
-    assert_equal 'Summarize', ai['post_prompt']['text']
+    assert_in_delta(0.5, post['temperature'])
+    assert_equal 'gpt-4o-mini', post['model']
+    assert_equal 'Summarize', post['text']
   end
 
   def test_add_pattern_hint
@@ -881,6 +902,8 @@ end
 # render_swml tests
 # =========================================================================
 class AgentRenderSwmlTest < Minitest::Test
+  include AgentRenderHelpers
+
   def test_basic_structure
     agent = SignalWire::AgentBase.new
     swml = agent.render_swml
@@ -920,8 +943,7 @@ class AgentRenderSwmlTest < Minitest::Test
   def test_with_tools
     agent = SignalWire::AgentBase.new
     agent.define_tool(name: 'foo', description: 'Foo tool') { |_, _| }
-    swml = agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+    ai = rendered_ai(agent)
 
     assert ai.key?('SWAIG')
     funcs = ai['SWAIG']['functions']
@@ -933,9 +955,7 @@ class AgentRenderSwmlTest < Minitest::Test
   def test_with_pom
     agent = SignalWire::AgentBase.new
     agent.prompt_add_section('Intro', 'Hello')
-    swml = agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
-    pom = ai['prompt']['pom']
+    pom = rendered_ai(agent)['prompt']['pom']
 
     assert_instance_of Array, pom
     assert_equal 'Intro', pom[0]['title']
@@ -944,43 +964,42 @@ class AgentRenderSwmlTest < Minitest::Test
   def test_with_text_prompt
     agent = SignalWire::AgentBase.new
     agent.set_prompt_text('You are helpful.')
-    swml = agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
 
-    assert_equal 'You are helpful.', ai['prompt']['text']
+    assert_equal 'You are helpful.', rendered_ai(agent)['prompt']['text']
   end
 
   def test_with_params
     agent = SignalWire::AgentBase.new
     agent.set_params({ 'temperature' => 0.5 })
-    swml = agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
 
-    assert_in_delta(0.5, ai['params']['temperature'])
+    assert_in_delta(0.5, rendered_ai(agent)['params']['temperature'])
   end
 
-  def test_5_phase_ordering
+  # Pre-answer → answer → record_call → post-answer → ai → post-ai.
+  EXPECTED_PHASE_ORDER = %w[set answer record_call play ai hangup].freeze
+
+  def five_phase_agent
     agent = SignalWire::AgentBase.new(record_call: true)
     agent.add_pre_answer_verb('set', { 'x' => '1' })
     agent.add_post_answer_verb('play', { 'url' => 'welcome.mp3' })
     agent.add_post_ai_verb('hangup', {})
-    swml = agent.render_swml
-    main = swml['sections']['main']
-    keys = main.map { |v| v.keys.first }
-    # Pre-answer → answer → record_call → post_answer → ai → post-ai
-    set_idx    = keys.index('set')
-    ans_idx    = keys.index('answer')
-    rec_idx    = keys.index('record_call')
-    play_idx   = keys.index('play')
-    ai_idx     = keys.index('ai')
-    hangup_idx = keys.index('hangup')
-
-    assert_operator set_idx, :<, ans_idx, 'pre-answer should be before answer'
-    assert_operator ans_idx, :<, rec_idx, 'answer should be before record_call'
-    assert_operator rec_idx, :<, play_idx, 'record_call should be before post-answer'
-    assert_operator play_idx, :<, ai_idx, 'post-answer should be before ai'
-    assert_operator ai_idx, :<, hangup_idx, 'ai should be before post-ai'
+    agent
   end
+
+  def test_5_phase_ordering
+    keys = five_phase_agent.render_swml['sections']['main'].map { |v| v.keys.first }
+
+    indices = EXPECTED_PHASE_ORDER.map { |verb| keys.index(verb) }
+
+    refute_includes indices, nil, "missing expected verb in #{keys.inspect}"
+    assert_equal indices.sort, indices, "verbs out of phase order: #{keys.inspect}"
+  end
+end
+
+# webhook/post-prompt URL rendering (split from AgentRenderSwmlTest to keep
+# each class under the size limit).
+class AgentRenderSwmlUrlsTest < Minitest::Test
+  include AgentRenderHelpers
 
   def test_webhook_url_in_swml
     agent = SignalWire::AgentBase.new(basic_auth: %w[u p])
@@ -1027,6 +1046,8 @@ end
 # Dynamic config tests
 # =========================================================================
 class AgentDynamicConfigTest < Minitest::Test
+  include AgentRenderHelpers
+
   def test_dynamic_config_callback_applied
     agent = SignalWire::AgentBase.new
     agent.set_prompt_text('Original')
@@ -1048,13 +1069,11 @@ class AgentDynamicConfigTest < Minitest::Test
     end
     # Render triggers dynamic config
     agent.render_swml
+
     # Original should be untouched
     assert_equal 'Original', agent.get_prompt
     # Render again to verify original state persists
-    swml = agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
-
-    assert_equal 'Modified', ai['prompt']['text']
+    assert_equal 'Modified', rendered_ai(agent)['prompt']['text']
   end
 
   def test_dynamic_config_can_add_tools
@@ -1077,6 +1096,7 @@ end
 # =========================================================================
 class AgentRackTest < Minitest::Test
   include Rack::Test::Methods
+  include AgentRenderHelpers
 
   def app
     @agent = SignalWire::AgentBase.new(basic_auth: %w[testuser testpass])
@@ -1091,7 +1111,14 @@ class AgentRackTest < Minitest::Test
   end
 
   def auth_header
-    'Basic ' + ['testuser:testpass'].pack('m0')
+    "Basic #{['testuser:testpass'].pack('m0')}"
+  end
+
+  # POST +payload+ as authenticated JSON to +path+.
+  def post_json(path, payload)
+    header 'Authorization', auth_header
+    header 'Content-Type', 'application/json'
+    post path, JSON.generate(payload)
   end
 
   # --- health / ready (no auth) ---
@@ -1123,7 +1150,7 @@ class AgentRackTest < Minitest::Test
   end
 
   def test_swml_endpoint_wrong_auth
-    header 'Authorization', 'Basic ' + ['wrong:creds'].pack('m0')
+    header 'Authorization', "Basic #{['wrong:creds'].pack('m0')}"
     get '/'
 
     assert_equal 401, last_response.status
@@ -1139,15 +1166,11 @@ class AgentRackTest < Minitest::Test
     swml = JSON.parse(last_response.body)
 
     assert_equal '1.0.0', swml['version']
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
-
-    assert_equal 'Hello', ai['prompt']['text']
+    assert_equal 'Hello', ai_section(swml)['prompt']['text']
   end
 
   def test_swml_endpoint_post
-    header 'Authorization', auth_header
-    header 'Content-Type', 'application/json'
-    post '/', JSON.generate({ 'call_id' => 'abc-123' })
+    post_json('/', { 'call_id' => 'abc-123' })
 
     assert_equal 200, last_response.status
     swml = JSON.parse(last_response.body)
@@ -1158,14 +1181,8 @@ class AgentRackTest < Minitest::Test
   # --- SWAIG dispatch ---
 
   def test_swaig_dispatch
-    header 'Authorization', auth_header
-    header 'Content-Type', 'application/json'
-    payload = {
-      'function' => 'echo',
-      'argument' => { 'parsed' => [{ 'msg' => 'test' }] },
-      'call_id' => 'call-1'
-    }
-    post '/swaig', JSON.generate(payload)
+    payload = { 'function' => 'echo', 'argument' => { 'parsed' => [{ 'msg' => 'test' }] }, 'call_id' => 'call-1' }
+    post_json('/swaig', payload)
 
     assert_equal 200, last_response.status
     result = JSON.parse(last_response.body)
@@ -1174,21 +1191,13 @@ class AgentRackTest < Minitest::Test
   end
 
   def test_swaig_dispatch_no_function
-    header 'Authorization', auth_header
-    header 'Content-Type', 'application/json'
-    post '/swaig', JSON.generate({})
+    post_json('/swaig', {})
 
     assert_equal 400, last_response.status
   end
 
   def test_swaig_dispatch_unknown_function
-    header 'Authorization', auth_header
-    header 'Content-Type', 'application/json'
-    payload = {
-      'function' => 'unknown',
-      'argument' => { 'parsed' => [{}] }
-    }
-    post '/swaig', JSON.generate(payload)
+    post_json('/swaig', { 'function' => 'unknown', 'argument' => { 'parsed' => [{}] } })
 
     assert_equal 200, last_response.status
     result = JSON.parse(last_response.body)
@@ -1199,15 +1208,8 @@ class AgentRackTest < Minitest::Test
   # --- post_prompt ---
 
   def test_post_prompt_endpoint
-    header 'Authorization', auth_header
-    header 'Content-Type', 'application/json'
-    payload = {
-      'post_prompt_data' => {
-        'raw' => 'Summary text',
-        'parsed' => { 'summary' => 'Short' }
-      }
-    }
-    post '/post_prompt', JSON.generate(payload)
+    post_json('/post_prompt', { 'post_prompt_data' => { 'raw' => 'Summary text',
+                                                        'parsed' => { 'summary' => 'Short' } } })
 
     assert_equal 200, last_response.status
     # Callback should have been called
@@ -1242,7 +1244,7 @@ class AgentCustomRouteRackTest < Minitest::Test
   end
 
   def auth_header
-    'Basic ' + ['u:p'].pack('m0')
+    "Basic #{['u:p'].pack('m0')}"
   end
 
   def test_custom_route_swml
@@ -1268,54 +1270,62 @@ end
 # Method chaining tests
 # =========================================================================
 class AgentMethodChainingTest < Minitest::Test
+  # Every fluent config method, as a callable that invokes it on its argument.
+  # Each must return self for chaining (Python/Ruby builder parity).
+  CHAINABLE_CONFIG_CALLS = [
+    ->(a) { a.set_prompt_text('x') },
+    ->(a) { a.set_post_prompt('x') },
+    ->(a) { a.set_prompt_pom([]) },
+    ->(a) { a.prompt_add_section('T', 'B') },
+    ->(a) { a.prompt_add_to_section('T', 'x') },
+    ->(a) { a.prompt_add_subsection('T', 'S', 'B') },
+    ->(a) { a.add_hint('x') },
+    ->(a) { a.add_hints(['x']) },
+    ->(a) { a.add_pattern_hint('p') },
+    ->(a) { a.add_language({ 'name' => 'E', 'code' => 'en' }) },
+    ->(a) { a.set_languages([]) },
+    ->(a) { a.add_pronunciation('a', 'b') },
+    ->(a) { a.set_pronunciations([]) },
+    ->(a) { a.set_param('k', 'v') },
+    ->(a) { a.set_params({}) },
+    ->(a) { a.set_global_data({}) },
+    ->(a) { a.update_global_data({}) },
+    ->(a) { a.set_native_functions([]) },
+    ->(a) { a.set_internal_fillers({}) },
+    ->(a) { a.add_internal_filler('f', 'en', ['x']) },
+    :enable_debug_events.to_proc,
+    ->(a) { a.add_function_include('url', ['f']) },
+    ->(a) { a.set_function_includes([]) },
+    ->(a) { a.set_prompt_llm_params(temperature: 0.5) },
+    ->(a) { a.set_post_prompt_llm_params(temperature: 0.5) },
+    ->(a) { a.add_pre_answer_verb('play', {}) },
+    :clear_pre_answer_verbs.to_proc,
+    ->(a) { a.add_answer_verb({}) },
+    ->(a) { a.add_post_answer_verb('play', {}) },
+    :clear_post_answer_verbs.to_proc,
+    ->(a) { a.add_post_ai_verb('hangup', {}) },
+    :clear_post_ai_verbs.to_proc,
+    ->(a) { a.set_dynamic_config_callback { |*| } },
+    ->(a) { a.manual_set_proxy_url('x') },
+    ->(a) { a.set_web_hook_url('x') },
+    ->(a) { a.set_post_prompt_url('x') },
+    ->(a) { a.add_swaig_query_params({}) },
+    :clear_swaig_query_params.to_proc,
+    :enable_debug_routes.to_proc,
+    :enable_sip_routing.to_proc,
+    ->(a) { a.register_sip_username('u') },
+    ->(a) { a.on_summary {} },
+    ->(a) { a.on_debug_event {} },
+    ->(a) { a.register_swaig_function({ 'function' => 'x' }) },
+    ->(a) { a.remove_skill('nonexistent') }
+  ].freeze
+
   def test_all_config_methods_return_self
     agent = SignalWire::AgentBase.new
 
-    assert_same agent, agent.set_prompt_text('x')
-    assert_same agent, agent.set_post_prompt('x')
-    assert_same agent, agent.set_prompt_pom([])
-    assert_same agent, agent.prompt_add_section('T', 'B')
-    assert_same agent, agent.prompt_add_to_section('T', 'x')
-    assert_same agent, agent.prompt_add_subsection('T', 'S', 'B')
-    assert_same agent, agent.add_hint('x')
-    assert_same agent, agent.add_hints(['x'])
-    assert_same agent, agent.add_pattern_hint('p')
-    assert_same agent, agent.add_language({ 'name' => 'E', 'code' => 'en' })
-    assert_same agent, agent.set_languages([])
-    assert_same agent, agent.add_pronunciation('a', 'b')
-    assert_same agent, agent.set_pronunciations([])
-    assert_same agent, agent.set_param('k', 'v')
-    assert_same agent, agent.set_params({})
-    assert_same agent, agent.set_global_data({})
-    assert_same agent, agent.update_global_data({})
-    assert_same agent, agent.set_native_functions([])
-    assert_same agent, agent.set_internal_fillers({})
-    assert_same agent, agent.add_internal_filler('f', 'en', ['x'])
-    assert_same agent, agent.enable_debug_events
-    assert_same agent, agent.add_function_include('url', ['f'])
-    assert_same agent, agent.set_function_includes([])
-    assert_same agent, agent.set_prompt_llm_params(temperature: 0.5)
-    assert_same agent, agent.set_post_prompt_llm_params(temperature: 0.5)
-    assert_same agent, agent.add_pre_answer_verb('play', {})
-    assert_same agent, agent.clear_pre_answer_verbs
-    assert_same agent, agent.add_answer_verb({})
-    assert_same agent, agent.add_post_answer_verb('play', {})
-    assert_same agent, agent.clear_post_answer_verbs
-    assert_same agent, agent.add_post_ai_verb('hangup', {})
-    assert_same agent, agent.clear_post_ai_verbs
-    assert_same(agent, agent.set_dynamic_config_callback { |*| })
-    assert_same agent, agent.manual_set_proxy_url('x')
-    assert_same agent, agent.set_web_hook_url('x')
-    assert_same agent, agent.set_post_prompt_url('x')
-    assert_same agent, agent.add_swaig_query_params({})
-    assert_same agent, agent.clear_swaig_query_params
-    assert_same agent, agent.enable_debug_routes
-    assert_same agent, agent.enable_sip_routing
-    assert_same agent, agent.register_sip_username('u')
-    assert_same(agent, agent.on_summary {})
-    assert_same(agent, agent.on_debug_event {})
-    assert_same agent, agent.register_swaig_function({ 'function' => 'x' })
-    assert_same agent, agent.remove_skill('nonexistent')
+    CHAINABLE_CONFIG_CALLS.each_with_index do |call, i|
+      assert_same agent, call.call(agent), "config call ##{i} must return self"
+    end
   end
 end
 
@@ -1380,18 +1390,20 @@ end
 # DataMap integration test
 # =========================================================================
 class AgentDataMapTest < Minitest::Test
+  include AgentRenderHelpers
+
+  def weather_datamap
+    SignalWire::DataMap.new('get_weather')
+                       .purpose('Get weather')
+                       .parameter('city', 'string', 'City name', required: true)
+                       .webhook('GET', 'https://api.weather.com?q=${city}')
+                       .output(SignalWire::Swaig::FunctionResult.new('Weather: ${response.temp}'))
+  end
+
   def test_register_datamap_tool
     agent = SignalWire::AgentBase.new
-    dm = SignalWire::DataMap.new('get_weather')
-                            .purpose('Get weather')
-                            .parameter('city', 'string', 'City name', required: true)
-                            .webhook('GET', 'https://api.weather.com?q=${city}')
-                            .output(SignalWire::Swaig::FunctionResult.new('Weather: ${response.temp}'))
-
-    agent.register_swaig_function(dm.to_swaig_function)
-    swml = agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
-    funcs = ai['SWAIG']['functions']
+    agent.register_swaig_function(weather_datamap.to_swaig_function)
+    funcs = rendered_ai(agent)['SWAIG']['functions']
     weather = funcs.find { |f| f['function'] == 'get_weather' }
 
     assert weather
@@ -1415,7 +1427,7 @@ class AgentDebugEventTest < Minitest::Test
   end
 
   def test_debug_event_dispatch
-    header 'Authorization', 'Basic ' + ['u:p'].pack('m0')
+    header 'Authorization', "Basic #{['u:p'].pack('m0')}"
     header 'Content-Type', 'application/json'
     post '/debug_events', JSON.generate({ 'event_type' => 'llm_error', 'detail' => 'oops' })
 

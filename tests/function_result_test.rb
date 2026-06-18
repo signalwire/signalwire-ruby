@@ -4,8 +4,28 @@ require 'minitest/autorun'
 require 'json'
 require_relative '../lib/signalwire/swaig/function_result'
 
-class FunctionResultTest < Minitest::Test
+# Shared constant + navigation helpers for the FunctionResult test classes.
+# The suite is split into topic classes (OneClassPerFile-style) so no single
+# class grows unbounded; they all mix in this module.
+module FunctionResultTestHelpers
   FR = SignalWire::Swaig::FunctionResult
+
+  private
+
+  # The SWML main-section verb array of a FunctionResult's first action.
+  def swml_main_section(result)
+    result.action.first['SWML']['sections']['main']
+  end
+
+  # Navigate a FunctionResult's first action to the named verb hash in the
+  # SWML main section: action[0]['SWML']['sections']['main'][0][verb].
+  def swml_main_verb(result, verb)
+    swml_main_section(result)[0][verb]
+  end
+end
+
+class FunctionResultTest < Minitest::Test
+  include FunctionResultTestHelpers
 
   # ------------------------------------------------------------------
   # Construction
@@ -87,18 +107,23 @@ class FunctionResultTest < Minitest::Test
   # Method chaining
   # ------------------------------------------------------------------
 
-  def test_method_chaining_returns_self
+  def test_method_chaining_returns_self_setters
     r = FR.new('Start')
 
     assert_same r, r.set_response('Changed')
     assert_same r, r.set_post_process(true)
     assert_same r, r.add_action('test', 'value')
     assert_same r, r.add_actions([{ 'x' => 1 }])
+    assert_same r, r.update_global_data('k' => 'v')
+  end
+
+  def test_method_chaining_returns_self_verbs
+    r = FR.new('Start')
+
     assert_same r, r.hangup
     assert_same r, r.hold
     assert_same r, r.stop
     assert_same r, r.say('hi')
-    assert_same r, r.update_global_data('k' => 'v')
     assert_same r, r.connect('+15551234567')
   end
 
@@ -112,6 +137,11 @@ class FunctionResultTest < Minitest::Test
     assert_equal 'Processing', h['response']
     assert_equal 3, h['action'].length
   end
+end
+
+# Call Control verbs.
+class FunctionResultCallControlTest < Minitest::Test
+  include FunctionResultTestHelpers
 
   # ------------------------------------------------------------------
   # Call Control
@@ -204,10 +234,11 @@ class FunctionResultTest < Minitest::Test
 
     assert_equal [{ 'stop' => true }], h['action']
   end
+end
 
-  # ------------------------------------------------------------------
-  # State & Data Management
-  # ------------------------------------------------------------------
+# State & Data Management, Media Control, Speech & AI, Advanced verbs.
+class FunctionResultStateMediaTest < Minitest::Test
+  include FunctionResultTestHelpers
 
   def test_update_global_data
     r = FR.new.update_global_data('key1' => 'value1', 'key2' => 'value2')
@@ -263,11 +294,8 @@ class FunctionResultTest < Minitest::Test
 
   def test_switch_context_full
     r = FR.new.switch_context(
-      system_prompt: 'New prompt',
-      user_prompt: 'User says',
-      consolidate: true,
-      full_reset: true,
-      isolated: true
+      system_prompt: 'New prompt', user_prompt: 'User says',
+      consolidate: true, full_reset: true, isolated: true
     )
     ctx = r.action.first['context_switch']
 
@@ -289,6 +317,11 @@ class FunctionResultTest < Minitest::Test
 
     assert_equal({ 'replace_in_history' => true }, r.action.first)
   end
+end
+
+# Media Control, Speech & AI, and Advanced verbs.
+class FunctionResultMediaSpeechTest < Minitest::Test
+  include FunctionResultTestHelpers
 
   # ------------------------------------------------------------------
   # Media Control
@@ -319,11 +352,9 @@ class FunctionResultTest < Minitest::Test
   end
 
   def test_record_call_default
-    r = FR.new.record_call
-    swml = r.action.first['SWML']
-    rec = swml['sections']['main'][0]['record_call']
+    rec = swml_main_verb(FR.new.record_call, 'record_call')
 
-    assert_equal false, rec['stereo']
+    refute rec['stereo']
     assert_equal 'wav', rec['format']
     assert_equal 'both', rec['direction']
     refute rec.key?('control_id')
@@ -335,7 +366,7 @@ class FunctionResultTest < Minitest::Test
     rec = swml['sections']['main'][0]['record_call']
 
     assert_equal 'rec-1', rec['control_id']
-    assert_equal true, rec['stereo']
+    assert rec['stereo']
     assert_equal 'mp3', rec['format']
   end
 
@@ -358,6 +389,11 @@ class FunctionResultTest < Minitest::Test
 
     assert_equal 'rec-1', stop['control_id']
   end
+end
+
+# Speech & AI and Advanced verbs.
+class FunctionResultSpeechAiTest < Minitest::Test
+  include FunctionResultTestHelpers
 
   # ------------------------------------------------------------------
   # Speech & AI
@@ -448,6 +484,11 @@ class FunctionResultTest < Minitest::Test
   def test_execute_swml_bad_type
     assert_raises(TypeError) { FR.new.execute_swml(42) }
   end
+end
+
+# join_conference parity, RPC, payment helpers, and edge cases.
+class FunctionResultVerbsTest < Minitest::Test
+  include FunctionResultTestHelpers
 
   # ------------------------------------------------------------------
   # join_conference — full parity with Python reference
@@ -467,65 +508,57 @@ class FunctionResultTest < Minitest::Test
 
   # Parity: test_join_conference_complex_params — every non-default param
   # is emitted under its snake_case wire key in the object form.
+  JOIN_CONFERENCE_COMPLEX_PARAMS = {
+    muted: true, beep: 'onEnter', start_on_enter: false, end_on_exit: true,
+    wait_url: 'https://example.com/hold-music', max_participants: 50,
+    record: 'record-from-start', region: 'us-east', trim: 'do-not-trim',
+    coach: 'call-id-123', status_callback_event: 'start end',
+    status_callback: 'https://example.com/callback', status_callback_method: 'GET',
+    recording_status_callback: 'https://example.com/rec-callback',
+    recording_status_callback_method: 'GET',
+    recording_status_callback_event: 'in-progress', result: { 'key' => 'value' }
+  }.freeze
+
+  # Expected wire values keyed by emitted (string) key.
+  JOIN_CONFERENCE_COMPLEX_EXPECTED = {
+    'name' => 'team-meeting', 'muted' => true, 'beep' => 'onEnter',
+    'start_on_enter' => false, 'end_on_exit' => true,
+    'wait_url' => 'https://example.com/hold-music', 'max_participants' => 50,
+    'record' => 'record-from-start', 'region' => 'us-east', 'trim' => 'do-not-trim',
+    'coach' => 'call-id-123', 'status_callback_event' => 'start end',
+    'status_callback' => 'https://example.com/callback', 'status_callback_method' => 'GET',
+    'recording_status_callback' => 'https://example.com/rec-callback',
+    'recording_status_callback_method' => 'GET',
+    'recording_status_callback_event' => 'in-progress', 'result' => { 'key' => 'value' }
+  }.freeze
+
   def test_join_conference_complex_params
-    r = FR.new.join_conference(
-      'team-meeting',
-      muted: true,
-      beep: 'onEnter',
-      start_on_enter: false,
-      end_on_exit: true,
-      wait_url: 'https://example.com/hold-music',
-      max_participants: 50,
-      record: 'record-from-start',
-      region: 'us-east',
-      trim: 'do-not-trim',
-      coach: 'call-id-123',
-      status_callback_event: 'start end',
-      status_callback: 'https://example.com/callback',
-      status_callback_method: 'GET',
-      recording_status_callback: 'https://example.com/rec-callback',
-      recording_status_callback_method: 'GET',
-      recording_status_callback_event: 'in-progress',
-      result: { 'key' => 'value' }
-    )
+    r = FR.new.join_conference('team-meeting', **JOIN_CONFERENCE_COMPLEX_PARAMS)
     join = r.action.first['SWML']['sections']['main'][0]['join_conference']
 
     assert_instance_of Hash, join
-    assert_equal 'team-meeting', join['name']
-    assert_equal true, join['muted']
-    assert_equal 'onEnter', join['beep']
-    assert_equal false, join['start_on_enter']
-    assert_equal true, join['end_on_exit']
-    assert_equal 'https://example.com/hold-music', join['wait_url']
-    assert_equal 50, join['max_participants']
-    assert_equal 'record-from-start', join['record']
-    assert_equal 'us-east', join['region']
-    assert_equal 'do-not-trim', join['trim']
-    assert_equal 'call-id-123', join['coach']
-    assert_equal 'start end', join['status_callback_event']
-    assert_equal 'https://example.com/callback', join['status_callback']
-    assert_equal 'GET', join['status_callback_method']
-    assert_equal 'https://example.com/rec-callback', join['recording_status_callback']
-    assert_equal 'GET', join['recording_status_callback_method']
-    assert_equal 'in-progress', join['recording_status_callback_event']
-    assert_equal({ 'key' => 'value' }, join['result'])
+    JOIN_CONFERENCE_COMPLEX_EXPECTED.each { |k, v| assert_equal v, join[k], "join[#{k.inspect}]" }
     # No holdAudio key — Python uses wait_url.
     refute join.key?('holdAudio')
   end
 
   def test_join_conference_with_options
     r = FR.new.join_conference('my_conf', muted: true, record: 'record-from-start')
-    swml = r.action.first['SWML']
-    join = swml['sections']['main'][0]['join_conference']
+    join = swml_main_verb(r, 'join_conference')
 
     assert_equal 'my_conf', join['name']
-    assert_equal true, join['muted']
+    assert join['muted']
     assert_equal 'record-from-start', join['record']
     # Defaults are omitted from the object form.
     refute join.key?('beep')
     refute join.key?('max_participants')
     refute join.key?('status_callback_method')
   end
+end
+
+# join_conference argument-validation parity (Python ValueError → ArgumentError).
+class FunctionResultJoinConferenceValidationTest < Minitest::Test
+  include FunctionResultTestHelpers
 
   # Parity: test_join_conference_invalid_beep
   def test_join_conference_invalid_beep
@@ -562,6 +595,11 @@ class FunctionResultTest < Minitest::Test
     e = assert_raises(ArgumentError) { FR.new.join_conference('conf', trim: 'bad-value') }
     assert_equal "trim must be one of ['trim-silence', 'do-not-trim']", e.message
   end
+end
+
+# join_conference name / callback-method validation parity.
+class FunctionResultJoinConferenceNameValidationTest < Minitest::Test
+  include FunctionResultTestHelpers
 
   # Parity: test_join_conference_empty_name
   def test_join_conference_bad_name
@@ -650,14 +688,10 @@ class FunctionResultTest < Minitest::Test
 
   def test_send_sms
     r = FR.new.send_sms(
-      to_number: '+15551234567',
-      from_number: '+15559876543',
-      body: 'Hello!',
-      media: ['https://example.com/image.jpg'],
-      tags: ['vip']
+      to_number: '+15551234567', from_number: '+15559876543',
+      body: 'Hello!', media: ['https://example.com/image.jpg'], tags: ['vip']
     )
-    swml = r.action.first['SWML']
-    sms = swml['sections']['main'][0]['send_sms']
+    sms = swml_main_verb(r, 'send_sms')
 
     assert_equal '+15551234567', sms['to_number']
     assert_equal '+15559876543', sms['from_number']
@@ -686,12 +720,7 @@ class FunctionResultTest < Minitest::Test
   end
 
   def test_pay
-    r = FR.new.pay(
-      payment_connector_url: 'https://pay.example.com',
-      charge_amount: '9.99'
-    )
-    swml = r.action.first['SWML']
-    main = swml['sections']['main']
+    main = swml_main_section(FR.new.pay(payment_connector_url: 'https://pay.example.com', charge_amount: '9.99'))
 
     assert main[0].key?('set')
     pay_p = main[1]['pay']
@@ -700,6 +729,11 @@ class FunctionResultTest < Minitest::Test
     assert_equal '9.99', pay_p['charge_amount']
     assert_equal 'dtmf', pay_p['input']
   end
+end
+
+# RPC verbs, payment class-method helpers, and edge cases.
+class FunctionResultRpcEdgeTest < Minitest::Test
+  include FunctionResultTestHelpers
 
   # ------------------------------------------------------------------
   # RPC
@@ -725,12 +759,10 @@ class FunctionResultTest < Minitest::Test
 
   def test_rpc_dial
     r = FR.new.rpc_dial(
-      to_number: '+15551234567',
-      from_number: '+15559876543',
+      to_number: '+15551234567', from_number: '+15559876543',
       dest_swml: 'https://example.com/agent'
     )
-    swml = r.action.first['SWML']
-    rpc = swml['sections']['main'][0]['execute_rpc']
+    rpc = swml_main_verb(r, 'execute_rpc')
 
     assert_equal 'dial', rpc['method']
     assert_equal '+15551234567', rpc['params']['devices']['params']['to_number']
@@ -739,8 +771,7 @@ class FunctionResultTest < Minitest::Test
 
   def test_rpc_ai_message
     r = FR.new.rpc_ai_message('call-123', 'Hello from system')
-    swml = r.action.first['SWML']
-    rpc = swml['sections']['main'][0]['execute_rpc']
+    rpc = swml_main_verb(r, 'execute_rpc')
 
     assert_equal 'ai_message', rpc['method']
     assert_equal 'call-123', rpc['call_id']
@@ -762,6 +793,11 @@ class FunctionResultTest < Minitest::Test
 
     assert_equal({ 'user_input' => 'I need help' }, r.action.first)
   end
+end
+
+# Payment class-method helpers and edge cases.
+class FunctionResultPaymentEdgeTest < Minitest::Test
+  include FunctionResultTestHelpers
 
   # ------------------------------------------------------------------
   # Payment helpers (class methods)
@@ -849,17 +885,21 @@ end
 
 # --- Idiomatic Ruby accessor aliases (RUBY_ERGONOMICS_MIGRATION.md) ---
 class FunctionResultIdiomaticAccessorsTest < Minitest::Test
-  def test_writers_mirror_setters
+  include FunctionResultTestHelpers
+
+  def test_response_writer_mirrors_setter
     fr = SignalWire::Swaig::FunctionResult.new
     fr.response = 'hi'
 
     assert_equal 'hi', fr.to_h['response']
     assert_equal 'x', (fr.response = 'x') # = returns RHS
+  end
 
+  def test_metadata_writer_mirrors_setter
     # metadata= mirrors set_metadata, which appends a set_meta_data action.
-    fr2 = SignalWire::Swaig::FunctionResult.new
-    fr2.metadata = { 'k' => 'v' }
-    actions = Array(fr2.to_h['action'])
+    fr = SignalWire::Swaig::FunctionResult.new
+    fr.metadata = { 'k' => 'v' }
+    actions = Array(fr.to_h['action'])
 
     assert(actions.any? { |a| a.is_a?(Hash) && a['set_meta_data'] == { 'k' => 'v' } },
            "expected a set_meta_data action, got #{actions.inspect}")

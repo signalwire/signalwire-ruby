@@ -166,24 +166,36 @@ class InfoGathererParityTest < Minitest::Test
   def test_set_question_callback_is_invoked_by_on_swml_request
     agent = SignalWire::Prefabs::InfoGatherer.new
     seen = {}
-    ret = agent.set_question_callback(lambda { |query, body, headers|
-      seen[:query] = query
-      seen[:body] = body
-      seen[:headers] = headers
-      [{ 'key_name' => 'dob', 'question_text' => 'Date of birth?' }]
-    })
+    ret = agent.set_question_callback(recording_callback(seen))
     # Setter returns self for chaining (idiomatic).
     assert_same agent, ret
 
     request = Struct.new(:query_params, :headers).new({ 'set' => 'medical' }, { 'X-Trace' => '1' })
     result = agent.on_swml_request({ 'call_id' => 'abc' }, '/swml', request: request)
 
-    # Callback received the request-derived params.
+    assert_callback_saw(seen)
+    assert_callback_questions(result)
+  end
+
+  # A question-callback that records its args into +seen+ and returns one question.
+  def recording_callback(seen)
+    lambda do |query, body, headers|
+      seen[:query] = query
+      seen[:body] = body
+      seen[:headers] = headers
+      [{ 'key_name' => 'dob', 'question_text' => 'Date of birth?' }]
+    end
+  end
+
+  # Callback received the request-derived params.
+  def assert_callback_saw(seen)
     assert_equal({ 'set' => 'medical' }, seen[:query])
     assert_equal({ 'call_id' => 'abc' }, seen[:body])
     assert_equal({ 'X-Trace' => '1' }, seen[:headers])
+  end
 
-    # Returned global_data carries the callback's questions.
+  # Returned global_data carries the callback's questions.
+  def assert_callback_questions(result)
     questions = result['global_data']['questions']
 
     assert_equal 1, questions.size

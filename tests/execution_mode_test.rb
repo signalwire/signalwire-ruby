@@ -28,7 +28,7 @@ class ExecutionModeParityTest < Minitest::Test
 
   def setup
     super
-    @saved = EXEC_ENV_VARS.each_with_object({}) { |k, h| h[k] = ENV.fetch(k, nil) }
+    @saved = EXEC_ENV_VARS.to_h { |k| [k, ENV.fetch(k, nil)] }
     EXEC_ENV_VARS.each { |k| ENV.delete(k) }
   end
 

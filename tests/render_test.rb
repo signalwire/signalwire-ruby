@@ -6,6 +6,14 @@ ENV['SIGNALWIRE_LOG_MODE'] = 'off'
 
 require_relative '../lib/signalwire'
 
+# Shared helpers for poking at rendered SWML in the render tests.
+module RenderHelpers
+  # The 'ai' verb block from a rendered SWML document's main section.
+  def ai_section(swml)
+    swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+  end
+end
+
 class RenderBasicStructureTest < Minitest::Test
   def test_basic_structure
     agent = SignalWire::AgentBase.new
@@ -47,11 +55,13 @@ class RenderRecordCallTest < Minitest::Test
 end
 
 class RenderWithToolsTest < Minitest::Test
+  include RenderHelpers
+
   def test_tools_rendered
     agent = SignalWire::AgentBase.new
     agent.define_tool(name: 'foo', description: 'Foo tool') { |_, _| }
     swml = agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+    ai = ai_section(swml)
 
     assert ai.key?('SWAIG')
     funcs = ai['SWAIG']['functions']
@@ -62,11 +72,13 @@ class RenderWithToolsTest < Minitest::Test
 end
 
 class RenderWithPromptTest < Minitest::Test
+  include RenderHelpers
+
   def test_pom_prompt
     agent = SignalWire::AgentBase.new
     agent.prompt_add_section('Intro', 'Hello')
     swml = agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+    ai = ai_section(swml)
     pom = ai['prompt']['pom']
 
     assert_instance_of Array, pom
@@ -77,37 +89,39 @@ class RenderWithPromptTest < Minitest::Test
     agent = SignalWire::AgentBase.new
     agent.set_prompt_text('You are helpful.')
     swml = agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+    ai = ai_section(swml)
 
     assert_equal 'You are helpful.', ai['prompt']['text']
   end
 end
 
 class Render5PhaseOrderingTest < Minitest::Test
-  def test_5_phase_ordering
+  # Expected SWML main-section verb order: pre-answer < answer < record_call <
+  # post-answer < ai < post-ai.
+  EXPECTED_PHASE_ORDER = %w[set answer record_call play ai hangup].freeze
+
+  def five_phase_agent
     agent = SignalWire::AgentBase.new(record_call: true)
     agent.add_pre_answer_verb('set', { 'x' => '1' })
     agent.add_post_answer_verb('play', { 'url' => 'welcome.mp3' })
     agent.add_post_ai_verb('hangup', {})
-    swml = agent.render_swml
-    main = swml['sections']['main']
-    keys = main.map { |v| v.keys.first }
-    set_idx    = keys.index('set')
-    ans_idx    = keys.index('answer')
-    rec_idx    = keys.index('record_call')
-    play_idx   = keys.index('play')
-    ai_idx     = keys.index('ai')
-    hangup_idx = keys.index('hangup')
+    agent
+  end
 
-    assert_operator set_idx, :<, ans_idx, 'pre-answer should be before answer'
-    assert_operator ans_idx, :<, rec_idx, 'answer should be before record_call'
-    assert_operator rec_idx, :<, play_idx, 'record_call should be before post-answer'
-    assert_operator play_idx, :<, ai_idx, 'post-answer should be before ai'
-    assert_operator ai_idx, :<, hangup_idx, 'ai should be before post-ai'
+  def test_5_phase_ordering
+    swml = five_phase_agent.render_swml
+    keys = swml['sections']['main'].map { |v| v.keys.first }
+
+    indices = EXPECTED_PHASE_ORDER.map { |verb| keys.index(verb) }
+
+    refute_includes indices, nil, "missing expected verb in #{keys.inspect}"
+    assert_equal indices.sort, indices, "verbs out of phase order: #{keys.inspect}"
   end
 end
 
 class RenderEdgeCasesTest < Minitest::Test
+  include RenderHelpers
+
   def test_empty_agent_renders
     agent = SignalWire::AgentBase.new
     swml = agent.render_swml
@@ -122,7 +136,7 @@ class RenderEdgeCasesTest < Minitest::Test
     agent = SignalWire::AgentBase.new
     agent.set_params({ 'temperature' => 0.5 })
     swml = agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+    ai = ai_section(swml)
 
     assert_in_delta(0.5, ai['params']['temperature'])
   end
@@ -132,7 +146,7 @@ class RenderEdgeCasesTest < Minitest::Test
     ctx = agent.define_contexts.add_context('default')
     ctx.add_step('greeting').set_text('Say hello')
     swml = agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+    ai = ai_section(swml)
 
     assert ai.key?('contexts'), 'Expected contexts in AI config'
     assert ai['contexts'].key?('default')

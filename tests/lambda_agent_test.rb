@@ -154,47 +154,34 @@ end
 # ==========================================================================
 # Integration: LambdaHandler invoking a real agent's Rack app
 # ==========================================================================
-class LambdaHandlerIntegrationTest < Minitest::Test
+# Shared setup + Lambda-event builders for the handler integration tests.
+class LambdaHandlerTestBase < Minitest::Test
   include RuntimeEnvIsolation
+
+  BASIC_AUTH = "Basic #{['testuser:testpass'].pack('m0').chomp}".freeze
+  V2_BASE_HEADERS = { 'content-type' => 'application/json',
+                      'host' => 'abc.lambda-url.us-east-1.on.aws' }.freeze
 
   def setup
     super
-    @agent = SignalWire::AgentBase.new(
-      name: 'lambda-agent',
-      route: '/',
-      basic_auth: %w[testuser testpass]
-    )
+    @agent = SignalWire::AgentBase.new(name: 'lambda-agent', route: '/', basic_auth: %w[testuser testpass])
     @agent.set_prompt_text('Hello from Lambda')
-    @agent.define_tool(
-      name: 'echo',
-      description: 'Echo back a message',
-      parameters: { 'message' => { 'type' => 'string' } }
-    ) do |args, _raw|
+    _define_echo_tool(@agent)
+    @handler = SignalWire::Serverless::LambdaHandler.new(@agent.rack_app)
+  end
+
+  def _define_echo_tool(agent)
+    agent.define_tool(name: 'echo', description: 'Echo back a message',
+                      parameters: { 'message' => { 'type' => 'string' } }) do |args, _raw|
       SignalWire::Swaig::FunctionResult.new("echo: #{args['message']}")
     end
-    @handler = SignalWire::Serverless::LambdaHandler.new(@agent.rack_app)
   end
 
   # ------------ Function URL / API Gateway v2 payload -----------------
 
   def function_url_event(method:, path:, body: nil, headers: {}, query: nil)
-    merged_headers = {
-      'authorization' => 'Basic ' + ['testuser:testpass'].pack('m0').chomp,
-      'content-type' => 'application/json',
-      'host' => 'abc.lambda-url.us-east-1.on.aws'
-    }.merge(headers)
-
-    event = {
-      'version' => '2.0',
-      'routeKey' => '$default',
-      'rawPath' => path,
-      'rawQueryString' => query.to_s,
-      'headers' => merged_headers,
-      'requestContext' => {
-        'http' => { 'method' => method, 'path' => path, 'protocol' => 'HTTP/1.1' },
-        'stage' => '$default'
-      }
-    }
+    merged_headers = V2_BASE_HEADERS.merge('authorization' => BASIC_AUTH).merge(headers)
+    event = _v2_event_envelope(method, path, query, merged_headers)
     if body
       event['body']            = body
       event['isBase64Encoded'] = false
@@ -202,6 +189,25 @@ class LambdaHandlerIntegrationTest < Minitest::Test
     event
   end
 
+  def _v2_event_envelope(method, path, query, headers)
+    req_ctx = { 'http' => { 'method' => method, 'path' => path, 'protocol' => 'HTTP/1.1' }, 'stage' => '$default' }
+    {
+      'version' => '2.0', 'routeKey' => '$default', 'rawPath' => path,
+      'rawQueryString' => query.to_s, 'headers' => headers, 'requestContext' => req_ctx
+    }
+  end
+
+  def rest_event(method:, path:, body: nil)
+    headers = { 'Authorization' => BASIC_AUTH, 'Content-Type' => 'application/json', 'Host' => 'api.example.com' }
+    { 'httpMethod' => method, 'path' => path, 'headers' => headers, 'body' => body, 'isBase64Encoded' => false }
+  end
+
+  def assert_v2_response_shape(resp)
+    assert(%w[statusCode headers body isBase64Encoded].all? { |k| resp.key?(k) }, 'missing v2 response key')
+  end
+end
+
+class LambdaHandlerV2Test < LambdaHandlerTestBase
   def test_health_endpoint_does_not_require_auth
     event = function_url_event(method: 'GET', path: '/health', headers: {})
     event['headers'].delete('authorization')
@@ -222,16 +228,12 @@ class LambdaHandlerIntegrationTest < Minitest::Test
     resp = @handler.call(event, nil)
 
     assert_equal 200, resp['statusCode']
-    assert resp.key?('statusCode')
-    assert resp.key?('headers')
-    assert resp.key?('body')
-    assert resp.key?('isBase64Encoded')
+    assert_v2_response_shape(resp)
     payload = JSON.parse(resp['body'])
     # The SWML document carries the agent's prompt — enough to prove the
     # Rack pipeline ran end-to-end.
     assert payload.key?('sections')
-    main = payload['sections']['main']
-    ai_verb = main.find { |v| v.key?('ai') }
+    ai_verb = payload['sections']['main'].find { |v| v.key?('ai') }
 
     assert ai_verb, "rendered SWML should include an 'ai' verb"
   end
@@ -251,7 +253,7 @@ class LambdaHandlerIntegrationTest < Minitest::Test
     assert_equal 'echo: from-lambda', payload['response']
   end
 
-  def test_unauthorized_swml_request_returns_401
+  def test_unauthorized_swml_request_returns401
     event = function_url_event(method: 'GET', path: '/', headers: {})
     event['headers'].delete('authorization')
 
@@ -259,23 +261,10 @@ class LambdaHandlerIntegrationTest < Minitest::Test
 
     assert_equal 401, resp['statusCode']
   end
+end
 
-  # ----------------- API Gateway v1 (REST API) payload -----------------
-
-  def rest_event(method:, path:, body: nil)
-    {
-      'httpMethod' => method,
-      'path' => path,
-      'headers' => {
-        'Authorization' => 'Basic ' + ['testuser:testpass'].pack('m0').chomp,
-        'Content-Type' => 'application/json',
-        'Host' => 'api.example.com'
-      },
-      'body' => body,
-      'isBase64Encoded' => false
-    }
-  end
-
+# ----------------- API Gateway v1 (REST API) payload -----------------
+class LambdaHandlerV1Test < LambdaHandlerTestBase
   def test_v1_payload_shape_returns_v1_response_shape
     event = rest_event(method: 'GET', path: '/health')
 
@@ -298,25 +287,21 @@ class LambdaHandlerIntegrationTest < Minitest::Test
   end
 
   def test_base64_encoded_body_is_decoded
-    raw_body = JSON.generate(
-      'function' => 'echo',
-      'argument' => { 'parsed' => [{ 'message' => 'b64' }] }
-    )
-    event = function_url_event(method: 'POST', path: '/swaig', body: nil)
     require 'base64'
+    raw_body = JSON.generate('function' => 'echo', 'argument' => { 'parsed' => [{ 'message' => 'b64' }] })
+    event = function_url_event(method: 'POST', path: '/swaig', body: nil)
     event['body']            = Base64.strict_encode64(raw_body)
     event['isBase64Encoded'] = true
 
     resp = @handler.call(event, nil)
 
     assert_equal 200, resp['statusCode']
-    payload = JSON.parse(resp['body'])
-
-    assert_equal 'echo: b64', payload['response']
+    assert_equal 'echo: b64', JSON.parse(resp['body'])['response']
   end
+end
 
-  # ----------------- Handler factory -----------------------------------
-
+# ----------------- Handler factory -----------------------------------
+class LambdaHandlerFactoryTest < LambdaHandlerTestBase
   def test_for_factory_accepts_agent
     handler = SignalWire::Serverless::LambdaHandler.for(@agent)
     event = function_url_event(method: 'GET', path: '/health')

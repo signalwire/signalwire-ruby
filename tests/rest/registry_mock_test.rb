@@ -72,8 +72,12 @@ class RegistryMockTest < Minitest::Test
     assert_equal 'POST', last.method
     assert_equal "#{REG_BASE}/brands/brand-2/campaigns", last.path
     assert_kind_of Hash, last.body
-    assert_equal 'LOW_VOLUME', last.body['usecase']
-    assert_equal 'MFA', last.body['description']
+    assert_request_body(last, 'usecase' => 'LOW_VOLUME', 'description' => 'MFA')
+  end
+
+  # Assert each expected key/value pair is present in the journaled request body.
+  def assert_request_body(entry, expected)
+    expected.each { |k, v| assert_equal v, entry.body[k] }
   end
 
   # ---- Campaigns ------------------------------------------------------

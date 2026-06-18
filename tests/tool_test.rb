@@ -12,11 +12,8 @@ class ToolRegistrationTest < Minitest::Test
   end
 
   def test_define_tool_with_block
-    @agent.define_tool(
-      name: 'greet',
-      description: 'Say hello',
-      parameters: { 'name' => { 'type' => 'string', 'description' => 'Name' } }
-    ) do |args, _raw|
+    @agent.define_tool(name: 'greet', description: 'Say hello',
+                       parameters: { 'name' => { 'type' => 'string', 'description' => 'Name' } }) do |args, _raw|
       SignalWire::Swaig::FunctionResult.new("Hello, #{args['name']}!")
     end
 
@@ -93,12 +90,8 @@ end
 class DataMapToolRegistrationTest < Minitest::Test
   def test_register_swaig_function
     agent = SignalWire::AgentBase.new
-    dm_func = {
-      'function' => 'weather',
-      'description' => 'Get weather',
-      'parameters' => { 'type' => 'object', 'properties' => {} },
-      'data_map' => { 'webhooks' => [] }
-    }
+    dm_func = { 'function' => 'weather', 'description' => 'Get weather',
+                'parameters' => { 'type' => 'object', 'properties' => {} }, 'data_map' => { 'webhooks' => [] } }
     agent.register_swaig_function(dm_func)
     tools = agent.define_tools
 
@@ -116,20 +109,24 @@ class DataMapToolRegistrationTest < Minitest::Test
 
   def test_register_datamap_tool
     agent = SignalWire::AgentBase.new
-    dm = SignalWire::DataMap.new('get_weather')
-                            .purpose('Get weather')
-                            .parameter('city', 'string', 'City name', required: true)
-                            .webhook('GET', 'https://api.weather.com?q=${city}')
-                            .output(SignalWire::Swaig::FunctionResult.new('Weather: ${response.temp}'))
-
-    agent.register_swaig_function(dm.to_swaig_function)
-    swml = agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
-    funcs = ai['SWAIG']['functions']
-    weather = funcs.find { |f| f['function'] == 'get_weather' }
+    agent.register_swaig_function(weather_datamap.to_swaig_function)
+    weather = find_ai_function(agent, 'get_weather')
 
     assert weather
     assert weather.key?('data_map')
+  end
+
+  def find_ai_function(agent, name)
+    ai = agent.render_swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+    ai['SWAIG']['functions'].find { |f| f['function'] == name }
+  end
+
+  def weather_datamap
+    SignalWire::DataMap.new('get_weather')
+                       .purpose('Get weather')
+                       .parameter('city', 'string', 'City name', required: true)
+                       .webhook('GET', 'https://api.weather.com?q=${city}')
+                       .output(SignalWire::Swaig::FunctionResult.new('Weather: ${response.temp}'))
   end
 end
 

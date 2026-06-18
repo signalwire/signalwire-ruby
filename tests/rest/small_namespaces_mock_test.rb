@@ -13,7 +13,8 @@
 require 'minitest/autorun'
 require_relative 'mock_test'
 
-class SmallNamespacesMockTest < Minitest::Test
+# Shared setup + journal assertions for the small-namespace mock tests.
+module SmallNamespacesHelpers
   RELAY_BASE = '/api/relay/rest'
 
   def setup
@@ -25,6 +26,28 @@ class SmallNamespacesMockTest < Minitest::Test
     MockTest.reset
   end
 
+  # Assert the last journaled request used +method+ against +path+ (matched).
+  # Returns the journal entry for further assertions.
+  def assert_request(method, path)
+    last = MockTest.journal.last
+
+    assert_equal method, last.method
+    assert_equal path, last.path
+    refute_nil last.matched_route
+    last
+  end
+
+  # Assert each expected key/value pair is present in the journaled body.
+  def assert_sent_body(entry, expected)
+    sent = entry.body || {}
+
+    expected.each { |k, v| assert_equal(v, sent[k], "body[#{k.inspect}]") }
+  end
+end
+
+class SmallNamespacesMockTest < Minitest::Test
+  include SmallNamespacesHelpers
+
   # ---- Addresses ------------------------------------------------------
 
   def test_addresses_list
@@ -33,11 +56,8 @@ class SmallNamespacesMockTest < Minitest::Test
     assert_kind_of Hash, body
     assert body.key?('data')
     assert_kind_of Array, body['data']
-    last = MockTest.journal.last
+    last = assert_request('GET', "#{RELAY_BASE}/addresses")
 
-    assert_equal 'GET', last.method
-    assert_equal "#{RELAY_BASE}/addresses", last.path
-    refute_nil last.matched_route
     assert_equal ['10'], last.query_params['page_size']
   end
 
@@ -52,15 +72,8 @@ class SmallNamespacesMockTest < Minitest::Test
     assert_kind_of Hash, body
     # An Address resource carries an 'id' field.
     assert body.key?('id')
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal "#{RELAY_BASE}/addresses", last.path
-    sent = last.body || {}
-
-    assert_equal 'commercial', sent['address_type']
-    assert_equal 'Ada', sent['first_name']
-    assert_equal 'US', sent['country']
+    last = assert_request('POST', "#{RELAY_BASE}/addresses")
+    assert_sent_body(last, 'address_type' => 'commercial', 'first_name' => 'Ada', 'country' => 'US')
   end
 
   def test_addresses_get
@@ -164,29 +177,26 @@ class SmallNamespacesMockTest < Minitest::Test
 
     assert_equal 'Marketing SMS', sent['name']
   end
+end
+
+# Second half of the small-namespace coverage (split to keep each test class
+# under the size limit). Shares setup/assertions via SmallNamespacesHelpers.
+class SmallNamespacesMockTestPartTwo < Minitest::Test
+  include SmallNamespacesHelpers
 
   # ---- Imported Numbers -----------------------------------------------
 
   def test_imported_numbers_create
     body = @client.imported_numbers.create(
-      number: '+15551234567',
-      sip_username: 'alice',
-      sip_password: 'secret',
-      sip_proxy: 'sip.example.com'
+      number: '+15551234567', sip_username: 'alice', sip_password: 'secret', sip_proxy: 'sip.example.com'
     )
 
     assert_kind_of Hash, body
     # The imported-number response has an 'id'.
     assert body.key?('id')
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal "#{RELAY_BASE}/imported_phone_numbers", last.path
-    sent = last.body || {}
-
-    assert_equal '+15551234567', sent['number']
-    assert_equal 'alice', sent['sip_username']
-    assert_equal 'sip.example.com', sent['sip_proxy']
+    last = assert_request('POST', "#{RELAY_BASE}/imported_phone_numbers")
+    assert_sent_body(last, 'number' => '+15551234567', 'sip_username' => 'alice',
+                           'sip_proxy' => 'sip.example.com')
   end
 
   # ---- MFA — voice channel --------------------------------------------
@@ -201,15 +211,9 @@ class SmallNamespacesMockTest < Minitest::Test
     assert_kind_of Hash, body
     # The mfa response has 'id', 'success', 'channel', 'to'.
     assert body.key?('id')
-    last = MockTest.journal.last
-
-    assert_equal 'POST', last.method
-    assert_equal "#{RELAY_BASE}/mfa/call", last.path
-    sent = last.body || {}
-
-    assert_equal '+15551234567', sent['to']
-    assert_equal '+15559876543', sent['from_']
-    assert_equal 'Your code is {code}', sent['message']
+    last = assert_request('POST', "#{RELAY_BASE}/mfa/call")
+    assert_sent_body(last, 'to' => '+15551234567', 'from_' => '+15559876543',
+                           'message' => 'Your code is {code}')
   end
 
   # ---- SIP Profile ----------------------------------------------------
@@ -223,14 +227,8 @@ class SmallNamespacesMockTest < Minitest::Test
     assert_kind_of Hash, body
     # The SIP profile resource has a 'domain' field.
     assert(body.key?('domain') || body.key?('default_codecs'))
-    last = MockTest.journal.last
-
-    assert_equal 'PUT', last.method
-    assert_equal "#{RELAY_BASE}/sip_profile", last.path
-    sent = last.body || {}
-
-    assert_equal 'myco.sip.signalwire.com', sent['domain']
-    assert_equal %w[PCMU PCMA], sent['default_codecs']
+    last = assert_request('PUT', "#{RELAY_BASE}/sip_profile")
+    assert_sent_body(last, 'domain' => 'myco.sip.signalwire.com', 'default_codecs' => %w[PCMU PCMA])
   end
 
   # ---- Number Groups — membership operations --------------------------

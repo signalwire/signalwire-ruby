@@ -204,6 +204,9 @@ RUBY_EXCLUDED_CLASSES = %w[
   SignalWire::SWML::Service::TimingSafeBasicAuth
   SignalWire::Logging::Logger
   SignalWire::REST::Namespaces
+  SignalWire::Skills::Builtin::SafeEvaluator
+  SignalWire::Skills::Builtin::MathTokenizer
+  SignalWire::POM::SectionBuilder
 ].freeze
 
 # Mixin projections: Ruby collapses Python's mixin classes into

@@ -83,10 +83,13 @@ module SignalWire
         # Try parsed form params and the empty-params fallback (for JSON on
         # the compat surface). Try with-port and without-port URL variants.
         # ------------------------------------------------------------------
-        parsed_params = _parse_form_body(raw_body)
-        param_shapes  = [parsed_params, []]
+        _scheme_b_match?(signing_key, signature, url.to_s, raw_body)
+      end
 
-        _candidate_urls(url.to_s).each do |candidate_url|
+      # @api private — Scheme B across URL/param-shape variants; honors bodySHA256.
+      def self._scheme_b_match?(signing_key, signature, url, raw_body)
+        param_shapes = [_parse_form_body(raw_body), []]
+        _candidate_urls(url).each do |candidate_url|
           param_shapes.each do |shape|
             concat = _sorted_concat_params(shape)
             expected_b = _b64_hmac_sha1(signing_key, candidate_url + concat)
@@ -97,7 +100,6 @@ module SignalWire
             # bodySHA256 mismatched — keep trying other shapes/urls.
           end
         end
-
         false
       end
 
@@ -126,18 +128,25 @@ module SignalWire
           return validate_webhook_signature(signing_key, signature, url, params_or_raw_body)
         end
 
-        params_or_raw_body = [] if params_or_raw_body.nil?
-
-        unless params_or_raw_body.is_a?(Hash) || params_or_raw_body.is_a?(Array)
-          raise TypeError,
-                'params_or_raw_body must be a String (raw body) or a Hash/Array of form params'
-        end
-
         # Pre-parsed form params → Scheme B only.
-        concat = _sorted_concat_params(params_or_raw_body)
-        _candidate_urls(url.to_s).each do |candidate_url|
+        params = _coerce_form_params(params_or_raw_body)
+        _scheme_b_params_match?(signing_key, signature, url.to_s, params)
+      end
+
+      # @api private — coerce non-String overload arg to Hash/Array (else TypeError).
+      def self._coerce_form_params(value)
+        return [] if value.nil?
+        return value if value.is_a?(Hash) || value.is_a?(Array)
+
+        raise TypeError,
+              'params_or_raw_body must be a String (raw body) or a Hash/Array of form params'
+      end
+
+      # @api private — Scheme B over pre-parsed form params (no bodySHA256 check).
+      def self._scheme_b_params_match?(signing_key, signature, url, params)
+        concat = _sorted_concat_params(params)
+        _candidate_urls(url).each do |candidate_url|
           expected_b = _b64_hmac_sha1(signing_key, candidate_url + concat)
-          # bodySHA256 has no raw body to verify here — skip that check.
           return true if _safe_eq(expected_b, signature)
         end
         false
@@ -147,117 +156,102 @@ module SignalWire
       # Internal helpers (underscore-prefixed: not part of the public surface).
       # ----------------------------------------------------------------------
 
-      # @api private
-      def self._hex_hmac_sha1(key, message)
-        OpenSSL::HMAC.hexdigest('SHA1', key.to_s, message.to_s)
-      end
+      def self._hex_hmac_sha1(key, message) = OpenSSL::HMAC.hexdigest('SHA1', key.to_s, message.to_s)
 
-      # @api private
       def self._b64_hmac_sha1(key, message)
-        Base64.strict_encode64(
-          OpenSSL::HMAC.digest('SHA1', key.to_s, message.to_s)
-        )
+        Base64.strict_encode64(OpenSSL::HMAC.digest('SHA1', key.to_s, message.to_s))
       end
 
-      # @api private
-      # Constant-time string compare. Returns false on any error so malformed
-      # inputs never raise.
-      def self._safe_eq(a, b)
-        Rack::Utils.secure_compare(a.to_s, b.to_s)
+      # @api private — constant-time compare; false on any error (never raises).
+      def self._safe_eq(lhs, rhs)
+        Rack::Utils.secure_compare(lhs.to_s, rhs.to_s)
       rescue StandardError
         false
       end
 
-      # @api private
-      # Concatenate form params per Scheme B rules:
-      # - Sort by key, ASCII ascending.
-      # - For repeated keys (Array values OR multiple [k,v] pairs): keep
-      #   original submission order, emit ``key + value`` once per occurrence.
-      # - Non-string values are stringified via ``to_s``.
+      # @api private — Scheme B concat: sort by key (ASCII), stable within
+      # repeated keys, emit ``key + value`` per occurrence (nil/non-string via to_s).
       def self._sorted_concat_params(params)
-        return '' if params.nil? || (params.respond_to?(:empty?) && params.empty?)
-
-        items = []
-        if params.is_a?(Hash)
-          params.each do |k, v|
-            if v.is_a?(Array)
-              v.each { |vi| items << [k.to_s, vi] }
-            else
-              items << [k.to_s, v]
-            end
-          end
-        elsif params.is_a?(Array)
-          params.each do |pair|
-            # Accept [k, v] pairs (the most common form).
-            next unless pair.is_a?(Array) && pair.length >= 2
-
-            items << [pair[0].to_s, pair[1]]
-          end
-        else
-          return ''
-        end
+        items = _concat_items(params)
+        return '' if items.nil? || items.empty?
 
         # Stable sort by key — preserves original order within repeated keys.
         items = items.each_with_index.sort_by { |(k, _v), idx| [k, idx] }.map(&:first)
-
-        items.map { |k, v| "#{k}#{v unless v.nil?}" }.join
+        items.map { |pair| _concat_pair(pair) }.join
       end
 
-      # @api private
-      # Best-effort parse of an x-www-form-urlencoded body. Returns an
-      # array of [key, value] pairs (preserving order, including duplicate
-      # keys). Returns [] if the body doesn't decode as form data.
+      def self._concat_pair((key, value)) = "#{key}#{value unless value.nil?}"
+
+      # @api private — normalize Hash / Array-of-pairs into [key, value] items;
+      # nil for unsupported shapes.
+      def self._concat_items(params)
+        return _hash_items(params) if params.is_a?(Hash)
+        return _pair_items(params) if params.is_a?(Array)
+
+        nil
+      end
+
+      def self._hash_items(params)
+        params.flat_map do |k, v|
+          v.is_a?(Array) ? v.map { |vi| [k.to_s, vi] } : [[k.to_s, v]]
+        end
+      end
+
+      def self._pair_items(params)
+        # Accept [k, v] pairs (the most common form).
+        params.select { |pair| pair.is_a?(Array) && pair.length >= 2 }
+              .map { |pair| [pair[0].to_s, pair[1]] }
+      end
+
+      # @api private — best-effort x-www-form-urlencoded parse into ordered
+      # [key, value] pairs (dups kept); [] if it doesn't decode as form data.
       def self._parse_form_body(raw_body)
         return [] if raw_body.nil? || raw_body.empty?
 
-        pairs = []
-        raw_body.split('&').each do |chunk|
-          next if chunk.empty?
-
+        raw_body.split('&').reject(&:empty?).map do |chunk|
           k, _eq, v = chunk.partition('=')
-          decoded_k = CGI.unescape(k)
-          decoded_v = CGI.unescape(v)
-          pairs << [decoded_k, decoded_v]
+          [CGI.unescape(k), CGI.unescape(v)]
         end
-        pairs
       rescue StandardError
         []
       end
 
-      # @api private
-      # Return the URL variants to try for Scheme B port normalization.
-      #
-      # - If the URL already has a non-standard port: just the input URL.
-      # - If https + no port: input URL AND url with ``:443``.
-      # - If http + no port: input URL AND url with ``:80``.
-      # - If https + ``:443`` / http + ``:80``: input URL AND url without port.
-      # - Otherwise (any explicit non-standard port): just the input URL.
+      # @api private — URL variants to try for Scheme B port normalization:
+      # add the standard port when omitted / drop it when spelled out; otherwise
+      # (non-standard explicit port) just the input URL.
       def self._candidate_urls(url)
         parsed = URI.parse(url)
         host = parsed.host
         return [url] if host.nil? || host.empty?
 
-        scheme = (parsed.scheme || '').downcase
-        standard = { 'http' => 80, 'https' => 443 }[scheme]
-        port = parsed.port
-
         candidates = [url]
-
-        if standard && parsed.respond_to?(:default_port) && port == parsed.default_port &&
-           !_explicit_port?(url, scheme)
-          # No explicit port in original URL; URI added the default.
-          with_port_url = _build_url_with_port(parsed, standard)
-          candidates << with_port_url if with_port_url != url
-        elsif standard && port == standard && _explicit_port?(url, scheme)
-          # Original URL had the standard port spelled out — also try without.
-          without_port_url = _build_url_without_port(parsed)
-          candidates << without_port_url if without_port_url != url
-        end
-        # Else: non-standard explicit port — only try as-is.
-
+        variant = _port_variant_url(url, parsed)
+        candidates << variant if variant && variant != url
         candidates
       rescue URI::InvalidURIError
         [url]
+      end
+
+      # @api private — alternate URL: add standard port if omitted, drop it if
+      # spelled out; nil when no port normalization applies.
+      def self._port_variant_url(url, parsed)
+        scheme = (parsed.scheme || '').downcase
+        standard = { 'http' => 80, 'https' => 443 }[scheme]
+        return nil unless standard
+
+        explicit = _explicit_port?(url, scheme)
+        if _implicit_default_port?(parsed) && !explicit
+          # No explicit port in original URL; URI added the default.
+          _build_url(parsed, port: standard)
+        elsif parsed.port == standard && explicit
+          # Original URL had the standard port spelled out — also try without.
+          _build_url(parsed, port: nil)
+        end
+        # Else: non-standard explicit port — only try as-is (nil).
+      end
+
+      def self._implicit_default_port?(parsed)
+        parsed.respond_to?(:default_port) && parsed.port == parsed.default_port
       end
 
       # @api private
@@ -265,49 +259,35 @@ module SignalWire
       # ``URI`` always populates ``port`` (with the default), so we have to
       # look at the raw string.
       def self._explicit_port?(url, _scheme)
-        # Look for ``:NNN`` between the host and the path / query / end.
-        # Avoid false positives in ``://``, userinfo, IPv6 brackets, etc.
-        no_scheme = url.sub(%r{\A[^:]+://}, '')
-        no_userinfo = no_scheme.sub(%r{\A[^@/?#]*@}, '')
-        # Strip IPv6 zone if any: "[..]" then look after ]
+        # Look for ``:NNN`` between host and path/query/end, avoiding false
+        # positives in ``://``, userinfo, and IPv6 brackets.
+        no_userinfo = url.sub(%r{\A[^:]+://}, '').sub(%r{\A[^@/?#]*@}, '')
         if no_userinfo.start_with?('[')
           after_bracket = no_userinfo.sub(/\A\[[^\]]*\]/, '')
           !!(after_bracket =~ /\A:\d+/)
         else
-          host_and_rest = no_userinfo
-          host_part, _sep, _rest = host_and_rest.partition(%r{[/?#]})
+          host_part, = no_userinfo.partition(%r{[/?#]})
           !!(host_part =~ /:\d+\z/)
         end
       end
 
-      # @api private
-      def self._build_url_with_port(parsed, port)
+      # Reassemble a URL from its parsed parts, optionally injecting a port.
+      def self._build_url(parsed, port:)
         netloc_host = parsed.host.include?(':') ? "[#{parsed.host}]" : parsed.host
-        prefix = "#{parsed.scheme}://"
-        prefix += "#{parsed.userinfo}@" if parsed.userinfo
-        rest = +''
-        rest << (parsed.path || '')
-        rest << "?#{parsed.query}" if parsed.query
-        rest << "##{parsed.fragment}" if parsed.fragment
-        "#{prefix}#{netloc_host}:#{port}#{rest}"
+        userinfo = parsed.userinfo ? "#{parsed.userinfo}@" : ''
+        port_part = port ? ":#{port}" : ''
+        "#{parsed.scheme}://#{userinfo}#{netloc_host}#{port_part}#{_build_url_rest(parsed)}"
       end
 
-      # @api private
-      def self._build_url_without_port(parsed)
-        netloc_host = parsed.host.include?(':') ? "[#{parsed.host}]" : parsed.host
-        prefix = "#{parsed.scheme}://"
-        prefix += "#{parsed.userinfo}@" if parsed.userinfo
-        rest = +''
-        rest << (parsed.path || '')
+      def self._build_url_rest(parsed)
+        rest = +(parsed.path || '')
         rest << "?#{parsed.query}" if parsed.query
         rest << "##{parsed.fragment}" if parsed.fragment
-        "#{prefix}#{netloc_host}#{rest}"
+        rest
       end
 
-      # @api private
-      # If URL has ``?bodySHA256=<hex>``, verify ``sha256_hex(raw_body)`` matches.
-      # Returns true if the param is absent (no constraint), or present and
-      # matches. Returns false only when the param is present and mismatches.
+      # @api private — if URL has ``?bodySHA256=<hex>``, require sha256(body) to
+      # match; true when the param is absent or matches, false only on mismatch.
       def self._check_body_sha256(url, raw_body)
         parsed = URI.parse(url)
         return true if parsed.query.nil? || parsed.query.empty?

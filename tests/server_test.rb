@@ -18,11 +18,13 @@ class MockAgent
   end
 end
 
-class AgentServerTest < Minitest::Test
+class AgentServerTestBase < Minitest::Test
   def setup
     @server = SignalWire::AgentServer.new(host: '127.0.0.1', port: 4567)
   end
+end
 
+class AgentServerTest < AgentServerTestBase
   def test_creation
     assert_equal '127.0.0.1', @server.host
     assert_equal 4567, @server.port
@@ -35,10 +37,10 @@ class AgentServerTest < Minitest::Test
     assert_equal 3000, server.port
     assert_equal 'info', server.log_level
   end
+end
 
-  # --- Python parity: log_level constructor arg --------------------
-  # Python: AgentServer(host, port, log_level="info")
-
+# --- Python parity: log_level constructor arg + app/logger accessors ---
+class AgentServerLogLevelTest < AgentServerTestBase
   def test_log_level_default_is_info
     server = SignalWire::AgentServer.new
 
@@ -104,9 +106,10 @@ class AgentServerTest < Minitest::Test
     assert_respond_to @server.logger, :info
     assert_respond_to @server.logger, :warn
   end
+end
 
-  # --- Python parity: run(event=, context=, host=, port=) ----------
-
+# --- Python parity: run(event=, context=, host=, port=) + execution mode ---
+class AgentServerRunTest < AgentServerTestBase
   def test_run_routes_to_lambda_when_lambda_env_present
     ENV['AWS_LAMBDA_FUNCTION_NAME'] = 'test-fn'
     begin
@@ -123,20 +126,20 @@ class AgentServerTest < Minitest::Test
   end
 
   def test_run_routes_to_cgi_when_gateway_interface_present
+    result = with_cgi_env { @server.run }
+
+    assert_kind_of String, result
+    assert_includes result, 'Status: 200'
+    assert_includes result, '"status":"ok"'
+  end
+
+  def with_cgi_env
     ENV['GATEWAY_INTERFACE'] = 'CGI/1.1'
     ENV['PATH_INFO'] = '/health'
     ENV['REQUEST_METHOD'] = 'GET'
-    begin
-      result = @server.run
-
-      assert_kind_of String, result
-      assert_includes result, 'Status: 200'
-      assert_includes result, '"status":"ok"'
-    ensure
-      ENV.delete('GATEWAY_INTERFACE')
-      ENV.delete('PATH_INFO')
-      ENV.delete('REQUEST_METHOD')
-    end
+    yield
+  ensure
+    %w[GATEWAY_INTERFACE PATH_INFO REQUEST_METHOD].each { |k| ENV.delete(k) }
   end
 
   def test_detect_execution_mode_returns_server_default
@@ -158,7 +161,10 @@ class AgentServerTest < Minitest::Test
   ensure
     ENV.delete('GATEWAY_INTERFACE')
   end
+end
 
+# --- Agent registration ----------------------------------------------
+class AgentServerRegistrationTest < AgentServerTestBase
   def test_register_agent
     agent = MockAgent.new(name: 'test', route: '/test')
     @server.register(agent)
@@ -221,7 +227,10 @@ class AgentServerTest < Minitest::Test
   def test_get_agent_not_found
     assert_nil @server.get_agent('/nonexistent')
   end
+end
 
+# --- Rack app routing + SIP -------------------------------------------
+class AgentServerRackAppTest < AgentServerTestBase
   def test_rack_app_health_endpoint
     agent = MockAgent.new(name: 'test', route: '/test')
     @server.register(agent)
@@ -273,7 +282,7 @@ class AgentServerTest < Minitest::Test
     assert_equal 'registered', data['status']
   end
 
-  def test_rack_app_404
+  def test_rack_app404
     app = @server.rack_app
     status, _, body = app.call({ 'PATH_INFO' => '/nonexistent' })
 
@@ -298,16 +307,26 @@ class AgentServerTest < Minitest::Test
   def test_setup_sip_routing
     agent = MockAgent.new(name: 'test', route: '/test')
     @server.register(agent)
-    @server.setup_sip_routing(route: '/sip', auto_map: true)
+    result = @server.setup_sip_routing(route: '/sip', auto_map: true)
 
-    # No crash is good enough for now; SIP routing is configuration-level
-    assert true
+    # Fluent return.
+    assert_same @server, result
+    # The configured SIP route is stored.
+    assert_equal '/sip', @server.instance_variable_get(:@sip_route)
+    # auto_map derives a username from each registered agent's route
+    # ('/test' -> 'test') and maps it back to that route.
+    sip_routes = @server.instance_variable_get(:@sip_routes)
+
+    assert_equal '/test', sip_routes['test']
   end
 
   def test_register_sip_username
-    @server.register_sip_username('alice', '/agent1')
+    result = @server.register_sip_username('alice', '/agent1')
 
-    assert true # No crash
+    assert_same @server, result
+    sip_routes = @server.instance_variable_get(:@sip_routes)
+
+    assert_equal '/agent1', sip_routes['alice']
   end
 
   def test_fluent_register
@@ -326,7 +345,7 @@ class AgentServerStaticFilesTest < Minitest::Test
     @server = SignalWire::AgentServer.new(host: '127.0.0.1', port: 4567)
 
     # Create a temporary directory with test files
-    @tmpdir = File.join(Dir.tmpdir, "swaig_test_static_#{$$}")
+    @tmpdir = File.join(Dir.tmpdir, "swaig_test_static_#{Process.pid}")
     FileUtils.mkdir_p(@tmpdir)
     File.write(File.join(@tmpdir, 'index.html'), '<html><body>Hello</body></html>')
     File.write(File.join(@tmpdir, 'style.css'), 'body { color: red; }')

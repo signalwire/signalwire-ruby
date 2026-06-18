@@ -33,18 +33,14 @@ module SignalWire
 
         def instance_key = "native_vector_search_#{@tool_name}"
 
+        TOOL_PARAMETERS = {
+          'query' => { 'type' => 'string', 'description' => 'Search query' },
+          'count' => { 'type' => 'integer', 'description' => 'Number of results to return' }
+        }.freeze
+
         def register_tools
-          [
-            {
-              name: @tool_name,
-              description: @tool_desc,
-              parameters: {
-                'query' => { 'type' => 'string', 'description' => 'Search query' },
-                'count' => { 'type' => 'integer', 'description' => 'Number of results to return' }
-              },
-              handler: method(:handle_search)
-            }
-          ]
+          [{ name: @tool_name, description: @tool_desc,
+             parameters: TOOL_PARAMETERS, handler: method(:handle_search) }]
         end
 
         def get_hints
@@ -71,39 +67,45 @@ module SignalWire
           return Swaig::FunctionResult.new('Please provide a search query.') if query.empty?
 
           count = (args['count'] || @count).to_i
-
-          begin
-            uri = URI(@remote_url)
-            params = { query: query, count: count }
-            params[:index_name] = @index_name if @index_name
-
-            req = Net::HTTP::Post.new(uri.path.empty? ? '/' : uri.path)
-            req['Content-Type'] = 'application/json'
-            req.body = params.to_json
-
-            http = Net::HTTP.new(uri.host, uri.port)
-            http.use_ssl = (uri.scheme == 'https')
-            http.open_timeout = 10
-            http.read_timeout = 30
-
-            resp = http.request(req)
-            unless resp.is_a?(Net::HTTPSuccess)
-              return Swaig::FunctionResult.new('Sorry, the search service is unavailable right now.')
-            end
-
-            data = JSON.parse(resp.body)
-            results = data['results'] || data['chunks'] || []
-            return Swaig::FunctionResult.new("No results found for '#{query}'.") if results.empty?
-
-            formatted = results.first(count).each_with_index.map do |r, i|
-              text = r['text'] || r['content'] || r.to_json
-              "=== RESULT #{i + 1} ===\n#{text}\n#{'=' * 50}"
-            end.join("\n\n")
-
-            Swaig::FunctionResult.new("Search results for '#{query}':\n\n#{formatted}")
-          rescue StandardError => e
-            Swaig::FunctionResult.new("Error searching: #{e.message}")
+          resp = post_search(query, count)
+          unless resp.is_a?(Net::HTTPSuccess)
+            return Swaig::FunctionResult.new('Sorry, the search service is unavailable right now.')
           end
+
+          format_results(JSON.parse(resp.body), query, count)
+        rescue StandardError => e
+          Swaig::FunctionResult.new("Error searching: #{e.message}")
+        end
+
+        def post_search(query, count)
+          uri = URI(@remote_url)
+          params = { query: query, count: count }
+          params[:index_name] = @index_name if @index_name
+
+          req = Net::HTTP::Post.new(uri.path.empty? ? '/' : uri.path)
+          req['Content-Type'] = 'application/json'
+          req.body = params.to_json
+          search_http(uri).request(req)
+        end
+
+        def search_http(uri)
+          http = Net::HTTP.new(uri.host, uri.port)
+          http.use_ssl = (uri.scheme == 'https')
+          http.open_timeout = 10
+          http.read_timeout = 30
+          http
+        end
+
+        def format_results(data, query, count)
+          results = data['results'] || data['chunks'] || []
+          return Swaig::FunctionResult.new("No results found for '#{query}'.") if results.empty?
+
+          formatted = results.first(count).each_with_index.map do |r, i|
+            text = r['text'] || r['content'] || r.to_json
+            "=== RESULT #{i + 1} ===\n#{text}\n#{'=' * 50}"
+          end.join("\n\n")
+
+          Swaig::FunctionResult.new("Search results for '#{query}':\n\n#{formatted}")
         end
       end
     end

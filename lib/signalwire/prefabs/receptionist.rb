@@ -23,18 +23,7 @@ module SignalWire
 
       def initialize(departments:, name: 'receptionist', route: '/receptionist',
                      greeting: 'Thank you for calling. How can I help you today?', **_opts)
-        unless departments.is_a?(Array) && !departments.empty?
-          raise ArgumentError,
-                'departments must be a non-empty Array'
-        end
-
-        departments.each_with_index do |d, i|
-          d = d.transform_keys(&:to_s)
-          raise ArgumentError, "Department #{i} missing 'name'" unless d['name']
-          raise ArgumentError, "Department #{i} missing 'number'" unless d['number']
-        end
-
-        @departments = departments.map { |d| d.transform_keys(&:to_s) }
+        @departments = validate_departments(departments)
         @greeting    = greeting
         @name  = name
         @route = route
@@ -65,15 +54,11 @@ module SignalWire
       def handle_transfer(args, _raw_data)
         dept_name = args['department']
         dept = @departments.find { |d| d['name'] == dept_name }
-        if dept
-          result = Swaig::FunctionResult.new("Transferring you to #{dept_name} now.")
-          result.connect(dept['number'])
-          result
-        else
-          Swaig::FunctionResult.new("I couldn't find that department. Available departments: #{@departments.map do |d|
-            d['name']
-          end.join(', ')}")
-        end
+        return _department_not_found_result unless dept
+
+        result = Swaig::FunctionResult.new("Transferring you to #{dept_name} now.")
+        result.connect(dept['number'])
+        result
       end
 
       # Lifecycle hook: on_summary — Python parity
@@ -88,6 +73,29 @@ module SignalWire
       # @return [void]
       def on_summary(_summary, _raw_data = nil)
         nil
+      end
+
+      private
+
+      def validate_departments(departments)
+        unless departments.is_a?(Array) && !departments.empty?
+          raise ArgumentError, 'departments must be a non-empty Array'
+        end
+
+        departments.each_with_index.map do |dept, i|
+          stringified = dept.transform_keys(&:to_s)
+          raise ArgumentError, "Department #{i} missing 'name'" unless stringified['name']
+          raise ArgumentError, "Department #{i} missing 'number'" unless stringified['number']
+
+          stringified
+        end
+      end
+
+      def _department_not_found_result
+        names = @departments.map { |d| d['name'] }.join(', ')
+        Swaig::FunctionResult.new(
+          "I couldn't find that department. Available departments: #{names}"
+        )
       end
     end
   end

@@ -62,7 +62,9 @@ class JokeSkillDetailedTest < Minitest::Test
     skill.setup
     data = skill.get_global_data
 
-    assert_equal true, data['joke_skill_enabled']
+    # assert_same keeps the exact-+true+ check (true is a singleton) without
+    # tripping Minitest/AssertTruthy, which would weaken it to any truthy value.
+    assert_same true, data['joke_skill_enabled']
   end
 
   def test_prompt_sections
