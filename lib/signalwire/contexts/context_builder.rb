@@ -29,7 +29,7 @@ module SignalWire
     # bullet lines ("- <b>") when the section has +bullets+, or the raw
     # +body+ otherwise. Shared by Step and Context so the byte-for-byte
     # output stays identical across both.
-    def self.render_pom_sections(sections)
+    def self._render_pom_sections(sections)
       sections.flat_map { |section| _render_section(section) }.join("\n").strip
     end
 
@@ -363,7 +363,7 @@ module SignalWire
 
         raise ArgumentError, "Step '#{@name}' has no text or POM sections defined" if @sections.empty?
 
-        Contexts.render_pom_sections(@sections)
+        Contexts._render_pom_sections(@sections)
       end
     end
 
@@ -638,7 +638,7 @@ module SignalWire
         return @system_prompt if @system_prompt
         return nil if @system_prompt_sections.empty?
 
-        Contexts.render_pom_sections(@system_prompt_sections)
+        Contexts._render_pom_sections(@system_prompt_sections)
       end
 
       def _add_navigation(ctx)

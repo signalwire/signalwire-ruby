@@ -175,6 +175,8 @@ module SignalWire
          *method_body_kwargs_lines(verb_name)].join("\n")
       end
 
+      private
+
       def method_body_kwargs_lines(verb_name)
         ['        # Add any additional parameters from kwargs',
          '        for key, value in kwargs.items():',
@@ -183,8 +185,6 @@ module SignalWire
          "        # Add the #{verb_name} verb",
          "        return self.add_verb('#{verb_name}', config)"]
       end
-
-      private
 
       def signature_param_parts(verb_name, params, keys)
         required = get_verb_required_properties(verb_name).to_set

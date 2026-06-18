@@ -341,16 +341,6 @@
                 }
               ],
               "returns": "any"
-            },
-            "render_pom_sections": {
-              "params": [
-                {
-                  "name": "sections",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
             }
           }
         }
@@ -1024,15 +1014,6 @@
               ],
               "returns": "any"
             },
-            "answer_entry": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "as_rack_app": {
               "params": [
                 {
@@ -1331,15 +1312,6 @@
               ],
               "returns": "any"
             },
-            "record_call_entry": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "register_sip_username": {
               "params": [
                 {
@@ -1423,15 +1395,6 @@
               "returns": "any"
             },
             "use_pom": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "webrick_handler": {
               "params": [
                 {
                   "name": "self",
@@ -21543,20 +21506,6 @@
                 {
                   "name": "self",
                   "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "method_body_kwargs_lines": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "verb_name",
-                  "type": "any",
-                  "required": true
                 }
               ],
               "returns": "any"

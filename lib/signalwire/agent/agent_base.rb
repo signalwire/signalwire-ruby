@@ -2306,5 +2306,6 @@ module SignalWire
     private :register_skill_tools, :replace_hint, :sanitize_sip_username, :section_pom_kwargs
     private :secure_token_ok?, :sym_or_str, :verb_entries, :warn_unexpected_function_result
     private :warn_unknown_filler_name, :warn_unknown_filler_names, :webrick_opts
+    private :answer_entry, :record_call_entry, :webrick_handler
   end
 end

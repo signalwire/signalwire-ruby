@@ -343,6 +343,8 @@ EXCLUDED_RUBY_CLASSES = {
     "SignalWire::Skills::Builtin::SafeEvaluator",
     "SignalWire::Skills::Builtin::MathTokenizer",
     "SignalWire::POM::SectionBuilder",
+    "SignalWire::Skills::SkillIntrospection",
+    "SignalWire::Relay::MessageSerialization",
 }
 
 
