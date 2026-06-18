@@ -41,9 +41,9 @@ module SignalWire
       # Called by Call when an event matches our control_id.
       def _check_event(event)
         state = event.params['state'] || ''
-        if @terminal_states.include?(state) && !@completed
-          _resolve(event)
-        end
+        return unless @terminal_states.include?(state) && !@completed
+
+        _resolve(event)
       end
 
       # Mark the action as completed and fire the on_completed callback.
@@ -55,13 +55,7 @@ module SignalWire
           @completed = true
           @condition.broadcast
         end
-        if @on_completed
-          begin
-            @on_completed.call(event)
-          rescue => e
-            $stderr.puts "[RELAY] Error in on_completed callback for #{@control_id}: #{e.message}"
-          end
-        end
+        _fire_on_completed(event)
       end
 
       # Wait for the action to complete. Returns the terminal event.
@@ -71,14 +65,7 @@ module SignalWire
           return @result if @completed
 
           if timeout
-            deadline = Time.now + timeout
-            while !@completed
-              remaining = deadline - Time.now
-              if remaining <= 0
-                raise ActionTimeoutError, "Action #{@control_id} timed out after #{timeout}s"
-              end
-              @condition.wait(@mutex, remaining)
-            end
+            _wait_with_timeout(timeout)
           else
             @condition.wait(@mutex) until @completed
           end
@@ -90,7 +77,31 @@ module SignalWire
         @completed
       end
 
-      alias_method :is_done?, :done?
+      alias is_done? done?
+
+      private
+
+      # Fire the on_completed callback outside the mutex, swallowing errors.
+      def _fire_on_completed(event)
+        return unless @on_completed
+
+        begin
+          @on_completed.call(event)
+        rescue StandardError => e
+          warn "[RELAY] Error in on_completed callback for #{@control_id}: #{e.message}"
+        end
+      end
+
+      # Block on the condition variable until completed or the deadline passes.
+      def _wait_with_timeout(timeout)
+        deadline = Time.now + timeout
+        until @completed
+          remaining = deadline - Time.now
+          raise ActionTimeoutError, "Action #{@control_id} timed out after #{timeout}s" if remaining <= 0
+
+          @condition.wait(@mutex, remaining)
+        end
+      end
     end
 
     # Handle for an active play operation.
@@ -150,9 +161,9 @@ module SignalWire
       def _check_event(event)
         detect = event.params['detect'] || {}
         state  = event.params['state'] || ''
-        if (!detect.empty? || @terminal_states.include?(state)) && !@completed
-          _resolve(event)
-        end
+        return unless (!detect.empty? || @terminal_states.include?(state)) && !@completed
+
+        _resolve(event)
       end
 
       def stop
@@ -176,7 +187,7 @@ module SignalWire
         if !result_data.empty? && !@completed
           _resolve(event)
         else
-          super(event)
+          super
         end
       end
 
@@ -186,8 +197,8 @@ module SignalWire
 
       def volume(vol)
         @call._execute('play_and_collect.volume', {
-          'control_id' => @control_id, 'volume' => vol
-        })
+                         'control_id' => @control_id, 'volume' => vol
+                       })
       end
 
       def start_input_timers
@@ -207,9 +218,9 @@ module SignalWire
 
         result_data = event.params['result'] || {}
         state       = event.params['state'] || ''
-        if (!result_data.empty? || @terminal_states.include?(state)) && !@completed
-          _resolve(event)
-        end
+        return unless (!result_data.empty? || @terminal_states.include?(state)) && !@completed
+
+        _resolve(event)
       end
 
       def stop

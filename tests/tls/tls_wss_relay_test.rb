@@ -39,42 +39,59 @@ class TlsWssRelayTest < Minitest::Test
   end
 
   def teardown
-    if @handle
-      @handle[:client].stop rescue nil
-      @handle[:run_thread]&.kill
-      @handle[:run_thread]&.join(2)
-    end
+    _stop_handle(@handle) if @handle
     %w[SSL_CERT_FILE SIGNALWIRE_RELAY_SCHEME SIGNALWIRE_RELAY_HOST
        SIGNALWIRE_RELAY_SSL_CA_FILE].each { |k| ENV.delete(k) }
     @saved&.each { |k, v| ENV[k] = v }
+  end
+
+  # Stop a connect_relay handle's client and join its run thread.
+  def _stop_handle(handle)
+    begin
+      handle[:client].stop
+    rescue StandardError
+      nil
+    end
+    handle[:run_thread]&.kill
+    handle[:run_thread]&.join(2)
+  end
+
+  # Set the RELAY transport env vars for a wss:// connection trusting +ca_file+
+  # (or an empty default store when +ca_file+ is nil — an untrusted client).
+  def _set_relay_env(ca_file)
+    if ca_file
+      ENV['SSL_CERT_FILE'] = ca_file
+      ENV['SIGNALWIRE_RELAY_SSL_CA_FILE'] = ca_file
+    else
+      ENV['SSL_CERT_FILE'] = File::NULL # empty default store
+      ENV.delete('SIGNALWIRE_RELAY_SSL_CA_FILE')
+    end
+    ENV['SIGNALWIRE_RELAY_SCHEME'] = 'wss'
+    ENV['SIGNALWIRE_RELAY_HOST']   = "127.0.0.1:#{@mock[:ws_port]}"
   end
 
   # Connect a real SignalWire::Relay::Client to wss://<mock>, returning a
   # {client:, run_thread:} handle once it has authenticated (protocol set).
   # Raises on timeout. ca_file: nil reproduces an untrusted client.
   def connect_relay(ca_file:)
-    if ca_file
-      ENV['SSL_CERT_FILE'] = ca_file
-      ENV['SIGNALWIRE_RELAY_SSL_CA_FILE'] = ca_file
-    else
-      ENV['SSL_CERT_FILE'] = File::NULL           # empty default store
-      ENV.delete('SIGNALWIRE_RELAY_SSL_CA_FILE')
-    end
-    ENV['SIGNALWIRE_RELAY_SCHEME'] = 'wss'
-    ENV['SIGNALWIRE_RELAY_HOST']   = "127.0.0.1:#{@mock[:ws_port]}"
-
+    _set_relay_env(ca_file)
     client = SignalWire::Relay::Client.new(
       project: 'test_proj', token: 'test_tok',
-      space: "127.0.0.1:#{@mock[:ws_port]}", contexts: ['default'],
+      space: "127.0.0.1:#{@mock[:ws_port]}", contexts: ['default']
     )
-    run_thread = Thread.new do
-      client.run
-    rescue StandardError => e
-      $stderr.puts "[tls_wss] client.run raised: #{e.class}: #{e.message}"
-    end
+    run_thread = _spawn_run_thread(client)
     deadline = Time.now + 12
     sleep 0.05 until (client.protocol && !client.protocol.empty?) || Time.now > deadline
     { client: client, run_thread: run_thread }
+  end
+
+  # Run the client in a background thread, logging any error it raises.
+  def _spawn_run_thread(client)
+    Thread.new do
+      client.run
+    rescue StandardError => e
+      warn "[tls_wss] client.run raised: #{e.class}: #{e.message}"
+    end
   end
 
   # Positive: a CA-trusting RELAY client authenticates over verified wss://,

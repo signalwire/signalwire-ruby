@@ -4049,7 +4049,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "args",
+                  "name": "*",
                   "type": "any",
                   "kind": "var_positional",
                   "required": true
@@ -5264,13 +5264,13 @@
                   "kind": "self"
                 },
                 {
-                  "name": "request_data",
+                  "name": "_request_data",
                   "type": "any",
                   "required": false,
                   "default": null
                 },
                 {
-                  "name": "callback_path",
+                  "name": "_callback_path",
                   "type": "any",
                   "required": false,
                   "default": null
@@ -6446,13 +6446,13 @@
                   "kind": "self"
                 },
                 {
-                  "name": "request_data",
+                  "name": "_request_data",
                   "type": "any",
                   "required": false,
                   "default": null
                 },
                 {
-                  "name": "callback_path",
+                  "name": "_callback_path",
                   "type": "any",
                   "required": false,
                   "default": null
@@ -10843,7 +10843,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "args",
+                  "name": "*",
                   "type": "any",
                   "kind": "var_positional",
                   "required": true
@@ -11018,7 +11018,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "args",
+                  "name": "*",
                   "type": "any",
                   "kind": "var_positional",
                   "required": true
@@ -13000,7 +13000,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "args",
+                  "name": "*",
                   "type": "any",
                   "kind": "var_positional",
                   "required": true
@@ -13504,29 +13504,6 @@
               ],
               "returns": "any"
             },
-            "deconstruct": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "deconstruct_keys": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "keys",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
             "direction": {
               "params": [
                 {
@@ -13545,39 +13522,7 @@
               ],
               "returns": "any"
             },
-            "eql": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "other",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
             "from_number": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "hash": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "inspect": {
               "params": [
                 {
                   "name": "self",
@@ -13708,31 +13653,7 @@
               ],
               "returns": "any"
             },
-            "to_json": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "args",
-                  "type": "any",
-                  "kind": "var_positional",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
             "to_number": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "to_s": {
               "params": [
                 {
                   "name": "self",
@@ -15827,7 +15748,7 @@
                   "required": true
                 },
                 {
-                  "name": "kw",
+                  "name": "params",
                   "type": "any",
                   "kind": "var_keyword",
                   "required": true
@@ -20944,7 +20865,7 @@
                   "default": null
                 },
                 {
-                  "name": "block",
+                  "name": "&",
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
@@ -21278,7 +21199,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "args",
+                  "name": "*",
                   "type": "any",
                   "kind": "var_positional",
                   "required": true
@@ -21614,7 +21535,7 @@
                   "kind": "self"
                 },
                 {
-                  "name": "document",
+                  "name": "_document",
                   "type": "any",
                   "required": true
                 }

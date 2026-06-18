@@ -40,44 +40,31 @@ module SignalWire
       end
 
       def prompt_sections
-        amenity_bullets = @amenities.map { |k, v| "#{k}: #{v.is_a?(Hash) ? v.map { |a, b| "#{a}: #{b}" }.join(', ') : v}" }
-        service_bullets = @services.map { |s| s.to_s }
-
         sections = [
           {
             'title' => "#{@venue_name} Concierge",
             'body' => @welcome,
-            'bullets' => service_bullets + amenity_bullets
+            'bullets' => @services.map(&:to_s) + amenity_bullets
           }
         ]
-
-        if @hours
-          sections << {
-            'title' => 'Hours of Operation',
-            'body' => @hours.is_a?(Hash) ? @hours.map { |k, v| "#{k}: #{v}" }.join('; ') : @hours.to_s
-          }
-        end
-
+        sections << hours_section if @hours
         sections
       end
 
       def global_data
         {
           'venue_name' => @venue_name,
-          'services'   => @services,
-          'amenities'  => @amenities
+          'services' => @services,
+          'amenities' => @amenities
         }
       end
 
       def handle_amenity_info(args, _raw_data)
         amenity = (args['amenity'] || '').downcase
         info = @amenities.find { |k, _v| k.downcase == amenity }&.last
-        if info
-          detail = info.is_a?(Hash) ? info.map { |k, v| "#{k}: #{v}" }.join(', ') : info.to_s
-          Swaig::FunctionResult.new("#{amenity.capitalize}: #{detail}")
-        else
-          Swaig::FunctionResult.new("I don't have information about '#{amenity}'. Available amenities: #{@amenities.keys.join(', ')}")
-        end
+        return amenity_not_found(amenity) unless info
+
+        Swaig::FunctionResult.new("#{amenity.capitalize}: #{format_amenity_detail(info)}")
       end
 
       def handle_service_info(args, _raw_data)
@@ -101,20 +88,14 @@ module SignalWire
       # @return [Swaig::FunctionResult]
       def check_availability(args, _raw_data)
         service = (args['service'] || '').downcase
-        date    = args['date'] || ''
-        time    = args['time'] || ''
+        return service_unavailable(service) unless @services.any? { |s| s.downcase == service }
 
-        if @services.any? { |s| s.downcase == service }
-          Swaig::FunctionResult.new(
-            "Yes, #{service} is available on #{date} at #{time}. " \
-            'Would you like to make a reservation?'
-          )
-        else
-          Swaig::FunctionResult.new(
-            "I'm sorry, we don't offer #{service} at #{@venue_name}. " \
-            "Our available services are: #{@services.join(', ')}."
-          )
-        end
+        date = args['date'] || ''
+        time = args['time'] || ''
+        Swaig::FunctionResult.new(
+          "Yes, #{service} is available on #{date} at #{time}. " \
+          'Would you like to make a reservation?'
+        )
       end
 
       # Tool: get_directions — Python parity
@@ -128,19 +109,13 @@ module SignalWire
       def get_directions(args, _raw_data)
         location = (args['location'] || '').downcase
         amenity  = @amenities.find { |k, _v| k.downcase == location }&.last
+        return directions_unknown(location) unless amenity.is_a?(Hash) && amenity['location']
 
-        if amenity.is_a?(Hash) && amenity['location']
-          where = amenity['location']
-          Swaig::FunctionResult.new(
-            "The #{location} is located at #{where}. " \
-            "From the main entrance, follow the signs to #{where}."
-          )
-        else
-          Swaig::FunctionResult.new(
-            "I don't have specific directions to #{location}. " \
-            'You can ask our staff at the front desk for assistance.'
-          )
-        end
+        where = amenity['location']
+        Swaig::FunctionResult.new(
+          "The #{location} is located at #{where}. " \
+          "From the main entrance, follow the signs to #{where}."
+        )
       end
 
       # Lifecycle hook: on_summary — Python parity
@@ -163,6 +138,45 @@ module SignalWire
         end
       rescue StandardError => e
         puts "Error processing summary: #{e.message}"
+      end
+
+      private
+
+      # Bullet lines for each amenity; a Hash value is flattened to "k: v, ..".
+      def amenity_bullets
+        @amenities.map { |k, v| "#{k}: #{format_amenity_detail(v)}" }
+      end
+
+      # Flatten one amenity's detail (Hash -> "k: v, .." else the value as text).
+      def format_amenity_detail(info)
+        info.is_a?(Hash) ? info.map { |k, v| "#{k}: #{v}" }.join(', ') : info.to_s
+      end
+
+      # The optional "Hours of Operation" prompt section built from @hours.
+      def hours_section
+        body = @hours.is_a?(Hash) ? @hours.map { |k, v| "#{k}: #{v}" }.join('; ') : @hours.to_s
+        { 'title' => 'Hours of Operation', 'body' => body }
+      end
+
+      def amenity_not_found(amenity)
+        Swaig::FunctionResult.new(
+          "I don't have information about '#{amenity}'. " \
+          "Available amenities: #{@amenities.keys.join(', ')}"
+        )
+      end
+
+      def service_unavailable(service)
+        Swaig::FunctionResult.new(
+          "I'm sorry, we don't offer #{service} at #{@venue_name}. " \
+          "Our available services are: #{@services.join(', ')}."
+        )
+      end
+
+      def directions_unknown(location)
+        Swaig::FunctionResult.new(
+          "I don't have specific directions to #{location}. " \
+          'You can ask our staff at the front desk for assistance.'
+        )
       end
     end
   end

@@ -54,8 +54,8 @@ end
 # --------------------------------------------------------------------------
 class CrudWithAddressesParityTest < Minitest::Test
   def test_class_extends_crud_resource
-    assert SignalWire::REST::CrudWithAddresses < SignalWire::REST::CrudResource,
-           'CrudWithAddresses must inherit the standard CRUD surface'
+    assert_operator SignalWire::REST::CrudWithAddresses, :<, SignalWire::REST::CrudResource,
+                    'CrudWithAddresses must inherit the standard CRUD surface'
   end
 
   def test_list_addresses_builds_addresses_subpath
@@ -65,6 +65,7 @@ class CrudWithAddressesParityTest < Minitest::Test
     result = res.list_addresses('res-123')
 
     req = http.last
+
     assert_equal 'GET', req[:method]
     assert_equal '/api/fabric/resources/ai_agents/res-123/addresses', req[:path]
     assert_nil req[:params], 'no params → nil query, matching Python params or None'
@@ -78,6 +79,7 @@ class CrudWithAddressesParityTest < Minitest::Test
     res.list_addresses('res-123', page_size: 25, type: 'sip')
 
     req = http.last
+
     assert_equal '/api/fabric/resources/ai_agents/res-123/addresses', req[:path]
     assert_equal({ page_size: 25, type: 'sip' }, req[:params])
   end
@@ -85,7 +87,7 @@ class CrudWithAddressesParityTest < Minitest::Test
   def test_fabric_resource_inherits_list_addresses_from_mixin
     # Python's FabricResource(CrudWithAddresses) inherits list_addresses
     # rather than declaring it. Mirror that hierarchy in the Ruby port.
-    assert SignalWire::REST::Namespaces::FabricResource < SignalWire::REST::CrudWithAddresses
+    assert_operator SignalWire::REST::Namespaces::FabricResource, :<, SignalWire::REST::CrudWithAddresses
     refute_includes SignalWire::REST::Namespaces::FabricResource.public_instance_methods(false),
                     :list_addresses,
                     'list_addresses should be inherited, not redeclared on FabricResource'
@@ -94,6 +96,7 @@ class CrudWithAddressesParityTest < Minitest::Test
     SignalWire::REST::Namespaces::FabricResource
       .new(http, '/api/fabric/resources/ai_agents')
       .list_addresses('abc')
+
     assert_equal '/api/fabric/resources/ai_agents/abc/addresses', http.last[:path]
   end
 end
@@ -127,28 +130,30 @@ class PaginatedIteratorProtocolParityTest < Minitest::Test
   end
 
   def test_iter_returns_self
-    it = make_iterator
-    assert_same it, it.__iter__, '__iter__ must return the iterator itself'
+    iter = make_iterator
+
+    assert_same iter, iter.__iter__, '__iter__ must return the iterator itself'
   end
 
   def test_next_yields_items_then_raises_stop_iteration
-    it = make_iterator
+    iter = make_iterator
 
-    assert_equal({ 'id' => 1 }, it.__next__)
-    assert_equal({ 'id' => 2 }, it.__next__)
-    assert_equal({ 'id' => 3 }, it.__next__) # crosses the page boundary
+    assert_equal({ 'id' => 1 }, iter.__next__)
+    assert_equal({ 'id' => 2 }, iter.__next__)
+    assert_equal({ 'id' => 3 }, iter.__next__) # crosses the page boundary
 
-    assert_raises(StopIteration) { it.__next__ }
+    assert_raises(StopIteration) { iter.__next__ }
   end
 
   def test_next_drives_full_collection_across_pages
-    it = make_iterator
+    iter = make_iterator
     collected = []
     loop do
-      collected << it.__next__
+      collected << iter.__next__
     rescue StopIteration
       break
     end
+
     assert_equal [{ 'id' => 1 }, { 'id' => 2 }, { 'id' => 3 }], collected
   end
 end
@@ -185,6 +190,7 @@ class RegisterGlobalRoutingCallbackParityTest < Minitest::Test
     [@a1, @a2].each do |agent|
       assert_equal 1, agent.registered.length
       path, block = agent.registered.first
+
       assert_equal '/sw', path
       assert_same cb, block
     end
@@ -192,12 +198,14 @@ class RegisterGlobalRoutingCallbackParityTest < Minitest::Test
 
   def test_normalizes_path_leading_and_trailing_slash
     @server.register_global_routing_callback(->(_r, _d) {}, path: 'webhook/')
+
     assert_equal '/webhook', @a1.registered.first[0]
   end
 
   def test_accepts_block_form
     block = proc { 'x' }
     @server.register_global_routing_callback(path: '/blk', &block)
+
     assert_same block, @a1.registered.first[1]
   end
 
@@ -223,6 +231,7 @@ class AutoMapSipUsernamesParityTest < Minitest::Test
   def test_registers_name_and_no_vowel_variant
     # "support" → name "support"; no-vowels "spprt" (len 5 > 2, differs).
     names = usernames_for(name: 'support', route: '/')
+
     assert_includes names, 'support'
     assert_includes names, 'spprt'
   end
@@ -236,6 +245,7 @@ class AutoMapSipUsernamesParityTest < Minitest::Test
 
   def test_skips_route_equal_to_name_and_dedups
     names = usernames_for(name: 'demo', route: '/demo')
+
     assert_includes names, 'demo'
     assert_equal names.uniq, names, 'usernames must be deduped like Python set'
     assert_equal 1, names.count('demo')
@@ -244,12 +254,14 @@ class AutoMapSipUsernamesParityTest < Minitest::Test
   def test_short_name_has_no_vowel_stripped_variant
     # len("bot") == 3, not > 3 → no no-vowels variant registered.
     names = usernames_for(name: 'bot', route: '/')
+
     assert_includes names, 'bot'
     refute_includes names, 'bt'
   end
 
   def test_returns_self_for_chaining
     agent = SignalWire::AgentBase.new(name: 'x', suppress_logs: true)
+
     assert_same agent, agent.auto_map_sip_usernames
   end
 end
@@ -271,19 +283,23 @@ class CallWaitForParityTest < Minitest::Test
     )
   end
 
+  # Dispatch a calling.call.state event with the given call_state.
+  def dispatch_state(call, state)
+    call._dispatch_event(
+      'event_type' => 'calling.call.state',
+      'params' => { 'call_id' => 'call-1', 'call_state' => state }
+    )
+  end
+
   def test_returns_matching_event
     call = make_call
-    payload = {
-      'event_type' => 'calling.call.state',
-      'params' => { 'call_id' => 'call-1', 'call_state' => 'ringing' }
-    }
-
     Thread.new do
       sleep 0.05
-      call._dispatch_event(payload)
+      dispatch_state(call, 'ringing')
     end
 
     event = call.wait_for('calling.call.state', timeout: 2)
+
     refute_nil event
     assert_equal 'calling.call.state', event.event_type
     assert_equal 'ringing', event.params['call_state']
@@ -291,26 +307,17 @@ class CallWaitForParityTest < Minitest::Test
 
   def test_predicate_filters_non_matching_events
     call = make_call
-
     Thread.new do
-      sleep 0.03
       # First event fails the predicate, second satisfies it.
-      call._dispatch_event(
-        'event_type' => 'calling.call.state',
-        'params' => { 'call_id' => 'call-1', 'call_state' => 'ringing' }
-      )
       sleep 0.03
-      call._dispatch_event(
-        'event_type' => 'calling.call.state',
-        'params' => { 'call_id' => 'call-1', 'call_state' => 'answered' }
-      )
+      dispatch_state(call, 'ringing')
+      sleep 0.03
+      dispatch_state(call, 'answered')
     end
 
-    event = call.wait_for(
-      'calling.call.state',
-      predicate: ->(e) { e.params['call_state'] == 'answered' },
-      timeout: 2
-    )
+    answered = ->(e) { e.params['call_state'] == 'answered' }
+    event = call.wait_for('calling.call.state', predicate: answered, timeout: 2)
+
     assert_equal 'answered', event.params['call_state']
   end
 
@@ -318,6 +325,7 @@ class CallWaitForParityTest < Minitest::Test
     call = make_call
     started = Time.now
     result = call.wait_for('calling.call.state', timeout: 0.1)
+
     assert_nil result
     assert_operator (Time.now - started), :>=, 0.1
   end
@@ -326,14 +334,12 @@ class CallWaitForParityTest < Minitest::Test
     call = make_call
     Thread.new do
       sleep 0.02
-      call._dispatch_event(
-        'event_type' => 'calling.call.state',
-        'params' => { 'call_id' => 'call-1', 'call_state' => 'ringing' }
-      )
+      dispatch_state(call, 'ringing')
     end
     call.wait_for('calling.call.state', timeout: 2)
 
     listeners = call.instance_variable_get(:@listeners)['calling.call.state'] || []
+
     assert_empty listeners, 'wait_for must remove its one-shot handler'
   end
 end

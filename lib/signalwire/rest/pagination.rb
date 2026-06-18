@@ -86,24 +86,27 @@ module SignalWire
         data = resp[@data_key] || []
         @items.concat(data)
 
-        links = resp['links'] || {}
-        next_url = links['next']
+        next_url = (resp['links'] || {})['next']
         if next_url && !data.empty?
-          uri = URI.parse(next_url)
-          query = URI.decode_www_form(uri.query || '')
-          # Flatten single-value lists, preserving multi-value entries.
-          flat = {}
-          query.each do |k, v|
-            if flat.key?(k)
-              existing = flat[k]
-              flat[k] = existing.is_a?(Array) ? existing + [v] : [existing, v]
-            else
-              flat[k] = v
-            end
-          end
-          @params = flat
+          @params = params_from_next_url(next_url)
         else
           @done = true
+        end
+      end
+
+      # Parse the +next+ link's query string into a params hash, flattening
+      # single-value entries while preserving multi-value ones.
+      def params_from_next_url(next_url)
+        query = URI.decode_www_form(URI.parse(next_url).query || '')
+        query.each_with_object({}) { |(k, v), flat| merge_query_param(flat, k, v) }
+      end
+
+      def merge_query_param(flat, key, value)
+        if flat.key?(key)
+          existing = flat[key]
+          flat[key] = existing.is_a?(Array) ? existing + [value] : [existing, value]
+        else
+          flat[key] = value
         end
       end
     end

@@ -10,12 +10,14 @@ class WikipediaSkillDetailedTest < Minitest::Test
   def test_setup_always_succeeds
     factory = SignalWire::Skills::SkillRegistry.get_factory('wikipedia_search')
     skill = factory.call({})
+
     assert skill.setup
   end
 
   def test_name_and_description
     factory = SignalWire::Skills::SkillRegistry.get_factory('wikipedia_search')
     skill = factory.call({})
+
     assert_equal 'wikipedia_search', skill.name
     assert_includes skill.description, 'Wikipedia'
   end
@@ -25,6 +27,7 @@ class WikipediaSkillDetailedTest < Minitest::Test
     skill = factory.call({})
     skill.setup
     tools = skill.register_tools
+
     assert_equal 1, tools.size
     assert_equal 'search_wiki', tools[0][:name]
     assert tools[0][:parameters].key?('query')
@@ -35,6 +38,7 @@ class WikipediaSkillDetailedTest < Minitest::Test
     skill = factory.call({})
     skill.setup
     sections = skill.get_prompt_sections
+
     assert_equal 1, sections.size
     assert_equal 'Wikipedia Search', sections[0]['title']
   end
@@ -43,6 +47,7 @@ class WikipediaSkillDetailedTest < Minitest::Test
     factory = SignalWire::Skills::SkillRegistry.get_factory('wikipedia_search')
     skill = factory.call({})
     schema = skill.get_parameter_schema
+
     assert schema.key?('num_results')
   end
 end

@@ -90,12 +90,61 @@ module SignalWire
     #   3. post_process - Whether to let AI take another turn before executing actions
     #
     class FunctionResult
-      attr_accessor :response, :action, :post_process
+      # Default +ai_response+ for +pay+ (extracted to keep the signature line
+      # within length limits; value is wire-load-bearing — mirrors Python).
+      PAY_DEFAULT_AI_RESPONSE =
+        'The payment status is ${pay_result}, do not mention anything else ' \
+        'about collecting payment if successful.'
+
+      # Enum validations for +join_conference+, in Python's raise order.
+      # Each entry: [opts_key, allowed_values, error_message].
+      JOIN_CONFERENCE_ENUMS = [
+        [:beep, %w[true false onEnter onExit],
+         "beep must be one of ['true', 'false', 'onEnter', 'onExit']"],
+        [:record, %w[do-not-record record-from-start],
+         "record must be one of ['do-not-record', 'record-from-start']"],
+        [:trim, %w[trim-silence do-not-trim],
+         "trim must be one of ['trim-silence', 'do-not-trim']"],
+        [:status_callback_method, %w[GET POST],
+         "status_callback_method must be one of ['GET', 'POST']"],
+        [:recording_status_callback_method, %w[GET POST],
+         "recording_status_callback_method must be one of ['GET', 'POST']"]
+      ].freeze
+
+      # Spec for the non-default conference params, in exact wire-key order.
+      # Each entry: [wire_key, opts_key, ->(value) { include? }]. Driving the
+      # build off this table keeps key insertion order byte-identical to the
+      # Python reference while staying flat (one loop, not 18 branches).
+      JOIN_CONFERENCE_PARAM_SPEC = [
+        ['muted',            :muted,            ->(v) { v }],
+        ['beep',             :beep,             ->(v) { v != 'true' }],
+        ['start_on_enter',   :start_on_enter,   :!.to_proc],
+        ['end_on_exit',      :end_on_exit,      ->(v) { v }],
+        ['wait_url',         :wait_url,         ->(v) { v }],
+        ['max_participants', :max_participants, ->(v) { v != 250 }],
+        ['record',           :record,           ->(v) { v != 'do-not-record' }],
+        ['region',           :region,           ->(v) { v }],
+        ['trim',             :trim,             ->(v) { v != 'trim-silence' }],
+        ['coach',            :coach,            ->(v) { v }],
+        ['status_callback_event',            :status_callback_event,            ->(v) { v }],
+        ['status_callback',                  :status_callback,                  ->(v) { v }],
+        ['status_callback_method',           :status_callback_method,           ->(v) { v != 'POST' }],
+        ['recording_status_callback',        :recording_status_callback,        ->(v) { v }],
+        ['recording_status_callback_method', :recording_status_callback_method, ->(v) { v != 'POST' }],
+        ['recording_status_callback_event',  :recording_status_callback_event,  ->(v) { v != 'completed' }],
+        ['result',                           :result,                           ->(v) { v }]
+      ].freeze
+
+      # response= / post_process= are defined explicitly below (they delegate to
+      # set_response / set_post_process); declaring them here too via
+      # attr_accessor would define the writers twice (Lint/DuplicateMethods).
+      attr_reader :response, :post_process
+      attr_accessor :action
 
       # @param response [String, nil] text the AI speaks back to the user
       # @param post_process [Boolean] whether to let AI take another turn before executing actions
       def initialize(response = nil, post_process: false)
-        @response = response || ""
+        @response = response || ''
         @action = []
         @post_process = post_process
       end
@@ -146,20 +195,16 @@ module SignalWire
       # @param from_addr [String, nil] optional caller-ID override
       # @return [self]
       def connect(destination, final: true, from_addr: nil)
-        connect_params = { "to" => destination }
-        connect_params["from"] = from_addr if from_addr
+        connect_params = { 'to' => destination }
+        connect_params['from'] = from_addr if from_addr
 
-        swml_action = {
-          "SWML" => {
-            "sections" => {
-              "main" => [{ "connect" => connect_params }]
-            },
-            "version" => "1.0.0"
+        @action << {
+          'SWML' => {
+            'sections' => { 'main' => [{ 'connect' => connect_params }] },
+            'version' => '1.0.0'
           },
-          "transfer" => final.to_s
+          'transfer' => final.to_s
         }
-
-        @action << swml_action
         self
       end
 
@@ -170,35 +215,29 @@ module SignalWire
       # @param final [Boolean] permanent or temporary transfer
       # @return [self]
       def swml_transfer(dest, ai_response, final: true)
-        swml_action = {
-          "SWML" => {
-            "version" => "1.0.0",
-            "sections" => {
-              "main" => [
-                { "set" => { "ai_response" => ai_response } },
-                { "transfer" => { "dest" => dest } }
-              ]
-            }
-          },
-          "transfer" => final.to_s
+        main = [
+          { 'set' => { 'ai_response' => ai_response } },
+          { 'transfer' => { 'dest' => dest } }
+        ]
+        @action << {
+          'SWML' => { 'version' => '1.0.0', 'sections' => { 'main' => main } },
+          'transfer' => final.to_s
         }
-
-        @action << swml_action
         self
       end
 
       # Terminate the call.
       # @return [self]
       def hangup
-        add_action("hangup", true)
+        add_action('hangup', true)
       end
 
       # Put the call on hold.
       # @param timeout [Integer] seconds, clamped to 0..900
       # @return [self]
       def hold(timeout = 300)
-        timeout = [[timeout, 0].max, 900].min
-        add_action("hold", timeout)
+        timeout = timeout.clamp(0, 900)
+        add_action('hold', timeout)
       end
 
       # Control how the agent waits for user input.
@@ -209,7 +248,7 @@ module SignalWire
       # @return [self]
       def wait_for_user(enabled: nil, timeout: nil, answer_first: false)
         wait_value = if answer_first
-                       "answer_first"
+                       'answer_first'
                      elsif timeout
                        timeout
                      elsif !enabled.nil?
@@ -217,13 +256,13 @@ module SignalWire
                      else
                        true
                      end
-        add_action("wait_for_user", wait_value)
+        add_action('wait_for_user', wait_value)
       end
 
       # Stop agent execution.
       # @return [self]
       def stop
-        add_action("stop", true)
+        add_action('stop', true)
       end
 
       # ==================================================================
@@ -234,28 +273,28 @@ module SignalWire
       # @param data [Hash] key-value pairs to set/update
       # @return [self]
       def update_global_data(data)
-        add_action("set_global_data", data)
+        add_action('set_global_data', data)
       end
 
       # Remove global agent data variables.
       # @param keys [String, Array<String>] key(s) to remove
       # @return [self]
       def remove_global_data(keys)
-        add_action("unset_global_data", keys)
+        add_action('unset_global_data', keys)
       end
 
       # Set metadata scoped to current function's meta_data_token.
       # @param data [Hash]
       # @return [self]
       def set_metadata(data)
-        add_action("set_meta_data", data)
+        add_action('set_meta_data', data)
       end
 
       # Remove metadata from current function's scope.
       # @param keys [String, Array<String>]
       # @return [self]
       def remove_metadata(keys)
-        add_action("unset_meta_data", keys)
+        add_action('unset_meta_data', keys)
       end
 
       # Send a user event through SWML.
@@ -263,28 +302,28 @@ module SignalWire
       # @return [self]
       def swml_user_event(event_data)
         swml_action = {
-          "sections" => {
-            "main" => [{
-              "user_event" => { "event" => event_data }
+          'sections' => {
+            'main' => [{
+              'user_event' => { 'event' => event_data }
             }]
           },
-          "version" => "1.0.0"
+          'version' => '1.0.0'
         }
-        add_action("SWML", swml_action)
+        add_action('SWML', swml_action)
       end
 
       # Change the conversation step.
       # @param step_name [String]
       # @return [self]
       def swml_change_step(step_name)
-        add_action("change_step", step_name)
+        add_action('change_step', step_name)
       end
 
       # Change the conversation context.
       # @param context_name [String]
       # @return [self]
       def swml_change_context(context_name)
-        add_action("change_context", context_name)
+        add_action('change_context', context_name)
       end
 
       # Switch agent context/prompt during conversation.
@@ -300,17 +339,12 @@ module SignalWire
       # @return [self]
       def switch_context(system_prompt: nil, user_prompt: nil,
                          consolidate: false, full_reset: false, isolated: false)
-        if system_prompt && !user_prompt && !consolidate && !full_reset && !isolated
-          return add_action("context_switch", system_prompt)
-        end
+        flags_unset = !user_prompt && !consolidate && !full_reset && !isolated
+        return add_action('context_switch', system_prompt) if system_prompt && flags_unset
 
-        context_data = {}
-        context_data["system_prompt"] = system_prompt if system_prompt
-        context_data["user_prompt"]   = user_prompt   if user_prompt
-        context_data["consolidate"]   = true           if consolidate
-        context_data["full_reset"]    = true           if full_reset
-        context_data["isolated"]      = true           if isolated
-        add_action("context_switch", context_data)
+        context_data = build_context_switch_data(system_prompt, user_prompt, consolidate,
+                                                 full_reset, isolated)
+        add_action('context_switch', context_data)
       end
 
       # Replace the tool_call + result pair in conversation history.
@@ -318,7 +352,7 @@ module SignalWire
       # @param text [String, true] replacement text, or +true+ to remove entirely
       # @return [self]
       def replace_in_history(text = true)
-        add_action("replace_in_history", text)
+        add_action('replace_in_history', text)
       end
 
       # ==================================================================
@@ -329,7 +363,7 @@ module SignalWire
       # @param text [String]
       # @return [self]
       def say(text)
-        add_action("say", text)
+        add_action('say', text)
       end
 
       # Play audio/video file in the background.
@@ -339,16 +373,16 @@ module SignalWire
       # @return [self]
       def play_background_file(filename, wait: false)
         if wait
-          add_action("playback_bg", { "file" => filename, "wait" => true })
+          add_action('playback_bg', { 'file' => filename, 'wait' => true })
         else
-          add_action("playback_bg", filename)
+          add_action('playback_bg', filename)
         end
       end
 
       # Stop currently playing background file.
       # @return [self]
       def stop_background_file
-        add_action("stop_playback_bg", true)
+        add_action('stop_playback_bg', true)
       end
 
       # Start background call recording via SWML.
@@ -362,28 +396,17 @@ module SignalWire
                       direction: RecordDirection::BOTH, terminators: nil, beep: false,
                       input_sensitivity: 44.0, initial_timeout: nil,
                       end_silence_timeout: nil, max_length: nil, status_url: nil)
-        raise ArgumentError, "format must be 'wav', 'mp3', or 'mp4'" unless RecordFormat::ALL.include?(format)
-        raise ArgumentError, "direction must be 'speak', 'listen', or 'both'" unless RecordDirection::ALL.include?(direction)
+        validate_record_call!(format, direction)
 
-        record_params = {
-          "stereo"            => stereo,
-          "format"            => format,
-          "direction"         => direction,
-          "beep"              => beep,
-          "input_sensitivity" => input_sensitivity
-        }
-        record_params["control_id"]          = control_id          if control_id
-        record_params["terminators"]         = terminators         if terminators
-        record_params["initial_timeout"]     = initial_timeout     if initial_timeout
-        record_params["end_silence_timeout"] = end_silence_timeout if end_silence_timeout
-        record_params["max_length"]          = max_length          if max_length
-        record_params["status_url"]          = status_url          if status_url
+        record_params = { 'stereo' => stereo, 'format' => format, 'direction' => direction,
+                          'beep' => beep, 'input_sensitivity' => input_sensitivity }
+        assign_present(record_params,
+                       'control_id' => control_id, 'terminators' => terminators,
+                       'initial_timeout' => initial_timeout,
+                       'end_silence_timeout' => end_silence_timeout,
+                       'max_length' => max_length, 'status_url' => status_url)
 
-        swml_doc = {
-          "version"  => "1.0.0",
-          "sections" => { "main" => [{ "record_call" => record_params }] }
-        }
-        execute_swml(swml_doc)
+        execute_swml(swml_envelope('record_call', record_params))
       end
 
       # Stop an active background call recording.
@@ -391,13 +414,9 @@ module SignalWire
       # @return [self]
       def stop_record_call(control_id: nil)
         stop_params = {}
-        stop_params["control_id"] = control_id if control_id
+        stop_params['control_id'] = control_id if control_id
 
-        swml_doc = {
-          "version"  => "1.0.0",
-          "sections" => { "main" => [{ "stop_record_call" => stop_params }] }
-        }
-        execute_swml(swml_doc)
+        execute_swml(swml_envelope('stop_record_call', stop_params))
       end
 
       # ==================================================================
@@ -408,13 +427,13 @@ module SignalWire
       # @param hints [Array<String, Hash>]
       # @return [self]
       def add_dynamic_hints(hints)
-        add_action("add_dynamic_hints", hints)
+        add_action('add_dynamic_hints', hints)
       end
 
       # Clear all dynamic speech recognition hints.
       # @return [self]
       def clear_dynamic_hints
-        @action << { "clear_dynamic_hints" => {} }
+        @action << { 'clear_dynamic_hints' => {} }
         self
       end
 
@@ -422,42 +441,42 @@ module SignalWire
       # @param milliseconds [Integer]
       # @return [self]
       def set_end_of_speech_timeout(milliseconds)
-        add_action("end_of_speech_timeout", milliseconds)
+        add_action('end_of_speech_timeout', milliseconds)
       end
 
       # Adjust speech event timeout.
       # @param milliseconds [Integer]
       # @return [self]
       def set_speech_event_timeout(milliseconds)
-        add_action("speech_event_timeout", milliseconds)
+        add_action('speech_event_timeout', milliseconds)
       end
 
       # Enable / disable specific SWAIG functions.
       # @param toggles [Array<Hash>] each with "function" and "active" keys
       # @return [self]
       def toggle_functions(toggles)
-        add_action("toggle_functions", toggles)
+        add_action('toggle_functions', toggles)
       end
 
       # Enable function calls on speaker timeout.
       # @param enabled [Boolean]
       # @return [self]
       def enable_functions_on_timeout(enabled = true)
-        add_action("functions_on_speaker_timeout", enabled)
+        add_action('functions_on_speaker_timeout', enabled)
       end
 
       # Send full data to LLM for this turn only.
       # @param enabled [Boolean]
       # @return [self]
       def enable_extensive_data(enabled = true)
-        add_action("extensive_data", enabled)
+        add_action('extensive_data', enabled)
       end
 
       # Update agent runtime settings (temperature, top_p, etc.).
       # @param settings [Hash]
       # @return [self]
       def update_settings(settings)
-        add_action("settings", settings)
+        add_action('settings', settings)
       end
 
       # ==================================================================
@@ -470,124 +489,50 @@ module SignalWire
       # @param transfer [Boolean] whether call should exit agent after execution
       # @return [self]
       def execute_swml(swml_content, transfer: false)
-        swml_data = case swml_content
-                    when String
-                      begin
-                        JSON.parse(swml_content)
-                      rescue JSON::ParserError
-                        { "raw_swml" => swml_content }
-                      end
-                    when Hash
-                      swml_content.dup
-                    else
-                      if swml_content.respond_to?(:to_h)
-                        swml_content.to_h
-                      else
-                        raise TypeError, "swml_content must be a String, Hash, or respond to #to_h"
-                      end
-                    end
-
-        swml_data["transfer"] = "true" if transfer
-        add_action("SWML", swml_data)
+        swml_data = coerce_swml_content(swml_content)
+        swml_data['transfer'] = 'true' if transfer
+        add_action('SWML', swml_data)
       end
 
       # Join an ad-hoc audio conference via SWML.
       #
       # @param name [String] conference name (required)
       # @return [self]
-      def join_conference(name, muted: false, beep: "true",
+      def join_conference(name, muted: false, beep: 'true',
                           start_on_enter: true, end_on_exit: false,
                           wait_url: nil, max_participants: 250,
-                          record: "do-not-record", region: nil,
-                          trim: "trim-silence", coach: nil,
+                          record: 'do-not-record', region: nil,
+                          trim: 'trim-silence', coach: nil,
                           status_callback_event: nil, status_callback: nil,
-                          status_callback_method: "POST",
+                          status_callback_method: 'POST',
                           recording_status_callback: nil,
-                          recording_status_callback_method: "POST",
-                          recording_status_callback_event: "completed",
+                          recording_status_callback_method: 'POST',
+                          recording_status_callback_event: 'completed',
                           result: nil)
-        # Validation order + message text mirror the Python reference
-        # (core/function_result.py::join_conference). Python renders its
-        # valid-value lists via an f-string over a Python list literal, i.e.
-        # "one of ['a', 'b']"; we reproduce that exact form.
-        unless %w[true false onEnter onExit].include?(beep)
-          raise ArgumentError, "beep must be one of ['true', 'false', 'onEnter', 'onExit']"
-        end
-        if !max_participants.is_a?(Integer) || max_participants <= 0 || max_participants > 250
-          raise ArgumentError, "max_participants must be a positive integer <= 250"
-        end
-        unless %w[do-not-record record-from-start].include?(record)
-          raise ArgumentError, "record must be one of ['do-not-record', 'record-from-start']"
-        end
-        unless %w[trim-silence do-not-trim].include?(trim)
-          raise ArgumentError, "trim must be one of ['trim-silence', 'do-not-trim']"
-        end
-        unless %w[GET POST].include?(status_callback_method)
-          raise ArgumentError, "status_callback_method must be one of ['GET', 'POST']"
-        end
-        unless %w[GET POST].include?(recording_status_callback_method)
-          raise ArgumentError, "recording_status_callback_method must be one of ['GET', 'POST']"
-        end
-        raise ArgumentError, "name cannot be empty" if name.to_s.strip.empty?
-
-        all_defaults = !muted && beep == "true" && start_on_enter && !end_on_exit &&
-                       wait_url.nil? && max_participants == 250 && record == "do-not-record" &&
-                       region.nil? && trim == "trim-silence" && coach.nil? &&
-                       status_callback_event.nil? && status_callback.nil? &&
-                       status_callback_method == "POST" && recording_status_callback.nil? &&
-                       recording_status_callback_method == "POST" &&
-                       recording_status_callback_event == "completed" && result.nil?
-
-        if all_defaults
-          join_params = name
-        else
-          join_params = { "name" => name }
-          join_params["muted"]            = muted            if muted
-          join_params["beep"]             = beep             if beep != "true"
-          join_params["start_on_enter"]   = start_on_enter   unless start_on_enter
-          join_params["end_on_exit"]      = end_on_exit      if end_on_exit
-          join_params["wait_url"]         = wait_url         if wait_url
-          join_params["max_participants"] = max_participants  if max_participants != 250
-          join_params["record"]           = record           if record != "do-not-record"
-          join_params["region"]           = region           if region
-          join_params["trim"]             = trim             if trim != "trim-silence"
-          join_params["coach"]            = coach            if coach
-          join_params["status_callback_event"]            = status_callback_event            if status_callback_event
-          join_params["status_callback"]                  = status_callback                  if status_callback
-          join_params["status_callback_method"]           = status_callback_method           if status_callback_method != "POST"
-          join_params["recording_status_callback"]        = recording_status_callback        if recording_status_callback
-          join_params["recording_status_callback_method"] = recording_status_callback_method if recording_status_callback_method != "POST"
-          join_params["recording_status_callback_event"]  = recording_status_callback_event  if recording_status_callback_event != "completed"
-          join_params["result"]                           = result                           if result
-        end
-
-        swml_doc = {
-          "version"  => "1.0.0",
-          "sections" => { "main" => [{ "join_conference" => join_params }] }
+        opts = {
+          muted: muted, beep: beep, start_on_enter: start_on_enter, end_on_exit: end_on_exit,
+          wait_url: wait_url, max_participants: max_participants, record: record, region: region,
+          trim: trim, coach: coach, status_callback_event: status_callback_event,
+          status_callback: status_callback, status_callback_method: status_callback_method,
+          recording_status_callback: recording_status_callback,
+          recording_status_callback_method: recording_status_callback_method,
+          recording_status_callback_event: recording_status_callback_event, result: result
         }
-        execute_swml(swml_doc)
+        join_conference_action(name, opts)
       end
 
       # Join a RELAY room via SWML.
       # @param name [String]
       # @return [self]
       def join_room(name)
-        swml_doc = {
-          "version"  => "1.0.0",
-          "sections" => { "main" => [{ "join_room" => { "name" => name } }] }
-        }
-        execute_swml(swml_doc)
+        execute_swml(swml_envelope('join_room', { 'name' => name }))
       end
 
       # Send SIP REFER via SWML.
       # @param to_uri [String]
       # @return [self]
       def sip_refer(to_uri)
-        swml_doc = {
-          "version"  => "1.0.0",
-          "sections" => { "main" => [{ "sip_refer" => { "to_uri" => to_uri } }] }
-        }
-        execute_swml(swml_doc)
+        execute_swml(swml_envelope('sip_refer', { 'to_uri' => to_uri }))
       end
 
       # Start a background call tap via SWML.
@@ -601,22 +546,16 @@ module SignalWire
       # @return [self]
       def tap(uri, control_id: nil, direction: TapDirection::BOTH, codec: Codec::PCMU,
               rtp_ptime: 20, status_url: nil)
-        raise ArgumentError, "direction must be 'speak', 'hear', or 'both'" unless TapDirection::ALL.include?(direction)
-        raise ArgumentError, "codec must be 'PCMU' or 'PCMA'" unless Codec::ALL.include?(codec)
-        raise ArgumentError, "rtp_ptime must be positive" unless rtp_ptime.positive?
+        validate_tap!(direction, codec, rtp_ptime)
 
-        tap_params = { "uri" => uri }
-        tap_params["control_id"] = control_id if control_id
-        tap_params["direction"]  = direction  if direction != TapDirection::BOTH
-        tap_params["codec"]      = codec      if codec != Codec::PCMU
-        tap_params["rtp_ptime"]  = rtp_ptime  if rtp_ptime != 20
-        tap_params["status_url"] = status_url if status_url
+        tap_params = { 'uri' => uri }
+        tap_params['control_id'] = control_id if control_id
+        tap_params['direction']  = direction  if direction != TapDirection::BOTH
+        tap_params['codec']      = codec      if codec != Codec::PCMU
+        tap_params['rtp_ptime']  = rtp_ptime  if rtp_ptime != 20
+        tap_params['status_url'] = status_url if status_url
 
-        swml_doc = {
-          "version"  => "1.0.0",
-          "sections" => { "main" => [{ "tap" => tap_params }] }
-        }
-        execute_swml(swml_doc)
+        execute_swml(swml_envelope('tap', tap_params))
       end
 
       # Stop an active tap stream via SWML.
@@ -624,13 +563,9 @@ module SignalWire
       # @return [self]
       def stop_tap(control_id: nil)
         stop_params = {}
-        stop_params["control_id"] = control_id if control_id
+        stop_params['control_id'] = control_id if control_id
 
-        swml_doc = {
-          "version"  => "1.0.0",
-          "sections" => { "main" => [{ "stop_tap" => stop_params }] }
-        }
-        execute_swml(swml_doc)
+        execute_swml(swml_envelope('stop_tap', stop_params))
       end
 
       # Send an SMS message via SWML.
@@ -644,24 +579,18 @@ module SignalWire
       # @return [self]
       def send_sms(to_number:, from_number:, body: nil, media: nil,
                    tags: nil, region: nil)
-        body_empty = body.nil? || (body.respond_to?(:empty?) && body.empty?)
-        media_empty = media.nil? || (media.respond_to?(:empty?) && media.empty?)
-        raise ArgumentError, "Either body or media must be provided" if body_empty && media_empty
+        raise ArgumentError, 'Either body or media must be provided' if sms_blank?(body) && sms_blank?(media)
 
         sms_params = {
-          "to_number"   => to_number,
-          "from_number" => from_number
+          'to_number' => to_number,
+          'from_number' => from_number
         }
-        sms_params["body"]   = body   if body && !(body.respond_to?(:empty?) && body.empty?)
-        sms_params["media"]  = media  if media && !(media.respond_to?(:empty?) && media.empty?)
-        sms_params["tags"]   = tags   if tags && !(tags.respond_to?(:empty?) && tags.empty?)
-        sms_params["region"] = region if region
+        sms_params['body']   = body   unless sms_blank?(body)
+        sms_params['media']  = media  unless sms_blank?(media)
+        sms_params['tags']   = tags   unless sms_blank?(tags)
+        sms_params['region'] = region if region
 
-        swml_doc = {
-          "version"  => "1.0.0",
-          "sections" => { "main" => [{ "send_sms" => sms_params }] }
-        }
-        execute_swml(swml_doc)
+        execute_swml(swml_envelope('send_sms', sms_params))
       end
 
       # Process payment using SWML pay action.
@@ -669,47 +598,25 @@ module SignalWire
       # @param payment_connector_url [String] URL to make payment requests to
       # @param input_method [String] "dtmf" or "voice"
       # @return [self]
-      def pay(payment_connector_url:, input_method: "dtmf",
-              status_url: nil, payment_method: "credit-card",
+      def pay(payment_connector_url:, input_method: 'dtmf',
+              status_url: nil, payment_method: 'credit-card',
               timeout: 5, max_attempts: 1, security_code: true,
               postal_code: true, min_postal_code_length: 0,
-              token_type: "reusable", charge_amount: nil,
-              currency: "usd", language: "en-US", voice: "woman",
-              description: nil, valid_card_types: "visa mastercard amex",
+              token_type: 'reusable', charge_amount: nil,
+              currency: 'usd', language: 'en-US', voice: 'woman',
+              description: nil, valid_card_types: 'visa mastercard amex',
               parameters: nil, prompts: nil,
-              ai_response: 'The payment status is ${pay_result}, do not mention anything else about collecting payment if successful.')
-        pay_params = {
-          "payment_connector_url"  => payment_connector_url,
-          "input"                  => input_method,
-          "payment_method"         => payment_method,
-          "timeout"                => timeout.to_s,
-          "max_attempts"           => max_attempts.to_s,
-          "security_code"          => security_code.to_s,
-          "min_postal_code_length" => min_postal_code_length.to_s,
-          "token_type"             => token_type,
-          "currency"               => currency,
-          "language"               => language,
-          "voice"                  => voice,
-          "valid_card_types"       => valid_card_types
-        }
-
-        pay_params["postal_code"]    = postal_code.is_a?(String) ? postal_code : postal_code.to_s
-        pay_params["status_url"]     = status_url     if status_url
-        pay_params["charge_amount"]  = charge_amount  if charge_amount
-        pay_params["description"]    = description    if description
-        pay_params["parameters"]     = parameters     if parameters
-        pay_params["prompts"]        = prompts        if prompts
-
-        swml_doc = {
-          "version"  => "1.0.0",
-          "sections" => {
-            "main" => [
-              { "set" => { "ai_response" => ai_response } },
-              { "pay" => pay_params }
-            ]
-          }
-        }
-        execute_swml(swml_doc)
+              ai_response: PAY_DEFAULT_AI_RESPONSE)
+        pay_params = build_pay_params(
+          payment_connector_url: payment_connector_url, input_method: input_method,
+          payment_method: payment_method, timeout: timeout, max_attempts: max_attempts,
+          security_code: security_code, min_postal_code_length: min_postal_code_length,
+          token_type: token_type, currency: currency, language: language, voice: voice,
+          valid_card_types: valid_card_types, postal_code: postal_code,
+          status_url: status_url, charge_amount: charge_amount, description: description,
+          parameters: parameters, prompts: prompts
+        )
+        execute_swml(pay_swml_doc(ai_response, pay_params))
       end
 
       # ==================================================================
@@ -724,16 +631,12 @@ module SignalWire
       # @param node_id [String, nil]
       # @return [self]
       def execute_rpc(method, params: nil, call_id: nil, node_id: nil)
-        rpc_params = { "method" => method }
-        rpc_params["call_id"] = call_id if call_id
-        rpc_params["node_id"] = node_id if node_id
-        rpc_params["params"]  = params  if params && !params.empty?
+        rpc_params = { 'method' => method }
+        rpc_params['call_id'] = call_id if call_id
+        rpc_params['node_id'] = node_id if node_id
+        rpc_params['params']  = params  if params && !params.empty?
 
-        swml_doc = {
-          "version"  => "1.0.0",
-          "sections" => { "main" => [{ "execute_rpc" => rpc_params }] }
-        }
-        execute_swml(swml_doc)
+        execute_swml(swml_envelope('execute_rpc', rpc_params))
       end
 
       # Dial out to a number via RPC.
@@ -743,20 +646,10 @@ module SignalWire
       # @param dest_swml [String] SWML URL for the outbound leg
       # @param device_type [String]
       # @return [self]
-      def rpc_dial(to_number:, from_number:, dest_swml:, device_type: "phone")
-        execute_rpc(
-          "dial",
-          params: {
-            "devices" => {
-              "type"   => device_type,
-              "params" => {
-                "to_number"   => to_number,
-                "from_number" => from_number
-              }
-            },
-            "dest_swml" => dest_swml
-          }
-        )
+      def rpc_dial(to_number:, from_number:, dest_swml:, device_type: 'phone')
+        device = { 'type' => device_type,
+                   'params' => { 'to_number' => to_number, 'from_number' => from_number } }
+        execute_rpc('dial', params: { 'devices' => device, 'dest_swml' => dest_swml })
       end
 
       # Inject a message into an AI agent on another call.
@@ -765,13 +658,13 @@ module SignalWire
       # @param message_text [String]
       # @param role [String]
       # @return [self]
-      def rpc_ai_message(call_id, message_text, role: "system")
+      def rpc_ai_message(call_id, message_text, role: 'system')
         execute_rpc(
-          "ai_message",
+          'ai_message',
           call_id: call_id,
           params: {
-            "role"         => role,
-            "message_text" => message_text
+            'role' => role,
+            'message_text' => message_text
           }
         )
       end
@@ -780,14 +673,14 @@ module SignalWire
       # @param call_id [String]
       # @return [self]
       def rpc_ai_unhold(call_id)
-        execute_rpc("ai_unhold", call_id: call_id, params: {})
+        execute_rpc('ai_unhold', call_id: call_id, params: {})
       end
 
       # Queue simulated user input.
       # @param text [String]
       # @return [self]
       def simulate_user_input(text)
-        add_action("user_input", text)
+        add_action('user_input', text)
       end
 
       # ==================================================================
@@ -803,11 +696,11 @@ module SignalWire
       # @return [Hash]
       def self.create_payment_prompt(for_situation, actions, card_type: nil, error_type: nil)
         prompt = {
-          "for"     => for_situation,
-          "actions" => actions
+          'for' => for_situation,
+          'actions' => actions
         }
-        prompt["card_type"]  = card_type  if card_type
-        prompt["error_type"] = error_type if error_type
+        prompt['card_type']  = card_type  if card_type
+        prompt['error_type'] = error_type if error_type
         prompt
       end
 
@@ -817,7 +710,7 @@ module SignalWire
       # @param phrase [String]
       # @return [Hash]
       def self.create_payment_action(action_type, phrase)
-        { "type" => action_type, "phrase" => phrase }
+        { 'type' => action_type, 'phrase' => phrase }
       end
 
       # Create a payment parameter for use with +pay+.
@@ -826,7 +719,7 @@ module SignalWire
       # @param value [String]
       # @return [Hash]
       def self.create_payment_parameter(name, value)
-        { "name" => name, "value" => value }
+        { 'name' => name, 'value' => value }
       end
 
       # ==================================================================
@@ -843,41 +736,216 @@ module SignalWire
       # @return [Hash]
       def to_h
         result = {}
+        actions_present = actions?
 
-        result["response"] = @response if @response && !@response.empty?
-        result["action"]   = @action   if @action && !@action.empty?
-        result["post_process"] = true   if @post_process && @action && !@action.empty?
+        result['response'] = @response if response?
+        result['action']   = @action   if actions_present
+        result['post_process'] = true if @post_process && actions_present
 
         # Ensure at least one of response or action is present
-        result["response"] = "Action completed." if result.empty?
+        result['response'] = 'Action completed.' if result.empty?
 
         result
       end
 
       # @return [String] JSON representation
-      def to_json(*args)
-        to_h.to_json(*args)
+      def to_json(*)
+        to_h.to_json(*)
       end
 
       # --- Idiomatic Ruby accessors (additive aliases over set_* originals) ---
-      def end_of_speech_timeout=(v)
-        set_end_of_speech_timeout(v)
+      def end_of_speech_timeout=(value)
+        set_end_of_speech_timeout(value)
       end
 
-      def metadata=(v)
-        set_metadata(v)
+      def metadata=(value)
+        set_metadata(value)
       end
 
-      def post_process=(v)
-        set_post_process(v)
+      def post_process=(value)
+        set_post_process(value)
       end
 
-      def response=(v)
-        set_response(v)
+      def response=(value)
+        set_response(value)
       end
 
-      def speech_event_timeout=(v)
-        set_speech_event_timeout(v)
+      def speech_event_timeout=(value)
+        set_speech_event_timeout(value)
+      end
+
+      private
+
+      def validate_record_call!(format, direction)
+        raise ArgumentError, "format must be 'wav', 'mp3', or 'mp4'" unless RecordFormat::ALL.include?(format)
+        return if RecordDirection::ALL.include?(direction)
+
+        raise ArgumentError, "direction must be 'speak', 'listen', or 'both'"
+      end
+
+      def validate_tap!(direction, codec, rtp_ptime)
+        raise ArgumentError, "direction must be 'speak', 'hear', or 'both'" unless TapDirection::ALL.include?(direction)
+        raise ArgumentError, "codec must be 'PCMU' or 'PCMA'" unless Codec::ALL.include?(codec)
+        raise ArgumentError, 'rtp_ptime must be positive' unless rtp_ptime.positive?
+      end
+
+      # Assign each truthy value into +target+ under its wire key, in the
+      # given hash's insertion order (preserving wire key order).
+      def assign_present(target, pairs)
+        pairs.each { |key, value| target[key] = value if value }
+        target
+      end
+
+      # Build the object-form +context_switch+ payload (key order matches
+      # the Python reference: system_prompt, user_prompt, consolidate,
+      # full_reset, isolated).
+      def build_context_switch_data(system_prompt, user_prompt, consolidate, full_reset, isolated)
+        context_data = {}
+        context_data['system_prompt'] = system_prompt if system_prompt
+        context_data['user_prompt']   = user_prompt   if user_prompt
+        context_data['consolidate']   = true          if consolidate
+        context_data['full_reset']    = true          if full_reset
+        context_data['isolated']      = true          if isolated
+        context_data
+      end
+
+      # SWML doc for +pay+: a +set ai_response+ step followed by the +pay+
+      # verb (two-element main section; not the single-verb envelope).
+      def pay_swml_doc(ai_response, pay_params)
+        {
+          'version' => '1.0.0',
+          'sections' => {
+            'main' => [
+              { 'set' => { 'ai_response' => ai_response } },
+              { 'pay' => pay_params }
+            ]
+          }
+        }
+      end
+
+      # Build the +pay+ verb params. Key order (the fixed block, then
+      # postal_code, then the optional tail) is wire-load-bearing and
+      # identical to the Python reference.
+      def build_pay_params(payment_connector_url:, input_method:, payment_method:, timeout:,
+                           max_attempts:, security_code:, min_postal_code_length:, token_type:,
+                           currency:, language:, voice:, valid_card_types:, postal_code:,
+                           status_url:, charge_amount:, description:, parameters:, prompts:)
+        pay_params = pay_fixed_params(
+          payment_connector_url: payment_connector_url, input_method: input_method,
+          payment_method: payment_method, timeout: timeout, max_attempts: max_attempts,
+          security_code: security_code, min_postal_code_length: min_postal_code_length,
+          token_type: token_type, currency: currency, language: language, voice: voice,
+          valid_card_types: valid_card_types, postal_code: postal_code
+        )
+        assign_present(pay_params, 'status_url' => status_url, 'charge_amount' => charge_amount,
+                                   'description' => description, 'parameters' => parameters,
+                                   'prompts' => prompts)
+      end
+
+      # The always-present +pay+ params, in wire-key order.
+      def pay_fixed_params(payment_connector_url:, input_method:, payment_method:, timeout:,
+                           max_attempts:, security_code:, min_postal_code_length:, token_type:,
+                           currency:, language:, voice:, valid_card_types:, postal_code:)
+        {
+          'payment_connector_url' => payment_connector_url, 'input' => input_method,
+          'payment_method' => payment_method, 'timeout' => timeout.to_s,
+          'max_attempts' => max_attempts.to_s, 'security_code' => security_code.to_s,
+          'min_postal_code_length' => min_postal_code_length.to_s, 'token_type' => token_type,
+          'currency' => currency, 'language' => language, 'voice' => voice,
+          'valid_card_types' => valid_card_types,
+          'postal_code' => postal_code.is_a?(String) ? postal_code : postal_code.to_s
+        }
+      end
+
+      # Normalize +execute_swml+ input to a Hash: parse JSON strings (falling
+      # back to a raw_swml wrapper), dup Hashes, else require #to_h.
+      def coerce_swml_content(swml_content)
+        case swml_content
+        when String then parse_swml_string(swml_content)
+        when Hash   then swml_content.dup
+        else
+          unless swml_content.respond_to?(:to_h)
+            raise TypeError, 'swml_content must be a String, Hash, or respond to #to_h'
+          end
+
+          swml_content.to_h
+        end
+      end
+
+      # Parse a JSON SWML string, falling back to a raw_swml wrapper.
+      def parse_swml_string(swml_content)
+        JSON.parse(swml_content)
+      rescue JSON::ParserError
+        { 'raw_swml' => swml_content }
+      end
+
+      # Wrap a single SWAIG verb + params in the standard SWML envelope.
+      # Key order (version, sections → main → [{verb => params}]) is
+      # wire-load-bearing and identical to the Python reference.
+      def swml_envelope(verb, params)
+        {
+          'version' => '1.0.0',
+          'sections' => { 'main' => [{ verb => params }] }
+        }
+      end
+
+      def actions?
+        @action && !@action.empty?
+      end
+
+      def response?
+        @response && !@response.empty?
+      end
+
+      # nil, or responds to #empty? and is empty (mirrors the Python
+      # truthiness checks used by +send_sms+).
+      def sms_blank?(value)
+        value.nil? || (value.respond_to?(:empty?) && value.empty?)
+      end
+
+      def join_conference_action(name, opts)
+        validate_join_conference!(name, opts)
+        join_params = if join_conference_all_defaults?(opts)
+                        name
+                      else
+                        build_join_conference_params(name, opts)
+                      end
+        execute_swml(swml_envelope('join_conference', join_params))
+      end
+
+      # Validation order + message text mirror the Python reference
+      # (core/function_result.py::join_conference). Python renders its
+      # valid-value lists via an f-string over a Python list literal, i.e.
+      # "one of ['a', 'b']"; we reproduce that exact form.
+      def validate_join_conference!(name, opts)
+        JOIN_CONFERENCE_ENUMS.each do |opts_key, allowed, message|
+          # max_participants is validated immediately after beep, mirroring
+          # the Python reference's raise order.
+          validate_max_participants!(opts[:max_participants]) if opts_key == :record
+          raise ArgumentError, message unless allowed.include?(opts[opts_key])
+        end
+        raise ArgumentError, 'name cannot be empty' if name.to_s.strip.empty?
+      end
+
+      def validate_max_participants!(max_participants)
+        return if max_participants.is_a?(Integer) && max_participants.positive? && max_participants <= 250
+
+        raise ArgumentError, 'max_participants must be a positive integer <= 250'
+      end
+
+      def join_conference_all_defaults?(opts)
+        JOIN_CONFERENCE_PARAM_SPEC.none? do |_wire_key, opts_key, include_check|
+          include_check.call(opts[opts_key])
+        end
+      end
+
+      def build_join_conference_params(name, opts)
+        params = { 'name' => name }
+        JOIN_CONFERENCE_PARAM_SPEC.each do |wire_key, opts_key, include_check|
+          value = opts[opts_key]
+          params[wire_key] = value if include_check.call(value)
+        end
+        params
       end
     end
   end

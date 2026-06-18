@@ -23,7 +23,9 @@
 require 'minitest/autorun'
 require_relative '../lib/signalwire/swaig/function_result'
 
-class SwaigClosedSetsTest < Minitest::Test
+# Shared constants + SWML accessors for the SWAIG closed-set tests, included
+# by both the record-vocabulary and tap-vocabulary test classes below.
+module SwaigClosedSetHelpers
   FR = SignalWire::Swaig::FunctionResult
   RecordFormat    = SignalWire::Swaig::RecordFormat
   RecordDirection = SignalWire::Swaig::RecordDirection
@@ -31,14 +33,43 @@ class SwaigClosedSetsTest < Minitest::Test
   Codec           = SignalWire::Swaig::Codec
 
   # Pull the record_call params hash out of the serialised SWML document.
-  def record_params(fr)
-    fr.to_h['action'].first['SWML']['sections']['main'][0]['record_call']
+  def record_params(result)
+    result.to_h['action'].first['SWML']['sections']['main'][0]['record_call']
   end
 
   # Pull the tap params hash out of the serialised SWML document.
-  def tap_params(fr)
-    fr.to_h['action'].first['SWML']['sections']['main'][0]['tap']
+  def tap_params(result)
+    result.to_h['action'].first['SWML']['sections']['main'][0]['tap']
   end
+
+  # For each {constant => literal} pair, drive record_call once with the named
+  # constant and once with the bare literal and assert byte-identical SWML and
+  # that the serialised param equals the literal.
+  def assert_record_const_matches_string(mapping, param)
+    mapping.each do |const_val, literal|
+      via_const  = FR.new.record_call(param => const_val)
+      via_string = FR.new.record_call(param => literal)
+
+      assert_equal via_string.to_h, via_const.to_h,
+                   "record_call #{param} #{literal.inspect}: constant vs string diverged"
+      assert_equal literal, record_params(via_const)[param.to_s]
+    end
+  end
+
+  # As above, for tap's kwargs (direction / codec). tap requires a URI arg.
+  def assert_tap_const_matches_string(mapping, param)
+    mapping.each do |const_val, literal|
+      via_const  = FR.new.tap('rtp://10.0.0.1:9000', param => const_val)
+      via_string = FR.new.tap('rtp://10.0.0.1:9000', param => literal)
+
+      assert_equal via_string.to_h, via_const.to_h,
+                   "tap #{param} #{literal.inspect}: constant vs string diverged"
+    end
+  end
+end
+
+class SwaigClosedSetsTest < Minitest::Test
+  include SwaigClosedSetHelpers
 
   # ------------------------------------------------------------------
   # RecordFormat {wav, mp3, mp4}
@@ -50,24 +81,17 @@ class SwaigClosedSetsTest < Minitest::Test
     assert_equal 'mp3', RecordFormat::MP3
     assert_equal 'mp4', RecordFormat::MP4
     assert_equal %w[wav mp3 mp4], RecordFormat::ALL
-    assert RecordFormat::ALL.frozen?
+    assert_predicate RecordFormat::ALL, :frozen?
   end
 
   # (b) constant and bare string => byte-identical action.
   # Each pair drives record_call with the NAMED constant and again with the
   # bare literal, then asserts identical serialised SWML.
   def test_record_format_constant_matches_bare_string
-    {
-      RecordFormat::WAV => 'wav',
-      RecordFormat::MP3 => 'mp3',
-      RecordFormat::MP4 => 'mp4'
-    }.each do |const_val, literal|
-      via_const  = FR.new.record_call(format: const_val)
-      via_string = FR.new.record_call(format: literal)
-      assert_equal via_string.to_h, via_const.to_h,
-                   "record_call format #{literal.inspect}: constant vs string diverged"
-      assert_equal literal, record_params(via_const)['format']
-    end
+    assert_record_const_matches_string(
+      { RecordFormat::WAV => 'wav', RecordFormat::MP3 => 'mp3', RecordFormat::MP4 => 'mp4' },
+      :format
+    )
   end
 
   # (c) the constant set is EXACTLY what record_call validates
@@ -91,29 +115,30 @@ class SwaigClosedSetsTest < Minitest::Test
     assert_equal 'listen', RecordDirection::LISTEN
     assert_equal 'both',   RecordDirection::BOTH
     assert_equal %w[speak listen both], RecordDirection::ALL
-    assert RecordDirection::ALL.frozen?
+    assert_predicate RecordDirection::ALL, :frozen?
   end
 
   def test_record_direction_constant_matches_bare_string
-    {
-      RecordDirection::SPEAK  => 'speak',
-      RecordDirection::LISTEN => 'listen',
-      RecordDirection::BOTH   => 'both'
-    }.each do |const_val, literal|
-      via_const  = FR.new.record_call(direction: const_val)
-      via_string = FR.new.record_call(direction: literal)
-      assert_equal via_string.to_h, via_const.to_h,
-                   "record_call direction #{literal.inspect}: constant vs string diverged"
-      assert_equal literal, record_params(via_const)['direction']
-    end
+    assert_record_const_matches_string(
+      { RecordDirection::SPEAK => 'speak', RecordDirection::LISTEN => 'listen',
+        RecordDirection::BOTH => 'both' },
+      :direction
+    )
   end
 
   def test_record_direction_set_is_exactly_validated
     RecordDirection::ALL.each { |dir| FR.new.record_call(direction: dir) }
+
     refute_includes RecordDirection::ALL, 'hear' # tap's word, NOT record's
     err = assert_raises(ArgumentError) { FR.new.record_call(direction: 'hear') }
     assert_match(/direction must be/, err.message)
   end
+end
+
+# Tap-verb closed-set vocabularies (TapDirection, Codec) + the 3-vocabulary
+# trap. Split from SwaigClosedSetsTest to keep each class within budget.
+class SwaigTapClosedSetsTest < Minitest::Test
+  include SwaigClosedSetHelpers
 
   # ------------------------------------------------------------------
   # TapDirection {speak, hear, both}
@@ -124,24 +149,20 @@ class SwaigClosedSetsTest < Minitest::Test
     assert_equal 'hear',  TapDirection::HEAR
     assert_equal 'both',  TapDirection::BOTH
     assert_equal %w[speak hear both], TapDirection::ALL
-    assert TapDirection::ALL.frozen?
+    assert_predicate TapDirection::ALL, :frozen?
   end
 
   def test_tap_direction_constant_matches_bare_string
-    {
-      TapDirection::SPEAK => 'speak',
-      TapDirection::HEAR  => 'hear',
-      TapDirection::BOTH  => 'both'
-    }.each do |const_val, literal|
-      via_const  = FR.new.tap('rtp://10.0.0.1:9000', direction: const_val)
-      via_string = FR.new.tap('rtp://10.0.0.1:9000', direction: literal)
-      assert_equal via_string.to_h, via_const.to_h,
-                   "tap direction #{literal.inspect}: constant vs string diverged"
-    end
+    assert_tap_const_matches_string(
+      { TapDirection::SPEAK => 'speak', TapDirection::HEAR => 'hear',
+        TapDirection::BOTH => 'both' },
+      :direction
+    )
   end
 
   def test_tap_direction_set_is_exactly_validated
     TapDirection::ALL.each { |dir| FR.new.tap('rtp://x', direction: dir) }
+
     refute_includes TapDirection::ALL, 'listen' # record's word, NOT tap's
     err = assert_raises(ArgumentError) { FR.new.tap('rtp://x', direction: 'listen') }
     assert_match(/direction must be/, err.message)
@@ -155,19 +176,14 @@ class SwaigClosedSetsTest < Minitest::Test
     assert_equal 'PCMU', Codec::PCMU
     assert_equal 'PCMA', Codec::PCMA
     assert_equal %w[PCMU PCMA], Codec::ALL
-    assert Codec::ALL.frozen?
+    assert_predicate Codec::ALL, :frozen?
   end
 
   def test_codec_constant_matches_bare_string
-    {
-      Codec::PCMU => 'PCMU',
-      Codec::PCMA => 'PCMA'
-    }.each do |const_val, literal|
-      via_const  = FR.new.tap('rtp://10.0.0.1:9000', codec: const_val)
-      via_string = FR.new.tap('rtp://10.0.0.1:9000', codec: literal)
-      assert_equal via_string.to_h, via_const.to_h,
-                   "tap codec #{literal.inspect}: constant vs string diverged"
-    end
+    assert_tap_const_matches_string(
+      { Codec::PCMU => 'PCMU', Codec::PCMA => 'PCMA' },
+      :codec
+    )
   end
 
   def test_codec_set_is_exactly_validated

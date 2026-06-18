@@ -12,7 +12,7 @@ require_relative 'mock_test'
 
 class CompatTokensMockTest < Minitest::Test
   ACCOUNT_BASE = '/api/laml/2010-04-01/Accounts/test_proj'
-  TOKENS_BASE  = "#{ACCOUNT_BASE}/tokens"
+  TOKENS_BASE  = "#{ACCOUNT_BASE}/tokens".freeze
 
   def setup
     @client = MockTest.client
@@ -27,6 +27,7 @@ class CompatTokensMockTest < Minitest::Test
 
   def test_create_returns_token_resource
     result = @client.compat.tokens.create(Ttl: 3600)
+
     assert_kind_of Hash, result
     # Token resources carry id + token + permissions.
     assert(result.key?('token') || result.key?('id'))
@@ -35,9 +36,8 @@ class CompatTokensMockTest < Minitest::Test
   def test_create_journal_records_post_with_ttl
     @client.compat.tokens.create(Ttl: 3600, Name: 'api-key')
     j = MockTest.journal.last
-    assert_equal 'POST', j.method
-    assert_equal TOKENS_BASE, j.path
-    assert_kind_of Hash, j.body
+
+    assert_journal_request(j, 'POST', TOKENS_BASE)
     assert_equal 3600, j.body['Ttl']
     assert_equal 'api-key', j.body['Name']
   end
@@ -46,6 +46,7 @@ class CompatTokensMockTest < Minitest::Test
 
   def test_update_returns_token_resource
     result = @client.compat.tokens.update('TK_U', Ttl: 7200)
+
     assert_kind_of Hash, result
     assert(result.key?('token') || result.key?('id'))
   end
@@ -64,13 +65,24 @@ class CompatTokensMockTest < Minitest::Test
 
   def test_delete_no_exception_on_delete
     result = @client.compat.tokens.delete('TK_D')
+
     assert_kind_of Hash, result
   end
 
   def test_delete_journal_records_delete
     @client.compat.tokens.delete('TK_DEL')
     j = MockTest.journal.last
+
     assert_equal 'DELETE', j.method
     assert_equal "#{TOKENS_BASE}/TK_DEL", j.path
+  end
+
+  private
+
+  # Assert a journal entry's HTTP method, path, and that it carries a Hash body.
+  def assert_journal_request(entry, method, path)
+    assert_equal method, entry.method
+    assert_equal path, entry.path
+    assert_kind_of Hash, entry.body
   end
 end

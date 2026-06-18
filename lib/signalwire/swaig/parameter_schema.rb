@@ -170,21 +170,9 @@ module SignalWire
       # @param enum [Array, nil] closed set for the array's +items+
       # @yield nested element-object property DSL (only when +of: :object+)
       # @return [self]
-      def array(name, description = nil, of: nil, required: false, default: nil, enum: nil, &block)
+      def array(name, description = nil, of: nil, required: false, default: nil, enum: nil, &)
         extra = {}
-        if of
-          of_type = of.to_s
-          items = { 'type' => of_type }
-          items['enum'] = Array(enum).dup if enum
-          if of_type == OBJECT && block
-            nested = self.class.new
-            nested.instance_eval(&block)
-            nested_schema = nested.to_h
-            items['properties'] = nested_schema['properties']
-            items['required']   = nested_schema['required'] if nested_schema.key?('required')
-          end
-          extra['items'] = items
-        end
+        extra['items'] = build_array_items(of.to_s, enum, &) if of
         _add(name, ARRAY, description, required: required, default: default, extra: extra)
       end
 
@@ -210,9 +198,7 @@ module SignalWire
       def object(name, description = nil, required: false, &block)
         extra = {}
         if block
-          nested = self.class.new
-          nested.instance_eval(&block)
-          nested_schema = nested.to_h
+          nested_schema = nested_schema_from(&block)
           extra['properties'] = nested_schema['properties']
           extra['required']   = nested_schema['required'] if nested_schema.key?('required')
         else
@@ -257,7 +243,7 @@ module SignalWire
       # @return [Hash]
       def to_h
         schema = {
-          'type'       => OBJECT,
+          'type' => OBJECT,
           'properties' => @properties
         }
         schema['required'] = @required unless @required.empty?
@@ -266,11 +252,31 @@ module SignalWire
       alias to_hash to_h
 
       # @return [String] JSON serialization of {#to_h}
-      def to_json(*args)
-        to_h.to_json(*args)
+      def to_json(*)
+        to_h.to_json(*)
       end
 
       private
+
+      # Build the +items+ subschema for {#array}. Emits +type+, then +enum+
+      # (when given), then nested +properties+/+required+ for object items.
+      def build_array_items(of_type, enum, &block)
+        items = { 'type' => of_type }
+        items['enum'] = Array(enum).dup if enum
+        if of_type == OBJECT && block
+          nested_schema = nested_schema_from(&block)
+          items['properties'] = nested_schema['properties']
+          items['required']   = nested_schema['required'] if nested_schema.key?('required')
+        end
+        items
+      end
+
+      # Evaluate a nested-property block in a fresh schema and return its hash.
+      def nested_schema_from(&)
+        nested = self.class.new
+        nested.instance_eval(&)
+        nested.to_h
+      end
 
       # Build one property subschema in JSON-Schema key order
       # (+type+, +description+, then +enum+ / +format+ / +default+ / +items+
@@ -278,18 +284,24 @@ module SignalWire
       # name folds into the top-level required list.
       def _add(name, type, description, required: false, default: nil, enum: nil, format: nil, extra: {})
         key = name.to_s
+        @properties[key] = _build_prop(type, description, default: default, enum: enum, format: format, extra: extra)
+        required(key) if required
+        self
+      end
+
+      # Assemble a property subschema in canonical JSON-Schema key order:
+      # +type+, +description+, +enum+, +format+, then +extra+ (+items+ /
+      # +properties+), and +default+ last. +default+ is emitted whenever the
+      # caller passed one (including +false+), so the nil-guard ordering above
+      # can't shadow an explicit nil-able default.
+      def _build_prop(type, description, default:, enum:, format:, extra:)
         prop = { 'type' => type }
         prop['description'] = description unless description.nil?
         prop['enum']   = enum   unless enum.nil?
         prop['format'] = format unless format.nil?
         prop.merge!(extra) if extra && !extra.empty?
-        # default last so an explicit nil-able default can't be shadowed by
-        # the nil-guard ordering above; default is included whenever the
-        # caller passed one (including false).
         prop['default'] = default unless default.nil?
-        @properties[key] = prop
-        required(key) if required
-        self
+        prop
       end
     end
   end

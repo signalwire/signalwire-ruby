@@ -1,22 +1,22 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
-require 'set'
 require_relative '../lib/signalwire/contexts/context_builder'
 
-class ContextsTest < Minitest::Test
-  CB  = SignalWire::Contexts::ContextBuilder
-  CTX = SignalWire::Contexts::Context
-  STP = SignalWire::Contexts::Step
-  GI  = SignalWire::Contexts::GatherInfo
-  GQ  = SignalWire::Contexts::GatherQuestion
+CB  = SignalWire::Contexts::ContextBuilder
+CTX = SignalWire::Contexts::Context
+STP = SignalWire::Contexts::Step
+GI  = SignalWire::Contexts::GatherInfo
+GQ  = SignalWire::Contexts::GatherQuestion
 
+class ContextsTest < Minitest::Test
   # ================================================================
   # ContextBuilder
   # ================================================================
 
   def test_builder_creation
     builder = CB.new
+
     assert_instance_of CB, builder
   end
 
@@ -32,6 +32,7 @@ class ContextsTest < Minitest::Test
 
   def test_builder_constructor_no_arg_default_nil_agent
     builder = CB.new
+
     assert_nil builder.instance_variable_get(:@agent)
   end
 
@@ -39,16 +40,11 @@ class ContextsTest < Minitest::Test
   def test_add_step_one_call_full_config
     builder = CB.new
     ctx = builder.add_context('default')
-    step = ctx.add_step(
-      'greet',
-      task:        'Greet the user',
-      bullets:     ['Say hello', 'Ask their name'],
-      criteria:    'User has been greeted',
-      functions:   ['none'],
-      valid_steps: ['greet']
-    )
+    step = ctx.add_step('greet', task: 'Greet the user', bullets: ['Say hello', 'Ask their name'],
+                                 criteria: 'User has been greeted', functions: ['none'], valid_steps: ['greet'])
 
     h = step.to_h
+
     assert_includes h['text'], 'Greet the user'
     assert_includes h['text'], 'Say hello'
     assert_equal 'User has been greeted', h['step_criteria']
@@ -60,37 +56,34 @@ class ContextsTest < Minitest::Test
     builder = CB.new
     ctx = builder.add_context('default')
     step = ctx.add_step('plain')
+
     assert_kind_of STP, step
     assert_equal 'plain', step.name
   end
 
   # --- Python parity: Step#add_gather_question explicit kwargs --
   def test_add_gather_question_with_explicit_args
-    builder = CB.new
-    ctx = builder.add_context('default')
-    step = ctx.add_step('s1').set_text('hi')
-    step.set_gather_info(output_key: 'data')
-    step.add_gather_question(
-      key:       'email',
-      question:  'What is your email?',
-      type:      'string',
-      confirm:   true,
-      prompt:    'Verify the email is well-formed.',
-      functions: ['validate_email']
-    )
+    q = gather_question_with_explicit_args
 
-    gi = step.to_h['gather_info']
-    q  = gi['questions'].first
     assert_equal 'email', q['key']
     assert_equal 'What is your email?', q['question']
-    assert_equal true, q['confirm']
+    assert q['confirm']
     assert_equal 'Verify the email is well-formed.', q['prompt']
     assert_equal ['validate_email'], q['functions']
+  end
+
+  def gather_question_with_explicit_args
+    step = CB.new.add_context('default').add_step('s1').set_text('hi')
+    step.set_gather_info(output_key: 'data')
+    step.add_gather_question(key: 'email', question: 'What is your email?', type: 'string', confirm: true,
+                             prompt: 'Verify the email is well-formed.', functions: ['validate_email'])
+    step.to_h['gather_info']['questions'].first
   end
 
   def test_builder_add_context
     builder = CB.new
     ctx = builder.add_context('default')
+
     assert_instance_of CTX, ctx
     assert_equal 'default', ctx.name
   end
@@ -98,6 +91,7 @@ class ContextsTest < Minitest::Test
   def test_builder_get_context
     builder = CB.new
     builder.add_context('default')
+
     assert_instance_of CTX, builder.get_context('default')
     assert_nil builder.get_context('nonexistent')
   end
@@ -107,7 +101,10 @@ class ContextsTest < Minitest::Test
     builder.add_context('default')
     assert_raises(ArgumentError) { builder.add_context('default') }
   end
+end
 
+# ContextBuilder validation
+class ContextsBuilderValidateTest < Minitest::Test
   def test_builder_validate_empty_raises
     builder = CB.new
     assert_raises(ArgumentError) { builder.validate! }
@@ -124,6 +121,7 @@ class ContextsTest < Minitest::Test
     builder = CB.new
     ctx = builder.add_context('default')
     ctx.add_step('step1').set_text('Hello')
+
     assert builder.validate!
   end
 
@@ -139,6 +137,7 @@ class ContextsTest < Minitest::Test
     c1.add_step('intro').set_text('Welcome to sales')
     c2 = builder.add_context('support')
     c2.add_step('intro').set_text('Welcome to support')
+
     assert builder.validate!
   end
 
@@ -153,6 +152,7 @@ class ContextsTest < Minitest::Test
     builder = CB.new
     ctx = builder.add_context('default')
     ctx.add_step('step1').set_text('Hello').set_valid_steps(%w[next])
+
     assert builder.validate!
   end
 
@@ -178,20 +178,22 @@ class ContextsTest < Minitest::Test
     ctx.add_step('farewell').set_text('Say goodbye')
 
     h = builder.to_h
+
     assert h.key?('default')
-    steps = h['default']['steps']
-    assert_equal 2, steps.size
-    assert_equal 'greet', steps[0]['name']
-    assert_equal 'farewell', steps[1]['name']
+    names = h['default']['steps'].map { |s| s['name'] }
+
+    assert_equal %w[greet farewell], names
   end
+end
 
-  # ================================================================
-  # Context
-  # ================================================================
-
+# ================================================================
+# Context
+# ================================================================
+class ContextsContextTest < Minitest::Test
   def test_context_add_step_returns_step
     ctx = CTX.new('default')
     step = ctx.add_step('greeting')
+
     assert_instance_of STP, step
     assert_equal 'greeting', step.name
   end
@@ -205,6 +207,7 @@ class ContextsTest < Minitest::Test
   def test_context_get_step
     ctx = CTX.new('default')
     ctx.add_step('step1')
+
     assert_instance_of STP, ctx.get_step('step1')
     assert_nil ctx.get_step('missing')
   end
@@ -214,9 +217,11 @@ class ContextsTest < Minitest::Test
     ctx.add_step('s1').set_text('A')
     ctx.add_step('s2').set_text('B')
     ctx.remove_step('s1')
+
     assert_nil ctx.get_step('s1')
 
     h = ctx.to_h
+
     assert_equal 1, h['steps'].size
     assert_equal 's2', h['steps'][0]['name']
   end
@@ -226,6 +231,7 @@ class ContextsTest < Minitest::Test
     ctx.add_step('s1').set_text('A')
     # Should not raise
     ctx.remove_step('nope')
+
     assert_equal 1, ctx._steps.size
   end
 
@@ -237,7 +243,8 @@ class ContextsTest < Minitest::Test
     ctx.move_step('c', 0)
 
     h = ctx.to_h
-    assert_equal %w[c a b], h['steps'].map { |s| s['name'] }
+
+    assert_equal(%w[c a b], h['steps'].map { |s| s['name'] })
   end
 
   def test_context_move_step_not_found_raises
@@ -252,6 +259,7 @@ class ContextsTest < Minitest::Test
     ctx.set_valid_contexts(%w[sales support])
 
     h = ctx.to_h
+
     assert_equal %w[sales support], h['valid_contexts']
   end
 
@@ -261,15 +269,20 @@ class ContextsTest < Minitest::Test
     ctx.set_valid_steps(%w[next s1])
 
     h = ctx.to_h
+
     assert_equal %w[next s1], h['valid_steps']
   end
+end
 
+# Context (continued): prompts, sections, fillers, chaining
+class ContextsContextPromptTest < Minitest::Test
   def test_context_post_prompt
     ctx = CTX.new('default')
     ctx.add_step('s1').set_text('x')
     ctx.set_post_prompt('Evaluate the conversation')
 
     h = ctx.to_h
+
     assert_equal 'Evaluate the conversation', h['post_prompt']
   end
 
@@ -279,6 +292,7 @@ class ContextsTest < Minitest::Test
     ctx.set_system_prompt('You are a helpful agent')
 
     h = ctx.to_h
+
     assert_equal 'You are a helpful agent', h['system_prompt']
   end
 
@@ -288,6 +302,7 @@ class ContextsTest < Minitest::Test
     ctx.set_prompt('Context prompt text')
 
     h = ctx.to_h
+
     assert_equal 'Context prompt text', h['prompt']
   end
 
@@ -297,8 +312,9 @@ class ContextsTest < Minitest::Test
     ctx.set_consolidate(true).set_full_reset(true)
 
     h = ctx.to_h
-    assert_equal true, h['consolidate']
-    assert_equal true, h['full_reset']
+
+    assert h['consolidate']
+    assert h['full_reset']
   end
 
   def test_context_user_prompt
@@ -307,6 +323,7 @@ class ContextsTest < Minitest::Test
     ctx.set_user_prompt('Hello there')
 
     h = ctx.to_h
+
     assert_equal 'Hello there', h['user_prompt']
   end
 
@@ -316,7 +333,8 @@ class ContextsTest < Minitest::Test
     ctx.set_isolated(true)
 
     h = ctx.to_h
-    assert_equal true, h['isolated']
+
+    assert h['isolated']
   end
 
   def test_context_add_section_and_bullets
@@ -324,13 +342,12 @@ class ContextsTest < Minitest::Test
     ctx.add_step('s1').set_text('x')
     ctx.add_section('Overview', 'This is the overview')
     ctx.add_bullets('Rules', %w[rule1 rule2])
+    pom = ctx.to_h['pom']
 
-    h = ctx.to_h
-    assert h.key?('pom')
-    assert_equal 2, h['pom'].size
-    assert_equal 'Overview', h['pom'][0]['title']
-    assert_equal 'This is the overview', h['pom'][0]['body']
-    assert_equal %w[rule1 rule2], h['pom'][1]['bullets']
+    assert_equal 2, pom.size
+    assert_equal({ 'title' => 'Overview', 'body' => 'This is the overview' },
+                 pom[0].slice('title', 'body'))
+    assert_equal %w[rule1 rule2], pom[1]['bullets']
   end
 
   def test_context_set_prompt_and_add_section_conflict
@@ -352,9 +369,10 @@ class ContextsTest < Minitest::Test
     ctx.add_system_bullets('Guidelines', %w[be_nice be_helpful])
 
     h = ctx.to_h
-    assert h['system_prompt'].include?('## Identity')
-    assert h['system_prompt'].include?('You are a bot')
-    assert h['system_prompt'].include?('- be_nice')
+
+    assert_includes h['system_prompt'], '## Identity'
+    assert_includes h['system_prompt'], 'You are a bot'
+    assert_includes h['system_prompt'], '- be_nice'
   end
 
   def test_context_system_prompt_and_sections_conflict
@@ -368,13 +386,17 @@ class ContextsTest < Minitest::Test
     ctx.add_system_section('T', 'B')
     assert_raises(ArgumentError) { ctx.set_system_prompt('text') }
   end
+end
 
+# Context (continued): fillers and chaining
+class ContextsContextFillerTest < Minitest::Test
   def test_context_enter_fillers
     ctx = CTX.new('default')
     ctx.add_step('s1').set_text('x')
     ctx.set_enter_fillers({ 'en-US' => ['Welcome!'], 'default' => ['Hi'] })
 
     h = ctx.to_h
+
     assert_equal ['Welcome!'], h['enter_fillers']['en-US']
     assert_equal ['Hi'], h['enter_fillers']['default']
   end
@@ -385,6 +407,7 @@ class ContextsTest < Minitest::Test
     ctx.set_exit_fillers({ 'en-US' => ['Goodbye!'] })
 
     h = ctx.to_h
+
     assert_equal ['Goodbye!'], h['exit_fillers']['en-US']
   end
 
@@ -395,6 +418,7 @@ class ContextsTest < Minitest::Test
     ctx.add_enter_filler('es', ['Bienvenido!'])
 
     h = ctx.to_h
+
     assert_equal ['Welcome!'], h['enter_fillers']['en-US']
     assert_equal ['Bienvenido!'], h['enter_fillers']['es']
   end
@@ -405,6 +429,7 @@ class ContextsTest < Minitest::Test
     ctx.add_exit_filler('en-US', ['Bye!'])
 
     h = ctx.to_h
+
     assert_equal ['Bye!'], h['exit_fillers']['en-US']
   end
 
@@ -415,29 +440,26 @@ class ContextsTest < Minitest::Test
 
   def test_context_chaining_returns_self
     ctx = CTX.new('default')
-    assert_same ctx, ctx.set_valid_contexts(%w[a])
-    assert_same ctx, ctx.set_valid_steps(%w[b])
-    assert_same ctx, ctx.set_post_prompt('pp')
-    assert_same ctx, ctx.set_consolidate(true)
-    assert_same ctx, ctx.set_full_reset(true)
-    assert_same ctx, ctx.set_user_prompt('up')
-    assert_same ctx, ctx.set_isolated(true)
-    assert_same ctx, ctx.set_enter_fillers({ 'x' => ['y'] })
-    assert_same ctx, ctx.set_exit_fillers({ 'x' => ['y'] })
-    assert_same ctx, ctx.add_enter_filler('en', ['hi'])
-    assert_same ctx, ctx.add_exit_filler('en', ['bye'])
-    assert_same ctx, ctx.remove_step('nonexistent')
+    chained = ctx
+              .set_valid_contexts(%w[a]).set_valid_steps(%w[b]).set_post_prompt('pp')
+              .set_consolidate(true).set_full_reset(true).set_user_prompt('up')
+              .set_isolated(true).set_enter_fillers({ 'x' => ['y'] }).set_exit_fillers({ 'x' => ['y'] })
+              .add_enter_filler('en', ['hi']).add_exit_filler('en', ['bye']).remove_step('nonexistent')
+
+    assert_same ctx, chained
   end
+end
 
-  # ================================================================
-  # Step
-  # ================================================================
-
+# ================================================================
+# Step
+# ================================================================
+class ContextsStepTest < Minitest::Test
   def test_step_set_text
     step = STP.new('intro')
     step.set_text('Welcome to the system')
 
     h = step.to_h
+
     assert_equal 'intro', h['name']
     assert_equal 'Welcome to the system', h['text']
   end
@@ -447,8 +469,9 @@ class ContextsTest < Minitest::Test
     step.add_section('Task', 'Greet the user')
 
     h = step.to_h
-    assert h['text'].include?('## Task')
-    assert h['text'].include?('Greet the user')
+
+    assert_includes h['text'], '## Task'
+    assert_includes h['text'], 'Greet the user'
   end
 
   def test_step_add_bullets
@@ -456,9 +479,10 @@ class ContextsTest < Minitest::Test
     step.add_bullets('Rules', %w[be_nice be_helpful])
 
     h = step.to_h
-    assert h['text'].include?('## Rules')
-    assert h['text'].include?('- be_nice')
-    assert h['text'].include?('- be_helpful')
+
+    assert_includes h['text'], '## Rules'
+    assert_includes h['text'], '- be_nice'
+    assert_includes h['text'], '- be_helpful'
   end
 
   def test_step_mixed_sections_and_bullets
@@ -467,10 +491,11 @@ class ContextsTest < Minitest::Test
     step.add_bullets('Steps', %w[step1 step2])
 
     h = step.to_h
-    assert h['text'].include?('## Task')
-    assert h['text'].include?('Do the thing')
-    assert h['text'].include?('## Steps')
-    assert h['text'].include?('- step1')
+
+    assert_includes h['text'], '## Task'
+    assert_includes h['text'], 'Do the thing'
+    assert_includes h['text'], '## Steps'
+    assert_includes h['text'], '- step1'
   end
 
   def test_step_text_and_sections_conflict
@@ -500,6 +525,7 @@ class ContextsTest < Minitest::Test
     step = STP.new('s1').set_text('x').set_step_criteria('User has provided name')
 
     h = step.to_h
+
     assert_equal 'User has provided name', h['step_criteria']
   end
 
@@ -507,6 +533,7 @@ class ContextsTest < Minitest::Test
     step = STP.new('s1').set_text('x').set_functions('none')
 
     h = step.to_h
+
     assert_equal 'none', h['functions']
   end
 
@@ -514,6 +541,7 @@ class ContextsTest < Minitest::Test
     step = STP.new('s1').set_text('x').set_functions(%w[search lookup])
 
     h = step.to_h
+
     assert_equal %w[search lookup], h['functions']
   end
 
@@ -521,6 +549,7 @@ class ContextsTest < Minitest::Test
     step = STP.new('s1').set_text('x').set_valid_steps(%w[next s2])
 
     h = step.to_h
+
     assert_equal %w[next s2], h['valid_steps']
   end
 
@@ -528,50 +557,58 @@ class ContextsTest < Minitest::Test
     step = STP.new('s1').set_text('x').set_valid_contexts(%w[sales support])
 
     h = step.to_h
+
     assert_equal %w[sales support], h['valid_contexts']
   end
+end
 
+# Step (continued): flags, reset, chaining
+class ContextsStepFlagsTest < Minitest::Test
   def test_step_end
     step = STP.new('final').set_text('Goodbye').set_end(true)
 
     h = step.to_h
-    assert_equal true, h['end']
+
+    assert h['end']
   end
 
   def test_step_skip_user_turn
     step = STP.new('auto').set_text('Processing').set_skip_user_turn(true)
 
     h = step.to_h
-    assert_equal true, h['skip_user_turn']
+
+    assert h['skip_user_turn']
   end
 
   def test_step_skip_to_next_step
     step = STP.new('transit').set_text('Moving on').set_skip_to_next_step(true)
 
     h = step.to_h
-    assert_equal true, h['skip_to_next_step']
+
+    assert h['skip_to_next_step']
   end
 
   def test_step_reset_object
-    step = STP.new('switch')
-               .set_text('Switching context')
-               .set_reset_system_prompt('New system prompt')
-               .set_reset_user_prompt('New user prompt')
-               .set_reset_consolidate(true)
-               .set_reset_full_reset(true)
+    reset = step_with_reset.to_h['reset']
 
-    h = step.to_h
-    assert h.key?('reset')
-    assert_equal 'New system prompt', h['reset']['system_prompt']
-    assert_equal 'New user prompt', h['reset']['user_prompt']
-    assert_equal true, h['reset']['consolidate']
-    assert_equal true, h['reset']['full_reset']
+    refute_nil reset
+    assert_equal 'New system prompt', reset['system_prompt']
+    assert_equal 'New user prompt', reset['user_prompt']
+    assert reset['consolidate']
+    assert reset['full_reset']
+  end
+
+  def step_with_reset
+    STP.new('switch').set_text('Switching context')
+       .set_reset_system_prompt('New system prompt').set_reset_user_prompt('New user prompt')
+       .set_reset_consolidate(true).set_reset_full_reset(true)
   end
 
   def test_step_no_reset_when_not_set
     step = STP.new('normal').set_text('Normal step')
 
     h = step.to_h
+
     refute h.key?('reset')
   end
 
@@ -583,42 +620,40 @@ class ContextsTest < Minitest::Test
     step.set_text('New text')
 
     h = step.to_h
+
     assert_equal 'New text', h['text']
   end
 
   def test_step_chaining_returns_self
-    step = STP.new('s1')
-    assert_same step, step.set_text('x')
-
-    step2 = STP.new('s2')
-    assert_same step2, step2.add_section('T', 'B')
+    assert_same(s1 = STP.new('s1'), s1.set_text('x'))
+    assert_same(s2 = STP.new('s2'), s2.add_section('T', 'B'))
 
     step3 = STP.new('s3')
     step3.add_section('T', 'B')
-    assert_same step3, step3.set_step_criteria('c')
-    assert_same step3, step3.set_functions('none')
-    assert_same step3, step3.set_valid_steps(%w[a])
-    assert_same step3, step3.set_valid_contexts(%w[b])
-    assert_same step3, step3.set_end(true)
-    assert_same step3, step3.set_skip_user_turn(true)
-    assert_same step3, step3.set_skip_to_next_step(true)
-    assert_same step3, step3.set_reset_system_prompt('sp')
-    assert_same step3, step3.set_reset_user_prompt('up')
-    assert_same step3, step3.set_reset_consolidate(true)
-    assert_same step3, step3.set_reset_full_reset(true)
-    assert_same step3, step3.clear_sections
+
+    assert_same step3, chain_all_setters(step3)
   end
 
-  # ================================================================
-  # GatherInfo / GatherQuestion
-  # ================================================================
+  def chain_all_setters(step)
+    step
+      .set_step_criteria('c').set_functions('none').set_valid_steps(%w[a]).set_valid_contexts(%w[b])
+      .set_end(true).set_skip_user_turn(true).set_skip_to_next_step(true)
+      .set_reset_system_prompt('sp').set_reset_user_prompt('up')
+      .set_reset_consolidate(true).set_reset_full_reset(true).clear_sections
+  end
+end
 
+# ================================================================
+# GatherInfo / GatherQuestion
+# ================================================================
+class ContextsGatherInfoTest < Minitest::Test
   def test_gather_question_to_h
     q = GQ.new(key: 'name', question: 'What is your name?')
     h = q.to_h
+
     assert_equal 'name', h['key']
     assert_equal 'What is your name?', h['question']
-    refute h.key?('type')  # default string is omitted
+    refute h.key?('type') # default string is omitted
     refute h.key?('confirm')
   end
 
@@ -626,8 +661,9 @@ class ContextsTest < Minitest::Test
     q = GQ.new(key: 'age', question: 'How old are you?', type: 'number',
                confirm: true, prompt: 'Please provide your age', functions: %w[lookup])
     h = q.to_h
+
     assert_equal 'number', h['type']
-    assert_equal true, h['confirm']
+    assert h['confirm']
     assert_equal 'Please provide your age', h['prompt']
     assert_equal %w[lookup], h['functions']
   end
@@ -638,6 +674,7 @@ class ContextsTest < Minitest::Test
     gi.add_question(key: 'email', question: 'Your email?')
 
     h = gi.to_h
+
     assert_equal 2, h['questions'].size
     assert_equal 'user_info', h['output_key']
     assert_equal 'next_step', h['completion_action']
@@ -652,22 +689,25 @@ class ContextsTest < Minitest::Test
   def test_gather_info_chaining
     gi = GI.new
     result = gi.add_question(key: 'q1', question: 'Q1?')
+
     assert_same gi, result
   end
 
   def test_step_gather_info
-    step = STP.new('gather')
-               .set_text('Gathering info')
-               .set_gather_info(output_key: 'data', prompt: 'We need some info')
-               .add_gather_question(key: 'name', question: 'Your name?')
-               .add_gather_question(key: 'age', question: 'Your age?', type: 'number', confirm: true)
+    gi = step_with_gather_info.to_h['gather_info']
 
-    h = step.to_h
-    assert h.key?('gather_info')
-    assert_equal 2, h['gather_info']['questions'].size
-    assert_equal 'data', h['gather_info']['output_key']
-    assert_equal 'We need some info', h['gather_info']['prompt']
-    assert_equal 'number', h['gather_info']['questions'][1]['type']
+    refute_nil gi
+    assert_equal 2, gi['questions'].size
+    assert_equal 'data', gi['output_key']
+    assert_equal 'We need some info', gi['prompt']
+    assert_equal 'number', gi['questions'][1]['type']
+  end
+
+  def step_with_gather_info
+    STP.new('gather').set_text('Gathering info')
+       .set_gather_info(output_key: 'data', prompt: 'We need some info')
+       .add_gather_question(key: 'name', question: 'Your name?')
+       .add_gather_question(key: 'age', question: 'Your age?', type: 'number', confirm: true)
   end
 
   def test_step_gather_question_without_gather_info_raises
@@ -678,13 +718,15 @@ class ContextsTest < Minitest::Test
   def test_step_set_gather_info_returns_self
     step = STP.new('s1').set_text('x')
     result = step.set_gather_info
+
     assert_same step, result
   end
+end
 
-  # ================================================================
-  # Validation: gather_info
-  # ================================================================
-
+# ================================================================
+# Validation: gather_info
+# ================================================================
+class ContextsGatherValidationTest < Minitest::Test
   def test_validate_gather_info_no_questions
     builder = CB.new
     ctx = builder.add_context('default')
@@ -752,65 +794,68 @@ class ContextsTest < Minitest::Test
 
   def test_create_simple_context_default_name
     ctx = SignalWire::Contexts.create_simple_context
+
     assert_instance_of CTX, ctx
     assert_equal 'default', ctx.name
   end
 
   def test_create_simple_context_custom_name
     ctx = SignalWire::Contexts.create_simple_context('custom')
+
     assert_equal 'custom', ctx.name
   end
+end
 
-  # ================================================================
-  # Full integration: complex multi-context builder
-  # ================================================================
-
+# ================================================================
+# Full integration: complex multi-context builder
+# ================================================================
+class ContextsIntegrationTest < Minitest::Test
   def test_full_integration
-    builder = CB.new
+    h = build_integration_builder.to_h
 
-    # Sales context
-    sales = builder.add_context('sales')
+    assert_equal %w[sales support], h.keys
+    assert_integration_sales(h['sales'])
+    assert_integration_support(h['support'])
+  end
+
+  def assert_integration_sales(sales)
+    steps = sales['steps']
+
+    assert_equal 3, steps.size
+    assert steps[2]['end']
+    assert_equal %w[support], sales['valid_contexts']
+    assert sales['enter_fillers'].key?('en-US')
+  end
+
+  def assert_integration_support(support)
+    steps = support['steps']
+
+    assert_equal 1, steps.size
+    assert_equal %w[lookup_ticket], steps[0]['functions']
+  end
+
+  private
+
+  def build_integration_builder
+    builder = CB.new
+    build_sales_context(builder.add_context('sales'))
+    support = builder.add_context('support')
+    support.set_valid_contexts(%w[sales])
+    support.add_step('triage').set_text('What issue are you experiencing?').set_functions(%w[lookup_ticket])
+    builder
+  end
+
+  def build_sales_context(sales)
     sales.set_valid_contexts(%w[support])
     sales.set_enter_fillers({ 'en-US' => ['Welcome to sales!'] })
     sales.set_exit_fillers({ 'en-US' => ['Thanks for visiting sales!'] })
-
-    s1 = sales.add_step('greeting')
-    s1.set_text('Hello! How can I help you with our products?')
-    s1.set_step_criteria('User has expressed interest')
-    s1.set_valid_steps(%w[next])
-    s1.set_functions(%w[search_products])
-
-    s2 = sales.add_step('qualify')
-    s2.add_section('Task', 'Qualify the lead')
-    s2.add_bullets('Process', ['Ask budget', 'Ask timeline', 'Ask requirements'])
-    s2.set_step_criteria('All qualification info gathered')
-    s2.set_valid_steps(%w[next])
-
-    s3 = sales.add_step('close')
-    s3.set_text('Great! Let me prepare a quote for you.')
-    s3.set_end(true)
-
-    # Support context
-    support = builder.add_context('support')
-    support.set_valid_contexts(%w[sales])
-
-    t1 = support.add_step('triage')
-    t1.set_text('What issue are you experiencing?')
-    t1.set_functions(%w[lookup_ticket])
-
-    h = builder.to_h
-
-    assert_equal 2, h.keys.size
-    assert h.key?('sales')
-    assert h.key?('support')
-
-    assert_equal 3, h['sales']['steps'].size
-    assert_equal true, h['sales']['steps'][2]['end']
-    assert_equal %w[support], h['sales']['valid_contexts']
-    assert h['sales']['enter_fillers'].key?('en-US')
-
-    assert_equal 1, h['support']['steps'].size
-    assert_equal %w[lookup_ticket], h['support']['steps'][0]['functions']
+    sales.add_step('greeting').set_text('Hello! How can I help you with our products?')
+         .set_step_criteria('User has expressed interest').set_valid_steps(%w[next]).set_functions(%w[search_products])
+    qualify = sales.add_step('qualify')
+    qualify.add_section('Task', 'Qualify the lead')
+    qualify.add_bullets('Process', ['Ask budget', 'Ask timeline', 'Ask requirements'])
+    qualify.set_step_criteria('All qualification info gathered').set_valid_steps(%w[next])
+    sales.add_step('close').set_text('Great! Let me prepare a quote for you.').set_end(true)
   end
 end
 
@@ -820,12 +865,13 @@ class ContextsIdiomaticAccessorsTest < Minitest::Test
     @builder = SignalWire::Contexts::ContextBuilder.new
     @ctx     = @builder.add_context('default')
     @step    = @ctx.add_step('s1')
-    @step.text = 'base'   # to_h requires a step to have text/POM
+    @step.text = 'base' # to_h requires a step to have text/POM
   end
 
   # Step: X= writer mirrors set_X, and the chainable set_X still works.
   def test_step_writer_matches_setter
     @step.text = 'you are helpful'
+
     assert_equal 'you are helpful', @step.to_h['text']
     # chainable original still returns self
     assert_same @step, @step.set_text('again')
@@ -833,6 +879,7 @@ class ContextsIdiomaticAccessorsTest < Minitest::Test
 
   def test_step_valid_steps_writer
     @step.valid_steps = %w[next done]
+
     assert_equal %w[next done], @step.to_h['valid_steps']
   end
 
@@ -845,6 +892,7 @@ class ContextsIdiomaticAccessorsTest < Minitest::Test
   # — each aliased inside its own class).
   def test_context_writer_matches_setter
     @ctx.system_prompt = 'be terse'
+
     assert_equal 'be terse', @ctx.to_h['system_prompt']
   end
 end

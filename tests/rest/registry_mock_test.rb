@@ -26,9 +26,11 @@ class RegistryMockTest < Minitest::Test
 
   def test_brands_list_returns_dict
     body = @client.registry.brands.list
+
     assert_kind_of Hash, body
 
     last = MockTest.journal.last
+
     assert_equal 'GET', last.method
     assert_equal "#{REG_BASE}/brands", last.path
     refute_nil last.matched_route, 'spec gap: brand list'
@@ -36,19 +38,23 @@ class RegistryMockTest < Minitest::Test
 
   def test_brands_get_uses_id_in_path
     body = @client.registry.brands.get('brand-77')
+
     assert_kind_of Hash, body
     # Single-brand endpoint synthesises one resource object.
 
     last = MockTest.journal.last
+
     assert_equal 'GET', last.method
     assert_equal "#{REG_BASE}/brands/brand-77", last.path
   end
 
   def test_brands_list_campaigns_uses_brand_subpath
     body = @client.registry.brands.list_campaigns('brand-1')
+
     assert_kind_of Hash, body
 
     last = MockTest.journal.last
+
     assert_equal 'GET', last.method
     assert_equal "#{REG_BASE}/brands/brand-1/campaigns", last.path
     refute_nil last.matched_route
@@ -56,25 +62,33 @@ class RegistryMockTest < Minitest::Test
 
   def test_brands_create_campaign_posts_to_brand_subpath
     body = @client.registry.brands.create_campaign(
-      'brand-2', usecase: 'LOW_VOLUME', description: 'MFA',
+      'brand-2', usecase: 'LOW_VOLUME', description: 'MFA'
     )
+
     assert_kind_of Hash, body
 
     last = MockTest.journal.last
+
     assert_equal 'POST', last.method
     assert_equal "#{REG_BASE}/brands/brand-2/campaigns", last.path
     assert_kind_of Hash, last.body
-    assert_equal 'LOW_VOLUME', last.body['usecase']
-    assert_equal 'MFA', last.body['description']
+    assert_request_body(last, 'usecase' => 'LOW_VOLUME', 'description' => 'MFA')
+  end
+
+  # Assert each expected key/value pair is present in the journaled request body.
+  def assert_request_body(entry, expected)
+    expected.each { |k, v| assert_equal v, entry.body[k] }
   end
 
   # ---- Campaigns ------------------------------------------------------
 
   def test_campaigns_get_uses_id_in_path
     body = @client.registry.campaigns.get('camp-1')
+
     assert_kind_of Hash, body
 
     last = MockTest.journal.last
+
     assert_equal 'GET', last.method
     assert_equal "#{REG_BASE}/campaigns/camp-1", last.path
   end
@@ -83,9 +97,11 @@ class RegistryMockTest < Minitest::Test
     # RegistryCampaigns.update calls @http.put(...) — distinct from the
     # generic CrudResource which uses PATCH.
     body = @client.registry.campaigns.update('camp-2', description: 'Updated')
+
     assert_kind_of Hash, body
 
     last = MockTest.journal.last
+
     assert_equal 'PUT', last.method
     assert_equal "#{REG_BASE}/campaigns/camp-2", last.path
     assert_kind_of Hash, last.body
@@ -94,9 +110,11 @@ class RegistryMockTest < Minitest::Test
 
   def test_campaigns_list_numbers_uses_numbers_subpath
     body = @client.registry.campaigns.list_numbers('camp-3')
+
     assert_kind_of Hash, body
 
     last = MockTest.journal.last
+
     assert_equal 'GET', last.method
     assert_equal "#{REG_BASE}/campaigns/camp-3/numbers", last.path
     refute_nil last.matched_route
@@ -104,11 +122,13 @@ class RegistryMockTest < Minitest::Test
 
   def test_campaigns_create_order_posts_to_orders_subpath
     body = @client.registry.campaigns.create_order(
-      'camp-4', numbers: %w[pn-1 pn-2],
+      'camp-4', numbers: %w[pn-1 pn-2]
     )
+
     assert_kind_of Hash, body
 
     last = MockTest.journal.last
+
     assert_equal 'POST', last.method
     assert_equal "#{REG_BASE}/campaigns/camp-4/orders", last.path
     assert_kind_of Hash, last.body
@@ -119,9 +139,11 @@ class RegistryMockTest < Minitest::Test
 
   def test_orders_get_uses_id_in_path
     body = @client.registry.orders.get('order-1')
+
     assert_kind_of Hash, body
 
     last = MockTest.journal.last
+
     assert_equal 'GET', last.method
     assert_equal "#{REG_BASE}/orders/order-1", last.path
     refute_nil last.matched_route, 'spec gap: order retrieve'
@@ -135,6 +157,7 @@ class RegistryMockTest < Minitest::Test
     assert_kind_of Hash, body
 
     last = MockTest.journal.last
+
     assert_equal 'DELETE', last.method
     assert_equal "#{REG_BASE}/numbers/num-1", last.path
     refute_nil last.matched_route

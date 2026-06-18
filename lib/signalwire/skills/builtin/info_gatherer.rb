@@ -6,32 +6,147 @@ require_relative '../skill_registry'
 module SignalWire
   module Skills
     module Builtin
+      # Private helpers for {InfoGathererSkill}. Extracted to a mixin so the
+      # skill class stays focused on its public surface (the audit reads the
+      # class's own public methods, never these helpers).
+      module InfoGathererHelpers
+        private
+
+        def start_tool_definition
+          { name: @start_tool,
+            description: 'Start the question sequence with the first question',
+            parameters: {}, handler: method(:handle_start) }
+        end
+
+        def submit_tool_definition
+          { name: @submit_tool,
+            description: 'Submit an answer to the current question and move to the next one',
+            parameters: submit_tool_parameters, handler: method(:handle_submit) }
+        end
+
+        def submit_tool_parameters
+          { 'answer' => { 'type' => 'string',
+                          'description' => "The user's answer to the current question" },
+            'confirmed_by_user' =>
+              { 'type' => 'boolean',
+                'description' => 'Only set to true when the user has explicitly confirmed the answer.' } }
+        end
+
+        def valid_questions?(questions)
+          return false unless questions.is_a?(Array) && !questions.empty?
+
+          questions.all? { |q| q.is_a?(Hash) && q['key_name'] && q['question_text'] }
+        end
+
+        def configure_tool_names(prefix)
+          slug = prefix && !prefix.empty? ? prefix : nil
+          @start_tool  = slug ? "#{slug}_start_questions" : 'start_questions'
+          @submit_tool = slug ? "#{slug}_submit_answer" : 'submit_answer'
+          @namespace   = slug ? "skill:#{slug}" : 'skill:info_gatherer'
+        end
+
+        def handle_start(_args, raw_data)
+          questions, index, = load_progress(raw_data)
+          if questions.empty? || index >= questions.size
+            return Swaig::FunctionResult.new("I don't have any questions to ask.")
+          end
+
+          instruction = generate_instruction(questions[index], index, questions.size, true)
+          Swaig::FunctionResult.new(instruction)
+        end
+
+        def handle_submit(args, raw_data)
+          answer = args['answer'] || ''
+          questions, index, answers = load_progress(raw_data)
+
+          return Swaig::FunctionResult.new('All questions have already been answered.') if index >= questions.size
+
+          current = questions[index]
+          return confirmation_prompt(answer) if current['confirm'] && !args['confirmed_by_user']
+
+          new_index   = index + 1
+          new_answers = answers + [{ 'key_name' => current['key_name'], 'answer' => answer }]
+          apply_state(submit_result(questions, new_index), questions, new_index, new_answers)
+        end
+
+        # [questions, question_index, answers] from SWAIG global_data state.
+        def load_progress(raw_data)
+          state = extract_state(raw_data)
+          [state['questions'] || @questions, state['question_index'] || 0, state['answers'] || []]
+        end
+
+        # Persist updated questions/index/answers onto the SWAIG result.
+        def apply_state(result, questions, new_index, new_answers)
+          result.update_global_data(
+            @namespace => { 'questions' => questions, 'question_index' => new_index,
+                            'answers' => new_answers }
+          )
+          result
+        end
+
+        def confirmation_prompt(answer)
+          Swaig::FunctionResult.new(
+            "Before submitting, read the answer \"#{answer}\" back to the user and ask them to confirm."
+          )
+        end
+
+        # SWAIG result for the next question, or the completion message
+        # (both tools toggled off) when the last answer is in.
+        def submit_result(questions, new_index)
+          if new_index < questions.size
+            instruction = generate_instruction(questions[new_index], new_index, questions.size, false)
+            return Swaig::FunctionResult.new(instruction)
+          end
+
+          result = Swaig::FunctionResult.new(@completion_message)
+          result.toggle_functions(
+            [{ 'function' => @start_tool, 'active' => false },
+             { 'function' => @submit_tool, 'active' => false }]
+          )
+          result
+        end
+
+        def extract_state(raw_data)
+          return {} unless raw_data.is_a?(Hash)
+
+          (raw_data['global_data'] || {})[@namespace] || {}
+        end
+
+        def generate_instruction(question, index, total, first)
+          instr = base_instruction(question['question_text'], index + 1, total, first)
+          prompt_add = question['prompt_add']
+          instr += "\nNote: #{prompt_add}" if prompt_add && !prompt_add.empty?
+          if question['confirm']
+            instr += "\nThis question requires confirmation. Read the answer back and ask the user to confirm."
+          end
+          instr
+        end
+
+        def base_instruction(text, num, total, first)
+          if first
+            "Ask each question one at a time, wait for the user's answer, " \
+              "then call #{@submit_tool} with their answer.\n\n" \
+              "[Question #{num} of #{total}]: \"#{text}\""
+          else
+            "Previous answer saved. [Question #{num} of #{total}]: \"#{text}\""
+          end
+        end
+      end
+
       class InfoGathererSkill < SkillBase
-        def name;        'info_gatherer'; end
-        def description; 'Gather answers to a configurable list of questions'; end
-        def supports_multiple_instances?; true; end
+        include InfoGathererHelpers
+
+        def name = 'info_gatherer'
+        def description = 'Gather answers to a configurable list of questions'
+        def supports_multiple_instances? = true
 
         def setup
           @questions = get_param('questions')
-          return false unless @questions.is_a?(Array) && !@questions.empty?
+          return false unless valid_questions?(@questions)
 
-          @questions.each_with_index do |q, i|
-            return false unless q.is_a?(Hash) && q['key_name'] && q['question_text']
-          end
-
-          prefix = get_param('prefix')
-          if prefix && !prefix.empty?
-            @start_tool = "#{prefix}_start_questions"
-            @submit_tool = "#{prefix}_submit_answer"
-            @namespace = "skill:#{prefix}"
-          else
-            @start_tool = 'start_questions'
-            @submit_tool = 'submit_answer'
-            @namespace = 'skill:info_gatherer'
-          end
-
+          configure_tool_names(get_param('prefix'))
           @completion_message = get_param('completion_message',
-            default: 'Thank you! All questions have been answered.')
+                                          default: 'Thank you! All questions have been answered.')
           true
         end
 
@@ -41,40 +156,18 @@ module SignalWire
         end
 
         def register_tools
-          [
-            {
-              name: @start_tool,
-              description: 'Start the question sequence with the first question',
-              parameters: {},
-              handler: method(:handle_start)
-            },
-            {
-              name: @submit_tool,
-              description: 'Submit an answer to the current question and move to the next one',
-              parameters: {
-                'answer'            => { 'type' => 'string', 'description' => "The user's answer to the current question" },
-                'confirmed_by_user' => { 'type' => 'boolean', 'description' => 'Only set to true when the user has explicitly confirmed the answer.' }
-              },
-              handler: method(:handle_submit)
-            }
-          ]
+          [start_tool_definition, submit_tool_definition]
         end
 
         def get_global_data
-          {
-            @namespace => {
-              'questions'      => @questions,
-              'question_index' => 0,
-              'answers'        => []
-            }
-          }
+          { @namespace => { 'questions' => @questions, 'question_index' => 0, 'answers' => [] } }
         end
 
         def get_prompt_sections
           [
             {
               'title' => "Info Gatherer (#{instance_key})",
-              'body' => "You need to gather answers to a series of questions from the user. " \
+              'body' => 'You need to gather answers to a series of questions from the user. ' \
                         "Start by asking if they are ready, then call #{@start_tool} to get the first question. " \
                         "After each answer, call #{@submit_tool} to record it and get the next question."
             }
@@ -82,102 +175,9 @@ module SignalWire
         end
 
         def get_parameter_schema
-          {
-            'questions' => { 'type' => 'array', 'required' => true },
-            'prefix'    => { 'type' => 'string' },
-            'completion_message' => { 'type' => 'string' }
-          }
-        end
-
-        private
-
-        def handle_start(args, raw_data)
-          state = extract_state(raw_data)
-          questions = state['questions'] || @questions
-          index = state['question_index'] || 0
-
-          if questions.empty? || index >= questions.size
-            return Swaig::FunctionResult.new("I don't have any questions to ask.")
-          end
-
-          current = questions[index]
-          instruction = generate_instruction(current, index, questions.size, true)
-          Swaig::FunctionResult.new(instruction)
-        end
-
-        def handle_submit(args, raw_data)
-          answer    = args['answer'] || ''
-          confirmed = args['confirmed_by_user']
-
-          state     = extract_state(raw_data)
-          questions = state['questions'] || @questions
-          index     = state['question_index'] || 0
-          answers   = state['answers'] || []
-
-          if index >= questions.size
-            return Swaig::FunctionResult.new('All questions have already been answered.')
-          end
-
-          current = questions[index]
-
-          if current['confirm'] && !confirmed
-            return Swaig::FunctionResult.new(
-              "Before submitting, read the answer \"#{answer}\" back to the user and ask them to confirm."
-            )
-          end
-
-          new_answers = answers + [{ 'key_name' => current['key_name'], 'answer' => answer }]
-          new_index   = index + 1
-
-          if new_index < questions.size
-            next_q = questions[new_index]
-            instruction = generate_instruction(next_q, new_index, questions.size, false)
-            result = Swaig::FunctionResult.new(instruction)
-          else
-            result = Swaig::FunctionResult.new(@completion_message)
-            result.toggle_functions([
-              { 'function' => @start_tool, 'active' => false },
-              { 'function' => @submit_tool, 'active' => false }
-            ])
-          end
-
-          result.update_global_data({
-            @namespace => {
-              'questions'      => questions,
-              'question_index' => new_index,
-              'answers'        => new_answers
-            }
-          })
-          result
-        end
-
-        def extract_state(raw_data)
-          return {} unless raw_data.is_a?(Hash)
-          gd = raw_data['global_data'] || {}
-          gd[@namespace] || {}
-        end
-
-        def generate_instruction(question, index, total, first)
-          text = question['question_text']
-          num  = index + 1
-
-          if first
-            instr = "Ask each question one at a time, wait for the user's answer, " \
-                    "then call #{@submit_tool} with their answer.\n\n" \
-                    "[Question #{num} of #{total}]: \"#{text}\""
-          else
-            instr = "Previous answer saved. [Question #{num} of #{total}]: \"#{text}\""
-          end
-
-          if question['prompt_add'] && !question['prompt_add'].empty?
-            instr += "\nNote: #{question['prompt_add']}"
-          end
-
-          if question['confirm']
-            instr += "\nThis question requires confirmation. Read the answer back and ask the user to confirm."
-          end
-
-          instr
+          { 'questions' => { 'type' => 'array', 'required' => true },
+            'prefix' => { 'type' => 'string' },
+            'completion_message' => { 'type' => 'string' } }
         end
       end
     end

@@ -1,9 +1,8 @@
 {
-  "generated_from": "signalwire-ruby @ 1d7f17c5f140bb46f5dfe51588adf8981d21f577",
+  "generated_from": "signalwire-ruby @ 2a06612d0b92fc28275c0c22a2bacd08e81e2ab6",
   "modules": {
     "signalwire": {
-      "classes": {
-      },
+      "classes": {},
       "functions": [
         "RestClient",
         "add_skill_directory",
@@ -33,9 +32,7 @@
           "unregister"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.contexts": {
       "classes": {
@@ -43,9 +40,7 @@
           "create_simple_context"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.core.agent_base": {
       "classes": {
@@ -138,9 +133,7 @@
           "validate_tool_token"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.core.contexts": {
       "classes": {
@@ -222,9 +215,7 @@
           "to_h"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.core.data_map": {
       "classes": {
@@ -249,9 +240,7 @@
           "webhook_expressions"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.core.function_result": {
       "classes": {
@@ -312,9 +301,7 @@
           "wait_for_user"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.core.logging_config": {
       "classes": {
@@ -322,9 +309,7 @@
           "get_execution_mode"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.core.mixins.ai_config_mixin": {
       "classes": {
@@ -333,9 +318,7 @@
           "set_language_params"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.core.security.session_manager": {
       "classes": {
@@ -351,9 +334,7 @@
           "validate_token"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.core.security.webhook_middleware": {
       "classes": {
@@ -362,13 +343,10 @@
           "call"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.core.security.webhook_validator": {
-      "classes": {
-      },
+      "classes": {},
       "functions": [
         "validate_request",
         "validate_webhook_signature"
@@ -402,9 +380,7 @@
           "version"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.core.skill_manager": {
       "classes": {
@@ -421,9 +397,7 @@
           "unload"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.logging": {
       "classes": {
@@ -434,9 +408,7 @@
           "suppressed?"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.pom.pom": {
       "classes": {
@@ -471,9 +443,7 @@
           "to_h"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.prefabs.concierge": {
       "classes": {
@@ -494,9 +464,7 @@
           "venue_name"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.prefabs.faq_bot": {
       "classes": {
@@ -512,9 +480,7 @@
           "tools"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.prefabs.info_gatherer": {
       "classes": {
@@ -532,9 +498,7 @@
           "tools"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.prefabs.receptionist": {
       "classes": {
@@ -551,9 +515,7 @@
           "tools"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.prefabs.survey": {
       "classes": {
@@ -574,9 +536,7 @@
           "validate_response"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.relay.call": {
       "classes": {
@@ -714,9 +674,7 @@
           "stop"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.relay.call_state": {
       "classes": {
@@ -725,15 +683,11 @@
           "valid?"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.relay.client": {
       "classes": {
-        "ActionTimeoutError": [
-
-        ],
+        "ActionTimeoutError": [],
         "RelayClient": [
           "__init__",
           "dial",
@@ -758,9 +712,7 @@
           "error_message"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.relay.collect_config": {
       "classes": {
@@ -782,9 +734,7 @@
           "to_s"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.relay.device": {
       "classes": {
@@ -804,9 +754,7 @@
           "type"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.relay.dial_state": {
       "classes": {
@@ -815,9 +763,7 @@
           "valid?"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.relay.event": {
       "classes": {
@@ -1033,14 +979,9 @@
           "__init__",
           "body",
           "context",
-          "deconstruct",
-          "deconstruct_keys",
           "direction",
           "done?",
-          "eql?",
           "from_number",
-          "hash",
-          "inspect",
           "is_done?",
           "media",
           "message_id",
@@ -1053,15 +994,11 @@
           "tags",
           "terminal?",
           "to_h",
-          "to_json",
           "to_number",
-          "to_s",
           "wait"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.relay.message_state": {
       "classes": {
@@ -1070,9 +1007,7 @@
           "valid?"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.rest._base": {
       "classes": {
@@ -1108,9 +1043,7 @@
           "url"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.rest._pagination": {
       "classes": {
@@ -1129,9 +1062,7 @@
           "path"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.rest.client": {
       "classes": {
@@ -1162,9 +1093,7 @@
           "video"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.rest.namespaces.addresses": {
       "classes": {
@@ -1176,9 +1105,7 @@
           "list"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.rest.namespaces.calling": {
       "classes": {
@@ -1223,9 +1150,7 @@
           "user_event"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.rest.namespaces.chat": {
       "classes": {
@@ -1234,9 +1159,7 @@
           "create_token"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.rest.namespaces.compat": {
       "classes": {
@@ -1336,9 +1259,7 @@
           "list"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.rest.namespaces.datasphere": {
       "classes": {
@@ -1354,9 +1275,7 @@
           "documents"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.rest.namespaces.fabric": {
       "classes": {
@@ -1374,9 +1293,7 @@
         "CxmlApplicationsResource": [
           "create"
         ],
-        "CxmlWebhooksResource": [
-
-        ],
+        "CxmlWebhooksResource": [],
         "FabricAddresses": [
           "get",
           "list"
@@ -1400,12 +1317,8 @@
           "swml_webhooks",
           "tokens"
         ],
-        "FabricResource": [
-
-        ],
-        "FabricResourcePUT": [
-
-        ],
+        "FabricResource": [],
+        "FabricResourcePUT": [],
         "FabricTokens": [
           "__init__",
           "create_embed_token",
@@ -1429,13 +1342,9 @@
           "list_sip_endpoints",
           "update_sip_endpoint"
         ],
-        "SwmlWebhooksResource": [
-
-        ]
+        "SwmlWebhooksResource": []
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.rest.namespaces.imported_numbers": {
       "classes": {
@@ -1444,9 +1353,7 @@
           "create"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.rest.namespaces.logs": {
       "classes": {
@@ -1474,9 +1381,7 @@
           "list_events"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.rest.namespaces.lookup": {
       "classes": {
@@ -1485,9 +1390,7 @@
           "phone_number"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.rest.namespaces.mfa": {
       "classes": {
@@ -1498,9 +1401,7 @@
           "verify"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.rest.namespaces.number_groups": {
       "classes": {
@@ -1512,9 +1413,7 @@
           "list_memberships"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.rest.namespaces.phone_numbers": {
       "classes": {
@@ -1530,9 +1429,7 @@
           "set_swml_webhook"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.rest.namespaces.project": {
       "classes": {
@@ -1547,9 +1444,7 @@
           "update"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.rest.namespaces.pubsub": {
       "classes": {
@@ -1558,9 +1453,7 @@
           "create_token"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.rest.namespaces.queues": {
       "classes": {
@@ -1571,9 +1464,7 @@
           "list_members"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.rest.namespaces.recordings": {
       "classes": {
@@ -1584,9 +1475,7 @@
           "list"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.rest.namespaces.registry": {
       "classes": {
@@ -1618,9 +1507,7 @@
           "get"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.rest.namespaces.short_codes": {
       "classes": {
@@ -1631,9 +1518,7 @@
           "update"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.rest.namespaces.sip_profile": {
       "classes": {
@@ -1643,9 +1528,7 @@
           "update"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.rest.namespaces.verified_callers": {
       "classes": {
@@ -1655,9 +1538,7 @@
           "submit_verification"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.rest.namespaces.video": {
       "classes": {
@@ -1706,9 +1587,7 @@
           "update"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.runtime": {
       "classes": {
@@ -1719,9 +1598,7 @@
           "serverless?"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.serverless.lambda_handler": {
       "classes": {
@@ -1731,9 +1608,7 @@
           "for"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.skills.api_ninjas_trivia.skill": {
       "classes": {
@@ -1747,9 +1622,7 @@
           "supports_multiple_instances?"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.skills.builtin.custom_skills_skill": {
       "classes": {
@@ -1763,9 +1636,7 @@
           "supports_multiple_instances?"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.skills.claude_skills.skill": {
       "classes": {
@@ -1781,9 +1652,7 @@
           "supports_multiple_instances?"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.skills.datasphere.skill": {
       "classes": {
@@ -1799,9 +1668,7 @@
           "supports_multiple_instances?"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.skills.datasphere_serverless.skill": {
       "classes": {
@@ -1817,9 +1684,7 @@
           "supports_multiple_instances?"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.skills.datetime.skill": {
       "classes": {
@@ -1832,9 +1697,7 @@
           "setup"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.skills.google_maps.skill": {
       "classes": {
@@ -1848,9 +1711,7 @@
           "setup"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.skills.info_gatherer.skill": {
       "classes": {
@@ -1866,9 +1727,7 @@
           "supports_multiple_instances?"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.skills.joke.skill": {
       "classes": {
@@ -1882,9 +1741,7 @@
           "setup"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.skills.math.skill": {
       "classes": {
@@ -1897,9 +1754,7 @@
           "setup"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.skills.mcp_gateway.skill": {
       "classes": {
@@ -1914,9 +1769,7 @@
           "setup"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.skills.native_vector_search.skill": {
       "classes": {
@@ -1931,9 +1784,7 @@
           "supports_multiple_instances?"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.skills.play_background_file.skill": {
       "classes": {
@@ -1947,9 +1798,7 @@
           "supports_multiple_instances?"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.skills.registry": {
       "classes": {
@@ -1971,9 +1820,7 @@
           "reset!"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.skills.skill_name": {
       "classes": {
@@ -1981,9 +1828,7 @@
           "builtin?"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.skills.spider.skill": {
       "classes": {
@@ -1999,9 +1844,7 @@
           "supports_multiple_instances?"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.skills.swml_transfer.skill": {
       "classes": {
@@ -2017,9 +1860,7 @@
           "supports_multiple_instances?"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.skills.weather_api.skill": {
       "classes": {
@@ -2031,9 +1872,7 @@
           "setup"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.skills.web_search.skill": {
       "classes": {
@@ -2050,9 +1889,7 @@
           "version"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.skills.wikipedia_search.skill": {
       "classes": {
@@ -2066,9 +1903,7 @@
           "setup"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.swaig.parameter_schema": {
       "classes": {
@@ -2089,9 +1924,7 @@
           "to_json"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.swml": {
       "classes": {
@@ -2100,9 +1933,7 @@
           "schema"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.swml.document": {
       "classes": {
@@ -2121,9 +1952,7 @@
           "version"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.swml.schema": {
       "classes": {
@@ -2136,9 +1965,7 @@
           "verbs"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.swml.service": {
       "classes": {
@@ -2184,9 +2011,7 @@
           "validate_basic_auth"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.utils": {
       "classes": {
@@ -2194,9 +2019,7 @@
           "is_serverless_mode"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.utils.schema_utils": {
       "classes": {
@@ -2221,9 +2044,7 @@
           "verb_name"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     },
     "signalwire.utils.url_validator": {
       "classes": {
@@ -2231,11 +2052,9 @@
           "validate_url"
         ]
       },
-      "functions": [
-
-      ]
+      "functions": []
     }
   },
-  "ruby_version": "3.3.6",
+  "ruby_version": "3.3.11",
   "version": "1"
 }

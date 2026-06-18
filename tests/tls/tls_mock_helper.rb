@@ -55,14 +55,17 @@ module TlsHarness
       break if parent == dir
 
       tls_dir = File.join(parent, 'porting-sdk', 'test_harness', 'tls')
-      gen = File.join(tls_dir, 'gen_certs.sh')
-      if File.file?(gen)
-        ok = system('bash', gen, out: File::NULL, err: File::NULL)
-        return ok ? File.join(tls_dir, 'certs') : nil
-      end
+      return generate_certs(tls_dir) if File.file?(File.join(tls_dir, 'gen_certs.sh'))
+
       dir = parent
     end
     nil
+  end
+
+  # Run the idempotent gen_certs.sh in tls_dir; return its certs/ path or nil.
+  def generate_certs(tls_dir)
+    ok = system('bash', File.join(tls_dir, 'gen_certs.sh'), out: File::NULL, err: File::NULL)
+    ok ? File.join(tls_dir, 'certs') : nil
   end
 
   def ca_file
@@ -119,24 +122,18 @@ module TlsHarness
 
     base = "https://127.0.0.1:#{TLS_SIGNALWIRE_PORT}"
     store = trusting_store
-    return base if probe_https("#{base}/__mock__/health", store)
+    health = "#{base}/__mock__/health"
+    return base if TlsTransport.probe_https(health, store)
 
-    pid = spawn_python(
-      pkg,
-      ['python3', '-m', 'mock_signalwire',
-       '--host', '127.0.0.1', '--port', TLS_SIGNALWIRE_PORT.to_s,
-       '--tls', '--log-level', 'error'],
-      'SIGNALWIRE_MOCK_TLS' => '1',
-    )
+    pid = TlsTransport.spawn_python(pkg, signalwire_cmd, 'SIGNALWIRE_MOCK_TLS' => '1')
     return nil unless pid
 
-    deadline = Time.now + STARTUP_TIMEOUT_S
-    while Time.now < deadline
-      return base if probe_https("#{base}/__mock__/health", store)
+    TlsTransport.poll_until(base, STARTUP_TIMEOUT_S) { TlsTransport.probe_https(health, store) }
+  end
 
-      sleep 0.2
-    end
-    nil
+  def signalwire_cmd
+    ['python3', '-m', 'mock_signalwire', '--host', '127.0.0.1',
+     '--port', TLS_SIGNALWIRE_PORT.to_s, '--tls', '--log-level', 'error']
   end
 
   # Spawn `python -m mock_relay --tls` on the dedicated WS+HTTP port pair and
@@ -148,33 +145,26 @@ module TlsHarness
 
     http_url = "http://127.0.0.1:#{TLS_RELAY_HTTP_PORT}"
     info = { ws_port: TLS_RELAY_WS_PORT, http_url: http_url }
-    return info if probe_http("#{http_url}/__mock__/health")
+    health = "#{http_url}/__mock__/health"
+    return info if TlsTransport.probe_http(health)
 
-    pid = spawn_python(
-      pkg,
-      ['python3', '-m', 'mock_relay',
-       '--host', '127.0.0.1',
-       '--ws-port', TLS_RELAY_WS_PORT.to_s,
-       '--http-port', TLS_RELAY_HTTP_PORT.to_s,
-       '--tls', '--log-level', 'error'],
-      'SIGNALWIRE_MOCK_TLS' => '1',
-    )
+    pid = TlsTransport.spawn_python(pkg, relay_cmd, 'SIGNALWIRE_MOCK_TLS' => '1')
     return nil unless pid
 
-    deadline = Time.now + STARTUP_TIMEOUT_S
-    while Time.now < deadline
-      return info if probe_http("#{http_url}/__mock__/health")
+    TlsTransport.poll_until(info, STARTUP_TIMEOUT_S) { TlsTransport.probe_http(health) }
+  end
 
-      sleep 0.2
-    end
-    nil
+  def relay_cmd
+    ['python3', '-m', 'mock_relay', '--host', '127.0.0.1',
+     '--ws-port', TLS_RELAY_WS_PORT.to_s, '--http-port', TLS_RELAY_HTTP_PORT.to_s,
+     '--tls', '--log-level', 'error']
   end
 
   # Fetch the mock_relay journal (plain-HTTP control plane) and report whether
   # an inbound (SDK→server) frame with the given JSON-RPC method was recorded —
   # wire proof the traffic crossed the WSS link.
   def relay_saw_recv?(http_url, method)
-    raw = http_get_body("#{http_url}/__mock__/journal")
+    raw = TlsTransport.http_get_body("#{http_url}/__mock__/journal")
     return false unless raw
 
     entries = JSON.parse(raw)
@@ -186,7 +176,7 @@ module TlsHarness
   # Return the most recent mock_signalwire journal entry (Hash) read over
   # CA-trusted HTTPS, or nil.
   def signalwire_last_journal(base, store)
-    raw = https_get_body("#{base}/__mock__/journal", store)
+    raw = TlsTransport.https_get_body("#{base}/__mock__/journal", store)
     return nil unless raw
 
     arr = JSON.parse(raw)
@@ -194,8 +184,24 @@ module TlsHarness
   rescue StandardError
     nil
   end
+end
 
-  # --- internals -----------------------------------------------------------
+# Low-level transport + process plumbing for {TlsHarness}. Kept separate so the
+# harness stays focused on the TLS capability-test orchestration.
+module TlsTransport
+  module_function
+
+  # Poll the given block until it returns truthy (yielding `ready_value`) or
+  # `timeout_s` elapses (→ nil). Used by both mock launchers.
+  def poll_until(ready_value, timeout_s)
+    deadline = Time.now + timeout_s
+    while Time.now < deadline
+      return ready_value if yield
+
+      sleep 0.2
+    end
+    nil
+  end
 
   def free_port
     s = TCPServer.new('127.0.0.1', 0)
@@ -206,28 +212,29 @@ module TlsHarness
 
   def spawn_python(pkg_dir, cmd, extra_env = {})
     env = ENV.to_h
-    sep = File::PATH_SEPARATOR
-    env['PYTHONPATH'] = if env['PYTHONPATH'].nil? || env['PYTHONPATH'].empty?
-                          pkg_dir
-                        else
-                          "#{pkg_dir}#{sep}#{env['PYTHONPATH']}"
-                        end
+    env['PYTHONPATH'] = prepend_pythonpath(env['PYTHONPATH'], pkg_dir)
     extra_env.each { |k, v| env[k] = v }
 
-    pid = Process.spawn(env, *cmd,
-                        out: File::NULL, err: File::NULL, in: File::NULL,
-                        pgroup: true)
+    pid = Process.spawn(env, *cmd, out: File::NULL, err: File::NULL, in: File::NULL, pgroup: true)
     Process.detach(pid)
-    at_exit do
-      begin
-        Process.kill('TERM', -Process.getpgid(pid))
-      rescue StandardError
-        # already gone
-      end
-    end
+    register_pgroup_kill(pid)
     pid
   rescue Errno::ENOENT
     nil
+  end
+
+  def prepend_pythonpath(current, pkg_dir)
+    return pkg_dir if current.nil? || current.empty?
+
+    "#{pkg_dir}#{File::PATH_SEPARATOR}#{current}"
+  end
+
+  def register_pgroup_kill(pid)
+    at_exit do
+      Process.kill('TERM', -Process.getpgid(pid))
+    rescue StandardError
+      # already gone
+    end
   end
 
   def probe_http(url)
@@ -265,15 +272,19 @@ module TlsHarness
   # Returns the body String on 2xx, else nil.
   def https_get_body(url, store)
     uri = URI(url)
+    resp = verifying_https(uri, store).get(uri.request_uri)
+    resp.is_a?(Net::HTTPSuccess) ? resp.body : nil
+  rescue StandardError
+    nil
+  end
+
+  def verifying_https(uri, store)
     http = Net::HTTP.new(uri.hostname, uri.port)
     http.use_ssl = true
     http.verify_mode = OpenSSL::SSL::VERIFY_PEER
     http.cert_store = store
     http.open_timeout = 2
     http.read_timeout = 3
-    resp = http.get(uri.request_uri)
-    resp.is_a?(Net::HTTPSuccess) ? resp.body : nil
-  rescue StandardError
-    nil
+    http
   end
 end

@@ -31,11 +31,15 @@ module RelayMockTest
   STARTUP_TIMEOUT_S = 30
 
   # JournalEntry mirrors the dict shape exposed at /__mock__/journal.
+  # :method is the JSON-RPC method field name from the wire — keeping it (rather
+  # than renaming to dodge the Struct#method override) preserves that mirroring.
+  # rubocop:disable Lint/StructNewOverride
   JournalEntry = Struct.new(
     :timestamp, :direction, :method, :request_id, :frame,
     :connection_id, :session_id,
-    keyword_init: true,
+    keyword_init: true
   ) do
+    # rubocop:enable Lint/StructNewOverride
     # Convenience: return the params hash from the JSON-RPC frame.
     def params
       (frame || {})['params'] || {}
@@ -49,6 +53,78 @@ module RelayMockTest
     # Convenience: return params['event_type'] for signalwire.event frames.
     def event_type
       params['event_type']
+    end
+  end
+
+  # Private HTTP transport + journal-row marshalling for {Harness}. Extracted
+  # into a module so Harness stays focused on the journal/scenario API.
+  # Relies on the host's @http_url instance variable.
+  module HarnessTransport
+    private
+
+    def build_entry(row)
+      JournalEntry.new(
+        timestamp: row['timestamp'],
+        direction: row['direction'],
+        method: row['method'],
+        request_id: row['request_id'],
+        frame: row['frame'] || {},
+        connection_id: row['connection_id'],
+        session_id: row['session_id']
+      )
+    end
+
+    def stringify_keys(obj)
+      return obj unless obj.is_a?(Hash)
+
+      obj.each_with_object({}) do |(k, v), out|
+        out[k.to_s] = v.is_a?(Hash) ? stringify_keys(v) : v
+      end
+    end
+
+    def http_get(path)
+      with_retry do
+        uri = URI("#{@http_url}#{path}")
+        Net::HTTP.start(uri.hostname, uri.port, open_timeout: 5, read_timeout: 10) do |http|
+          require_success('GET', path, http.get(uri.request_uri))
+        end
+      end
+    end
+
+    def http_post(path, body = nil, read_timeout: 10)
+      with_retry do
+        uri = URI("#{@http_url}#{path}")
+        Net::HTTP.start(uri.hostname, uri.port, open_timeout: 5, read_timeout: read_timeout) do |http|
+          req = Net::HTTP::Post.new(uri.request_uri)
+          req['Content-Type'] = 'application/json'
+          req.body = body if body
+          require_success('POST', path, http.request(req))
+        end
+      end
+    end
+
+    # Raise on a non-2xx HTTP response, else return its body (never nil).
+    def require_success(verb, path, resp)
+      raise "mocktest: #{verb} #{path} failed: #{resp.code} #{resp.body}" unless resp.is_a?(Net::HTTPSuccess)
+
+      resp.body || ''
+    end
+
+    # Tolerate brief connection refusals while the mock is restarted by
+    # +Lifecycle.respawn_if_dead+. Each retry waits 200ms and triggers a
+    # fresh health probe + spawn through the singleton lifecycle.
+    def with_retry
+      attempts = 0
+      begin
+        yield
+      rescue Errno::ECONNREFUSED
+        attempts += 1
+        raise if attempts > 10
+
+        RelayMockTest::Lifecycle.instance.respawn_if_dead
+        sleep 0.2
+        retry
+      end
     end
   end
 
@@ -128,7 +204,7 @@ module RelayMockTest
     def arm_method(method, events)
       http_post(
         "/__mock__/scenarios/#{method}",
-        JSON.generate(events.is_a?(Array) ? events : [events]),
+        JSON.generate(events.is_a?(Array) ? events : [events])
       )
     end
 
@@ -137,7 +213,7 @@ module RelayMockTest
     def arm_dial(**kwargs)
       http_post(
         '/__mock__/scenarios/dial',
-        JSON.generate(stringify_keys(kwargs)),
+        JSON.generate(stringify_keys(kwargs))
       )
     end
 
@@ -158,16 +234,12 @@ module RelayMockTest
                      to_number: '+15559876543', context: 'default',
                      auto_states: nil, delay_ms: 50, session_id: nil)
       body = {
-        'from_number' => from_number,
-        'to_number'   => to_number,
-        'context'     => context,
-        'auto_states' => auto_states || ['created'],
-        'delay_ms'    => delay_ms,
+        'from_number' => from_number, 'to_number' => to_number, 'context' => context,
+        'auto_states' => auto_states || ['created'], 'delay_ms' => delay_ms
       }
       body['call_id']    = call_id    unless call_id.nil?
       body['session_id'] = session_id unless session_id.nil?
-      resp = http_post('/__mock__/inbound_call', JSON.generate(body))
-      JSON.parse(resp)
+      JSON.parse(http_post('/__mock__/inbound_call', JSON.generate(body)))
     end
 
     # Run a scripted timeline of pushes/sleeps/expect_recv on the server.
@@ -183,77 +255,7 @@ module RelayMockTest
       JSON.parse(raw)['sessions'] || []
     end
 
-    private
-
-    def build_entry(h)
-      JournalEntry.new(
-        timestamp:     h['timestamp'],
-        direction:     h['direction'],
-        method:        h['method'],
-        request_id:    h['request_id'],
-        frame:         h['frame'] || {},
-        connection_id: h['connection_id'],
-        session_id:    h['session_id'],
-      )
-    end
-
-    def stringify_keys(h)
-      return h unless h.is_a?(Hash)
-
-      h.each_with_object({}) do |(k, v), out|
-        out[k.to_s] = v.is_a?(Hash) ? stringify_keys(v) : v
-      end
-    end
-
-    def http_get(path)
-      with_retry do
-        uri = URI("#{@http_url}#{path}")
-        Net::HTTP.start(uri.hostname, uri.port,
-                        open_timeout: 5, read_timeout: 10) do |http|
-          resp = http.get(uri.request_uri)
-          unless resp.is_a?(Net::HTTPSuccess)
-            raise "mocktest: GET #{path} failed: #{resp.code} #{resp.body}"
-          end
-
-          resp.body
-        end
-      end
-    end
-
-    def http_post(path, body = nil, read_timeout: 10)
-      with_retry do
-        uri = URI("#{@http_url}#{path}")
-        Net::HTTP.start(uri.hostname, uri.port,
-                        open_timeout: 5, read_timeout: read_timeout) do |http|
-          req = Net::HTTP::Post.new(uri.request_uri)
-          req['Content-Type'] = 'application/json'
-          req.body = body if body
-          resp = http.request(req)
-          unless resp.is_a?(Net::HTTPSuccess)
-            raise "mocktest: POST #{path} failed: #{resp.code} #{resp.body}"
-          end
-
-          resp.body || ''
-        end
-      end
-    end
-
-    # Tolerate brief connection refusals while the mock is restarted by
-    # +Lifecycle.respawn_if_dead+. Each retry waits 200ms and triggers a
-    # fresh health probe + spawn through the singleton lifecycle.
-    def with_retry
-      attempts = 0
-      begin
-        yield
-      rescue Errno::ECONNREFUSED => e
-        attempts += 1
-        raise if attempts > 10
-
-        RelayMockTest::Lifecycle.instance.respawn_if_dead
-        sleep 0.2
-        retry
-      end
-    end
+    include HarnessTransport
   end
 
   # Singleton lifecycle holder -- probe-or-spawn, then reuse.
@@ -271,20 +273,23 @@ module RelayMockTest
       @mu.synchronize do
         return @harness if @started
 
-        @started   = true
-        @ws_port   = resolve_port('MOCK_RELAY_PORT',     DEFAULT_WS_PORT)
-        @http_port = resolve_port('MOCK_RELAY_HTTP_PORT', DEFAULT_HTTP_PORT)
-        @host      = '127.0.0.1'
-
-        @harness = Harness.new(host: @host, ws_port: @ws_port,
-                                http_port: @http_port)
-
-        return @harness if probe_health(@harness)
-
-        spawn_server(@host, @ws_port, @http_port)
-        wait_for_health(@harness)
-        @harness
+        @started = true
+        start_harness
       end
+    end
+
+    # Resolve ports, build the Harness, and probe-or-spawn the server.
+    def start_harness
+      @ws_port   = resolve_port('MOCK_RELAY_PORT', DEFAULT_WS_PORT)
+      @http_port = resolve_port('MOCK_RELAY_HTTP_PORT', DEFAULT_HTTP_PORT)
+      @host      = '127.0.0.1'
+      @harness   = Harness.new(host: @host, ws_port: @ws_port, http_port: @http_port)
+
+      return @harness if probe_health(@harness)
+
+      spawn_server(@host, @ws_port, @http_port)
+      wait_for_health(@harness)
+      @harness
     end
 
     # Idempotent: probe; if dead, spawn a fresh mock_relay and wait for
@@ -305,10 +310,14 @@ module RelayMockTest
     private
 
     def resolve_port(env_var, default_port)
-      raw = ENV[env_var]
+      raw = ENV.fetch(env_var, nil)
       if raw && !raw.empty?
-        n = Integer(raw, 10) rescue nil
-        return n if n && n.positive?
+        n = begin
+          Integer(raw, 10)
+        rescue StandardError
+          nil
+        end
+        return n if n&.positive?
       end
       default_port
     end
@@ -328,29 +337,27 @@ module RelayMockTest
     end
 
     def spawn_server(host, ws_port, http_port)
-      cmd = ['python3', '-m', 'mock_relay',
-             '--host', host,
-             '--ws-port', ws_port.to_s,
-             '--http-port', http_port.to_s,
-             '--log-level', 'error']
-
-      pkg_dir = RelayMockTest.discover_porting_sdk_package('mock_relay')
-      env = ENV.to_h
-      if pkg_dir
-        sep = File::PATH_SEPARATOR
-        env['PYTHONPATH'] = env['PYTHONPATH'].nil? || env['PYTHONPATH'].empty? \
-          ? pkg_dir : "#{pkg_dir}#{sep}#{env['PYTHONPATH']}"
-      end
-
+      cmd = ['python3', '-m', 'mock_relay', '--host', host,
+             '--ws-port', ws_port.to_s, '--http-port', http_port.to_s, '--log-level', 'error']
       @pid = Process.spawn(
-        env, *cmd,
-        out: '/dev/null', err: '/dev/null', in: '/dev/null',
-        pgroup: true,
+        mock_relay_env, *cmd,
+        out: '/dev/null', err: '/dev/null', in: '/dev/null', pgroup: true
       )
       Process.detach(@pid)
     rescue Errno::ENOENT => e
       raise "mocktest: failed to spawn `python3 -m mock_relay`: #{e.message} " \
-            "(set MOCK_RELAY_PORT to use a pre-running instance)"
+            '(set MOCK_RELAY_PORT to use a pre-running instance)'
+    end
+
+    # ENV with the adjacency-discovered mock_relay package prepended to PYTHONPATH.
+    def mock_relay_env
+      pkg_dir = RelayMockTest.discover_porting_sdk_package('mock_relay')
+      env = ENV.to_h
+      return env unless pkg_dir
+
+      existing = env['PYTHONPATH']
+      env['PYTHONPATH'] = existing.nil? || existing.empty? ? pkg_dir : "#{pkg_dir}#{File::PATH_SEPARATOR}#{existing}"
+      env
     end
 
     def wait_for_health(harness)
@@ -360,7 +367,7 @@ module RelayMockTest
 
         sleep 0.15
       end
-      raise "mocktest: `python3 -m mock_relay` did not become ready within " \
+      raise 'mocktest: `python3 -m mock_relay` did not become ready within ' \
             "#{STARTUP_TIMEOUT_S}s on #{harness.http_url} " \
             '(clone porting-sdk next to signalwire-ruby so tests can find ' \
             'porting-sdk/test_harness/mock_relay/, or pip install ' \
@@ -416,46 +423,49 @@ module RelayMockTest
   def client(project: 'test_proj', token: 'test_tok', jwt_token: nil,
              contexts: ['default'], resume_protocol: nil)
     h = harness
-    # Force the SDK to dial ws://host:ws_port instead of wss://{space}.
-    ENV['SIGNALWIRE_RELAY_SCHEME'] = 'ws'
-    ENV['SIGNALWIRE_RELAY_HOST']   = h.relay_host
-
-    sdk_client = SignalWire::Relay::Client.new(
-      project:   project,
-      token:     token,
-      jwt_token: jwt_token,
-      space:     h.relay_host,
-      contexts:  contexts,
-    )
+    sdk_client = build_sdk_client(h, project, token, jwt_token, contexts)
     pre_run_connects = h.journal_recv(method: 'signalwire.connect').size
     sdk_client._set_protocol(resume_protocol) if resume_protocol
 
-    run_thread = Thread.new do
-      begin
-        sdk_client.run
-      rescue => e
-        $stderr.puts "[mock_test] client.run raised: #{e.message}"
-      end
-    end
-
-    # Wait for the SDK's signalwire.connect to land in the journal AND
-    # for client.protocol to be set (protocol is set BEFORE run when
-    # resume_protocol is passed, so journal landing is the real signal).
-    deadline = Time.now + 10
-    while Time.now < deadline
-      seen = h.journal_recv(method: 'signalwire.connect').size
-      break if seen > pre_run_connects && sdk_client.protocol
-
-      sleep 0.05
-    end
-    unless sdk_client.protocol &&
-           h.journal_recv(method: 'signalwire.connect').size > pre_run_connects
-      sdk_client.stop
-      run_thread.kill
-      raise 'mocktest: client did not authenticate within 10s'
-    end
+    run_thread = spawn_run_thread(sdk_client)
+    await_authenticated(h, sdk_client, run_thread, pre_run_connects)
 
     { client: sdk_client, run_thread: run_thread }
+  end
+
+  # Force the SDK to dial ws://host:ws_port (not wss://{space}) and build it.
+  def build_sdk_client(harness, project, token, jwt_token, contexts)
+    ENV['SIGNALWIRE_RELAY_SCHEME'] = 'ws'
+    ENV['SIGNALWIRE_RELAY_HOST']   = harness.relay_host
+    SignalWire::Relay::Client.new(
+      project: project, token: token, jwt_token: jwt_token,
+      space: harness.relay_host, contexts: contexts
+    )
+  end
+
+  def spawn_run_thread(sdk_client)
+    Thread.new do
+      sdk_client.run
+    rescue StandardError => e
+      warn "[mock_test] client.run raised: #{e.message}"
+    end
+  end
+
+  # Wait for the SDK's signalwire.connect to land in the journal AND for
+  # client.protocol to be set; raise (after cleanup) if it never authenticates.
+  def await_authenticated(harness, sdk_client, run_thread, pre_run_connects)
+    deadline = Time.now + 10
+    sleep 0.05 until authenticated?(harness, sdk_client, pre_run_connects) || Time.now > deadline
+    return if authenticated?(harness, sdk_client, pre_run_connects)
+
+    sdk_client.stop
+    run_thread.kill
+    raise 'mocktest: client did not authenticate within 10s'
+  end
+
+  def authenticated?(harness, sdk_client, pre_run_connects)
+    sdk_client.protocol &&
+      harness.journal_recv(method: 'signalwire.connect').size > pre_run_connects
   end
 
   # Cleanly stop a client started by RelayMockTest.client.

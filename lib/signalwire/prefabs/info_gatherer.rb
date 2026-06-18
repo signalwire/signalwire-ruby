@@ -31,13 +31,7 @@ module SignalWire
       # @param questions [Array<Hash>, nil] static questions, or nil for dynamic
       #   mode (questions resolved per-request via #set_question_callback).
       def initialize(questions: nil, name: 'info_gatherer', route: '/info_gatherer', **_opts)
-        unless questions.nil?
-          raise ArgumentError, 'questions must be a non-empty Array' unless questions.is_a?(Array) && !questions.empty?
-          questions.each_with_index do |q, i|
-            raise ArgumentError, "Question #{i} missing key_name" unless q['key_name'] || q[:key_name]
-            raise ArgumentError, "Question #{i} missing question_text" unless q['question_text'] || q[:question_text]
-          end
-        end
+        validate_questions!(questions) unless questions.nil?
 
         @questions         = questions&.map { |q| q.transform_keys(&:to_s) }
         @static_questions  = @questions
@@ -120,23 +114,44 @@ module SignalWire
         # Dynamic mode with no callback: fall back to default questions.
         return { 'global_data' => fresh_global_data(FALLBACK_QUESTIONS) } if @question_callback.nil?
 
-        query_params = (request.respond_to?(:query_params) ? request.query_params : nil) || {}
-        headers      = (request.respond_to?(:headers) ? request.headers : nil) || {}
-        body_params  = request_data || {}
-
-        begin
-          questions = @question_callback.call(query_params, body_params, headers)
-          raise ArgumentError, 'callback must return a non-empty Array' unless questions.is_a?(Array) && !questions.empty?
-
-          normalized = questions.map { |q| q.transform_keys(&:to_s) }
-          { 'global_data' => fresh_global_data(normalized) }
-        rescue StandardError => e
-          puts "Error in question callback: #{e.message}"
-          { 'global_data' => fresh_global_data(FALLBACK_QUESTIONS) }
-        end
+        { 'global_data' => fresh_global_data(resolve_dynamic_questions(request_data, request)) }
       end
 
       private
+
+      def validate_questions!(questions)
+        raise ArgumentError, 'questions must be a non-empty Array' unless questions.is_a?(Array) && !questions.empty?
+
+        questions.each_with_index do |q, i|
+          raise ArgumentError, "Question #{i} missing key_name" unless question_field(q, 'key_name')
+          raise ArgumentError, "Question #{i} missing question_text" unless question_field(q, 'question_text')
+        end
+      end
+
+      # A question Hash may carry either string or symbol keys; check both.
+      def question_field(question, name)
+        question[name] || question[name.to_sym]
+      end
+
+      # Invoke the per-request question callback, normalizing keys to strings.
+      # Falls back to FALLBACK_QUESTIONS on any error (matching Python).
+      def resolve_dynamic_questions(request_data, request)
+        query_params = request_attr(request, :query_params)
+        headers      = request_attr(request, :headers)
+        body_params  = request_data || {}
+
+        questions = @question_callback.call(query_params, body_params, headers)
+        raise ArgumentError, 'callback must return a non-empty Array' unless questions.is_a?(Array) && !questions.empty?
+
+        questions.map { |q| q.transform_keys(&:to_s) }
+      rescue StandardError => e
+        puts "Error in question callback: #{e.message}"
+        FALLBACK_QUESTIONS
+      end
+
+      def request_attr(request, name)
+        (request.respond_to?(name) ? request.public_send(name) : nil) || {}
+      end
 
       def fresh_global_data(questions)
         {

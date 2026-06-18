@@ -36,35 +36,28 @@ module SignalWire
 
       def load_schema
         schema_path = File.join(__dir__, 'schema.json')
-        unless File.exist?(schema_path)
-          raise "SWML schema.json not found at #{schema_path}"
-        end
+        raise "SWML schema.json not found at #{schema_path}" unless File.exist?(schema_path)
 
-        raw = JSON.parse(File.read(schema_path))
-        defs = raw['$defs'] || {}
-        swml_method = defs['SWMLMethod'] || {}
-        any_of = swml_method['anyOf'] || []
+        defs = JSON.parse(File.read(schema_path))['$defs'] || {}
+        any_of = (defs['SWMLMethod'] || {})['anyOf'] || []
 
-        any_of.each do |entry|
-          ref = entry['$ref']
-          next unless ref
+        any_of.each { |entry| register_verb(defs, entry) }
+      end
 
-          # e.g. "#/$defs/Answer" -> "Answer"
-          def_name = ref.split('/').last
-          defn = defs[def_name]
-          next unless defn
+      # Register one verb from an SWMLMethod anyOf $ref entry, skipping
+      # entries with no resolvable definition or no properties.
+      def register_verb(defs, entry)
+        return unless (ref = entry['$ref'])
 
-          props = defn['properties']
-          next unless props && !props.empty?
+        # e.g. "#/$defs/Answer" -> "Answer"
+        def_name = ref.split('/').last
+        defn = defs[def_name]
+        props = defn && defn['properties']
+        return if props.nil? || props.empty?
 
-          # The first property key is the actual verb name (e.g. "answer", "ai")
-          actual_verb = props.keys.first
-          @verbs[actual_verb] = {
-            'name'        => actual_verb,
-            'schema_name' => def_name,
-            'definition'  => defn
-          }
-        end
+        # The first property key is the actual verb name (e.g. "answer", "ai")
+        actual_verb = props.keys.first
+        @verbs[actual_verb] = { 'name' => actual_verb, 'schema_name' => def_name, 'definition' => defn }
       end
     end
 

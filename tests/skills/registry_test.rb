@@ -18,17 +18,20 @@ class RegistryDetailedTest < Minitest::Test
 
   def test_has_all_18_skills
     registered = SignalWire::Skills::SkillRegistry.list_skills.sort
+
     EXPECTED_SKILLS.each do |skill_name|
       assert_includes registered, skill_name, "Missing skill: #{skill_name}"
     end
-    assert registered.size >= 18
+    assert_operator registered.size, :>=, 18
   end
 
   def test_each_skill_can_be_instantiated
     EXPECTED_SKILLS.each do |skill_name|
       factory = SignalWire::Skills::SkillRegistry.get_factory(skill_name)
+
       refute_nil factory, "No factory for: #{skill_name}"
       skill = factory.call({})
+
       assert_kind_of SignalWire::Skills::SkillBase, skill
       assert_equal skill_name, skill.name
     end
@@ -53,6 +56,7 @@ class ManagerDetailedTest < Minitest::Test
     factory = SignalWire::Skills::SkillRegistry.get_factory('datetime')
     skill = factory.call({})
     @manager.load('datetime', skill)
+
     assert @manager.loaded?('datetime')
     assert_equal skill, @manager.get('datetime')
     assert_equal 1, @manager.size
@@ -63,6 +67,7 @@ class ManagerDetailedTest < Minitest::Test
     skill = factory.call({})
     @manager.load('math', skill)
     removed = @manager.unload('math')
+
     assert_equal skill, removed
     refute @manager.loaded?('math')
   end
@@ -80,6 +85,7 @@ class ManagerDetailedTest < Minitest::Test
       @manager.load(name, factory.call({}))
     end
     keys = @manager.loaded_keys.sort
+
     assert_equal %w[datetime math], keys
   end
 
@@ -89,6 +95,7 @@ class ManagerDetailedTest < Minitest::Test
       @manager.load(name, factory.call({}))
     end
     @manager.clear
+
     assert_equal 0, @manager.size
   end
 end

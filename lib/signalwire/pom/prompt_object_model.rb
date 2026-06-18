@@ -53,67 +53,13 @@ module SignalWire
       def self._from_array(data)
         pom = new
         data = [] if data.nil?
-        unless data.is_a?(Array)
-          raise ArgumentError, "POM root must be an Array, got #{data.class.name}"
-        end
+        raise ArgumentError, "POM root must be an Array, got #{data.class.name}" unless data.is_a?(Array)
 
         data.each_with_index do |sec, idx|
-          if idx.positive? && !sec.key?('title')
-            sec['title'] = 'Untitled Section'
-          end
-          pom.sections << _build_section(sec)
+          sec['title'] = 'Untitled Section' if idx.positive? && !sec.key?('title')
+          pom.sections << SectionBuilder.build(sec)
         end
         pom
-      end
-
-      # Internal: build a Section (recursively) from a Hash section
-      # descriptor. Mirrors Python's ``build_section`` inner helper.
-      def self._build_section(hash, is_subsection: false)
-        unless hash.is_a?(Hash)
-          raise ArgumentError, 'Each section must be a Hash.'
-        end
-
-        if hash.key?('title') && !hash['title'].is_a?(String)
-          raise ArgumentError, "'title' must be a string if present."
-        end
-        if hash.key?('subsections') && !hash['subsections'].is_a?(Array)
-          raise ArgumentError, "'subsections' must be an Array if provided."
-        end
-        if hash.key?('bullets') && !hash['bullets'].is_a?(Array)
-          raise ArgumentError, "'bullets' must be an Array if provided."
-        end
-        if hash.key?('numbered') && ![true, false].include?(hash['numbered'])
-          raise ArgumentError, "'numbered' must be a boolean if provided."
-        end
-        if hash.key?('numberedBullets') && ![true, false].include?(hash['numberedBullets'])
-          raise ArgumentError, "'numberedBullets' must be a boolean if provided."
-        end
-
-        has_body = hash.key?('body') && hash['body'] && !hash['body'].empty?
-        has_bullets = hash.key?('bullets') && hash['bullets'] && !hash['bullets'].empty?
-        has_subsections = hash.key?('subsections') && hash['subsections'] && !hash['subsections'].empty?
-        unless has_body || has_bullets || has_subsections
-          raise ArgumentError,
-                'All sections must have either a non-empty body, non-empty bullets, or subsections'
-        end
-
-        if is_subsection && !hash.key?('title')
-          raise ArgumentError, 'All subsections must have a title'
-        end
-
-        kwargs = {
-          body: hash.fetch('body', ''),
-          bullets: hash.fetch('bullets', [])
-        }
-        kwargs[:numbered] = hash['numbered'] if hash.key?('numbered')
-        kwargs[:numbered_bullets] = hash['numberedBullets'] if hash.key?('numberedBullets')
-
-        section = Section.new(hash['title'], **kwargs)
-
-        (hash['subsections'] || []).each do |sub|
-          section.subsections << _build_section(sub, is_subsection: true)
-        end
-        section
       end
 
       # Add a top-level section to the model and return the new Section.
@@ -124,9 +70,7 @@ module SignalWire
       # already has at least one section (only the first section may
       # be untitled).
       def add_section(title = nil, body: '', bullets: nil, numbered: nil, numbered_bullets: false)
-        if title.nil? && !@sections.empty?
-          raise ArgumentError, 'Only the first section can have no title'
-        end
+        raise ArgumentError, 'Only the first section can have no title' if title.nil? && !@sections.empty?
 
         bullets_list = bullets.is_a?(String) ? [bullets] : (bullets || [])
 
@@ -183,37 +127,15 @@ module SignalWire
       # Render the entire model as Markdown. Output is byte-for-byte
       # identical to Python's ``PromptObjectModel.render_markdown``.
       def render_markdown
-        any_section_numbered = @sections.any? { |s| s.numbered }
-
-        if @debug
-          warn "Any section numbered: #{any_section_numbered}"
-          @sections.each_with_index do |section, idx|
-            warn "Section #{idx + 1}: #{section.title}, numbered=#{section.numbered}"
-          end
-        end
-
+        any_section_numbered = @sections.any?(&:numbered)
+        SectionBuilder.debug_header(@sections, any_section_numbered) if @debug
         md = []
         section_counter = 0
         @sections.each_with_index do |section, idx|
-          if !section.title.nil?
-            section_counter += 1
-            section_number =
-              if any_section_numbered && section.numbered != false
-                [section_counter]
-              else
-                []
-              end
-          else
-            section_number = []
-          end
-
-          if @debug
-            warn "Rendering section #{idx}: #{section.title} with section_number=#{section_number.inspect}"
-          end
-
-          md << section.render_markdown(section_number: section_number)
+          number, section_counter = SectionBuilder.section_number(section, section_counter, any_section_numbered)
+          warn "Rendering section #{idx}: #{section.title} with section_number=#{number.inspect}" if @debug
+          md << section.render_markdown(section_number: number)
         end
-
         md.join("\n")
       end
 
@@ -221,22 +143,12 @@ module SignalWire
       # to Python's ``PromptObjectModel.render_xml``.
       def render_xml
         xml = ['<?xml version="1.0" encoding="UTF-8"?>', '<prompt>']
-        any_section_numbered = @sections.any? { |s| s.numbered }
+        any_section_numbered = @sections.any?(&:numbered)
 
         section_counter = 0
         @sections.each do |section|
-          if !section.title.nil?
-            section_counter += 1
-            section_number =
-              if any_section_numbered && section.numbered != false
-                [section_counter]
-              else
-                []
-              end
-          else
-            section_number = []
-          end
-
+          section_number, section_counter =
+            SectionBuilder.section_number(section, section_counter, any_section_numbered)
           xml << section.render_xml(indent: 1, section_number: section_number)
         end
 
@@ -250,18 +162,110 @@ module SignalWire
       # Mirrors Python's
       # ``PromptObjectModel.add_pom_as_subsection(target, pom_to_add)``.
       def add_pom_as_subsection(target, pom_to_add)
+        target_section = _resolve_target_section(target)
+        pom_to_add.sections.each do |section|
+          target_section.subsections << section
+        end
+      end
+
+      private
+
+      def _resolve_target_section(target)
         case target
         when String
-          target_section = find_section(target)
-          raise ArgumentError, "No section with title '#{target}' found." if target_section.nil?
+          section = find_section(target)
+          raise ArgumentError, "No section with title '#{target}' found." if section.nil?
+
+          section
         when Section
-          target_section = target
+          target
         else
           raise TypeError, 'Target must be a String or a Section object.'
         end
+      end
+    end
 
-        pom_to_add.sections.each do |section|
-          target_section.subsections << section
+    # Internal: validates raw section Hashes and builds Section trees from
+    # them. Mirrors Python's ``build_section`` inner helper. Not part of the
+    # public POM surface.
+    module SectionBuilder
+      module_function
+
+      # Build a Section (recursively) from a Hash section descriptor.
+      def build(hash, is_subsection: false)
+        validate(hash, is_subsection: is_subsection)
+
+        section = Section.new(hash['title'], **section_kwargs(hash))
+        (hash['subsections'] || []).each do |sub|
+          section.subsections << build(sub, is_subsection: true)
+        end
+        section
+      end
+
+      def validate(hash, is_subsection: false)
+        raise ArgumentError, 'Each section must be a Hash.' unless hash.is_a?(Hash)
+
+        validate_types(hash)
+        validate_content(hash)
+        raise ArgumentError, 'All subsections must have a title' if is_subsection && !hash.key?('title')
+      end
+
+      def validate_types(hash)
+        if hash.key?('title') && !hash['title'].is_a?(String)
+          raise ArgumentError, "'title' must be a string if present."
+        end
+
+        validate_array_field(hash, 'subsections')
+        validate_array_field(hash, 'bullets')
+        validate_boolean_field(hash, 'numbered')
+        validate_boolean_field(hash, 'numberedBullets')
+      end
+
+      def validate_array_field(hash, key)
+        return unless hash.key?(key) && !hash[key].is_a?(Array)
+
+        raise ArgumentError, "'#{key}' must be an Array if provided."
+      end
+
+      def validate_boolean_field(hash, key)
+        return unless hash.key?(key) && ![true, false].include?(hash[key])
+
+        raise ArgumentError, "'#{key}' must be a boolean if provided."
+      end
+
+      def validate_content(hash)
+        return if %w[body bullets subsections].any? { |k| present?(hash, k) }
+
+        raise ArgumentError,
+              'All sections must have either a non-empty body, non-empty bullets, or subsections'
+      end
+
+      def present?(hash, key)
+        hash.key?(key) && hash[key] && !hash[key].empty?
+      end
+
+      def section_kwargs(hash)
+        kwargs = { body: hash.fetch('body', ''), bullets: hash.fetch('bullets', []) }
+        kwargs[:numbered] = hash['numbered'] if hash.key?('numbered')
+        kwargs[:numbered_bullets] = hash['numberedBullets'] if hash.key?('numberedBullets')
+        kwargs
+      end
+
+      # Compute the [section_number, counter] pair for one section, mirroring
+      # the Python numbering logic. Untitled sections get an empty number and
+      # don't advance the counter.
+      def section_number(section, counter, any_section_numbered)
+        return [[], counter] if section.title.nil?
+
+        counter += 1
+        number = any_section_numbered && section.numbered != false ? [counter] : []
+        [number, counter]
+      end
+
+      def debug_header(sections, any_section_numbered)
+        warn "Any section numbered: #{any_section_numbered}"
+        sections.each_with_index do |section, idx|
+          warn "Section #{idx + 1}: #{section.title}, numbered=#{section.numbered}"
         end
       end
     end

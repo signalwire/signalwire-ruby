@@ -34,10 +34,10 @@ module SignalWire
         #   See porting-sdk's +phone-binding.md+.
         def create(**kwargs)
           Kernel.warn(
-            "DEPRECATION: creating a webhook Fabric resource directly produces " \
-            "an orphan not bound to any phone number. Use " \
+            'DEPRECATION: creating a webhook Fabric resource directly produces ' \
+            'an orphan not bound to any phone number. Use ' \
             "#{self.class::AUTO_HELPER_NAME} instead; it updates the phone " \
-            "number and the server auto-materializes the resource. " \
+            'number and the server auto-materializes the resource. ' \
             "See porting-sdk's phone-binding.md.",
             uplevel: 1
           )
@@ -140,10 +140,10 @@ module SignalWire
         # the OpenAPI spec; routing here for those types returns 404 or 422.
         def assign_phone_route(resource_id, **kwargs)
           Kernel.warn(
-            "DEPRECATION: assign_phone_route does not bind phone numbers to " \
-            "swml_webhook/cxml_webhook/ai_agent resources -- those are " \
-            "configured via phone_numbers.set_swml_webhook / set_cxml_webhook " \
-            "/ set_ai_agent. This method applies only to a narrow set of " \
+            'DEPRECATION: assign_phone_route does not bind phone numbers to ' \
+            'swml_webhook/cxml_webhook/ai_agent resources -- those are ' \
+            'configured via phone_numbers.set_swml_webhook / set_cxml_webhook ' \
+            '/ set_ai_agent. This method applies only to a narrow set of ' \
             "legacy resource types. See porting-sdk's phone-binding.md.",
             uplevel: 1
           )
@@ -203,8 +203,14 @@ module SignalWire
 
         def initialize(http)
           base = '/api/fabric/resources'
+          init_put_resources(http, base)
+          init_patch_resources(http, base)
+          init_special_resources(http, base)
+        end
 
-          # PUT-update resources
+        private
+
+        def init_put_resources(http, base)
           @swml_scripts           = FabricResourcePUT.new(http, "#{base}/swml_scripts")
           @relay_applications     = FabricResourcePUT.new(http, "#{base}/relay_applications")
           @call_flows             = CallFlowsResource.new(http, "#{base}/call_flows")
@@ -214,17 +220,19 @@ module SignalWire
           @sip_endpoints          = FabricResourcePUT.new(http, "#{base}/sip_endpoints")
           @cxml_scripts           = FabricResourcePUT.new(http, "#{base}/cxml_scripts")
           @cxml_applications      = CxmlApplicationsResource.new(http, "#{base}/cxml_applications")
+        end
 
-          # PATCH-update resources
-          # swml_webhooks and cxml_webhooks are normally auto-materialized by
-          # phone_numbers.set_swml_webhook / set_cxml_webhook. Direct create
-          # still works for backcompat but emits a deprecation warning.
+        # swml_webhooks and cxml_webhooks are normally auto-materialized by
+        # phone_numbers.set_swml_webhook / set_cxml_webhook. Direct create
+        # still works for backcompat but emits a deprecation warning.
+        def init_patch_resources(http, base)
           @swml_webhooks = SwmlWebhooksResource.new(http, "#{base}/swml_webhooks")
           @ai_agents     = FabricResource.new(http, "#{base}/ai_agents")
           @sip_gateways  = FabricResource.new(http, "#{base}/sip_gateways")
           @cxml_webhooks = CxmlWebhooksResource.new(http, "#{base}/cxml_webhooks")
+        end
 
-          # Special resources
+        def init_special_resources(http, base)
           @resources = GenericResources.new(http, base)
           @addresses = FabricAddresses.new(http, '/api/fabric/addresses')
           @tokens    = FabricTokens.new(http)

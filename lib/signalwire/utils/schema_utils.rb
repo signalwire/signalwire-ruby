@@ -44,6 +44,12 @@ module SignalWire
     # init_full_validator. The lightweight contract matches Python's
     # _validate_verb_lightweight() exactly.
     class SchemaUtils
+      # JSON-schema scalar type → Python type-annotation string (codegen).
+      PYTHON_SCALAR_TYPES = {
+        'string' => 'str', 'integer' => 'int', 'number' => 'float',
+        'boolean' => 'bool', 'object' => 'Dict[str, Any]'
+      }.freeze
+
       # @return [Hash{String=>Object}] parsed JSON Schema document
       attr_reader :schema
 
@@ -94,13 +100,11 @@ module SignalWire
         v = @verbs[verb_name]
         return {} if v.nil?
 
-        outer_props = v['definition']['properties'] rescue nil
+        outer_props = verb_definition_properties(v)
         return {} unless outer_props.is_a?(Hash)
 
         inner = outer_props[verb_name]
-        return {} unless inner.is_a?(Hash)
-
-        inner
+        inner.is_a?(Hash) ? inner : {}
       end
 
       # The required list for a verb, or [] when unknown / no required.
@@ -110,7 +114,7 @@ module SignalWire
         req = inner['required']
         return [] unless req.is_a?(Array)
 
-        req.select { |x| x.is_a?(String) }
+        req.grep(String)
       end
 
       # Parameter-definition block used by code-gen tooling.
@@ -130,9 +134,7 @@ module SignalWire
       def validate_verb(verb_name, verb_config)
         return [true, []] unless @validation_enabled
 
-        unless @verbs.key?(verb_name)
-          return [false, ["Unknown verb: #{verb_name}"]]
-        end
+        return [false, ["Unknown verb: #{verb_name}"]] unless @verbs.key?(verb_name)
 
         if @full_validator
           validate_verb_full(verb_name, verb_config)
@@ -145,10 +147,8 @@ module SignalWire
       # Mirrors Python's validate_document(document). Returns
       # (false, ['Schema validator not initialized']) when no full
       # validator is wired in.
-      def validate_document(document)
-        if @full_validator.nil?
-          return [false, ['Schema validator not initialized']]
-        end
+      def validate_document(_document)
+        return [false, ['Schema validator not initialized']] if @full_validator.nil?
 
         # Reserved for full-validator wiring.
         [true, []]
@@ -158,55 +158,65 @@ module SignalWire
       # Mirrors Python's generate_method_signature(verb_name).
       def generate_method_signature(verb_name)
         params = get_verb_parameters(verb_name)
-        required = get_verb_required_properties(verb_name).to_set
-        parts = ['self']
         keys = params.keys.sort
-        keys.each do |name|
-          t = python_type_annotation(params[name])
-          parts << if required.include?(name)
-                     "#{name}: #{t}"
-                   else
-                     "#{name}: Optional[#{t}] = None"
-                   end
-        end
-        parts << '**kwargs'
-        doc = +"\"\"\"\n        Add the #{verb_name} verb to the current document\n        \n"
-        keys.each do |name|
-          desc = ''
-          d = params[name]
-          if d.is_a?(Hash) && d['description']
-            desc = d['description'].to_s.gsub("\n", ' ').strip
-          end
-          doc << "        Args:\n            #{name}: #{desc}\n"
-        end
-        doc << "        \n        Returns:\n            True if the verb was added successfully, False otherwise\n        \"\"\"\n"
+        parts = signature_param_parts(verb_name, params, keys)
+        doc = signature_docstring(verb_name, params, keys)
         "def #{verb_name}(#{parts.join(', ')}) -> bool:\n#{doc}"
       end
 
       # Generate a Python-style method body string for a verb.
       # Mirrors Python's generate_method_body(verb_name).
       def generate_method_body(verb_name)
-        params = get_verb_parameters(verb_name)
-        keys = params.keys.sort
-        lines = [
-          '        # Prepare the configuration',
-          '        config = {}'
-        ]
-        keys.each do |name|
-          lines << "        if #{name} is not None:"
-          lines << "            config['#{name}'] = #{name}"
+        keys = get_verb_parameters(verb_name).keys.sort
+        config_lines = keys.flat_map do |name|
+          ["        if #{name} is not None:", "            config['#{name}'] = #{name}"]
         end
-        lines << '        # Add any additional parameters from kwargs'
-        lines << '        for key, value in kwargs.items():'
-        lines << '            if value is not None:'
-        lines << '                config[key] = value'
-        lines << ''
-        lines << "        # Add the #{verb_name} verb"
-        lines << "        return self.add_verb('#{verb_name}', config)"
-        lines.join("\n")
+        ['        # Prepare the configuration', '        config = {}', *config_lines,
+         *method_body_kwargs_lines(verb_name)].join("\n")
       end
 
       private
+
+      def method_body_kwargs_lines(verb_name)
+        ['        # Add any additional parameters from kwargs',
+         '        for key, value in kwargs.items():',
+         '            if value is not None:',
+         '                config[key] = value', '',
+         "        # Add the #{verb_name} verb",
+         "        return self.add_verb('#{verb_name}', config)"]
+      end
+
+      def signature_param_parts(verb_name, params, keys)
+        required = get_verb_required_properties(verb_name).to_set
+        param_parts = keys.map { |name| format_signature_param(name, params[name], required) }
+        ['self', *param_parts, '**kwargs']
+      end
+
+      def format_signature_param(name, defn, required)
+        t = python_type_annotation(defn)
+        return "#{name}: #{t}" if required.include?(name)
+
+        "#{name}: Optional[#{t}] = None"
+      end
+
+      def signature_docstring(verb_name, params, keys)
+        doc = "\"\"\"\n        Add the #{verb_name} verb to the current document\n        \n"
+        keys.each do |name|
+          desc = ''
+          d = params[name]
+          desc = d['description'].to_s.tr("\n", ' ').strip if d.is_a?(Hash) && d['description']
+          doc << "        Args:\n            #{name}: #{desc}\n"
+        end
+        doc << "        \n        Returns:\n            True if the verb was added successfully, " \
+               "False otherwise\n        \"\"\"\n"
+        doc
+      end
+
+      def verb_definition_properties(verb_entry)
+        verb_entry['definition']['properties']
+      rescue StandardError
+        nil
+      end
 
       def default_schema_path
         # Bundled schema lives in lib/signalwire/swml/schema.json
@@ -227,29 +237,36 @@ module SignalWire
         any_of = swml_method['anyOf']
         return unless any_of.is_a?(Array)
 
-        any_of.each do |entry|
-          next unless entry.is_a?(Hash)
+        any_of.each { |entry| register_verb_entry(entry, defs) }
+      end
 
-          ref = entry['$ref']
-          next unless ref.is_a?(String)
+      def register_verb_entry(entry, defs)
+        schema_name = entry_schema_name(entry)
+        return if schema_name.nil?
 
-          prefix = '#/$defs/'
-          next unless ref.start_with?(prefix)
+        defn = defs[schema_name]
+        return unless defn.is_a?(Hash)
 
-          schema_name = ref[prefix.length..]
-          defn = defs[schema_name]
-          next unless defn.is_a?(Hash)
+        props = defn['properties']
+        return unless props.is_a?(Hash) && !props.empty?
 
-          props = defn['properties']
-          next unless props.is_a?(Hash) && !props.empty?
+        actual_verb = props.keys.first
+        @verbs[actual_verb] = {
+          'name' => actual_verb, 'schema_name' => schema_name, 'definition' => defn
+        }
+      end
 
-          actual_verb = props.keys.first
-          @verbs[actual_verb] = {
-            'name' => actual_verb,
-            'schema_name' => schema_name,
-            'definition' => defn
-          }
-        end
+      # The "#/$defs/<name>" ref's <name>, or nil if the entry isn't a valid ref.
+      def entry_schema_name(entry)
+        return nil unless entry.is_a?(Hash)
+
+        ref = entry['$ref']
+        return nil unless ref.is_a?(String)
+
+        prefix = '#/$defs/'
+        return nil unless ref.start_with?(prefix)
+
+        ref[prefix.length..]
       end
 
       def init_full_validator
@@ -265,9 +282,7 @@ module SignalWire
       def validate_verb_lightweight(verb_name, verb_config)
         errors = []
         get_verb_required_properties(verb_name).each do |prop|
-          unless verb_config.key?(prop)
-            errors << "Missing required property '#{prop}' for verb '#{verb_name}'"
-          end
+          errors << "Missing required property '#{prop}' for verb '#{verb_name}'" unless verb_config.key?(prop)
         end
         [errors.empty?, errors]
       end
@@ -275,24 +290,17 @@ module SignalWire
       def python_type_annotation(defn)
         return 'Any' unless defn.is_a?(Hash)
 
-        case defn['type']
-        when 'string'  then 'str'
-        when 'integer' then 'int'
-        when 'number'  then 'float'
-        when 'boolean' then 'bool'
-        when 'array'
-          item = 'Any'
-          if defn['items'].is_a?(Hash)
-            item = python_type_annotation(defn['items'])
-          end
-          "List[#{item}]"
-        when 'object'  then 'Dict[str, Any]'
-        else
-          'Any'
-        end
+        type = defn['type']
+        return PYTHON_SCALAR_TYPES[type] if PYTHON_SCALAR_TYPES.key?(type)
+        return python_array_annotation(defn) if type == 'array'
+
+        'Any'
+      end
+
+      def python_array_annotation(defn)
+        item = defn['items'].is_a?(Hash) ? python_type_annotation(defn['items']) : 'Any'
+        "List[#{item}]"
       end
     end
   end
 end
-
-require 'set'

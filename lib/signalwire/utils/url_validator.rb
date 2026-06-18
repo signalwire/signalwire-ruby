@@ -58,56 +58,79 @@ module SignalWire
       # @param url [String] URL to validate
       # @param allow_private [Boolean] when true, bypass the IP-blocklist check
       # @return [Boolean] true if the URL is safe to fetch
+      # parity: mirrors Python validate_url(url, allow_private=False) positional bool default;
+      # a kwarg changes the enumerated param kind (opt->key) and risks surface drift.
       def self.validate_url(url, allow_private = false)
         parsed = URI.parse(url)
+        return false unless _valid_scheme?(parsed)
 
+        hostname = _extract_hostname(parsed)
+        return false if hostname.nil?
+
+        return true if allow_private || _env_allows_private?
+
+        _hostname_safe?(hostname)
+      rescue URI::InvalidURIError, IPAddr::InvalidAddressError => e
+        LOG.warn("URL validation error: #{e.message}")
+        false
+      end
+
+      def self._valid_scheme?(parsed)
         scheme = (parsed.scheme || '').downcase
-        unless %w[http https].include?(scheme)
-          LOG.warn("URL rejected: invalid scheme #{parsed.scheme}")
-          return false
-        end
+        return true if %w[http https].include?(scheme)
 
+        LOG.warn("URL rejected: invalid scheme #{parsed.scheme}")
+        false
+      end
+      private_class_method :_valid_scheme?
+
+      # @return [String, nil] the bracket-stripped hostname, or nil if absent.
+      def self._extract_hostname(parsed)
         hostname = parsed.host
         if hostname.nil? || hostname.empty?
           LOG.warn('URL rejected: no hostname')
-          return false
+          return nil
         end
 
         # URI keeps brackets in host for IPv6 literals; strip them.
-        if hostname.start_with?('[') && hostname.end_with?(']')
-          hostname = hostname[1..-2]
-        end
+        return hostname[1..-2] if hostname.start_with?('[') && hostname.end_with?(']')
 
-        if allow_private || _env_allows_private?
-          return true
-        end
+        hostname
+      end
+      private_class_method :_extract_hostname
 
+      # @return [Boolean] false if the hostname can't resolve or any resolved
+      #   IP falls inside a blocked network.
+      def self._hostname_safe?(hostname)
         ips = _resolve(hostname)
         if ips.nil? || ips.empty?
           LOG.warn("URL rejected: could not resolve hostname #{hostname}")
           return false
         end
 
-        ips.each do |ip_str|
-          ip = begin
-            IPAddr.new(ip_str)
-          rescue IPAddr::InvalidAddressError
-            next
-          end
-          BLOCKED_NETWORKS.each do |cidr|
-            net = IPAddr.new(cidr)
-            if net.include?(ip)
-              LOG.warn("URL rejected: #{hostname} resolves to blocked IP #{ip_str} (in #{cidr})")
-              return false
-            end
-          end
-        end
-
-        true
-      rescue URI::InvalidURIError, IPAddr::InvalidAddressError => e
-        LOG.warn("URL validation error: #{e.message}")
-        false
+        ips.none? { |ip_str| _ip_blocked?(hostname, ip_str) }
       end
+      private_class_method :_hostname_safe?
+
+      def self._ip_blocked?(hostname, ip_str)
+        ip = _parse_ip(ip_str)
+        return false if ip.nil?
+
+        BLOCKED_NETWORKS.any? do |cidr|
+          next false unless IPAddr.new(cidr).include?(ip)
+
+          LOG.warn("URL rejected: #{hostname} resolves to blocked IP #{ip_str} (in #{cidr})")
+          true
+        end
+      end
+      private_class_method :_ip_blocked?
+
+      def self._parse_ip(ip_str)
+        IPAddr.new(ip_str)
+      rescue IPAddr::InvalidAddressError
+        nil
+      end
+      private_class_method :_parse_ip
 
       def self._env_allows_private?
         v = (ENV['SWML_ALLOW_PRIVATE_URLS'] || '').downcase
@@ -118,9 +141,8 @@ module SignalWire
       # @param hostname [String]
       # @return [Array<String>, nil]
       def self._resolve(hostname)
-        if _resolver
-          return _resolver.call(hostname)
-        end
+        return _resolver.call(hostname) if _resolver
+
         # Literal IP shortcut (covers tests that pass IP-as-hostname URLs).
         begin
           IPAddr.new(hostname)

@@ -42,11 +42,36 @@ module SignalWire
         p  = payload['params'] || {}
         new(
           event_type: et,
-          params:     p,
-          call_id:    p['call_id'] || '',
-          timestamp:  p['timestamp'] || 0.0
+          params: p,
+          call_id: p['call_id'] || '',
+          timestamp: p['timestamp'] || 0.0
         )
       end
+
+      # @api private — the shared envelope kwargs a subclass forwards to +new+
+      # from the base event decoded by {RelayEvent.from_payload}.
+      def self._base_kwargs(base)
+        { event_type: base.event_type, params: base.params,
+          call_id: base.call_id, timestamp: base.timestamp }
+      end
+      private_class_method :_base_kwargs
+
+      # @api private — +params[key] || default+. Keeps the nil-coalescing out
+      # of subclass +from_payload+ bodies (one call, no branch in the caller).
+      def self._fetch(params, key, default)
+        params[key] || default
+      end
+      private_class_method :_fetch
+
+      # @api private — build typed kwargs from a +{ sym_field => default }+
+      # table, reading +params[field.to_s]+ with the table's default. Keeps
+      # subclass +from_payload+ bodies short and branch-free.
+      def self._typed_from(params, fields)
+        fields.each_with_object({}) do |(field, default), kwargs|
+          kwargs[field] = _fetch(params, field.to_s, default)
+        end
+      end
+      private_class_method :_typed_from
 
       # Semantic Hash view: the shared envelope fields plus the subclass's
       # typed fields. Raw +params+ are intentionally excluded — +#to_h+ is
@@ -57,14 +82,14 @@ module SignalWire
       def to_h
         {
           event_type: @event_type,
-          call_id:    @call_id,
-          timestamp:  @timestamp
+          call_id: @call_id,
+          timestamp: @timestamp
         }.merge(_event_fields)
       end
 
       # @return [String] JSON serialization of {#to_h}.
-      def to_json(*args)
-        to_h.to_json(*args)
+      def to_json(*)
+        to_h.to_json(*)
       end
 
       # Ruby 3.0 pattern-matching hook for +in { key: }+ / +in { key: }+.
@@ -108,6 +133,13 @@ module SignalWire
 
       private
 
+      # @api private — set @<key> = value for each kwarg, so wide-field
+      # subclasses keep their full +initialize+ signature without a long
+      # assignment body. Keys must match the subclass's +attr_reader+ names.
+      def _assign_fields(**fields)
+        fields.each { |key, value| instance_variable_set("@#{key}", value) }
+      end
+
       # Typed fields contributed by a subclass to {#to_h} / pattern matching.
       # The base event has none beyond the shared envelope.
       #
@@ -125,12 +157,11 @@ module SignalWire
         base = RelayEvent.from_payload(payload)
         p = base.params
         new(
-          event_type: base.event_type, params: base.params,
-          call_id: base.call_id, timestamp: base.timestamp,
+          **_base_kwargs(base),
           call_state: p['call_state'] || '',
           end_reason: p['end_reason'] || '',
-          direction:  p['direction'] || '',
-          device:     p['device'] || {}
+          direction: p['direction'] || '',
+          device: p['device'] || {}
         )
       end
 
@@ -164,21 +195,16 @@ module SignalWire
       attr_reader :call_state, :direction, :device, :node_id, :project_id,
                   :context, :segment_id, :tag
 
+      TYPED_FIELDS = {
+        call_state: '', direction: '', device: {}, node_id: '',
+        project_id: '', segment_id: '', tag: ''
+      }.freeze
+
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
         p = base.params
-        new(
-          event_type: base.event_type, params: base.params,
-          call_id: base.call_id, timestamp: base.timestamp,
-          call_state: p['call_state'] || '',
-          direction:  p['direction'] || '',
-          device:     p['device'] || {},
-          node_id:    p['node_id'] || '',
-          project_id: p['project_id'] || '',
-          context:    p['context'] || p['protocol'] || '',
-          segment_id: p['segment_id'] || '',
-          tag:        p['tag'] || ''
-        )
+        new(**_base_kwargs(base), **_typed_from(p, TYPED_FIELDS),
+            context: _fetch(p, 'context', _fetch(p, 'protocol', '')))
       end
 
       def initialize(call_state: '', direction: '', device: {}, node_id: '',
@@ -211,10 +237,9 @@ module SignalWire
         base = RelayEvent.from_payload(payload)
         p = base.params
         new(
-          event_type: base.event_type, params: base.params,
-          call_id: base.call_id, timestamp: base.timestamp,
+          **_base_kwargs(base),
           control_id: p['control_id'] || '',
-          state:      p['state'] || ''
+          state: p['state'] || ''
         )
       end
 
@@ -240,14 +265,11 @@ module SignalWire
         p = base.params
         rec = p['record'] || {}
         new(
-          event_type: base.event_type, params: base.params,
-          call_id: base.call_id, timestamp: base.timestamp,
-          control_id: p['control_id'] || '',
-          state:      p['state'] || '',
-          url:        rec['url'] || p['url'] || '',
-          duration:   rec['duration'] || p['duration'] || 0.0,
-          size:       rec['size'] || p['size'] || 0,
-          record:     rec
+          **_base_kwargs(base),
+          control_id: _fetch(p, 'control_id', ''), state: _fetch(p, 'state', ''),
+          url: _fetch(rec, 'url', _fetch(p, 'url', '')),
+          duration: _fetch(rec, 'duration', _fetch(p, 'duration', 0.0)),
+          size: _fetch(rec, 'size', _fetch(p, 'size', 0)), record: rec
         )
       end
 
@@ -277,12 +299,11 @@ module SignalWire
         base = RelayEvent.from_payload(payload)
         p = base.params
         new(
-          event_type: base.event_type, params: base.params,
-          call_id: base.call_id, timestamp: base.timestamp,
-          control_id:  p['control_id'] || '',
-          state:       p['state'] || '',
+          **_base_kwargs(base),
+          control_id: p['control_id'] || '',
+          state: p['state'] || '',
           result_data: p['result'] || {},
-          final:       p['final']
+          final: p['final']
         )
       end
 
@@ -310,10 +331,9 @@ module SignalWire
         base = RelayEvent.from_payload(payload)
         p = base.params
         new(
-          event_type: base.event_type, params: base.params,
-          call_id: base.call_id, timestamp: base.timestamp,
+          **_base_kwargs(base),
           connect_state: p['connect_state'] || '',
-          peer:          p['peer'] || {}
+          peer: p['peer'] || {}
         )
       end
 
@@ -338,10 +358,9 @@ module SignalWire
         base = RelayEvent.from_payload(payload)
         p = base.params
         new(
-          event_type: base.event_type, params: base.params,
-          call_id: base.call_id, timestamp: base.timestamp,
+          **_base_kwargs(base),
           control_id: p['control_id'] || '',
-          detect:     p['detect'] || {}
+          detect: p['detect'] || {}
         )
       end
 
@@ -366,10 +385,9 @@ module SignalWire
         base = RelayEvent.from_payload(payload)
         p = base.params
         new(
-          event_type: base.event_type, params: base.params,
-          call_id: base.call_id, timestamp: base.timestamp,
+          **_base_kwargs(base),
           control_id: p['control_id'] || '',
-          fax:        p['fax'] || {}
+          fax: p['fax'] || {}
         )
       end
 
@@ -394,12 +412,11 @@ module SignalWire
         base = RelayEvent.from_payload(payload)
         p = base.params
         new(
-          event_type: base.event_type, params: base.params,
-          call_id: base.call_id, timestamp: base.timestamp,
+          **_base_kwargs(base),
           control_id: p['control_id'] || '',
-          state:      p['state'] || '',
-          tap:        p['tap'] || {},
-          device:     p['device'] || {}
+          state: p['state'] || '',
+          tap: p['tap'] || {},
+          device: p['device'] || {}
         )
       end
 
@@ -426,12 +443,11 @@ module SignalWire
         base = RelayEvent.from_payload(payload)
         p = base.params
         new(
-          event_type: base.event_type, params: base.params,
-          call_id: base.call_id, timestamp: base.timestamp,
+          **_base_kwargs(base),
           control_id: p['control_id'] || '',
-          state:      p['state'] || '',
-          url:        p['url'] || '',
-          name:       p['name'] || ''
+          state: p['state'] || '',
+          url: p['url'] || '',
+          name: p['name'] || ''
         )
       end
 
@@ -458,10 +474,9 @@ module SignalWire
         base = RelayEvent.from_payload(payload)
         p = base.params
         new(
-          event_type: base.event_type, params: base.params,
-          call_id: base.call_id, timestamp: base.timestamp,
+          **_base_kwargs(base),
           control_id: p['control_id'] || '',
-          state:      p['state'] || ''
+          state: p['state'] || ''
         )
       end
 
@@ -486,11 +501,10 @@ module SignalWire
         base = RelayEvent.from_payload(payload)
         p = base.params
         new(
-          event_type: base.event_type, params: base.params,
-          call_id: base.call_id, timestamp: base.timestamp,
-          tag:        p['tag'] || '',
+          **_base_kwargs(base),
+          tag: p['tag'] || '',
           dial_state: p['dial_state'] || '',
-          call_data:  p['call'] || {}
+          call_data: p['call'] || {}
         )
       end
 
@@ -536,12 +550,11 @@ module SignalWire
         base = RelayEvent.from_payload(payload)
         p = base.params
         new(
-          event_type: base.event_type, params: base.params,
-          call_id: base.call_id, timestamp: base.timestamp,
-          state:                      p['state'] || '',
-          sip_refer_to:               p['sip_refer_to'] || '',
-          sip_refer_response_code:    p['sip_refer_response_code'] || '',
-          sip_notify_response_code:   p['sip_notify_response_code'] || ''
+          **_base_kwargs(base),
+          state: p['state'] || '',
+          sip_refer_to: p['sip_refer_to'] || '',
+          sip_refer_response_code: p['sip_refer_response_code'] || '',
+          sip_notify_response_code: p['sip_notify_response_code'] || ''
         )
       end
 
@@ -571,8 +584,7 @@ module SignalWire
         base = RelayEvent.from_payload(payload)
         p = base.params
         new(
-          event_type: base.event_type, params: base.params,
-          call_id: base.call_id, timestamp: base.timestamp,
+          **_base_kwargs(base),
           denoised: p['denoised'] || false
         )
       end
@@ -597,10 +609,9 @@ module SignalWire
         base = RelayEvent.from_payload(payload)
         p = base.params
         new(
-          event_type: base.event_type, params: base.params,
-          call_id: base.call_id, timestamp: base.timestamp,
+          **_base_kwargs(base),
           control_id: p['control_id'] || '',
-          state:      p['state'] || ''
+          state: p['state'] || ''
         )
       end
 
@@ -625,14 +636,10 @@ module SignalWire
         base = RelayEvent.from_payload(payload)
         p = base.params
         new(
-          event_type: base.event_type, params: base.params,
-          call_id: base.call_id, timestamp: base.timestamp,
-          control_id: p['control_id'] || '',
-          status:     p['status'] || '',
-          queue_id:   p['id'] || '',
-          queue_name: p['name'] || '',
-          position:   p['position'] || 0,
-          size:       p['size'] || 0
+          **_base_kwargs(base),
+          control_id: _fetch(p, 'control_id', ''), status: _fetch(p, 'status', ''),
+          queue_id: _fetch(p, 'id', ''), queue_name: _fetch(p, 'name', ''),
+          position: _fetch(p, 'position', 0), size: _fetch(p, 'size', 0)
         )
       end
 
@@ -663,8 +670,7 @@ module SignalWire
         base = RelayEvent.from_payload(payload)
         p = base.params
         new(
-          event_type: base.event_type, params: base.params,
-          call_id: base.call_id, timestamp: base.timestamp,
+          **_base_kwargs(base),
           state: p['state'] || ''
         )
       end
@@ -685,19 +691,13 @@ module SignalWire
     class TranscribeEvent < RelayEvent
       attr_reader :control_id, :state, :url, :recording_id, :duration, :size
 
+      TYPED_FIELDS = {
+        control_id: '', state: '', url: '', recording_id: '', duration: 0.0, size: 0
+      }.freeze
+
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
-        p = base.params
-        new(
-          event_type: base.event_type, params: base.params,
-          call_id: base.call_id, timestamp: base.timestamp,
-          control_id:   p['control_id'] || '',
-          state:        p['state'] || '',
-          url:          p['url'] || '',
-          recording_id: p['recording_id'] || '',
-          duration:     p['duration'] || 0.0,
-          size:         p['size'] || 0
-        )
+        new(**_base_kwargs(base), **_typed_from(base.params, TYPED_FIELDS))
       end
 
       def initialize(control_id: '', state: '', url: '', recording_id: '',
@@ -727,8 +727,7 @@ module SignalWire
         base = RelayEvent.from_payload(payload)
         p = base.params
         new(
-          event_type: base.event_type, params: base.params,
-          call_id: base.call_id, timestamp: base.timestamp,
+          **_base_kwargs(base),
           state: p['state'] || ''
         )
       end
@@ -753,11 +752,10 @@ module SignalWire
         base = RelayEvent.from_payload(payload)
         p = base.params
         new(
-          event_type: base.event_type, params: base.params,
-          call_id: base.call_id, timestamp: base.timestamp,
+          **_base_kwargs(base),
           conference_id: p['conference_id'] || '',
-          name:          p['name'] || '',
-          status:        p['status'] || ''
+          name: p['name'] || '',
+          status: p['status'] || ''
         )
       end
 
@@ -783,9 +781,8 @@ module SignalWire
         base = RelayEvent.from_payload(payload)
         p = base.params
         new(
-          event_type: base.event_type, params: base.params,
-          call_id: base.call_id, timestamp: base.timestamp,
-          code:    p['code'] || '',
+          **_base_kwargs(base),
+          code: p['code'] || '',
           message: p['message'] || ''
         )
       end
@@ -808,39 +805,23 @@ module SignalWire
       attr_reader :message_id, :context, :direction, :from_number, :to_number,
                   :body, :media, :segments, :message_state, :tags
 
+      TYPED_FIELDS = {
+        message_id: '', context: '', direction: '', from_number: '', to_number: '',
+        body: '', media: [], segments: 0, message_state: '', tags: []
+      }.freeze
+
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
-        p = base.params
-        new(
-          event_type: base.event_type, params: base.params,
-          call_id: base.call_id, timestamp: base.timestamp,
-          message_id:    p['message_id'] || '',
-          context:       p['context'] || '',
-          direction:     p['direction'] || '',
-          from_number:   p['from_number'] || '',
-          to_number:     p['to_number'] || '',
-          body:          p['body'] || '',
-          media:         p['media'] || [],
-          segments:      p['segments'] || 0,
-          message_state: p['message_state'] || '',
-          tags:          p['tags'] || []
-        )
+        new(**_base_kwargs(base), **_typed_from(base.params, TYPED_FIELDS))
       end
 
       def initialize(message_id: '', context: '', direction: '', from_number: '',
                      to_number: '', body: '', media: [], segments: 0,
                      message_state: '', tags: [], **base)
         super(**base)
-        @message_id    = message_id
-        @context       = context
-        @direction     = direction
-        @from_number   = from_number
-        @to_number     = to_number
-        @body          = body
-        @media         = media
-        @segments      = segments
-        @message_state = message_state
-        @tags          = tags
+        _assign_fields(message_id: message_id, context: context, direction: direction,
+                       from_number: from_number, to_number: to_number, body: body,
+                       media: media, segments: segments, message_state: message_state, tags: tags)
       end
 
       private
@@ -858,41 +839,24 @@ module SignalWire
       attr_reader :message_id, :context, :direction, :from_number, :to_number,
                   :body, :media, :segments, :message_state, :reason, :tags
 
+      TYPED_FIELDS = {
+        message_id: '', context: '', direction: '', from_number: '', to_number: '',
+        body: '', media: [], segments: 0, message_state: '', reason: '', tags: []
+      }.freeze
+
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
-        p = base.params
-        new(
-          event_type: base.event_type, params: base.params,
-          call_id: base.call_id, timestamp: base.timestamp,
-          message_id:    p['message_id'] || '',
-          context:       p['context'] || '',
-          direction:     p['direction'] || '',
-          from_number:   p['from_number'] || '',
-          to_number:     p['to_number'] || '',
-          body:          p['body'] || '',
-          media:         p['media'] || [],
-          segments:      p['segments'] || 0,
-          message_state: p['message_state'] || '',
-          reason:        p['reason'] || '',
-          tags:          p['tags'] || []
-        )
+        new(**_base_kwargs(base), **_typed_from(base.params, TYPED_FIELDS))
       end
 
       def initialize(message_id: '', context: '', direction: '', from_number: '',
                      to_number: '', body: '', media: [], segments: 0,
                      message_state: '', reason: '', tags: [], **base)
         super(**base)
-        @message_id    = message_id
-        @context       = context
-        @direction     = direction
-        @from_number   = from_number
-        @to_number     = to_number
-        @body          = body
-        @media         = media
-        @segments      = segments
-        @message_state = message_state
-        @reason        = reason
-        @tags          = tags
+        _assign_fields(message_id: message_id, context: context, direction: direction,
+                       from_number: from_number, to_number: to_number, body: body,
+                       media: media, segments: segments, message_state: message_state,
+                       reason: reason, tags: tags)
       end
 
       # Typed predicate over {#message_state}, alongside the bare string.
@@ -916,29 +880,29 @@ module SignalWire
 
     # Map event_type string to typed event class
     EVENT_CLASS_MAP = {
-      'calling.call.state'       => CallStateEvent,
-      'calling.call.receive'     => CallReceiveEvent,
-      'calling.call.play'        => PlayEvent,
-      'calling.call.record'      => RecordEvent,
-      'calling.call.collect'     => CollectEvent,
-      'calling.call.connect'     => ConnectEvent,
-      'calling.call.detect'      => DetectEvent,
-      'calling.call.fax'         => FaxEvent,
-      'calling.call.tap'         => TapEvent,
-      'calling.call.stream'      => StreamEvent,
+      'calling.call.state' => CallStateEvent,
+      'calling.call.receive' => CallReceiveEvent,
+      'calling.call.play' => PlayEvent,
+      'calling.call.record' => RecordEvent,
+      'calling.call.collect' => CollectEvent,
+      'calling.call.connect' => ConnectEvent,
+      'calling.call.detect' => DetectEvent,
+      'calling.call.fax' => FaxEvent,
+      'calling.call.tap' => TapEvent,
+      'calling.call.stream' => StreamEvent,
       'calling.call.send_digits' => SendDigitsEvent,
-      'calling.call.dial'        => DialEvent,
-      'calling.call.refer'       => ReferEvent,
-      'calling.call.denoise'     => DenoiseEvent,
-      'calling.call.pay'         => PayEvent,
-      'calling.call.queue'       => QueueEvent,
-      'calling.call.echo'        => EchoEvent,
-      'calling.call.transcribe'  => TranscribeEvent,
-      'calling.call.hold'        => HoldEvent,
-      'calling.conference'       => ConferenceEvent,
-      'calling.error'            => CallingErrorEvent,
-      'messaging.receive'        => MessageReceiveEvent,
-      'messaging.state'          => MessageStateEvent
+      'calling.call.dial' => DialEvent,
+      'calling.call.refer' => ReferEvent,
+      'calling.call.denoise' => DenoiseEvent,
+      'calling.call.pay' => PayEvent,
+      'calling.call.queue' => QueueEvent,
+      'calling.call.echo' => EchoEvent,
+      'calling.call.transcribe' => TranscribeEvent,
+      'calling.call.hold' => HoldEvent,
+      'calling.conference' => ConferenceEvent,
+      'calling.error' => CallingErrorEvent,
+      'messaging.receive' => MessageReceiveEvent,
+      'messaging.state' => MessageStateEvent
     }.freeze
 
     # Parse a raw signalwire.event params hash into a typed event object.

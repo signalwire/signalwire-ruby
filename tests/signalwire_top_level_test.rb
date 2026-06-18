@@ -18,8 +18,9 @@ class SignalWireTopLevelTest < Minitest::Test
     client = SignalWire.RestClient(
       project: 'p-123',
       token: 't-456',
-      host: 'demo.signalwire.com',
+      host: 'demo.signalwire.com'
     )
+
     assert_kind_of SignalWire::REST::RestClient, client
     refute_nil client.fabric
     refute_nil client.calling
@@ -28,6 +29,7 @@ class SignalWireTopLevelTest < Minitest::Test
 
   def test_rest_client_factory_with_positional_credentials
     client = SignalWire.RestClient('proj', 'tok', 'pos.signalwire.com')
+
     assert_kind_of SignalWire::REST::RestClient, client
   end
 
@@ -47,6 +49,7 @@ class SignalWireTopLevelTest < Minitest::Test
     Dir.mktmpdir do |tmp|
       SignalWire.add_skill_directory(tmp)
       paths = SignalWire.send(:_signalwire_singleton_registry).external_paths
+
       assert_includes paths, tmp
     end
   end
@@ -66,12 +69,14 @@ class SignalWireTopLevelTest < Minitest::Test
       def initialize(_params = {}); end
     end
     SignalWire.register_skill(klass)
+
     assert_includes SignalWire::Skills::SkillRegistry.list_skills,
                     'top_level_dummy_skill_ruby'
   end
 
   def test_list_skills_with_params_returns_schema_hash
     schema = SignalWire.list_skills_with_params
+
     assert_kind_of Hash, schema
     refute_empty schema
     schema.each do |name, info|

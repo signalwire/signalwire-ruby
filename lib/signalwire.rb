@@ -39,6 +39,7 @@ module SignalWire
   # @param args [Array<String>] Positional credentials (compat shim).
   # @param kwargs [Hash] Keyword credentials forwarded to the constructor.
   # @return [SignalWire::REST::RestClient]
+  # rubocop:disable Naming/MethodName -- parity: mirrors Python's top-level signalwire.RestClient() factory; renaming breaks the public surface oracle
   def RestClient(*args, **kwargs)
     require_relative 'signalwire/rest/rest_client'
     if args.length >= 3 && kwargs.empty?
@@ -49,6 +50,7 @@ module SignalWire
       REST::RestClient.new(**kwargs)
     end
   end
+  # rubocop:enable Naming/MethodName
 
   # Register a custom skill class with the global skill registry.
   #
@@ -115,8 +117,8 @@ module SignalWire
       Skills::SkillRegistry.get_all_skills_schema
     else
       # Fallback: list_skills returns names; pair them with empty params.
-      Skills::SkillRegistry.list_skills.each_with_object({}) do |name, h|
-        h[name] = { 'name' => name, 'parameters' => {} }
+      Skills::SkillRegistry.list_skills.to_h do |name|
+        [name, { 'name' => name, 'parameters' => {} }]
       end
     end
   end

@@ -13,9 +13,9 @@ require 'cgi'
 require_relative '../../lib/signalwire/security/webhook_validator'
 require_relative '../../lib/signalwire/security/webhook_middleware'
 
-class WebhookMiddlewareTest < Minitest::Test
-  include Rack::Test::Methods
-
+# Shared fixtures for the WebhookMiddleware test classes: the capturing inner
+# app, the middleware factory, and the signing helper.
+module WebhookMiddlewareHelpers
   SIGNING_KEY = 'PSKtest1234567890abcdef'
 
   def setup
@@ -40,38 +40,52 @@ class WebhookMiddlewareTest < Minitest::Test
     end
   end
 
-  def app
+  # Wrap {#inner_app} in a WebhookMiddleware with the given options.
+  def build_middleware(**)
     captures = self
     SignalWire::Security::WebhookMiddleware.new(
-      ->(env) { captures.send(:inner_app).call(env) },
-      signing_key: SIGNING_KEY,
-      trust_proxy: true,
-      paths: nil,        # apply to every path
-      methods: ['POST']
+      ->(env) { captures.send(:inner_app).call(env) }, **
     )
   end
 
-  # Compute a Scheme A hex signature for the URL the middleware is going
-  # to reconstruct. The Rack::Test default host is example.org, default
-  # port 80 → http scheme. We supply X-Forwarded-Proto/Host so the URL
-  # the middleware sees matches the URL we sign here.
+  # Compute a Scheme A hex signature for the URL the middleware reconstructs.
   def hex_sig(key, url, body)
     OpenSSL::HMAC.hexdigest('SHA1', key, url + body)
+  end
+end
+
+# Rack::Test-driven cases (the canonical in-process HTTP driver).
+class WebhookMiddlewareTest < Minitest::Test
+  include Rack::Test::Methods
+  include WebhookMiddlewareHelpers
+
+  def app
+    build_middleware(signing_key: SIGNING_KEY, trust_proxy: true, paths: nil, methods: ['POST'])
+  end
+
+  # Set the proxy + JSON content-type headers (no signature).
+  def proxy_headers
+    header 'X-Forwarded-Proto', 'https'
+    header 'X-Forwarded-Host',  'example.org'
+    header 'CONTENT_TYPE', 'application/json'
+  end
+
+  # As {#proxy_headers}, plus the given signature under the named header
+  # (defaults to the canonical X-SignalWire-Signature).
+  def signed_headers(sig, sig_header: 'X-SignalWire-Signature')
+    proxy_headers
+    header sig_header, sig
   end
 
   def test_valid_signature_passes_through_to_app
     body = '{"event":"call.state","params":{"call_id":"abc"}}'
     url  = 'https://example.org/webhook'
-    sig  = hex_sig(SIGNING_KEY, url, body)
-
-    header 'X-Forwarded-Proto', 'https'
-    header 'X-Forwarded-Host',  'example.org'
-    header 'X-SignalWire-Signature', sig
-    header 'CONTENT_TYPE', 'application/json'
+    signed_headers(hex_sig(SIGNING_KEY, url, body))
 
     post '/webhook', body
 
-    assert_equal 200, last_response.status, "valid sig must pass through, got #{last_response.status}: #{last_response.body}"
+    assert_equal 200, last_response.status,
+                 "valid sig must pass through, got #{last_response.status}: #{last_response.body}"
     assert_equal 1, @app_calls.length, 'app must be called exactly once'
     # Raw body must be exposed to the downstream handler unchanged.
     assert_equal body, @raw_body_seen, 'middleware must stash the raw body on env for downstream readers'
@@ -79,10 +93,7 @@ class WebhookMiddlewareTest < Minitest::Test
 
   def test_invalid_signature_returns_403_and_app_not_called
     body = '{"event":"x"}'
-    header 'X-Forwarded-Proto', 'https'
-    header 'X-Forwarded-Host',  'example.org'
-    header 'X-SignalWire-Signature', 'definitely-not-the-right-signature'
-    header 'CONTENT_TYPE', 'application/json'
+    signed_headers('definitely-not-the-right-signature')
 
     post '/webhook', body
 
@@ -90,11 +101,9 @@ class WebhookMiddlewareTest < Minitest::Test
     assert_empty @app_calls, 'app must NOT be called when signature is invalid'
   end
 
-  def test_missing_signature_header_returns_403
+  def test_missing_signature_header_returns403
     body = '{"event":"x"}'
-    header 'X-Forwarded-Proto', 'https'
-    header 'X-Forwarded-Host',  'example.org'
-    header 'CONTENT_TYPE', 'application/json'
+    proxy_headers
 
     post '/webhook', body
 
@@ -106,12 +115,7 @@ class WebhookMiddlewareTest < Minitest::Test
     # X-Twilio-Signature must be honored as an alias of X-SignalWire-Signature.
     body = '{"event":"call.state"}'
     url  = 'https://example.org/webhook'
-    sig  = hex_sig(SIGNING_KEY, url, body)
-
-    header 'X-Forwarded-Proto', 'https'
-    header 'X-Forwarded-Host',  'example.org'
-    header 'X-Twilio-Signature', sig
-    header 'CONTENT_TYPE', 'application/json'
+    signed_headers(hex_sig(SIGNING_KEY, url, body), sig_header: 'X-Twilio-Signature')
 
     post '/webhook', body
 
@@ -156,87 +160,82 @@ class WebhookMiddlewareTest < Minitest::Test
   ensure
     ENV.delete('SWML_PROXY_URL_BASE')
   end
+end
+
+# Cases driven by one-shot Rack::MockRequest (no shared Rack::Test app).
+class WebhookMiddlewareMockRequestTest < Minitest::Test
+  include WebhookMiddlewareHelpers
+
+  # One-shot Rack::MockRequest POST. `env` carries CONTENT_TYPE / HTTP_* keys.
+  def mock_post(middleware, path, input, **env)
+    Rack::MockRequest.new(middleware).post(path, input: input, **env)
+  end
+
+  # X-Forwarded-Proto/Host + signature env keys for Rack::MockRequest, merged
+  # with any extra CGI env (e.g. CONTENT_TYPE). `host` defaults to example.org.
+  def forwarded_env(sig, host: 'example.org', **extra)
+    {
+      'HTTP_X_FORWARDED_PROTO' => 'https',
+      'HTTP_X_FORWARDED_HOST' => host,
+      'HTTP_X_SIGNALWIRE_SIGNATURE' => sig
+    }.merge(extra)
+  end
 
   def test_paths_allowlist_skips_unmatched_paths
     # When paths: ['/webhook'] is set, requests to other paths are passed
     # through without signature validation.
-    captures = self
-    middleware = SignalWire::Security::WebhookMiddleware.new(
-      ->(env) { captures.send(:inner_app).call(env) },
-      signing_key: SIGNING_KEY,
-      paths: ['/webhook']
-    )
-
-    # Use a one-shot Rack::MockRequest to avoid polluting the test instance's app.
-    response = Rack::MockRequest.new(middleware).post('/other-path', input: '{"x":1}')
+    middleware = build_middleware(signing_key: SIGNING_KEY, paths: ['/webhook'])
+    response = mock_post(middleware, '/other-path', '{"x":1}')
 
     assert_equal 200, response.status
     assert_equal 1, @app_calls.length
     assert_equal '/other-path', @app_calls.first[:path]
   end
 
-  def test_form_encoded_scheme_b_passes
-    # Scheme B canonical Twilio vector via the middleware.
-    params = {
-      'CallSid' => 'CA1234567890ABCDE',
-      'Caller'  => '+14158675309',
-      'Digits'  => '1234',
-      'From'    => '+14158675309',
-      'To'      => '+18005551212'
+  # Canonical Scheme B Twilio form-encoded vector (params + precomputed sig).
+  def scheme_b_form_params
+    {
+      'CallSid' => 'CA1234567890ABCDE', 'Caller' => '+14158675309', 'Digits' => '1234',
+      'From' => '+14158675309', 'To' => '+18005551212'
     }
-    body = params.map { |k, v| "#{CGI.escape(k)}=#{CGI.escape(v)}" }.join('&')
-    sig  = 'RSOYDt4T1cUTdK1PDd93/VVr8B8='
+  end
 
-    captures = self
-    middleware = SignalWire::Security::WebhookMiddleware.new(
-      ->(env) { captures.send(:inner_app).call(env) },
-      signing_key: '12345',
-      trust_proxy: true
-    )
-
-    response = Rack::MockRequest.new(middleware).post(
-      '/myapp.php?foo=1&bar=2',
-      input: body,
-      'CONTENT_TYPE'              => 'application/x-www-form-urlencoded',
-      'HTTP_X_FORWARDED_PROTO'    => 'https',
-      'HTTP_X_FORWARDED_HOST'     => 'mycompany.com',
-      'HTTP_X_SIGNALWIRE_SIGNATURE' => sig
-    )
+  def test_form_encoded_scheme_b_passes
+    body = scheme_b_form_params.map { |k, v| "#{CGI.escape(k)}=#{CGI.escape(v)}" }.join('&')
+    middleware = build_middleware(signing_key: '12345', trust_proxy: true)
+    ct = { 'CONTENT_TYPE' => 'application/x-www-form-urlencoded' }
+    env = forwarded_env('RSOYDt4T1cUTdK1PDd93/VVr8B8=', host: 'mycompany.com', **ct)
+    response = mock_post(middleware, '/myapp.php?foo=1&bar=2', body, **env)
 
     assert_equal 200, response.status, "form sig should pass: got #{response.status} #{response.body}"
     assert_equal body, @raw_body_seen
   end
 
-  def test_raw_body_rewindable_after_middleware
-    # Downstream handlers that re-read rack.input must still see the body.
-    body = '{"event":"x"}'
-    url  = 'https://example.org/webhook'
-    sig  = hex_sig(SIGNING_KEY, url, body)
-
-    inner_read = nil
+  # A rack app that records what it re-reads from rack.input. Returns
+  # [app, read_capture] where read_capture is a single-element array whose
+  # [0] holds the bytes read once the app runs.
+  def rack_input_reader
+    read_capture = []
     captures = self
-    inner = lambda do |env|
-      inner_read = env['rack.input'].read
+    app = lambda do |env|
+      read_capture[0] = env['rack.input'].read
       captures.instance_variable_get(:@app_calls) << { path: env['PATH_INFO'] }
       [200, {}, ['']]
     end
+    [app, read_capture]
+  end
 
-    middleware = SignalWire::Security::WebhookMiddleware.new(
-      inner,
-      signing_key: SIGNING_KEY,
-      trust_proxy: true
-    )
+  def test_raw_body_rewindable_after_middleware
+    # Downstream handlers that re-read rack.input must still see the body.
+    body = '{"event":"x"}'
+    sig  = hex_sig(SIGNING_KEY, 'https://example.org/webhook', body)
 
-    response = Rack::MockRequest.new(middleware).post(
-      '/webhook',
-      input: body,
-      'HTTP_X_FORWARDED_PROTO'      => 'https',
-      'HTTP_X_FORWARDED_HOST'       => 'example.org',
-      'HTTP_X_SIGNALWIRE_SIGNATURE' => sig
-    )
+    inner, read_capture = rack_input_reader
+    middleware = SignalWire::Security::WebhookMiddleware.new(inner, signing_key: SIGNING_KEY, trust_proxy: true)
+    response = mock_post(middleware, '/webhook', body, **forwarded_env(sig))
 
     assert_equal 200, response.status
-    assert_equal body, inner_read,
+    assert_equal body, read_capture[0],
                  'middleware must rewind rack.input so downstream can re-read'
   end
 end

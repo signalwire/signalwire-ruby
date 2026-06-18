@@ -95,8 +95,8 @@ module SignalWire
       end
 
       # @return [String] JSON serialization of {#to_h}.
-      def to_json(*args)
-        to_h.to_json(*args)
+      def to_json(*)
+        to_h.to_json(*)
       end
 
       # Ruby 3.0 hash pattern-matching hook, e.g.

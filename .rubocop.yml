@@ -1,0 +1,165 @@
+# RuboCop config for signalwire-ruby.
+#
+# This is the LINT + FMT quality floor wired into scripts/run-ci.sh (the FMT gate
+# runs `rubocop --autocorrect` locally / `rubocop` in CI; the LINT gate is a clean
+# `rubocop` run with zero offenses). It was stood up via a one-time burndown that
+# cleared the backlog to zero.
+#
+# Discipline (mirrors the signalwire-go golangci gate + signalwire-rust clippy
+# gate): every cop here is either burned to zero by hand or guards an applicable
+# bug/idiom class. The DISABLE list is short and JUSTIFIED — a cop is turned off
+# ONLY when obeying it would change the SWAIG wire bytes / rename a wire token, or
+# when it fights faithful parity with the Python reference's structure. Type/shape
+# and naming idiom (e.g. dropping get_/set_ accessor prefixes) is NEVER a reason to
+# suppress — idiom wins, and the cross-port DRIFT checker is taught the
+# idiom-equivalence instead (porting-sdk type_aliases.yaml / the ruby adapter).
+
+plugins:
+  - rubocop-minitest
+  - rubocop-performance
+
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 3.2
+  SuggestExtensions: false
+  Exclude:
+    # Demo programs, not library surface — excluded from the blocking gate the way
+    # signalwire-go tags its examples //go:build ignore. They are not part of the
+    # audited public surface and are free to read as tutorial-style code.
+    - 'examples/**/*'
+    - 'relay/examples/**/*'
+    - 'rest/examples/**/*'
+    - 'vendor/**/*'
+
+# ---------------------------------------------------------------------------
+# Documentation: the SDK documents its public API in YARD/markdown + the
+# cross-port DOC-AUDIT gate, not via a top-of-class comment on every class.
+# Requiring Style/Documentation would add noise comments that duplicate the
+# audited doc surface.
+Style/Documentation:
+  Enabled: false
+
+# ---------------------------------------------------------------------------
+# SUPPRESSED — these fight FAITHFUL PARITY with the Python reference's
+# structure (the one carve-out the discipline above allows). NOT type/shape
+# idiom (which is never suppressed).
+
+# The cross-port test files deliberately group several related test classes per
+# file (one file per skill/feature, mirroring the Python parity-test layout).
+# One-class-per-file would fragment that intentional organization.
+Style/OneClassPerFile:
+  Enabled: false
+
+# Parity tests legitimately assert several related facts in one test method
+# (e.g. "setup returns true AND loads the stdlib AND defines Time"). Splitting
+# into one-assertion-per-test is noise that obscures the single behavior tested.
+Minitest/MultipleAssertions:
+  Enabled: false
+
+# Several parity test classes use a `build` helper (which itself asserts the
+# skill set up cleanly) as a fixture factory. Minitest/TestMethodName sees a
+# non-`test_`-prefixed public method that asserts and autocorrects it to
+# `test_build`, which breaks every caller (`skill = build`). The helper is an
+# intentional fixture, not a test case — leave it named `build`.
+Minitest/TestMethodName:
+  Enabled: false
+
+# Empty blocks in lib/ are a real bug (a no-op iterator/handler is almost always
+# a mistake), so the cop stays ON there. In tests/, an empty block is a
+# deliberate no-op SWAIG handler — `define_tool(...) { |_, _| }` — used purely to
+# register a tool whose body is irrelevant to the assertion. Exclude tests only.
+Lint/EmptyBlock:
+  Exclude:
+    - 'tests/**/*'
+
+# Every DuplicateBranch site in this codebase is an INTENTIONAL same-body branch
+# kept separate to document a distinct case: JSON-RPC method-dispatch arms that
+# share a no-op body, rescue arms handling distinct exception classes the same
+# way, and if/case arms whose conditions differ but whose result coincides
+# (host-already-has-port vs no-port; explicit 'info' vs unknown default; Class vs
+# fallback). Merging them would lose the documentation value. Each site carries
+# an explanatory comment.
+Lint/DuplicateBranch:
+  Enabled: false
+
+# The Python reference exposes wide keyword-argument signatures (AgentBase.__init__
+# takes ~22 kwargs, define_tool ~12, etc.); the Ruby port mirrors them as keyword
+# args for surface parity. Collapsing them into an options hash would change the
+# public API and diverge from the reference signature the DRIFT gate checks.
+# ParameterLists measures arg count, not correctness — suppress it.
+Metrics/ParameterLists:
+  Enabled: false
+
+# These classes/modules each map 1:1 to a single Python reference class whose
+# public method surface the cross-port enumerator reads via
+# public_instance_methods(false) / instance_methods(false). Splitting them via
+# mixin/module extraction would drop those public methods from the enumerated
+# surface and break the DRIFT gate (proven: it regressed exactly this way during
+# the burndown). ClassLength measures SIZE, not correctness — the methods that
+# make these classes "too long" ARE the parity surface. Private internals were
+# already extracted; the residual line count is irreducible without de-parity-ing.
+# Per-file exclusion until/unless a coupled adapter extraction is designed.
+Metrics/ClassLength:
+  Exclude:
+    - 'lib/signalwire/agent/agent_base.rb'
+    - 'lib/signalwire/swaig/function_result.rb'
+    - 'lib/signalwire/relay/call.rb'
+    - 'lib/signalwire/relay/client.rb'
+    - 'lib/signalwire/server/agent_server.rb'
+    - 'lib/signalwire/datamap/data_map.rb'
+    - 'lib/signalwire/utils/schema_utils.rb'
+    - 'lib/signalwire/contexts/context_builder.rb'
+    - 'lib/signalwire/pom/section.rb'
+    - 'lib/signalwire/skills/builtin/spider.rb'
+    - 'lib/signalwire/prefabs/concierge.rb'
+
+# Same surface-bearing-unit rationale as Metrics/ClassLength, for the one
+# module surface that exceeds the threshold.
+Metrics/ModuleLength:
+  Exclude:
+    - 'lib/signalwire/security/webhook_validator.rb'
+
+# Prefer keyword args for boolean defaults — a good cop in general, but a known
+# false positive on FLUENT SINGLE-ARGUMENT TOGGLES, which is exactly these sites:
+# FunctionResult#replace_in_history(text = true) (String OR true, called
+# positionally as `.replace_in_history('summary text')`),
+# #enable_functions_on_timeout(enabled = true) / #enable_extensive_data(enabled =
+# true) (called positionally as `.enable_functions_on_timeout(false)` in tests),
+# and SchemaUtils#initialize(schema_path = nil, schema_validation = true) (a
+# constructor mirroring Python's positional-or-keyword `SchemaUtils(schema_path,
+# schema_validation)`). Forcing keyword-only here would BREAK existing positional
+# callers and diverge from Python's positional_or_keyword params. Positional is
+# the correct idiom for these; the cop is wrong for the pattern.
+Style/OptionalBooleanParameter:
+  Enabled: false
+
+# has_skill? etc.: PredicatePrefix wants has_x? -> x?, but that renames a public
+# method the cross-port surface oracle tracks (Python has has_skill). Same class
+# as the deferred accessor rename — re-enable after the coupled teach-the-checker
+# pass. Tracked: memory accessor-rename-cross-port-policy.
+Naming/PredicatePrefix:
+  Enabled: false
+
+# assert_equal true/false, x is intentional EXACT-boolean verification of wire /
+# parsed values (e.g. `assert_equal false, rec['record_call']['stereo']` checks
+# the SWML emits literal false vs. nil/omitted; CLI flag parsed to literal false
+# vs. the string "false"). The cop's preferred assert(x)/refute(x) would pass for
+# any truthy/falsy value including nil — strictly WEAKER. Suppressed to preserve
+# test strength (the rule fights faithful test semantics, not type-shape idiom).
+Minitest/AssertTruthy:
+  Enabled: false
+Minitest/RefuteFalse:
+  Enabled: false
+
+# ---------------------------------------------------------------------------
+# TEMPORARILY DISABLED — accessor-naming idiom (get_x -> x, set_x -> x=) is a
+# real idiom win, but the rename requires a COUPLED change to porting-sdk's ruby
+# adapter (scripts/enumerate_signatures.py MIXIN_PROJECTIONS) to teach the DRIFT
+# checker the get_x<->x equivalence, AND some get_ prefixes may be load-bearing
+# (Ruby has no method/field collision like Go's, but parity-projected names must
+# stay mapped). Re-enable after the rename + teach-the-checker lands.
+# Tracked: memory accessor-rename-cross-port-policy.
+Naming/AccessorMethodName:
+  Enabled: false
+Naming/PredicateMethod:
+  Enabled: false

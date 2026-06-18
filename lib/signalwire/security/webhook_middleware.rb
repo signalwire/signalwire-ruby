@@ -85,21 +85,22 @@ module SignalWire
         return _forbidden if signature.nil? || signature.empty?
 
         url = _reconstruct_url(env)
-
-        valid = begin
-          WebhookValidator.validate_webhook_signature(@signing_key, signature, url, raw_body)
-        rescue ArgumentError, TypeError
-          # Programming errors at the boundary — never leak which branch
-          # tripped. Reject the request without raising.
-          return _forbidden
-        end
-
-        return _forbidden unless valid
+        return _forbidden unless _signature_valid?(signature, url, raw_body)
 
         @app.call(env)
       end
 
       private
+
+      # @api private
+      # Validate the signature, treating boundary programming errors
+      # (ArgumentError/TypeError) as a plain rejection — never leak which
+      # branch tripped, never raise.
+      def _signature_valid?(signature, url, raw_body)
+        WebhookValidator.validate_webhook_signature(@signing_key, signature, url, raw_body)
+      rescue ArgumentError, TypeError
+        false
+      end
 
       # @api private
       def _applies?(env)
@@ -151,34 +152,56 @@ module SignalWire
         query = env['QUERY_STRING'].to_s
         path_and_query = query.empty? ? path : "#{path}?#{query}"
 
-        proxy_base = ENV['SWML_PROXY_URL_BASE']
-        return "#{proxy_base.sub(%r{/+\z}, '')}#{path_and_query}" if proxy_base && !proxy_base.empty?
+        _proxy_base_url(path_and_query) ||
+          _forwarded_url(env, path_and_query) ||
+          _rack_derived_url(env, path_and_query)
+      end
 
-        if @trust_proxy
-          fwd_host  = env['HTTP_X_FORWARDED_HOST']
-          fwd_proto = env['HTTP_X_FORWARDED_PROTO'] || 'https'
-          if fwd_host && !fwd_host.empty?
-            return "#{fwd_proto}://#{fwd_host}#{path_and_query}"
-          end
-        end
+      # @api private
+      # Strategy 1: explicit SWML_PROXY_URL_BASE env var (highest priority).
+      def _proxy_base_url(path_and_query)
+        proxy_base = ENV.fetch('SWML_PROXY_URL_BASE', nil)
+        return unless proxy_base && !proxy_base.empty?
 
+        "#{proxy_base.sub(%r{/+\z}, '')}#{path_and_query}"
+      end
+
+      # @api private
+      # Strategy 2: X-Forwarded-Proto / X-Forwarded-Host (when trust_proxy).
+      def _forwarded_url(env, path_and_query)
+        return unless @trust_proxy
+
+        fwd_host = env['HTTP_X_FORWARDED_HOST']
+        return unless fwd_host && !fwd_host.empty?
+
+        fwd_proto = env['HTTP_X_FORWARDED_PROTO'] || 'https'
+        "#{fwd_proto}://#{fwd_host}#{path_and_query}"
+      end
+
+      # @api private
+      # Strategy 3: scheme://host[:port]/path?query derived from the rack env.
+      def _rack_derived_url(env, path_and_query)
         scheme = env['rack.url_scheme'] || 'http'
         host = env['HTTP_HOST'] || env['SERVER_NAME']
-        port = env['SERVER_PORT']
-        # Only include port if it's non-standard AND not already in HTTP_HOST.
-        host_with_port =
-          if host && host.include?(':')
-            host
-          elsif port && (
-            (scheme == 'http'  && port.to_s != '80') ||
-            (scheme == 'https' && port.to_s != '443')
-          )
-            "#{host}:#{port}"
-          else
-            host
-          end
-
+        host_with_port = _host_with_port(scheme, host, env['SERVER_PORT'])
         "#{scheme}://#{host_with_port}#{path_and_query}"
+      end
+
+      # @api private
+      # Only include the port if it's non-standard AND not already in HTTP_HOST.
+      # The "already has a port" and "no port needed" cases both yield host but
+      # are distinct conditions; keeping them separate reads clearer than merging.
+      def _host_with_port(scheme, host, port)
+        return host if host&.include?(':')
+        return "#{host}:#{port}" if port && _nonstandard_port?(scheme, port)
+
+        host
+      end
+
+      # @api private
+      def _nonstandard_port?(scheme, port)
+        (scheme == 'http' && port.to_s != '80') ||
+          (scheme == 'https' && port.to_s != '443')
       end
 
       # @api private

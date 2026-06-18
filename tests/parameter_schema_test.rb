@@ -32,7 +32,8 @@ ENV['SIGNALWIRE_LOG_MODE'] = 'off'
 
 require_relative '../lib/signalwire'
 
-class ParameterSchemaByteIdenticalTest < Minitest::Test
+# Shared helpers for the byte-identical parameter-schema test groups.
+class ParameterSchemaTestBase < Minitest::Test
   PS = SignalWire::Swaig::ParameterSchema
   RecordFormat = SignalWire::Swaig::RecordFormat
 
@@ -56,10 +57,20 @@ class ParameterSchemaByteIdenticalTest < Minitest::Test
                  "#{msg} (JSON byte mismatch)"
   end
 
+  # Hand-written baseline for two required string params (service + date).
+  def service_date_handwritten
+    handwritten({ 'service' => { 'type' => 'string', 'description' => 'The service' },
+                  'date' => { 'type' => 'string', 'description' => 'YYYY-MM-DD' } },
+                required: %w[service date])
+  end
+end
+
+class ParameterSchemaScalarTest < ParameterSchemaTestBase
   # --- string ---
   def test_string_kind_byte_identical
     built = PS.build { string :service, 'The service' }
     hand  = handwritten({ 'service' => { 'type' => 'string', 'description' => 'The service' } })
+
     assert_byte_identical hand, built
   end
 
@@ -67,6 +78,7 @@ class ParameterSchemaByteIdenticalTest < Minitest::Test
   def test_number_kind_byte_identical
     built = PS.build { number :amount, 'Dollar amount' }
     hand  = handwritten({ 'amount' => { 'type' => 'number', 'description' => 'Dollar amount' } })
+
     assert_byte_identical hand, built
   end
 
@@ -74,6 +86,7 @@ class ParameterSchemaByteIdenticalTest < Minitest::Test
   def test_integer_kind_with_default_byte_identical
     built = PS.build { integer :count, 'How many', default: 10 }
     hand  = handwritten({ 'count' => { 'type' => 'integer', 'description' => 'How many', 'default' => 10 } })
+
     assert_byte_identical hand, built
   end
 
@@ -81,6 +94,7 @@ class ParameterSchemaByteIdenticalTest < Minitest::Test
   def test_boolean_kind_byte_identical
     built = PS.build { boolean :urgent, 'Is urgent?' }
     hand  = handwritten({ 'urgent' => { 'type' => 'boolean', 'description' => 'Is urgent?' } })
+
     assert_byte_identical hand, built
   end
 
@@ -90,6 +104,7 @@ class ParameterSchemaByteIdenticalTest < Minitest::Test
     # Hand-written equivalent spells the same closed set inline.
     hand  = handwritten({ 'fmt' => { 'type' => 'string', 'description' => 'format',
                                      'enum' => %w[wav mp3 mp4] } })
+
     assert_byte_identical hand, built
     # And the values came from the frozen Tier-1 vocabulary, not a re-list.
     assert_equal RecordFormat::ALL, built['properties']['fmt']['enum']
@@ -99,6 +114,7 @@ class ParameterSchemaByteIdenticalTest < Minitest::Test
   # mutation of) the shared frozen array through the produced schema.
   def test_enum_does_not_alias_frozen_constant
     built = PS.build { enum :fmt, RecordFormat::ALL, 'format' }
+
     refute_same RecordFormat::ALL, built['properties']['fmt']['enum']
     assert_equal RecordFormat::ALL, built['properties']['fmt']['enum']
   end
@@ -108,9 +124,13 @@ class ParameterSchemaByteIdenticalTest < Minitest::Test
     built = PS.build { array :tags, 'Search tags', of: :string }
     hand  = handwritten({ 'tags' => { 'type' => 'array', 'description' => 'Search tags',
                                       'items' => { 'type' => 'string' } } })
+
     assert_byte_identical hand, built
   end
+end
 
+# --- object/array/required-list folding ---
+class ParameterSchemaCompositeTest < ParameterSchemaTestBase
   # --- nested object (with its own required list) ---
   def test_object_kind_byte_identical
     built = PS.build do
@@ -119,12 +139,11 @@ class ParameterSchemaByteIdenticalTest < Minitest::Test
         required :status
       end
     end
-    hand = handwritten({ 'filter' => {
-                         'type' => 'object', 'description' => 'Structured filter',
-                         'properties' => { 'status' => { 'type' => 'string', 'description' => 'open|closed' } },
-                         'required' => ['status']
-                       } })
-    assert_byte_identical hand, built
+    filter = { 'type' => 'object', 'description' => 'Structured filter',
+               'properties' => { 'status' => { 'type' => 'string', 'description' => 'open|closed' } },
+               'required' => ['status'] }
+
+    assert_byte_identical handwritten({ 'filter' => filter }), built
   end
 
   # --- required list folds the same way define_tool(required:) does ---
@@ -134,14 +153,8 @@ class ParameterSchemaByteIdenticalTest < Minitest::Test
       string :date, 'YYYY-MM-DD'
       required :service, :date
     end
-    hand = handwritten(
-      {
-        'service' => { 'type' => 'string', 'description' => 'The service' },
-        'date'    => { 'type' => 'string', 'description' => 'YYYY-MM-DD' }
-      },
-      required: %w[service date]
-    )
-    assert_byte_identical hand, built
+
+    assert_byte_identical service_date_handwritten, built
     assert_equal %w[service date], built['required']
   end
 
@@ -151,22 +164,18 @@ class ParameterSchemaByteIdenticalTest < Minitest::Test
       string :service, 'The service', required: true
       string :date, 'YYYY-MM-DD', required: true
     end
-    hand = handwritten(
-      {
-        'service' => { 'type' => 'string', 'description' => 'The service' },
-        'date'    => { 'type' => 'string', 'description' => 'YYYY-MM-DD' }
-      },
-      required: %w[service date]
-    )
-    assert_byte_identical hand, built
+
+    assert_byte_identical service_date_handwritten, built
   end
 
   # The `required` key is OMITTED entirely when nothing is required — exactly
   # what define_tool does (it only writes `required` for a non-empty Array).
   def test_required_key_omitted_when_empty
     built = PS.build { string :q, 'query' }
+
     refute built.key?('required'), 'required key must be absent when no property is required'
     hand = handwritten({ 'q' => { 'type' => 'string', 'description' => 'query' } })
+
     refute hand.key?('required')
     assert_byte_identical hand, built
   end
@@ -179,43 +188,59 @@ class ParameterSchemaByteIdenticalTest < Minitest::Test
       string :b, 'b'
       required :a, :b, :a
     end
+
     assert_equal %w[a b], built['required']
   end
+end
 
+# --- flagship combined-kinds + fluent builder ---
+class ParameterSchemaCombinedTest < ParameterSchemaTestBase
   # The full mixed-kind schema (every kind at once) is byte-identical end to
   # end — the flagship "all property kinds incl. an enum property" assertion.
   def test_all_kinds_combined_byte_identical
-    built = PS.build do
+    assert_byte_identical all_kinds_handwritten, all_kinds_built
+  end
+
+  # Body of the nested filter object, instance_eval'd against the nested
+  # ParameterSchema builder by +object(...)+.
+  FILTER_BODY = proc do
+    string :status, 'open|closed'
+    required :status
+  end
+
+  def all_kinds_built
+    PS.build do
       string  :service, 'The service'
       number  :amount,  'Dollar amount'
       integer :count,   'How many', default: 10
       boolean :urgent,  'Is urgent?'
       enum    :fmt, RecordFormat::ALL, 'format'
-      array   :tags,    'Search tags', of: :string
-      object  :filter,  'Structured filter' do
-        string :status, 'open|closed'
-        required :status
-      end
+      array   :tags, 'Search tags', of: :string
+      object(:filter, 'Structured filter', &FILTER_BODY)
       required :service, :date
     end
+  end
 
-    hand = handwritten(
-      {
-        'service' => { 'type' => 'string', 'description' => 'The service' },
-        'amount'  => { 'type' => 'number', 'description' => 'Dollar amount' },
-        'count'   => { 'type' => 'integer', 'description' => 'How many', 'default' => 10 },
-        'urgent'  => { 'type' => 'boolean', 'description' => 'Is urgent?' },
-        'fmt'     => { 'type' => 'string', 'description' => 'format', 'enum' => %w[wav mp3 mp4] },
-        'tags'    => { 'type' => 'array', 'description' => 'Search tags', 'items' => { 'type' => 'string' } },
-        'filter'  => {
-          'type' => 'object', 'description' => 'Structured filter',
-          'properties' => { 'status' => { 'type' => 'string', 'description' => 'open|closed' } },
-          'required' => ['status']
-        }
-      },
-      required: %w[service date]
-    )
-    assert_byte_identical hand, built
+  def all_kinds_handwritten
+    handwritten(all_kinds_properties, required: %w[service date])
+  end
+
+  def all_kinds_properties
+    {
+      'service' => { 'type' => 'string', 'description' => 'The service' },
+      'amount' => { 'type' => 'number', 'description' => 'Dollar amount' },
+      'count' => { 'type' => 'integer', 'description' => 'How many', 'default' => 10 },
+      'urgent' => { 'type' => 'boolean', 'description' => 'Is urgent?' },
+      'fmt' => { 'type' => 'string', 'description' => 'format', 'enum' => %w[wav mp3 mp4] },
+      'tags' => { 'type' => 'array', 'description' => 'Search tags', 'items' => { 'type' => 'string' } },
+      'filter' => filter_property
+    }
+  end
+
+  def filter_property
+    { 'type' => 'object', 'description' => 'Structured filter',
+      'properties' => { 'status' => { 'type' => 'string', 'description' => 'open|closed' } },
+      'required' => ['status'] }
   end
 
   # Fluent (non-block) usage produces the same wire shape as the block DSL.
@@ -226,6 +251,7 @@ class ParameterSchemaByteIdenticalTest < Minitest::Test
       integer :n, 'count'
       required :q
     end
+
     assert_byte_identical block, fluent
   end
 end
@@ -245,6 +271,10 @@ class ParameterSchemaDefineToolIntegrationTest < Minitest::Test
       required :service, :date
     end
     @invoked_with = nil
+    _define_lookup_tool
+  end
+
+  def _define_lookup_tool
     @agent.define_tool(name: 'lookup', description: 'Look up a service',
                        parameters: @params) do |args, _raw|
       @invoked_with = args
@@ -254,14 +284,16 @@ class ParameterSchemaDefineToolIntegrationTest < Minitest::Test
 
   # The builder's parameters appear verbatim in the rendered SWAIG JSON.
   def test_builder_params_appear_in_rendered_swaig_json
-    swml = @agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+    ai = @agent.render_swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+
     assert ai.key?('SWAIG'), 'rendered SWML should carry a SWAIG block'
-
     fn = ai['SWAIG']['functions'].find { |f| f['function'] == 'lookup' }
-    refute_nil fn, 'lookup function should be present in rendered SWAIG functions'
 
-    rendered = fn['parameters']
+    refute_nil fn, 'lookup function should be present in rendered SWAIG functions'
+    _assert_rendered_params(fn['parameters'])
+  end
+
+  def _assert_rendered_params(rendered)
     # Verbatim: the rendered parameters ARE the builder's output.
     assert_equal @params, rendered
     assert_equal JSON.generate(@params), JSON.generate(rendered)
@@ -269,7 +301,10 @@ class ParameterSchemaDefineToolIntegrationTest < Minitest::Test
     # Spot-check the schema content actually made it through, incl. the enum.
     assert_equal 'object', rendered['type']
     assert_equal %w[service date], rendered['required']
-    props = rendered['properties']
+    _assert_rendered_props(rendered['properties'])
+  end
+
+  def _assert_rendered_props(props)
     assert_equal 'string', props['service']['type']
     assert_equal 'The service to look up', props['service']['description']
     assert_equal %w[wav mp3 mp4], props['fmt']['enum']
@@ -278,6 +313,7 @@ class ParameterSchemaDefineToolIntegrationTest < Minitest::Test
   # Defining with builder-built params yields a working, invokable tool.
   def test_builder_built_tool_invokes
     result = @agent.on_function_call('lookup', { 'service' => 'haircut', 'date' => '2026-06-10' }, {})
+
     assert_equal 'Looked up haircut', result['response']
     # The handler actually ran with the supplied args (real dispatch, no mock).
     assert_equal({ 'service' => 'haircut', 'date' => '2026-06-10' }, @invoked_with)

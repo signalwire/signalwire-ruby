@@ -24,8 +24,10 @@ class DateTimeSkillDetailedTest < Minitest::Test
 
   def test_register_tools_returns_two_tools
     tools = @skill.register_tools
+
     assert_equal 2, tools.size
     names = tools.map { |t| t[:name] }
+
     assert_includes names, 'get_current_time'
     assert_includes names, 'get_current_date'
   end
@@ -34,6 +36,7 @@ class DateTimeSkillDetailedTest < Minitest::Test
     tools = @skill.register_tools
     time_tool = tools.find { |t| t[:name] == 'get_current_time' }
     result = time_tool[:handler].call({ 'timezone' => 'UTC' }, {})
+
     assert_kind_of SignalWire::Swaig::FunctionResult, result
     assert_match(/current time is/i, result.response)
   end
@@ -42,18 +45,21 @@ class DateTimeSkillDetailedTest < Minitest::Test
     tools = @skill.register_tools
     date_tool = tools.find { |t| t[:name] == 'get_current_date' }
     result = date_tool[:handler].call({ 'timezone' => 'UTC' }, {})
+
     assert_kind_of SignalWire::Swaig::FunctionResult, result
     assert_match(/date is/i, result.response)
   end
 
   def test_prompt_sections
     sections = @skill.get_prompt_sections
+
     assert_equal 1, sections.size
     assert_equal 'Date and Time Information', sections[0]['title']
   end
 
   def test_tool_parameters_include_timezone
     tools = @skill.register_tools
+
     tools.each do |t|
       assert t[:parameters].key?('timezone'), "#{t[:name]} should have timezone parameter"
     end
@@ -62,6 +68,7 @@ class DateTimeSkillDetailedTest < Minitest::Test
   def test_setup_always_succeeds
     factory = SignalWire::Skills::SkillRegistry.get_factory('datetime')
     skill = factory.call({})
+
     assert skill.setup
   end
 end

@@ -9,6 +9,7 @@ class FaqBotPrefabDetailedTest < Minitest::Test
     agent = SignalWire::Prefabs::FaqBot.new(
       faqs: [{ 'question' => 'What is SignalWire?', 'answer' => 'A communications platform.' }]
     )
+
     assert_equal 'faq_bot', agent.name
     assert_equal 1, agent.faqs.size
   end
@@ -17,6 +18,7 @@ class FaqBotPrefabDetailedTest < Minitest::Test
     agent = SignalWire::Prefabs::FaqBot.new(
       faqs: [{ 'question' => 'Q?', 'answer' => 'A.' }]
     )
+
     assert_includes agent.tools, 'search_faq'
   end
 
@@ -25,6 +27,7 @@ class FaqBotPrefabDetailedTest < Minitest::Test
       faqs: [{ 'question' => 'What is SignalWire?', 'answer' => 'A cloud comms platform.' }]
     )
     result = agent.handle_search({ 'query' => 'signalwire' }, {})
+
     assert_match(/cloud comms/i, result.response)
   end
 
@@ -33,6 +36,7 @@ class FaqBotPrefabDetailedTest < Minitest::Test
       faqs: [{ 'question' => 'What is SignalWire?', 'answer' => 'A platform.' }]
     )
     result = agent.handle_search({ 'query' => 'banana' }, {})
+
     assert_includes result.response, 'topics'
   end
 
@@ -45,6 +49,7 @@ class FaqBotPrefabDetailedTest < Minitest::Test
       faqs: [{ 'question' => 'Q?', 'answer' => 'A.' }]
     )
     data = agent.global_data
+
     assert data.key?('faqs')
   end
 end

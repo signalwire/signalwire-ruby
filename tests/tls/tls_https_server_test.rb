@@ -32,7 +32,91 @@ require_relative '../tls/tls_mock_helper'
 require_relative '../../lib/signalwire'
 require_relative '../../lib/signalwire/agent/agent_base'
 
+# Network helpers (port allocation, threaded HTTPS server boot + health poll,
+# verified/unverified TLS clients) shared by the HTTPS server test cases.
+module TlsServerHelpers
+  def free_port
+    s = TCPServer.new('127.0.0.1', 0)
+    port = s.addr[1]
+    s.close
+    port
+  end
+
+  # Start +svc+ serving HTTPS in a thread (via the supplied serve block) and
+  # block until /health answers over CA-trusted TLS. Returns the base URL.
+  def start_https(svc, port, &)
+    @servers << svc
+    @threads << Thread.new do
+      yield
+    rescue StandardError => e
+      warn "[tls_server] serve raised: #{e.class}: #{e.message}"
+    end
+    base = "https://127.0.0.1:#{port}"
+    [base, _poll_health(base)]
+  end
+
+  # Poll +base+/health over CA-trusted TLS until it answers (or flunk).
+  def _poll_health(base)
+    store = OpenSSL::X509::Store.new
+    store.add_file(@ca)
+    deadline = Time.now + 12
+    loop do
+      resp = https_get("#{base}/health", store)
+      return resp if resp
+
+      flunk "server /health never reachable over https on #{base}" if Time.now > deadline
+      sleep 0.1
+    end
+  end
+
+  # A Net::HTTP client configured for verified TLS against +store+.
+  def verified_http(uri, store, timeout)
+    http = Net::HTTP.new(uri.hostname, uri.port)
+    http.use_ssl = true
+    http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+    http.cert_store = store
+    http.open_timeout = timeout
+    http.read_timeout = timeout
+    http
+  end
+
+  # Verified HTTPS GET against +store+ (VERIFY_PEER). Returns the Net::HTTP
+  # response on 2xx, else nil (so the poll loop retries while booting).
+  def https_get(url, store)
+    uri = URI(url)
+    resp = verified_http(uri, store, 2).get(uri.request_uri)
+    resp.is_a?(Net::HTTPSuccess) ? resp : nil
+  rescue Errno::ECONNREFUSED, Errno::ECONNRESET
+    nil
+  rescue OpenSSL::SSL::SSLError
+    nil
+  end
+
+  def assert_healthy(resp)
+    payload = JSON.parse(resp.body)
+
+    assert_equal 'healthy', payload['status'],
+                 "verified-HTTPS /health body = #{payload.inspect}, want status=healthy"
+  end
+
+  # GET +base+/health with an empty trust store (trusts nothing).
+  def untrusted_get(base)
+    uri = URI("#{base}/health")
+    verified_http(uri, OpenSSL::X509::Store.new, 3).get(uri.request_uri)
+  end
+
+  # An empty-store client must be rejected by the server's CA-signed cert.
+  def assert_untrusted_rejected(base)
+    err = assert_raises(OpenSSL::SSL::SSLError) { untrusted_get(base) }
+    assert_match(/certificate verify failed|unknown ca|unable to get local issuer/i,
+                 err.message,
+                 "expected TLS verification failure; got: #{err.message}")
+  end
+end
+
 class TlsHttpsServerTest < Minitest::Test
+  include TlsServerHelpers
+
   def setup
     @certs = TlsHarness.certs_dir
     skip 'tls: porting-sdk test certs not available (adjacency)' unless @certs
@@ -45,80 +129,16 @@ class TlsHttpsServerTest < Minitest::Test
   end
 
   def teardown
-    @servers.each { |s| s.stop rescue nil }
-    @threads.each { |t| t.kill; t.join(2) }
+    @servers.each do |s|
+      s.stop
+    rescue StandardError
+      nil
+    end
+    @threads.each do |t|
+      t.kill
+      t.join(2)
+    end
     %w[SWML_SSL_ENABLED SWML_SSL_CERT_PATH SWML_SSL_KEY_PATH].each { |k| ENV.delete(k) }
-  end
-
-  def free_port
-    s = TCPServer.new('127.0.0.1', 0)
-    port = s.addr[1]
-    s.close
-    port
-  end
-
-  # Start +svc+ serving HTTPS in a thread (via the supplied serve block) and
-  # block until /health answers over CA-trusted TLS. Returns the base URL.
-  def start_https(svc, port, &serve_block)
-    @servers << svc
-    @threads << Thread.new do
-      serve_block.call
-    rescue StandardError => e
-      $stderr.puts "[tls_server] serve raised: #{e.class}: #{e.message}"
-    end
-
-    base = "https://127.0.0.1:#{port}"
-    store = OpenSSL::X509::Store.new
-    store.add_file(@ca)
-    deadline = Time.now + 12
-    loop do
-      resp = https_get("#{base}/health", store)
-      return [base, resp] if resp
-
-      flunk "server /health never reachable over https on #{base}" if Time.now > deadline
-      sleep 0.1
-    end
-  end
-
-  # Verified HTTPS GET against +store+ (VERIFY_PEER). Returns the Net::HTTP
-  # response on 2xx, else nil (so the poll loop retries while booting).
-  def https_get(url, store)
-    uri = URI(url)
-    http = Net::HTTP.new(uri.hostname, uri.port)
-    http.use_ssl = true
-    http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-    http.cert_store = store
-    http.open_timeout = 2
-    http.read_timeout = 2
-    resp = http.get(uri.request_uri)
-    resp.is_a?(Net::HTTPSuccess) ? resp : nil
-  rescue Errno::ECONNREFUSED, Errno::ECONNRESET
-    nil
-  rescue OpenSSL::SSL::SSLError
-    nil
-  end
-
-  def assert_healthy(resp)
-    payload = JSON.parse(resp.body)
-    assert_equal 'healthy', payload['status'],
-                 "verified-HTTPS /health body = #{payload.inspect}, want status=healthy"
-  end
-
-  # An empty-store client must be rejected by the server's CA-signed cert.
-  def assert_untrusted_rejected(base)
-    err = assert_raises(OpenSSL::SSL::SSLError) do
-      uri = URI("#{base}/health")
-      http = Net::HTTP.new(uri.hostname, uri.port)
-      http.use_ssl = true
-      http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-      http.cert_store = OpenSSL::X509::Store.new   # trusts nothing
-      http.open_timeout = 3
-      http.read_timeout = 3
-      http.get(uri.request_uri)
-    end
-    assert_match(/certificate verify failed|unknown ca|unable to get local issuer/i,
-                 err.message,
-                 "expected TLS verification failure; got: #{err.message}")
   end
 
   # SWMLService over HTTPS via explicit serve(ssl_cert:, ssl_key:, ssl_enabled:).
@@ -129,6 +149,7 @@ class TlsHttpsServerTest < Minitest::Test
       svc.serve(host: '127.0.0.1', port: port,
                 ssl_cert: @cert, ssl_key: @key, ssl_enabled: true)
     end
+
     assert_healthy(resp)
     assert_untrusted_rejected(base)
   end
@@ -146,6 +167,7 @@ class TlsHttpsServerTest < Minitest::Test
     base, resp = start_https(agent, port) do
       agent.serve(host: '127.0.0.1', port: port)
     end
+
     assert_healthy(resp)
     assert_untrusted_rejected(base)
   end

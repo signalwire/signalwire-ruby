@@ -13,9 +13,11 @@ class JokeSkillDetailedTest < Minitest::Test
     begin
       factory = SignalWire::Skills::SkillRegistry.get_factory('joke')
       skill = factory.call({})
+
       refute skill.setup
 
       skill_with_key = factory.call({ 'api_key' => 'test_key' })
+
       assert skill_with_key.setup
     ensure
       ENV['API_NINJAS_KEY'] = saved if saved
@@ -27,6 +29,7 @@ class JokeSkillDetailedTest < Minitest::Test
     begin
       factory = SignalWire::Skills::SkillRegistry.get_factory('joke')
       skill = factory.call({})
+
       assert skill.setup
     ensure
       ENV.delete('API_NINJAS_KEY')
@@ -38,8 +41,9 @@ class JokeSkillDetailedTest < Minitest::Test
     skill = factory.call({ 'api_key' => 'test_key' })
     skill.setup
     tools = skill.register_tools
+
     assert_equal 1, tools.size
-    assert tools[0].key?(:datamap), "Joke skill should return a datamap tool"
+    assert tools[0].key?(:datamap), 'Joke skill should return a datamap tool'
     assert_equal 'get_joke', tools[0][:datamap]['function']
   end
 
@@ -48,6 +52,7 @@ class JokeSkillDetailedTest < Minitest::Test
     skill = factory.call({ 'api_key' => 'key', 'tool_name' => 'tell_joke' })
     skill.setup
     tools = skill.register_tools
+
     assert_equal 'tell_joke', tools[0][:datamap]['function']
   end
 
@@ -56,7 +61,10 @@ class JokeSkillDetailedTest < Minitest::Test
     skill = factory.call({ 'api_key' => 'key' })
     skill.setup
     data = skill.get_global_data
-    assert_equal true, data['joke_skill_enabled']
+
+    # assert_same keeps the exact-+true+ check (true is a singleton) without
+    # tripping Minitest/AssertTruthy, which would weaken it to any truthy value.
+    assert_same true, data['joke_skill_enabled']
   end
 
   def test_prompt_sections
@@ -64,6 +72,7 @@ class JokeSkillDetailedTest < Minitest::Test
     skill = factory.call({ 'api_key' => 'key' })
     skill.setup
     sections = skill.get_prompt_sections
+
     assert_equal 1, sections.size
     assert_equal 'Joke Telling', sections[0]['title']
   end
@@ -72,6 +81,7 @@ class JokeSkillDetailedTest < Minitest::Test
     factory = SignalWire::Skills::SkillRegistry.get_factory('joke')
     skill = factory.call({})
     schema = skill.get_parameter_schema
+
     assert schema.key?('api_key')
     assert schema.key?('tool_name')
   end

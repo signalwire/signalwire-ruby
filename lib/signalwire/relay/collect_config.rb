@@ -49,6 +49,10 @@ module SignalWire
     #   )
     #   call.prompt_tts("Say something", cfg.to_h)
     class CollectConfig
+      # Fields whose values are sub-Hashes that get key-stringified in {#to_h}.
+      NESTED_FIELDS = %i[digits speech].freeze
+      private_constant :NESTED_FIELDS
+
       # @return [Hash, nil] the +digits+ sub-config, or nil.
       attr_reader :digits
 
@@ -88,19 +92,15 @@ module SignalWire
       # @return [Hash{String => Object}]
       def to_h
         out = {}
-        out['digits']              = stringify(@digits) unless @digits.nil?
-        out['speech']              = stringify(@speech) unless @speech.nil?
-        out['initial_timeout']     = @initial_timeout unless @initial_timeout.nil?
-        out['partial_results']     = @partial_results unless @partial_results.nil?
-        out['continuous']          = @continuous unless @continuous.nil?
-        out['send_start_of_input'] = @send_start_of_input unless @send_start_of_input.nil?
-        out['start_input_timers']  = @start_input_timers unless @start_input_timers.nil?
+        present_fields.each do |key, value|
+          out[key.to_s] = NESTED_FIELDS.include?(key) ? stringify(value) : value
+        end
         out
       end
 
       # @return [String] JSON serialization of {#to_h}.
-      def to_json(*args)
-        to_h.to_json(*args)
+      def to_json(*)
+        to_h.to_json(*)
       end
 
       # Ruby 3.0 hash pattern-matching hook. Returns symbol-keyed config with
@@ -110,14 +110,7 @@ module SignalWire
       # @param keys [Array<Symbol>, nil]
       # @return [Hash{Symbol => Object}]
       def deconstruct_keys(keys)
-        h = {}
-        h[:digits]              = @digits unless @digits.nil?
-        h[:speech]              = @speech unless @speech.nil?
-        h[:initial_timeout]     = @initial_timeout unless @initial_timeout.nil?
-        h[:partial_results]     = @partial_results unless @partial_results.nil?
-        h[:continuous]          = @continuous unless @continuous.nil?
-        h[:send_start_of_input] = @send_start_of_input unless @send_start_of_input.nil?
-        h[:start_input_timers]  = @start_input_timers unless @start_input_timers.nil?
+        h = present_fields.to_h
         return h if keys.nil?
 
         keys.each_with_object({}) { |k, acc| acc[k] = h[k] if h.key?(k) }
@@ -140,6 +133,21 @@ module SignalWire
       alias inspect to_s
 
       private
+
+      # Ordered [symbol-key, value] pairs for the fields that are set
+      # (non-nil), in wire order. Shared by {#to_h} and {#deconstruct_keys}
+      # so both honor the identical omit-when-nil contract and key order.
+      def present_fields
+        {
+          digits: @digits,
+          speech: @speech,
+          initial_timeout: @initial_timeout,
+          partial_results: @partial_results,
+          continuous: @continuous,
+          send_start_of_input: @send_start_of_input,
+          start_input_timers: @start_input_timers
+        }.compact.to_a
+      end
 
       def stringify(hash)
         return hash unless hash.is_a?(Hash)

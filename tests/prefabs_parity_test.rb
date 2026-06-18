@@ -27,7 +27,7 @@ class ConciergeParityTest < Minitest::Test
   def concierge
     SignalWire::Prefabs::Concierge.new(
       venue_name: 'Grand Hotel',
-      services: ['spa', 'restaurant'],
+      services: %w[spa restaurant],
       amenities: {
         'pool' => { 'hours' => '7 AM - 10 PM', 'location' => '2nd Floor' }
       }
@@ -59,12 +59,14 @@ class ConciergeParityTest < Minitest::Test
 
   def test_get_directions_unknown_location
     result = concierge.get_directions({ 'location' => 'helipad' }, {})
+
     assert_match(/I don't have specific directions to helipad/, result.response)
     assert_match(/front desk/, result.response)
   end
 
   def test_check_availability_and_get_directions_are_registered_tools
     tools = concierge.tools
+
     assert_includes tools, 'check_availability'
     assert_includes tools, 'get_directions'
   end
@@ -79,6 +81,7 @@ class ConciergeParityTest < Minitest::Test
 
   def test_on_summary_nil_is_noop
     out = capture_stdout { assert_nil concierge.on_summary(nil) }
+
     assert_empty out.strip
   end
 
@@ -106,6 +109,7 @@ class FaqBotParityTest < Minitest::Test
 
   def test_on_summary_logs_structured_summary
     out = capture_stdout { faq_bot.on_summary({ 'question' => 'pricing?', 'answered_successfully' => false }) }
+
     assert_match(/FAQ interaction summary:/, out)
     assert_match(/"question": "pricing\?"/, out)
     assert_match(/"answered_successfully": false/, out)
@@ -113,11 +117,13 @@ class FaqBotParityTest < Minitest::Test
 
   def test_on_summary_logs_unstructured_summary
     out = capture_stdout { faq_bot.on_summary('freeform text') }
+
     assert_match(/FAQ interaction summary: freeform text/, out)
   end
 
   def test_on_summary_nil_is_noop
     out = capture_stdout { assert_nil faq_bot.on_summary(nil) }
+
     assert_empty out.strip
   end
 
@@ -149,34 +155,49 @@ class InfoGathererParityTest < Minitest::Test
     agent = SignalWire::Prefabs::InfoGatherer.new
     result = agent.on_swml_request({}, nil, request: nil)
     gd = result['global_data']
+
     assert_equal 0, gd['question_index']
     assert_equal [], gd['answers']
     keys = gd['questions'].map { |q| q['key_name'] }
+
     assert_equal %w[name message], keys
   end
 
   def test_set_question_callback_is_invoked_by_on_swml_request
     agent = SignalWire::Prefabs::InfoGatherer.new
     seen = {}
-    ret = agent.set_question_callback(lambda { |query, body, headers|
-      seen[:query] = query
-      seen[:body] = body
-      seen[:headers] = headers
-      [{ 'key_name' => 'dob', 'question_text' => 'Date of birth?' }]
-    })
+    ret = agent.set_question_callback(recording_callback(seen))
     # Setter returns self for chaining (idiomatic).
     assert_same agent, ret
 
     request = Struct.new(:query_params, :headers).new({ 'set' => 'medical' }, { 'X-Trace' => '1' })
     result = agent.on_swml_request({ 'call_id' => 'abc' }, '/swml', request: request)
 
-    # Callback received the request-derived params.
+    assert_callback_saw(seen)
+    assert_callback_questions(result)
+  end
+
+  # A question-callback that records its args into +seen+ and returns one question.
+  def recording_callback(seen)
+    lambda do |query, body, headers|
+      seen[:query] = query
+      seen[:body] = body
+      seen[:headers] = headers
+      [{ 'key_name' => 'dob', 'question_text' => 'Date of birth?' }]
+    end
+  end
+
+  # Callback received the request-derived params.
+  def assert_callback_saw(seen)
     assert_equal({ 'set' => 'medical' }, seen[:query])
     assert_equal({ 'call_id' => 'abc' }, seen[:body])
     assert_equal({ 'X-Trace' => '1' }, seen[:headers])
+  end
 
-    # Returned global_data carries the callback's questions.
+  # Returned global_data carries the callback's questions.
+  def assert_callback_questions(result)
     questions = result['global_data']['questions']
+
     assert_equal 1, questions.size
     assert_equal 'dob', questions.first['key_name']
     assert_equal 'Date of birth?', questions.first['question_text']
@@ -187,9 +208,10 @@ class InfoGathererParityTest < Minitest::Test
     agent.set_question_callback(->(_q, _b, _h) { raise 'boom' })
     result = capture_stdout_value { agent.on_swml_request({}, nil, request: nil) }
     out, value = result
+
     assert_match(/Error in question callback: boom/, out)
     # On error => deterministic fallback questions.
-    assert_equal %w[name message], value['global_data']['questions'].map { |q| q['key_name'] }
+    assert_equal(%w[name message], value['global_data']['questions'].map { |q| q['key_name'] })
   end
 
   private
@@ -254,41 +276,49 @@ class SurveyParityTest < Minitest::Test
 
   def test_validate_rating_in_range_is_valid
     result = survey.validate_response({ 'question_id' => 'satisfaction', 'response' => '4' }, {})
+
     assert_match(/Response to 'satisfaction' is valid/, result.response)
   end
 
   def test_validate_rating_out_of_range_is_invalid
     result = survey.validate_response({ 'question_id' => 'satisfaction', 'response' => '9' }, {})
+
     assert_match(/Invalid rating\. Please provide a number between 1 and 5/, result.response)
   end
 
   def test_validate_rating_non_numeric_is_invalid
     result = survey.validate_response({ 'question_id' => 'satisfaction', 'response' => 'great' }, {})
+
     assert_match(/Invalid rating/, result.response)
   end
 
   def test_validate_multiple_choice_rejects_unlisted_option
     result = survey.validate_response({ 'question_id' => 'channel', 'response' => 'carrier pigeon' }, {})
+
     assert_match(/Invalid choice\. Please select one of: phone, email/, result.response)
   end
 
   def test_validate_multiple_choice_accepts_listed_option_case_insensitively
     result = survey.validate_response({ 'question_id' => 'channel', 'response' => 'PHONE' }, {})
+
     assert_match(/is valid/, result.response)
   end
 
   def test_validate_yes_no_rejects_other
     result = survey.validate_response({ 'question_id' => 'recommend', 'response' => 'maybe' }, {})
+
     assert_match(/Please answer with 'yes' or 'no'/, result.response)
   end
 
   def test_validate_open_ended_required_empty_is_invalid
     result = survey.validate_response({ 'question_id' => 'comments', 'response' => '   ' }, {})
+
     assert_match(/A response is required for this question/, result.response)
   end
 
   def test_validate_unknown_question_id
     result = survey.validate_response({ 'question_id' => 'nope', 'response' => 'x' }, {})
+
     assert_match(/Question with ID 'nope' not found/, result.response)
   end
 
@@ -300,12 +330,14 @@ class SurveyParityTest < Minitest::Test
 
   def test_validate_and_log_response_are_registered_tools
     tools = survey.tools
+
     assert_includes tools, 'validate_response'
     assert_includes tools, 'log_response'
   end
 
   def test_on_summary_logs_structured_survey_results
     out = capture_stdout { survey.on_summary({ 'survey_name' => 'CSAT', 'completion_status' => 'complete' }) }
+
     assert_match(/Survey completed:/, out)
     assert_match(/"survey_name": "CSAT"/, out)
     assert_match(/"completion_status": "complete"/, out)
@@ -313,6 +345,7 @@ class SurveyParityTest < Minitest::Test
 
   def test_on_summary_logs_unstructured_survey_results
     out = capture_stdout { survey.on_summary('partial') }
+
     assert_match(/Survey summary \(unstructured\): partial/, out)
   end
 

@@ -8,12 +8,13 @@ class RelayEventDetailedTest < Minitest::Test
   def test_base_event_from_payload
     payload = {
       'event_type' => 'calling.call.state',
-      'params' => { 'call_id' => 'abc-123', 'timestamp' => 1234567.89 }
+      'params' => { 'call_id' => 'abc-123', 'timestamp' => 1_234_567.89 }
     }
     event = SignalWire::Relay::RelayEvent.from_payload(payload)
+
     assert_equal 'calling.call.state', event.event_type
     assert_equal 'abc-123', event.call_id
-    assert_equal 1234567.89, event.timestamp
+    assert_in_delta(1_234_567.89, event.timestamp)
   end
 
   def test_call_state_event
@@ -22,6 +23,7 @@ class RelayEventDetailedTest < Minitest::Test
       'params' => { 'call_id' => 'c1', 'call_state' => 'answered', 'direction' => 'inbound' }
     }
     event = SignalWire::Relay::CallStateEvent.from_payload(payload)
+
     assert_instance_of SignalWire::Relay::CallStateEvent, event
     assert_equal 'answered', event.call_state
     assert_equal 'inbound', event.direction
@@ -33,22 +35,19 @@ class RelayEventDetailedTest < Minitest::Test
       'params' => { 'call_id' => 'c1', 'control_id' => 'ctl-1', 'state' => 'finished' }
     }
     event = SignalWire::Relay::PlayEvent.from_payload(payload)
+
     assert_equal 'ctl-1', event.control_id
     assert_equal 'finished', event.state
   end
 
   def test_record_event_with_nested_record
-    payload = {
-      'event_type' => 'calling.call.record',
-      'params' => {
-        'call_id' => 'c1', 'control_id' => 'ctl-2', 'state' => 'finished',
-        'record' => { 'url' => 'https://example.com/rec.mp3', 'duration' => 30.5, 'size' => 102400 }
-      }
-    }
-    event = SignalWire::Relay::RecordEvent.from_payload(payload)
+    record = { 'url' => 'https://example.com/rec.mp3', 'duration' => 30.5, 'size' => 102_400 }
+    params = { 'call_id' => 'c1', 'control_id' => 'ctl-2', 'state' => 'finished', 'record' => record }
+    event = SignalWire::Relay::RecordEvent.from_payload('event_type' => 'calling.call.record', 'params' => params)
+
     assert_equal 'https://example.com/rec.mp3', event.url
-    assert_equal 30.5, event.duration
-    assert_equal 102400, event.size
+    assert_in_delta(30.5, event.duration)
+    assert_equal 102_400, event.size
   end
 
   def test_parse_event_routing
@@ -57,15 +56,18 @@ class RelayEventDetailedTest < Minitest::Test
       'params' => { 'control_id' => 'x', 'state' => 'playing' }
     }
     event = SignalWire::Relay.parse_event(payload)
+
     assert_instance_of SignalWire::Relay::PlayEvent, event
 
     payload = { 'event_type' => 'unknown.event', 'params' => {} }
     event = SignalWire::Relay.parse_event(payload)
+
     assert_instance_of SignalWire::Relay::RelayEvent, event
   end
 
   def test_event_class_map_completeness
     map = SignalWire::Relay::EVENT_CLASS_MAP
+
     assert_equal 23, map.size
   end
 
@@ -75,6 +77,7 @@ class RelayEventDetailedTest < Minitest::Test
       'params' => { 'conference_id' => 'conf-1', 'name' => 'standup', 'status' => 'active' }
     }
     event = SignalWire::Relay::ConferenceEvent.from_payload(payload)
+
     assert_equal 'conf-1', event.conference_id
     assert_equal 'standup', event.name
   end
@@ -88,6 +91,7 @@ class RelayEventDetailedTest < Minitest::Test
       }
     }
     event = SignalWire::Relay::MessageReceiveEvent.from_payload(payload)
+
     assert_equal 'msg-1', event.message_id
     assert_equal 'Hello', event.body
   end

@@ -5,7 +5,6 @@
 # Licensed under the MIT License.
 # See LICENSE file in the project root for full license information.
 
-require 'thread'
 require_relative 'skill_base'
 require_relative '../logging'
 
@@ -30,7 +29,7 @@ module SignalWire
       # Ruby allows nil for standalone use (tests, registry tools).
       def initialize(agent = nil)
         @agent  = agent
-        @skills = {}   # instance_key => SkillBase instance
+        @skills = {} # instance_key => SkillBase instance
         @mutex  = Mutex.new
         @logger = ::SignalWire::Logging.logger('signalwire.skill_manager')
       end
@@ -43,9 +42,7 @@ module SignalWire
         @mutex.synchronize do
           raise ArgumentError, "Skill already loaded: #{key}" if @skills.key?(key)
 
-          unless skill.setup
-            raise "Skill setup failed for '#{key}'"
-          end
+          raise "Skill setup failed for '#{key}'" unless skill.setup
 
           @skills[key] = skill
         end

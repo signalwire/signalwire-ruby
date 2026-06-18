@@ -58,7 +58,7 @@ LIB_DIR   = REPO_ROOT.join('lib')
 #   2. ./porting-sdk     (CI layout — checked out as a sibling under repo root)
 #   3. ../porting-sdk    (local layout — sibling of signalwire-ruby)
 def find_default_porting_sdk
-  env = ENV['PORTING_SDK_PATH']
+  env = ENV.fetch('PORTING_SDK_PATH', nil)
   return Pathname.new(env) if env && !env.empty?
 
   [REPO_ROOT.join('porting-sdk'), REPO_ROOT.parent.join('porting-sdk')].each do |p|
@@ -77,15 +77,7 @@ PORTING_SDK_DEFAULT = find_default_porting_sdk
 # translation of the Ruby namespace.
 # -----------------------------------------------------------------------------
 def load_python_index(python_surface_path)
-  unless python_surface_path.file?
-    abort <<~MSG
-      error: python_surface.json not found at #{python_surface_path}
-        The script needs the canonical Python surface to map Ruby classes onto
-        Python module paths. Without it the output is not comparable against
-        python_surface.json and the Layer B audit will fail.
-        Pass --python-surface PATH or set PORTING_SDK_PATH.
-    MSG
-  end
+  abort_missing_python_surface(python_surface_path) unless python_surface_path.file?
 
   data = JSON.parse(python_surface_path.read)
   index = {}
@@ -95,6 +87,16 @@ def load_python_index(python_surface_path)
     end
   end
   index
+end
+
+def abort_missing_python_surface(path)
+  abort <<~MSG
+    error: python_surface.json not found at #{path}
+      The script needs the canonical Python surface to map Ruby classes onto
+      Python module paths. Without it the output is not comparable against
+      python_surface.json and the Layer B audit will fail.
+      Pass --python-surface PATH or set PORTING_SDK_PATH.
+  MSG
 end
 
 # When a class name has multiple Python modules or when Ruby's class name
@@ -165,7 +167,7 @@ RUBY_MODULE_TO_PYTHON = {
   # WebhookValidator is a Ruby module (with self.* methods) that mirrors
   # Python's module-level webhook_validator helpers under
   # signalwire/core/security/.
-  'SignalWire::Security::WebhookValidator' => 'signalwire.core.security.webhook_validator',
+  'SignalWire::Security::WebhookValidator' => 'signalwire.core.security.webhook_validator'
 }.freeze
 
 # Ruby class name -> Python class name (when they differ).
@@ -180,7 +182,7 @@ RUBY_TO_PYTHON_CLASS_ALIASES = {
   'SignalWire::Skills::Builtin::DatasphereSkill' => 'DataSphereSkill',
   'SignalWire::Skills::Builtin::DatasphereServerlessSkill' => 'DataSphereServerlessSkill',
   # Ruby Relay::Client maps to Python RelayClient.
-  'SignalWire::Relay::Client' => 'RelayClient',
+  'SignalWire::Relay::Client' => 'RelayClient'
 }.freeze
 
 # Ruby SWML classes (Document/Schema/Service) are consolidated wrappers that
@@ -202,6 +204,11 @@ RUBY_EXCLUDED_CLASSES = %w[
   SignalWire::SWML::Service::TimingSafeBasicAuth
   SignalWire::Logging::Logger
   SignalWire::REST::Namespaces
+  SignalWire::Skills::Builtin::SafeEvaluator
+  SignalWire::Skills::Builtin::MathTokenizer
+  SignalWire::POM::SectionBuilder
+  SignalWire::Skills::SkillIntrospection
+  SignalWire::Relay::MessageSerialization
 ].freeze
 
 # Mixin projections: Ruby collapses Python's mixin classes into
@@ -241,42 +248,39 @@ end
 # Translate a fully-qualified Ruby name to the Python-reference dotted module
 # + class name. Returns [module_path, class_name].
 def translate_class(ruby_fqn, python_index)
+  cls = ruby_fqn.split('::').last
+
   # 1. Explicit override wins.
   if RUBY_TO_PYTHON_MODULE_OVERRIDES.key?(ruby_fqn)
-    mod = RUBY_TO_PYTHON_MODULE_OVERRIDES[ruby_fqn]
-    cls = RUBY_TO_PYTHON_CLASS_ALIASES[ruby_fqn] || ruby_fqn.split('::').last
-    return [mod, cls]
+    return [RUBY_TO_PYTHON_MODULE_OVERRIDES[ruby_fqn], RUBY_TO_PYTHON_CLASS_ALIASES[ruby_fqn] || cls]
   end
 
   # 2. SWML-specific mapping.
-  if RUBY_SWML_MODULE_OVERRIDES.key?(ruby_fqn)
-    return [RUBY_SWML_MODULE_OVERRIDES[ruby_fqn], ruby_fqn.split('::').last]
-  end
-
-  cls = ruby_fqn.split('::').last
+  return [RUBY_SWML_MODULE_OVERRIDES[ruby_fqn], cls] if RUBY_SWML_MODULE_OVERRIDES.key?(ruby_fqn)
 
   # 3. Ruby class name matches a Python class name uniquely -> use Python mod.
-  if python_index.key?(cls) && python_index[cls].length == 1
-    return [python_index[cls].first, cls]
-  end
+  return [python_index[cls].first, cls] if python_index.key?(cls) && python_index[cls].length == 1
 
-  # 4. No Python match -> translate Ruby namespace to dotted snake_case path,
-  # emitting under a signalwire.* module. Port-only additions show up in
-  # PORT_ADDITIONS.md.
-  #
-  # Python uses per-file module paths (signalwire.core.agent_base.AgentBase),
-  # so for Ruby we append snake_case(class_name) to the namespace segments —
-  # that matches Ruby's convention of one class per file (agent_base.rb holds
-  # SignalWire::AgentBase). This keeps port-only classes in distinct modules
-  # rather than collapsing them into their parent namespace.
+  # 4. No Python match -> fall back to a port-only signalwire.* module path.
+  [fallback_module_path(ruby_fqn, cls), cls]
+end
+
+# Translate a Ruby namespace to a dotted snake_case path, emitting under a
+# signalwire.* module. Port-only additions show up in PORT_ADDITIONS.md.
+#
+# Python uses per-file module paths (signalwire.core.agent_base.AgentBase),
+# so for Ruby we append snake_case(class_name) to the namespace segments —
+# that matches Ruby's convention of one class per file (agent_base.rb holds
+# SignalWire::AgentBase). This keeps port-only classes in distinct modules
+# rather than collapsing them into their parent namespace.
+def fallback_module_path(ruby_fqn, cls)
   parts = ruby_fqn.split('::').map { |p| snake_case(p) }
   # SignalWire -> signalwire
   parts[0] = 'signalwire'
   # Drop the class name segment and append it as the final module segment
   # (so SignalWire::Runtime -> signalwire.runtime, and
   #  SignalWire::SWML::Document -> signalwire.swml.document).
-  mod_parts = parts[0..-2] + [snake_case(cls)]
-  [mod_parts.join('.'), cls]
+  (parts[0..-2] + [snake_case(cls)]).join('.')
 end
 
 # Translate a Ruby module FQN (e.g. "SignalWire::Runtime") to the module path
@@ -291,13 +295,7 @@ end
 # methods on a class. Emit them using the same filtering rules as class
 # methods. No `initialize` handling because modules aren't instantiated.
 def enumerate_module_methods(mod)
-  seen = {}
-  mod.singleton_methods(false).map(&:to_s).each do |m|
-    next if m.start_with?('_') && !m.start_with?('__')
-    next if m.end_with?('=')
-    seen[m] = true
-  end
-  seen.keys.sort
+  mod.singleton_methods(false).map(&:to_s).select { |m| surface_method?(m) }.uniq.sort
 end
 
 # -----------------------------------------------------------------------------
@@ -308,21 +306,10 @@ end
 # to Python's __init__.
 # -----------------------------------------------------------------------------
 def enumerate_methods(klass)
-  raw = []
-  raw.concat(klass.public_instance_methods(false).map(&:to_s))
-  # Class methods (Python module-level "classmethod"/"staticmethod" show up as
-  # methods on the class too).
-  raw.concat(klass.singleton_methods(false).map(&:to_s))
-  # initialize is private by default — include it explicitly.
-  raw << 'initialize' if klass.private_instance_methods(false).include?(:initialize)
-
   seen = {}
-  raw.each do |m|
-    # Skip single-underscore-prefixed methods (Python convention mirrored).
-    next if m.start_with?('_') && !m.start_with?('__')
-    # Skip auto-generated writer methods (attr_writer/attr_accessor). The
-    # Python surface file doesn't emit setters either.
-    next if m.end_with?('=')
+  raw_class_methods(klass).each do |m|
+    next unless surface_method?(m)
+
     # Keep `?`- and `!`-suffixed method names as-is. Ruby predicate
     # methods (has_skill?) and bang methods (reset!) are idiomatic; they
     # show up as port additions (Python has no equivalent, so they end up
@@ -333,98 +320,134 @@ def enumerate_methods(klass)
   seen.keys.sort
 end
 
+def raw_class_methods(klass)
+  raw = klass.public_instance_methods(false).map(&:to_s)
+  # Class methods (Python module-level "classmethod"/"staticmethod" show up as
+  # methods on the class too).
+  raw.concat(klass.singleton_methods(false).map(&:to_s))
+  # initialize is private by default — include it explicitly.
+  raw << 'initialize' if klass.private_method_defined?(:initialize, false)
+  raw
+end
+
+# A method is part of the public surface unless it's a single-underscore
+# "private convention" name or an auto-generated writer (attr_writer/accessor);
+# the Python surface file emits neither.
+def surface_method?(method_name)
+  return false if method_name.start_with?('_') && !method_name.start_with?('__')
+  return false if method_name.end_with?('=')
+
+  true
+end
+
 # -----------------------------------------------------------------------------
 # Gather everything.
 # -----------------------------------------------------------------------------
 def collect_modules(python_index)
   # Modules in the final snapshot. Each entry: {"classes" => {...}, "functions" => [...]}.
   modules = Hash.new { |h, k| h[k] = { 'classes' => {}, 'functions' => [] } }
-
-  seen_classes = {}
-  ObjectSpace.each_object(Module) do |m|
-    name = m.name
-    next unless name && name.start_with?('SignalWire')
-    # ObjectSpace yields modules and classes; skip anonymous and the top-level
-    # SignalWire module itself.
-    next if name == 'SignalWire'
-    next if seen_classes[name]
-    seen_classes[name] = true
-
-    # Skip excluded internal classes (middlewares, nested helpers).
-    next if RUBY_EXCLUDED_CLASSES.include?(name)
-
-    # Skip private constants (class name starts with `_`).
-    leaf = name.split('::').last
-    next if leaf.start_with?('_')
-
-    # Modules (not Classes): if they have singleton methods, those are
-    # Ruby module functions. Map them to a Python module's functions[]
-    # when we have a mapping; otherwise emit as a class-like entry so
-    # port-only modules (Runtime, Logging) still show up.
-    unless m.is_a?(Class)
-      # Skip pure namespace modules with no functions of their own.
-      if m.singleton_methods(false).empty? && m.instance_methods(false).empty?
-        next
-      end
-
-      if RUBY_MODULE_TO_PYTHON.key?(name)
-        target_mod = RUBY_MODULE_TO_PYTHON[name]
-        fns = m.singleton_methods(false).map(&:to_s)
-              .reject { |meth| meth.start_with?('_') && !meth.start_with?('__') }
-              .reject { |meth| meth.end_with?('=') }
-              .sort
-        modules[target_mod]['functions'] = (modules[target_mod]['functions'] + fns).uniq.sort
-        next
-      end
-
-      # Port-only module with its own singleton methods: emit as a class-like
-      # entry (signalwire.runtime.Runtime etc.). These land in PORT_ADDITIONS.
-      mod_path = ruby_fqn_to_port_module(name)
-      modules[mod_path]['classes'][leaf] = enumerate_module_methods(m)
-      next
-    end
-
-    mod, cls = translate_class(name, python_index)
-    methods = enumerate_methods(m)
-    modules[mod]['classes'][cls] = methods
-  end
-
-  # Mixin projection: take selected methods off AgentBase and emit them
-  # under the canonical Python mixin module/class. Parallels the
-  # MIXIN_PROJECTIONS step in scripts/enumerate_signatures.py — the two
-  # tables must stay in sync.
-  ab_entry = modules['signalwire.core.agent_base']&.[]('classes')&.[]('AgentBase')
-  if ab_entry
-    MIXIN_PROJECTIONS.each do |(target_mod, target_cls), expected|
-      present = expected & ab_entry
-      next if present.empty?
-      modules[target_mod] ||= { 'classes' => {}, 'functions' => [] }
-      modules[target_mod]['classes'][target_cls] ||= []
-      modules[target_mod]['classes'][target_cls] =
-        (modules[target_mod]['classes'][target_cls] + present).uniq.sort
-      ab_entry.reject! { |m| present.include?(m) }
-    end
-    if ab_entry.empty?
-      modules['signalwire.core.agent_base']['classes'].delete('AgentBase')
-    end
-  end
-
-  # Top-level signalwire functions (Ruby's top-level "def" equivalents). In
-  # Ruby, these are typically module-level singleton methods on the SignalWire
-  # module. The Python "signalwire" module exposes run_agent, start_agent,
-  # etc., which in Ruby don't exist as module functions yet — they're invoked
-  # via instance methods on AgentBase. So we emit the empty set for the base
-  # "signalwire" module if no functions are found; PORT_OMISSIONS accounts
-  # for the missing ones.
-  sig_funcs = SignalWire.singleton_methods(false).map(&:to_s).reject { |m| m.start_with?('_') }.sort
-  if sig_funcs.any? || modules.key?('signalwire')
-    modules['signalwire'] ||= { 'classes' => {}, 'functions' => [] }
-    modules['signalwire']['functions'] = sig_funcs
-  end
+  scan_object_space(modules, python_index)
+  apply_mixin_projections(modules)
+  add_toplevel_functions(modules)
 
   # Drop modules that ended up completely empty after filtering (no classes,
   # no functions) — matches the Python enumerator's behaviour.
   modules.reject { |_k, v| v['classes'].empty? && v['functions'].empty? }
+end
+
+def scan_object_space(modules, python_index)
+  seen_classes = {}
+  ObjectSpace.each_object(Module) do |m|
+    name = m.name
+    next unless surface_module?(name, seen_classes)
+
+    seen_classes[name] = true
+    process_module(m, name, modules, python_index)
+  end
+end
+
+# A module/class qualifies for the surface scan unless it's anonymous, the
+# top-level SignalWire module, already seen, an excluded internal class, or a
+# private constant (leaf starts with `_`).
+def surface_module?(name, seen_classes)
+  return false unless name&.start_with?('SignalWire')
+  return false if name == 'SignalWire'
+  return false if seen_classes[name]
+  return false if RUBY_EXCLUDED_CLASSES.include?(name)
+  return false if name.split('::').last.start_with?('_')
+
+  true
+end
+
+# Record one Ruby class or module into `modules`.
+def process_module(mod, name, modules, python_index)
+  if mod.is_a?(Class)
+    target_mod, cls = translate_class(name, python_index)
+    modules[target_mod]['classes'][cls] = enumerate_methods(mod)
+  else
+    process_namespace_module(mod, name, modules)
+  end
+end
+
+# Modules (not Classes): if they have singleton methods, those are Ruby module
+# functions. Map them to a Python module's functions[] when we have a mapping;
+# otherwise emit as a class-like entry so port-only modules (Runtime, Logging)
+# still show up. Pure namespace modules with no functions are skipped.
+def process_namespace_module(mod, name, modules)
+  return if mod.singleton_methods(false).empty? && mod.instance_methods(false).empty?
+
+  if RUBY_MODULE_TO_PYTHON.key?(name)
+    merge_module_functions(modules, RUBY_MODULE_TO_PYTHON[name], enumerate_module_methods(mod))
+  else
+    # Port-only module with its own singleton methods: emit as a class-like
+    # entry (signalwire.runtime.Runtime etc.). These land in PORT_ADDITIONS.
+    modules[ruby_fqn_to_port_module(name)]['classes'][name.split('::').last] = enumerate_module_methods(mod)
+  end
+end
+
+def merge_module_functions(modules, target_mod, fns)
+  target = modules[target_mod]
+  target['functions'] = (target['functions'] + fns).uniq.sort
+end
+
+# Mixin projection: take selected methods off AgentBase and emit them under
+# the canonical Python mixin module/class. Parallels the MIXIN_PROJECTIONS step
+# in scripts/enumerate_signatures.py — the two tables must stay in sync.
+def apply_mixin_projections(modules)
+  ab_entry = modules['signalwire.core.agent_base']&.[]('classes')&.[]('AgentBase')
+  return unless ab_entry
+
+  MIXIN_PROJECTIONS.each do |(target_mod, target_cls), expected|
+    project_mixin_methods(modules, ab_entry, target_mod, target_cls, expected)
+  end
+  modules['signalwire.core.agent_base']['classes'].delete('AgentBase') if ab_entry.empty?
+end
+
+# Move the methods in `expected` (that are present on AgentBase) onto the
+# target mixin module/class, removing them from `ab_entry` so they don't
+# double-count as port additions.
+def project_mixin_methods(modules, ab_entry, target_mod, target_cls, expected)
+  present = expected & ab_entry
+  return if present.empty?
+
+  modules[target_mod] ||= { 'classes' => {}, 'functions' => [] }
+  classes = modules[target_mod]['classes']
+  classes[target_cls] = ((classes[target_cls] || []) + present).uniq.sort
+  ab_entry.reject! { |m| present.include?(m) }
+end
+
+# Top-level signalwire functions (Ruby's top-level "def" equivalents). In Ruby,
+# these are typically module-level singleton methods on the SignalWire module.
+# The Python "signalwire" module exposes run_agent, start_agent, etc., which in
+# Ruby don't exist as module functions yet — they're invoked via instance
+# methods on AgentBase. So we emit the empty set for the base "signalwire"
+# module if no functions are found; PORT_OMISSIONS accounts for the missing ones.
+def add_toplevel_functions(modules)
+  sig_funcs = SignalWire.singleton_methods(false).map(&:to_s).reject { |m| m.start_with?('_') }.sort
+  return unless sig_funcs.any? || modules.key?('signalwire')
+
+  modules['signalwire'] ||= { 'classes' => {}, 'functions' => [] }
+  modules['signalwire']['functions'] = sig_funcs
 end
 
 def git_sha
@@ -434,37 +457,37 @@ end
 
 def build_snapshot(python_surface_path)
   python_index = load_python_index(python_surface_path)
-
-  # Load all Ruby source files so every class/module is visible to ObjectSpace.
-  # We intentionally require each file under lib/signalwire/ so that a missing
-  # entry in lib/signalwire.rb doesn't silently shrink the surface.
-  $LOAD_PATH.unshift(LIB_DIR.to_s) unless $LOAD_PATH.include?(LIB_DIR.to_s)
-  require 'signalwire'
-  Dir[LIB_DIR.join('signalwire/**/*.rb').to_s].sort.each { |f| require f }
-
+  load_all_lib_files
   mods = collect_modules(python_index)
 
-  # Sort everything for deterministic output: modules by key, classes within
-  # each module by key, methods/functions as arrays of sorted strings.
+  {
+    'version' => '1',
+    'generated_from' => "signalwire-ruby @ #{git_sha}",
+    'ruby_version' => RUBY_VERSION,
+    'modules' => sort_modules(mods)
+  }
+end
+
+# Load all Ruby source files so every class/module is visible to ObjectSpace.
+# We intentionally require each file under lib/signalwire/ so that a missing
+# entry in lib/signalwire.rb doesn't silently shrink the surface.
+def load_all_lib_files
+  $LOAD_PATH.unshift(LIB_DIR.to_s) unless $LOAD_PATH.include?(LIB_DIR.to_s)
+  require 'signalwire'
+  Dir[LIB_DIR.join('signalwire/**/*.rb').to_s].each { |f| require f }
+end
+
+# Sort everything for deterministic output: modules by key, classes within
+# each module by key, methods/functions as arrays of sorted strings.
+def sort_modules(mods)
   sorted = {}
   mods.keys.sort.each do |k|
     entry = mods[k]
     sorted_classes = {}
-    entry['classes'].keys.sort.each do |cls|
-      sorted_classes[cls] = entry['classes'][cls]
-    end
-    sorted[k] = {
-      'classes'   => sorted_classes,
-      'functions' => entry['functions'].sort
-    }
+    entry['classes'].keys.sort.each { |cls| sorted_classes[cls] = entry['classes'][cls] }
+    sorted[k] = { 'classes' => sorted_classes, 'functions' => entry['functions'].sort }
   end
-
-  {
-    'version'        => '1',
-    'generated_from' => "signalwire-ruby @ #{git_sha}",
-    'ruby_version'   => RUBY_VERSION,
-    'modules'        => sorted
-  }
+  sorted
 end
 
 # -----------------------------------------------------------------------------
@@ -475,52 +498,69 @@ end
 META_FIELDS = %w[generated_from ruby_version].freeze
 
 def strip_meta(obj)
-  obj.reject { |k, _| META_FIELDS.include?(k) }
+  obj.except(*META_FIELDS)
 end
 
-def main(argv)
+def parse_options(argv)
   options = {
-    output:         nil,
-    check:          false,
+    output: nil,
+    check: false,
     python_surface: PORTING_SDK_DEFAULT.join('python_surface.json')
   }
+  option_parser(options).parse!(argv)
+  options
+end
+
+def option_parser(options)
   OptionParser.new do |o|
     o.banner = 'Usage: ruby scripts/enumerate_surface.rb [options]'
     o.on('--output PATH', 'Write JSON to this path (default: stdout)') { |v| options[:output] = Pathname.new(v) }
     o.on('--check', 'Compare against --output; exit 1 on drift') { options[:check] = true }
     o.on('--python-surface PATH', 'Path to python_surface.json') { |v| options[:python_surface] = Pathname.new(v) }
-    o.on('-h', '--help', 'Show this help') { puts o; exit 0 }
-  end.parse!(argv)
+    o.on('-h', '--help', 'Show this help') do
+      puts o
+      exit 0
+    end
+  end
+end
 
+# Compare the freshly rendered surface against the on-disk --output file.
+# Returns a process exit code (0 fresh, 1 missing/stale).
+def run_check(output_path, rendered)
+  unless output_path.file?
+    warn "error: #{output_path} does not exist"
+    return 1
+  end
+
+  existing = JSON.parse(output_path.read)
+  actual   = JSON.parse(rendered)
+  return 0 if strip_meta(existing) == strip_meta(actual)
+
+  warn 'DRIFT: port_surface.json is stale relative to lib/.'
+  warn '  Regenerate: ruby scripts/enumerate_surface.rb --output port_surface.json'
+  1
+end
+
+def main(argv)
+  options = parse_options(argv)
   if options[:check] && options[:output].nil?
     warn 'error: --check requires --output'
     return 2
   end
 
-  snapshot = build_snapshot(options[:python_surface])
-  rendered = JSON.pretty_generate(deep_sort(snapshot)) + "\n"
+  rendered = "#{JSON.pretty_generate(deep_sort(build_snapshot(options[:python_surface])))}\n"
+  return run_check(options[:output], rendered) if options[:check]
 
-  if options[:check]
-    unless options[:output].file?
-      warn "error: #{options[:output]} does not exist"
-      return 1
-    end
-    existing = JSON.parse(options[:output].read)
-    actual   = JSON.parse(rendered)
-    if strip_meta(existing) != strip_meta(actual)
-      warn 'DRIFT: port_surface.json is stale relative to lib/.'
-      warn '  Regenerate: ruby scripts/enumerate_surface.rb --output port_surface.json'
-      return 1
-    end
-    return 0
-  end
+  emit(options[:output], rendered)
+  0
+end
 
-  if options[:output]
-    options[:output].write(rendered)
+def emit(output_path, rendered)
+  if output_path
+    output_path.write(rendered)
   else
     $stdout.write(rendered)
   end
-  0
 end
 
 # JSON.pretty_generate doesn't recursively sort hash keys; the Python reference

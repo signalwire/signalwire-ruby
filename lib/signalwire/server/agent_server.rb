@@ -6,7 +6,6 @@
 # See LICENSE file in the project root for full license information.
 
 require 'json'
-require 'thread'
 require_relative '../logging'
 
 module SignalWire
@@ -25,38 +24,38 @@ module SignalWire
     # app (a Proc) so callers can mount it on their own server or
     # pass it to Rack-compatible test harnesses.
     def app
-      @rack_app ||= rack_app
+      @app ||= rack_app
     end
 
     # MIME types for static file serving.
     MIME_TYPES = {
       '.html' => 'text/html',
-      '.htm'  => 'text/html',
-      '.css'  => 'text/css',
-      '.js'   => 'application/javascript',
+      '.htm' => 'text/html',
+      '.css' => 'text/css',
+      '.js' => 'application/javascript',
       '.json' => 'application/json',
-      '.png'  => 'image/png',
-      '.jpg'  => 'image/jpeg',
+      '.png' => 'image/png',
+      '.jpg' => 'image/jpeg',
       '.jpeg' => 'image/jpeg',
-      '.gif'  => 'image/gif',
-      '.svg'  => 'image/svg+xml',
-      '.ico'  => 'image/x-icon',
-      '.txt'  => 'text/plain',
-      '.xml'  => 'application/xml',
+      '.gif' => 'image/gif',
+      '.svg' => 'image/svg+xml',
+      '.ico' => 'image/x-icon',
+      '.txt' => 'text/plain',
+      '.xml' => 'application/xml',
       '.woff' => 'font/woff',
       '.woff2' => 'font/woff2',
-      '.ttf'  => 'font/ttf',
-      '.eot'  => 'application/vnd.ms-fontobject',
-      '.map'  => 'application/json',
+      '.ttf' => 'font/ttf',
+      '.eot' => 'application/vnd.ms-fontobject',
+      '.map' => 'application/json',
       '.webp' => 'image/webp',
-      '.pdf'  => 'application/pdf'
+      '.pdf' => 'application/pdf'
     }.freeze
 
     # Security headers applied to static file responses.
     STATIC_SECURITY_HEADERS = {
       'x-content-type-options' => 'nosniff',
-      'x-frame-options'        => 'DENY',
-      'cache-control'          => 'no-store, no-cache, must-revalidate'
+      'x-frame-options' => 'DENY',
+      'cache-control' => 'no-store, no-cache, must-revalidate'
     }.freeze
 
     # Construct an AgentServer.
@@ -75,12 +74,12 @@ module SignalWire
       @host      = host
       @port      = port
       @log_level = log_level.to_s.downcase
-      @agents = {}   # route => agent object
-      @sip_routes = {}  # username => route
+      @agents = {} # route => agent object
+      @sip_routes = {} # username => route
       @static_routes = {} # route => directory
       @mutex  = Mutex.new
 
-      @logger = Logging.logger("AgentServer")
+      @logger = Logging.logger('AgentServer')
       _apply_log_level(@logger, @log_level)
     end
 
@@ -96,28 +95,43 @@ module SignalWire
     # @api private
     def _apply_log_level(logger, level)
       require 'logger'
-      mapped = case level
-               when 'debug'                then ::Logger::DEBUG
-               when 'info'                 then ::Logger::INFO
-               when 'warning', 'warn'      then ::Logger::WARN
-               when 'error'                then ::Logger::ERROR
-               when 'critical', 'fatal'    then ::Logger::FATAL
-               else                              ::Logger::INFO
-               end
+      mapped = _map_log_level(level)
+      _set_logger_level(logger, mapped)
+      mapped
+    rescue StandardError
+      begin
+        ::Logger::INFO
+      rescue StandardError
+        nil
+      end
+    end
+
+    # @api private
+    # Apply +mapped+ to +logger+. SignalWire::Logging::Logger doesn't expose
+    # level=; attach via instance_variable (plus a singleton reader) so .level
+    # reads return the mapped value.
+    def _set_logger_level(logger, mapped)
       if logger.respond_to?(:level=)
         logger.level = mapped
       else
-        # SignalWire::Logging::Logger doesn't expose level=; attach
-        # via instance_variable so .level reads return the mapped
-        # value. We add a singleton accessor.
         logger.instance_variable_set(:@level, mapped)
-        unless logger.respond_to?(:level)
-          logger.define_singleton_method(:level) { @level }
-        end
+        logger.define_singleton_method(:level) { @level } unless logger.respond_to?(:level)
       end
-      mapped
-    rescue StandardError
-      ::Logger::INFO rescue nil
+    end
+
+    # Map a Python-style log level string to a ::Logger constant.
+    # 'info' and the else fallback both map to INFO; the explicit 'info' arm
+    # documents it as a known level rather than an unrecognized default.
+    # @api private
+    def _map_log_level(level)
+      case level
+      when 'debug'             then ::Logger::DEBUG
+      when 'info'              then ::Logger::INFO
+      when 'warning', 'warn'   then ::Logger::WARN
+      when 'error'             then ::Logger::ERROR
+      when 'critical', 'fatal' then ::Logger::FATAL
+      else ::Logger::INFO
+      end
     end
 
     # Register an agent at a given route.
@@ -129,6 +143,7 @@ module SignalWire
 
       @mutex.synchronize do
         raise ArgumentError, "Route already registered: #{route}" if @agents.key?(route)
+
         @agents[route] = agent
       end
       self
@@ -163,7 +178,7 @@ module SignalWire
       @sip_route = route
       if auto_map
         @mutex.synchronize do
-          @agents.each do |r, agent|
+          @agents.each_key do |r|
             username = r.sub(%r{^/}, '').tr('/', '_')
             @sip_routes[username] = r
           end
@@ -263,6 +278,7 @@ module SignalWire
     def _detect_execution_mode
       return 'lambda' if ENV['AWS_LAMBDA_FUNCTION_NAME'] && !ENV['AWS_LAMBDA_FUNCTION_NAME'].empty?
       return 'cgi'    if ENV['GATEWAY_INTERFACE']
+
       'server'
     end
 
@@ -270,19 +286,23 @@ module SignalWire
     def _run_server(host = nil, port = nil)
       bind_host = host || @host
       bind_port = port || @port
-      app = rack_app
+      server = _build_webrick(bind_host, bind_port)
+      server.mount('/', Rack::Handler::WEBrick, rack_app) if defined?(Rack::Handler::WEBrick)
+      trap('INT') { server.shutdown }
+      trap('TERM') { server.shutdown }
+      @logger&.info("AgentServer starting on #{bind_host}:#{bind_port}")
+      server.start
+    end
+
+    # @api private
+    def _build_webrick(bind_host, bind_port)
       require 'webrick'
-      server = WEBrick::HTTPServer.new(
+      WEBrick::HTTPServer.new(
         Host: bind_host,
         Port: bind_port,
         Logger: WEBrick::Log.new($stderr, WEBrick::Log::WARN),
         AccessLog: []
       )
-      server.mount('/', Rack::Handler::WEBrick, app) if defined?(Rack::Handler::WEBrick)
-      trap('INT') { server.shutdown }
-      trap('TERM') { server.shutdown }
-      @logger&.info("AgentServer starting on #{bind_host}:#{bind_port}")
-      server.start
     end
 
     # @api private
@@ -291,22 +311,31 @@ module SignalWire
     # matching agent, and returns a CGI-formatted response string.
     def _handle_cgi_request
       require 'stringio'
-      path_info = (ENV['PATH_INFO'] || '').strip
       env = {
-        'PATH_INFO'      => path_info,
+        'PATH_INFO' => (ENV['PATH_INFO'] || '').strip,
         'REQUEST_METHOD' => ENV['REQUEST_METHOD'] || 'GET',
-        'QUERY_STRING'   => ENV['QUERY_STRING']   || '',
-        'rack.input'     => StringIO.new(''),
-        'rack.errors'    => $stderr
+        'QUERY_STRING' => ENV['QUERY_STRING'] || '',
+        'rack.input' => StringIO.new(''),
+        'rack.errors' => $stderr
       }
       status, headers, body = rack_app.call(env)
-      body_str = body.respond_to?(:join) ? body.join : body.to_s
+      _format_cgi_response(status, headers, _body_to_string(body))
+    end
 
-      out = +"Status: #{status}\r\n"
+    # @api private
+    # Render a Rack triple as a CGI response string.
+    def _format_cgi_response(status, headers, body_str)
+      out = "Status: #{status}\r\n"
       headers.each { |k, v| out << "#{k}: #{v}\r\n" }
       out << "\r\n"
       out << body_str
       out
+    end
+
+    # @api private
+    # Collapse a Rack response body (Array or other) into a String.
+    def _body_to_string(body)
+      body.respond_to?(:join) ? body.join : body.to_s
     end
 
     # @api private
@@ -315,132 +344,183 @@ module SignalWire
     # response Hash (statusCode/headers/body).
     def _handle_lambda_request(event, _context)
       require 'stringio'
-      event ||= {}
-      path = event['path'] || event['rawPath'] || event['pathParameters']&.dig('proxy') || '/'
-      method = event['httpMethod'] || event.dig('requestContext', 'http', 'method') || 'GET'
-      body = event['body'] || ''
-      env = {
-        'PATH_INFO'      => path,
-        'REQUEST_METHOD' => method,
-        'QUERY_STRING'   => '',
-        'rack.input'     => StringIO.new(body),
-        'rack.errors'    => $stderr
-      }
-      status, headers, response_body = rack_app.call(env)
-      body_str = response_body.respond_to?(:join) ? response_body.join : response_body.to_s
+      status, headers, response_body = rack_app.call(_lambda_env(event || {}))
       {
         'statusCode' => Integer(status),
-        'headers'    => headers,
-        'body'       => body_str
+        'headers' => headers,
+        'body' => _body_to_string(response_body)
       }
+    end
+
+    # @api private
+    # Translate a Lambda event Hash into a Rack env.
+    def _lambda_env(event)
+      {
+        'PATH_INFO' => _lambda_path(event),
+        'REQUEST_METHOD' => _lambda_method(event),
+        'QUERY_STRING' => '',
+        'rack.input' => StringIO.new(event['body'] || ''),
+        'rack.errors' => $stderr
+      }
+    end
+
+    # @api private
+    def _lambda_path(event)
+      event['path'] || event['rawPath'] || event['pathParameters']&.dig('proxy') || '/'
+    end
+
+    # @api private
+    def _lambda_method(event)
+      event['httpMethod'] || event.dig('requestContext', 'http', 'method') || 'GET'
     end
 
     # Build a Rack application that routes requests to the appropriate agent.
     # @return [Proc] a Rack-compatible app
     def rack_app
-      agents        = @agents
-      sip_routes    = @sip_routes
+      agents = @agents
       static_routes = @static_routes
       server        = self
 
-      Proc.new do |env|
-        path = env['PATH_INFO'] || '/'
+      proc { |env| server._dispatch_request(env, agents, static_routes) }
+    end
 
-        case path
-        when '/health', '/healthz'
-          body = { status: 'ok', agents: agents.keys }.to_json
-          ['200', { 'Content-Type' => 'application/json' }, [body]]
+    # @api private
+    # Route a single Rack request: health/root JSON endpoints, then static
+    # files, then the longest-prefix-matched agent (404 when none match).
+    def _dispatch_request(env, agents, static_routes)
+      path = env['PATH_INFO'] || '/'
 
-        when '/'
-          body = {
-            service: 'SignalWire Agent Server',
-            agents: agents.keys,
-            version: defined?(SignalWire::VERSION) ? SignalWire::VERSION : '1.0.0'
-          }.to_json
-          ['200', { 'Content-Type' => 'application/json' }, [body]]
-
-        else
-          # Check static routes first (longest prefix match)
-          static_result = server._try_serve_static(path, static_routes)
-          if static_result
-            static_result
-          else
-            # Find the matching agent by longest prefix match
-            agent = nil
-            matched_route = nil
-
-            agents.each do |route, a|
-              if path == route || path.start_with?("#{route}/")
-                if matched_route.nil? || route.length > matched_route.length
-                  matched_route = route
-                  agent = a
-                end
-              end
-            end
-
-            if agent
-              if agent.respond_to?(:call)
-                agent.call(env)
-              elsif agent.respond_to?(:rack_app)
-                agent.rack_app.call(env)
-              else
-                body = { agent: matched_route, status: 'registered' }.to_json
-                ['200', { 'Content-Type' => 'application/json' }, [body]]
-              end
-            else
-              body = { error: 'Not found', path: path }.to_json
-              ['404', { 'Content-Type' => 'application/json' }, [body]]
-            end
-          end
-        end
+      case path
+      when '/health', '/healthz'
+        _json_response('200', { status: 'ok', agents: agents.keys })
+      when '/'
+        _json_response('200', _root_payload(agents))
+      else
+        _try_serve_static(path, static_routes) || _dispatch_agent(env, path, agents)
       end
+    end
+
+    # @api private
+    def _root_payload(agents)
+      {
+        service: 'SignalWire Agent Server',
+        agents: agents.keys,
+        version: defined?(SignalWire::VERSION) ? SignalWire::VERSION : '1.0.0'
+      }
+    end
+
+    # @api private
+    # Dispatch to the agent whose registered route is the longest prefix of
+    # +path+, or a 404 JSON response when nothing matches.
+    def _dispatch_agent(env, path, agents)
+      matched_route, agent = _match_agent(path, agents)
+      return _json_response('404', { error: 'Not found', path: path }) unless agent
+
+      _invoke_agent(agent, matched_route, env)
+    end
+
+    # @api private
+    # Invoke a matched agent: prefer #call, then #rack_app, else a stub
+    # "registered" response.
+    def _invoke_agent(agent, matched_route, env)
+      if agent.respond_to?(:call)
+        agent.call(env)
+      elsif agent.respond_to?(:rack_app)
+        agent.rack_app.call(env)
+      else
+        _json_response('200', { agent: matched_route, status: 'registered' })
+      end
+    end
+
+    # @api private
+    # Longest-prefix match of +path+ against registered agent routes.
+    # @return [Array(String, Object)] [matched_route, agent] or [nil, nil].
+    def _match_agent(path, agents)
+      matched_route = nil
+      agent = nil
+      agents.each do |route, a|
+        next unless _route_matches?(path, route)
+        next unless matched_route.nil? || route.length > matched_route.length
+
+        matched_route = route
+        agent = a
+      end
+      [matched_route, agent]
+    end
+
+    # @api private
+    # True when +path+ equals +route+ or sits directly under it.
+    def _route_matches?(path, route)
+      path == route || path.start_with?("#{route}/")
+    end
+
+    # @api private
+    # Build a Rack JSON response triple from a status and a Hash payload.
+    def _json_response(status, payload)
+      [status, { 'Content-Type' => 'application/json' }, [payload.to_json]]
     end
 
     # @api private
     # Attempt to serve a static file. Returns a Rack response or nil.
     def _try_serve_static(path, static_routes)
-      matched_route = nil
-      matched_dir   = nil
-
-      static_routes.each do |route, directory|
-        if path == route || path.start_with?("#{route}/")
-          if matched_route.nil? || route.length > matched_route.length
-            matched_route = route
-            matched_dir   = directory
-          end
-        end
-      end
-
+      matched_route, matched_dir = _match_static_route(path, static_routes)
       return nil unless matched_dir
 
-      # Extract the relative path after the route prefix
+      relative = _static_relative_path(path, matched_route)
+      # Path traversal protection: reject any path containing "..".
+      return _static_forbidden if relative.include?('..')
+
+      resolved = File.expand_path(File.join(matched_dir, relative))
+      # Ensure resolved path is still under the served directory.
+      return _static_forbidden unless _under_directory?(resolved, matched_dir)
+      return unless File.file?(resolved) && File.readable?(resolved)
+
+      _static_file_response(resolved)
+    end
+
+    # @api private
+    # Relative path after the route prefix, defaulting to /index.html.
+    def _static_relative_path(path, matched_route)
       relative = path.sub(matched_route, '')
-      relative = '/index.html' if relative.empty? || relative == '/'
+      relative.empty? || relative == '/' ? '/index.html' : relative
+    end
 
-      # Path traversal protection: reject any path containing ".."
-      if relative.include?('..')
-        body = JSON.generate({ error: 'Forbidden' })
-        return ['403', STATIC_SECURITY_HEADERS.merge('Content-Type' => 'application/json'), [body]]
+    # @api private
+    def _under_directory?(resolved, directory)
+      resolved.start_with?("#{directory}/") || resolved == directory
+    end
+
+    # @api private
+    # Longest-prefix match of +path+ against the static route prefixes.
+    # @return [Array(String, String)] [matched_route, directory] or [nil, nil].
+    def _match_static_route(path, static_routes)
+      matched_route = nil
+      matched_dir   = nil
+      static_routes.each do |route, directory|
+        next unless _route_matches?(path, route)
+        next unless matched_route.nil? || route.length > matched_route.length
+
+        matched_route = route
+        matched_dir   = directory
       end
+      [matched_route, matched_dir]
+    end
 
-      file_path = File.join(matched_dir, relative)
-      resolved  = File.expand_path(file_path)
+    # @api private
+    def _static_forbidden
+      body = JSON.generate({ error: 'Forbidden' })
+      ['403', STATIC_SECURITY_HEADERS.merge('Content-Type' => 'application/json'), [body]]
+    end
 
-      # Ensure resolved path is still under the served directory
-      unless resolved.start_with?(matched_dir + '/')  || resolved == matched_dir
-        body = JSON.generate({ error: 'Forbidden' })
-        return ['403', STATIC_SECURITY_HEADERS.merge('Content-Type' => 'application/json'), [body]]
-      end
-
-      if File.file?(resolved) && File.readable?(resolved)
-        ext = File.extname(resolved).downcase
-        content_type = MIME_TYPES[ext] || 'application/octet-stream'
-        content = File.binread(resolved)
-        headers = STATIC_SECURITY_HEADERS.merge('Content-Type' => content_type, 'Content-Length' => content.bytesize.to_s)
-        ['200', headers, [content]]
-      else
-        nil
-      end
+    # @api private
+    # Read a resolved file and build its Rack response with MIME + security headers.
+    def _static_file_response(resolved)
+      ext = File.extname(resolved).downcase
+      content_type = MIME_TYPES[ext] || 'application/octet-stream'
+      content = File.binread(resolved)
+      headers = STATIC_SECURITY_HEADERS.merge('Content-Type' => content_type,
+                                              'Content-Length' => content.bytesize.to_s)
+      ['200', headers, [content]]
     end
   end
 end

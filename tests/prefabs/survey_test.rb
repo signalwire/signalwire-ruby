@@ -12,6 +12,7 @@ class SurveyPrefabDetailedTest < Minitest::Test
         { 'id' => 'rating', 'text' => 'How would you rate us?', 'type' => 'rating', 'scale' => 5 }
       ]
     )
+
     assert_equal 'survey', agent.name
     assert_equal 'Satisfaction Survey', agent.survey_name
     assert_equal 1, agent.questions.size
@@ -21,6 +22,7 @@ class SurveyPrefabDetailedTest < Minitest::Test
     agent = SignalWire::Prefabs::Survey.new(
       survey_name: 'Test', questions: [{ 'id' => 'q1', 'text' => 'Question?' }]
     )
+
     assert_includes agent.tools, 'start_survey'
     assert_includes agent.tools, 'submit_survey_answer'
     assert_includes agent.tools, 'get_survey_summary'
@@ -31,6 +33,7 @@ class SurveyPrefabDetailedTest < Minitest::Test
       survey_name: 'Test', questions: [{ 'id' => 'q1', 'text' => 'How was it?' }]
     )
     result = agent.handle_start({}, {})
+
     assert_includes result.response, 'How was it?'
   end
 
@@ -39,6 +42,7 @@ class SurveyPrefabDetailedTest < Minitest::Test
       survey_name: 'Test', questions: [{ 'id' => 'q1', 'text' => 'Q?' }]
     )
     result = agent.handle_submit({ 'answer' => 'Great' }, {})
+
     assert_includes result.response, 'Great'
   end
 
@@ -48,6 +52,7 @@ class SurveyPrefabDetailedTest < Minitest::Test
       conclusion: 'All done!'
     )
     result = agent.handle_summary({}, {})
+
     assert_equal 'All done!', result.response
   end
 
@@ -56,6 +61,7 @@ class SurveyPrefabDetailedTest < Minitest::Test
       survey_name: 'Test', questions: [{ 'id' => 'q1', 'text' => 'Q?' }]
     )
     data = agent.global_data
+
     assert data.key?('survey')
     assert_equal 'Test', data['survey']['name']
   end

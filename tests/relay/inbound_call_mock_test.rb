@@ -15,7 +15,11 @@ require 'securerandom'
 require 'timeout'
 require_relative 'mock_test'
 
-class RelayInboundCallMockTest < Minitest::Test
+# Shared fixture + inbound-call/journal helpers for the inbound-call tests.
+module RelayInboundCallHelpers
+  TIMEOUT = 5
+  STATE_DEADLINE = 5
+
   def setup
     RelayMockTest.reset
     @handle = RelayMockTest.client
@@ -27,324 +31,298 @@ class RelayInboundCallMockTest < Minitest::Test
     RelayMockTest.reset
   end
 
-  # ---- Helpers ---------------------------------------------------------
-
-  def state_push_frame(call_id, call_state, tag: '', direction: 'inbound')
+  # A signalwire.event JSON-RPC frame wrapping +event_type+ + inner params.
+  def signalwire_event_frame(event_type, params)
     {
-      'jsonrpc' => '2.0',
-      'id'      => SecureRandom.uuid,
-      'method'  => 'signalwire.event',
-      'params'  => {
-        'event_type' => 'calling.call.state',
-        'params'     => {
-          'call_id'    => call_id,
-          'node_id'    => 'mock-relay-node-1',
-          'tag'        => tag,
-          'call_state' => call_state,
-          'direction'  => direction,
-          'device'     => {
-            'type'   => 'phone',
-            'params' => {
-              'from_number' => '+15551110000',
-              'to_number'   => '+15552220000',
-            },
-          },
-        },
-      },
+      'jsonrpc' => '2.0', 'id' => SecureRandom.uuid, 'method' => 'signalwire.event',
+      'params' => { 'event_type' => event_type, 'params' => params }
     }
   end
+
+  # The standard inbound phone device (from/to numbers).
+  def inbound_device
+    { 'type' => 'phone',
+      'params' => { 'from_number' => '+15551110000', 'to_number' => '+15552220000' } }
+  end
+
+  def state_push_frame(call_id, call_state, tag: '', direction: 'inbound')
+    signalwire_event_frame(
+      'calling.call.state',
+      'call_id' => call_id, 'node_id' => 'mock-relay-node-1', 'tag' => tag,
+      'call_state' => call_state, 'direction' => direction, 'device' => inbound_device
+    )
+  end
+
+  # Register an on_call handler that maps each inbound call through the given
+  # block and pushes the result onto a Queue, fire one inbound call, and return
+  # the first mapped result (Timeout-bounded). With no block the Call is
+  # returned unchanged.
+  def receive_inbound(call_id:, **, &mapper)
+    mapper ||= ->(call) { call }
+    queue = Queue.new
+    @client.on_call { |call| queue.push(mapper.call(call)) }
+    RelayMockTest.journal.inbound_call(call_id: call_id, auto_states: ['created'], **)
+    Timeout.timeout(TIMEOUT) { queue.pop }
+  end
+
+  # Spin (briefly) until +call+ reaches +state+ or the deadline passes.
+  def wait_until_state(call, state)
+    deadline = Time.now + STATE_DEADLINE
+    sleep 0.02 until call.state == state || Time.now > deadline
+  end
+
+  # Fire a bare inbound call (created state) without registering a handler.
+  def fire_inbound(call_id)
+    RelayMockTest.journal.inbound_call(call_id: call_id, auto_states: ['created'])
+  end
+
+  # Spin (briefly) until +block+ returns truthy or the deadline passes.
+  def wait_until(&)
+    deadline = Time.now + STATE_DEADLINE
+    sleep 0.02 until yield || Time.now > deadline
+  end
+
+  # Assert a frame for +method+ was journalled and (optionally) carries call_id.
+  def assert_journalled(method, call_id: nil)
+    frames = RelayMockTest.journal.journal_recv(method: method)
+
+    refute_empty frames, "no #{method} frame in journal"
+    last = frames.last.frame['params']
+    assert_equal call_id, last['call_id'] if call_id
+    last
+  end
+end
+
+class RelayInboundCallMockTest < Minitest::Test
+  include RelayInboundCallHelpers
 
   # ---- Basic inbound-call handler dispatch -----------------------------
 
   def test_on_call_handler_fires_with_call_object
-    seen_q = Queue.new
-    @client.on_call do |call|
-      seen_q.push(call)
-    end
-    RelayMockTest.journal.inbound_call(call_id: 'c-handler', auto_states: ['created'])
-    call = Timeout.timeout(5) { seen_q.pop }
+    call = receive_inbound(call_id: 'c-handler')
+
     assert_kind_of SignalWire::Relay::Call, call
     assert_equal 'c-handler', call.call_id
   end
 
   def test_inbound_call_object_has_correct_call_id_and_direction
-    seen_q = Queue.new
-    @client.on_call do |call|
-      seen_q.push([call.call_id, call.direction])
-    end
-    RelayMockTest.journal.inbound_call(call_id: 'c-dir', auto_states: ['created'])
-    cid, dir = Timeout.timeout(5) { seen_q.pop }
+    cid, dir = receive_inbound(call_id: 'c-dir') { |c| [c.call_id, c.direction] }
+
     assert_equal 'c-dir',   cid
     assert_equal 'inbound', dir
   end
 
   def test_inbound_call_carries_from_to_in_device
-    seen_q = Queue.new
-    @client.on_call do |call|
-      seen_q.push(call.device)
-    end
-    RelayMockTest.journal.inbound_call(
-      call_id:     'c-from-to',
-      from_number: '+15551112233',
-      to_number:   '+15554445566',
-      auto_states: ['created'],
-    )
-    device = Timeout.timeout(5) { seen_q.pop }
+    device = receive_inbound(call_id: 'c-from-to',
+                             from_number: '+15551112233', to_number: '+15554445566', &:device)
     p = device['params'] || {}
+
     assert_equal '+15551112233', p['from_number']
     assert_equal '+15554445566', p['to_number']
   end
 
   def test_inbound_call_initial_state_is_created
-    seen_q = Queue.new
-    @client.on_call do |call|
-      seen_q.push(call.state)
-    end
-    RelayMockTest.journal.inbound_call(call_id: 'c-state', auto_states: ['created'])
-    assert_equal 'created', Timeout.timeout(5) { seen_q.pop }
+    assert_equal 'created', receive_inbound(call_id: 'c-state', &:state)
   end
 
   # ---- Handler answers -- calling.answer journaled ---------------------
 
   def test_answer_in_handler_journals_calling_answer
-    answered = Queue.new
-    @client.on_call do |call|
-      call.answer
-      answered.push(true)
-    end
-    RelayMockTest.journal.inbound_call(call_id: 'c-ans', auto_states: ['created'])
-    Timeout.timeout(5) { answered.pop }
+    receive_inbound(call_id: 'c-ans', &:answer)
     sleep 0.1
-    answers = RelayMockTest.journal.journal_recv(method: 'calling.answer')
-    refute_empty answers, 'no calling.answer frame in journal'
-    assert_equal 'c-ans', answers.last.frame['params']['call_id']
+
+    assert_journalled('calling.answer', call_id: 'c-ans')
   end
 
   def test_answer_then_state_event_advances_call_state
-    captured_q = Queue.new
-    handler_done = Queue.new
-    @client.on_call do |call|
-      captured_q.push(call)
-      call.answer
-      handler_done.push(true)
+    call = receive_inbound(call_id: 'c-ans-state') do |c|
+      c.answer
+      c
     end
-    RelayMockTest.journal.inbound_call(call_id: 'c-ans-state', auto_states: ['created'])
-    call = Timeout.timeout(5) { captured_q.pop }
-    Timeout.timeout(5) { handler_done.pop }
-
     RelayMockTest.journal.push(state_push_frame('c-ans-state', 'answered'))
-    deadline = Time.now + 5
-    until call.state == 'answered' || Time.now > deadline
-      sleep 0.02
-    end
+    wait_until_state(call, 'answered')
+
     assert_equal 'answered', call.state
   end
 
   # ---- Handler hangs up / passes ---------------------------------------
 
   def test_hangup_in_handler_journals_calling_end
-    hung_q = Queue.new
-    @client.on_call do |call|
-      call.hangup(reason: 'busy')
-      hung_q.push(true)
-    end
-    RelayMockTest.journal.inbound_call(call_id: 'c-hangup', auto_states: ['created'])
-    Timeout.timeout(5) { hung_q.pop }
+    receive_inbound(call_id: 'c-hangup') { |call| call.hangup(reason: 'busy') }
     sleep 0.1
-    ends = RelayMockTest.journal.journal_recv(method: 'calling.end')
-    refute_empty ends, 'no calling.end frame in journal'
-    p = ends.last.frame['params']
-    assert_equal 'c-hangup', p['call_id']
-    assert_equal 'busy',     p['reason']
+    p = assert_journalled('calling.end', call_id: 'c-hangup')
+
+    assert_equal 'busy', p['reason']
   end
 
   def test_pass_in_handler_journals_calling_pass
-    passed_q = Queue.new
-    @client.on_call do |call|
-      call.pass_call
-      passed_q.push(true)
-    end
-    RelayMockTest.journal.inbound_call(call_id: 'c-pass', auto_states: ['created'])
-    Timeout.timeout(5) { passed_q.pop }
+    receive_inbound(call_id: 'c-pass', &:pass_call)
     sleep 0.1
-    passes = RelayMockTest.journal.journal_recv(method: 'calling.pass')
-    refute_empty passes, 'no calling.pass frame in journal'
-    assert_equal 'c-pass', passes.last.frame['params']['call_id']
+
+    assert_journalled('calling.pass', call_id: 'c-pass')
   end
 
   # ---- Multiple inbound calls ------------------------------------------
 
   def test_multiple_inbound_calls_in_sequence_each_unique_object
     seen_q = Queue.new
-    @client.on_call do |call|
-      seen_q.push(call)
-    end
-    RelayMockTest.journal.inbound_call(call_id: 'c-seq-1', auto_states: ['created'])
+    @client.on_call { |call| seen_q.push(call) }
+    fire_inbound('c-seq-1')
     sleep 0.1
-    RelayMockTest.journal.inbound_call(call_id: 'c-seq-2', auto_states: ['created'])
+    fire_inbound('c-seq-2')
 
     a = Timeout.timeout(5) { seen_q.pop }
     b = Timeout.timeout(5) { seen_q.pop }
-    ids = [a.call_id, b.call_id].sort
-    assert_equal ['c-seq-1', 'c-seq-2'], ids
-    refute_equal a.object_id, b.object_id
+
+    assert_equal %w[c-seq-1 c-seq-2], [a.call_id, b.call_id].sort
+    refute_same a, b
   end
 
   def test_multiple_inbound_calls_no_state_bleed
+    fetch = answer_two_inbound_calls('cb-1', 'cb-2')
+
+    RelayMockTest.journal.push(state_push_frame('cb-1', 'answered'))
+    wait_until { fetch.call('cb-1')&.state == 'answered' }
+
+    assert_equal 'answered', fetch.call('cb-1').state
+    refute_equal 'answered', fetch.call('cb-2').state
+  end
+
+  # Register an answering handler, fire both inbound calls, wait for both to be
+  # handled, and return a thread-safe ->(id) fetch for the captured Calls.
+  def answer_two_inbound_calls(id1, id2)
     by_id = {}
     by_id_mu = Mutex.new
+    pushed = register_answering_handler(by_id, by_id_mu)
+
+    fire_inbound(id1)
+    sleep 0.05
+    fire_inbound(id2)
+    2.times { Timeout.timeout(5) { pushed.pop } }
+    ->(id) { by_id_mu.synchronize { by_id[id] } }
+  end
+
+  # on_call handler that records each call into +store+ (guarded by +mutex+),
+  # answers it, and signals completion on the returned Queue.
+  def register_answering_handler(store, mutex)
     pushed = Queue.new
     @client.on_call do |call|
-      by_id_mu.synchronize { by_id[call.call_id] = call }
+      mutex.synchronize { store[call.call_id] = call }
       call.answer
       pushed.push(true)
     end
-
-    RelayMockTest.journal.inbound_call(call_id: 'cb-1', auto_states: ['created'])
-    sleep 0.05
-    RelayMockTest.journal.inbound_call(call_id: 'cb-2', auto_states: ['created'])
-    Timeout.timeout(5) { pushed.pop }
-    Timeout.timeout(5) { pushed.pop }
-
-    RelayMockTest.journal.push(state_push_frame('cb-1', 'answered'))
-    cb1 = nil
-    cb2 = nil
-    deadline = Time.now + 5
-    while Time.now < deadline
-      by_id_mu.synchronize do
-        cb1 = by_id['cb-1']
-        cb2 = by_id['cb-2']
-      end
-      break if cb1 && cb1.state == 'answered'
-
-      sleep 0.02
-    end
-    assert_equal 'answered', cb1.state
-    refute_equal 'answered', cb2.state
+    pushed
   end
 
   # ---- Scripted state sequences ----------------------------------------
 
   def test_scripted_state_sequence_advances_call
-    captured_q = Queue.new
-    handler_done = Queue.new
-    @client.on_call do |call|
-      captured_q.push(call)
-      call.answer
-      handler_done.push(true)
+    call = receive_inbound(call_id: 'c-scripted') do |c|
+      c.answer
+      c
     end
-    RelayMockTest.journal.inbound_call(call_id: 'c-scripted', auto_states: ['created'])
-    call = Timeout.timeout(5) { captured_q.pop }
-    Timeout.timeout(5) { handler_done.pop }
-
     RelayMockTest.journal.push(state_push_frame('c-scripted', 'answered'))
     RelayMockTest.journal.push(state_push_frame('c-scripted', 'ended'))
-    deadline = Time.now + 5
-    until call.state == 'ended' || Time.now > deadline
-      sleep 0.02
-    end
+    wait_until_state(call, 'ended')
+
     assert_equal 'ended', call.state
   end
+end
 
-  # ---- Handler patterns ------------------------------------------------
+# Handler patterns, scenario_play, wire-shape + no-handler cases. Split from
+# the basic-dispatch tests to keep each class within budget.
+class RelayInboundCallFlowMockTest < Minitest::Test
+  include RelayInboundCallHelpers
 
   def test_async_handler_completes_normally
-    seen_q = Queue.new
-    @client.on_call do |call|
+    cid = receive_inbound(call_id: 'c-async') do |c|
       sleep 0.01
-      seen_q.push(call.call_id)
+      c.call_id
     end
-    RelayMockTest.journal.inbound_call(call_id: 'c-async', auto_states: ['created'])
-    cid = Timeout.timeout(5) { seen_q.pop }
+
     assert_equal 'c-async', cid
   end
 
   def test_handler_exception_does_not_crash_client
+    fire_handler_that_raises('c-raise')
+    # Drive a follow-up round-trip to prove the connection survived.
+    fire_inbound('c-raise-2')
+    sleep 0.2
+    sessions = RelayMockTest.journal.sessions
+
+    assert_predicate sessions, :any?, 'WebSocket session should still be open after handler raise'
+  end
+
+  # Register a handler that signals it fired then raises, fire one inbound
+  # call, and wait for the handler to fire.
+  def fire_handler_that_raises(call_id)
     fired_q = Queue.new
     @client.on_call do |_call|
       fired_q.push(true)
       raise 'intentional from handler'
     end
-    RelayMockTest.journal.inbound_call(call_id: 'c-raise', auto_states: ['created'])
+    fire_inbound(call_id)
     Timeout.timeout(5) { fired_q.pop }
     sleep 0.1
-    # Drive a follow-up round-trip to prove the connection survived.
-    RelayMockTest.journal.inbound_call(call_id: 'c-raise-2', auto_states: ['created'])
-    sleep 0.2
-    sessions = RelayMockTest.journal.sessions
-    assert sessions.any?, 'WebSocket session should still be open after handler raise'
   end
 
   # ---- scenario_play -- full inbound flow ------------------------------
 
   def test_scenario_play_full_inbound_flow
+    captured_q, started_q = register_capturing_answer_handler
+    result = RelayMockTest.journal.scenario_play(full_inbound_timeline)
+
+    assert_equal 'completed', result['status'], "scenario didn't complete: #{result.inspect}"
+
+    Timeout.timeout(5) { started_q.pop }
+    call = Timeout.timeout(5) { captured_q.pop }
+    wait_until_state(call, 'ended')
+
+    assert_equal 'ended', call.state
+  end
+
+  # on_call handler that captures the call, answers it, and signals start.
+  # Returns [captured_queue, started_queue].
+  def register_capturing_answer_handler
     captured_q = Queue.new
-    handler_started = Queue.new
+    started_q = Queue.new
     @client.on_call do |call|
       captured_q.push(call)
       call.answer
-      handler_started.push(true)
+      started_q.push(true)
     end
+    [captured_q, started_q]
+  end
 
-    timeline = [
-      {
-        'push' => {
-          'frame' => {
-            'jsonrpc' => '2.0',
-            'id'      => SecureRandom.uuid,
-            'method'  => 'signalwire.event',
-            'params'  => {
-              'event_type' => 'calling.call.receive',
-              'params'     => {
-                'call_id'    => 'c-scen',
-                'node_id'    => 'mock-relay-node-1',
-                'tag'        => '',
-                'call_state' => 'created',
-                'direction'  => 'inbound',
-                'device'     => {
-                  'type'   => 'phone',
-                  'params' => {
-                    'from_number' => '+15551110000',
-                    'to_number'   => '+15552220000',
-                  },
-                },
-                'context'    => 'default',
-              },
-            },
-          },
-        },
-      },
+  def inbound_receive_frame
+    signalwire_event_frame(
+      'calling.call.receive',
+      'call_id' => 'c-scen', 'node_id' => 'mock-relay-node-1', 'tag' => '',
+      'call_state' => 'created', 'direction' => 'inbound',
+      'device' => inbound_device, 'context' => 'default'
+    )
+  end
+
+  # The receive -> answer -> answered -> ended scenario timeline.
+  def full_inbound_timeline
+    [
+      { 'push' => { 'frame' => inbound_receive_frame } },
       { 'expect_recv' => { 'method' => 'calling.answer', 'timeout_ms' => 5000 } },
       { 'push'        => { 'frame' => state_push_frame('c-scen', 'answered') } },
       { 'sleep_ms'    => 50 },
-      { 'push'        => { 'frame' => state_push_frame('c-scen', 'ended') } },
+      { 'push'        => { 'frame' => state_push_frame('c-scen', 'ended') } }
     ]
-    result = RelayMockTest.journal.scenario_play(timeline)
-    assert_equal 'completed', result['status'],
-                 "scenario didn't complete: #{result.inspect}"
-
-    Timeout.timeout(5) { handler_started.pop }
-    call = Timeout.timeout(5) { captured_q.pop }
-    deadline = Time.now + 5
-    until call.state == 'ended' || Time.now > deadline
-      sleep 0.02
-    end
-    assert_equal 'ended', call.state
   end
 
   # ---- Wire shape: calling.call.receive --------------------------------
 
   def test_inbound_call_journal_send_records_calling_call_receive
-    handler_done = Queue.new
-    @client.on_call do |_call|
-      handler_done.push(true)
-    end
-    RelayMockTest.journal.inbound_call(call_id: 'c-wire', auto_states: ['created'])
-    Timeout.timeout(5) { handler_done.pop }
-
+    receive_inbound(call_id: 'c-wire')
     sends = RelayMockTest.journal.journal_send(event_type: 'calling.call.receive')
+
     refute_empty sends, 'no calling.call.receive frame in journal'
     inner = sends.last.frame['params']['params']
+
     assert_equal 'c-wire',  inner['call_id']
     assert_equal 'inbound', inner['direction']
   end
@@ -355,11 +333,11 @@ class RelayInboundCallMockTest < Minitest::Test
     # Use a fresh client so there's no registered handler from prior tests.
     h = RelayMockTest.client
     begin
-      RelayMockTest.journal.inbound_call(call_id: 'c-nohandler',
-                                    auto_states: ['created'])
+      RelayMockTest.journal.inbound_call(call_id: 'c-nohandler', auto_states: ['created'])
       sleep 0.3
       sessions = RelayMockTest.journal.sessions
-      assert sessions.any?, 'session should still be open without handler'
+
+      assert_predicate sessions, :any?, 'session should still be open without handler'
     ensure
       RelayMockTest.shutdown_client(h)
     end

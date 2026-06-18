@@ -5,9 +5,9 @@ module SignalWire
     module Namespaces
       # 10DLC brand management.
       class RegistryBrands < BaseResource
-        def list(**params)  = @http.get(@base_path, params.empty? ? nil : params)
+        def list(**params) = @http.get(@base_path, params.empty? ? nil : params)
         def create(**kwargs) = @http.post(@base_path, kwargs)
-        def get(brand_id)   = @http.get(_path(brand_id))
+        def get(brand_id) = @http.get(_path(brand_id))
 
         def list_campaigns(brand_id, **params)
           @http.get(_path(brand_id, 'campaigns'), params.empty? ? nil : params)
@@ -20,7 +20,7 @@ module SignalWire
 
       # 10DLC campaign management.
       class RegistryCampaigns < BaseResource
-        def get(campaign_id)             = @http.get(_path(campaign_id))
+        def get(campaign_id) = @http.get(_path(campaign_id))
         def update(campaign_id, **kwargs) = @http.put(_path(campaign_id), kwargs)
 
         def list_numbers(campaign_id, **params)

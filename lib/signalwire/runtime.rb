@@ -31,32 +31,27 @@ module SignalWire
     # GATEWAY_INTERFACE should still be treated as CGI.
     #
     # @return [Symbol] one of the values in {MODES}
+    # Ordered (mode, signal-env-vars) detection table. Order is load-bearing:
+    # CGI is checked before Lambda so a Lambda emulator that also sets
+    # GATEWAY_INTERFACE is still treated as CGI.
+    MODE_SIGNALS = [
+      [:cgi,                    %w[GATEWAY_INTERFACE]],
+      [:lambda,                 %w[AWS_LAMBDA_FUNCTION_NAME LAMBDA_TASK_ROOT]],
+      [:google_cloud_function,  %w[FUNCTION_TARGET K_SERVICE GOOGLE_CLOUD_PROJECT]],
+      [:azure_function,         %w[AZURE_FUNCTIONS_ENVIRONMENT FUNCTIONS_WORKER_RUNTIME AzureWebJobsStorage]]
+    ].freeze
+
     def self.execution_mode
-      # CGI environment (e.g. Apache mod_cgi)
-      return :cgi if ENV['GATEWAY_INTERFACE'] && !ENV['GATEWAY_INTERFACE'].empty?
-
-      # AWS Lambda
-      if (ENV['AWS_LAMBDA_FUNCTION_NAME'] && !ENV['AWS_LAMBDA_FUNCTION_NAME'].empty?) ||
-         (ENV['LAMBDA_TASK_ROOT'] && !ENV['LAMBDA_TASK_ROOT'].empty?)
-        return :lambda
-      end
-
-      # Google Cloud Functions / Cloud Run
-      if (ENV['FUNCTION_TARGET'] && !ENV['FUNCTION_TARGET'].empty?) ||
-         (ENV['K_SERVICE'] && !ENV['K_SERVICE'].empty?) ||
-         (ENV['GOOGLE_CLOUD_PROJECT'] && !ENV['GOOGLE_CLOUD_PROJECT'].empty?)
-        return :google_cloud_function
-      end
-
-      # Azure Functions
-      if (ENV['AZURE_FUNCTIONS_ENVIRONMENT'] && !ENV['AZURE_FUNCTIONS_ENVIRONMENT'].empty?) ||
-         (ENV['FUNCTIONS_WORKER_RUNTIME'] && !ENV['FUNCTIONS_WORKER_RUNTIME'].empty?) ||
-         (ENV['AzureWebJobsStorage'] && !ENV['AzureWebJobsStorage'].empty?)
-        return :azure_function
-      end
-
+      MODE_SIGNALS.each { |mode, vars| return mode if env_present?(*vars) }
       :server
     end
+
+    # True when any of the named environment variables is set and non-empty.
+    # @return [Boolean]
+    def self.env_present?(*names)
+      names.any? { |name| (v = ENV.fetch(name, nil)) && !v.empty? }
+    end
+    private_class_method :env_present?
 
     # True when the SDK is running inside AWS Lambda.
     # @return [Boolean]
@@ -68,8 +63,7 @@ module SignalWire
     # @return [Boolean]
     def self.serverless?
       mode = execution_mode
-      mode == :lambda || mode == :cgi ||
-        mode == :google_cloud_function || mode == :azure_function
+      %i[lambda cgi google_cloud_function azure_function].include?(mode)
     end
 
     # Construct the base URL for the current Lambda function.
@@ -83,13 +77,13 @@ module SignalWire
     #
     # @return [String, nil]
     def self.lambda_base_url
-      explicit = ENV['AWS_LAMBDA_FUNCTION_URL']
+      explicit = ENV.fetch('AWS_LAMBDA_FUNCTION_URL', nil)
       return explicit.chomp('/') if explicit && !explicit.empty?
 
-      function_name = ENV['AWS_LAMBDA_FUNCTION_NAME']
+      function_name = ENV.fetch('AWS_LAMBDA_FUNCTION_NAME', nil)
       return nil if function_name.nil? || function_name.empty?
 
-      region = ENV['AWS_REGION']
+      region = ENV.fetch('AWS_REGION', nil)
       region = 'us-east-1' if region.nil? || region.empty?
 
       "https://#{function_name}.lambda-url.#{region}.on.aws"

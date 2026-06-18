@@ -16,6 +16,7 @@ class PreAnswerVerbTest < Minitest::Test
     swml = @agent.render_swml
     main = swml['sections']['main']
     first = main[0]
+
     assert first.key?('play')
     assert_equal 'https://example.com/ring.mp3', first['play']['url']
   end
@@ -25,6 +26,7 @@ class PreAnswerVerbTest < Minitest::Test
     @agent.clear_pre_answer_verbs
     swml = @agent.render_swml
     main = swml['sections']['main']
+
     assert_equal 'answer', main[0].keys.first
   end
 
@@ -33,6 +35,7 @@ class PreAnswerVerbTest < Minitest::Test
     @agent.add_pre_answer_verb('play', { 'url' => 'ring.mp3' })
     swml = @agent.render_swml
     main = swml['sections']['main']
+
     assert main[0].key?('set')
     assert main[1].key?('play')
   end
@@ -50,8 +53,9 @@ class PostAnswerVerbTest < Minitest::Test
     answer_idx = main.index { |v| v.key?('answer') }
     ai_idx     = main.index { |v| v.key?('ai') }
     play_idx   = main.index { |v| v.key?('play') }
-    assert play_idx > answer_idx
-    assert play_idx < ai_idx
+
+    assert_operator play_idx, :>, answer_idx
+    assert_operator play_idx, :<, ai_idx
   end
 
   def test_clear_post_answer_verbs
@@ -59,7 +63,8 @@ class PostAnswerVerbTest < Minitest::Test
     @agent.clear_post_answer_verbs
     swml = @agent.render_swml
     main = swml['sections']['main']
-    refute main.any? { |v| v.key?('play') }
+
+    refute(main.any? { |v| v.key?('play') })
   end
 end
 
@@ -74,7 +79,8 @@ class PostAiVerbTest < Minitest::Test
     main = swml['sections']['main']
     ai_idx     = main.index { |v| v.key?('ai') }
     hangup_idx = main.index { |v| v.key?('hangup') }
-    assert hangup_idx > ai_idx
+
+    assert_operator hangup_idx, :>, ai_idx
   end
 
   def test_clear_post_ai_verbs
@@ -82,7 +88,8 @@ class PostAiVerbTest < Minitest::Test
     @agent.clear_post_ai_verbs
     swml = @agent.render_swml
     main = swml['sections']['main']
-    refute main.any? { |v| v.key?('hangup') }
+
+    refute(main.any? { |v| v.key?('hangup') })
   end
 end
 
@@ -93,6 +100,7 @@ class AnswerVerbConfigTest < Minitest::Test
     swml = agent.render_swml
     main = swml['sections']['main']
     answer = main.find { |v| v.key?('answer') }
+
     assert_equal 3600, answer['answer']['max_duration']
   end
 end
@@ -100,6 +108,7 @@ end
 class VerbChainingTest < Minitest::Test
   def test_all_verb_methods_return_self
     agent = SignalWire::AgentBase.new
+
     assert_same agent, agent.add_pre_answer_verb('play', {})
     assert_same agent, agent.clear_pre_answer_verbs
     assert_same agent, agent.add_answer_verb({})
