@@ -71,7 +71,7 @@ module SwaigTest
   # a shell session) never inherit leaked state.
   module RuntimeEnvIsolation
     def self.snapshot(keys = LAMBDA_SIMULATION_ENV_VARS)
-      keys.each_with_object({}) { |k, h| h[k] = ENV.fetch(k, nil) }
+      keys.to_h { |k| [k, ENV.fetch(k, nil)] }
     end
 
     def self.restore(snapshot)
@@ -245,7 +245,7 @@ module SwaigTest
       # ourselves against it.
       if @agent.respond_to?(:get_basic_auth_credentials)
         user, pass = @agent.get_basic_auth_credentials
-        return 'Basic ' + ["#{user}:#{pass}"].pack('m0').chomp if user && pass
+        return "Basic #{["#{user}:#{pass}"].pack('m0').chomp}" if user && pass
       end
       nil
     end
@@ -387,8 +387,8 @@ module SwaigTest
         exit 1
       end
 
-      actions = [@options[:dump_swml], @options[:list_tools], !!@options[:exec]].count(true)
-      if actions == 0
+      actions = action_count
+      if actions.zero?
         warn 'Error: specify one of --dump-swml, --list-tools, or --exec NAME'
         exit 1
       elsif actions > 1
@@ -459,11 +459,16 @@ module SwaigTest
         exit 1
       end
 
-      actions = [@options[:dump_swml], @options[:list_tools], !!@options[:exec]].count(true)
-      return unless actions > 1
+      return unless action_count > 1
 
       warn 'Error: specify at most one of --dump-swml, --list-tools, or --exec NAME'
       exit 1
+    end
+
+    # Number of mutually-exclusive output actions requested (--dump-swml,
+    # --list-tools, --exec). Used by the validators to enforce "exactly one".
+    def action_count
+      [@options[:dump_swml], @options[:list_tools], @options[:exec]].count { |v| v }
     end
 
     def parse_param_value(value)
@@ -492,7 +497,7 @@ module SwaigTest
       pass = parsed_uri.password
       return unless user && pass
 
-      'Basic ' + ["#{URI.decode_www_form_component(user)}:#{URI.decode_www_form_component(pass)}"].pack('m0')
+      "Basic #{["#{URI.decode_www_form_component(user)}:#{URI.decode_www_form_component(pass)}"].pack('m0')}"
     end
 
     def make_request(method, path, body: nil)
@@ -813,16 +818,15 @@ module SwaigTest
         service_subclass?(c, service_class) && !pre_existing.include?(c)
       end
 
-      # Sort by class name so output is deterministic when a file defines
-      # multiple subclasses; users can disambiguate by setting `SERVICE`.
-      candidate = newly_defined.sort_by { |c| c.name.to_s }.last
+      # Pick the highest class name so output is deterministic when a file
+      # defines multiple subclasses; users can disambiguate by setting `SERVICE`.
+      candidate = newly_defined.max_by { |c| c.name.to_s }
 
       # Fallback: if no NEW subclass was defined (e.g. running the same
       # file twice in the same process), pick any user subclass.
       candidate ||= ObjectSpace.each_object(Class)
                                .select { |c| service_subclass?(c, service_class) }
-                               .sort_by { |c| c.name.to_s }
-                               .last
+                               .max_by { |c| c.name.to_s }
 
       return nil unless candidate
 
