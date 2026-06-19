@@ -1,0 +1,120 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Copyright (c) 2025 SignalWire
+#
+# Licensed under the MIT License.
+# See LICENSE file in the project root for full license information.
+
+#
+# emit-skills — the Ruby port's SKILL-DUMP program for the cross-port
+# SKILL-CONTRACT differ (porting-sdk/scripts/diff_skill_contracts.py).
+#
+# The sibling of bin/emit-corpus, for built-in SKILLS rather than
+# FunctionResult. For each covered skill it looks up the skill's factory in the
+# registry, instantiates it with the canonical config from the shared corpus
+# (porting-sdk/scripts/skill_contract_corpus.py — the single source of truth),
+# runs setup + register_tools, and prints ONE JSON object mapping
+#
+#   skill-id -> [ { "name": ..., "parameters": {...} }, ... ]
+#
+# to stdout. The differ runs this program, parses that object, and structurally
+# compares each skill's tool contract against the Python reference (which
+# registers the same tools). The differ normalises both sides (flat vs wrapped
+# params, required list, enum order); this program emits each tool's :name +
+# :parameters verbatim. DESCRIPTIONS are not part of the compared contract.
+# Mirrors the Go reference dump (signalwire-go/cmd/emit-skills/main.go).
+#
+# CONTRACT (mirrors the per-port dump contract in the differ's --help):
+#   - The id set MUST equal corpus_ids() (the differ rejects a mismatch).
+#   - Only stdout carries the JSON object; all logs/errors go to stderr.
+#
+# Run from the signalwire-ruby repo root:
+#
+#   bin/emit-skills      (or:  ruby bin/emit-skills)
+
+require 'json'
+require 'open3'
+require_relative '../lib/signalwire'
+
+# Locate porting-sdk/scripts/skill_contract_corpus.py via $PORTING_SDK /
+# $PORTING_SDK_PATH or the sibling ../porting-sdk (the adjacency convention),
+# run it, and return its CORPUS array (each entry {id, skill, config}).
+def load_corpus
+  corpus_search_bases.each do |base|
+    script = File.join(base, 'scripts', 'skill_contract_corpus.py')
+    next unless File.exist?(script)
+
+    out, status = Open3.capture2('python3', script)
+    raise "running #{script} failed (exit #{status.exitstatus})" unless status.success?
+
+    return JSON.parse(out).fetch('corpus')
+  end
+  raise 'cannot locate porting-sdk/scripts/skill_contract_corpus.py ' \
+        '(set PORTING_SDK / PORTING_SDK_PATH or clone porting-sdk adjacent)'
+end
+
+# porting-sdk roots to probe, in order: explicit env overrides, then the
+# sibling ../porting-sdk adjacency convention.
+def corpus_search_bases
+  [ENV.fetch('PORTING_SDK', nil), ENV.fetch('PORTING_SDK_PATH', nil)].compact +
+    [File.expand_path('../../porting-sdk', __dir__)]
+end
+
+# Instantiate one covered skill with the corpus config, run its lifecycle, and
+# return the list of {name, parameters} contracts it registers.
+def contracts_for(entry)
+  skill_name = entry.fetch('skill')
+  config     = entry.fetch('config', {})
+
+  factory = SignalWire::Skills::SkillRegistry.get_factory(skill_name)
+  raise "no registered factory for covered skill #{skill_name.inspect}" if factory.nil?
+
+  # Every builtin factory block takes a single `params` hash (arity 1) and
+  # constructs the skill with no agent — the corpus config IS that params hash.
+  # No agent is needed to enumerate tool contracts.
+  skill = factory.call(config)
+
+  unless skill.setup
+    raise "skill #{skill_name.inspect} setup returned false with the corpus " \
+          'config — config drift between the corpus and the port.'
+  end
+
+  Array(skill.register_tools).map { |tool| tool_contract(tool) }
+end
+
+# Normalise one registered tool to the {name, parameters, required} contract the
+# differ compares. Skills register tools in one of two shapes:
+#   * handler tool  — { name:, description:, parameters:, required?:, handler: }
+#     where `parameters` is the flat {param => {type, ...}} map and `required` is
+#     an optional separate list (mirrors agent define_tool(parameters:, required:)).
+#   * DataMap tool  — { datamap: <serialized SWAIG function Hash> }, where the
+#     name lives under "function" and the WRAPPED param schema (with its own
+#     `required` array) under "parameters".
+# The differ doesn't care which implementation a skill uses — only
+# name/param-name/param-type/enum/required. It reads `required` either from the
+# wrapped schema or from this top-level key, so forward it for handler tools.
+def tool_contract(tool)
+  if tool.key?(:datamap)
+    dm = tool.fetch(:datamap)
+    { 'name' => dm.fetch('function'), 'parameters' => dm['parameters'] || {} }
+  else
+    contract = { 'name' => tool.fetch(:name), 'parameters' => tool[:parameters] || {} }
+    contract['required'] = Array(tool[:required]) if tool[:required]
+    contract
+  end
+end
+
+def main
+  # Ensure all built-in skill factories are registered before lookup.
+  SignalWire::Skills::SkillRegistry.register_builtins!
+
+  result = load_corpus.to_h { |entry| [entry.fetch('id'), contracts_for(entry)] }
+
+  puts JSON.generate(result)
+rescue StandardError => e
+  warn "emit-skills: #{e.message}"
+  exit 1
+end
+
+main if __FILE__ == $PROGRAM_NAME

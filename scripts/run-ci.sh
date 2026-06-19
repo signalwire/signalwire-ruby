@@ -15,6 +15,7 @@
 #   8. lint gate                          — rubocop, zero offenses (the burndown floor)
 #   9. doc-audit gate                     — porting-sdk audit_docs.py
 #  10. surface-diff gate                  — porting-sdk diff_port_surface.py
+#  11. skill-contract gate                — porting-sdk diff_skill_contracts.py
 
 set -u
 set -o pipefail
@@ -201,6 +202,20 @@ surface_diff_gate() {
 }
 run_gate "SURFACE-DIFF" "diff_port_surface vs python reference" \
     surface_diff_gate
+
+# Gate 11: SKILL-CONTRACT — the surface/drift/emission gates see signatures +
+# symbol names + FunctionResult.to_dict(); NONE sees a built-in skill's SWAIG
+# tool contract ({name, parameters, required, enum} each skill registers). This
+# differ closes that gap: it builds the Python oracle by instantiating each
+# covered reference skill, runs the Ruby skill-dump program (bin/emit-skills,
+# which reads the SAME shared corpus), and structurally compares the two.
+# DESCRIPTIONS + implementation (handler vs DataMap) are not compared — only
+# name/param-name/param-type/enum/required. Mirrors the go/dotnet SKILL-CONTRACT
+# gate. Same prereqs as EMISSION (signalwire-python adjacent; no network).
+run_gate "SKILL-CONTRACT" "diff_skill_contracts vs python reference" \
+    python3 "$PORTING_SDK_DIR/scripts/diff_skill_contracts.py" \
+        --dump-cmd "bundle exec ruby bin/emit-skills" \
+        --port-repo "$PORT_ROOT"
 
 if [ -z "$FAILED_GATES" ]; then
     echo "==> CI PASS"

@@ -67,6 +67,7 @@ module SignalWire
             name: "#{@tool_prefix}scrape_url",
             description: 'Extract text content from a single web page',
             parameters: { 'url' => { 'type' => 'string', 'description' => 'The URL to scrape' } },
+            required: ['url'],
             handler: method(:handle_scrape)
           }
         end
@@ -76,6 +77,7 @@ module SignalWire
             name: "#{@tool_prefix}crawl_site",
             description: 'Crawl multiple pages starting from a URL',
             parameters: { 'start_url' => { 'type' => 'string', 'description' => 'Starting URL for the crawl' } },
+            required: ['start_url'],
             handler: method(:handle_crawl)
           }
         end
@@ -85,6 +87,7 @@ module SignalWire
             name: "#{@tool_prefix}extract_structured_data",
             description: 'Extract specific data from a web page using selectors',
             parameters: { 'url' => { 'type' => 'string', 'description' => 'The URL to scrape' } },
+            required: ['url'],
             handler: method(:handle_extract)
           }
         end
