@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'lib/signalwire/version'
 
 # Published as `signalwire-sdk` on RubyGems because the `signalwire`
@@ -9,7 +11,8 @@ Gem::Specification.new do |s|
   s.name        = 'signalwire-sdk'
   s.version     = SignalWire::VERSION
   s.summary     = 'SignalWire AI Agents SDK'
-  s.description = 'A Ruby framework for building, deploying, and managing AI agents as microservices that interact with the SignalWire platform.'
+  s.description = 'A Ruby framework for building, deploying, and managing AI agents ' \
+                  'as microservices that interact with the SignalWire platform.'
   s.authors     = ['SignalWire']
   s.email       = 'support@signalwire.com'
   s.homepage    = 'https://github.com/signalwire/signalwire-ruby'
@@ -27,12 +30,8 @@ Gem::Specification.new do |s|
   s.add_dependency 'webrick', '>= 1.7'
   s.add_dependency 'websocket-client-simple', '>= 0.8'
 
-  # Development dependencies
-  s.add_development_dependency 'minitest', '>= 5.0'
-  s.add_development_dependency 'rack-test', '>= 2.0'
-  s.add_development_dependency 'rake', '>= 13.0'
-  # Lint/format quality floor (FMT + LINT gates in scripts/run-ci.sh).
-  s.add_development_dependency 'rubocop', '>= 1.80'
-  s.add_development_dependency 'rubocop-minitest', '>= 0.38'
-  s.add_development_dependency 'rubocop-performance', '>= 1.25'
+  # Development dependencies are declared in the Gemfile (not here), per
+  # RuboCop's Gemspec/DevelopmentDependencies: keeping them out of the gemspec
+  # avoids imposing the test/lint toolchain on consumers who install the gem.
+  s.metadata['rubygems_mfa_required'] = 'true'
 end

@@ -11,6 +11,11 @@
 #   4. surface-fresh gate                 — porting-sdk check_surface_freshness.py
 #   5. no-cheat gate                      — porting-sdk audit_no_cheat_tests.py
 #   6. emission gate                      — porting-sdk diff_port_emission.py
+#   7. fmt gate                           — rubocop (local: --autocorrect; CI: check)
+#   8. lint gate                          — rubocop, zero offenses (the burndown floor)
+#   9. doc-audit gate                     — porting-sdk audit_docs.py
+#  10. surface-diff gate                  — porting-sdk diff_port_surface.py
+#  11. skill-contract gate                — porting-sdk diff_skill_contracts.py
 
 set -u
 set -o pipefail
@@ -116,7 +121,61 @@ run_gate "EMISSION" "diff_port_emission vs python oracle" \
     python3 "$PORTING_SDK_DIR/scripts/diff_port_emission.py" \
         --dump-cmd "ruby bin/emit-corpus"
 
-# Gate 7: surface-diff — diff the port's public surface against the Python
+# Gate 7: FMT — the language format gate (ruby: rubocop). RuboCop is both
+# formatter and linter; here it wears the "format" face. Source-style only and
+# proven surface/emission-neutral (a reformat leaves port_signatures.json +
+# port_surface.json byte-identical, and EMISSION 81/81 — verified during the
+# burndown). Mirrors the go/ts FMT shape:
+#   * LOCAL ($CI unset)  → `rubocop --autocorrect`: reformats your working tree
+#     in place so you never hand-run it; notes if it changed files.
+#   * CI ($CI=true)      → `rubocop` (read-only): FAILS if any offense reached CI.
+# lib/ + tests/ were burned to zero earlier; the bin/ tooling + Gemfile/gemspec
+# were brought to zero in the FMT/LINT rollout.
+fmt_gate() {
+    if [ -n "${CI:-}" ]; then
+        bundle exec rubocop
+    else
+        bundle exec rubocop --autocorrect >/dev/null
+        if ! git diff --quiet 2>/dev/null; then
+            echo "    (FMT auto-applied formatting to your working tree — review & stage)"
+        fi
+        # A residual offense rubocop can't autocorrect must still fail the gate.
+        bundle exec rubocop
+    fi
+}
+run_gate "FMT" "rubocop (local: --autocorrect; CI: check)" fmt_gate
+
+# Gate 8: LINT — the language lint gate (ruby: rubocop, zero offenses). This is
+# the blocking quality floor: the full cop set in .rubocop.yml burned to zero by
+# hand (the whole-cop DISABLE list there is short + justified — a cop is off ONLY
+# when obeying it would change the SWAIG wire bytes / rename a wire token, or
+# fights faithful Python-reference parity; type/shape + naming idiom is NEVER
+# suppressed — idiom wins and the cross-port DRIFT checker is taught the
+# equivalence). Mirrors the go golangci / rust clippy blocking-lint gate.
+#
+# Inline `# rubocop:disable Cop` directives ARE allowed when site-scoped (a
+# disable/enable pair, or a same-line disable) and carry a rationale — that's the
+# preferred form over turning a whole cop off. The honesty guard against a
+# disable that hides a real offense is rubocop's OWN Lint/RedundantCopDisable
+# Directive cop (enabled): it fails the run if any disable suppresses a non-
+# offense, so a gratuitous/over-broad disable can't pass this gate. No hand-rolled
+# grep guard — it can't tell a justified site-disable from a blanket one, and a
+# naive one wrongly fails wire-critical paired disables in lib/.
+run_gate "LINT" "rubocop zero offenses (lint gate)" \
+    bundle exec rubocop
+
+# Gate 9: DOC-AUDIT — every method/class referenced in docs/ + examples/ fenced
+# code blocks must resolve to a real symbol in the port surface (catches
+# phantom-API doc promises). Uses the committed port_surface.json (the
+# SURFACE-FRESH gate above already proved it is fresh) + DOC_AUDIT_IGNORE.md for
+# intentional non-symbol references.
+run_gate "DOC-AUDIT" "audit_docs vs port_surface.json" \
+    python3 "$PORTING_SDK_DIR/scripts/audit_docs.py" \
+        --root "$PORT_ROOT" \
+        --surface "$PORT_ROOT/port_surface.json" \
+        --ignore "$PORT_ROOT/DOC_AUDIT_IGNORE.md"
+
+# Gate 10: surface-diff — diff the port's public surface against the Python
 # reference (omissions + additions). The signature DRIFT gate (Layer A) checks
 # method *signatures*; this checks surface *membership* — it catches public
 # symbols the port has that Python doesn't (e.g. helpers leaked onto the surface
@@ -143,6 +202,20 @@ surface_diff_gate() {
 }
 run_gate "SURFACE-DIFF" "diff_port_surface vs python reference" \
     surface_diff_gate
+
+# Gate 11: SKILL-CONTRACT — the surface/drift/emission gates see signatures +
+# symbol names + FunctionResult.to_dict(); NONE sees a built-in skill's SWAIG
+# tool contract ({name, parameters, required, enum} each skill registers). This
+# differ closes that gap: it builds the Python oracle by instantiating each
+# covered reference skill, runs the Ruby skill-dump program (bin/emit-skills,
+# which reads the SAME shared corpus), and structurally compares the two.
+# DESCRIPTIONS + implementation (handler vs DataMap) are not compared — only
+# name/param-name/param-type/enum/required. Mirrors the go/dotnet SKILL-CONTRACT
+# gate. Same prereqs as EMISSION (signalwire-python adjacent; no network).
+run_gate "SKILL-CONTRACT" "diff_skill_contracts vs python reference" \
+    python3 "$PORTING_SDK_DIR/scripts/diff_skill_contracts.py" \
+        --dump-cmd "bundle exec ruby bin/emit-skills" \
+        --port-repo "$PORT_ROOT"
 
 if [ -z "$FAILED_GATES" ]; then
     echo "==> CI PASS"
