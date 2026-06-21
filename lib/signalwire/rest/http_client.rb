@@ -155,8 +155,20 @@ module SignalWire
 
     # Standard CRUD resource with list/create/get/update/delete.
     class CrudResource < BaseResource
+      # @update_method is a class-INSTANCE variable, which Ruby subclasses do NOT
+      # inherit. FabricResourcePUT sets it to 'PUT', but its subclasses
+      # (CallFlowsResource, ConferenceRoomsResource, CxmlApplicationsResource,
+      # SubscribersResource) would otherwise fall back to 'PATCH' and send the
+      # wrong verb to PUT-only routes. Walk the ancestor chain so the nearest
+      # ancestor that set it wins — mirroring Python's inherited class attribute
+      # `_update_method`.
       def self.update_method
-        @update_method || 'PATCH'
+        return @update_method if defined?(@update_method) && @update_method
+        if superclass.respond_to?(:update_method)
+          superclass.update_method
+        else
+          'PATCH'
+        end
       end
 
       class << self
