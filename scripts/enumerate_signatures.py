@@ -312,6 +312,10 @@ RUBY_MODULE_LEVEL_OVERRIDES = {
     # mirrors Python's module-level webhook_validator helpers under
     # signalwire/core/security/.
     "SignalWire::Security::WebhookValidator": "signalwire.core.security.webhook_validator",
+    # SecurityUtils is a Ruby module whose self.* methods mirror Python's
+    # module-level free functions in signalwire.core.security.security_utils
+    # (filter_sensitive_headers, redact_url, is_valid_hostname).
+    "SignalWire::Security::SecurityUtils": "signalwire.core.security.security_utils",
 }
 
 # Port-only Ruby modules that have no Python equivalent. Project their
