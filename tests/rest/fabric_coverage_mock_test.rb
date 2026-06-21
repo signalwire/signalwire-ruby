@@ -60,6 +60,7 @@ module FabricCoverageHelpers
     assert_equal status, err.status_code
     assert_equal status, @mock.last.response_status
     assert_equal endpoint_id, @mock.last.matched_route
+    err
   end
 
   # Shared CRUD+addresses success coverage for a FabricResource accessor whose
@@ -113,6 +114,7 @@ class FabricAiAgentsCoverageMockTest < Minitest::Test
 
   def test_create_error
     assert_error('fabric.create_ai_agent', status: 422) { @client.fabric.ai_agents.create(name: 'a') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_get_success = crud_get(:ai_agents, 'ai_agents', 'ai_agent', 'aa-1')
@@ -121,6 +123,7 @@ class FabricAiAgentsCoverageMockTest < Minitest::Test
 
   def test_update_error
     assert_error('fabric.update_ai_agent') { @client.fabric.ai_agents.update('aa-1', name: 'b') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_delete_success = crud_delete(:ai_agents, 'ai_agents', 'ai_agent', 'aa-1')
@@ -129,6 +132,7 @@ class FabricAiAgentsCoverageMockTest < Minitest::Test
 
   def test_list_addresses_error
     assert_error('fabric.list_ai_agent_addresses') { @client.fabric.ai_agents.list_addresses('aa-1') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 end
 
@@ -143,6 +147,7 @@ class FabricSipEndpointsCoverageMockTest < Minitest::Test
 
   def test_create_error
     assert_error('fabric.create_sip_endpoint', status: 422) { @client.fabric.sip_endpoints.create(username: 'u') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_get_success = crud_get(:sip_endpoints, 'sip_endpoints', 'sip_endpoint', 'se-1')
@@ -150,10 +155,13 @@ class FabricSipEndpointsCoverageMockTest < Minitest::Test
 
   def test_update_success
     crud_update(:sip_endpoints, 'sip_endpoints', 'sip_endpoint', 'se-1', 'PUT', key: :username, val: 'v')
+
+    refute_nil @mock.last.matched_route, 'no matched_route recorded'
   end
 
   def test_update_error
     assert_error('fabric.update_sip_endpoint') { @client.fabric.sip_endpoints.update('se-1', username: 'v') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_delete_success = crud_delete(:sip_endpoints, 'sip_endpoints', 'sip_endpoint', 'se-1')
@@ -161,10 +169,13 @@ class FabricSipEndpointsCoverageMockTest < Minitest::Test
 
   def test_list_addresses_success
     crud_list_addresses(:sip_endpoints, 'sip_endpoints', 'sip_endpoint', 'se-1')
+
+    refute_nil @mock.last.matched_route, 'no matched_route recorded'
   end
 
   def test_list_addresses_error
     assert_error('fabric.list_sip_endpoint_addresses') { @client.fabric.sip_endpoints.list_addresses('se-1') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 end
 
@@ -179,6 +190,7 @@ class FabricSipGatewaysCoverageMockTest < Minitest::Test
 
   def test_create_error
     assert_error('fabric.create_sip_gateway', status: 422) { @client.fabric.sip_gateways.create(name: 'g') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_get_success = crud_get(:sip_gateways, 'sip_gateways', 'sip_gateway', 'sg-1')
@@ -187,10 +199,13 @@ class FabricSipGatewaysCoverageMockTest < Minitest::Test
   def test_update_success
     crud_update(:sip_gateways, 'sip_gateways', 'sip_gateway', 'sg-1', 'PATCH', key: :name,
                                                                                val: 'h')
+
+    refute_nil @mock.last.matched_route, 'no matched_route recorded'
   end
 
   def test_update_error
     assert_error('fabric.update_sip_gateway') { @client.fabric.sip_gateways.update('sg-1', name: 'h') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_delete_success = crud_delete(:sip_gateways, 'sip_gateways', 'sip_gateway', 'sg-1')
@@ -208,6 +223,7 @@ class FabricSwmlScriptsCoverageMockTest < Minitest::Test
 
   def test_create_error
     assert_error('fabric.create_swml_script', status: 422) { @client.fabric.swml_scripts.create(name: 's') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_get_success = crud_get(:swml_scripts, 'swml_scripts', 'swml_script', 'ss-1')
@@ -216,10 +232,13 @@ class FabricSwmlScriptsCoverageMockTest < Minitest::Test
   def test_update_success
     crud_update(:swml_scripts, 'swml_scripts', 'swml_script', 'ss-1', 'PUT', key: :name,
                                                                              val: 't')
+
+    refute_nil @mock.last.matched_route, 'no matched_route recorded'
   end
 
   def test_update_error
     assert_error('fabric.update_swml_script') { @client.fabric.swml_scripts.update('ss-1', name: 't') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_delete_success = crud_delete(:swml_scripts, 'swml_scripts', 'swml_script', 'ss-1')
@@ -228,6 +247,7 @@ class FabricSwmlScriptsCoverageMockTest < Minitest::Test
 
   def test_list_addresses_error
     assert_error('fabric.list_swml_script_addresses') { @client.fabric.swml_scripts.list_addresses('ss-1') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 end
 
@@ -242,6 +262,7 @@ class FabricCxmlScriptsCoverageMockTest < Minitest::Test
 
   def test_create_error
     assert_error('fabric.create_cxml_script', status: 422) { @client.fabric.cxml_scripts.create(name: 'c') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_get_success = crud_get(:cxml_scripts, 'cxml_scripts', 'cxml_script', 'cs-1')
@@ -250,10 +271,13 @@ class FabricCxmlScriptsCoverageMockTest < Minitest::Test
   def test_update_success
     crud_update(:cxml_scripts, 'cxml_scripts', 'cxml_script', 'cs-1', 'PUT', key: :name,
                                                                              val: 'd')
+
+    refute_nil @mock.last.matched_route, 'no matched_route recorded'
   end
 
   def test_update_error
     assert_error('fabric.update_cxml_script') { @client.fabric.cxml_scripts.update('cs-1', name: 'd') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_delete_success = crud_delete(:cxml_scripts, 'cxml_scripts', 'cxml_script', 'cs-1')
@@ -262,6 +286,7 @@ class FabricCxmlScriptsCoverageMockTest < Minitest::Test
 
   def test_list_addresses_error
     assert_error('fabric.list_cxml_script_addresses') { @client.fabric.cxml_scripts.list_addresses('cs-1') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 end
 
@@ -274,51 +299,65 @@ class FabricFreeswitchConnectorsCoverageMockTest < Minitest::Test
 
   def test_list_error
     assert_error('fabric.list_freeswitch_connectors') { @client.fabric.freeswitch_connectors.list }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_create_success
     crud_create(:freeswitch_connectors, 'freeswitch_connectors', 'freeswitch_connector', key: :name, val: 'f')
+
+    refute_nil @mock.last.matched_route, 'no matched_route recorded'
   end
 
   def test_create_error
     assert_error('fabric.create_freeswitch_connector', status: 422) do
       @client.fabric.freeswitch_connectors.create(name: 'f')
     end
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_get_success = crud_get(:freeswitch_connectors, 'freeswitch_connectors', 'freeswitch_connector', 'fc-1')
 
   def test_get_error
     assert_error('fabric.get_freeswitch_connector') { @client.fabric.freeswitch_connectors.get('fc-1') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_update_success
     crud_update(:freeswitch_connectors, 'freeswitch_connectors', 'freeswitch_connector', 'fc-1', 'PUT',
                 key: :name, val: 'g')
+
+    refute_nil @mock.last.matched_route, 'no matched_route recorded'
   end
 
   def test_update_error
     assert_error('fabric.update_freeswitch_connector') do
       @client.fabric.freeswitch_connectors.update('fc-1', name: 'g')
     end
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_delete_success
     crud_delete(:freeswitch_connectors, 'freeswitch_connectors', 'freeswitch_connector', 'fc-1')
+
+    refute_nil @mock.last.matched_route, 'no matched_route recorded'
   end
 
   def test_delete_error
     assert_error('fabric.delete_freeswitch_connector') { @client.fabric.freeswitch_connectors.delete('fc-1') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_list_addresses_success
     crud_list_addresses(:freeswitch_connectors, 'freeswitch_connectors', 'freeswitch_connector', 'fc-1')
+
+    refute_nil @mock.last.matched_route, 'no matched_route recorded'
   end
 
   def test_list_addresses_error
     assert_error('fabric.list_freeswitch_connector_addresses') do
       @client.fabric.freeswitch_connectors.list_addresses('fc-1')
     end
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 end
 
@@ -332,10 +371,13 @@ class FabricRelayApplicationsCoverageMockTest < Minitest::Test
 
   def test_create_success
     crud_create(:relay_applications, 'relay_applications', 'relay_application', key: :name, val: 'r')
+
+    refute_nil @mock.last.matched_route, 'no matched_route recorded'
   end
 
   def test_create_error
     assert_error('fabric.create_relay_application', status: 422) { @client.fabric.relay_applications.create(name: 'r') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_get_success = crud_get(:relay_applications, 'relay_applications', 'relay_application', 'ra-1')
@@ -343,26 +385,33 @@ class FabricRelayApplicationsCoverageMockTest < Minitest::Test
 
   def test_update_success
     crud_update(:relay_applications, 'relay_applications', 'relay_application', 'ra-1', 'PUT', key: :name, val: 's')
+
+    refute_nil @mock.last.matched_route, 'no matched_route recorded'
   end
 
   def test_update_error
     assert_error('fabric.update_relay_application') { @client.fabric.relay_applications.update('ra-1', name: 's') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_delete_success = crud_delete(:relay_applications, 'relay_applications', 'relay_application', 'ra-1')
 
   def test_delete_error
     assert_error('fabric.delete_relay_application') { @client.fabric.relay_applications.delete('ra-1') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_list_addresses_success
     crud_list_addresses(:relay_applications, 'relay_applications', 'relay_application', 'ra-1')
+
+    refute_nil @mock.last.matched_route, 'no matched_route recorded'
   end
 
   def test_list_addresses_error
     assert_error('fabric.list_relay_application_addresses') do
       @client.fabric.relay_applications.list_addresses('ra-1')
     end
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 end
 
@@ -396,10 +445,13 @@ class FabricSwmlWebhooksCoverageMockTest < Minitest::Test
   def test_update_success
     crud_update(:swml_webhooks, 'swml_webhooks', 'swml_webhook', 'sw-1', 'PATCH', key: :name,
                                                                                   val: 'x')
+
+    refute_nil @mock.last.matched_route, 'no matched_route recorded'
   end
 
   def test_update_error
     assert_error('fabric.update_swml_webhook') { @client.fabric.swml_webhooks.update('sw-1', name: 'x') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_delete_success = crud_delete(:swml_webhooks, 'swml_webhooks', 'swml_webhook', 'sw-1')
@@ -408,6 +460,7 @@ class FabricSwmlWebhooksCoverageMockTest < Minitest::Test
 
   def test_list_addresses_error
     assert_error('fabric.list_swml_webhook_addresses') { @client.fabric.swml_webhooks.list_addresses('sw-1') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 end
 
@@ -441,10 +494,13 @@ class FabricCxmlWebhooksCoverageMockTest < Minitest::Test
   def test_update_success
     crud_update(:cxml_webhooks, 'cxml_webhooks', 'cxml_webhook', 'cw-1', 'PATCH', key: :name,
                                                                                   val: 'cx')
+
+    refute_nil @mock.last.matched_route, 'no matched_route recorded'
   end
 
   def test_update_error
     assert_error('fabric.update_cxml_webhook') { @client.fabric.cxml_webhooks.update('cw-1', name: 'cx') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_delete_success = crud_delete(:cxml_webhooks, 'cxml_webhooks', 'cxml_webhook', 'cw-1')
@@ -453,6 +509,7 @@ class FabricCxmlWebhooksCoverageMockTest < Minitest::Test
 
   def test_list_addresses_error
     assert_error('fabric.list_cxml_webhook_addresses') { @client.fabric.cxml_webhooks.list_addresses('cw-1') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 end
 
@@ -475,24 +532,31 @@ class FabricCxmlApplicationsCoverageMockTest < Minitest::Test
 
   def test_update_success
     crud_update(:cxml_applications, 'cxml_applications', 'cxml_application', 'ca-1', 'PUT', key: :name, val: 'caz')
+
+    refute_nil @mock.last.matched_route, 'no matched_route recorded'
   end
 
   def test_update_error
     assert_error('fabric.update_cxml_application') { @client.fabric.cxml_applications.update('ca-1', name: 'caz') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_delete_success = crud_delete(:cxml_applications, 'cxml_applications', 'cxml_application', 'ca-1')
 
   def test_delete_error
     assert_error('fabric.delete_cxml_application') { @client.fabric.cxml_applications.delete('ca-1') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_list_addresses_success
     crud_list_addresses(:cxml_applications, 'cxml_applications', 'cxml_application', 'ca-1')
+
+    refute_nil @mock.last.matched_route, 'no matched_route recorded'
   end
 
   def test_list_addresses_error
     assert_error('fabric.list_cxml_application_addresses') { @client.fabric.cxml_applications.list_addresses('ca-1') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 end
 
@@ -507,6 +571,7 @@ class FabricCallFlowsCoverageMockTest < Minitest::Test
 
   def test_create_error
     assert_error('fabric.create_call_flow', status: 422) { @client.fabric.call_flows.create(name: 'cf') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_get_success = crud_get(:call_flows, 'call_flows', 'call_flow', 'cf-1')
@@ -515,6 +580,7 @@ class FabricCallFlowsCoverageMockTest < Minitest::Test
 
   def test_update_error
     assert_error('fabric.update_call_flow') { @client.fabric.call_flows.update('cf-1', name: 'cfz') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_delete_success = crud_delete(:call_flows, 'call_flows', 'call_flow', 'cf-1')
@@ -528,6 +594,7 @@ class FabricCallFlowsCoverageMockTest < Minitest::Test
 
   def test_list_addresses_error
     assert_error('fabric.list_call_flow_addresses') { @client.fabric.call_flows.list_addresses('cf-1') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_list_versions_success
@@ -537,6 +604,7 @@ class FabricCallFlowsCoverageMockTest < Minitest::Test
 
   def test_list_versions_error
     assert_error('fabric.list_call_flow_versions') { @client.fabric.call_flows.list_versions('cf-1') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_deploy_version_success
@@ -549,6 +617,7 @@ class FabricCallFlowsCoverageMockTest < Minitest::Test
     assert_error('fabric.deploy_call_flow_version', status: 422) do
       @client.fabric.call_flows.deploy_version('cf-1', version_id: 'v1')
     end
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 end
 
@@ -562,10 +631,13 @@ class FabricConferenceRoomsCoverageMockTest < Minitest::Test
 
   def test_create_success
     crud_create(:conference_rooms, 'conference_rooms', 'conference_room', key: :name, val: 'cr')
+
+    refute_nil @mock.last.matched_route, 'no matched_route recorded'
   end
 
   def test_create_error
     assert_error('fabric.create_conference_room', status: 422) { @client.fabric.conference_rooms.create(name: 'cr') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_get_success = crud_get(:conference_rooms, 'conference_rooms', 'conference_room', 'cr-1')
@@ -573,16 +645,20 @@ class FabricConferenceRoomsCoverageMockTest < Minitest::Test
 
   def test_update_success
     crud_update(:conference_rooms, 'conference_rooms', 'conference_room', 'cr-1', 'PUT', key: :name, val: 'crz')
+
+    refute_nil @mock.last.matched_route, 'no matched_route recorded'
   end
 
   def test_update_error
     assert_error('fabric.update_conference_room') { @client.fabric.conference_rooms.update('cr-1', name: 'crz') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_delete_success = crud_delete(:conference_rooms, 'conference_rooms', 'conference_room', 'cr-1')
 
   def test_delete_error
     assert_error('fabric.delete_conference_room') { @client.fabric.conference_rooms.delete('cr-1') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   # singular 'conference_room' segment for the addresses sub-path.
@@ -593,6 +669,7 @@ class FabricConferenceRoomsCoverageMockTest < Minitest::Test
 
   def test_list_addresses_error
     assert_error('fabric.list_conference_room_addresses') { @client.fabric.conference_rooms.list_addresses('cr-1') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 end
 
@@ -607,6 +684,7 @@ class FabricSubscribersCoverageMockTest < Minitest::Test
 
   def test_create_error
     assert_error('fabric.create_subscriber', status: 422) { @client.fabric.subscribers.create(email: 's@e.com') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_get_success = crud_get(:subscribers, 'subscribers', 'subscriber', 'sub-1')
@@ -614,10 +692,13 @@ class FabricSubscribersCoverageMockTest < Minitest::Test
 
   def test_update_success
     crud_update(:subscribers, 'subscribers', 'subscriber', 'sub-1', 'PUT', key: :email, val: 'n@e.com')
+
+    refute_nil @mock.last.matched_route, 'no matched_route recorded'
   end
 
   def test_update_error
     assert_error('fabric.update_subscriber') { @client.fabric.subscribers.update('sub-1', email: 'n@e.com') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_delete_success = crud_delete(:subscribers, 'subscribers', 'subscriber', 'sub-1')
@@ -626,6 +707,7 @@ class FabricSubscribersCoverageMockTest < Minitest::Test
 
   def test_list_addresses_error
     assert_error('fabric.list_subscriber_addresses') { @client.fabric.subscribers.list_addresses('sub-1') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 end
 
@@ -642,6 +724,7 @@ class FabricSubscriberSipEndpointsCoverageMockTest < Minitest::Test
 
   def test_list_error
     assert_error('fabric.list_subscriber_sip_endpoints') { @client.fabric.subscribers.list_sip_endpoints('sub-1') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_create_success
@@ -654,6 +737,7 @@ class FabricSubscriberSipEndpointsCoverageMockTest < Minitest::Test
     assert_error('fabric.create_subscriber_sip_endpoint', status: 422) do
       @client.fabric.subscribers.create_sip_endpoint('sub-1', username: 'u')
     end
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_get_success
@@ -665,6 +749,7 @@ class FabricSubscriberSipEndpointsCoverageMockTest < Minitest::Test
     assert_error('fabric.get_subscriber_sip_endpoint') do
       @client.fabric.subscribers.get_sip_endpoint('sub-1', 'ep-1')
     end
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_update_success
@@ -677,6 +762,7 @@ class FabricSubscriberSipEndpointsCoverageMockTest < Minitest::Test
     assert_error('fabric.update_subscriber_sip_endpoint') do
       @client.fabric.subscribers.update_sip_endpoint('sub-1', 'ep-1', username: 'r')
     end
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_delete_success
@@ -688,6 +774,7 @@ class FabricSubscriberSipEndpointsCoverageMockTest < Minitest::Test
     assert_error('fabric.delete_subscriber_sip_endpoint') do
       @client.fabric.subscribers.delete_sip_endpoint('sub-1', 'ep-1')
     end
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 end
 
@@ -723,6 +810,7 @@ class FabricResourcesCoverageMockTest < Minitest::Test
 
   def test_list_addresses_error
     assert_error('fabric.list_resource_addresses') { @client.fabric.resources.list_addresses('res-1') }
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_assign_phone_route_success
@@ -753,6 +841,7 @@ class FabricResourcesCoverageMockTest < Minitest::Test
     assert_error('fabric.assign_resource_domain_application', status: 422) do
       @client.fabric.resources.assign_domain_application('res-1', domain_application_id: 'da-1')
     end
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_addresses_list_success
@@ -784,6 +873,7 @@ class FabricTokensCoverageMockTest < Minitest::Test
     assert_error('fabric.create_subscriber_token', status: 422) do
       @client.fabric.tokens.create_subscriber_token(reference: 'r')
     end
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_refresh_subscriber_token_success
@@ -796,6 +886,7 @@ class FabricTokensCoverageMockTest < Minitest::Test
     assert_error('fabric.refresh_subscriber_token', status: 422) do
       @client.fabric.tokens.refresh_subscriber_token(refresh_token: 'rt')
     end
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_create_invite_token_success
@@ -808,6 +899,7 @@ class FabricTokensCoverageMockTest < Minitest::Test
     assert_error('fabric.create_subscriber_invite_token', status: 422) do
       @client.fabric.tokens.create_invite_token(email: 'i@e.com')
     end
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_create_guest_token_success
@@ -820,6 +912,7 @@ class FabricTokensCoverageMockTest < Minitest::Test
     assert_error('fabric.create_subscriber_guest_token', status: 422) do
       @client.fabric.tokens.create_guest_token(allowed_addresses: %w[a-1])
     end
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 
   def test_create_embed_token_success
@@ -832,5 +925,6 @@ class FabricTokensCoverageMockTest < Minitest::Test
     assert_error('fabric.create_embeds_token', status: 422) do
       @client.fabric.tokens.create_embed_token(allowed_addresses: %w[a-1 a-2])
     end
+    refute_nil @mock.last.response_status, 'error not journaled'
   end
 end
