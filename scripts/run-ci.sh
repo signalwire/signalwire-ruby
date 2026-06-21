@@ -113,6 +113,39 @@ run_gate "SURFACE-FRESH" "check_surface_freshness vs committed surface" \
 run_gate "NO-CHEAT" "audit_no_cheat_tests" \
     python3 "$PORTING_SDK_DIR/scripts/audit_no_cheat_tests.py" --root "$PORT_ROOT"
 
+# Gate 5b: REST-COVERAGE — every implemented canonical REST route exercised with
+# BOTH a success (2xx) AND an error (4xx/5xx) response on the correct path
+# (parity). Self-contained: spins its own mock, runs the rest tests serially
+# against it (one shared journal), then runs porting-sdk's rest_coverage checker
+# with the shared baseline + this port's REST_COVERAGE_GAPS.md. A stale allowlist
+# entry (route now covered) fails the gate. Same shape as python/java/ts/go.
+rest_coverage_gate() {
+    local port=8769
+    local mock_pkg_parent="$PORTING_SDK_DIR/test_harness/mock_signalwire"
+    export PYTHONPATH="$mock_pkg_parent${PYTHONPATH:+:$PYTHONPATH}"
+    python3 -m mock_signalwire --host 127.0.0.1 --port "$port" --log-level error \
+        >/tmp/rest_cov_mock_ruby.$$.log 2>&1 &
+    local mock_pid=$!
+    # shellcheck disable=SC2064
+    trap "kill $mock_pid 2>/dev/null" RETURN
+    local i
+    for i in $(seq 1 60); do
+        if python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:$port/__mock__/health',timeout=1)" 2>/dev/null; then
+            break
+        fi
+        sleep 0.5
+    done
+    python3 -c "import urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:$port/__mock__/journal/reset',method='POST'),timeout=5).read()"
+    MOCK_SIGNALWIRE_PORT="$port" bundle exec rake test || return 1
+    python3 -m mock_signalwire.rest_coverage \
+        --mock-url "http://127.0.0.1:$port" \
+        --spec-root "$PORTING_SDK_DIR/rest-apis" \
+        --allowlist "$PORTING_SDK_DIR/REST_COVERAGE_BASELINE.md" \
+        --allowlist "$PORT_ROOT/REST_COVERAGE_GAPS.md"
+}
+run_gate "REST-COVERAGE" "every implemented REST route covered success+error (parity + allowlist)" \
+    rest_coverage_gate
+
 # Gate 6: emission gate — byte-compare native FunctionResult to_h against the
 # Python to_dict() oracle over the shared 81-entry corpus. Closes the behavioral
 # (action shape/keys/values) gap the surface drift gate cannot see. Run with
