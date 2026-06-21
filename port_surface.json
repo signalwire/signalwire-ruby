@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 2a06612d0b92fc28275c0c22a2bacd08e81e2ab6",
+  "generated_from": "signalwire-ruby @ 4ac3b40abacf9edca76c394980197640c950ee9c",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -319,6 +319,14 @@
         ]
       },
       "functions": []
+    },
+    "signalwire.core.security.security_utils": {
+      "classes": {},
+      "functions": [
+        "filter_sensitive_headers",
+        "is_valid_hostname",
+        "redact_url"
+      ]
     },
     "signalwire.core.security.session_manager": {
       "classes": {

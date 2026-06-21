@@ -167,7 +167,11 @@ RUBY_MODULE_TO_PYTHON = {
   # WebhookValidator is a Ruby module (with self.* methods) that mirrors
   # Python's module-level webhook_validator helpers under
   # signalwire/core/security/.
-  'SignalWire::Security::WebhookValidator' => 'signalwire.core.security.webhook_validator'
+  'SignalWire::Security::WebhookValidator' => 'signalwire.core.security.webhook_validator',
+  # SecurityUtils is a Ruby module (with self.* methods) mirroring Python's
+  # module-level free functions in signalwire.core.security.security_utils
+  # (filter_sensitive_headers, redact_url, is_valid_hostname).
+  'SignalWire::Security::SecurityUtils' => 'signalwire.core.security.security_utils'
 }.freeze
 
 # Ruby class name -> Python class name (when they differ).
