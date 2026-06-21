@@ -164,6 +164,7 @@ module SignalWire
       # `_update_method`.
       def self.update_method
         return @update_method if defined?(@update_method) && @update_method
+
         if superclass.respond_to?(:update_method)
           superclass.update_method
         else
