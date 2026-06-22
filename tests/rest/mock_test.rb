@@ -27,7 +27,6 @@ require_relative '../../lib/signalwire/rest/rest_client'
 module MockTest
   # Default port for the Ruby slot in the parallel SDK rollouts.
   # TS=8766, Java=8767, PHP=8768, Ruby=8769, Perl=8770, Rust=8771, C++=8772.
-  DEFAULT_PORT = 8769
 
   # Cap how long we wait for an externally-launched server to answer
   # /__mock__/health. The Python in-process harness boots in ~1s, but
@@ -252,7 +251,17 @@ module MockTest
         end
         return n if n&.positive?
       end
-      DEFAULT_PORT
+      # No env override: pick a FREE port (bind :0) rather than a hardcoded
+      # default that collides with a stale/concurrent mock and hangs the suite.
+      pick_free_port
+    end
+
+    def pick_free_port
+      require 'socket'
+      s = TCPServer.new('127.0.0.1', 0)
+      port = s.addr[1]
+      s.close
+      port
     end
 
     def probe_health(url)
