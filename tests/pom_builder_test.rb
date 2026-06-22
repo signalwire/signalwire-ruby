@@ -101,11 +101,17 @@ class PomBuilderTest < Minitest::Test
   end
 
   def test_subsection_to_nonexistent_parent
+    # Reference behavior (TS): the missing parent section is auto-created,
+    # then the subsection is attached under it.
     @agent.prompt_add_section('A', 'Body A')
     @agent.prompt_add_subsection('B', 'Sub', 'Body')
     prompt = @agent.get_prompt
 
-    assert_equal 1, prompt.length
-    refute prompt[0].key?('subsections')
+    assert_equal 2, prompt.length
+    parent_b = prompt.find { |s| s['title'] == 'B' }
+
+    refute_nil parent_b
+    assert_equal 1, parent_b['subsections'].length
+    assert_equal 'Sub', parent_b['subsections'][0]['title']
   end
 end

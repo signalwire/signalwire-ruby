@@ -379,14 +379,12 @@ module SignalWire
 
     # Add a subsection under a parent section.
     def prompt_add_subsection(parent_title, title, body = nil, bullets: nil)
-      parent = @pom_sections.find { |s| s['title'] == parent_title }
-      if parent
-        parent['subsections'] ||= []
-        sub = { 'title' => title }
-        sub['body']    = body    if body
-        sub['bullets'] = bullets if bullets
-        parent['subsections'] << sub
-      end
+      parent = find_or_create_section(parent_title)
+      parent['subsections'] ||= []
+      sub = { 'title' => title }
+      sub['body']    = body    if body
+      sub['bullets'] = bullets if bullets
+      parent['subsections'] << sub
       self
     end
 
@@ -1125,8 +1123,26 @@ module SignalWire
     end
 
     def set_function_includes(includes)
-      @function_includes = includes.dup if includes.is_a?(Array)
+      return self unless includes.is_a?(Array)
+
+      valid, dropped = includes.partition { |inc| valid_function_include?(inc) }
+      dropped.each { |inc| warn_dropped_function_include(inc) }
+      @function_includes = valid
       self
+    end
+
+    # An include is valid when it is a Hash carrying a truthy +url+ and a
+    # +functions+ array (mirrors TS setFunctionIncludes' per-entry filter).
+    def valid_function_include?(inc)
+      inc.is_a?(Hash) && inc['url'] && inc['functions'].is_a?(Array)
+    end
+
+    def warn_dropped_function_include(inc)
+      @logger.warn(
+        "invalid_function_include_dropped: #{inc.inspect}. " \
+        'set_function_includes entries must be a Hash with a "url" ' \
+        'and a "functions" array; this entry was dropped.'
+      )
     end
 
     def set_prompt_llm_params(**params)
@@ -1859,8 +1875,11 @@ module SignalWire
 
     def add_ai_prompt(config)
       prompt = get_prompt
+      if prompt.nil? || (prompt.respond_to?(:empty?) && prompt.empty?)
+        # Match TS: emit the default fallback prompt rather than omitting it.
+        prompt = "You are #{@name}, a helpful AI assistant."
+      end
       key = prompt.is_a?(Array) ? 'pom' : 'text'
-      return if prompt.nil? || prompt.empty?
 
       prompt_obj = { key => prompt }
       prompt_obj.merge!(@prompt_llm_params) unless @prompt_llm_params.empty?
@@ -2184,12 +2203,39 @@ module SignalWire
     end
 
     def invoke_summary_callback(request_data)
-      post_prompt_data = request_data['post_prompt_data']
-      summary = nil
-      summary = post_prompt_data['parsed'] || post_prompt_data['raw'] if post_prompt_data.is_a?(Hash)
+      summary = find_summary_in_post_data(request_data)
       @summary_callback.call(summary, request_data)
     rescue StandardError => e
       @logger.error "Post-prompt callback error: #{e.message}"
+    end
+
+    # Locate the summary in the post-prompt payload. Mirrors the extraction
+    # order used by the Python and TS ports:
+    #   1. top-level "summary" key
+    #   2. post_prompt_data["parsed"][0] (when parsed is a non-empty array)
+    #   3. post_prompt_data["raw"] (JSON-parsed when possible, else raw)
+    def find_summary_in_post_data(body)
+      return nil unless body.is_a?(Hash)
+      return body['summary'] if body['summary']
+
+      ppd = body['post_prompt_data']
+      ppd.is_a?(Hash) ? summary_from_post_prompt_data(ppd) : nil
+    end
+
+    # Second/third tiers of the summary lookup: parsed[0] then raw
+    # (JSON-parsed when possible, else the raw string).
+    def summary_from_post_prompt_data(ppd)
+      parsed = ppd['parsed']
+      return parsed[0] if parsed.is_a?(Array) && !parsed.empty?
+
+      raw = ppd['raw']
+      return nil unless raw
+
+      begin
+        JSON.parse(raw)
+      rescue StandardError
+        raw
+      end
     end
 
     # Handle debug events.
@@ -2307,5 +2353,7 @@ module SignalWire
     private :secure_token_ok?, :sym_or_str, :verb_entries, :warn_unexpected_function_result
     private :warn_unknown_filler_name, :warn_unknown_filler_names, :webrick_opts
     private :answer_entry, :record_call_entry, :webrick_handler
+    private :valid_function_include?, :warn_dropped_function_include, :find_summary_in_post_data
+    private :summary_from_post_prompt_data
   end
 end
