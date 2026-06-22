@@ -1208,8 +1208,10 @@ class AgentRackTest < Minitest::Test
   # --- post_prompt ---
 
   def test_post_prompt_endpoint
+    # `parsed` is an array per the canonical wire shape; the summary is
+    # parsed[0] (matches the Python/TS extraction order: summary -> parsed[0] -> raw).
     post_json('/post_prompt', { 'post_prompt_data' => { 'raw' => 'Summary text',
-                                                        'parsed' => { 'summary' => 'Short' } } })
+                                                        'parsed' => [{ 'summary' => 'Short' }] } })
 
     assert_equal 200, last_response.status
     # Callback should have been called
