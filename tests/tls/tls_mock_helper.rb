@@ -39,11 +39,14 @@ module TlsHarness
   # TLS listener, which can stretch to ~15s cold. Keep the budget bounded.
   STARTUP_TIMEOUT_S = 40
 
-  # Dedicated ports for the TLS capability tests — distinct from every other
-  # mock test's default slot so the two never collide in one `rake test` run.
-  TLS_RELAY_WS_PORT   = 18_775
-  TLS_RELAY_HTTP_PORT = 19_775
-  TLS_SIGNALWIRE_PORT = 18_766
+  # Test-local TLS mocks pick FREE ports (bind :0) per role rather than
+  # hardcoded slots; memoized. Env override (positive int) wins when set.
+  @tls_ports = {}
+  TLS_PORT_ENV = { ws: 'MOCK_RELAY_TLS_WS_PORT', http: 'MOCK_RELAY_TLS_HTTP_PORT',
+                   sw: 'MOCK_SIGNALWIRE_TLS_PORT' }.freeze
+  def tls_port(role)
+    @tls_ports[role] ||= ((raw = ENV.fetch(TLS_PORT_ENV.fetch(role), '').to_i).positive? ? raw : TlsTransport.free_port)
+  end
 
   # Walk up from this file to an adjacent porting-sdk/test_harness/tls, run the
   # idempotent gen_certs.sh, and return the certs dir. Returns nil when
@@ -120,7 +123,7 @@ module TlsHarness
     pkg = discover_pkg('mock_signalwire')
     return nil unless pkg
 
-    base = "https://127.0.0.1:#{TLS_SIGNALWIRE_PORT}"
+    base = "https://127.0.0.1:#{tls_port(:sw)}"
     store = trusting_store
     health = "#{base}/__mock__/health"
     return base if TlsTransport.probe_https(health, store)
@@ -133,7 +136,7 @@ module TlsHarness
 
   def signalwire_cmd
     ['python3', '-m', 'mock_signalwire', '--host', '127.0.0.1',
-     '--port', TLS_SIGNALWIRE_PORT.to_s, '--tls', '--log-level', 'error']
+     '--port', tls_port(:sw).to_s, '--tls', '--log-level', 'error']
   end
 
   # Spawn `python -m mock_relay --tls` on the dedicated WS+HTTP port pair and
@@ -143,8 +146,8 @@ module TlsHarness
     pkg = discover_pkg('mock_relay')
     return nil unless pkg
 
-    http_url = "http://127.0.0.1:#{TLS_RELAY_HTTP_PORT}"
-    info = { ws_port: TLS_RELAY_WS_PORT, http_url: http_url }
+    http_url = "http://127.0.0.1:#{tls_port(:http)}"
+    info = { ws_port: tls_port(:ws), http_url: http_url }
     health = "#{http_url}/__mock__/health"
     return info if TlsTransport.probe_http(health)
 
@@ -156,7 +159,7 @@ module TlsHarness
 
   def relay_cmd
     ['python3', '-m', 'mock_relay', '--host', '127.0.0.1',
-     '--ws-port', TLS_RELAY_WS_PORT.to_s, '--http-port', TLS_RELAY_HTTP_PORT.to_s,
+     '--ws-port', tls_port(:ws).to_s, '--http-port', tls_port(:http).to_s,
      '--tls', '--log-level', 'error']
   end
 

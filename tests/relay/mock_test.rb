@@ -23,9 +23,6 @@ require_relative '../../lib/signalwire/relay/client'
 require_relative '../../lib/signalwire/relay/constants'
 
 module RelayMockTest
-  DEFAULT_WS_PORT   = 8779
-  DEFAULT_HTTP_PORT = 9779
-
   # `python -m mock_relay` cold-start can take a few seconds (module import
   # plus schema loading). Keep the budget slack but bounded.
   STARTUP_TIMEOUT_S = 30
@@ -341,8 +338,8 @@ module RelayMockTest
 
     # Resolve ports, build the Harness, and probe-or-spawn the server.
     def start_harness
-      @ws_port   = resolve_port('MOCK_RELAY_PORT', DEFAULT_WS_PORT)
-      @http_port = resolve_port('MOCK_RELAY_HTTP_PORT', DEFAULT_HTTP_PORT)
+      @ws_port   = resolve_port('MOCK_RELAY_PORT')
+      @http_port = resolve_port('MOCK_RELAY_HTTP_PORT')
       @host      = '127.0.0.1'
       @harness   = Harness.new(host: @host, ws_port: @ws_port, http_port: @http_port)
 
@@ -360,9 +357,7 @@ module RelayMockTest
       @mu.synchronize do
         return false if @harness && probe_health(@harness)
 
-        spawn_server(@host || '127.0.0.1',
-                     @ws_port   || DEFAULT_WS_PORT,
-                     @http_port || DEFAULT_HTTP_PORT)
+        spawn_server(@host || '127.0.0.1', @ws_port, @http_port)
         wait_for_health(@harness)
         true
       end
@@ -370,7 +365,7 @@ module RelayMockTest
 
     private
 
-    def resolve_port(env_var, default_port)
+    def resolve_port(env_var)
       raw = ENV.fetch(env_var, nil)
       if raw && !raw.empty?
         n = begin
@@ -380,7 +375,17 @@ module RelayMockTest
         end
         return n if n&.positive?
       end
-      default_port
+      # No env override: pick a FREE port (bind :0) rather than a hardcoded
+      # default. WS and HTTP control plane are picked independently.
+      pick_free_port
+    end
+
+    def pick_free_port
+      require 'socket'
+      s = TCPServer.new('127.0.0.1', 0)
+      port = s.addr[1]
+      s.close
+      port
     end
 
     def probe_health(harness)
