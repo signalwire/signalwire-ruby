@@ -147,6 +147,35 @@ rest_coverage_gate() {
 run_gate "REST-COVERAGE" "every implemented REST route covered success+error (parity + allowlist)" \
     rest_coverage_gate
 
+# Gate 5c: SPEC-PARITY — the routes the SDK actually IMPLEMENTS must equal the
+# canonical spec route set, modulo porting-sdk/SPEC_IMPLEMENTATION_GAPS.md. This
+# is the spec-first guard REST-COVERAGE can't give: REST-COVERAGE only proves
+# *tested* routes match the spec, so a route the SDK implements that the spec
+# doesn't define (or vice versa) would slip past it. Set B is built by
+# scripts/route_registry.rb — it drives the live RestClient through a recording
+# HttpClient and captures every dispatched (method, path), so it sees every
+# implemented route whether or not it's tested (not an AST scrape, not the
+# journal). The shared porting-sdk diff consumes that JSON via --registry-json
+# (porting-sdk#45). Deprecation warnings from the SDK go to stderr; we discard
+# stderr so stdout stays pure JSON.
+spec_parity_gate() {
+    local mock_pkg_parent="$PORTING_SDK_DIR/test_harness/mock_signalwire"
+    export PYTHONPATH="$mock_pkg_parent${PYTHONPATH:+:$PYTHONPATH}"
+    local registry
+    registry="$(mktemp)"
+    ruby -Ilib scripts/route_registry.rb >"$registry" 2>/dev/null || {
+        rm -f "$registry"; return 1
+    }
+    python3 "$PORTING_SDK_DIR/scripts/diff_spec_implementation.py" \
+        --registry-json "$registry" \
+        --gaps "$PORTING_SDK_DIR/SPEC_IMPLEMENTATION_GAPS.md"
+    local rc=$?
+    rm -f "$registry"
+    return $rc
+}
+run_gate "SPEC-PARITY" "implemented routes == canonical spec (modulo SPEC_IMPLEMENTATION_GAPS.md)" \
+    spec_parity_gate
+
 # Gate 6: emission gate — byte-compare native FunctionResult to_h against the
 # Python to_dict() oracle over the shared 81-entry corpus. Closes the behavioral
 # (action shape/keys/values) gap the surface drift gate cannot see. Run with
