@@ -24,6 +24,12 @@
 #       swaig-test agent.rb --simulate-serverless lambda --dump-swml
 #       swaig-test agent.rb --simulate-serverless lambda --exec tool_name --param key=value
 #
+#       Override the simulated environment with --env / --env-file (applied
+#       after the platform preset; --env wins over --env-file):
+#
+#       swaig-test agent.rb --simulate-serverless lambda \
+#         --env-file prod.env --env AWS_REGION=eu-west-1 --dump-swml
+#
 #   Only platforms the SDK has actually implemented are accepted. Today
 #   that's `lambda` only; `gcf`, `cgi`, and `azure` are rejected with a
 #   pointer to the phase-9 gap.
@@ -85,6 +91,79 @@ module SwaigTest
     end
   end
 
+  # Builds the env-override hash for a serverless simulation from the CLI's
+  # --env-file (loaded first) and --env flags (merged after, so an explicit
+  # --env wins over a file entry). Mirrors Python's swaig-test, where
+  # env_overrides is built from --env-file then updated with --env.
+  module EnvOverrides
+    module_function
+
+    def build(env_file, env_flags)
+      overrides = {}
+      overrides.merge!(load_file(env_file)) if env_file
+      overrides.merge!(env_flags || {})
+      overrides
+    end
+
+    # Parse a single --env KEY=VALUE flag into the accumulator hash, warning
+    # (not failing) on a malformed value so one typo doesn't abort the run.
+    def add_flag(acc, value)
+      key, val = value.split('=', 2)
+      if key && !key.empty? && val
+        acc[key] = val
+      else
+        warn "Warning: ignoring malformed --env '#{value}' (expected KEY=VALUE)"
+      end
+    end
+
+    # Parse KEY=VALUE lines from a file (blank lines and #-comments skipped),
+    # matching Python's load_env_file in cli/simulation/mock_env.py.
+    def load_file(path)
+      unless File.exist?(path)
+        warn "Error: environment file not found: #{path}"
+        exit 1
+      end
+      File.readlines(path).each_with_object({}) do |line, acc|
+        line = line.strip
+        next if line.empty? || line.start_with?('#') || !line.include?('=')
+
+        key, val = line.split('=', 2)
+        acc[key.strip] = val.strip
+      end
+    end
+  end
+
+  # Loads an agent source file (for --simulate-serverless mode) and finds the
+  # SignalWire::AgentBase instance it exposes. Preferred convention: a top-level
+  # `AGENT` constant; falls back to any AgentBase instance at top level. Uses
+  # Kernel#load (not require) so repeated CLI invocations in one process (tests)
+  # don't silently no-op.
+  module AgentFileLoader
+    module_function
+
+    def load(path)
+      Kernel.load(File.expand_path(path))
+      named_agent_constant || discovered_agent
+    end
+
+    def named_agent_constant
+      return nil unless Object.const_defined?(:AGENT)
+
+      candidate = Object.const_get(:AGENT)
+      candidate if candidate.is_a?(SignalWire::AgentBase)
+    end
+
+    def discovered_agent
+      Object.constants.each do |c|
+        next if c == :AGENT
+
+        value = Object.const_get(c)
+        return value if value.is_a?(SignalWire::AgentBase)
+      end
+      nil
+    end
+  end
+
   # Serverless platform simulator. Responsible for:
   #   * setting the mode-detection env vars for the target platform,
   #   * clearing conflicting env vars (notably SWML_PROXY_URL_BASE),
@@ -113,7 +192,12 @@ module SwaigTest
     def activate
       return if @active
 
-      @snapshot = RuntimeEnvIsolation.snapshot
+      # Snapshot the managed Lambda vars PLUS any override keys, so a --env /
+      # --env-file override outside the preset set is still restored on
+      # deactivate (otherwise a custom override would leak past the simulation).
+      @snapshot = RuntimeEnvIsolation.snapshot(
+        (LAMBDA_SIMULATION_ENV_VARS + @overrides.keys).uniq
+      )
       apply_environment
       warn_if_proxy_base_survived
       @active = true
@@ -700,6 +784,25 @@ module SwaigTest
               "Supported: #{IMPLEMENTED_SERVERLESS_PLATFORMS.join(', ')}") do |v|
         @options[:simulate_serverless] = v
       end
+      register_env_options(opts)
+    end
+
+    # --env / --env-file feed the ServerlessSimulator's `overrides:` plumbing
+    # (env vars applied AFTER the platform preset, before activation). Mirrors
+    # Python's swaig-test --env/--env-file: --env is repeatable KEY=VALUE pairs,
+    # --env-file loads KEY=VALUE lines from a file (later sources win). Only
+    # meaningful with --simulate-serverless (validated in the simulate guard).
+    def register_env_options(opts)
+      opts.on('--env KEY=VALUE',
+              'Override an environment variable for the serverless simulation ' \
+              '(repeatable). Applied after the platform preset.') do |v|
+        EnvOverrides.add_flag(@options[:env], v)
+      end
+      opts.on('--env-file PATH',
+              'Load KEY=VALUE environment overrides from a file for the ' \
+              'serverless simulation (applied before --env).') do |v|
+        @options[:env_file] = v
+      end
     end
 
     def register_file_option(opts)
@@ -839,15 +942,28 @@ module SwaigTest
 
     def validate!
       if @options[:file]
+        reject_env_without_simulate!
         validate_file_mode!
       elsif @options[:simulate_serverless]
         validate_simulate_serverless!
       else
+        reject_env_without_simulate!
         validate_url_mode!
       end
     end
 
     private
+
+    # --env / --env-file only feed the serverless simulator's preset env. In
+    # URL or --file mode there is nothing to apply them to, so reject them
+    # loudly rather than silently ignore (the dead-plumbing trap this fix
+    # closes).
+    def reject_env_without_simulate!
+      return if @options[:env].empty? && @options[:env_file].nil?
+
+      warn 'Error: --env / --env-file require --simulate-serverless PLATFORM'
+      exit 1
+    end
 
     def validate_url_mode!
       # Classic URL mode from here down.
@@ -946,7 +1062,8 @@ module SwaigTest
       {
         url: nil, agent_file: nil, file: nil, simulate_serverless: nil,
         dump_swml: false, list_tools: false, exec: nil,
-        params: {}, raw: false, verbose: false
+        params: {}, raw: false, verbose: false,
+        env: {}, env_file: nil
       }
     end
 
@@ -974,7 +1091,10 @@ module SwaigTest
     def run_simulated_serverless
       require 'signalwire'
 
-      simulator = ServerlessSimulator.new(@options[:simulate_serverless], verbose: @options[:verbose])
+      simulator = ServerlessSimulator.new(
+        @options[:simulate_serverless],
+        overrides: EnvOverrides.build(@options[:env_file], @options[:env]), verbose: @options[:verbose]
+      )
       simulator.with_simulation do
         agent = require_agent_file!
         dispatch_simulated_action(LambdaAdapterDispatcher.new(agent))
@@ -982,7 +1102,7 @@ module SwaigTest
     end
 
     def require_agent_file!
-      agent = load_agent_file(@options[:agent_file])
+      agent = AgentFileLoader.load(@options[:agent_file])
       return agent if agent
 
       warn "Error: agent file #{@options[:agent_file].inspect} did not expose an AGENT constant " \
@@ -1011,34 +1131,6 @@ module SwaigTest
     def render_dispatcher_tools(dispatcher)
       swml = dispatcher.dump_swml
       SwmlFunctions.render_functions_list(SwmlFunctions.extract_functions(swml))
-    end
-
-    def load_agent_file(path)
-      # Use load rather than require so repeated CLI invocations in the
-      # same process (tests) don't silently no-op.
-      load(File.expand_path(path))
-
-      named_agent_constant || discovered_agent
-    end
-
-    def named_agent_constant
-      # Preferred convention: the agent file defines a top-level
-      # constant named AGENT. Fall back to any SignalWire::AgentBase
-      # instance at top-level for forgiveness.
-      return nil unless Object.const_defined?(:AGENT)
-
-      candidate = Object.const_get(:AGENT)
-      candidate if candidate.is_a?(SignalWire::AgentBase)
-    end
-
-    def discovered_agent
-      Object.constants.each do |c|
-        next if c == :AGENT
-
-        value = Object.const_get(c)
-        return value if value.is_a?(SignalWire::AgentBase)
-      end
-      nil
     end
 
     # --------------------------------------------------------------
