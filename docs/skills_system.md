@@ -102,57 +102,50 @@ Perform mathematical calculations.
 - `calculate(expression)` - Evaluate mathematical expressions safely
 
 ### Native Vector Search (`native_vector_search`)
-Search local document collections using vector similarity and keyword search.
+Search document indexes via a remote search server using vector similarity and
+keyword search. The Ruby port implements **remote (network) mode only**: it POSTs
+queries to a search server over HTTP using the Ruby standard library (`net/http`).
+The Python reference's local/offline `.swsearch` index mode and the `sw-search`
+index-building CLI are not part of the Ruby gem.
 
 **Requirements:**
-- Packages: `sentence-transformers`, `scikit-learn`, `numpy`
-- Install with: `pip install signalwire-agents[search]`
+- A reachable search server URL (`remote_url`). No extra gems are required --
+  the skill uses `net/http` from the standard library.
 
 **Parameters:**
+- `remote_url` (required) - URL of the remote search server
+- `index_name` (optional) - Index name on the remote server
 - `tool_name` (default: "search_knowledge") - Custom name for the search tool
-- `index_file` (optional) - Path to local `.swsearch` index file
-- `remote_url` (optional) - URL of remote search server
-- `index_name` (default: "default") - Index name on remote server
-- `build_index` (default: False) - Auto-build index if missing
-- `source_dir` (optional) - Source directory for auto-building
+- `description` (optional) - Tool description
 - `count` (default: 3) - Number of search results to return
-- `distance_threshold` (default: 0.0) - Minimum similarity score
-- `response_prefix` (optional) - Text to prepend to responses
-- `response_postfix` (optional) - Text to append to responses
+- `similarity_threshold` (default: 0.5) - Minimum similarity score
+- `hints` (optional) - Extra speech hints to merge into the agent's hint list
 
 **Tools provided:**
-- `search_knowledge(query, count)` - Search documents with hybrid vector/keyword search
+- `search_knowledge(query, count)` - Search documents on the remote server
 
 **Usage examples:**
-```python
-# Local mode with auto-build from concepts guide
-agent.add_skill("native_vector_search", {
-    "tool_name": "search_docs",
-    "build_index": True,
-    "source_dir": "./docs",  # Will build from directory
-    "index_file": "concepts.swsearch"
+```ruby
+# Remote mode (the only supported mode in the Ruby port)
+agent.add_skill('native_vector_search', {
+  'remote_url' => 'http://localhost:8001',
+  'index_name' => 'knowledge'
 })
 
-# Or build from specific concepts guide file
-agent.add_skill("native_vector_search", {
-    "tool_name": "search_concepts",
-    "index_file": "concepts.swsearch"  # Pre-built from concepts guide
+# Custom tool name and result count
+agent.add_skill('native_vector_search', {
+  'remote_url' => 'http://localhost:8001',
+  'tool_name'  => 'search_docs',
+  'count'      => 5
 })
 
-# Remote mode
-agent.add_skill("native_vector_search", {
-    "remote_url": "http://localhost:8001",
-    "index_name": "knowledge"
-})
-
-# Multiple instances for different document collections
-agent.add_skill("native_vector_search", {
-    "tool_name": "search_examples",
-    "index_file": "examples.swsearch"
+# Multiple instances pointing at different servers/indexes
+agent.add_skill('native_vector_search', {
+  'remote_url' => 'http://localhost:8001',
+  'index_name' => 'examples',
+  'tool_name'  => 'search_examples'
 })
 ```
-
-For complete documentation, see [Search Overview](search_overview.md).
 
 ### SWML Transfer (`swml_transfer`)
 Transfer calls between agents using pattern matching.

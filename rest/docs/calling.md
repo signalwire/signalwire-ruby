@@ -237,7 +237,7 @@ client.calling.user_event(call_id, event={"type": "custom", "data": {"key": "val
 |--------|---------|:-:|
 | `dial(**params)` | `dial` | No |
 | `update(**params)` | `update` | No |
-| `end(call_id, **params)` | `calling.end` | Yes |
+| `end_call(call_id, **params)` | `calling.end` | Yes |
 | `transfer(call_id, **params)` | `calling.transfer` | Yes |
 | `disconnect(call_id)` | `calling.disconnect` | Yes |
 | `play(call_id, **params)` | `calling.play` | Yes |

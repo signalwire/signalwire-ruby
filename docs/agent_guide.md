@@ -785,45 +785,31 @@ agent.add_skill('datasphere', {
 ```
 
 #### Native Vector Search Skill (`native_vector_search`)
-Provides local document search capabilities using vector similarity and keyword search. This skill works entirely offline with local `.swsearch` index files or can connect to remote search servers.
+Provides document search via a remote search server using vector similarity and
+keyword search. The Ruby port implements **remote (network) mode only**: it POSTs
+queries to a search server over HTTP using the Ruby standard library (`net/http`).
+The Python reference's local/offline `.swsearch` index mode and the `sw-search`
+index-building CLI are not part of the Ruby gem.
 
 **Requirements:**
-- Remote mode (connecting to a search server) uses the Ruby standard library only (`net/http`).
-- Local/offline `.swsearch` index building requires the search extras for the Ruby port; see the [Search Overview](search_overview.md) for setup. (The Python `pip install signalwire-agents[search]` step does not apply to the Ruby gem.)
+- A reachable search server URL (`remote_url`). No extra gems are required --
+  the skill uses `net/http` from the standard library.
 
 **Parameters:**
+- `remote_url` (required): URL of the remote search server (e.g., "http://localhost:8001")
+- `index_name` (optional): Index name on the remote server
 - `tool_name` (default: "search_knowledge"): Custom name for the search tool
-- `description` (default: "Search the local knowledge base for information"): Tool description
-- `index_file` (optional): Path to local `.swsearch` index file
-- `remote_url` (optional): URL of remote search server (e.g., "http://localhost:8001")
-- `index_name` (default: "default"): Index name on remote server (for remote mode)
-- `build_index` (default: False): Auto-build index if missing
-- `source_dir` (optional): Source directory for auto-building index
-- `file_types` (default: ["md", "txt"]): File types to include when building index
+- `description` (optional): Tool description
 - `count` (default: 3): Number of search results to return
-- `distance_threshold` (default: 0.0): Minimum similarity score for results
-- `tags` (optional): List of tags to filter search results
-- `response_prefix` (optional): Text to prepend to all search responses
-- `response_postfix` (optional): Text to append to all search responses
-- `no_results_message` (default: "No information found for '{query}'"): Custom message when no results found
+- `similarity_threshold` (default: 0.5): Minimum similarity score for results
+- `hints` (optional): Extra speech hints to merge into the agent's hint list
 
 **Multiple Instance Support:**
-The native vector search skill supports multiple instances with different indexes and tool names:
+The native vector search skill supports multiple instances with different servers/indexes and tool names:
 
 **Example:**
 ```ruby
-# Local mode with auto-build
-agent.add_skill('native_vector_search', {
-  'tool_name'   => 'search_docs',
-  'description' => 'Search SDK concepts guide',
-  'build_index' => true,
-  'source_dir'  => './docs',
-  'index_file'  => 'concepts.swsearch',
-  'count'       => 5
-})
-# Creates tool: search_docs
-
-# Remote mode connecting to search server
+# Remote mode connecting to a search server (the only supported mode)
 agent.add_skill('native_vector_search', {
   'tool_name'   => 'search_knowledge',
   'description' => 'Search the knowledge base',
@@ -833,41 +819,15 @@ agent.add_skill('native_vector_search', {
 })
 # Creates tool: search_knowledge
 
-# Multiple local indexes
+# A second instance against a different index/tool name
 agent.add_skill('native_vector_search', {
-  'tool_name'       => 'search_examples',
-  'description'     => 'Search code examples',
-  'index_file'      => 'examples.swsearch',
-  'response_prefix' => 'From the examples:'
+  'tool_name'   => 'search_examples',
+  'description' => 'Search code examples',
+  'remote_url'  => 'http://localhost:8001',
+  'index_name'  => 'examples'
 })
 # Creates tool: search_examples
-
-# Voice-optimized responses using concepts guide
-agent.add_skill('native_vector_search', {
-  'tool_name'          => 'search_docs',
-  'index_file'         => 'concepts.swsearch',
-  'response_prefix'    => 'Based on the comprehensive SDK guide:',
-  'response_postfix'   => 'Would you like more specific information?',
-  'no_results_message' => "I couldn't find information about '{query}' in the concepts guide."
-})
 ```
-
-**Building Search Indexes:**
-Before using local mode, you need to build search indexes:
-
-```bash
-# Build index from documentation
-sw-search docs --output docs.swsearch
-
-# Build with custom settings
-sw-search ./knowledge \
-    --output knowledge.swsearch \
-    --file-types md,txt,pdf \
-    --chunk-size 500 \
-    --verbose
-```
-
-For complete documentation on the search system, see [Search Overview](search_overview.md).
 
 ### Skill Management
 
@@ -1084,7 +1044,7 @@ end
 
 4. **Test skills in isolation**: Create simple test scripts to verify skill functionality
 
-For more detailed information about the skills system architecture and advanced customization, see the [Skills System README](SKILLS_SYSTEM_README.md).
+For more detailed information about the skills system architecture and advanced customization, see the [Skills System Guide](skills_system.md).
 
 ## Multilingual Support
 
@@ -3046,23 +3006,11 @@ These examples demonstrate the progression from static to dynamic configuration 
 
 For more examples, see the `examples` directory in the SignalWire AI Agent SDK repository.
 
-## Building Search Indexes
+## Search
 
-Use the `sw-search` CLI (shipped with the gem) to build `.swsearch` indexes from
-documentation for the `native_vector_search` skill:
-
-```bash
-# Build index from the comprehensive concepts guide
-sw-search docs/agent_guide.md --output concepts.swsearch
-
-# Build from multiple sources
-sw-search docs/agent_guide.md examples README.md --output comprehensive.swsearch
-
-# Traditional directory approach with custom settings
-sw-search ./knowledge \
-    --output knowledge.swsearch \
-    --file-types md,txt,pdf \
-    --chunking-strategy sentence \
-    --max-sentences-per-chunk 8 \
-    --verbose
-```
+The Ruby `native_vector_search` skill queries a **remote search server** over HTTP
+(see [Native Vector Search Skill](#native-vector-search-skill-native_vector_search)
+above). The Ruby gem does not ship an index-building CLI and does not read local
+`.swsearch` files; index building and document processing live in the Python
+reference. To use search from a Ruby agent, point the skill at a running search
+server via `remote_url`.

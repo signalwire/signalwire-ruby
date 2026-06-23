@@ -312,36 +312,28 @@ Each inbound request creates an **ephemeral copy** of the agent. The callback cu
 
 ---
 
-## Search System
+## Search
 
-The SDK includes a hybrid search engine for local knowledge bases:
-
-**Building indexes:** The `native_vector_search` skill consumes a prebuilt `.swsearch` index. The Ruby port does not ship the `sw-search` index-building CLI (that command-line builder is only available in the Python reference); build the `.swsearch` file with the Python `sw-search` tool, then deploy it alongside your Ruby agent. The Python CLI looks like:
-
-```bash
-sw-search ./docs --output knowledge.swsearch
-sw-search ./docs ./examples --file-types md,txt,rb --chunking-strategy sentence
-sw-search validate ./knowledge.swsearch
-sw-search search ./knowledge.swsearch "how do I configure SSL?"
-```
+The Ruby port provides document search through the `native_vector_search` skill in
+**remote (network) mode only**. The skill POSTs queries to a remote search server
+over HTTP (using `net/http` from the standard library) and formats the returned
+results for the agent. The Python reference's local/offline `.swsearch` index mode,
+its index-building/document-processing pipeline, and the `sw-search` CLI are not
+part of the Ruby gem -- run that pipeline (and the search server it feeds) from the
+Python reference, then point the Ruby skill at the server.
 
 **In agents:**
 ```ruby
 agent.add_skill('native_vector_search',
-  'index_path'  => 'knowledge.swsearch',
+  'remote_url'  => 'http://localhost:8001',
+  'index_name'  => 'knowledge',
   'tool_name'   => 'search_docs',
   'description' => 'Search product documentation')
 ```
 
-The search system supports:
-- **Document processing:** PDF, DOCX, Excel, PowerPoint, HTML, Markdown, plain text
-- **Chunking strategies:** sentence, sliding window, paragraph, page, semantic, topic, QA-optimized, markdown-aware, JSON
-- **Embedding models:** mini (384d, fast), base (768d), large
-- **Hybrid search:** Vector similarity + keyword matching + filename search + metadata search
-- **Backends:** SQLite (`.swsearch` files for local/serverless) or PostgreSQL (pgvector for production)
-- **Installation:** the Ruby gem queries prebuilt indexes out of the box -- no extra install tiers. (The Python reference splits index building/document processing into `pip` extras such as `search-queryonly`, `search`, `search-full`, and `search-all`; that tiering is a Python-packaging concept and does not apply to the Ruby gem.)
-
-The `.swsearch` format is a self-contained SQLite database with embeddings, chunks, and metadata -- deploy it alongside your agent to Lambda or any serverless platform.
+Supported skill parameters: `remote_url` (required), `index_name`, `tool_name`,
+`description`, `count` (default 3), `similarity_threshold` (default 0.5), and
+`hints`. No extra gems or install tiers are required.
 
 ---
 

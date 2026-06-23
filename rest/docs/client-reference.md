@@ -2,15 +2,16 @@
 
 ## Constructor
 
-```python
-RestClient(
-    project: str = None,   # SIGNALWIRE_PROJECT_ID
-    token: str = None,     # SIGNALWIRE_API_TOKEN
-    host: str = None,      # SIGNALWIRE_SPACE
+```ruby
+SignalWire::REST::RestClient.new(
+  project: nil,   # SIGNALWIRE_PROJECT_ID
+  token:   nil,   # SIGNALWIRE_API_TOKEN
+  host:    nil    # SIGNALWIRE_SPACE
 )
 ```
 
-All parameters fall back to their corresponding environment variables. A `ValueError` is raised if any are missing.
+All parameters fall back to their corresponding environment variables. An
+`ArgumentError` is raised if any are missing.
 
 Authentication uses HTTP Basic Auth (`project:token`).
 
@@ -76,32 +77,32 @@ Every API surface is available as a namespace attribute on the client:
 
 ## Error Handling
 
-```python
-from signalwire.rest import SignalWireRestError
-
-try:
-    client.fabric.ai_agents.get("bad-id")
-except SignalWireRestError as e:
-    print(e.status_code)  # 404
-    print(e.body)         # {"error": "not found"}
-    print(e.url)          # "/api/fabric/resources/ai_agents/bad-id"
-    print(e.method)       # "GET"
+```ruby
+begin
+  client.fabric.ai_agents.get('bad-id')
+rescue SignalWire::REST::SignalWireRestError => e
+  puts e.status_code   # 404
+  puts e.body          # {"error"=>"not found"}
+  puts e.url           # "/api/fabric/resources/ai_agents/bad-id"
+  puts e.method_name   # "GET"
+end
 ```
 
-`SignalWireRestError` is raised on any non-2xx HTTP response.
+`SignalWire::REST::SignalWireRestError` is raised on any non-2xx HTTP response.
 
 ### Error Attributes
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `status_code` | `int` | HTTP status code |
-| `body` | `dict` or `str` | Response body (parsed JSON or raw text) |
-| `url` | `str` | Request path |
-| `method` | `str` | HTTP method |
+| `status_code` | `Integer` | HTTP status code |
+| `body` | `Hash` or `String` | Response body (parsed JSON or raw text) |
+| `url` | `String` | Request path |
+| `method_name` | `String` | HTTP method |
 
 ## Session Behavior
 
-- A single `requests.Session` is shared across all namespaces for connection pooling.
+- Requests use `Net::HTTP` from the Ruby standard library.
 - Content-Type is always `application/json`.
-- User-Agent is `signalwire-agents-python-rest/1.0`.
-- DELETE requests returning 204 return an empty dict.
+- User-Agent is `signalwire-agents-ruby-rest/1.0`.
+- DELETE requests returning 204 return an empty Hash.
+- Responses are plain Ruby Hashes (parsed JSON) -- there are no wrapper objects.

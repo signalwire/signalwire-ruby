@@ -31,7 +31,7 @@ _Build AI voice agents, control live calls over WebSocket, and manage every Sign
 |-----------|-------------|------------|
 | **AI Agents** | Build voice agents that handle calls autonomously -- the platform runs the AI pipeline, your code defines the persona, tools, and call flow | [Agent Guide](#ai-agents) |
 | **RELAY Client** | Control live calls and SMS/MMS in real time over WebSocket -- answer, play, record, collect DTMF, conference, transfer, and more | [RELAY docs](relay/README.md) |
-| **REST Client** | Manage SignalWire resources over HTTP -- phone numbers, SIP endpoints, Fabric AI agents, video rooms, messaging, and 18+ API namespaces | [REST docs](rest/README.md) |
+| **REST Client** | Manage SignalWire resources over HTTP -- phone numbers, SIP endpoints, Fabric AI agents, video rooms, messaging, and 21 API namespaces | [REST docs](rest/README.md) |
 
 ```bash
 gem install signalwire-sdk
@@ -83,6 +83,7 @@ swaig-test my_agent.rb --exec get_time
 - **Call flow control** -- pre-answer, post-answer, and post-AI verb insertion
 - **Prefab agents** -- ready-to-use archetypes (InfoGatherer, Survey, FAQ, Receptionist, Concierge)
 - **Multi-agent hosting** -- serve multiple agents on a single server with `AgentServer`
+- **Local search** -- offline document search via the `native_vector_search` skill
 - **SIP routing** -- route SIP calls to agents based on usernames
 - **Session state** -- persistent conversation state with global data and post-prompt summaries
 - **Security** -- auto-generated basic auth, function-specific HMAC tokens, SSL support
@@ -91,7 +92,7 @@ swaig-test my_agent.rb --exec get_time
 
 ### Agent Examples
 
-The [`examples/`](examples/) directory contains 39 working examples:
+The [`examples/`](examples/) directory contains 54 working examples:
 
 | Example | What it demonstrates |
 |---------|---------------------|
@@ -99,11 +100,11 @@ The [`examples/`](examples/) directory contains 39 working examples:
 | [contexts_demo.rb](examples/contexts_demo.rb) | Multi-step workflow with context switching and step navigation |
 | [datamap_demo.rb](examples/datamap_demo.rb) | Server-side API tools without webhooks |
 | [skills_demo.rb](examples/skills_demo.rb) | Loading built-in skills (datetime, math, joke) |
-| [call_flow.rb](examples/call_flow.rb) | Call flow verbs, debug events, recording workflows |
-| [session_state.rb](examples/session_state.rb) | Global data, post-prompt analysis, on_summary callback |
+| [call_flow_and_actions_demo.rb](examples/call_flow_and_actions_demo.rb) | Call flow verbs, debug events, FunctionResult actions |
+| [session_and_state_demo.rb](examples/session_and_state_demo.rb) | Global data, post-prompt analysis, on_summary callback |
 | [multi_agent_server.rb](examples/multi_agent_server.rb) | Multiple agents on one server with AgentServer |
 | [lambda_agent.rb](examples/lambda_agent.rb) | Serverless deployment with exportable Rack app |
-| [comprehensive_dynamic.rb](examples/comprehensive_dynamic.rb) | Per-request dynamic configuration, multi-tenant routing |
+| [comprehensive_dynamic_agent.rb](examples/comprehensive_dynamic_agent.rb) | Per-request dynamic configuration, multi-tenant routing |
 
 See [examples/README.md](examples/README.md) for the full list organized by category.
 
@@ -181,7 +182,7 @@ gem 'signalwire-sdk', require: 'signalwire'
 
 Published as `signalwire-sdk` on RubyGems (the bare `signalwire` name belongs to the unrelated legacy SignalWire Ruby client). The `require:` hint keeps `require 'signalwire'` working unchanged.
 
-Requires Ruby >= 3.0.
+Requires Ruby >= 3.2.
 
 ## Documentation
 

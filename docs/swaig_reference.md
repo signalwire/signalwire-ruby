@@ -729,12 +729,13 @@ result.add_actions([
 
 ### Output Generation
 
-#### `to_dict()`
-Convert result to dictionary format for JSON serialization.
+#### `to_h`
+Convert the result to a Hash for JSON serialization.
 
-```python
-result_dict = result.to_dict()
-# Returns: {"response": "...", "action": [...], "post_process": true/false}
+```ruby
+result_hash = result.to_h
+# Returns: { "response" => "...", "action" => [...], "post_process" => true }
+# ("action"/"post_process" only present when actions were added)
 ```
 
 ---
