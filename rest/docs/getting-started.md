@@ -4,13 +4,17 @@ The REST client provides synchronous access to all SignalWire APIs using standar
 
 ## Installation
 
-The REST client is included in the `signalwire-agents` package:
+The REST client ships in the `signalwire-sdk` gem:
 
 ```bash
-pip install signalwire-agents
+gem install signalwire-sdk
 ```
 
-The only additional dependency is `requests`, which is installed automatically.
+Or add it to your `Gemfile`:
+
+```ruby
+gem 'signalwire-sdk', require: 'signalwire'
+```
 
 ## Configuration
 
@@ -24,18 +28,18 @@ You need three things to connect:
 
 ## Minimal Example
 
-```python
-from signalwire.rest import RestClient
+```ruby
+require 'signalwire'
 
-client = RestClient(
-    project="your-project-id",
-    token="your-api-token",
-    host="example.signalwire.com",
+client = SignalWire::REST::RestClient.new(
+  project: 'your-project-id',
+  token:   'your-api-token',
+  host:    'example.signalwire.com'
 )
 
 # List your AI agents
-agents = client.fabric.ai_agents.list()
-print(agents)
+agents = client.fabric.ai_agents.list
+puts agents
 ```
 
 Or use environment variables and skip the constructor args:
@@ -46,52 +50,58 @@ export SIGNALWIRE_API_TOKEN=your-api-token
 export SIGNALWIRE_SPACE=example.signalwire.com
 ```
 
-```python
-from signalwire.rest import RestClient
+```ruby
+require 'signalwire'
 
-client = RestClient()
-agents = client.fabric.ai_agents.list()
+client = SignalWire::REST::RestClient.new
+agents = client.fabric.ai_agents.list
 ```
 
 ## CRUD Pattern
 
 Most resources follow the same CRUD pattern:
 
-```python
+```ruby
 # List
-items = client.fabric.ai_agents.list()
+items = client.fabric.ai_agents.list
 
 # Create
-agent = client.fabric.ai_agents.create(name="Support", prompt={"text": "Be helpful"})
+agent = client.fabric.ai_agents.create(name: 'Support', prompt: { 'text' => 'Be helpful' })
 
 # Get by ID
-agent = client.fabric.ai_agents.get("agent-uuid")
+agent = client.fabric.ai_agents.get('agent-uuid')
 
 # Update
-client.fabric.ai_agents.update("agent-uuid", name="Updated Name")
+client.fabric.ai_agents.update('agent-uuid', name: 'Updated Name')
 
 # Delete
-client.fabric.ai_agents.delete("agent-uuid")
+client.fabric.ai_agents.delete('agent-uuid')
 ```
 
 Fabric resources also support listing addresses:
 
-```python
-addresses = client.fabric.ai_agents.list_addresses("agent-uuid")
+```ruby
+addresses = client.fabric.ai_agents.list_addresses('agent-uuid')
 ```
+
+Calls return plain Ruby Hashes (parsed JSON) -- there are no wrapper objects.
 
 ## Error Handling
 
-```python
-from signalwire.rest import RestClient, SignalWireRestError
+A non-2xx response raises `SignalWire::REST::SignalWireRestError`, which exposes
+`status_code` and `body`:
 
-client = RestClient()
+```ruby
+require 'signalwire'
 
-try:
-    agent = client.fabric.ai_agents.get("nonexistent-id")
-except SignalWireRestError as e:
-    print(f"HTTP {e.status_code}: {e.body}")
-    # HTTP 404: {'error': 'not found'}
+client = SignalWire::REST::RestClient.new
+
+begin
+  agent = client.fabric.ai_agents.get('nonexistent-id')
+rescue SignalWire::REST::SignalWireRestError => e
+  puts "HTTP #{e.status_code}: #{e.body}"
+  # HTTP 404: {"error"=>"not found"}
+end
 ```
 
 ## Debug Logging

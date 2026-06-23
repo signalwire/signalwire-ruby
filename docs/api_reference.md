@@ -3027,27 +3027,33 @@ agent.add_skill("datasphere", {
 ```
 
 #### `native_vector_search` Skill
-Local document search with vector similarity and keyword search.
+Document search against a remote search server using vector similarity and keyword
+search. The Ruby port supports **remote (network) mode only** -- it POSTs queries to
+the server at `remote_url`. Local `.swsearch` index files are not supported.
 
 **Parameters:**
-- `index_path` (str): Path to search index file (required)
-- `tool_name` (Optional[str]): Custom tool name (default: "search_documents")
-- `max_results` (Optional[int]): Maximum results to return (default: 5)
-- `similarity_threshold` (Optional[float]): Minimum similarity score 0.0-1.0 (default: 0.0). Higher values are stricter, lower values are more permissive. Typical range: 0.2-0.4 for all-MiniLM-L6-v2, 0.3-0.5 for all-mpnet-base-v2
+- `remote_url` (String): URL of the remote search server (required)
+- `index_name` (String, optional): Index name on the remote server
+- `tool_name` (String, optional): Custom tool name (default: "search_knowledge")
+- `description` (String, optional): Tool description
+- `count` (Integer, optional): Number of results to return (default: 3)
+- `similarity_threshold` (Float, optional): Minimum similarity score (default: 0.5)
+- `hints` (Array, optional): Extra speech hints to merge into the agent's hint list
 
 **Usage:**
-```python
-# Basic local search
-agent.add_skill("native_vector_search", {
-    "index_path": "./knowledge.swsearch"
+```ruby
+# Connect to a remote search server
+agent.add_skill('native_vector_search', {
+  'remote_url' => 'http://localhost:8001'
 })
 
 # With custom settings
-agent.add_skill("native_vector_search", {
-    "index_path": "./docs.swsearch",
-    "tool_name": "search_docs",
-    "max_results": 10,
-    "similarity_threshold": 0.25
+agent.add_skill('native_vector_search', {
+  'remote_url'           => 'http://localhost:8001',
+  'index_name'          => 'docs',
+  'tool_name'           => 'search_docs',
+  'count'               => 10,
+  'similarity_threshold' => 0.25
 })
 ```
 

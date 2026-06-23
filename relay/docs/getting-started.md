@@ -1,16 +1,24 @@
 # Getting Started with RELAY
 
-The RELAY client connects to SignalWire via WebSocket and gives you real-time, imperative control over phone calls using Python's asyncio.
+The RELAY client connects to SignalWire over a WebSocket and gives you real-time,
+imperative control over phone calls. The Ruby client is **thread-based** (it uses
+`Mutex`/`ConditionVariable` internally, not async/await): call-control methods block
+the calling thread until the server accepts the command, and each inbound call or
+message handler runs on its own thread.
 
 ## Installation
 
-The RELAY client is included in the `signalwire-agents` package:
+The RELAY client ships in the `signalwire-sdk` gem:
 
 ```bash
-pip install signalwire-agents
+gem install signalwire-sdk
 ```
 
-The only additional dependency is `websockets>=12.0`, which is installed automatically.
+Or add it to your `Gemfile`:
+
+```ruby
+gem 'signalwire-sdk', require: 'signalwire'
+```
 
 ## Configuration
 
@@ -30,24 +38,24 @@ Alternatively, you can authenticate with a JWT token:
 
 ## Minimal Example
 
-```python
-from signalwire.relay import RelayClient
+```ruby
+require 'signalwire'
 
-client = RelayClient(
-    project="your-project-id",
-    token="your-api-token",
-    host="example.signalwire.com",
-    contexts=["default"],
+client = SignalWire::Relay::Client.new(
+  project:  'your-project-id',
+  token:    'your-api-token',
+  host:     'example.signalwire.com',
+  contexts: ['default']
 )
 
-@client.on_call
-async def handle(call):
-    await call.answer()
-    action = await call.play([{"type": "tts", "params": {"text": "Hello!"}}])
-    await action.wait()
-    await call.hangup()
+client.on_call do |call|
+  call.answer
+  action = call.play_tts('Hello!')
+  action.wait
+  call.hangup
+end
 
-client.run()
+client.run
 ```
 
 Or use environment variables and skip the constructor args:
@@ -58,54 +66,56 @@ export SIGNALWIRE_API_TOKEN=your-api-token
 export SIGNALWIRE_SPACE=example.signalwire.com
 ```
 
-```python
-from signalwire.relay import RelayClient
+```ruby
+require 'signalwire'
 
-client = RelayClient(contexts=["default"])
+client = SignalWire::Relay::Client.new(contexts: ['default'])
 
-@client.on_call
-async def handle(call):
-    await call.answer()
-    await call.hangup()
+client.on_call do |call|
+  call.answer
+  call.hangup
+end
 
-client.run()
+client.run
 ```
 
 ## Contexts
 
-Contexts are topics your client subscribes to for receiving inbound calls. When a call arrives on a context you're subscribed to, your `@client.on_call` handler is invoked.
+Contexts are topics your client subscribes to for receiving inbound calls. When a
+call arrives on a context you're subscribed to, your `on_call` handler is invoked.
 
-```python
+```ruby
 # Subscribe at connect time
-client = RelayClient(contexts=["sales", "support"])
+client = SignalWire::Relay::Client.new(contexts: %w[sales support])
 
 # Or dynamically after connecting
-await client.receive(["billing"])
-await client.unreceive(["sales"])
+client.receive(['billing'])
+client.unreceive(['sales'])
 ```
 
 ## Making Outbound Calls
 
-Use `client.dial()` to place an outbound call:
+Use `client.dial` to place an outbound call. It returns a live `Call` once answered:
 
-```python
-call = await client.dial([
-    [{"type": "phone", "params": {"to_number": "+15551234567", "from_number": "+15559876543"}}]
+```ruby
+call = client.dial([
+  [{ 'type' => 'phone', 'params' => { 'to_number' => '+15551234567', 'from_number' => '+15559876543' } }]
 ])
 # call is now a live Call object
-action = await call.play([{"type": "tts", "params": {"text": "This is an outbound call."}}])
-await action.wait()
-await call.hangup()
+action = call.play_tts('This is an outbound call.')
+action.wait
+call.hangup
 ```
 
-The outer list represents serial attempts; the inner list represents parallel attempts. For example, to try two numbers simultaneously:
+The outer list represents serial attempts; the inner list represents parallel
+attempts. For example, to try two numbers simultaneously:
 
-```python
-call = await client.dial([
-    [
-        {"type": "phone", "params": {"to_number": "+15551111111", "from_number": "+15559876543"}},
-        {"type": "phone", "params": {"to_number": "+15552222222", "from_number": "+15559876543"}},
-    ]
+```ruby
+call = client.dial([
+  [
+    { 'type' => 'phone', 'params' => { 'to_number' => '+15551111111', 'from_number' => '+15559876543' } },
+    { 'type' => 'phone', 'params' => { 'to_number' => '+15552222222', 'from_number' => '+15559876543' } }
+  ]
 ])
 ```
 
@@ -117,18 +127,19 @@ Set the log level to see WebSocket traffic:
 export SIGNALWIRE_LOG_LEVEL=debug
 ```
 
-## Async Context Manager
+## Shutting Down
 
-For use within an existing async application:
+`client.run` blocks until you stop it. Call `client.stop` (e.g. from a signal
+handler or another thread) for a graceful shutdown:
 
-```python
-async with RelayClient(contexts=["default"]) as client:
-    call = await client.dial([...])
-    await call.answer()
+```ruby
+trap('INT') { client.stop }
+client.run
 ```
 
 ## Next Steps
 
 - [Call Methods Reference](call-methods.md) -- all methods available on a Call object
 - [Events](events.md) -- handling real-time call events
-- [Client Reference](client-reference.md) -- RelayClient configuration and methods
+- [Client Reference](client-reference.md) -- Client configuration and methods
+```

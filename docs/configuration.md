@@ -118,30 +118,6 @@ Configuration values are applied in this order (highest to lowest):
 }
 ```
 
-### Search Service Configuration
-
-```json
-{
-  "service": {
-    "port": "${SEARCH_PORT|8001}",
-    "indexes": {
-      "docs": "${DOCS_INDEX|./docs.swsearch}",
-      "api": "${API_INDEX|./api.swsearch}"
-    }
-  },
-  "security": {
-    "ssl_enabled": "${SEARCH_SSL|false}",
-    "auth": {
-      "basic": {
-        "enabled": true,
-        "user": "${SEARCH_USER|search}",
-        "password": "${SEARCH_PASSWORD}"
-      }
-    }
-  }
-}
-```
-
 ### MCP Gateway Configuration
 
 ```json
