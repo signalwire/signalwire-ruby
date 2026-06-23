@@ -298,6 +298,23 @@ run_gate "SKILL-CONTRACT" "diff_skill_contracts vs python reference" \
         --dump-cmd "bundle exec ruby bin/emit-skills" \
         --port-repo "$PORT_ROOT"
 
+# Gate 12: SWAIG-CLI — lightweight shared swaig-test mini-contract (NOT python
+# parity). Black-box: invokes bin/swaig-test --help + golden invocations and
+# asserts the shared verbs are documented, an unknown --simulate-serverless
+# platform errors (no silent fallback), and no-action errors (the cross-port
+# majority default). Ruby uses the HTTP --url probe model AND accepts
+# --simulate-serverless, so both --require-url-model and --has-serverless apply.
+run_gate "SWAIG-CLI" "swaig-test shared mini-contract (verbs/serverless-reject/default-action)" \
+    python3 "$PORTING_SDK_DIR/scripts/audit_swaig_cli_contract.py" \
+        --port ruby \
+        --cmd "ruby -I$PORT_ROOT/lib $PORT_ROOT/bin/swaig-test" \
+        --require-url-model \
+        --default-action-argv='--url|http://user:pass@127.0.0.1:1/' \
+        --has-serverless \
+        --serverless-argv='AGENT_FILE_PLACEHOLDER|--simulate-serverless|bogus-platform-xyz|--dump-swml' \
+        --agent-file-suffix '.rb' \
+        --agent-file-content "require 'signalwire'; AGENT = SignalWire::AgentBase.new(name: 'p', route: '/'); AGENT.set_prompt_text('hi')"
+
 if [ -z "$FAILED_GATES" ]; then
     echo "==> CI PASS"
     exit 0

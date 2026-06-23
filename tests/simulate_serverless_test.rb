@@ -409,6 +409,106 @@ class SimulateServerlessPlatformValidationTest < Minitest::Test
     refute_equal :ok, status
     assert_includes err, 'requires a positional agent file'
   end
+end
+
+# ==========================================================================
+# --env / --env-file plumbing (FIX 2: wire the dormant `overrides:` path)
+# ==========================================================================
+class SimulateServerlessEnvOverrideTest < Minitest::Test
+  include RuntimeEnvIsolation
+  include SimulateServerlessTestHelpers
+
+  def teardown
+    @agent_file&.close
+    @agent_file&.unlink
+    @env_file&.close
+    @env_file&.unlink
+    super
+  end
+
+  # An agent that echoes the value of an env var read at request time, so the
+  # test can prove a --env override actually reached the running agent's
+  # environment during the simulation (not just the simulator's overrides hash).
+  def env_echo_tool
+    {
+      name: 'echo_env',
+      description: 'Echo an env var',
+      parameters: {},
+      body: "SignalWire::Swaig::FunctionResult.new(ENV.fetch('CUSTOM_SIM_VAR', '<unset>'))"
+    }
+  end
+
+  # Write a throwaway .env file with the given contents and stash it for teardown.
+  def write_env_file(contents)
+    @env_file = Tempfile.new(['env', '.env'])
+    @env_file.write(contents)
+    @env_file.flush
+    @env_file.path
+  end
+
+  def test_env_flag_overrides_reach_the_simulation
+    @agent_file = write_agent_file(route: '/', tools: [env_echo_tool])
+
+    out, err, status = capture_cli(
+      [@agent_file.path, '--simulate-serverless', 'lambda',
+       '--env', 'CUSTOM_SIM_VAR=from-env-flag',
+       '--exec', 'echo_env', '--raw']
+    )
+
+    assert_equal :ok, status, "CLI exited non-zero: #{err}"
+    assert_equal 'from-env-flag', JSON.parse(out)['response']
+    # And the override must not leak past the simulation.
+    assert_nil ENV.fetch('CUSTOM_SIM_VAR', nil)
+  end
+
+  def test_env_file_overrides_reach_the_simulation
+    env_path = write_env_file("# a comment\nCUSTOM_SIM_VAR=from-env-file\n\n")
+    @agent_file = write_agent_file(route: '/', tools: [env_echo_tool])
+
+    out, err, status = capture_cli(
+      [@agent_file.path, '--simulate-serverless', 'lambda',
+       '--env-file', env_path, '--exec', 'echo_env', '--raw']
+    )
+
+    assert_equal :ok, status, "CLI exited non-zero: #{err}"
+    assert_equal 'from-env-file', JSON.parse(out)['response']
+  end
+
+  def test_env_flag_wins_over_env_file
+    env_path = write_env_file("CUSTOM_SIM_VAR=from-file\n")
+    @agent_file = write_agent_file(route: '/', tools: [env_echo_tool])
+
+    out, _err, status = capture_cli(
+      [@agent_file.path, '--simulate-serverless', 'lambda',
+       '--env-file', env_path, '--env', 'CUSTOM_SIM_VAR=from-flag',
+       '--exec', 'echo_env', '--raw']
+    )
+
+    assert_equal :ok, status
+    assert_equal 'from-flag', JSON.parse(out)['response']
+  end
+
+  def test_env_without_simulate_is_rejected
+    _out, err, status = capture_cli(
+      ['--url', 'http://user:pass@localhost:3000/', '--env', 'X=1', '--list-tools']
+    )
+
+    refute_equal :ok, status
+    assert_includes err, '--env'
+    assert_includes err, '--simulate-serverless'
+  end
+
+  def test_missing_env_file_is_rejected
+    @agent_file = write_agent_file(route: '/')
+
+    _out, err, status = capture_cli(
+      [@agent_file.path, '--simulate-serverless', 'lambda',
+       '--env-file', '/nonexistent/path/.env', '--dump-swml']
+    )
+
+    refute_equal :ok, status
+    assert_includes err, 'not found'
+  end
 
   def test_agent_file_not_found_is_rejected
     _out, err, status = capture_cli(
