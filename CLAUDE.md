@@ -8,19 +8,36 @@ This is the SignalWire AI Agents SDK for Ruby -- a framework for building, deplo
 
 ## Development Commands
 
+Test / lint / format go through the canonical `scripts/run-*.sh` entry points.
+They self-bootstrap their tool environment (resolve the repo root from the
+script's own path, `bundle install` if a gem is missing) and run correctly from
+ANY directory — call them instead of `rake test` / `rubocop` directly (see
+porting-sdk/RUN_LINT_FORMAT_SPEC.md). `scripts/run-ci.sh` invokes these same
+scripts for its TEST/FMT/LINT gates, so local == CI.
+
 ### Testing
 ```bash
-# Run all tests
-rake test
+# Run the full test suite (canonical entry point; self-bootstraps, any CWD)
+bash scripts/run-tests.sh
 
-# Run specific test files
-ruby -Ilib:tests tests/unit/core/test_agent_base.rb
-
-# Run with verbose output
-rake test TESTOPTS="--verbose"
+# Run a subset — pass a test file (or glob) as the filter
+bash scripts/run-tests.sh tests/function_result_test.rb
 
 # Syntax-check a file
 ruby -c lib/signalwire/agent/agent_base.rb
+```
+
+### Formatting and Linting
+```bash
+# Format (rubocop): APPLY in place (default) — reformats the tree
+bash scripts/run-format.sh
+# Format VERIFY-ONLY (what CI runs): fails if anything is unformatted
+bash scripts/run-format.sh --check
+
+# Lint (rubocop, zero offenses): report findings, non-zero on any offense
+bash scripts/run-lint.sh
+# Lint with safe autofix, then report the residual
+bash scripts/run-lint.sh --fix
 ```
 
 ### Installation and Setup
@@ -176,4 +193,4 @@ lib/signalwire/
 1. Syntax check: `ruby -c examples/my_agent.rb`
 2. Use `swaig-test` for local function testing
 3. Test SWML generation by calling `agent.render_swml`
-4. Use `rake test` for the full test suite
+4. Use `bash scripts/run-tests.sh` for the full test suite

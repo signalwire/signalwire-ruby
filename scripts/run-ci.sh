@@ -4,15 +4,21 @@
 # Same script invoked locally (`bash scripts/run-ci.sh`) AND by the
 # GitHub Actions workflow. No drift between local and CI behavior.
 #
+# The TEST, FMT, and LINT gates now invoke the canonical self-bootstrapping
+# entry-point scripts (scripts/run-tests.sh, run-format.sh, run-lint.sh — all
+# sourcing scripts/_env.sh), so those gates work identically whether run by CI or
+# standalone from any CWD (porting-sdk/RUN_LINT_FORMAT_SPEC.md). Nothing should
+# call `rake test` / `rubocop` directly anymore — go through the scripts.
+#
 # Gates (in order, fail-fast):
-#   1. bundle exec rake test              — language test runner
+#   1. run-tests.sh                       — language test runner (rake test)
 #   2. signature regen                    — python adapter + signature_dump.rb
 #   3. drift gate                         — porting-sdk diff_port_signatures.py
 #   4. surface-fresh gate                 — porting-sdk check_surface_freshness.py
 #   5. no-cheat gate                      — porting-sdk audit_no_cheat_tests.py
 #   6. emission gate                      — porting-sdk diff_port_emission.py
-#   7. fmt gate                           — rubocop (local: --autocorrect; CI: check)
-#   8. lint gate                          — rubocop, zero offenses (the burndown floor)
+#   7. fmt gate                           — run-format.sh (local: apply; CI: --check)
+#   8. lint gate                          — run-lint.sh (rubocop, zero offenses)
 #   9. doc-audit gate                     — porting-sdk audit_docs.py
 #  10. surface-diff gate                  — porting-sdk diff_port_surface.py
 #  11. skill-contract gate                — porting-sdk diff_skill_contracts.py
@@ -66,9 +72,12 @@ cd "$PORT_ROOT"
 
 echo "==> running CI gates for $PORT_NAME (porting-sdk at $PORTING_SDK_DIR)"
 
-# Gate 1: rake test
-run_gate "TEST" "bundle exec rake test" \
-    bundle exec rake test
+# Gate 1: TEST — the language test runner. The tool invocation + its
+# self-bootstrap now live in scripts/run-tests.sh (shared scripts/_env.sh) so the
+# gate works identically whether run by CI or standalone from any CWD
+# (porting-sdk/RUN_LINT_FORMAT_SPEC.md).
+run_gate "TEST" "run-tests.sh (bundle exec rake test)" \
+    bash scripts/run-tests.sh
 
 # Gate 1b: GEN-FRESH — the generated REST resource layer (lib/signalwire/rest/
 # namespaces/generated/ + generated_surface_map.json) must match what
@@ -198,7 +207,10 @@ rest_coverage_gate() {
         return 1
     fi
     python3 -c "import urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:$port/__mock__/journal/reset',method='POST'),timeout=5).read()"
-    MOCK_SIGNALWIRE_PORT="$port" bundle exec rake test || return 1
+    # Route through run-tests.sh (the canonical test entry point); the exported
+    # MOCK_SIGNALWIRE_PORT flows through unchanged so the per-test harness hits
+    # this gate's pre-spawned mock.
+    MOCK_SIGNALWIRE_PORT="$port" bash scripts/run-tests.sh || return 1
     python3 -m mock_signalwire.rest_coverage \
         --mock-url "http://127.0.0.1:$port" \
         --spec-root "$PORTING_SDK_DIR/rest-apis" \
@@ -250,25 +262,15 @@ run_gate "EMISSION" "diff_port_emission vs python oracle" \
 # formatter and linter; here it wears the "format" face. Source-style only and
 # proven surface/emission-neutral (a reformat leaves port_signatures.json +
 # port_surface.json byte-identical, and EMISSION 81/81 — verified during the
-# burndown). Mirrors the go/ts FMT shape:
-#   * LOCAL ($CI unset)  → `rubocop --autocorrect`: reformats your working tree
-#     in place so you never hand-run it; notes if it changed files.
-#   * CI ($CI=true)      → `rubocop` (read-only): FAILS if any offense reached CI.
-# lib/ + tests/ were burned to zero earlier; the bin/ tooling + Gemfile/gemspec
-# were brought to zero in the FMT/LINT rollout.
-fmt_gate() {
-    if [ -n "${CI:-}" ]; then
-        bundle exec rubocop
-    else
-        bundle exec rubocop --autocorrect >/dev/null
-        if ! git diff --quiet 2>/dev/null; then
-            echo "    (FMT auto-applied formatting to your working tree — review & stage)"
-        fi
-        # A residual offense rubocop can't autocorrect must still fail the gate.
-        bundle exec rubocop
-    fi
-}
-run_gate "FMT" "rubocop (local: --autocorrect; CI: check)" fmt_gate
+# burndown). The tool invocation + its self-bootstrap now live in
+# scripts/run-format.sh (shared scripts/_env.sh), so the gate works identically
+# whether run by CI or standalone from any CWD (porting-sdk/RUN_LINT_FORMAT_SPEC.md):
+#   * LOCAL ($CI unset)  → run-format.sh (no flag) → `rubocop --autocorrect`:
+#     reformats your working tree in place; notes if it changed files.
+#   * CI ($CI set)       → run-format.sh --check → `rubocop` (read-only): FAILS if
+#     any offense reached CI.
+run_gate "FMT" "run-format.sh (local: apply; CI: --check)" \
+    bash scripts/run-format.sh ${CI:+--check}
 
 # Gate 8: LINT — the language lint gate (ruby: rubocop, zero offenses). This is
 # the blocking quality floor: the full cop set in .rubocop.yml burned to zero by
@@ -286,8 +288,12 @@ run_gate "FMT" "rubocop (local: --autocorrect; CI: check)" fmt_gate
 # offense, so a gratuitous/over-broad disable can't pass this gate. No hand-rolled
 # grep guard — it can't tell a justified site-disable from a blanket one, and a
 # naive one wrongly fails wire-critical paired disables in lib/.
-run_gate "LINT" "rubocop zero offenses (lint gate)" \
-    bundle exec rubocop
+#
+# The tool invocation + its self-bootstrap now live in scripts/run-lint.sh
+# (shared scripts/_env.sh) so the gate works identically whether run by CI or
+# standalone from any CWD (porting-sdk/RUN_LINT_FORMAT_SPEC.md).
+run_gate "LINT" "run-lint.sh (rubocop zero offenses)" \
+    bash scripts/run-lint.sh
 
 # Gate 9: DOC-AUDIT — every method/class referenced in docs/ + examples/ fenced
 # code blocks must resolve to a real symbol in the port surface (catches

@@ -240,19 +240,27 @@ Guides are also available in the [`docs/`](docs/) directory:
 
 ## Testing
 
+Tests, formatting, and linting go through the canonical `scripts/run-*.sh`
+entry points. They self-bootstrap their tool environment (`bundle install` on a
+missing gem) and run from any directory — prefer them over raw `rake test` /
+`rubocop`.
+
 ```bash
-# Install dev dependencies
-bundle install
+# Run the full test suite (self-bootstraps, any CWD)
+bash scripts/run-tests.sh
 
-# Run the test suite
-rake test
-
-# Run by category
-ruby -Ilib -Itest test/unit/**/*_test.rb
-ruby -Ilib -Itest test/integration/**/*_test.rb
+# Run a subset — pass a test file (or glob)
+bash scripts/run-tests.sh tests/function_result_test.rb
 
 # Coverage
-COVERAGE=1 rake test
+COVERAGE=1 bash scripts/run-tests.sh
+
+# Format (rubocop): apply in place, or --check for verify-only
+bash scripts/run-format.sh
+bash scripts/run-format.sh --check
+
+# Lint (rubocop, zero offenses); --fix applies safe autocorrect first
+bash scripts/run-lint.sh
 ```
 
 ## License
