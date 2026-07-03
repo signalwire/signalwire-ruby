@@ -1,0 +1,24 @@
+# frozen_string_literal: true
+
+# Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
+#
+# flattened SWMLMethod verb 'stop_tap' config
+
+module SignalWire
+  module Core
+    module SwmlVerbsGenerated
+      # StopTapConfig — generated read-side payload (flattened SWMLMethod verb 'stop_tap' config).
+      #
+      # Frozen FIELDS maps each snake wire key to its JSON type symbol.
+      # A zero-arg reader per field mirrors the reference's recorded
+      # accessors (dropped on the SURFACE by the enumerator — method-less there).
+      class StopTapConfig
+        FIELDS = {
+          'control_id' => :string,
+        }.freeze
+
+        attr_reader :control_id
+      end
+    end
+  end
+end

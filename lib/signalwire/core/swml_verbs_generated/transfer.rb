@@ -1,0 +1,24 @@
+# frozen_string_literal: true
+
+# Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
+#
+# schema.json $defs schema 'Transfer'
+
+module SignalWire
+  module Core
+    module SwmlVerbsGenerated
+      # Transfer — generated read-side payload (schema.json $defs schema 'Transfer').
+      #
+      # Frozen FIELDS maps each snake wire key to its JSON type symbol.
+      # A zero-arg reader per field mirrors the reference's recorded
+      # accessors (dropped on the SURFACE by the enumerator — method-less there).
+      class Transfer
+        FIELDS = {
+          'transfer' => :object,
+        }.freeze
+
+        attr_reader :transfer
+      end
+    end
+  end
+end

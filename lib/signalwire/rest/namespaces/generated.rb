@@ -28,3 +28,8 @@ lambda do
 end.call
 
 require_relative 'generated/resource_tree'
+
+# The generated wire-type DTOs (item A/H): one method-less data class / closed-set
+# per components/schemas object, under generated/types/<ns>/. Self-contained
+# (no cross-references), so load order among them is irrelevant.
+Dir[File.join(__dir__, 'generated', 'types', '**', '*.rb')].each { |f| require f }

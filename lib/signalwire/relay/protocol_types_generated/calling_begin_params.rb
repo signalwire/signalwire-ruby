@@ -1,0 +1,26 @@
+# frozen_string_literal: true
+
+# Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
+#
+# RELAY method 'calling.begin', params
+
+module SignalWire
+  module Relay
+    module ProtocolTypesGenerated
+      # CallingBeginParams — generated data type (RELAY method 'calling.begin', params).
+      #
+      # Frozen FIELDS maps each snake wire key to its JSON type symbol.
+      # No reader/writer methods and no initialize — a method-less type the
+      # reference records method-less on both surface and signatures.
+      class CallingBeginParams
+        FIELDS = {
+          'device' => :object,
+          'max_duration' => :integer,
+          'node_id' => :string,
+          'region' => :string,
+          'tag' => :string,
+        }.freeze
+      end
+    end
+  end
+end

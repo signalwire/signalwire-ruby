@@ -78,6 +78,31 @@ run_gate "TEST" "bundle exec rake test" \
 run_gate "GEN-FRESH" "generated REST layer matches canonical specs" \
     python3 scripts/generate_rest.py --check
 
+# Gate 1c-e: GEN-FRESH for the generated READ-SIDE payload trees (changeset item
+# D). Each generator emits method-less typed data classes from a canonical spec:
+#   SWML-verbs config types (core/swml_verbs_generated) <- porting-sdk/schema.json $defs
+#   RELAY protocol types (relay/protocol_types_generated) <- relay-protocol/*.json
+#   SWAIG payloads (core/{post_prompt,swaig_request,swaig_actions}_generated) <- swaig-specs/
+# Fails if a spec changed without regenerating (or the tree was hand-edited).
+run_gate "GEN-FRESH-SWML" "generated SWML-verbs config tree matches schema.json (\$defs)" \
+    python3 scripts/generate_swml_verbs.py --check
+
+run_gate "GEN-FRESH-RELAY" "generated RELAY-protocol tree matches relay-protocol/*.json" \
+    python3 scripts/generate_relay_protocol.py --check
+
+run_gate "GEN-FRESH-SWAIG" "generated SWAIG payload tree matches swaig-specs/" \
+    python3 scripts/generate_swaig_payloads.py --check
+
+# Gate 1f: SWAIG-COVERAGE — every engine response action in the vendored
+# swaig-specs/swaig-response.yaml must be emittable by this port's FunctionResult
+# (or signed off in porting-sdk/SWAIG_COVERAGE_ALLOWLIST.md). The shared checker's
+# _sdk_emits_ruby scraper captures the top-level keys of `add_action('key', …)` and
+# `@action << { 'key' => … }` — landing at 25 of the 27 engine actions (the 2 gaps,
+# back_to_back_functions + user_event, are the shared signed-off allowlist).
+run_gate "SWAIG-COVERAGE" "every engine SWAIG action emittable (modulo allowlist)" \
+    python3 "$PORTING_SDK_DIR/scripts/swaig_coverage.py" --check \
+        --emission "$PORT_ROOT/lib/signalwire/swaig/function_result.rb"
+
 # Gate 2: signature regen
 run_gate "SIGNATURES" "regenerate port_signatures.json" \
     python3 scripts/enumerate_signatures.py

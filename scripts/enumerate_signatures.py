@@ -43,6 +43,30 @@ if not PSDK.is_dir():
 # (single source of truth — never hand-maintained here). Class name is the
 # reference name VERBATIM (L1/L2).
 GENERATED_PREFIX = "SignalWire::REST::Namespaces::Generated::"
+
+# Generated wire-type / read-side-payload FQN prefixes -> reference module,
+# routed by PATH (wins over name-keyed lookup — these class names recur across
+# modules and collide with SDK class names). Mirrors enumerate_surface.rb's
+# GENERATED_TYPES_PREFIX / GENERATED_PAYLOAD_PREFIXES. The REST wire-type +
+# relay-protocol + swaig-actions classes are METHOD-LESS (dropped by
+# signature_dump.rb, so they never reach here); the SWML-verbs / post-prompt /
+# swaig-request classes carry zero-arg field readers and DO land here — routed to
+# the flat <...>_generated module the reference records (folded to gen-payload by
+# the diff tool).
+GENERATED_TYPES_PREFIX = GENERATED_PREFIX + "Types::"
+GENERATED_TYPES_NS = {
+    "RelayRest": "relay_rest", "Fabric": "fabric", "Calling": "calling",
+    "Video": "video", "Datasphere": "datasphere", "Logs": "logs",
+    "Message": "message", "Voice": "voice", "Fax": "fax", "Project": "project",
+    "Chat": "chat", "PubSub": "pubsub", "SwmlWebhooks": "swml_webhooks",
+}
+GENERATED_PAYLOAD_PREFIXES = {
+    "SignalWire::Core::SwmlVerbsGenerated::": "signalwire.core.swml_verbs_generated",
+    "SignalWire::Relay::ProtocolTypesGenerated::": "signalwire.relay.protocol_types_generated",
+    "SignalWire::Core::PostPromptGenerated::": "signalwire.core.post_prompt_generated",
+    "SignalWire::Core::SwaigRequestGenerated::": "signalwire.core.swaig_request_generated",
+    "SignalWire::Core::SwaigActionsGenerated::": "signalwire.core.swaig_actions_generated",
+}
 _GEN_MAP_PATH = PORT_ROOT / "generated_surface_map.json"
 GENERATED_SURFACE_MAP: dict[str, str] = (
     json.loads(_GEN_MAP_PATH.read_text()) if _GEN_MAP_PATH.is_file() else {}
@@ -402,6 +426,23 @@ def resolve_class(full_name: str) -> tuple[str, str] | None:
         return None
     parts = full_name.split("::")
     short = parts[-1]
+    # Generated wire-type DTOs: route by the Types::<Ns>:: FQN prefix (PATH wins
+    # over name-keyed lookup). Method-less, so they normally don't reach here; the
+    # routing is kept for parity with the surface enumerator.
+    if full_name.startswith(GENERATED_TYPES_PREFIX):
+        ns_mod = full_name[len(GENERATED_TYPES_PREFIX):].split("::", 1)[0]
+        ns_key = GENERATED_TYPES_NS.get(ns_mod)
+        if ns_key is None:
+            raise SystemExit(
+                f"generated type class {full_name!r} has unknown Types namespace {ns_mod!r}"
+            )
+        return f"signalwire.rest.namespaces.{ns_key}_types_generated", short
+    # Generated read-side payload DTOs (SWML-verbs / post-prompt / swaig-request /
+    # relay-protocol / swaig-actions): route by FQN prefix to the flat reference
+    # module (folded to gen-payload by the diff tool). Class name VERBATIM.
+    for prefix, mod in GENERATED_PAYLOAD_PREFIXES.items():
+        if full_name.startswith(prefix):
+            return mod, short
     # Generated REST resource/container: project onto the reference's
     # <ns>_resources_generated / _client_tree_generated module via the sidecar,
     # class name VERBATIM.
@@ -514,6 +555,12 @@ def collect(raw: dict) -> dict:
             continue
         mod, canonical_class = resolved
         is_generated = full.startswith(GENERATED_PREFIX)
+        # A generated read-side payload class (SWML-verbs / post-prompt /
+        # swaig-request): its zero-arg field readers carry the wire field name
+        # VERBATIM (the reference records the accessor as the field, e.g. ``SWAIG``,
+        # not snake-cased). Skip the snake_case canonicalisation for these so the
+        # accessor compares equal to the reference.
+        is_payload = any(full.startswith(p) for p in GENERATED_PAYLOAD_PREFIXES)
 
         methods_out: dict = {}
         for m in type_entry.get("methods", []):
@@ -532,7 +579,8 @@ def collect(raw: dict) -> dict:
                 # Strip Ruby ?/! suffixes for the canonical name; Python
                 # signature inventory doesn't mark predicates / bangs.
                 clean = native.rstrip("?!")
-                method_canonical = snake_case(clean)
+                # Payload readers carry the wire field verbatim (no snake_case).
+                method_canonical = clean if is_payload else snake_case(clean)
             if method_canonical in methods_out:
                 continue
             sig = build_signature(

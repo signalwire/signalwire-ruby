@@ -76,6 +76,33 @@ PORTING_SDK_DEFAULT = find_default_porting_sdk
 # (single source of truth — never hand-maintained here). Class name is the
 # reference name VERBATIM (L1/L2).
 GENERATED_PREFIX = 'SignalWire::REST::Namespaces::Generated::'
+
+# The generated wire-type DTOs (item A/H) live under
+# SignalWire::REST::Namespaces::Generated::Types::<NsMod>::<TypeName> and are
+# routed to the reference's signalwire.rest.namespaces.<ns>_types_generated
+# module by PATH (their FQN namespace prefix), WINNING over the name-keyed
+# class->module resolution — because type names recur across namespaces and
+# collide with SDK class names (DataMap/Document/Section). Class name is the
+# reference leaf VERBATIM (the module-suffix fold in diff_port_surface.py
+# collapses a type duplicated across several <ns>_types_generated modules).
+GENERATED_TYPES_PREFIX = "#{GENERATED_PREFIX}Types::".freeze
+# Ruby module segment -> oracle <ns>_types_generated leaf (mirrors generate_rest
+# TYPE_NS; kept here so the enumerator needs no import of the generator).
+GENERATED_TYPES_NS = {
+  'RelayRest' => 'relay_rest',
+  'Fabric' => 'fabric',
+  'Calling' => 'calling',
+  'Video' => 'video',
+  'Datasphere' => 'datasphere',
+  'Logs' => 'logs',
+  'Message' => 'message',
+  'Voice' => 'voice',
+  'Fax' => 'fax',
+  'Project' => 'project',
+  'Chat' => 'chat',
+  'PubSub' => 'pubsub',
+  'SwmlWebhooks' => 'swml_webhooks'
+}.freeze
 GENERATED_SURFACE_MAP =
   begin
     p = REPO_ROOT.join('generated_surface_map.json')
@@ -279,8 +306,59 @@ end
 #     resources_generated module (both have an empty own-method set → match);
 #   * every other generated resource/container maps via the sidecar to its
 #     <ns>_resources_generated / _client_tree_generated module, class VERBATIM.
+# Project a generated wire-type class onto its <ns>_types_generated module by
+# the FQN namespace prefix (PATH-based, wins over name-keyed lookup). Returns
+# [module, class] or nil if +ruby_fqn+ is not a generated type class.
+def translate_generated_type_class(ruby_fqn, cls)
+  return nil unless ruby_fqn.start_with?(GENERATED_TYPES_PREFIX)
+
+  rest = ruby_fqn.delete_prefix(GENERATED_TYPES_PREFIX) # "<NsMod>::<TypeName>"
+  ns_mod = rest.split('::').first
+  ns_key = GENERATED_TYPES_NS[ns_mod]
+  if ns_key.nil?
+    abort "generated type class #{ruby_fqn} has unknown Types namespace #{ns_mod.inspect} " \
+          '(add it to GENERATED_TYPES_NS)'
+  end
+  ["signalwire.rest.namespaces.#{ns_key}_types_generated", cls]
+end
+
+# The generated read-side payload modules (SESSION_CHANGESET item D): SWML-verbs
+# config types, RELAY protocol types, and SWAIG payloads. Each is routed to its
+# reference module by the Ruby FQN namespace PREFIX (path-based, wins over the
+# name-keyed lookup) — required because the class names recur across modules and
+# collide with SDK/REST-type names (AIObject/Cond/Section/…). Class name is the
+# reference leaf VERBATIM; the diff-tool gen-payload / gen-type folds collapse the
+# cross-module duplicates on both sides.
+GENERATED_PAYLOAD_PREFIXES = {
+  'SignalWire::Core::SwmlVerbsGenerated::' => 'signalwire.core.swml_verbs_generated',
+  'SignalWire::Relay::ProtocolTypesGenerated::' => 'signalwire.relay.protocol_types_generated',
+  'SignalWire::Core::PostPromptGenerated::' => 'signalwire.core.post_prompt_generated',
+  'SignalWire::Core::SwaigRequestGenerated::' => 'signalwire.core.swaig_request_generated',
+  'SignalWire::Core::SwaigActionsGenerated::' => 'signalwire.core.swaig_actions_generated'
+}.freeze
+
+# Project a generated read-side payload class onto its reference module by FQN
+# prefix. Returns [module, class] or nil.
+def translate_generated_payload_class(ruby_fqn, cls)
+  GENERATED_PAYLOAD_PREFIXES.each do |prefix, mod|
+    return [mod, cls] if ruby_fqn.start_with?(prefix)
+  end
+  nil
+end
+
+# Route a generated wire-type OR read-side-payload class by its FQN namespace
+# prefix (PATH-based, wins over the name-keyed lookup). Returns [module, class]
+# or nil. Their names recur across modules / collide with SDK class names.
+def translate_generated_by_path(ruby_fqn, cls)
+  translate_generated_type_class(ruby_fqn, cls) ||
+    translate_generated_payload_class(ruby_fqn, cls)
+end
+
 def translate_generated_class(ruby_fqn, cls)
   return ['signalwire.rest._base', cls] if GENERATED_BASE_CLASSES.include?(ruby_fqn)
+
+  path_route = translate_generated_by_path(ruby_fqn, cls)
+  return path_route if path_route
   return nil unless ruby_fqn.start_with?(GENERATED_PREFIX)
 
   mod = GENERATED_SURFACE_MAP[cls]
@@ -429,11 +507,26 @@ def surface_module?(name, seen_classes)
   true
 end
 
+# A generated wire-type / read-side-payload class surfaces METHOD-LESS: the
+# reference records these as method-less type definitions (griffe: dataclass
+# fields are attributes, not surface methods). The SWML-verbs / post-prompt /
+# swaig-request classes carry zero-arg field READERS (needed for the SIGNATURE
+# gate — the reference records those accessors), but on the SURFACE those readers
+# are dropped so the class compares equal to the reference's method-less type.
+# Scoped to the generated-payload/type FQN prefixes so no SDK class is affected.
+def generated_methodless_class?(ruby_fqn)
+  return true if ruby_fqn.start_with?(GENERATED_TYPES_PREFIX)
+
+  GENERATED_PAYLOAD_PREFIXES.each_key { |prefix| return true if ruby_fqn.start_with?(prefix) }
+  false
+end
+
 # Record one Ruby class or module into `modules`.
 def process_module(mod, name, modules, python_index)
   if mod.is_a?(Class)
     target_mod, cls = translate_class(name, python_index)
-    modules[target_mod]['classes'][cls] = enumerate_methods(mod)
+    methods = generated_methodless_class?(name) ? [] : enumerate_methods(mod)
+    modules[target_mod]['classes'][cls] = methods
   else
     process_namespace_module(mod, name, modules)
   end
