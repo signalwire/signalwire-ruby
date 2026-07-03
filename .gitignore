@@ -31,3 +31,6 @@ Thumbs.db
 # Python audit-script bytecode (scripts/enumerate_*.py invocations)
 __pycache__/
 *.pyc
+
+# sw-verify repo-local scratch
+.sw-tmp/

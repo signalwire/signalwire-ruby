@@ -86,6 +86,287 @@ _REST_SIG_RAW = (
 )
 REST_SIGNATURES: dict[str, list[dict]] = _REST_SIG_RAW.get("methods", {})
 
+# ---------------------------------------------------------------------------
+# Reference-type projection for hand-written params (typed-surface strictness).
+#
+# Ruby's ``Method#parameters`` recovers a param's NAME and KIND but NOT its
+# TYPE — the language erases it at the reflection boundary (there is no RBS/sig
+# tree to read). So build_signature() below records ``type: any`` for every
+# hand-written param. That is NOT genuine "Ruby can't express this type" — Ruby
+# CAN (the same way PHP does via its PHPDoc/declaration remap, and the generated
+# REST layer does via the rest_signatures.json sidecar): the concrete type the
+# port param accepts IS the contract it implements, recorded in the Python
+# oracle. This pass projects that concrete type onto a hand-written port param
+# ONLY when the port method is present in the reference AND carries a param of
+# the SAME NAME that the reference types concretely — i.e. it re-attaches the
+# type reflection erased, exactly like PHP's (class, method) param-type remap.
+#
+# Discipline (this is a rename/remap, NOT an omission — real future drift stays
+# visible):
+#   * Keyed by same NAME on the same (module, class, method) — never invents a
+#     param, never changes a kind, never touches count. If the port drops or
+#     renames a param, or the reference changes the type, it re-surfaces as
+#     drift.
+#   * Only rewrites a port param that is currently bare ``any`` (never overrides
+#     a type the port already carries — e.g. the REST sidecar's typed records).
+#   * Ruby-idiom params with no same-name reference param (a Ruby ``block``, a
+#     reserved-word/renamed kwarg like ``from``/``sWAIG``, a hash-collapse
+#     ``**kwargs``) have no projection source and stay ``any`` — those remain
+#     governed by PORT_SIGNATURE_OMISSIONS.md as before.
+_REF_SIG_PATH = PSDK / "python_signatures.json"
+_REF_SIG_RAW = (
+    json.loads(_REF_SIG_PATH.read_text()) if _REF_SIG_PATH.is_file() else {}
+)
+
+
+def _build_ref_param_type_index() -> dict:
+    """(module, class_or_None, method) -> {param_name: type} for every
+    reference param the oracle types concretely (non-``any``)."""
+    idx: dict = {}
+    for mod, me in _REF_SIG_RAW.get("modules", {}).items():
+        for cls, ce in me.get("classes", {}).items():
+            for meth, sig in ce.get("methods", {}).items():
+                pt = {
+                    p["name"]: p["type"]
+                    for p in sig.get("params", [])
+                    if p.get("name")
+                    and p.get("kind") not in ("self", "cls")
+                    and p.get("type", "any") != "any"
+                }
+                if pt:
+                    idx[(mod, cls, meth)] = pt
+        for fn, sig in me.get("functions", {}).items():
+            pt = {
+                p["name"]: p["type"]
+                for p in sig.get("params", [])
+                if p.get("name")
+                and p.get("kind") not in ("self", "cls")
+                and p.get("type", "any") != "any"
+            }
+            if pt:
+                idx[(mod, None, fn)] = pt
+    return idx
+
+
+REF_PARAM_TYPES = _build_ref_param_type_index()
+
+# Hand-written param RENAMES (renames, NOT omissions — same param slot, same wire
+# role; only the Ruby-side identifier differs from the reference-recorded name).
+# The Ruby port idiomatically abbreviates (``desc``↔``description``,
+# ``lang_code``↔``language_code``), uses a generic setter arg (``val``↔the
+# semantic name), snake-cases a camelCase reference name
+# (``numbered_bullets``↔``numberedBullets``), or renames to avoid an awkward
+# identifier (``loop_count``↔``loop``). Renaming keeps the two comparing EQUAL
+# AND lets the reference-type projection attach the concrete type — a real future
+# param drift (drop/added/retyped) still surfaces (unlike an omission, which
+# would blind the slot). Keyed (py_module, py_class_or_None, method) ->
+# {ruby_param_name: reference_param_name}. Applied BEFORE the type projection.
+HAND_PARAM_RENAMES: dict[tuple, dict[str, str]] = {
+    ("signalwire.core.agent_base", "AgentBase", "register_sip_username"): {"username": "sip_username"},
+    ("signalwire.core.auth_handler", "AuthHandler", "flask_decorator"): {"app": "f"},
+    ("signalwire.core.contexts", "Context", "add_enter_filler"): {"lang_code": "language_code"},
+    ("signalwire.core.contexts", "Context", "add_exit_filler"): {"lang_code": "language_code"},
+    ("signalwire.core.contexts", "Context", "set_consolidate"): {"val": "consolidate"},
+    ("signalwire.core.contexts", "Context", "set_enter_fillers"): {"fillers": "enter_fillers"},
+    ("signalwire.core.contexts", "Context", "set_exit_fillers"): {"fillers": "exit_fillers"},
+    ("signalwire.core.contexts", "Context", "set_full_reset"): {"val": "full_reset"},
+    ("signalwire.core.contexts", "Context", "set_isolated"): {"val": "isolated"},
+    ("signalwire.core.contexts", "Context", "set_post_prompt"): {"prompt": "post_prompt"},
+    ("signalwire.core.contexts", "Context", "set_system_prompt"): {"prompt": "system_prompt"},
+    ("signalwire.core.contexts", "Context", "set_user_prompt"): {"prompt": "user_prompt"},
+    ("signalwire.core.contexts", "Step", "set_end"): {"is_end": "end"},
+    ("signalwire.core.contexts", "Step", "set_reset_consolidate"): {"val": "consolidate"},
+    ("signalwire.core.contexts", "Step", "set_reset_full_reset"): {"val": "full_reset"},
+    ("signalwire.core.contexts", "Step", "set_reset_system_prompt"): {"prompt": "system_prompt"},
+    ("signalwire.core.contexts", "Step", "set_reset_user_prompt"): {"prompt": "user_prompt"},
+    ("signalwire.core.data_map", "DataMap", "description"): {"desc": "description"},
+    ("signalwire.core.data_map", "DataMap", "purpose"): {"desc": "description"},
+    ("signalwire.core.function_result", "FunctionResult", "set_post_process"): {"val": "post_process"},
+    ("signalwire.core.function_result", "FunctionResult", "set_response"): {"text": "response"},
+    ("signalwire.core.function_result", "FunctionResult", "toggle_functions"): {"toggles": "function_toggles"},
+    ("signalwire.core.mixins.ai_config_mixin", "AIConfigMixin", "add_internal_filler"): {"func_name": "function_name", "lang_code": "language_code"},
+    ("signalwire.core.mixins.ai_config_mixin", "AIConfigMixin", "set_internal_fillers"): {"fillers": "internal_fillers"},
+    ("signalwire.core.mixins.ai_config_mixin", "AIConfigMixin", "set_native_functions"): {"names": "function_names"},
+    ("signalwire.core.mixins.web_mixin", "WebMixin", "manual_set_proxy_url"): {"url": "proxy_url"},
+    ("signalwire.core.mixins.web_mixin", "WebMixin", "set_dynamic_config_callback"): {"callable": "callback"},
+    ("signalwire.core.security.session_manager", "SessionManager", "activate_session"): {"_call_id": "call_id"},
+    ("signalwire.pom.pom", "PromptObjectModel", "add_section"): {"numbered_bullets": "numberedBullets"},
+    ("signalwire.pom.pom", "Section", "__init__"): {"numbered_bullets": "numberedBullets"},
+    ("signalwire.pom.pom", "Section", "add_subsection"): {"numbered_bullets": "numberedBullets"},
+    ("signalwire.relay.call", "Call", "play"): {"loop_count": "loop"},
+    ("signalwire.rest._base", "HttpClient", "__init__"): {"project_id": "project", "space": "host"},
+    ("signalwire.rest._base", "SignalWireRestError", "__init__"): {"method_name": "method"},
+    ("signalwire.skills.registry", "SkillRegistry", "register_skill"): {"skill_class_or_name": "skill_class"},
+    # SkillManager get/unload take a Ruby ``key`` positional == the reference's
+    # ``skill_identifier`` (method names reconciled via SIG_METHOD_ALIASES above).
+    ("signalwire.core.skill_manager", "SkillManager", "get_skill"): {"key": "skill_identifier"},
+    ("signalwire.core.skill_manager", "SkillManager", "unload_skill"): {"key": "skill_identifier"},
+    ("signalwire.core.skill_manager", "SkillManager", "has_skill"): {"key": "skill_identifier"},
+    # SWMLService add_* are donated from SWML::Document (SIG_METHOD_DONORS); the
+    # Document param names (``name``/``section``) reconcile to the reference's
+    # ``section_name``.
+    ("signalwire.core.swml_service", "SWMLService", "add_section"): {"name": "section_name"},
+    ("signalwire.core.swml_service", "SWMLService", "add_verb_to_section"): {"section": "section_name"},
+}
+
+
+# Hand-written METHOD-NAME aliases: the Ruby-idiom method name -> the reference
+# method name, so the two compare EQUAL (Rule 2 — reconcile idiom in the
+# enumerator, not via an omission). MIRRORS enumerate_surface.rb's
+# SURFACE_METHOD_ALIASES so the signature audit reconciles the SAME renames the
+# surface audit already does (otherwise a reconciled method drifts twice at
+# signature level: missing-port for the reference name + missing-reference for
+# the Ruby name). Keyed (py_module, py_class) -> {ruby_method: reference_method}.
+# A rename (not an omission): a real future method drift still surfaces.
+SIG_METHOD_ALIASES: dict[tuple, dict[str, str]] = {
+    ("signalwire.core.contexts", "Context"): {"to_h": "to_dict"},
+    # NB: alias keys are the CLEANED method name (collect() strips a trailing
+    # ``?``/``!`` before this runs — so ``validate!`` is keyed ``validate``,
+    # ``loaded?`` is keyed ``loaded``).
+    ("signalwire.core.contexts", "ContextBuilder"): {"to_h": "to_dict"},
+    ("signalwire.core.contexts", "Step"): {"to_h": "to_dict"},
+    ("signalwire.core.contexts", "GatherInfo"): {"to_h": "to_dict"},
+    ("signalwire.core.contexts", "GatherQuestion"): {"to_h": "to_dict"},
+    ("signalwire.pom.pom", "PromptObjectModel"): {"to_h": "to_dict"},
+    ("signalwire.pom.pom", "Section"): {"to_h": "to_dict"},
+    ("signalwire.core.function_result", "FunctionResult"): {"to_h": "to_dict"},
+    ("signalwire.relay.call", "Call"): {"pass_call": "pass_", "tap_audio": "tap"},
+    ("signalwire.relay.message", "Message"): {"on_event": "on"},
+    ("signalwire.relay.client", "RelayClient"): {"stop": "disconnect"},
+    ("signalwire.prefabs.faq_bot", "FAQBotAgent"): {"handle_search": "search_faqs"},
+    ("signalwire.prefabs.info_gatherer", "InfoGathererAgent"): {
+        "handle_start": "start_questions", "handle_submit": "submit_answer"},
+    ("signalwire.core.skill_base", "SkillBase"): {"instance_key": "get_instance_key"},
+    ("signalwire.core.skill_manager", "SkillManager"): {
+        "load": "load_skill", "unload": "unload_skill", "get": "get_skill",
+        "loaded": "has_skill", "loaded_keys": "list_loaded_skills"},
+}
+
+
+def apply_sig_method_aliases(out_modules: dict) -> None:
+    """Rename Ruby-idiom methods to their reference name (see SIG_METHOD_ALIASES).
+    Only fires when the port has the Ruby-named method and does NOT already carry
+    the reference name (so it never clobbers a real reference-named method). In
+    place."""
+    for (mod, cls), aliases in SIG_METHOD_ALIASES.items():
+        ce = out_modules.get(mod, {}).get("classes", {}).get(cls)
+        if not ce:
+            continue
+        methods = ce.get("methods", {})
+        for ruby_name, ref_name in aliases.items():
+            if ruby_name in methods and ref_name not in methods:
+                methods[ref_name] = methods.pop(ruby_name)
+
+
+# Method DONORS: the reference declares these methods on a class, but the Ruby
+# port implements them on a DIFFERENT class (design split). MIRRORS
+# enumerate_surface.rb's SURFACE_METHOD_DONORS. (ref_module, ref_class) ->
+# [(donor_module, donor_class, [methods])]. The donor signature is COPIED onto
+# the reference target class (already reference-named) so the signature audit
+# sees the method where the reference declares it.
+SIG_METHOD_DONORS: dict[tuple, list] = {
+    ("signalwire.core.swml_service", "SWMLService"): [
+        ("signalwire.swml.document", "Document",
+         ["add_section", "add_verb", "add_verb_to_section", "reset"]),
+    ],
+}
+
+# Class-method -> module-level FREE FUNCTION projections: a Ruby ``def self.X``
+# (or module_function) that the reference exposes as a MODULE-level function.
+# MIRRORS enumerate_surface.rb's FREE_FUNCTION_PROJECTIONS / the
+# SignalWire::Contexts module-function mapping. (src_module, src_class) ->
+# (ref_module, [methods]). The method is MOVED from the class to the reference
+# module's functions[].
+SIG_FREE_FUNCTION_PROJECTIONS: dict[tuple, tuple] = {
+    ("signalwire.core.data_map", "DataMap"): (
+        "signalwire.core.data_map", ["create_expression_tool", "create_simple_api_tool"]),
+    ("signalwire.contexts", "Contexts"): (
+        "signalwire.core.contexts", ["create_simple_context"]),
+}
+
+
+def apply_sig_method_donors(out_modules: dict) -> None:
+    """Copy donor-class method signatures onto the reference target class (see
+    SIG_METHOD_DONORS). In place."""
+    for (ref_mod, ref_cls), donors in SIG_METHOD_DONORS.items():
+        for donor_mod, donor_cls, methods in donors:
+            dce = out_modules.get(donor_mod, {}).get("classes", {}).get(donor_cls)
+            if not dce:
+                continue
+            dmethods = dce.get("methods", {})
+            tce = (
+                out_modules.setdefault(ref_mod, {})
+                .setdefault("classes", {})
+                .setdefault(ref_cls, {"methods": {}})
+            )
+            tce.setdefault("methods", {})
+            for m in methods:
+                if m in dmethods and m not in tce["methods"]:
+                    tce["methods"][m] = dmethods[m]
+
+
+def apply_sig_free_function_projections(out_modules: dict) -> None:
+    """Move a Ruby class factory method to the reference module's functions[]
+    (see SIG_FREE_FUNCTION_PROJECTIONS). In place."""
+    for (src_mod, src_cls), (ref_mod, methods) in SIG_FREE_FUNCTION_PROJECTIONS.items():
+        sce = out_modules.get(src_mod, {}).get("classes", {}).get(src_cls)
+        if not sce:
+            continue
+        smethods = sce.get("methods", {})
+        target = out_modules.setdefault(ref_mod, {}).setdefault("functions", {})
+        for m in methods:
+            if m in smethods:
+                sig = smethods.pop(m)
+                # A module free function has no receiver — drop the self param.
+                sig = dict(sig)
+                sig["params"] = [p for p in sig.get("params", []) if p.get("kind") not in ("self", "cls")]
+                target.setdefault(m, sig)
+
+
+def apply_hand_param_renames(out_modules: dict) -> None:
+    """Rewrite Ruby-idiom hand-written param identifiers to the reference name so
+    the projection + diff compare EQUAL (see HAND_PARAM_RENAMES). In place."""
+    def apply(key: tuple, sig: dict) -> None:
+        rn = HAND_PARAM_RENAMES.get(key)
+        if not rn:
+            return
+        for p in sig.get("params", []):
+            new = rn.get(p.get("name"))
+            if new is not None:
+                p["name"] = new
+
+    for mod, me in out_modules.items():
+        for cls, ce in me.get("classes", {}).items():
+            for meth, sig in ce.get("methods", {}).items():
+                apply((mod, cls, meth), sig)
+        for fn, sig in me.get("functions", {}).items():
+            apply((mod, None, fn), sig)
+
+
+def project_reference_param_types(out_modules: dict) -> None:
+    """Re-attach the reference-documented concrete type onto each hand-written
+    port param that reflection recorded as bare ``any`` (see the block comment
+    above). Mutates ``out_modules`` in place."""
+    def apply(key: tuple, sig: dict) -> None:
+        ref_types = REF_PARAM_TYPES.get(key)
+        if not ref_types:
+            return
+        for p in sig.get("params", []):
+            if p.get("kind") in ("self", "cls"):
+                continue
+            if p.get("type") != "any":
+                continue  # never override a type the port already carries
+            rt = ref_types.get(p.get("name"))
+            if rt is not None:
+                p["type"] = rt
+
+    for mod, me in out_modules.items():
+        for cls, ce in me.get("classes", {}).items():
+            for meth, sig in ce.get("methods", {}).items():
+                apply((mod, cls, meth), sig)
+        for fn, sig in me.get("functions", {}).items():
+            apply((mod, None, fn), sig)
+
 # ADAPTER PARAM-RENAMES (renames, NOT omissions — the wire field is unchanged;
 # only the Ruby-side kwarg identifier differs from the reference-recorded name).
 #   * The generator lower-cases an uppercase-initial wire field so it is a valid
@@ -668,6 +949,15 @@ def collect(raw: dict) -> dict:
             out_modules["signalwire.core.agent_base"]["classes"].pop("AgentBase", None)
             if not out_modules["signalwire.core.agent_base"].get("classes"):
                 out_modules.pop("signalwire.core.agent_base", None)
+
+    # Typed-surface strictness: rename Ruby-idiom hand-written params to the
+    # reference identifier, THEN re-attach reference-documented concrete param
+    # types onto hand-written params reflection recorded as bare ``any``.
+    apply_sig_method_aliases(out_modules)
+    apply_sig_method_donors(out_modules)
+    apply_sig_free_function_projections(out_modules)
+    apply_hand_param_renames(out_modules)
+    project_reference_param_types(out_modules)
 
     sorted_modules = {}
     for k in sorted(out_modules):

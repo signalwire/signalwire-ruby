@@ -152,7 +152,7 @@ signalwire.relay.event.TranscribeEvent.from_payload: classmethod-cls — Ruby st
 
 # Ruby **kwargs collapse — Call methods forward a hash to RELAY (matches TS port BACKLOG)
 
-signalwire.relay.call.Call.ai: kwargs-collapse — Ruby `def ai(**kwargs)` forwards hash to RELAY (TS port has same BACKLOG entry)
+signalwire.relay.call.Call.ai: kwargs-collapse — Ruby `def ai(control_id:, on_completed:, **kwargs)` forwards every remaining Python keyword to RELAY as a hash key (category 3)
 signalwire.relay.call.Call.ai_hold: kwargs-collapse — Ruby `def ai_hold(**kwargs)` forwards hash to RELAY
 signalwire.relay.call.Call.ai_message: kwargs-collapse — Ruby `def ai_message(**kwargs)` forwards hash to RELAY
 signalwire.relay.call.Call.ai_unhold: kwargs-collapse — Ruby `def ai_unhold(**kwargs)` forwards hash to RELAY
@@ -221,3 +221,85 @@ signalwire.agent_server.AgentServer.register_global_routing_callback: kwargs-idi
 signalwire.prefabs.info_gatherer.InfoGathererAgent.on_swml_request: kwargs-idiom — Ruby third param `request:` is keyword ≡ Python positional (matches WebMixin.on_swml_request)
 signalwire.relay.call.Call.wait_for: kwargs-idiom — Ruby `predicate:`/`timeout:` keywords ≡ Python positional with default
 
+
+
+# ---------------------------------------------------------------------------
+# Typed-surface strictness pass (2026-07): the signature audit now compares
+# PARAM TYPES + method presence at signature granularity. Concrete param
+# types are re-attached by the enumerator's reference-type projection;
+# method/param renames + donors + free-fn projections mirror
+# enumerate_surface.rb. The residual below is GENUINE Ruby idiom the
+# enumerator cannot reconcile, a reference SIGNATURE-ORACLE gap (surface has
+# the symbol, the sig oracle doesn't — proven by SURFACE-DIFF PASS), or a
+# true Ruby-only addition. Each carries its signature-level reason.
+
+# --- Ruby keyword-arg / **kwargs / block / classmethod idiom (kind & count) ---
+signalwire.core.agent_base.AgentBase.get_full_url: kwargs-idiom — Ruby keyword arg(s) (include_auth) ≡ Python positional with default
+signalwire.core.auth_handler.AuthHandler.get_fastapi_dependency: kwargs-idiom — Ruby keyword arg(s) (optional) ≡ Python positional with default
+signalwire.core.data_map.create_expression_tool: kwargs-idiom — Ruby keyword arg(s) (name, patterns, parameters) ≡ Python positional with default
+signalwire.core.data_map.create_simple_api_tool: kwargs-idiom — Ruby keyword arg(s) (name, url, response_template, parameters, method, headers, body, error_keys) ≡ Python positional with default
+signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_mcp_server: kwargs-idiom — Ruby keyword arg(s) (headers, resources, resource_vars) ≡ Python positional with default
+signalwire.core.mixins.serverless_mixin.ServerlessMixin.handle_serverless_request: kwargs-idiom — Ruby keyword arg(s) (event, context, mode) ≡ Python positional with default
+signalwire.core.pom_builder.PomBuilder.add_section: kwargs-idiom — Ruby keyword arg(s) (body, bullets, numbered, numbered_bullets, subsections) ≡ Python positional with default
+signalwire.core.pom_builder.PomBuilder.add_subsection: kwargs-idiom — Ruby keyword arg(s) (body, bullets) ≡ Python positional with default
+signalwire.core.pom_builder.PomBuilder.add_to_section: kwargs-idiom — Ruby keyword arg(s) (body, bullet, bullets) ≡ Python positional with default
+signalwire.core.security_config.SecurityConfig.__init__: kwargs-idiom — Ruby keyword arg(s) (config_file, service_name) ≡ Python positional with default
+signalwire.core.security_config.SecurityConfig.get_security_headers: kwargs-idiom — Ruby keyword arg(s) (is_https) ≡ Python positional with default
+signalwire.core.swaig_function.SWAIGFunction.__init__: kwargs-idiom — Ruby keyword arg(s) (name, handler, description, parameters, secure, fillers, wait_file, wait_file_loops, webhook_url, required, is_typed_handler) ≡ Python positional with default
+signalwire.core.swaig_function.SWAIGFunction.to_swaig: kwargs-idiom — Ruby keyword arg(s) (base_url, token, call_id, include_auth) ≡ Python positional with default
+signalwire.core.swml_builder.SWMLBuilder.ai: kwargs-idiom — Ruby keyword arg(s) (prompt_text, prompt_pom, post_prompt, post_prompt_url, swaig) ≡ Python positional with default
+signalwire.core.swml_builder.SWMLBuilder.answer: kwargs-idiom — Ruby keyword arg(s) (max_duration, codecs) ≡ Python positional with default
+signalwire.core.swml_builder.SWMLBuilder.hangup: kwargs-idiom — Ruby keyword arg(s) (reason) ≡ Python positional with default
+signalwire.core.swml_builder.SWMLBuilder.play: kwargs-idiom — Ruby keyword arg(s) (url, urls, volume, say_voice, say_language, say_gender, auto_answer) ≡ Python positional with default
+signalwire.core.swml_builder.SWMLBuilder.say: kwargs-idiom — Ruby keyword arg(s) (voice, language, gender, volume) ≡ Python positional with default
+signalwire.core.swml_handler.AIVerbHandler.build_config: kwargs-idiom — Ruby keyword arg(s) (prompt_text, prompt_pom, contexts, post_prompt, post_prompt_url, swaig) ≡ Python positional with default
+signalwire.core.swml_renderer.SwmlRenderer.render_function_response_swml: kwargs-idiom — Ruby keyword arg(s) (response_text, service, actions, format) ≡ Python positional with default
+signalwire.core.swml_renderer.SwmlRenderer.render_swml: kwargs-idiom — Ruby keyword arg(s) (prompt, service, post_prompt, post_prompt_url, swaig_functions, startup_hook_url, hangup_hook_url, prompt_is_pom, params, add_answer, record_call, record_format, record_stereo, format, default_webhook_url) ≡ Python positional with default
+signalwire.relay.call.Call.tap: kwargs-idiom — Ruby keyword arg(s) (device) ≡ Python positional with default
+signalwire.relay.message.Message.on: kwargs-idiom — Ruby keyword arg(s) (handler) ≡ Python positional with default
+signalwire.web.web_service.WebService.__init__: kwargs-idiom — Ruby keyword arg(s) (port, directories, basic_auth, config_file, enable_directory_browsing, allowed_extensions, blocked_extensions, max_file_size, enable_cors) ≡ Python positional with default
+signalwire.web.web_service.WebService.start: kwargs-idiom — Ruby keyword arg(s) (host, port, ssl_cert, ssl_key) ≡ Python positional with default
+signalwire.core.logging_config.strip_control_chars: Ruby structlog processor closure takes only `event_dict`; Python's (logger, method_name, event_dict) processor signature — same processor contract
+signalwire.core.pom_builder.PomBuilder.from_sections: classmethod idiom — Ruby `def self.` factory has no explicit `cls` receiver
+signalwire.core.skill_base.SkillBase.define_tool: Ruby explicit keyword args (`name:`, `description:`, `parameters:`, &handler) ≡ Python `**kwargs` — same define_tool contract as named Ruby kwargs
+signalwire.core.skill_manager.SkillManager.load_skill: Ruby SkillManager idiom — `load(key, skill)` takes a pre-built skill + instance key; Python `load_skill(skill_name, skill_class, params)` constructs it — same load contract, different split
+signalwire.core.mixins.web_mixin.WebMixin.register_routing_callback: Ruby block idiom — the routing callback is an `&block`; `path:` is a Ruby keyword ≡ Python positional (donated from SWML::Service, matches surface donor)
+
+# --- Reference accessors/properties hosted under a different Ruby idiom ---
+signalwire.agent_server.AgentServer.agents: Ruby AgentServer holds registered agents in an internal ivar (no public `agents` reader); Python exposes an `agents` property — surface-reconciled
+signalwire.core.mixins.prompt_mixin.PromptMixin.contexts: Ruby exposes contexts via `define_contexts`/internal state, not a bare `contexts` accessor; Python property — surface-reconciled (PORT_ADDITIONS)
+signalwire.core.mixins.prompt_mixin.PromptMixin.set_prompt_pom: Ruby PromptMixin sets the POM via `prompt_add_section`/POM builder, not a `set_prompt_pom(pom)` setter — surface-reconciled (PORT_ADDITIONS)
+signalwire.core.mixins.tool_mixin.ToolMixin.define_tools: Ruby ToolMixin defines tools one at a time via `define_tool`; Python's plural `define_tools` batch helper folds into the singular — surface-reconciled
+signalwire.core.skill_manager.SkillManager.loaded_skills: Ruby exposes a single `list_loaded_skills` accessor (aliased from `loaded_keys`); Python has both `loaded_skills` (property) and `list_loaded_skills` — same list, one Ruby accessor
+signalwire.core.swml_service.SWMLService.security: Ruby SWMLService keeps security in internal state / SecurityConfig, not a public `security` accessor; Python property — surface-reconciled
+signalwire.web.web_service.WebService.app: Ruby WebService wraps a Rack app via `rack_app`; Python exposes a Flask `.app` attribute — no direct equivalent (matches AgentServer.app / PORT_OMISSIONS)
+
+# --- Reference signature-oracle gaps (reference surface HAS the symbol) ---
+signalwire.agents.bedrock.BedrockAgent.__init__: reference-oracle gap — the signature oracle omits `signalwire.agents.bedrock`, but the reference SURFACE records the full BedrockAgent surface and the port implements it (SURFACE-DIFF PASS)
+signalwire.agents.bedrock.BedrockAgent.set_inference_params: reference-oracle gap — the signature oracle omits `signalwire.agents.bedrock`, but the reference SURFACE records the full BedrockAgent surface and the port implements it (SURFACE-DIFF PASS)
+signalwire.agents.bedrock.BedrockAgent.set_llm_model: reference-oracle gap — the signature oracle omits `signalwire.agents.bedrock`, but the reference SURFACE records the full BedrockAgent surface and the port implements it (SURFACE-DIFF PASS)
+signalwire.agents.bedrock.BedrockAgent.set_llm_temperature: reference-oracle gap — the signature oracle omits `signalwire.agents.bedrock`, but the reference SURFACE records the full BedrockAgent surface and the port implements it (SURFACE-DIFF PASS)
+signalwire.agents.bedrock.BedrockAgent.set_post_prompt_llm_params: reference-oracle gap — the signature oracle omits `signalwire.agents.bedrock`, but the reference SURFACE records the full BedrockAgent surface and the port implements it (SURFACE-DIFF PASS)
+signalwire.agents.bedrock.BedrockAgent.set_prompt_llm_params: reference-oracle gap — the signature oracle omits `signalwire.agents.bedrock`, but the reference SURFACE records the full BedrockAgent surface and the port implements it (SURFACE-DIFF PASS)
+signalwire.agents.bedrock.BedrockAgent.set_voice: reference-oracle gap — the signature oracle omits `signalwire.agents.bedrock`, but the reference SURFACE records the full BedrockAgent surface and the port implements it (SURFACE-DIFF PASS)
+signalwire.core.agent.tools.type_inference.create_typed_handler_wrapper: reference-oracle gap — the signature oracle omits `type_inference`, but the reference surface records it and the port implements it (SURFACE-DIFF PASS)
+signalwire.core.agent.tools.type_inference.infer_schema: reference-oracle gap — the signature oracle omits `type_inference`, but the reference surface records it and the port implements it (SURFACE-DIFF PASS)
+signalwire.core.swml_handler.AIVerbHandler.validate_config: reference-oracle gap — the reference surface records AIVerbHandler.validate_config but the signature oracle omits it (SURFACE-DIFF PASS)
+signalwire.skills.api_ninjas_trivia.skill.ApiNinjasTriviaSkill.__init__: reference-oracle gap — the reference surface records this skill class but the signature oracle omits its `__init__` (SURFACE-DIFF PASS)
+signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.__init__: reference-oracle gap — the reference surface records this skill class but the signature oracle omits its `__init__` (SURFACE-DIFF PASS)
+signalwire.skills.weather_api.skill.WeatherApiSkill.__init__: reference-oracle gap — the reference surface records this skill class but the signature oracle omits its `__init__` (SURFACE-DIFF PASS)
+
+# --- True Ruby-only additions (absent from reference surface too) ---
+signalwire.core.auth_handler.basic_credentials.BasicCredentials.inspect: port-only: Ruby Struct/Data auto-generated method on a credentials value object; no Python counterpart (reference surface omits it too)
+signalwire.core.auth_handler.basic_credentials.BasicCredentials.keyword_init: port-only: Ruby Struct/Data auto-generated method on a credentials value object; no Python counterpart (reference surface omits it too)
+signalwire.core.auth_handler.basic_credentials.BasicCredentials.members: port-only: Ruby Struct/Data auto-generated method on a credentials value object; no Python counterpart (reference surface omits it too)
+signalwire.core.auth_handler.basic_credentials.BasicCredentials.new: port-only: Ruby Struct/Data auto-generated method on a credentials value object; no Python counterpart (reference surface omits it too)
+signalwire.core.auth_handler.bearer_credentials.BearerCredentials.inspect: port-only: Ruby Struct/Data auto-generated method on a credentials value object; no Python counterpart (reference surface omits it too)
+signalwire.core.auth_handler.bearer_credentials.BearerCredentials.keyword_init: port-only: Ruby Struct/Data auto-generated method on a credentials value object; no Python counterpart (reference surface omits it too)
+signalwire.core.auth_handler.bearer_credentials.BearerCredentials.members: port-only: Ruby Struct/Data auto-generated method on a credentials value object; no Python counterpart (reference surface omits it too)
+signalwire.core.auth_handler.bearer_credentials.BearerCredentials.new: port-only: Ruby Struct/Data auto-generated method on a credentials value object; no Python counterpart (reference surface omits it too)
+signalwire.core.swaig_function.SWAIGFunction.call: reference-oracle gap — port `call` is Ruby's callable primitive (surface reconciles it to `__call__`, which the reference surface records but the signature oracle omits) (SURFACE-DIFF PASS)
+signalwire.core.swml_builder.SWMLBuilder.method_missing: reference-oracle gap — port `method_missing` is Ruby's dynamic-dispatch primitive (surface reconciles it to `__getattr__`, which the reference surface records but the signature oracle omits) (SURFACE-DIFF PASS)
+signalwire.core.swml_service.SWMLService.function: port-only: Ruby SWMLService `function` DSL helper; absent from the reference surface + signature oracle
+signalwire.core.swml_service.SWMLService.method_missing: reference-oracle gap — port `method_missing` is Ruby's dynamic-dispatch primitive (surface reconciles it to `__getattr__`, which the reference surface records but the signature oracle omits) (SURFACE-DIFF PASS)
+signalwire.web.web_service.WebService.file_allowed: port-only: Ruby WebService `file_allowed` internal predicate; absent from the reference surface + signature oracle
