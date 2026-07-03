@@ -1,0 +1,1152 @@
+#!/usr/bin/env python3
+"""Generate the SignalWire REST namespace resource layer for signalwire-ruby.
+
+This is the RUBY realization of porting-sdk/REST_GENERATOR_RULES.md — the
+language-neutral contract of the REST resource generator (bases,
+x-sdk-resource markup, path composition, command-dispatch, set_methods,
+cross-spec client-tree placement, fail-loud invariants).
+
+Convention: like php (scripts/generate_rest.py) and go (cmd/generate-rest),
+this is a Python script emitting the TARGET language — Ruby. Ruby's other
+audit tooling is already Python (scripts/enumerate_signatures.py), so a Python
+emitter matches the port's existing generator/tooling convention. It reads
+porting-sdk/rest-apis/<ns>/openapi.yaml + x-sdk-* markup and emits .rb files.
+
+Inputs (resolved from $PORTING_SDK or the adjacent ../porting-sdk):
+    rest-apis/<ns>/openapi.yaml       (+ x-sdk-* markup)
+    rest-apis/x-sdk-bases.yaml        (shared base method-sets)
+    rest-apis/fabric/x-sdk-bases.yaml (FabricResource)
+
+Outputs: Ruby files under lib/signalwire/rest/namespaces/generated/ — one file
+per generated resource class, one client-tree container file per namespace
+group, and resource_tree.rb (a module the hand RestClient composes). The hand
+BASES stay hand-written (lib/signalwire/rest/http_client.rb: BaseResource /
+CrudResource / CrudWithAddresses); the generator emits ONLY the per-resource
+classes that inherit those bases, their typed create/update + declared/command/
+set methods, and the container tree — mirroring the php/go generators.
+
+Idiom (PORT_PHILOSOPHY_RUBY.md, SESSION_CHANGESET_FOR_PORTS.md §B): Ruby is a
+KWARGS language (like python). Object-body operation params are emitted as
+KEYWORD ARGUMENTS (required first, then optional `name: nil`), plus an explicit
+`extras: {}` escape door AND a trailing `**kwargs` keyword-splat tail (the two
+kwargs-lang doors — §B). Command-dispatch params flatten the union and emit the
+same way. Class names are the x-sdk-resource.name VERBATIM (the Python oracle
+canonical names — AiAgents, CxmlApplications, SipEndpoints, Calling, …) so the
+Ruby adapter (enumerate_surface.rb) projects each generated class onto the same
+signalwire.rest.namespaces.<ns>_resources_generated.<Name> module the oracle
+produces.
+
+The Ruby surface enumerator records `public_instance_methods(false)` (OWN
+methods only, not inherited), so — unlike php whose reflection unfolds
+inherited base methods — a full-CRUD resource must EMIT its typed create/update
+into the subclass body (they override the base's generic create/update; the
+oracle records exactly `create`/`update` on such a subclass, with
+list/get/delete/list_addresses inherited from the base and NOT recorded on the
+subclass). This matches REST_GENERATOR_RULES §2 ("the typed create/update
+override per resource; list/get/delete stay in the base").
+
+Usage:
+    python3 scripts/generate_rest.py                 # write into the repo tree
+    python3 scripts/generate_rest.py --check         # GEN-FRESH: fail if stale
+    python3 scripts/generate_rest.py --out DIR       # scratch: emit flat into DIR
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+from pathlib import Path
+
+try:
+    import yaml
+except ImportError:  # pragma: no cover
+    sys.stderr.write("generate_rest.py requires PyYAML (pip install pyyaml)\n")
+    raise
+
+
+# The 12 real REST spec directories (registry has no own dir — its resources
+# live inside relay-rest via namespace: registry; swml-webhooks is types-only).
+SPEC_DIRS = [
+    "relay-rest", "fabric", "calling", "video", "datasphere",
+    "logs", "message", "voice", "fax", "project", "chat", "pubsub",
+]
+
+# Ruby reserved words. A wire field colliding with one becomes a safe param
+# (`end` -> `end_`) mapped back to the wire key in the body (§5). Method / class
+# names collide only via the calling command-dispatch (handled by the command
+# name derivation, e.g. `calling.end` -> `end`, which IS a keyword — see below).
+RUBY_KEYWORDS = {
+    "BEGIN", "END", "alias", "and", "begin", "break", "case", "class", "def",
+    "defined?", "do", "else", "elsif", "end", "ensure", "false", "for", "if",
+    "in", "module", "next", "nil", "not", "or", "redo", "rescue", "retry",
+    "return", "self", "super", "then", "true", "undef", "unless", "until",
+    "when", "while", "yield", "__FILE__", "__LINE__", "__ENCODING__",
+}
+
+
+# ---------------------------------------------------------------------------
+# Resolution.
+# ---------------------------------------------------------------------------
+
+def resolve_porting_sdk() -> Path:
+    env = os.environ.get("PORTING_SDK")
+    if env and (Path(env) / "rest-apis").is_dir():
+        return Path(env).resolve()
+    here = Path(__file__).resolve()
+    for parent in here.parents:
+        cand = parent.parent / "porting-sdk"
+        if (cand / "rest-apis").is_dir():
+            return cand.resolve()
+    raise SystemExit("generate_rest.py: porting-sdk not found (set $PORTING_SDK or clone adjacent)")
+
+
+def repo_root() -> Path:
+    return Path(__file__).resolve().parents[1]
+
+
+# ---------------------------------------------------------------------------
+# Base loading (x-sdk-bases; §2) — validate cyclic/undefined extends (fail loud).
+# ---------------------------------------------------------------------------
+
+def load_bases(psdk: Path) -> dict[str, list[str]]:
+    raw = yaml.safe_load((psdk / "rest-apis" / "x-sdk-bases.yaml").read_text())
+    bases = dict(raw.get("x-sdk-bases") or {})
+    fab = psdk / "rest-apis" / "fabric" / "x-sdk-bases.yaml"
+    if fab.is_file():
+        bases.update((yaml.safe_load(fab.read_text()).get("x-sdk-bases") or {}))
+
+    def resolve(name: str, seen: set[str]) -> list[str]:
+        if name in seen:
+            raise SystemExit(f"x-sdk-bases: cyclic extends at {name}")
+        if name not in bases:
+            raise SystemExit(f"x-sdk-bases: undefined base {name!r}")
+        seen = seen | {name}
+        methods: list[str] = []
+        ext = bases[name].get("extends")
+        if ext:
+            methods.extend(resolve(ext, seen))
+        methods.extend(list((bases[name].get("methods") or {}).keys()))
+        return methods
+
+    return {name: resolve(name, set()) for name in bases}
+
+
+# ---------------------------------------------------------------------------
+# Spec model.
+# ---------------------------------------------------------------------------
+
+class Spec:
+    def __init__(self, name: str, doc: dict):
+        self.name = name
+        self.doc = doc
+        self.server_path = _url_path(doc["servers"][0]["url"])
+        if self.server_path != "/" and self.server_path.endswith("/"):
+            raise SystemExit(f"{name}: servers[0].url path {self.server_path!r} has a trailing slash")
+        self.namespace_attr = (doc.get("x-sdk-namespace") or {}).get("attr") or ""
+        self.ops: dict[str, tuple[str, str, bool]] = {}
+        self.op_body: dict[str, dict] = {}  # operationId -> requestBody JSON schema (or {})
+        for path, item in (doc.get("paths") or {}).items():
+            for verb in ("get", "post", "put", "patch", "delete"):
+                o = item.get(verb)
+                if o and o.get("operationId"):
+                    self.ops[o["operationId"]] = (verb, path, bool(o.get("requestBody")))
+                    body = o.get("requestBody") or {}
+                    content = body.get("content") or {}
+                    media = content.get("application/json") or (next(iter(content.values())) if content else {})
+                    self.op_body[o["operationId"]] = (media or {}).get("schema") or {}
+        self.schemas = ((doc.get("components") or {}).get("schemas")) or {}
+
+    def resources(self) -> list[tuple[str, dict]]:
+        out = []
+        for path, item in (self.doc.get("paths") or {}).items():
+            r = item.get("x-sdk-resource")
+            if r and not r.get("exclude") and r.get("name"):
+                out.append((path, r))
+        return out
+
+
+def _url_path(url: str) -> str:
+    if "://" in url:
+        url = url.split("://", 1)[1]
+    i = url.find("/")
+    return url[i:] if i >= 0 else "/"
+
+
+def load_spec(psdk: Path, ns: str) -> Spec:
+    return Spec(ns, yaml.safe_load((psdk / "rest-apis" / ns / "openapi.yaml").read_text()))
+
+
+# ---------------------------------------------------------------------------
+# Path composition (§4).
+# ---------------------------------------------------------------------------
+
+def join_path(a: str, b: str) -> str:
+    if not b:
+        return a
+    return a.rstrip("/") + "/" + b.lstrip("/")
+
+
+def collection_segment(anchor: str, markup: dict) -> str:
+    if "collection" in markup:
+        return markup["collection"]
+    p = anchor
+    i = p.find("/{")
+    if i >= 0:
+        p = p[:i]
+    return p
+
+
+def base_path(spec: Spec, anchor: str, markup: dict) -> str:
+    return join_path(spec.server_path, collection_segment(anchor, markup))
+
+
+def relative_tail(spec: Spec, anchor: str, markup: dict, op_path: str):
+    coll = collection_segment(anchor, markup)
+    full = join_path(spec.server_path, coll)
+    absp = join_path(spec.server_path, op_path)
+    if coll and absp.startswith(full + "/"):
+        return ([s for s in absp[len(full) + 1:].split("/") if s], False)
+    if coll and absp == full:
+        return ([], False)
+    return ([s for s in absp.lstrip("/").split("/") if s], True)
+
+
+# ---------------------------------------------------------------------------
+# Naming.
+# ---------------------------------------------------------------------------
+
+def escape_param(field: str) -> str:
+    """A wire field name → a safe Ruby keyword-arg identifier. Ruby keyword-arg
+    names are snake_case (already the wire convention); the aliased identifier is
+    mapped back to the wire key in the body build (only the param NAME changes,
+    never the wire key). Two escapes:
+      * a reserved word gets a trailing underscore (`end` -> `end_`);
+      * a name whose first character is UPPERCASE is a Ruby CONSTANT, not a valid
+        param identifier, so it is lower-cased (`SWAIG` -> `swaig`). This is the
+        Ruby analog of Python's `from`->`from_` reserved-word field rename — the
+        oracle records `SWAIG` (Python allows uppercase params), so this is a
+        documented port param rename (an adapter rename entry at adoption, like
+        `from`->`from_`), NOT an omission."""
+    ident = field
+    if ident and ident[0].isupper():
+        ident = ident[0].lower() + ident[1:]
+    if ident in RUBY_KEYWORDS:
+        return ident + "_"
+    return ident
+
+
+PARAM_ARG_NAME = {
+    "id": "id", "queue_id": "queue_id", "NumberGroupId": "group_id",
+    "documentId": "document_id", "chunkId": "chunk_id",
+    "mfa_request_id": "request_id", "e164_number": "e164",
+    "fabric_subscriber_id": "subscriber_id", "ai_agent_id": "id",
+    "cxml_webhook_id": "id", "swml_webhook_id": "id", "token_id": "token_id",
+    "room_id": "room_id", "resource_id": "resource_id",
+    "sip_endpoint_id": "sip_endpoint_id",
+}
+
+
+def snake(s: str) -> str:
+    out = []
+    for ch in s.replace("-", "_").replace(".", "_"):
+        if ch.isupper():
+            if out and out[-1] != "_":
+                out.append("_")
+            out.append(ch.lower())
+        else:
+            out.append(ch)
+    return "".join(out)
+
+
+def arg_for(brace: str) -> str:
+    return PARAM_ARG_NAME.get(brace, snake(brace) or "id")
+
+
+def rb_str(s: str) -> str:
+    return "'" + s.replace("\\", "\\\\").replace("'", "\\'") + "'"
+
+
+# ---------------------------------------------------------------------------
+# Base mapping (§2). Ruby hand bases live in http_client.rb:
+#   BaseResource(http, base_path)          — floor; _path helper
+#   CrudResource < BaseResource            — list/create/get/update/delete
+#   CrudWithAddresses < CrudResource       — + list_addresses
+# FabricResource / FabricResourcePUT are generated (they only pick the update
+# verb) — a plain subclass of CrudWithAddresses.
+# ---------------------------------------------------------------------------
+
+BASE_PROVIDES = {
+    "CrudResource": {"list", "create", "get", "update", "delete"},
+    "FabricResource": {"list", "create", "get", "update", "delete", "list_addresses"},
+    "ReadResource": {"list", "get"},
+    "BaseResource": set(),
+}
+
+# The Ruby parent class each markup base inherits (the hand base in http_client.rb,
+# except FabricResource/PUT which are generated below and extend CrudWithAddresses).
+RUBY_PARENT = {
+    "CrudResource": "SignalWire::REST::CrudResource",
+    # ReadResource is a list+get SUBSET — it must NOT inherit CrudResource (that
+    # would expose create/update/delete the oracle doesn't have). It inherits the
+    # BaseResource floor and EMITS its own list/get (which the Ruby enumerator —
+    # own-methods-only — then records; the oracle records exactly list+get on a
+    # ReadResource subclass). Composition-first, never subtract-down (§2).
+    "ReadResource": "SignalWire::REST::BaseResource",
+    "FabricResource": None,  # -> FabricResource / FabricResourcePUT (generated below)
+    "BaseResource": "SignalWire::REST::BaseResource",
+}
+
+
+# ---------------------------------------------------------------------------
+# Command-dispatch (§6).
+# ---------------------------------------------------------------------------
+
+def command_method_name(cmd: str) -> str:
+    """Command string -> ruby snake_case method name (strip a leading `calling.`
+    domain prefix, dots -> underscores). `calling.play.pause` -> `play_pause`,
+    `dial` -> `dial`, `calling.end` -> `end` (a keyword, but a valid METHOD name
+    in ruby — only PARAM/local-var identifiers need escaping)."""
+    s = cmd[len("calling."):] if cmd.startswith("calling.") else cmd
+    return s.replace(".", "_")
+
+
+def discriminator_mapping(spec: Spec, schema_name: str) -> dict:
+    sch = spec.schemas.get(schema_name)
+    if sch is None:
+        raise SystemExit(f"command-dispatch request {schema_name!r} not in components.schemas")
+    mapping = (sch.get("discriminator") or {}).get("mapping")
+    if not mapping:
+        raise SystemExit(f"command-dispatch request {schema_name!r} has no discriminator.mapping")
+    return mapping
+
+
+# ---------------------------------------------------------------------------
+# Typed inputs (§5).
+# ---------------------------------------------------------------------------
+
+def resolve_schema(spec: Spec, schema: dict | None, seen=None) -> dict:
+    if not schema:
+        return {}
+    if seen is None:
+        seen = set()
+    ref = schema.get("$ref")
+    if ref:
+        if not ref.startswith("#/"):
+            return {}
+        leaf = ref.rsplit("/", 1)[-1]
+        if leaf in seen:
+            return {}
+        seen.add(leaf)
+        return resolve_schema(spec, spec.schemas.get(leaf), seen)
+    allof = schema.get("allOf")
+    if allof and len(allof) == 1 and not schema.get("properties") and not schema.get("type"):
+        return resolve_schema(spec, allof[0], seen)
+    return schema
+
+
+def object_body_fields(spec: Spec, body_schema: dict) -> list[tuple[str, dict, bool]]:
+    """[(wire_name, field_schema, required)] for an object request body,
+    flattening allOf and following $refs. Spec declaration order preserved."""
+    resolved = resolve_schema(spec, body_schema)
+    props: dict[str, dict] = {}
+    required: set[str] = set(resolved.get("required") or [])
+    for name, psc in (resolved.get("properties") or {}).items():
+        props.setdefault(name, psc)
+    for br in resolved.get("allOf") or []:
+        rb = resolve_schema(spec, br)
+        required |= set(rb.get("required") or [])
+        for name, psc in (rb.get("properties") or {}).items():
+            props.setdefault(name, psc)
+    return [(name, psc, name in required) for name, psc in props.items()]
+
+
+def command_param_fields(spec: Spec, command_schema: dict) -> tuple[list[tuple[str, dict, bool]], bool]:
+    """§6 union-flatten: ([(wire_name, schema, required)], has_id). The command
+    schema's `params` sub-schema may itself be anyOf/oneOf of variant param
+    schemas; expose the UNION of variants' fields, a field required only if
+    EVERY variant requires it. `has_id` = the command schema has an `id`."""
+    cs = resolve_schema(spec, command_schema)
+    has_id = "id" in (cs.get("properties") or {})
+    params_schema = (cs.get("properties") or {}).get("params")
+    if params_schema is None:
+        return [], has_id
+    ps = resolve_schema(spec, params_schema)
+    variants: list[dict] = []
+    for comb in ("anyOf", "oneOf"):
+        if comb in ps:
+            variants = [resolve_schema(spec, v) for v in ps[comb]]
+            break
+    if not variants:
+        variants = [ps]
+    all_props: dict[str, dict] = {}
+    req_sets: list[set[str]] = []
+    for v in variants:
+        req_sets.append(set(v.get("required") or []))
+        for name, psc in (v.get("properties") or {}).items():
+            all_props.setdefault(name, psc)
+    req_all = set.intersection(*req_sets) if req_sets else set()
+    return [(name, psc, name in req_all) for name, psc in all_props.items()], has_id
+
+
+def is_object_body(spec: Spec, body_schema: dict) -> bool:
+    """True when the request body is a typed OBJECT (properties / $ref to an
+    object) → closed typed params. False for a top-level union body (anyOf/oneOf
+    with no single object) → a single positional `body` param (§5.2)."""
+    if not body_schema:
+        return False
+    if "anyOf" in body_schema or "oneOf" in body_schema:
+        return False
+    resolved = resolve_schema(spec, body_schema)
+    if "anyOf" in resolved or "oneOf" in resolved:
+        return False
+    if resolved.get("properties") or resolved.get("allOf"):
+        return True
+    return (resolved.get("type") == "object")
+
+
+def ordered_fields(fields):
+    """Required-first, then optional; stable within each group (spec order)."""
+    req = [f for f in fields if f[2]]
+    opt = [f for f in fields if not f[2]]
+    return req + opt
+
+
+def schema_fields(spec: Spec, schema: dict, seen=None) -> set[str]:
+    if schema is None:
+        return set()
+    if seen is None:
+        seen = set()
+    ref = schema.get("$ref")
+    if ref:
+        if not ref.startswith("#/"):
+            return set()
+        leaf = ref.rsplit("/", 1)[-1]
+        if leaf in seen:
+            return set()
+        seen.add(leaf)
+        return schema_fields(spec, spec.schemas.get(leaf), seen)
+    out = set(((schema.get("properties")) or {}).keys())
+    for comb in ("allOf", "anyOf", "oneOf"):
+        for br in schema.get(comb) or []:
+            out |= schema_fields(spec, br, seen)
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Body-param emission (Ruby kwargs + extras + **kwargs — §B).
+# ---------------------------------------------------------------------------
+
+def kwarg_params_and_body(fields, indent="        ", body_var="body"):
+    """Build (kwarg_param_list, body_build_lines) for a set of object-body /
+    command-params fields, in the Ruby kwargs idiom + the two doors (§B):
+      * required field  -> `name:`         (required keyword arg)
+      * optional field  -> `name: nil`     (optional keyword arg)
+      * `extras: {}`     -> the explicit forward-compat escape door
+      * `**kwargs`       -> the keyword-splat tail (kwargs-lang, rides ONLY
+                            alongside the explicit extras door)
+    The wire body is the non-nil named fields merged with extras and kwargs.
+    A reserved-word wire field is aliased (`end` -> `end_`) and mapped back to
+    the wire key in the body build."""
+    params: list[str] = []
+    build: list[str] = [f"{indent}{body_var} = {{}}"]
+    for wire_name, _schema, required in ordered_fields(fields):
+        ident = escape_param(wire_name)
+        if required:
+            params.append(f"{ident}:")
+            build.append(f"{indent}{body_var}[{rb_str(wire_name)}] = {ident}")
+        else:
+            params.append(f"{ident}: nil")
+            build.append(f"{indent}{body_var}[{rb_str(wire_name)}] = {ident} unless {ident}.nil?")
+    params.append("extras: {}")
+    params.append("**kwargs")
+    build.append(f"{indent}{body_var} = {body_var}.merge(extras).merge(kwargs)")
+    return params, build
+
+
+def method_call_path(spec: Spec, anchor: str, markup: dict, op_path: str):
+    """Return (id_args, ruby_path_expr) for a declared method op."""
+    segs, sibling = relative_tail(spec, anchor, markup, op_path)
+    id_args: list[str] = []
+    pieces: list[str] = []
+    for s in segs:
+        if s.startswith("{") and s.endswith("}"):
+            arg = arg_for(s[1:-1])
+            while arg in id_args:
+                arg += "2"
+            id_args.append(arg)
+            pieces.append(arg)
+        else:
+            pieces.append(rb_str(s))
+    if sibling:
+        full = join_path(spec.server_path, op_path.lstrip("/"))
+        expr = abs_ruby_path(full, id_args)
+    elif not pieces:
+        expr = "@base_path"
+    else:
+        expr = "_path(" + ", ".join(pieces) + ")"
+    return id_args, expr
+
+
+def abs_ruby_path(full: str, id_args: list[str]) -> str:
+    """A Ruby double-quoted interpolated string for a sibling absolute path,
+    substituting {brace} with the positional id_args in order."""
+    out = []
+    ai = 0
+    i = 0
+    while i < len(full):
+        if full[i] == "{":
+            j = full.find("}", i)
+            if ai < len(id_args):
+                out.append("#{" + id_args[ai] + "}")
+                ai += 1
+            i = j + 1
+            continue
+        out.append(full[i])
+        i += 1
+    return '"' + "".join(out) + '"'
+
+
+# ---------------------------------------------------------------------------
+# Emitters.
+# ---------------------------------------------------------------------------
+
+GEN_HEADER = """# frozen_string_literal: true
+
+# Code generated by scripts/generate_rest.py; DO NOT EDIT.
+#
+# AUTO-GENERATED from porting-sdk/rest-apis/ (x-sdk-* markup) — regenerate with:
+#   python3 scripts/generate_rest.py
+#
+# {desc}
+"""
+
+
+def emit_method(spec: Spec, anchor: str, markup: dict, base: str,
+                method_snake: str, op_id: str, indent: str) -> list[str]:
+    if op_id not in spec.ops:
+        raise SystemExit(f"{markup['name']}.{method_snake}: op {op_id!r} not in spec")
+    verb, op_path, has_body = spec.ops[op_id]
+    id_args, path_expr = method_call_path(spec, anchor, markup, op_path)
+    name = method_snake
+    write_verb = verb in ("post", "put", "patch")
+    lines: list[str] = []
+    verb_fn = {"post": "post", "put": "put", "patch": "patch"}.get(verb, verb)
+
+    if write_verb and has_body:
+        body_schema = spec.op_body.get(op_id) or {}
+        if is_object_body(spec, body_schema):
+            fields = object_body_fields(spec, body_schema)
+            kw, build = kwarg_params_and_body(fields, indent=indent + "  ")
+            sig = ", ".join(id_args + kw)
+            lines.append(f"{indent}def {name}({sig})")
+            lines.extend(build)
+            lines.append(f"{indent}  @http.{verb_fn}({path_expr}, body)")
+            lines.append(f"{indent}end")
+        else:
+            # §5.2 union body → a single positional `body` param.
+            sig = ", ".join(id_args + ["body"])
+            lines.append(f"{indent}def {name}({sig})")
+            lines.append(f"{indent}  @http.{verb_fn}({path_expr}, body)")
+            lines.append(f"{indent}end")
+    elif write_verb:
+        sig = ", ".join(id_args)
+        lines.append(f"{indent}def {name}({sig})")
+        lines.append(f"{indent}  @http.{verb_fn}({path_expr}, {{}})")
+        lines.append(f"{indent}end")
+    elif verb == "get":
+        # §5.3 GET query door — a trailing keyword-splat `**params` map.
+        sig = ", ".join(id_args + ["**params"])
+        lines.append(f"{indent}def {name}({sig})")
+        lines.append(f"{indent}  @http.get({path_expr}, params.empty? ? nil : params)")
+        lines.append(f"{indent}end")
+    else:  # delete
+        sig = ", ".join(id_args)
+        lines.append(f"{indent}def {name}({sig})")
+        lines.append(f"{indent}  @http.delete({path_expr})")
+        lines.append(f"{indent}end")
+    return lines
+
+
+def emit_crud_create_update(spec: Spec, anchor: str, markup: dict, base: str, indent: str) -> list[str]:
+    """Emit the OWN methods the oracle records for a full-CRUD resource, matching
+    the Python enumerator's rule (`_emit_generic_inherited`): it walks the DIRECT
+    generic base the resource subscripts and records that base's OWN members onto
+    the subclass, with locally-overridden ones winning.
+
+      * CrudResource's OWN members are {create, update, delete} (list/get live one
+        level up on ReadResource → NOT recorded on the subclass). So a plain
+        CrudResource resource records create + update (typed overrides) + DELETE.
+      * FabricResource has NO own members (it only extends CrudWithAddresses), so a
+        FabricResource resource records ONLY create + update — delete/list_addresses
+        stay inherited (from CrudResource/CrudWithAddresses, two levels up) and are
+        NOT recorded on the subclass.
+
+    The Ruby surface enumerator records own-methods-only, so we EMIT exactly this
+    own-set into the subclass body (delete for CrudResource, not for
+    FabricResource) to reproduce the oracle."""
+    lines: list[str] = []
+    coll = collection_segment(anchor, markup)
+    # create: the collection-level POST (create_* operation).
+    create_op = _find_op(spec, anchor, markup, verbs=("post",), item_level=False)
+    update_verb = "put" if markup.get("update_method") == "PUT" else "patch"
+    update_op = _find_op(spec, anchor, markup, verbs=(update_verb, "put", "patch"), item_level=True)
+
+    if create_op:
+        _, _, cbody = create_op
+        fields = object_body_fields(spec, cbody) if is_object_body(spec, cbody) else None
+        if fields is not None:
+            kw, build = kwarg_params_and_body(fields, indent=indent + "  ")
+            lines.append(f"{indent}def create({', '.join(kw)})")
+            lines.extend(build)
+            lines.append(f"{indent}  @http.post(@base_path, body)")
+            lines.append(f"{indent}end")
+        else:
+            lines.append(f"{indent}def create(body)")
+            lines.append(f"{indent}  @http.post(@base_path, body)")
+            lines.append(f"{indent}end")
+
+    if update_op:
+        uverb, _, ubody = update_op
+        fields = object_body_fields(spec, ubody) if is_object_body(spec, ubody) else None
+        verb_fn = uverb
+        if fields is not None:
+            kw, build = kwarg_params_and_body(fields, indent=indent + "  ")
+            lines.append("")
+            lines.append(f"{indent}def update(resource_id, {', '.join(kw)})")
+            lines.extend(build)
+            lines.append(f"{indent}  @http.{verb_fn}(_path(resource_id), body)")
+            lines.append(f"{indent}end")
+        else:
+            lines.append("")
+            lines.append(f"{indent}def update(resource_id, body)")
+            lines.append(f"{indent}  @http.{verb_fn}(_path(resource_id), body)")
+            lines.append(f"{indent}end")
+
+    # delete: a CrudResource OWN member → recorded on a plain CrudResource
+    # subclass. FabricResource has no own delete, so its subclasses inherit it
+    # (not recorded on the subclass) — do NOT emit for FabricResource.
+    if base == "CrudResource":
+        lines.append("")
+        lines.append(f"{indent}def delete(resource_id)")
+        lines.append(f"{indent}  @http.delete(_path(resource_id))")
+        lines.append(f"{indent}end")
+    return lines
+
+
+def _find_op(spec: Spec, anchor: str, markup: dict, verbs, item_level: bool):
+    """Locate the create (collection-level POST) or update (item-level put/patch)
+    operation for a CRUD resource. Returns (verb, op_path, body_schema) or None.
+    item_level=True → <collection>/{id}; False → the collection path itself."""
+    coll = collection_segment(anchor, markup)
+    for path, item in (spec.doc.get("paths") or {}).items():
+        full = join_path(spec.server_path, coll)
+        this = join_path(spec.server_path, path)
+        if item_level:
+            if not (path.startswith(coll + "/{") and path.count("/{") == 1 and path.endswith("}")):
+                continue
+        else:
+            # collection-level: the anchor collection path exactly
+            if this != full:
+                continue
+        for verb in verbs:
+            o = item.get(verb)
+            if o and o.get("operationId"):
+                body = o.get("requestBody") or {}
+                content = body.get("content") or {}
+                media = content.get("application/json") or (next(iter(content.values())) if content else {})
+                return (verb, path, (media or {}).get("schema") or {})
+    return None
+
+
+def emit_read_list_get(spec: Spec, anchor: str, markup: dict, indent: str) -> list[str]:
+    """Emit the ReadResource base method-set (list + get) into the subclass body.
+    Mirrors the CrudResource base surface the oracle records for a ReadResource
+    subclass: `list(**params)` (collection GET, query tail) and
+    `get(resource_id)` (item GET, NO query tail — the base-inherited shape, per
+    L4: only DECLARED GET methods carry a query tail, not the base list/get)."""
+    lines: list[str] = []
+    lines.append(f"{indent}def list(**params)")
+    lines.append(f"{indent}  @http.get(@base_path, params.empty? ? nil : params)")
+    lines.append(f"{indent}end")
+    lines.append("")
+    lines.append(f"{indent}def get(resource_id)")
+    lines.append(f"{indent}  @http.get(_path(resource_id))")
+    lines.append(f"{indent}end")
+    return lines
+
+
+def emit_set_method(spec: Spec, markup: dict, sm_name: str, sm: dict,
+                    update_schema_fields: set[str], indent: str) -> list[str]:
+    handler = sm.get("handler")
+    if not handler:
+        raise SystemExit(f"{markup['name']}.{sm_name}: set_method missing handler")
+    args = sm.get("args") or {}
+    params = ["resource_id"]
+    required_lines: list[str] = []
+    optional_lines: list[tuple[str, str]] = []
+    for arg_name, arg in args.items():
+        field = arg.get("field")
+        if not field:
+            raise SystemExit(f"{markup['name']}.{sm_name}: arg {arg_name!r} missing field")
+        if field not in update_schema_fields:
+            raise SystemExit(
+                f"{markup['name']}.{sm_name}: arg field {field!r} not in update request schema"
+            )
+        ident = escape_param(arg_name)
+        required = bool(arg.get("required"))
+        if required:
+            params.append(f"{ident}:")
+            required_lines.append(f"{indent}  body[{rb_str(field)}] = {ident}")
+        else:
+            params.append(f"{ident}: nil")
+            optional_lines.append((ident, field))
+    params.append("extra: {}")
+    params.append("**kwargs")
+    sig = ", ".join(params)
+    lines: list[str] = []
+    lines.append(f"{indent}def {sm_name}({sig})")
+    lines.append(f"{indent}  body = {{ 'call_handler' => {rb_str(handler)} }}")
+    lines.extend(required_lines)
+    for ident, field in optional_lines:
+        lines.append(f"{indent}  body[{rb_str(field)}] = {ident} unless {ident}.nil?")
+    lines.append(f"{indent}  update(resource_id, **body.transform_keys(&:to_sym), **extra, **kwargs)")
+    lines.append(f"{indent}end")
+    return lines
+
+
+def update_request_fields(spec: Spec, anchor: str, markup: dict) -> set[str]:
+    op = _find_op(spec, anchor, markup,
+                  verbs=("put" if markup.get("update_method") == "PUT" else "patch", "put", "patch"),
+                  item_level=True)
+    if not op:
+        return set()
+    return schema_fields(spec, op[2])
+
+
+def emit_command_dispatch(spec: Spec, anchor: str, markup: dict) -> str:
+    name = markup["name"]
+    request = markup.get("request")
+    if not request:
+        raise SystemExit(f"{name}: command-dispatch requires request")
+    mapping = discriminator_mapping(spec, request)
+    commands = list(mapping.keys())
+    op = spec.ops.get("call-commands")
+    if op:
+        base = join_path(spec.server_path, op[1].lstrip("/"))
+    else:
+        base = join_path(spec.server_path, anchor.lstrip("/"))
+
+    lines: list[str] = []
+    lines.append("module SignalWire")
+    lines.append("  module REST")
+    lines.append("    module Namespaces")
+    lines.append("      module Generated")
+    lines.append(f"        # {name} — command-dispatch resource ({spec.name} spec).")
+    lines.append(f"        #")
+    lines.append(f"        # Each method POSTs {{command, params, id?}} to {base}.")
+    lines.append(f"        class {name} < SignalWire::REST::BaseResource")
+    lines.append("          def initialize(http)")
+    lines.append(f"            super(http, {rb_str(base)})")
+    lines.append("          end")
+    for cmd in commands:
+        mname = command_method_name(cmd)
+        cmd_ref = mapping.get(cmd) or ""
+        cmd_leaf = cmd_ref.rsplit("/", 1)[-1] if cmd_ref else ""
+        cmd_schema = spec.schemas.get(cmd_leaf, {})
+        fields, with_id = command_param_fields(spec, cmd_schema)
+        kw, build = kwarg_params_and_body(fields, indent="            ", body_var="params")
+        id_params = ["call_id"] if with_id else []
+        sig = ", ".join(id_params + kw)
+        lines.append("")
+        lines.append(f"          def {mname}({sig})")
+        lines.extend(build)
+        lines.append(f"            body = {{ 'command' => {rb_str(cmd)}, 'params' => params }}")
+        if with_id:
+            lines.append("            body['id'] = call_id if call_id")
+        lines.append("            @http.post(@base_path, body)")
+        lines.append("          end")
+    lines.append("        end")
+    lines.append("      end")
+    lines.append("    end")
+    lines.append("  end")
+    lines.append("end")
+    return GEN_HEADER.format(desc=f"Generated command-dispatch resource for the {spec.name!r} namespace.") + "\n" + "\n".join(lines) + "\n"
+
+
+# The generated Fabric base classes (they only select the update verb). Emitted
+# once into a shared file; every FabricResource resource subclasses one of them.
+FABRIC_BASES = """# frozen_string_literal: true
+
+# Code generated by scripts/generate_rest.py; DO NOT EDIT.
+#
+# AUTO-GENERATED from porting-sdk/rest-apis/ (x-sdk-* markup) — regenerate with:
+#   python3 scripts/generate_rest.py
+#
+# Generated Fabric base classes: CRUD + list_addresses (the FabricResource
+# method-set, §2), differing only by the update HTTP verb (PATCH vs PUT).
+
+module SignalWire
+  module REST
+    module Namespaces
+      module Generated
+        # Fabric CRUD-with-addresses base (PATCH updates).
+        class FabricResource < SignalWire::REST::CrudWithAddresses
+        end
+
+        # Fabric CRUD-with-addresses base whose updates use PUT.
+        class FabricResourcePUT < FabricResource
+          self.update_method = 'PUT'
+        end
+      end
+    end
+  end
+end
+"""
+
+
+def emit_resource(spec: Spec, anchor: str, markup: dict) -> str:
+    name = markup["name"]
+    base = markup["base"]
+    if markup.get("kind") == "command-dispatch":
+        return emit_command_dispatch(spec, anchor, markup)
+    if base not in BASE_PROVIDES:
+        raise SystemExit(f"{name}: unknown base {base!r}")
+
+    # §9: write-capable bases require update_method matching the spec verb.
+    if base in ("CrudResource", "FabricResource"):
+        upd = markup.get("update_method")
+        if not upd:
+            raise SystemExit(f"{name}: {base} requires update_method")
+        item = spec.doc["paths"][anchor]
+        # anchor is the collection path; the update op is item-level. Validate
+        # the declared verb against the actual item-level update op.
+        up = _find_op(spec, anchor, markup, verbs=("put", "patch"), item_level=True)
+        if up:
+            spec_verb = up[0].upper()
+            if upd != spec_verb:
+                raise SystemExit(f"{name}: update_method {upd} != spec update verb {spec_verb}")
+
+    # Resolve the Ruby parent class.
+    if base == "FabricResource":
+        parent = "FabricResourcePUT" if markup.get("update_method") == "PUT" else "FabricResource"
+    else:
+        parent = RUBY_PARENT[base]
+
+    bp = base_path(spec, anchor, markup)
+    indent = "          "  # class body: 4 module levels (8) + class (2) = 10 spaces
+
+    lines: list[str] = []
+    lines.append("module SignalWire")
+    lines.append("  module REST")
+    lines.append("    module Namespaces")
+    lines.append("      module Generated")
+    lines.append(f"        # {name} — generated from x-sdk-resource {name!r} ({spec.name} spec, base {base}).")
+    lines.append(f"        class {name} < {parent}")
+    # Constructor bakes the base path (§4).
+    lines.append("          def initialize(http)")
+    lines.append(f"            super(http, {rb_str(bp)})")
+    lines.append("          end")
+
+    provided = BASE_PROVIDES[base]
+    declared = markup.get("methods") or {}
+
+    # Full-CRUD bases: emit the typed create/update overrides (the Ruby
+    # enumerator records only own methods, so these must be in the subclass).
+    if base in ("CrudResource", "FabricResource"):
+        cu = emit_crud_create_update(spec, anchor, markup, base, indent)
+        if cu:
+            lines.append("")
+            lines.extend(cu)
+
+    # ReadResource: emit the base list/get into the subclass body (own-methods-
+    # only enumerator; the oracle records list+get on a ReadResource subclass).
+    if base == "ReadResource":
+        lines.append("")
+        lines.extend(emit_read_list_get(spec, anchor, markup, indent))
+
+    for method_snake, spec_ref in declared.items():
+        op_id = spec_ref.get("op")
+        if not op_id:
+            raise SystemExit(f"{name}.{method_snake}: method markup missing op")
+        # A declared method the base already provides is inherited — EXCEPT
+        # list_addresses re-declared with a sibling/override path (fabric
+        # singular resources), which must shadow the base; AND declared
+        # list/get/create/update/delete on a BaseResource resource (the base
+        # does NOT provide them, so they are emitted).
+        if method_snake in provided:
+            if method_snake == "list_addresses":
+                _, op_path, _ = spec.ops[op_id]
+                _, sibling = relative_tail(spec, anchor, markup, op_path)
+                if not sibling:
+                    continue
+            else:
+                continue
+        lines.append("")
+        lines.extend(emit_method(spec, anchor, markup, base, method_snake, op_id, indent))
+
+    # set_methods (§7): require a CRUD base.
+    set_methods = markup.get("set_methods") or {}
+    if set_methods:
+        if base not in ("CrudResource", "FabricResource"):
+            raise SystemExit(f"{name}: set_methods require a CRUD base, got {base}")
+        upd_fields = update_request_fields(spec, anchor, markup)
+        for sm_name, sm in set_methods.items():
+            lines.append("")
+            lines.extend(emit_set_method(spec, markup, sm_name, sm, upd_fields, indent))
+
+    lines.append("        end")
+    lines.append("      end")
+    lines.append("    end")
+    lines.append("  end")
+    lines.append("end")
+    return GEN_HEADER.format(desc=f"Generated REST resource for the {spec.name!r} namespace.") + "\n" + "\n".join(lines) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# Client tree (§8).
+# ---------------------------------------------------------------------------
+
+# Container attr -> (Ruby container class, RestClient accessor). Reproduces the
+# hand FabricNamespace/VideoNamespace surface via the oracle _client_tree names.
+CONTAINERS = {
+    "fabric": ("FabricNamespace", "fabric"),
+    "video": ("VideoNamespace", "video"),
+    "logs": ("LogsNamespace", "logs"),
+    "registry": ("RegistryNamespace", "registry"),
+    "project": ("ProjectNamespace", "project"),
+    "datasphere": ("DatasphereNamespace", "datasphere"),
+}
+
+# Accessor-name overrides — mirrors the reference generator's _ATTR_OVERRIDE
+# table. Where the mechanical "snake_case, strip container prefix" derivation
+# doesn't match the canonical accessor the reference client tree exposes, the
+# override pins it. Reference FACTS (the accessor callers use).
+ATTR_OVERRIDE = {
+    "GenericResources": "resources", "FabricAddresses": "addresses",
+    "FabricTokens": "tokens", "DatasphereDocuments": "documents",
+    "ProjectTokens": "tokens", "PubSub": "pubsub",
+    "MessageLogs": "messages", "VoiceLogs": "voice", "FaxLogs": "fax",
+    "ConferenceLogs": "conferences",
+}
+
+
+def container_accessor(markup: dict, name: str, container: str) -> str:
+    if markup.get("attr"):
+        return snake(markup["attr"])
+    if name in ATTR_OVERRIDE:
+        return snake(ATTR_OVERRIDE[name])
+    lead = container[:1].upper() + container[1:]
+    stem = name[len(lead):] if name.startswith(lead) else name
+    return snake(stem) if stem else snake(name)
+
+
+def flat_accessor(name: str) -> str:
+    if name in ATTR_OVERRIDE:
+        return snake(ATTR_OVERRIDE[name])
+    return snake(name)
+
+
+def resolve_placement(specs: list[Spec]):
+    placed = []
+    for spec in specs:
+        for anchor, markup in spec.resources():
+            container = markup.get("namespace") or spec.namespace_attr or ""
+            placed.append((spec, anchor, markup, container))
+    return placed
+
+
+def emit_container(container: str, members: list[tuple[str, str]]) -> str:
+    """members: list of (accessor, class_name)."""
+    cls, _ = CONTAINERS[container]
+    lines: list[str] = []
+    lines.append("module SignalWire")
+    lines.append("  module REST")
+    lines.append("    module Namespaces")
+    lines.append("      module Generated")
+    lines.append(f"        # {cls} — generated container grouping the {container} namespace resources (§8).")
+    lines.append(f"        class {cls}")
+    accs = [a for a, _ in members]
+    lines.append(f"          attr_reader {', '.join(':' + a for a in accs)}")
+    lines.append("")
+    lines.append("          def initialize(http)")
+    for accessor, class_name in members:
+        lines.append(f"            @{accessor} = {class_name}.new(http)")
+    lines.append("          end")
+    lines.append("        end")
+    lines.append("      end")
+    lines.append("    end")
+    lines.append("  end")
+    lines.append("end")
+    return GEN_HEADER.format(desc=f"Generated REST client container for the {container} namespace (§8).") + "\n" + "\n".join(lines) + "\n"
+
+
+def emit_resource_tree(placed) -> str:
+    """Emit ResourceTree: a module the hand RestClient includes, wiring a lazy
+    accessor per FLAT resource + per CONTAINER (§8)."""
+    flats: list[tuple[str, str]] = []
+    containers_seen: list[str] = []
+    seen_c: set[str] = set()
+    for spec, anchor, markup, container in placed:
+        name = markup["name"]
+        if not container:
+            flats.append((flat_accessor(name), name))
+        else:
+            if container not in seen_c:
+                seen_c.add(container)
+                containers_seen.append(container)
+
+    lines: list[str] = []
+    lines.append("module SignalWire")
+    lines.append("  module REST")
+    lines.append("    module Namespaces")
+    lines.append("      module Generated")
+    lines.append("        # ResourceTree — generated lazy accessors for every flat REST resource")
+    lines.append("        # plus the namespace containers (§8). The hand RestClient includes this")
+    lines.append("        # module and provides `generated_http_client`. Placement resolved from")
+    lines.append("        # x-sdk-namespace.attr + per-resource x-sdk-resource.namespace/attr; base")
+    lines.append("        # paths per §4.")
+    lines.append("        module ResourceTree")
+    for accessor, cls in flats:
+        lines.append("")
+        lines.append(f"          def {accessor}")
+        lines.append(f"            @{accessor} ||= {cls}.new(generated_http_client)")
+        lines.append("          end")
+    for c in containers_seen:
+        clsname, acc = CONTAINERS[c]
+        lines.append("")
+        lines.append(f"          def {acc}")
+        lines.append(f"            @{acc} ||= {clsname}.new(generated_http_client)")
+        lines.append("          end")
+    lines.append("        end")
+    lines.append("      end")
+    lines.append("    end")
+    lines.append("  end")
+    lines.append("end")
+    return GEN_HEADER.format(desc="Generated REST resource tree module the hand RestClient includes (§8).") + "\n" + "\n".join(lines) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# Driver.
+# ---------------------------------------------------------------------------
+
+def generated_module(spec_name: str) -> str:
+    """The oracle module a namespace's resource classes land in — the Python
+    reference emits every generated resource of spec ``<ns>`` into
+    ``signalwire.rest.namespaces.<ns>_resources_generated`` (spec-dir dashes
+    folded to underscores: relay-rest -> relay_rest). Containers live in the
+    shared ``_client_tree_generated`` module. The Ruby adapters project each
+    generated ``SignalWire::REST::Namespaces::Generated::<Name>`` class onto the
+    module this returns so the idiom-blind surface/signature diffs line up 1:1
+    with the reference."""
+    return "signalwire.rest.namespaces." + spec_name.replace("-", "_") + "_resources_generated"
+
+
+CLIENT_TREE_MODULE = "signalwire.rest.namespaces._client_tree_generated"
+
+
+def build_surface_map(psdk: Path) -> dict[str, str]:
+    """{ generated class NAME -> reference module } for every emitted resource +
+    container. The single source of truth the two Ruby adapters
+    (enumerate_signatures.py / enumerate_surface.rb) read via the committed
+    ``generated_surface_map.json`` sidecar, so the class->module projection is
+    generated once here and never hand-maintained (SESSION_CHANGESET §B)."""
+    specs = [load_spec(psdk, ns) for ns in SPEC_DIRS]
+    mapping: dict[str, str] = {}
+    for spec in specs:
+        for _anchor, markup in spec.resources():
+            mapping[markup["name"]] = generated_module(spec.name)
+    for cls, _acc in CONTAINERS.values():
+        mapping[cls] = CLIENT_TREE_MODULE
+    return dict(sorted(mapping.items()))
+
+
+def build_outputs(psdk: Path) -> dict[str, str]:
+    load_bases(psdk)  # validate x-sdk-bases (fail loud)
+    specs = [load_spec(psdk, ns) for ns in SPEC_DIRS]
+    outs: dict[str, str] = {}
+
+    # Generated Fabric bases (once).
+    outs["_fabric_bases.rb"] = FABRIC_BASES
+
+    for spec in specs:
+        for anchor, markup in spec.resources():
+            src = emit_resource(spec, anchor, markup)
+            outs[snake(markup["name"]) + ".rb"] = src
+
+    placed = resolve_placement(specs)
+    by_container: dict[str, list[tuple[str, str]]] = {}
+    order: list[str] = []
+    for spec, anchor, markup, container in placed:
+        if not container:
+            continue
+        if container not in by_container:
+            by_container[container] = []
+            order.append(container)
+        acc = container_accessor(markup, markup["name"], container)
+        by_container[container].append((acc, markup["name"]))
+    for container in order:
+        if container not in CONTAINERS:
+            raise SystemExit(f"container attr {container!r} has no Ruby container class (add to CONTAINERS)")
+        cls, _ = CONTAINERS[container]
+        outs[snake(cls) + ".rb"] = emit_container(container, by_container[container])
+    outs["resource_tree.rb"] = emit_resource_tree(placed)
+    return outs
+
+
+def main(argv: list[str]) -> int:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--check", action="store_true", help="GEN-FRESH: exit non-zero if stale")
+    ap.add_argument("--out", default="", help="scratch: emit flat into this dir")
+    args = ap.parse_args(argv)
+
+    psdk = resolve_porting_sdk()
+    outs = build_outputs(psdk)
+
+    scratch = bool(args.out)
+    if scratch:
+        out_dir = Path(args.out)
+    else:
+        out_dir = repo_root() / "lib" / "signalwire" / "rest" / "namespaces" / "generated"
+
+    # The class->reference-module sidecar the two Ruby adapters read. Committed
+    # at the repo root next to port_signatures.json; only emitted/checked for the
+    # real source-tree run (a --out scratch run is a flat dump for A-agent diffing
+    # and has no adapters to feed).
+    sidecar_path = repo_root() / "generated_surface_map.json"
+    sidecar_src = json.dumps(build_surface_map(psdk), indent=2, sort_keys=True) + "\n"
+
+    if args.check:
+        stale = []
+        for fn, src in outs.items():
+            p = out_dir / fn
+            if not p.is_file() or p.read_text() != src:
+                stale.append(str(p))
+        expected = set(outs.keys())
+        for p in sorted(out_dir.rglob("*.rb")):
+            rel = p.relative_to(out_dir).as_posix()
+            if rel not in expected:
+                stale.append(f"{p} (leftover — not in generator output)")
+        if not scratch and (not sidecar_path.is_file() or sidecar_path.read_text() != sidecar_src):
+            stale.append(f"{sidecar_path} (surface-map sidecar stale)")
+        if stale:
+            sys.stderr.write("GEN-FRESH FAIL: %d generated REST file(s) stale:\n" % len(stale))
+            for s in stale:
+                sys.stderr.write("  - %s\n" % s)
+            return 1
+        print("GEN-FRESH: generated REST files match the canonical specs.")
+        return 0
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for fn, src in outs.items():
+        p = out_dir / fn
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(src)
+    if not scratch:
+        sidecar_path.write_text(sidecar_src)
+    print(f"generated {len(outs)} REST file(s) into {out_dir}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

@@ -82,7 +82,7 @@ class DatasphereCoverageMockTest < Minitest::Test
   end
 
   def test_create_error
-    assert_error('datasphere.create_document', 422) { @client.datasphere.documents.create }
+    assert_error('datasphere.create_document', 422) { @client.datasphere.documents.create({}) }
   end
 
   def test_search_success
@@ -95,7 +95,7 @@ class DatasphereCoverageMockTest < Minitest::Test
   end
 
   def test_search_error
-    assert_error('datasphere.search_documents', 422) { @client.datasphere.documents.search }
+    assert_error('datasphere.search_documents', 422) { @client.datasphere.documents.search(query_string: 'hello') }
   end
 
   def test_list_chunks_success
@@ -172,7 +172,7 @@ class MiscSmallSpecsCoverageMockTest < Minitest::Test
   TOKENS = '/api/project/tokens'
 
   def test_project_create_token_success
-    body = @client.project.tokens.create(name: 'tok-1')
+    body = @client.project.tokens.create(name: 'tok-1', permissions: %w[calling])
 
     assert_kind_of Hash, body
     last = assert_request('POST', TOKENS, 'project.create_token')
@@ -181,7 +181,7 @@ class MiscSmallSpecsCoverageMockTest < Minitest::Test
   end
 
   def test_project_create_token_error
-    assert_error('project.create_token', 422) { @client.project.tokens.create }
+    assert_error('project.create_token', 422) { @client.project.tokens.create(name: 'tok-1', permissions: %w[calling]) }
   end
 
   def test_project_update_token_uses_patch_success
@@ -209,7 +209,7 @@ class MiscSmallSpecsCoverageMockTest < Minitest::Test
   # ---- calling.dial -> POST /api/calling/calls -----------------------
 
   def test_calling_dial_success
-    body = @client.calling.dial(url: 'https://example.com/swml', to: '+15551234567')
+    body = @client.calling.dial(from: '+15559876543', url: 'https://example.com/swml', to: '+15551234567')
 
     assert_kind_of Hash, body
     last = assert_request('POST', '/api/calling/calls', 'calling.call-commands')
@@ -219,14 +219,14 @@ class MiscSmallSpecsCoverageMockTest < Minitest::Test
 
   def test_calling_dial_error
     assert_error('calling.call-commands', 422) do
-      @client.calling.dial(url: 'https://example.com/swml', to: '+15551234567')
+      @client.calling.dial(from: '+15559876543', url: 'https://example.com/swml', to: '+15551234567')
     end
   end
 
   # ---- chat.create_token -> POST /api/chat/tokens --------------------
 
   def test_chat_create_token_success
-    body = @client.chat.create_token(channels: %w[room-1])
+    body = @client.chat.create_token(ttl: 60, channels: %w[room-1])
 
     assert_kind_of Hash, body
     last = assert_request('POST', '/api/chat/tokens', 'chat.create_chat_token')
@@ -235,13 +235,13 @@ class MiscSmallSpecsCoverageMockTest < Minitest::Test
   end
 
   def test_chat_create_token_error
-    assert_error('chat.create_chat_token', 422) { @client.chat.create_token }
+    assert_error('chat.create_chat_token', 422) { @client.chat.create_token(ttl: 60, channels: %w[room-1]) }
   end
 
   # ---- pubsub.create_token -> POST /api/pubsub/tokens ----------------
 
   def test_pubsub_create_token_success
-    body = @client.pubsub.create_token(channels: %w[ch-1])
+    body = @client.pubsub.create_token(ttl: 60, channels: %w[ch-1])
 
     assert_kind_of Hash, body
     last = assert_request('POST', '/api/pubsub/tokens', 'pubsub.create_token')
@@ -250,7 +250,7 @@ class MiscSmallSpecsCoverageMockTest < Minitest::Test
   end
 
   def test_pubsub_create_token_error
-    assert_error('pubsub.create_token', 422) { @client.pubsub.create_token }
+    assert_error('pubsub.create_token', 422) { @client.pubsub.create_token(ttl: 60, channels: %w[ch-1]) }
   end
 end
 

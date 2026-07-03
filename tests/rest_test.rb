@@ -3,6 +3,44 @@
 require 'minitest/autorun'
 require_relative '../lib/signalwire/rest/rest_client'
 
+# Records requests without hitting the network, for verb/path/body assertions.
+class RecordingHttpClient
+  attr_reader :requests
+
+  def initialize
+    @requests = []
+  end
+
+  def get(path, params = nil)
+    @requests << { method: 'GET', path: path, body: nil, params: params }
+    {}
+  end
+
+  def post(path, body = nil, params: nil)
+    @requests << { method: 'POST', path: path, body: body, params: params }
+    {}
+  end
+
+  def put(path, body = nil)
+    @requests << { method: 'PUT', path: path, body: body, params: nil }
+    {}
+  end
+
+  def patch(path, body = nil)
+    @requests << { method: 'PATCH', path: path, body: body, params: nil }
+    {}
+  end
+
+  def delete(path)
+    @requests << { method: 'DELETE', path: path, body: nil, params: nil }
+    {}
+  end
+
+  def last
+    @requests.last
+  end
+end
+
 class RestHttpClientTest < Minitest::Test
   def test_http_client_url_construction
     client = SignalWire::REST::HttpClient.new('proj-123', 'tok-abc', 'myspace.signalwire.com')
@@ -50,11 +88,15 @@ class RestCrudResourceTest < Minitest::Test
     assert_equal 'PATCH', SignalWire::REST::CrudResource.update_method
   end
 
-  def test_crud_resource_custom_update_method
-    # PhoneNumbersResource uses PUT
-    klass = SignalWire::REST::Namespaces::PhoneNumbersResource
+  def test_phone_numbers_update_uses_put
+    # The generated PhoneNumbers resource issues update over PUT (not PATCH),
+    # matching the relay-rest phone_numbers route.
+    http = RecordingHttpClient.new
+    resource = SignalWire::REST::Namespaces::Generated::PhoneNumbers.new(http)
+    resource.update('pn-1', name: 'Main')
 
-    assert_equal 'PUT', klass.update_method
+    assert_equal 'PUT', http.last[:method]
+    assert_equal '/api/relay/rest/phone_numbers/pn-1', http.last[:path]
   end
 end
 
@@ -155,102 +197,102 @@ class RestNamespacePathsTest < Minitest::Test
   end
 
   def test_phone_numbers_path
-    resource = SignalWire::REST::Namespaces::PhoneNumbersResource.new(@http)
+    resource = SignalWire::REST::Namespaces::Generated::PhoneNumbers.new(@http)
     # Verify path construction via send
     assert_equal '/api/relay/rest/phone_numbers/search', resource.send(:_path, 'search')
   end
 
   def test_addresses_path
-    resource = SignalWire::REST::Namespaces::AddressesResource.new(@http)
+    resource = SignalWire::REST::Namespaces::Generated::Addresses.new(@http)
 
     assert_equal '/api/relay/rest/addresses/abc', resource.send(:_path, 'abc')
   end
 
   def test_queues_path
-    resource = SignalWire::REST::Namespaces::QueuesResource.new(@http)
+    resource = SignalWire::REST::Namespaces::Generated::Queues.new(@http)
 
     assert_equal '/api/relay/rest/queues/q1/members', resource.send(:_path, 'q1', 'members')
   end
 
   def test_recordings_path
-    resource = SignalWire::REST::Namespaces::RecordingsResource.new(@http)
+    resource = SignalWire::REST::Namespaces::Generated::Recordings.new(@http)
 
     assert_equal '/api/relay/rest/recordings/r1', resource.send(:_path, 'r1')
   end
 
   def test_number_groups_path
-    resource = SignalWire::REST::Namespaces::NumberGroupsResource.new(@http)
+    resource = SignalWire::REST::Namespaces::Generated::NumberGroups.new(@http)
 
     assert_equal '/api/relay/rest/number_groups/g1/number_group_memberships',
                  resource.send(:_path, 'g1', 'number_group_memberships')
   end
 
   def test_verified_callers_path
-    resource = SignalWire::REST::Namespaces::VerifiedCallersResource.new(@http)
+    resource = SignalWire::REST::Namespaces::Generated::VerifiedCallers.new(@http)
 
     assert_equal '/api/relay/rest/verified_caller_ids/vc1/verification',
                  resource.send(:_path, 'vc1', 'verification')
   end
 
   def test_sip_profile_path
-    resource = SignalWire::REST::Namespaces::SipProfileResource.new(@http)
+    resource = SignalWire::REST::Namespaces::Generated::SipProfile.new(@http)
     # Singleton resource, base path is the full path
     assert_equal '/api/relay/rest/sip_profile', resource.instance_variable_get(:@base_path)
   end
 
   def test_lookup_path
-    resource = SignalWire::REST::Namespaces::LookupResource.new(@http)
+    resource = SignalWire::REST::Namespaces::Generated::Lookup.new(@http)
 
     assert_equal '/api/relay/rest/lookup/phone_number/+15551234567',
                  resource.send(:_path, 'phone_number', '+15551234567')
   end
 
   def test_short_codes_path
-    resource = SignalWire::REST::Namespaces::ShortCodesResource.new(@http)
+    resource = SignalWire::REST::Namespaces::Generated::ShortCodes.new(@http)
 
     assert_equal '/api/relay/rest/short_codes/sc1', resource.send(:_path, 'sc1')
   end
 
   def test_imported_numbers_path
-    resource = SignalWire::REST::Namespaces::ImportedNumbersResource.new(@http)
+    resource = SignalWire::REST::Namespaces::Generated::ImportedNumbers.new(@http)
 
     assert_equal '/api/relay/rest/imported_phone_numbers',
                  resource.instance_variable_get(:@base_path)
   end
 
   def test_mfa_path
-    resource = SignalWire::REST::Namespaces::MfaResource.new(@http)
+    resource = SignalWire::REST::Namespaces::Generated::Mfa.new(@http)
 
     assert_equal '/api/relay/rest/mfa/sms', resource.send(:_path, 'sms')
     assert_equal '/api/relay/rest/mfa/req-1/verify', resource.send(:_path, 'req-1', 'verify')
   end
 
   def test_calling_path
-    resource = SignalWire::REST::Namespaces::CallingNamespace.new(@http)
+    resource = SignalWire::REST::Namespaces::Generated::Calling.new(@http)
 
     assert_equal '/api/calling/calls', resource.instance_variable_get(:@base_path)
   end
 
   def test_pubsub_path
-    resource = SignalWire::REST::Namespaces::PubSubResource.new(@http)
+    resource = SignalWire::REST::Namespaces::Generated::PubSub.new(@http)
 
     assert_equal '/api/pubsub/tokens', resource.instance_variable_get(:@base_path)
   end
 
   def test_chat_path
-    resource = SignalWire::REST::Namespaces::ChatResource.new(@http)
+    resource = SignalWire::REST::Namespaces::Generated::Chat.new(@http)
 
     assert_equal '/api/chat/tokens', resource.instance_variable_get(:@base_path)
   end
 end
 
 class RestCxmlApplicationsTest < Minitest::Test
-  def test_cxml_applications_create_raises
+  def test_cxml_applications_has_no_create
     http = SignalWire::REST::HttpClient.new('proj', 'tok', 'test.signalwire.com')
-    resource = SignalWire::REST::Namespaces::CxmlApplicationsResource.new(
-      http, '/api/fabric/resources/cxml_applications'
-    )
-    assert_raises(NotImplementedError) do
+    resource = SignalWire::REST::Namespaces::Generated::CxmlApplications.new(http)
+    # CxmlApplications is a read/update/delete resource — it exposes no create.
+    refute_respond_to resource, :create
+    assert_raises(NoMethodError) do
       resource.create(name: 'test')
     end
   end

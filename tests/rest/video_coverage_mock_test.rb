@@ -334,7 +334,7 @@ class VideoConferencesCoverageMockTest < Minitest::Test
   # ---- create_video_conference ----------------------------------------
 
   def test_create_video_conference_success
-    body = @client.video.conferences.create(name: 'standup')
+    body = @client.video.conferences.create(name: 'standup', display_name: 'Standup')
 
     assert_kind_of Hash, body
     last = assert_last_request('POST', "#{VIDEO_BASE}/conferences", 'video.create_video_conference')
@@ -344,7 +344,7 @@ class VideoConferencesCoverageMockTest < Minitest::Test
 
   def test_create_video_conference_error
     assert_error('video.create_video_conference', 422, 'video.create_video_conference') do
-      @client.video.conferences.create(name: 'bad')
+      @client.video.conferences.create(name: 'bad', display_name: 'Bad')
     end
   end
 

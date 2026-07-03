@@ -142,13 +142,23 @@ class RelayCoveragePhoneNumbersMockTest < Minitest::Test
   end
 
   def test_addresses_create
-    assert_kind_of Hash, @client.addresses.create(address_type: 'commercial', country: 'US')
+    assert_kind_of Hash, @client.addresses.create(
+      label: 'HQ', country: 'US', first_name: 'Ada', last_name: 'Lovelace',
+      street_number: '123', street_name: 'Main St', city: 'Anytown',
+      state: 'CA', postal_code: '90210', address_type: 'commercial'
+    )
     last = assert_route('POST', "#{RELAY_BASE}/addresses", 'relay-rest.create_address')
     assert_sent_body(last, 'address_type' => 'commercial', 'country' => 'US')
   end
 
   def test_addresses_create_error
-    assert_error('relay-rest.create_address') { @client.addresses.create(country: 'US') }
+    assert_error('relay-rest.create_address') do
+      @client.addresses.create(
+        label: 'HQ', country: 'US', first_name: 'Ada', last_name: 'Lovelace',
+        street_number: '123', street_name: 'Main St', city: 'Anytown',
+        state: 'CA', postal_code: '90210'
+      )
+    end
   end
 
   def test_addresses_get
@@ -493,25 +503,31 @@ class RelayCoverageMiscMockTest < Minitest::Test
   end
 
   def test_short_codes_update_uses_put
-    assert_kind_of Hash, @client.short_codes.update('sc-1', name: 'Promo')
+    assert_kind_of Hash, @client.short_codes.update('sc-1', name: 'Promo', message_handler: 'laml_webhooks')
     last = assert_route('PUT', "#{RELAY_BASE}/short_codes/sc-1", 'relay-rest.update_short_code')
     assert_sent_body(last, 'name' => 'Promo')
   end
 
   def test_short_codes_update_error
-    assert_error('relay-rest.update_short_code') { @client.short_codes.update('sc-1', name: 'x') }
+    assert_error('relay-rest.update_short_code') do
+      @client.short_codes.update('sc-1', name: 'x', message_handler: 'laml_webhooks')
+    end
   end
 
   # ---- Imported numbers -----------------------------------------------
 
   def test_imported_numbers_create
-    assert_kind_of Hash, @client.imported_numbers.create(number: '+15551234567', sip_username: 'alice')
+    assert_kind_of Hash, @client.imported_numbers.create(
+      number: '+15551234567', number_type: 'longcode', sip_username: 'alice'
+    )
     last = assert_route('POST', "#{RELAY_BASE}/imported_phone_numbers", 'relay-rest.create_imported_phone_number')
     assert_sent_body(last, 'number' => '+15551234567', 'sip_username' => 'alice')
   end
 
   def test_imported_numbers_create_error
-    assert_error('relay-rest.create_imported_phone_number') { @client.imported_numbers.create(number: '+1') }
+    assert_error('relay-rest.create_imported_phone_number') do
+      @client.imported_numbers.create(number: '+1', number_type: 'longcode')
+    end
   end
 
   # ---- MFA ------------------------------------------------------------

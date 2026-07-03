@@ -70,6 +70,14 @@ echo "==> running CI gates for $PORT_NAME (porting-sdk at $PORTING_SDK_DIR)"
 run_gate "TEST" "bundle exec rake test" \
     bundle exec rake test
 
+# Gate 1b: GEN-FRESH — the generated REST resource layer (lib/signalwire/rest/
+# namespaces/generated/ + generated_surface_map.json) must match what
+# scripts/generate_rest.py emits from the canonical specs. Fails if a spec
+# changed without regenerating (or the tree/sidecar was hand-edited). The port's
+# analog of the go/php/ts REST GEN-FRESH gate.
+run_gate "GEN-FRESH" "generated REST layer matches canonical specs" \
+    python3 scripts/generate_rest.py --check
+
 # Gate 2: signature regen
 run_gate "SIGNATURES" "regenerate port_signatures.json" \
     python3 scripts/enumerate_signatures.py

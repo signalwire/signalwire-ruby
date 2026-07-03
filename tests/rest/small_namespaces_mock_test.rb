@@ -65,13 +65,15 @@ class SmallNamespacesMockTest < Minitest::Test
     assert_equal ['10'], last.query_params['page_size']
   end
 
+  # The generated addresses.create requires the full spec address field set.
+  ADDRESS_CREATE = {
+    label: 'HQ', country: 'US', first_name: 'Ada', last_name: 'Lovelace',
+    street_number: '1', street_name: 'Analytical Ave', city: 'London',
+    state: 'CA', postal_code: '94000', address_type: 'commercial'
+  }.freeze
+
   def test_addresses_create
-    body = @client.addresses.create(
-      address_type: 'commercial',
-      first_name: 'Ada',
-      last_name: 'Lovelace',
-      country: 'US'
-    )
+    body = @client.addresses.create(**ADDRESS_CREATE)
 
     assert_kind_of Hash, body
     # An Address resource carries an 'id' field.
@@ -169,7 +171,7 @@ class SmallNamespacesMockTest < Minitest::Test
   end
 
   def test_short_codes_update
-    body = @client.short_codes.update('sc-1', name: 'Marketing SMS')
+    body = @client.short_codes.update('sc-1', name: 'Marketing SMS', message_handler: 'laml_webhooks')
 
     assert_kind_of Hash, body
     assert body.key?('id')
@@ -192,7 +194,8 @@ class SmallNamespacesMockTestPartTwo < Minitest::Test
 
   def test_imported_numbers_create
     body = @client.imported_numbers.create(
-      number: '+15551234567', sip_username: 'alice', sip_password: 'secret', sip_proxy: 'sip.example.com'
+      number: '+15551234567', number_type: 'sip',
+      sip_username: 'alice', sip_password: 'secret', sip_proxy: 'sip.example.com'
     )
 
     assert_kind_of Hash, body

@@ -110,10 +110,17 @@ class FabricAiAgentsCoverageMockTest < Minitest::Test
 
   def test_list_success = crud_list(:ai_agents, 'ai_agents', 'ai_agent')
   def test_list_error = assert_error('fabric.list_ai_agents') { @client.fabric.ai_agents.list }
-  def test_create_success = crud_create(:ai_agents, 'ai_agents', 'ai_agent', key: :name, val: 'a')
+
+  def test_create_success
+    assert_kind_of Hash, @client.fabric.ai_agents.create(prompt: 'p', agent_id: 'aa', name: 'a')
+    last = assert_request('POST', "#{RES}/ai_agents", 'fabric.create_ai_agent')
+    assert_equal 'a', last.body['name']
+  end
 
   def test_create_error
-    assert_error('fabric.create_ai_agent', status: 422) { @client.fabric.ai_agents.create(name: 'a') }
+    assert_error('fabric.create_ai_agent', status: 422) do
+      @client.fabric.ai_agents.create(prompt: 'p', agent_id: 'aa', name: 'a')
+    end
     refute_nil @mock.last.response_status, 'error not journaled'
   end
 
@@ -143,10 +150,17 @@ class FabricSipEndpointsCoverageMockTest < Minitest::Test
 
   def test_list_success = crud_list(:sip_endpoints, 'sip_endpoints', 'sip_endpoint')
   def test_list_error = assert_error('fabric.list_sip_endpoints') { @client.fabric.sip_endpoints.list }
-  def test_create_success = crud_create(:sip_endpoints, 'sip_endpoints', 'sip_endpoint', key: :username, val: 'u')
+  SE_CREATE = { id: 'se-x', username: 'u', caller_id: 'c', send_as: 's', ciphers: [], codecs: [],
+                encryption: 'optional', call_handler: 'h', calling_handler_resource_id: 'r' }.freeze
+
+  def test_create_success
+    assert_kind_of Hash, @client.fabric.sip_endpoints.create(**SE_CREATE)
+    last = assert_request('POST', "#{RES}/sip_endpoints", 'fabric.create_sip_endpoint')
+    assert_equal 'u', last.body['username']
+  end
 
   def test_create_error
-    assert_error('fabric.create_sip_endpoint', status: 422) { @client.fabric.sip_endpoints.create(username: 'u') }
+    assert_error('fabric.create_sip_endpoint', status: 422) { @client.fabric.sip_endpoints.create(**SE_CREATE) }
     refute_nil @mock.last.response_status, 'error not journaled'
   end
 
@@ -154,13 +168,17 @@ class FabricSipEndpointsCoverageMockTest < Minitest::Test
   def test_get_error = assert_error('fabric.get_sip_endpoint') { @client.fabric.sip_endpoints.get('se-1') }
 
   def test_update_success
-    crud_update(:sip_endpoints, 'sip_endpoints', 'sip_endpoint', 'se-1', 'PUT', key: :username, val: 'v')
-
+    assert_kind_of Hash,
+                   @client.fabric.sip_endpoints.update('se-1', calling_handler_resource_id: 'r', username: 'v')
+    last = assert_request('PUT', "#{RES}/sip_endpoints/se-1", 'fabric.update_sip_endpoint')
+    assert_equal 'v', last.body['username']
     refute_nil @mock.last.matched_route, 'no matched_route recorded'
   end
 
   def test_update_error
-    assert_error('fabric.update_sip_endpoint') { @client.fabric.sip_endpoints.update('se-1', username: 'v') }
+    assert_error('fabric.update_sip_endpoint') do
+      @client.fabric.sip_endpoints.update('se-1', calling_handler_resource_id: 'r', username: 'v')
+    end
     refute_nil @mock.last.response_status, 'error not journaled'
   end
 
@@ -186,10 +204,16 @@ class FabricSipGatewaysCoverageMockTest < Minitest::Test
 
   def test_list_success = crud_list(:sip_gateways, 'sip_gateways', 'sip_gateway')
   def test_list_error = assert_error('fabric.list_sip_gateways') { @client.fabric.sip_gateways.list }
-  def test_create_success = crud_create(:sip_gateways, 'sip_gateways', 'sip_gateway', key: :name, val: 'g')
+  SG_CREATE = { name: 'g', uri: 'sip:x', encryption: 'optional', ciphers: [], codecs: [] }.freeze
+
+  def test_create_success
+    assert_kind_of Hash, @client.fabric.sip_gateways.create(**SG_CREATE)
+    last = assert_request('POST', "#{RES}/sip_gateways", 'fabric.create_sip_gateway')
+    assert_equal 'g', last.body['name']
+  end
 
   def test_create_error
-    assert_error('fabric.create_sip_gateway', status: 422) { @client.fabric.sip_gateways.create(name: 'g') }
+    assert_error('fabric.create_sip_gateway', status: 422) { @client.fabric.sip_gateways.create(**SG_CREATE) }
     refute_nil @mock.last.response_status, 'error not journaled'
   end
 
@@ -210,6 +234,19 @@ class FabricSipGatewaysCoverageMockTest < Minitest::Test
 
   def test_delete_success = crud_delete(:sip_gateways, 'sip_gateways', 'sip_gateway', 'sg-1')
   def test_delete_error = assert_error('fabric.delete_sip_gateway') { @client.fabric.sip_gateways.delete('sg-1') }
+
+  # sip_gateways is a FabricResource, so it inherits list_addresses
+  # (GET /sip_gateways/{id}/addresses) — covered so the route isn't a blind spot.
+  def test_list_addresses_success
+    crud_list_addresses(:sip_gateways, 'sip_gateways', 'sip_gateway', 'sg-1')
+
+    refute_nil @mock.last.matched_route, 'no matched_route recorded'
+  end
+
+  def test_list_addresses_error
+    assert_error('fabric.list_sip_gateway_addresses') { @client.fabric.sip_gateways.list_addresses('sg-1') }
+    refute_nil @mock.last.response_status, 'error not journaled'
+  end
 end
 
 # ---- swml_scripts (update = PUT) --------------------------------------
@@ -219,10 +256,17 @@ class FabricSwmlScriptsCoverageMockTest < Minitest::Test
 
   def test_list_success = crud_list(:swml_scripts, 'swml_scripts', 'swml_script')
   def test_list_error = assert_error('fabric.list_swml_scripts') { @client.fabric.swml_scripts.list }
-  def test_create_success = crud_create(:swml_scripts, 'swml_scripts', 'swml_script', key: :name, val: 's')
+
+  def test_create_success
+    assert_kind_of Hash, @client.fabric.swml_scripts.create(name: 's', contents: 'c')
+    last = assert_request('POST', "#{RES}/swml_scripts", 'fabric.create_swml_script')
+    assert_equal 's', last.body['name']
+  end
 
   def test_create_error
-    assert_error('fabric.create_swml_script', status: 422) { @client.fabric.swml_scripts.create(name: 's') }
+    assert_error('fabric.create_swml_script', status: 422) do
+      @client.fabric.swml_scripts.create(name: 's', contents: 'c')
+    end
     refute_nil @mock.last.response_status, 'error not journaled'
   end
 
@@ -258,10 +302,17 @@ class FabricCxmlScriptsCoverageMockTest < Minitest::Test
 
   def test_list_success = crud_list(:cxml_scripts, 'cxml_scripts', 'cxml_script')
   def test_list_error = assert_error('fabric.list_cxml_scripts') { @client.fabric.cxml_scripts.list }
-  def test_create_success = crud_create(:cxml_scripts, 'cxml_scripts', 'cxml_script', key: :name, val: 'c')
+
+  def test_create_success
+    assert_kind_of Hash, @client.fabric.cxml_scripts.create(display_name: 'c', contents: 'x')
+    last = assert_request('POST', "#{RES}/cxml_scripts", 'fabric.create_cxml_script')
+    assert_equal 'c', last.body['display_name']
+  end
 
   def test_create_error
-    assert_error('fabric.create_cxml_script', status: 422) { @client.fabric.cxml_scripts.create(name: 'c') }
+    assert_error('fabric.create_cxml_script', status: 422) do
+      @client.fabric.cxml_scripts.create(display_name: 'c', contents: 'x')
+    end
     refute_nil @mock.last.response_status, 'error not journaled'
   end
 
@@ -303,14 +354,15 @@ class FabricFreeswitchConnectorsCoverageMockTest < Minitest::Test
   end
 
   def test_create_success
-    crud_create(:freeswitch_connectors, 'freeswitch_connectors', 'freeswitch_connector', key: :name, val: 'f')
-
+    assert_kind_of Hash, @client.fabric.freeswitch_connectors.create(name: 'f', token: 't')
+    last = assert_request('POST', "#{RES}/freeswitch_connectors", 'fabric.create_freeswitch_connector')
+    assert_equal 'f', last.body['name']
     refute_nil @mock.last.matched_route, 'no matched_route recorded'
   end
 
   def test_create_error
     assert_error('fabric.create_freeswitch_connector', status: 422) do
-      @client.fabric.freeswitch_connectors.create(name: 'f')
+      @client.fabric.freeswitch_connectors.create(name: 'f', token: 't')
     end
     refute_nil @mock.last.response_status, 'error not journaled'
   end
@@ -370,13 +422,16 @@ class FabricRelayApplicationsCoverageMockTest < Minitest::Test
   def test_list_error = assert_error('fabric.list_relay_applications') { @client.fabric.relay_applications.list }
 
   def test_create_success
-    crud_create(:relay_applications, 'relay_applications', 'relay_application', key: :name, val: 'r')
-
+    assert_kind_of Hash, @client.fabric.relay_applications.create(name: 'r', topic: 'tp')
+    last = assert_request('POST', "#{RES}/relay_applications", 'fabric.create_relay_application')
+    assert_equal 'r', last.body['name']
     refute_nil @mock.last.matched_route, 'no matched_route recorded'
   end
 
   def test_create_error
-    assert_error('fabric.create_relay_application', status: 422) { @client.fabric.relay_applications.create(name: 'r') }
+    assert_error('fabric.create_relay_application', status: 422) do
+      @client.fabric.relay_applications.create(name: 'r', topic: 'tp')
+    end
     refute_nil @mock.last.response_status, 'error not journaled'
   end
 
@@ -424,18 +479,19 @@ class FabricSwmlWebhooksCoverageMockTest < Minitest::Test
   def test_list_error = assert_error('fabric.list_swml_webhooks') { @client.fabric.swml_webhooks.list }
 
   def test_create_success
-    body = nil
-    _out, err = capture_io { body = @client.fabric.swml_webhooks.create(name: 'w') }
+    body = @client.fabric.swml_webhooks.create(primary_request_url: 'https://x', name: 'w')
 
-    assert_match(/DEPRECATION/, err)
     assert_kind_of Hash, body
     last = assert_request('POST', "#{RES}/swml_webhooks", 'fabric.create_swml_webhook')
     assert_equal 'w', last.body['name']
+    assert_equal 'https://x', last.body['primary_request_url']
   end
 
   def test_create_error
     capture_io do
-      assert_error('fabric.create_swml_webhook', status: 422) { @client.fabric.swml_webhooks.create(name: 'w') }
+      assert_error('fabric.create_swml_webhook', status: 422) do
+        @client.fabric.swml_webhooks.create(primary_request_url: 'https://x', name: 'w')
+      end
     end
   end
 
@@ -473,18 +529,19 @@ class FabricCxmlWebhooksCoverageMockTest < Minitest::Test
   def test_list_error = assert_error('fabric.list_cxml_webhooks') { @client.fabric.cxml_webhooks.list }
 
   def test_create_success
-    body = nil
-    _out, err = capture_io { body = @client.fabric.cxml_webhooks.create(name: 'cw') }
+    body = @client.fabric.cxml_webhooks.create(primary_request_url: 'https://x', name: 'cw')
 
-    assert_match(/DEPRECATION/, err)
     assert_kind_of Hash, body
     last = assert_request('POST', "#{RES}/cxml_webhooks", 'fabric.create_cxml_webhook')
     assert_equal 'cw', last.body['name']
+    assert_equal 'https://x', last.body['primary_request_url']
   end
 
   def test_create_error
     capture_io do
-      assert_error('fabric.create_cxml_webhook', status: 422) { @client.fabric.cxml_webhooks.create(name: 'cw') }
+      assert_error('fabric.create_cxml_webhook', status: 422) do
+        @client.fabric.cxml_webhooks.create(primary_request_url: 'https://x', name: 'cw')
+      end
     end
   end
 
@@ -518,10 +575,11 @@ class FabricCxmlApplicationsCoverageMockTest < Minitest::Test
   include FabricCoverageHelpers
   include FabricCoverageHelpers::CrudWithAddresses
 
-  def test_create_raises_not_implemented
-    err = assert_raises(NotImplementedError) { @client.fabric.cxml_applications.create(name: 'nope') }
-
-    assert_match(/cXML applications cannot/, err.message)
+  # cXML applications cannot be created via this API: the generated resource
+  # deliberately omits +create+, so the accessor does not respond to it and
+  # nothing can reach the wire.
+  def test_create_not_available
+    refute_respond_to @client.fabric.cxml_applications, :create
     assert_equal [], @mock.journal
   end
 
@@ -567,10 +625,15 @@ class FabricCallFlowsCoverageMockTest < Minitest::Test
 
   def test_list_success = crud_list(:call_flows, 'call_flows', 'call_flow')
   def test_list_error = assert_error('fabric.list_call_flows') { @client.fabric.call_flows.list }
-  def test_create_success = crud_create(:call_flows, 'call_flows', 'call_flow', key: :name, val: 'cf')
+
+  def test_create_success
+    assert_kind_of Hash, @client.fabric.call_flows.create(title: 'cf')
+    last = assert_request('POST', "#{RES}/call_flows", 'fabric.create_call_flow')
+    assert_equal 'cf', last.body['title']
+  end
 
   def test_create_error
-    assert_error('fabric.create_call_flow', status: 422) { @client.fabric.call_flows.create(name: 'cf') }
+    assert_error('fabric.create_call_flow', status: 422) { @client.fabric.call_flows.create(title: 'cf') }
     refute_nil @mock.last.response_status, 'error not journaled'
   end
 
@@ -630,13 +693,16 @@ class FabricConferenceRoomsCoverageMockTest < Minitest::Test
   def test_list_error = assert_error('fabric.list_conference_rooms') { @client.fabric.conference_rooms.list }
 
   def test_create_success
-    crud_create(:conference_rooms, 'conference_rooms', 'conference_room', key: :name, val: 'cr')
-
+    assert_kind_of Hash, @client.fabric.conference_rooms.create(name: 'cr', enable_room_previews: true)
+    last = assert_request('POST', "#{RES}/conference_rooms", 'fabric.create_conference_room')
+    assert_equal 'cr', last.body['name']
     refute_nil @mock.last.matched_route, 'no matched_route recorded'
   end
 
   def test_create_error
-    assert_error('fabric.create_conference_room', status: 422) { @client.fabric.conference_rooms.create(name: 'cr') }
+    assert_error('fabric.create_conference_room', status: 422) do
+      @client.fabric.conference_rooms.create(name: 'cr', enable_room_previews: true)
+    end
     refute_nil @mock.last.response_status, 'error not journaled'
   end
 
@@ -644,13 +710,19 @@ class FabricConferenceRoomsCoverageMockTest < Minitest::Test
   def test_get_error = assert_error('fabric.get_conference_room') { @client.fabric.conference_rooms.get('cr-1') }
 
   def test_update_success
-    crud_update(:conference_rooms, 'conference_rooms', 'conference_room', 'cr-1', 'PUT', key: :name, val: 'crz')
-
+    assert_kind_of Hash,
+                   @client.fabric.conference_rooms.update('cr-1', enable_room_previews: true,
+                                                                  sync_audio_video: true, name: 'crz')
+    last = assert_request('PUT', "#{RES}/conference_rooms/cr-1", 'fabric.update_conference_room')
+    assert_equal 'crz', last.body['name']
     refute_nil @mock.last.matched_route, 'no matched_route recorded'
   end
 
   def test_update_error
-    assert_error('fabric.update_conference_room') { @client.fabric.conference_rooms.update('cr-1', name: 'crz') }
+    assert_error('fabric.update_conference_room') do
+      @client.fabric.conference_rooms.update('cr-1', enable_room_previews: true, sync_audio_video: true,
+                                                     name: 'crz')
+    end
     refute_nil @mock.last.response_status, 'error not journaled'
   end
 
@@ -728,14 +800,14 @@ class FabricSubscriberSipEndpointsCoverageMockTest < Minitest::Test
   end
 
   def test_create_success
-    assert_kind_of Hash, @client.fabric.subscribers.create_sip_endpoint('sub-1', username: 'u')
+    assert_kind_of Hash, @client.fabric.subscribers.create_sip_endpoint('sub-1', username: 'u', password: 'p')
     last = assert_request('POST', SUB, 'fabric.create_subscriber_sip_endpoint')
     assert_equal 'u', last.body['username']
   end
 
   def test_create_error
     assert_error('fabric.create_subscriber_sip_endpoint', status: 422) do
-      @client.fabric.subscribers.create_sip_endpoint('sub-1', username: 'u')
+      @client.fabric.subscribers.create_sip_endpoint('sub-1', username: 'u', password: 'p')
     end
     refute_nil @mock.last.response_status, 'error not journaled'
   end
@@ -814,19 +886,17 @@ class FabricResourcesCoverageMockTest < Minitest::Test
   end
 
   def test_assign_phone_route_success
-    body = nil
-    _out, err = capture_io { body = @client.fabric.resources.assign_phone_route('res-1', target_id: 't-1') }
+    body = @client.fabric.resources.assign_phone_route('res-1', phone_route_id: 'pr-1', handler: 'h')
 
-    assert_match(/DEPRECATION/, err)
     assert_kind_of Hash, body
     last = assert_request('POST', "#{RES}/res-1/phone_routes", 'fabric.assign_resource_phone_route')
-    assert_equal 't-1', last.body['target_id']
+    assert_equal 'pr-1', last.body['phone_route_id']
   end
 
   def test_assign_phone_route_error
     capture_io do
       assert_error('fabric.assign_resource_phone_route', status: 422) do
-        @client.fabric.resources.assign_phone_route('res-1', target_id: 't-1')
+        @client.fabric.resources.assign_phone_route('res-1', phone_route_id: 'pr-1', handler: 'h')
       end
     end
   end
@@ -890,14 +960,14 @@ class FabricTokensCoverageMockTest < Minitest::Test
   end
 
   def test_create_invite_token_success
-    assert_kind_of Hash, @client.fabric.tokens.create_invite_token(email: 'i@e.com')
+    assert_kind_of Hash, @client.fabric.tokens.create_invite_token(address_id: 'ad-1')
     last = assert_request('POST', "#{FABRIC_BASE}/subscriber/invites", 'fabric.create_subscriber_invite_token')
-    assert_equal 'i@e.com', last.body['email']
+    assert_equal 'ad-1', last.body['address_id']
   end
 
   def test_create_invite_token_error
     assert_error('fabric.create_subscriber_invite_token', status: 422) do
-      @client.fabric.tokens.create_invite_token(email: 'i@e.com')
+      @client.fabric.tokens.create_invite_token(address_id: 'ad-1')
     end
     refute_nil @mock.last.response_status, 'error not journaled'
   end
@@ -916,14 +986,14 @@ class FabricTokensCoverageMockTest < Minitest::Test
   end
 
   def test_create_embed_token_success
-    assert_kind_of Hash, @client.fabric.tokens.create_embed_token(allowed_addresses: %w[a-1 a-2])
+    assert_kind_of Hash, @client.fabric.tokens.create_embed_token(token: 'tok-1')
     last = assert_request('POST', "#{FABRIC_BASE}/embeds/tokens", 'fabric.create_embeds_token')
-    assert_equal %w[a-1 a-2], last.body['allowed_addresses']
+    assert_equal 'tok-1', last.body['token']
   end
 
   def test_create_embed_token_error
     assert_error('fabric.create_embeds_token', status: 422) do
-      @client.fabric.tokens.create_embed_token(allowed_addresses: %w[a-1 a-2])
+      @client.fabric.tokens.create_embed_token(token: 'tok-1')
     end
     refute_nil @mock.last.response_status, 'error not journaled'
   end

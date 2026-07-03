@@ -69,6 +69,27 @@ end
 
 PORTING_SDK_DEFAULT = find_default_porting_sdk
 
+# The generated REST resource layer (scripts/generate_rest.py) emits every class
+# into SignalWire::REST::Namespaces::Generated::<Name>; the idiom-blind
+# projection onto the reference's <ns>_resources_generated / _client_tree_
+# generated modules is driven by the committed sidecar the generator writes
+# (single source of truth — never hand-maintained here). Class name is the
+# reference name VERBATIM (L1/L2).
+GENERATED_PREFIX = 'SignalWire::REST::Namespaces::Generated::'
+GENERATED_SURFACE_MAP =
+  begin
+    p = REPO_ROOT.join('generated_surface_map.json')
+    p.file? ? JSON.parse(p.read) : {}
+  end.freeze
+
+# The generated Fabric BASE classes (in _fabric_bases.rb) are the Ruby analog of
+# the reference's signalwire.rest._base FabricResource/FabricResourcePUT — base
+# classes, not per-namespace resources. Mapped to _base, not via the sidecar.
+GENERATED_BASE_CLASSES = [
+  "#{GENERATED_PREFIX}FabricResource",
+  "#{GENERATED_PREFIX}FabricResourcePUT"
+].freeze
+
 # -----------------------------------------------------------------------------
 # Python class -> module index. Loaded from python_surface.json so we can look
 # up the canonical module for each class in the port. If a Ruby class name has
@@ -213,6 +234,8 @@ RUBY_EXCLUDED_CLASSES = %w[
   SignalWire::POM::SectionBuilder
   SignalWire::Skills::SkillIntrospection
   SignalWire::Relay::MessageSerialization
+  SignalWire::REST::Namespaces::Generated
+  SignalWire::REST::Namespaces::Generated::ResourceTree
 ].freeze
 
 # Mixin projections: Ruby collapses Python's mixin classes into
@@ -249,10 +272,33 @@ def snake_case(camel)
     .downcase
 end
 
+# Project a generated REST class (SignalWire::REST::Namespaces::Generated::*)
+# onto its reference module, or nil if +ruby_fqn+ is not a generated class.
+#   * the two Fabric BASE classes live in the reference's shared
+#     signalwire.rest._base (like BaseResource/CrudResource), not a namespace
+#     resources_generated module (both have an empty own-method set → match);
+#   * every other generated resource/container maps via the sidecar to its
+#     <ns>_resources_generated / _client_tree_generated module, class VERBATIM.
+def translate_generated_class(ruby_fqn, cls)
+  return ['signalwire.rest._base', cls] if GENERATED_BASE_CLASSES.include?(ruby_fqn)
+  return nil unless ruby_fqn.start_with?(GENERATED_PREFIX)
+
+  mod = GENERATED_SURFACE_MAP[cls]
+  if mod.nil?
+    abort "generated class #{ruby_fqn} not in generated_surface_map.json " \
+          '(regenerate: python3 scripts/generate_rest.py)'
+  end
+  [mod, cls]
+end
+
 # Translate a fully-qualified Ruby name to the Python-reference dotted module
 # + class name. Returns [module_path, class_name].
 def translate_class(ruby_fqn, python_index)
   cls = ruby_fqn.split('::').last
+
+  # 0. Generated REST resource/container/base (via the generator sidecar).
+  gen = translate_generated_class(ruby_fqn, cls)
+  return gen if gen
 
   # 1. Explicit override wins.
   if RUBY_TO_PYTHON_MODULE_OVERRIDES.key?(ruby_fqn)

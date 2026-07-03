@@ -30,6 +30,13 @@ AllCops:
     - 'relay/examples/**/*'
     - 'rest/examples/**/*'
     - 'vendor/**/*'
+    # Machine-generated REST resource layer (scripts/generate_rest.py; regenerate,
+    # don't hand-edit). Line length / method length / param count are inherent to
+    # the spec-derived typed signatures — linting generated code fights the
+    # generator, the same rationale go uses to skip its generated files. The hand
+    # require-manifest (generated.rb, one level up) and the hand bases in
+    # http_client.rb are NOT excluded and stay lint-clean.
+    - 'lib/signalwire/rest/namespaces/generated/**/*'
 
 # ---------------------------------------------------------------------------
 # Documentation: the SDK documents its public API in YARD/markdown + the

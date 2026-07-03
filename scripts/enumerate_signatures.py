@@ -36,6 +36,33 @@ PSDK = (PORT_ROOT.parent / "porting-sdk").resolve()
 if not PSDK.is_dir():
     PSDK = Path("/usr/local/home/devuser/src/porting-sdk")
 
+# The generated REST resource layer (scripts/generate_rest.py) emits every
+# class into SignalWire::REST::Namespaces::Generated::<Name>; the idiom-blind
+# projection back onto the reference's <ns>_resources_generated / _client_tree_
+# generated modules is driven by the committed sidecar the generator writes
+# (single source of truth — never hand-maintained here). Class name is the
+# reference name VERBATIM (L1/L2).
+GENERATED_PREFIX = "SignalWire::REST::Namespaces::Generated::"
+_GEN_MAP_PATH = PORT_ROOT / "generated_surface_map.json"
+GENERATED_SURFACE_MAP: dict[str, str] = (
+    json.loads(_GEN_MAP_PATH.read_text()) if _GEN_MAP_PATH.is_file() else {}
+)
+
+# ADAPTER PARAM-RENAMES (renames, NOT omissions — the wire field is unchanged;
+# only the Ruby-side kwarg identifier differs from the reference-recorded name).
+#   * The generator lower-cases an uppercase-initial wire field so it is a valid
+#     Ruby keyword-arg identifier (SWAIG -> sWAIG). The Python oracle allows the
+#     uppercase param and records ``SWAIG`` — rename ``sWAIG`` back to ``SWAIG``.
+#   * Ruby uses a plain ``from`` kwarg (``from`` is not a Ruby keyword); the
+#     Python oracle renames the reserved word to ``from_`` and records that —
+#     rename ``from`` -> ``from_`` so the two compare EQUAL.
+# Scoped to the generated REST classes so an unrelated ``from``/``sWAIG`` param
+# elsewhere is never silently rewritten.
+GENERATED_PARAM_RENAMES = {
+    "sWAIG": "SWAIG",
+    "from": "from_",
+}
+
 
 # ---------------------------------------------------------------------------
 # Mappings extracted from scripts/enumerate_surface.rb
@@ -374,6 +401,17 @@ def resolve_class(full_name: str) -> tuple[str, str] | None:
         return None
     parts = full_name.split("::")
     short = parts[-1]
+    # Generated REST resource/container: project onto the reference's
+    # <ns>_resources_generated / _client_tree_generated module via the sidecar,
+    # class name VERBATIM.
+    if full_name.startswith(GENERATED_PREFIX):
+        mod = GENERATED_SURFACE_MAP.get(short)
+        if mod is None:
+            raise SystemExit(
+                f"generated class {full_name!r} not in generated_surface_map.json — "
+                f"regenerate with `python3 scripts/generate_rest.py`"
+            )
+        return mod, short
     canonical_class = RUBY_TO_PYTHON_CLASS_ALIASES.get(full_name, short)
     if full_name in RUBY_TO_PYTHON_MODULE_OVERRIDES:
         return RUBY_TO_PYTHON_MODULE_OVERRIDES[full_name], canonical_class
@@ -474,6 +512,7 @@ def collect(raw: dict) -> dict:
         if resolved is None:
             continue
         mod, canonical_class = resolved
+        is_generated = full.startswith(GENERATED_PREFIX)
 
         methods_out: dict = {}
         for m in type_entry.get("methods", []):
@@ -500,6 +539,12 @@ def collect(raw: dict) -> dict:
             )
             # Filter out parameters with empty names (anonymous block / rest)
             sig["params"] = [p for p in sig["params"] if p.get("name")]
+            # Generated REST classes: apply the documented adapter param-renames
+            # (sWAIG->SWAIG, from->from_) so the Ruby kwarg identifiers compare
+            # EQUAL to the reference-recorded names. Renames, not omissions.
+            if is_generated:
+                for p in sig["params"]:
+                    p["name"] = GENERATED_PARAM_RENAMES.get(p["name"], p["name"])
             methods_out[method_canonical] = sig
 
         if not methods_out:
@@ -567,7 +612,13 @@ def build_signature(method: dict, instance_method: bool) -> dict:
         }
         if canonical_kind != "positional":
             param["kind"] = canonical_kind
-        if ruby_kind in ("opt", "key", "block"):
+        # A splat (*args / **kwargs) is inherently OPTIONAL — the method is
+        # callable with zero extra positional/keyword args — as are default-
+        # bearing opt/key params and the block. Only :req / :keyreq are
+        # genuinely required. (Marking a splat required would wrongly fail the
+        # signature diff's "extra port params must all be optional" tolerance
+        # for the generated REST bodies' `**kwargs` forward-compat tail.)
+        if ruby_kind in ("opt", "key", "block", "rest", "keyrest"):
             param["required"] = False
             param["default"] = None
         else:
