@@ -48,6 +48,20 @@ GENERATED_SURFACE_MAP: dict[str, str] = (
     json.loads(_GEN_MAP_PATH.read_text()) if _GEN_MAP_PATH.is_file() else {}
 )
 
+# Typed-input sidecar (§B / L10): the generator (scripts/generate_rest.py)
+# records, per generated operation/command/set method, the canonical param
+# records (name/kind/type/required) the reference oracle carries. Ruby is
+# dynamically typed and ``Method#parameters`` can't recover keyword-only kinds,
+# open-``extras`` dicts, or field element types, so the enumerator UNFOLDS the
+# reflected params — replacing them with the sidecar's canonical set — for every
+# generated method it lists. Keyed ``ClassName::method``. GEN-FRESH keeps this in
+# lock-step with the emitted source (both derive from the same computed params).
+_REST_SIG_PATH = PORT_ROOT / "rest_signatures.json"
+_REST_SIG_RAW = (
+    json.loads(_REST_SIG_PATH.read_text()) if _REST_SIG_PATH.is_file() else {}
+)
+REST_SIGNATURES: dict[str, list[dict]] = _REST_SIG_RAW.get("methods", {})
+
 # ADAPTER PARAM-RENAMES (renames, NOT omissions — the wire field is unchanged;
 # only the Ruby-side kwarg identifier differs from the reference-recorded name).
 #   * The generator lower-cases an uppercase-initial wire field so it is a valid
@@ -526,10 +540,28 @@ def collect(raw: dict) -> dict:
             )
             # Filter out parameters with empty names (anonymous block / rest)
             sig["params"] = [p for p in sig["params"] if p.get("name")]
-            # Generated REST classes: apply the documented adapter param-renames
-            # (sWAIG->SWAIG, from->from_) so the Ruby kwarg identifiers compare
-            # EQUAL to the reference-recorded names. Renames, not omissions.
             if is_generated:
+                # §B / L10 typed-input UNFOLD: a generated operation/command/set
+                # method takes its wire fields as named kwargs, but Ruby
+                # reflection recovers neither their concrete TYPES nor the
+                # reference's keyword/positional/var_keyword KINDS (it sees
+                # ``any`` for everything and a Ruby ``**kwargs`` for the doors).
+                # REPLACE the reflected params with the generator's canonical
+                # records (keyed ClassName::method) so the port compares on the
+                # reference's real param count + kind + open-but-typed types.
+                # This is legitimate adapter representation — wire-identical, the
+                # same param SET the source method exposes — not an omission.
+                sidecar = (
+                    REST_SIGNATURES.get(f"{canonical_class}::{clean}")
+                    if native != "<init>" else None
+                )
+                if sidecar is not None:
+                    self_p = [p for p in sig["params"] if p.get("kind") == "self"]
+                    sig["params"] = self_p + [dict(r) for r in sidecar]
+                # Apply the documented adapter param-renames (sWAIG->SWAIG,
+                # from->from_) so the Ruby kwarg identifiers compare EQUAL to the
+                # reference-recorded names. Renames, not omissions. (Applies to
+                # both the sidecar-unfolded records and any non-sidecar method.)
                 for p in sig["params"]:
                     p["name"] = GENERATED_PARAM_RENAMES.get(p["name"], p["name"])
             methods_out[method_canonical] = sig

@@ -14818,37 +14818,38 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "timeout",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "prompt",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -14860,51 +14861,52 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "role",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "message_text",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "reset",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "global_data",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -14916,29 +14918,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -14950,30 +14953,31 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "prompt",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -14985,65 +14989,66 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "initial_timeout",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "digits",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "speech",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "continuous",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "partial_results",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -15055,29 +15060,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -15089,29 +15095,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -15123,23 +15130,24 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "extras",
-                  "type": "any",
+                  "default": null,
                   "kind": "keyword",
+                  "name": "extras",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -15151,23 +15159,24 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "extras",
-                  "type": "any",
+                  "default": null,
                   "kind": "keyword",
+                  "name": "extras",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -15179,43 +15188,44 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "detect",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "dict<string,any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "timeout",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -15227,29 +15237,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -15261,86 +15272,86 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "keyword",
                   "name": "from_",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "to",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "caller_id",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "fallback_url",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "status_url",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "status_events",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "url_method",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "url",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "codecs",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "swml",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -15352,23 +15363,24 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "extras",
-                  "type": "any",
+                  "default": null,
                   "kind": "keyword",
+                  "name": "extras",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -15380,30 +15392,31 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "reason",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -15415,29 +15428,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "action",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "dict<string,any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -15449,36 +15463,37 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "action",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "dict<string,any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "status_url",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -15490,64 +15505,65 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "play",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "list<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "volume",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "direction",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "loop",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "status_url",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -15559,29 +15575,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -15593,29 +15610,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -15627,29 +15645,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -15661,35 +15680,36 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "volume",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "float"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -15701,29 +15721,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -15735,44 +15756,45 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "audio",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "status_url",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -15784,29 +15806,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -15818,29 +15841,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -15852,29 +15876,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -15886,36 +15911,37 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "device",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "dict<string,any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "status_url",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -15927,29 +15953,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -15961,64 +15988,65 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "url",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "codec",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "track",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "authorization_bearer_token",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "custom_parameters",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -16030,29 +16058,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -16064,42 +16093,43 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "tap",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "dict<string,any>"
                 },
                 {
+                  "kind": "keyword",
                   "name": "device",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "dict<string,any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -16111,29 +16141,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -16145,37 +16176,38 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "status_url",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -16187,29 +16219,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "control_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -16221,29 +16254,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "dest",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "dict<string,any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -16255,59 +16289,59 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "keyword",
                   "name": "id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "dict<string,any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "fallback_url",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "status",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "status_url",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "url",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "swml",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -16319,29 +16353,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "call_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "event",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "dict<string,any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -16375,44 +16410,44 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "keyword",
                   "name": "ttl",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "int"
                 },
                 {
+                  "kind": "keyword",
                   "name": "channels",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "dict<string,any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "member_id",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "state",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -16474,14 +16509,16 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "document_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "positional",
                   "name": "chunk_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 }
               ],
               "returns": "any"
@@ -16493,21 +16530,23 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "document_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "positional",
                   "name": "chunk_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -16519,16 +16558,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "document_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -16540,73 +16580,73 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "keyword",
                   "name": "query_string",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "tags",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "document_id",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "distance",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "count",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "language",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "pos_to_expand",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "max_synonyms",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -16923,14 +16963,16 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "positional",
                   "name": "body",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "dict<string,any>"
                 }
               ],
               "returns": "any"
@@ -16942,16 +16984,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -16963,16 +17006,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -17184,16 +17228,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -17368,9 +17413,10 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 }
               ],
               "returns": "any"
@@ -17382,16 +17428,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -17403,11 +17450,11 @@
                   "kind": "self"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -17419,16 +17466,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -17440,121 +17488,122 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "display_name",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "account_sid",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "voice_url",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "voice_method",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "voice_fallback_url",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "voice_fallback_method",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "status_callback",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "status_callback_method",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "sms_url",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "sms_method",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "sms_fallback_url",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "sms_fallback_method",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "sms_status_callback",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "sms_status_callback_method",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -17935,24 +17984,24 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "keyword",
                   "name": "token",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -17964,31 +18013,31 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "keyword",
                   "name": "allowed_addresses",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "list<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "expire_at",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -18000,31 +18049,31 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "keyword",
                   "name": "address_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "dict<string,any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "expires_at",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -18036,101 +18085,101 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "keyword",
                   "name": "reference",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "expire_at",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "application_id",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "password",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "first_name",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "last_name",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "display_name",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "job_title",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "time_zone",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "country",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "region",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "company_name",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -18142,24 +18191,24 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "keyword",
                   "name": "refresh_token",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "dict<string,any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -18291,29 +18340,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "domain_application_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "dict<string,any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -18325,35 +18375,36 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "phone_route_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "dict<string,any>"
                 },
                 {
+                  "kind": "keyword",
                   "name": "handler",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "dict<string,any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -18365,9 +18416,10 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 }
               ],
               "returns": "any"
@@ -18379,16 +18431,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -18400,11 +18453,11 @@
                   "kind": "self"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -18416,16 +18469,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -18968,70 +19022,71 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "subscriber_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "username",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "password",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "caller_id",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "send_as",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "ciphers",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "codecs",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "encryption",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -19043,14 +19098,16 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "subscriber_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 }
               ],
               "returns": "any"
@@ -19062,21 +19119,23 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "subscriber_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -19088,16 +19147,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "subscriber_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -19206,77 +19266,79 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "subscriber_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "username",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "password",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "caller_id",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "send_as",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "ciphers",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "codecs",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "encryption",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -19651,11 +19713,11 @@
                   "kind": "self"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -19741,37 +19803,37 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "keyword",
                   "name": "name",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "permissions",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "list<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "subproject_id",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -19783,9 +19845,10 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "token_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 }
               ],
               "returns": "any"
@@ -19797,37 +19860,38 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "token_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "name",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "permissions",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -19861,44 +19925,44 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "keyword",
                   "name": "ttl",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "int"
                 },
                 {
+                  "kind": "keyword",
                   "name": "channels",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "dict<string,any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "member_id",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "state",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -19932,86 +19996,86 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "keyword",
                   "name": "label",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "country",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "first_name",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "last_name",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "street_number",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "street_name",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "city",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "state",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "postal_code",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "address_type",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "address_number",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -20023,9 +20087,10 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 }
               ],
               "returns": "any"
@@ -20037,16 +20102,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -20058,11 +20124,11 @@
                   "kind": "self"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -20092,37 +20158,37 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "keyword",
                   "name": "number",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "number_type",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "capabilities",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -20152,16 +20218,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "e164",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -20191,66 +20258,66 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "keyword",
                   "name": "to",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "from_",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "message",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "token_length",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "valid_for",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "max_attempts",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "allow_alphas",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -20262,66 +20329,66 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "keyword",
                   "name": "to",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "from_",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "message",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "token_length",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "valid_for",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "max_attempts",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "allow_alphas",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -20333,29 +20400,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "request_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "token",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -20385,29 +20453,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "group_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "phone_number_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "dict<string,any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -20469,9 +20538,10 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 }
               ],
               "returns": "any"
@@ -20483,16 +20553,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -20504,16 +20575,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "group_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -20627,11 +20699,11 @@
                   "kind": "self"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -20643,29 +20715,23 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "resource_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "positional",
                   "name": "agent_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "dict<string,any>"
                 },
                 {
-                  "name": "extra",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "extra",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -20677,36 +20743,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "resource_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "positional",
                   "name": "flow_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "dict<string,any>"
                 },
                 {
+                  "default": null,
+                  "kind": "positional",
                   "name": "version",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
-                  "name": "extra",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "extra",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -20718,29 +20778,23 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "resource_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "positional",
                   "name": "application_id",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "extra",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "extra",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -20752,43 +20806,37 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "resource_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "positional",
                   "name": "url",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "positional",
                   "name": "fallback_url",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "positional",
                   "name": "status_callback_url",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
-                  "name": "extra",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "extra",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -20800,29 +20848,23 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "resource_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "positional",
                   "name": "name",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "extra",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "extra",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -20834,36 +20876,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "resource_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "positional",
                   "name": "topic",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "positional",
                   "name": "status_callback_url",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
-                  "name": "extra",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "extra",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -20875,29 +20911,23 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "resource_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "positional",
                   "name": "url",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "extra",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "extra",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -21237,21 +21267,23 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "queue_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -21263,16 +21295,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "queue_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -21284,16 +21317,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "queue_id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -21365,9 +21399,10 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 }
               ],
               "returns": "any"
@@ -21379,16 +21414,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -21400,11 +21436,11 @@
                   "kind": "self"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -21434,9 +21470,10 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "body",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "dict<string,any>"
                 }
               ],
               "returns": "any"
@@ -21448,14 +21485,16 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "positional",
                   "name": "body",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "dict<string,any>"
                 }
               ],
               "returns": "any"
@@ -21467,16 +21506,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -21488,11 +21528,11 @@
                   "kind": "self"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -21504,16 +21544,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -21543,37 +21584,38 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "phone_numbers",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "status_callback_url",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -21585,16 +21627,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -21606,16 +21649,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -21627,16 +21671,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -21648,30 +21693,31 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "name",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -21701,9 +21747,10 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 }
               ],
               "returns": "any"
@@ -21733,16 +21780,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -21772,16 +21820,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -21793,11 +21842,11 @@
                   "kind": "self"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -21809,77 +21858,78 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "name",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "message_handler",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "dict<string,any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "message_request_url",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "message_request_method",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "message_fallback_url",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "message_fallback_method",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "message_laml_application_id",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "message_relay_context",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -21909,11 +21959,11 @@
                   "kind": "self"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -21925,53 +21975,53 @@
                   "kind": "self"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "domain_identifier",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "default_codecs",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "default_ciphers",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "default_encryption",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "default_send_as",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -22058,9 +22108,10 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 }
               ],
               "returns": "any"
@@ -22072,29 +22123,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "verification_code",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -22162,16 +22214,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -22183,9 +22236,10 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 }
               ],
               "returns": "any"
@@ -22384,29 +22438,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "url",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -22432,16 +22487,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -22453,16 +22509,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -22680,9 +22737,10 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 }
               ],
               "returns": "any"
@@ -22694,16 +22752,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -22715,11 +22774,11 @@
                   "kind": "self"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -22731,16 +22790,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -22800,16 +22860,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -22821,16 +22882,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -22842,16 +22904,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -22881,143 +22944,143 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "keyword",
                   "name": "room_name",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "user_name",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "permissions",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "join_from",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "join_until",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "remove_at",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "remove_after_seconds_elapsed",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "join_audio_muted",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "join_video_muted",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "auto_create_room",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "enable_room_previews",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "room_display_name",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "end_room_session_on_leave",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "join_as",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "media_allowed",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "room_meta",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "meta",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "sync_audio_video",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<any>"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -23167,29 +23230,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "url",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -23215,16 +23279,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -23373,9 +23438,10 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 }
               ],
               "returns": "any"
@@ -23387,16 +23453,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -23408,29 +23475,30 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "kind": "keyword",
                   "name": "url",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
+                  "default": null,
+                  "kind": "keyword",
                   "name": "extras",
-                  "type": "any",
-                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "type": "optional<dict<string,any>>"
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "kwargs",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"
@@ -23494,16 +23562,17 @@
                   "kind": "self"
                 },
                 {
+                  "kind": "positional",
                   "name": "id",
-                  "type": "any",
-                  "required": true
+                  "required": true,
+                  "type": "string"
                 },
                 {
-                  "name": "params",
-                  "type": "any",
+                  "default": {},
                   "kind": "var_keyword",
+                  "name": "params",
                   "required": false,
-                  "default": null
+                  "type": "any"
                 }
               ],
               "returns": "any"

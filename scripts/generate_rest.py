@@ -412,6 +412,82 @@ def ordered_fields(fields):
     return req + opt
 
 
+# ---------------------------------------------------------------------------
+# Canonical audit types for the typed-input sidecar (§B / L10).
+#
+# Ruby is dynamically typed, so the source keyword params carry no static type;
+# the ENUMERATOR can't recover one either. The generator therefore writes a
+# machine-readable sidecar (`rest_signatures.json`) recording, for every
+# generated operation/command/set/CRUD method, the canonical audit TYPE of each
+# body field — the type the reference oracle records, expressed in an OPEN form
+# that folds onto the concrete reference type via the drift gate's
+# `types_compatible`:
+#   * optional field           -> ``optional<any>``  (compatible with EVERY
+#                                  concrete ``optional<X>`` the oracle records)
+#   * required NAMED-$ref field -> ``dict<string,any>`` (folds onto the oracle's
+#                                  ``gen:<Name>`` — the diff treats gen:X ==
+#                                  open-object dict in either direction)
+#   * required inline scalar    -> its concrete scalar (string/int/float/bool)
+#   * required array            -> ``list<any>``
+#   * required inline object    -> ``dict<string,any>``
+# This is idiom-safe: the field's Ruby runtime value is untyped, but the AUDIT
+# type recorded is the real (open) shape — never a bare ``any`` (which the drift
+# gate correctly fails for a param the oracle types concretely; L14).
+# ---------------------------------------------------------------------------
+
+_SCALAR_CANON = {"string": "string", "integer": "int", "number": "float", "boolean": "bool"}
+
+
+def _is_named_ref(schema: dict) -> bool:
+    """True when the field is a $ref to a named object schema (directly or via a
+    single-member allOf) — the oracle records these as a generated ``gen:<Name>``
+    type, which the drift gate folds onto ``dict<string,any>``."""
+    if not schema:
+        return False
+    if schema.get("$ref"):
+        return True
+    allof = schema.get("allOf")
+    if allof and len(allof) == 1 and not schema.get("properties") and not schema.get("type"):
+        return _is_named_ref(allof[0])
+    return False
+
+
+def _json_type(schema: dict) -> str | None:
+    t = schema.get("type")
+    if isinstance(t, list):
+        non_null = [x for x in t if x != "null"]
+        return non_null[0] if non_null else None
+    return t
+
+
+def canonical_type(spec: Spec, schema: dict, required: bool) -> str:
+    """The canonical audit type the sidecar records for a body field (see the
+    module comment above)."""
+    if not required:
+        return "optional<any>"
+    if _is_named_ref(schema):
+        return "dict<string,any>"
+    resolved = resolve_schema(spec, schema)
+    jt = _json_type(resolved)
+    if jt in _SCALAR_CANON:
+        return _SCALAR_CANON[jt]
+    if jt == "array":
+        return "list<any>"
+    # inline object / oneOf / anyOf / unknown → an open JSON object.
+    return "dict<string,any>"
+
+
+# Sidecar accumulator: (RubyClassName, ruby_method_name) -> [param records
+# without self]. Each record: {"name", "kind", "type", "required", ["default"]}.
+# The enumerator UNFOLDS these onto the reflected generated methods (§B / L10),
+# replacing the reflected ``any`` types with the recorded open-but-typed ones.
+_SIDECAR: dict[tuple[str, str], list[dict]] = {}
+
+
+def _register_sidecar(cls: str, ruby_method: str, records: list[dict]) -> None:
+    _SIDECAR[(cls, ruby_method)] = records
+
+
 def schema_fields(spec: Spec, schema: dict, seen=None) -> set[str]:
     if schema is None:
         return set()
@@ -437,9 +513,10 @@ def schema_fields(spec: Spec, schema: dict, seen=None) -> set[str]:
 # Body-param emission (Ruby kwargs + extras + **kwargs — §B).
 # ---------------------------------------------------------------------------
 
-def kwarg_params_and_body(fields, indent="        ", body_var="body"):
-    """Build (kwarg_param_list, body_build_lines) for a set of object-body /
-    command-params fields, in the Ruby kwargs idiom + the two doors (§B):
+def kwarg_params_and_body(spec, fields, indent="        ", body_var="body"):
+    """Build (kwarg_param_list, body_build_lines, sidecar_records) for a set of
+    object-body / command-params fields, in the Ruby kwargs idiom + the two doors
+    (§B):
       * required field  -> `name:`         (required keyword arg)
       * optional field  -> `name: nil`     (optional keyword arg)
       * `extras: {}`     -> the explicit forward-compat escape door
@@ -447,21 +524,40 @@ def kwarg_params_and_body(fields, indent="        ", body_var="body"):
                             alongside the explicit extras door)
     The wire body is the non-nil named fields merged with extras and kwargs.
     A reserved-word wire field is aliased (`end` -> `end_`) and mapped back to
-    the wire key in the body build."""
+    the wire key in the body build.
+
+    ``sidecar_records`` are the canonical typed-param records the audit sidecar
+    records for these fields (name=wire key, kind=keyword, type=open-but-typed),
+    followed by the ``extras`` (keyword optional dict) + ``kwargs`` (var_keyword)
+    forward-compat doors — the enumerator unfolds them onto the reflected method
+    (§B / L10)."""
     params: list[str] = []
     build: list[str] = [f"{indent}{body_var} = {{}}"]
-    for wire_name, _schema, required in ordered_fields(fields):
+    records: list[dict] = []
+    for wire_name, schema, required in ordered_fields(fields):
         ident = escape_param(wire_name)
+        ct = canonical_type(spec, schema, required)
+        rec: dict = {"name": wire_name, "kind": "keyword", "type": ct, "required": required}
         if required:
             params.append(f"{ident}:")
             build.append(f"{indent}{body_var}[{rb_str(wire_name)}] = {ident}")
         else:
             params.append(f"{ident}: nil")
+            rec["default"] = None
             build.append(f"{indent}{body_var}[{rb_str(wire_name)}] = {ident} unless {ident}.nil?")
+        records.append(rec)
     params.append("extras: {}")
     params.append("**kwargs")
     build.append(f"{indent}{body_var} = {body_var}.merge(extras).merge(kwargs)")
-    return params, build
+    records.append({
+        "name": "extras", "kind": "keyword",
+        "type": "optional<dict<string,any>>", "required": False, "default": None,
+    })
+    records.append({
+        "name": "kwargs", "kind": "var_keyword", "type": "any",
+        "required": False, "default": {},
+    })
+    return params, build, records
 
 
 def method_call_path(spec: Spec, anchor: str, markup: dict, op_path: str):
@@ -533,38 +629,60 @@ def emit_method(spec: Spec, anchor: str, markup: dict, base: str,
     lines: list[str] = []
     verb_fn = {"post": "post", "put": "put", "patch": "patch"}.get(verb, verb)
 
+    cls = markup["name"]
+    # Leading path-id params: the reference types every path/collection id
+    # positional as ``string`` (a URL path segment). Record them so.
+    id_records = [{"name": a, "kind": "positional", "type": "string", "required": True} for a in id_args]
+
     if write_verb and has_body:
         body_schema = spec.op_body.get(op_id) or {}
         if is_object_body(spec, body_schema):
             fields = object_body_fields(spec, body_schema)
-            kw, build = kwarg_params_and_body(fields, indent=indent + "  ")
+            kw, build, records = kwarg_params_and_body(spec, fields, indent=indent + "  ")
             sig = ", ".join(id_args + kw)
             lines.append(f"{indent}def {name}({sig})")
             lines.extend(build)
             lines.append(f"{indent}  @http.{verb_fn}({path_expr}, body)")
             lines.append(f"{indent}end")
+            _register_sidecar(cls, name, id_records + records)
         else:
-            # §5.2 union body → a single positional `body` param.
+            # §5.2 union body → a single positional `body` param. The reference
+            # records the whole variant body as ONE param — do NOT explode it
+            # (L10 watch-out); record it as a single positional ``body``, typed
+            # by the body schema. A named-$ref union body (e.g. a oneOf named
+            # ``CallFlowVersionDeployRequest``) the oracle records as
+            # ``gen:<Name>`` — ``canonical_type`` returns the folding
+            # ``dict<string,any>`` for it; a bare inline union stays ``any``.
+            body_type = canonical_type(spec, body_schema, True)
             sig = ", ".join(id_args + ["body"])
             lines.append(f"{indent}def {name}({sig})")
             lines.append(f"{indent}  @http.{verb_fn}({path_expr}, body)")
             lines.append(f"{indent}end")
+            _register_sidecar(cls, name, id_records + [
+                {"name": "body", "kind": "positional", "type": body_type, "required": True},
+            ])
     elif write_verb:
         sig = ", ".join(id_args)
         lines.append(f"{indent}def {name}({sig})")
         lines.append(f"{indent}  @http.{verb_fn}({path_expr}, {{}})")
         lines.append(f"{indent}end")
+        _register_sidecar(cls, name, id_records)
     elif verb == "get":
         # §5.3 GET query door — a trailing keyword-splat `**params` map.
         sig = ", ".join(id_args + ["**params"])
         lines.append(f"{indent}def {name}({sig})")
         lines.append(f"{indent}  @http.get({path_expr}, params.empty? ? nil : params)")
         lines.append(f"{indent}end")
+        _register_sidecar(cls, name, id_records + [
+            {"name": "params", "kind": "var_keyword", "type": "any",
+             "required": False, "default": {}},
+        ])
     else:  # delete
         sig = ", ".join(id_args)
         lines.append(f"{indent}def {name}({sig})")
         lines.append(f"{indent}  @http.delete({path_expr})")
         lines.append(f"{indent}end")
+        _register_sidecar(cls, name, id_records)
     return lines
 
 
@@ -592,11 +710,18 @@ def emit_crud_create_update(spec: Spec, anchor: str, markup: dict, base: str, in
     update_verb = "put" if markup.get("update_method") == "PUT" else "patch"
     update_op = _find_op(spec, anchor, markup, verbs=(update_verb, "put", "patch"), item_level=True)
 
+    # NOTE: the plain-CRUD create/update/delete are NOT sidecar-registered. The
+    # reference publishes them structurally (a CrudResource base), so the drift
+    # gate's ``crud_satisfied`` already tolerates the port's per-method idiom
+    # (a single ``body`` param) — registering a sidecar here would only risk
+    # perturbing an already-satisfied method. Only DECLARED operation/command/set
+    # methods (emit_method / emit_command_dispatch / emit_set_method) need the
+    # typed-input unfold.
     if create_op:
         _, _, cbody = create_op
         fields = object_body_fields(spec, cbody) if is_object_body(spec, cbody) else None
         if fields is not None:
-            kw, build = kwarg_params_and_body(fields, indent=indent + "  ")
+            kw, build, _records = kwarg_params_and_body(spec, fields, indent=indent + "  ")
             lines.append(f"{indent}def create({', '.join(kw)})")
             lines.extend(build)
             lines.append(f"{indent}  @http.post(@base_path, body)")
@@ -611,7 +736,7 @@ def emit_crud_create_update(spec: Spec, anchor: str, markup: dict, base: str, in
         fields = object_body_fields(spec, ubody) if is_object_body(spec, ubody) else None
         verb_fn = uverb
         if fields is not None:
-            kw, build = kwarg_params_and_body(fields, indent=indent + "  ")
+            kw, build, _records = kwarg_params_and_body(spec, fields, indent=indent + "  ")
             lines.append("")
             lines.append(f"{indent}def update(resource_id, {', '.join(kw)})")
             lines.extend(build)
@@ -677,7 +802,8 @@ def emit_read_list_get(spec: Spec, anchor: str, markup: dict, indent: str) -> li
 
 
 def emit_set_method(spec: Spec, markup: dict, sm_name: str, sm: dict,
-                    update_schema_fields: set[str], indent: str) -> list[str]:
+                    update_schema_fields: set[str],
+                    update_field_schemas: dict[str, dict], indent: str) -> list[str]:
     handler = sm.get("handler")
     if not handler:
         raise SystemExit(f"{markup['name']}.{sm_name}: set_method missing handler")
@@ -685,6 +811,15 @@ def emit_set_method(spec: Spec, markup: dict, sm_name: str, sm: dict,
     params = ["resource_id"]
     required_lines: list[str] = []
     optional_lines: list[tuple[str, str]] = []
+    # Sidecar records mirror the reference's set_method shape (§7 / L10): a leading
+    # ``resource_id`` (positional string), each arg as a POSITIONAL param typed
+    # from its bound update field (optionals carry a default), then the trailing
+    # ``extra`` forward-compat splat as a var_keyword. The Ruby method physically
+    # takes keyword args + an ``extra: {}`` / ``**kwargs`` pair; the sidecar unfold
+    # projects the reference's positional/var_keyword kinds — wire-identical.
+    records: list[dict] = [
+        {"name": "resource_id", "kind": "positional", "type": "string", "required": True},
+    ]
     for arg_name, arg in args.items():
         field = arg.get("field")
         if not field:
@@ -695,14 +830,23 @@ def emit_set_method(spec: Spec, markup: dict, sm_name: str, sm: dict,
             )
         ident = escape_param(arg_name)
         required = bool(arg.get("required"))
+        ct = canonical_type(spec, update_field_schemas.get(field, {}), required)
+        rec: dict = {"name": arg_name, "kind": "positional", "type": ct, "required": required}
         if required:
             params.append(f"{ident}:")
             required_lines.append(f"{indent}  body[{rb_str(field)}] = {ident}")
         else:
             params.append(f"{ident}: nil")
+            rec["default"] = None
             optional_lines.append((ident, field))
+        records.append(rec)
     params.append("extra: {}")
     params.append("**kwargs")
+    records.append({
+        "name": "extra", "kind": "var_keyword", "type": "any",
+        "required": False, "default": {},
+    })
+    _register_sidecar(markup["name"], sm_name, records)
     sig = ", ".join(params)
     lines: list[str] = []
     lines.append(f"{indent}def {sm_name}({sig})")
@@ -722,6 +866,17 @@ def update_request_fields(spec: Spec, anchor: str, markup: dict) -> set[str]:
     if not op:
         return set()
     return schema_fields(spec, op[2])
+
+
+def update_request_field_schemas(spec: Spec, anchor: str, markup: dict) -> dict[str, dict]:
+    """{ wire_field -> field_schema } for the update request body — used to type
+    a set_method's args from their bound update field (§7 sidecar typing)."""
+    op = _find_op(spec, anchor, markup,
+                  verbs=("put" if markup.get("update_method") == "PUT" else "patch", "put", "patch"),
+                  item_level=True)
+    if not op:
+        return {}
+    return {name: sch for name, sch, _req in object_body_fields(spec, op[2])}
 
 
 def emit_command_dispatch(spec: Spec, anchor: str, markup: dict) -> str:
@@ -755,9 +910,12 @@ def emit_command_dispatch(spec: Spec, anchor: str, markup: dict) -> str:
         cmd_leaf = cmd_ref.rsplit("/", 1)[-1] if cmd_ref else ""
         cmd_schema = spec.schemas.get(cmd_leaf, {})
         fields, with_id = command_param_fields(spec, cmd_schema)
-        kw, build = kwarg_params_and_body(fields, indent="            ", body_var="params")
+        kw, build, records = kwarg_params_and_body(spec, fields, indent="            ", body_var="params")
         id_params = ["call_id"] if with_id else []
         sig = ", ".join(id_params + kw)
+        id_records = ([{"name": "call_id", "kind": "positional", "type": "string",
+                        "required": True}] if with_id else [])
+        _register_sidecar(name, mname, id_records + records)
         lines.append("")
         lines.append(f"          def {mname}({sig})")
         lines.extend(build)
@@ -891,9 +1049,10 @@ def emit_resource(spec: Spec, anchor: str, markup: dict) -> str:
         if base not in ("CrudResource", "FabricResource"):
             raise SystemExit(f"{name}: set_methods require a CRUD base, got {base}")
         upd_fields = update_request_fields(spec, anchor, markup)
+        upd_schemas = update_request_field_schemas(spec, anchor, markup)
         for sm_name, sm in set_methods.items():
             lines.append("")
-            lines.extend(emit_set_method(spec, markup, sm_name, sm, upd_fields, indent))
+            lines.extend(emit_set_method(spec, markup, sm_name, sm, upd_fields, upd_schemas, indent))
 
     lines.append("        end")
     lines.append("      end")
@@ -1061,6 +1220,30 @@ def build_surface_map(psdk: Path) -> dict[str, str]:
     return dict(sorted(mapping.items()))
 
 
+def build_rest_signatures_sidecar() -> dict:
+    """Serialize the typed-input sidecar (_SIDECAR, populated during
+    build_outputs) into the committed ``rest_signatures.json`` — the canonical
+    typed-param records the enumerator UNFOLDS onto the reflected generated
+    operation/command/set methods (§B / L10). Keyed ``ClassName::method``.
+
+    Ruby is dynamically typed and the enumerator cannot recover keyword-only
+    kinds / open-`extras` / element types from ``Method#parameters``; the source
+    keyword params and this sidecar are BOTH derived from the same computed param
+    lists in the generator, so they never diverge (GEN-FRESH covers the sidecar)."""
+    methods = {
+        f"{cls}::{meth}": records
+        for (cls, meth), records in sorted(_SIDECAR.items())
+    }
+    return {
+        "_comment": (
+            "Generated by scripts/generate_rest.py; DO NOT EDIT. Canonical typed-param "
+            "records for every generated REST operation/command/set method. The "
+            "enumerator unfolds these onto the reflected methods (typed-input §B / L10)."
+        ),
+        "methods": methods,
+    }
+
+
 def build_outputs(psdk: Path) -> dict[str, str]:
     load_bases(psdk)  # validate x-sdk-bases (fail loud)
     specs = [load_spec(psdk, ns) for ns in SPEC_DIRS]
@@ -1116,6 +1299,12 @@ def main(argv: list[str]) -> int:
     sidecar_path = repo_root() / "generated_surface_map.json"
     sidecar_src = json.dumps(build_surface_map(psdk), indent=2, sort_keys=True) + "\n"
 
+    # The typed-input sidecar the enumerator UNFOLDS onto the generated methods
+    # (§B / L10). Populated during build_outputs(psdk) above. Committed at the
+    # repo root next to port_signatures.json.
+    rest_sig_path = repo_root() / "rest_signatures.json"
+    rest_sig_src = json.dumps(build_rest_signatures_sidecar(), indent=2, sort_keys=True) + "\n"
+
     if args.check:
         stale = []
         for fn, src in outs.items():
@@ -1129,6 +1318,8 @@ def main(argv: list[str]) -> int:
                 stale.append(f"{p} (leftover — not in generator output)")
         if not scratch and (not sidecar_path.is_file() or sidecar_path.read_text() != sidecar_src):
             stale.append(f"{sidecar_path} (surface-map sidecar stale)")
+        if not scratch and (not rest_sig_path.is_file() or rest_sig_path.read_text() != rest_sig_src):
+            stale.append(f"{rest_sig_path} (typed-input sidecar stale)")
         if stale:
             sys.stderr.write("GEN-FRESH FAIL: %d generated REST file(s) stale:\n" % len(stale))
             for s in stale:
@@ -1144,6 +1335,7 @@ def main(argv: list[str]) -> int:
         p.write_text(src)
     if not scratch:
         sidecar_path.write_text(sidecar_src)
+        rest_sig_path.write_text(rest_sig_src)
     print(f"generated {len(outs)} REST file(s) into {out_dir}")
     return 0
 
