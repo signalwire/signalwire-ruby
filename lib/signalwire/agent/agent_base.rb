@@ -210,6 +210,7 @@ module SignalWire
     def init_ai_config_state
       @hints               = []
       @languages           = []
+      @multilingual_config = nil
       @pronounce           = []
       @params              = {}
       @global_data         = {}
@@ -259,6 +260,35 @@ module SignalWire
     end
 
     public
+
+    # ==================================================================
+    # Identity / URL
+    # ==================================================================
+
+    # Return the agent's name.
+    #
+    # Python parity: ``AgentBase.get_name`` returns ``self.name``. The
+    # name is stored on the parent {SWML::Service} as ``@name`` (also
+    # exposed via the ``name`` reader); this getter mirrors the Python
+    # method surface.
+    #
+    # @return [String] the agent name
+    def get_name
+      @name
+    end
+
+    # Build the full URL for this agent.
+    #
+    # {SWML::Service} already defines ``get_full_url``; AgentBase inherits
+    # it. This explicit override (delegating to +super+) makes the method
+    # surface as an own-method of AgentBase for cross-port parity while
+    # preserving identical behaviour.
+    #
+    # @param include_auth [Boolean] embed basic-auth credentials in the URL
+    # @return [String] the full URL
+    def get_full_url(include_auth: false)
+      super
+    end
 
     # ==================================================================
     # Prompt methods
@@ -1359,6 +1389,62 @@ module SignalWire
       self
     end
 
+    # ------------------------------------------------------------------
+    # Web / routing surface (Python WebMixin parity — item I). Several of
+    # these delegate to the inherited SWMLService implementation; explicit
+    # overrides make them part of AgentBase's own public surface (Python
+    # composes them via mixins, so the reference records them on AgentBase).
+    # ------------------------------------------------------------------
+
+    # The Rack application for this agent (deployment adapters mount this).
+    # Mirrors Python WebMixin.get_app (which returns the FastAPI app).
+    def get_app
+      rack_app
+    end
+
+    # A Rack-mountable router/app for this agent. Mirrors WebMixin.as_router
+    # (Python returns a FastAPI APIRouter; Ruby returns the Rack app).
+    def as_router
+      rack_app
+    end
+
+    # NOTE: register_routing_callback / on_request / on_swml_request /
+    # validate_basic_auth are inherited from SWMLService. The reference records
+    # them on WebMixin/AuthMixin (which Python's AgentBase composes); the Ruby
+    # surface enumerator projects them onto those mixins from the base
+    # SWML::Service via SURFACE_METHOD_DONORS, so no useless super-only
+    # override is defined here.
+
+    # Install SIGTERM/SIGINT handlers for graceful shutdown (Kubernetes).
+    # Mirrors WebMixin.setup_graceful_shutdown.
+    def setup_graceful_shutdown
+      %w[TERM INT].each do |sig|
+        Signal.trap(sig) do
+          @log&.info("shutdown_signal_received signal=#{sig}")
+          stop
+        end
+      end
+      self
+    rescue ArgumentError
+      # Some platforms/threads can't trap a given signal; ignore quietly.
+      self
+    end
+
+    # Handle a serverless-environment request (CGI / Lambda / Cloud Functions).
+    # Mirrors ServerlessMixin.handle_serverless_request — routes to the normal
+    # run() entry point with the serverless event/context/mode.
+    def handle_serverless_request(event: nil, context: nil, mode: nil)
+      run(event: event, context: context, force_mode: mode)
+    end
+
+    # Configure ASR-driven multilingual mode (Mode B). Emits a top-level
+    # ``multilingual`` object on the AI verb. Mirrors
+    # AIConfigMixin.set_multilingual — mutually exclusive with set_languages.
+    def set_multilingual(config)
+      @multilingual_config = config
+      self
+    end
+
     def set_web_hook_url(url)
       @web_hook_url_override = url
       self
@@ -1914,6 +2000,10 @@ module SignalWire
       config['hints']     = @hints.dup     unless @hints.empty?
       config['languages'] = @languages.dup unless @languages.empty?
       config['pronounce'] = @pronounce.dup unless @pronounce.empty?
+      # ASR-driven multilingual mode (set_multilingual): emit the top-level
+      # `multilingual` object on the AI verb. Mutually exclusive with
+      # `languages` — the server prefers `multilingual` when both are present.
+      config['multilingual'] = @multilingual_config if @multilingual_config && !@multilingual_config.empty?
     end
 
     def add_ai_params(config)

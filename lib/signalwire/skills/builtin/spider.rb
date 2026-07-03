@@ -14,11 +14,32 @@ module SignalWire
         def description = 'Fast web scraping and crawling capabilities'
         def supports_multiple_instances? = true
 
+        # Default user-agent (Python parity: SpiderSkill.__init__).
+        DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+
+        # Python parity: ``SpiderSkill.__init__`` extracts the performance /
+        # crawling / content-processing configuration off ``params`` and
+        # allocates the per-instance response cache right after
+        # ``super().__init__``. Ruby normally reads these in {#setup}; this
+        # mirrors Python so the ivars (and the cache #cleanup tears down)
+        # exist at construction time. {#setup} re-reads them and returns
+        # +true+. Ruby opens a fresh Net::HTTP per request, so there is no
+        # persistent session ivar (Python's ``requests.Session``).
+        def initialize(agent = nil, params = nil)
+          super
+          @max_text_length = get_param('max_text_length', default: 10_000).to_i
+          @timeout         = get_param('timeout', default: 5).to_i
+          @user_agent      = get_param('user_agent', default: DEFAULT_USER_AGENT)
+          @tool_prefix     = get_param('tool_name', default: '')
+          @tool_prefix     = "#{@tool_prefix}_" unless @tool_prefix.empty?
+          @cache_enabled   = get_param('cache_enabled', default: true) != false
+          @cache = @cache_enabled ? {} : nil
+        end
+
         def setup
           @max_text_length = get_param('max_text_length', default: 10_000).to_i
           @timeout         = get_param('timeout', default: 5).to_i
-          @user_agent      = get_param('user_agent',
-                                       default: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+          @user_agent      = get_param('user_agent', default: DEFAULT_USER_AGENT)
           @tool_prefix     = get_param('tool_name', default: '')
           @tool_prefix     = "#{@tool_prefix}_" unless @tool_prefix.empty?
           @cache_enabled   = get_param('cache_enabled', default: true) != false

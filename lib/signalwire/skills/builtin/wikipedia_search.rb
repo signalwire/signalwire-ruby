@@ -36,6 +36,11 @@ module SignalWire
           ]
         end
 
+        # Python parity: ``WikipediaSearchSkill.get_hints`` returns [] (the
+        # reference documents optional example hints in a comment but ships
+        # none).
+        def get_hints = []
+
         def get_prompt_sections
           body = 'You can search Wikipedia for factual information using search_wiki. ' \
                  "This will return up to #{@num_results || 1} Wikipedia article summaries."

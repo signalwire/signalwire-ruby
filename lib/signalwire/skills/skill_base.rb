@@ -55,6 +55,23 @@ module SignalWire
       #   :name, :description, :parameters, :handler (lambda/proc)
       def register_tools = []
 
+      # Define a SWAIG tool on the owning agent, automatically merging any
+      # swaig_fields configured for this skill. Skills should use this instead
+      # of calling agent.define_tool directly. Mirrors Python
+      # SkillBase.define_tool(**kwargs).
+      #
+      # @param name [String] tool name
+      # @param description [String] tool description
+      # @param parameters [Hash] JSON-schema parameters
+      # @param kwargs [Hash] extra SWAIG fields (merged with @swaig_fields)
+      def define_tool(name:, description:, parameters: {}, **kwargs, &handler)
+        raise 'skill has no agent to define tools on' unless @agent
+
+        merged = (@swaig_fields || {}).merge(kwargs)
+        @agent.define_tool(name: name, description: description,
+                           parameters: parameters, **merged, &handler)
+      end
+
       # Speech recognition hints.
       def get_hints = []
 

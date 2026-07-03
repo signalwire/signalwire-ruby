@@ -39,6 +39,9 @@ module SignalWire
           [{ datamap: dm.to_swaig_function }]
         end
 
+        # Python parity: ``DataSphereServerlessSkill.get_hints`` returns [].
+        def get_hints = []
+
         def get_global_data
           {
             'datasphere_serverless_enabled' => true,

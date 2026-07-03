@@ -50,6 +50,12 @@ module SignalWire
           [get_current_time_tool, get_current_date_tool]
         end
 
+        # Python parity: ``DateTimeSkill.get_hints`` returns [] (the
+        # reference documents optional example hints in a comment but ships
+        # none). Defined directly on the class so the cross-port audit sees
+        # it on public_instance_methods(false).
+        def get_hints = []
+
         def get_prompt_sections
           PROMPT_SECTIONS.map(&:dup)
         end

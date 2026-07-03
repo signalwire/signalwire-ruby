@@ -327,6 +327,74 @@ module SignalWire
       # Expose the underlying document (useful for tests and subclasses).
       attr_reader :document
 
+      # ------------------------------------------------------------------
+      # Document accessors — parity with Python SWMLService (item I). Thin
+      # wrappers over the underlying Document so the reference method surface
+      # is present on the Service directly.
+      # ------------------------------------------------------------------
+
+      # The current SWML document as a Hash. Mirrors get_document().
+      def get_document
+        @document.to_h
+      end
+
+      # Render the current document as a compact JSON string. Mirrors
+      # render_document() (render() returns compact JSON already).
+      def render_document
+        @document.render
+      end
+
+      # Reset the current document to an empty state. Mirrors reset_document().
+      def reset_document
+        @document.reset
+        self
+      end
+
+      # Register a custom verb handler with this service's registry. Mirrors
+      # register_verb_handler(handler) — delegates to the VerbHandlerRegistry.
+      def register_verb_handler(handler)
+        verb_registry.register_handler(handler)
+        self
+      end
+
+      # The lazily-built verb-handler registry bound to this service.
+      def verb_registry
+        @verb_registry ||= ::SignalWire::SWML::VerbHandlerRegistry.new
+      end
+
+      # Whether full JSON-schema validation is active for this service.
+      # Mirrors full_validation_enabled().
+      def full_validation_enabled
+        @schema_validation && schema_utils.full_validation_available?
+      end
+
+      # Manually set/override the proxy URL base used for webhook callbacks.
+      # Mirrors manual_set_proxy_url(proxy_url).
+      def manual_set_proxy_url(proxy_url)
+        @proxy_url_base = proxy_url.chomp('/') if proxy_url && !proxy_url.empty?
+        self
+      end
+
+      # Extract the SIP username from a parsed request body's call.to field.
+      # Mirrors the staticmethod extract_sip_username(request_body): parses a
+      # "sip:user@domain" (or "tel:") URI's user portion, or nil.
+      def self.extract_sip_username(request_body)
+        to_field = request_body.dig('call', 'to') if request_body.is_a?(Hash)
+        return nil unless to_field.is_a?(String) && to_field.start_with?('sip:')
+
+        user = to_field.delete_prefix('sip:').split('@', 2).first
+        user && !user.empty? ? user : nil
+      rescue StandardError
+        nil
+      end
+
+      # Build a Rack-mountable router (app) for this service. Mirrors
+      # as_router() (Python returns a FastAPI APIRouter; Ruby returns the
+      # equivalent Rack app so the service can be mounted in any Rack server).
+      def as_router
+        rack_app
+      end
+
       # SchemaUtils helper bound to this Service. Mirrors Python's
       # self.schema_utils public instance attribute on SWMLService.
       # Built lazily on first access.

@@ -30,7 +30,7 @@ class SkillNameTest < Minitest::Test
   EXPECTED = %w[
     api_ninjas_trivia claude_skills custom_skills datasphere
     datasphere_serverless datetime google_maps info_gatherer joke math
-    mcp_gateway native_vector_search play_background_file spider
+    native_vector_search play_background_file spider
     swml_transfer weather_api web_search wikipedia_search
   ].freeze
 

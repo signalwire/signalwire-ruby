@@ -11,6 +11,17 @@ module SignalWire
         def description = 'Control background file playback'
         def supports_multiple_instances? = true
 
+        # Python parity: ``PlayBackgroundFileSkill.__init__`` extracts the
+        # configuration (tool_name / files) off ``params`` right after
+        # ``super().__init__``. Ruby normally reads these in {#setup}; this
+        # mirrors Python so the ivars exist at construction time. {#setup}
+        # re-reads them (and returns the validation bool).
+        def initialize(agent = nil, params = nil)
+          super
+          @tool_name = get_param('tool_name', default: 'play_background_file')
+          @files     = get_param('files')
+        end
+
         def setup
           @tool_name = get_param('tool_name', default: 'play_background_file')
           @files     = get_param('files')
@@ -22,15 +33,25 @@ module SignalWire
 
         def instance_key = "play_background_file_#{@tool_name}"
 
-        def register_tools
-          tool = {
-            'function' => @tool_name,
-            'description' => "Control background file playback for #{@tool_name.tr('_', ' ')}",
-            'parameters' => tool_parameters,
-            'data_map' => { 'expressions' => expressions }
-          }
+        # Python parity: ``get_tools`` returns the raw SWAIG tool DEFINITION
+        # hashes (the DataMap tool the skill provides), including the
+        # ``wait_for_fillers``/``skip_fillers`` flags. {#register_tools}
+        # builds on top of this.
+        def get_tools
+          [
+            {
+              'function' => @tool_name,
+              'description' => "Control background file playback for #{@tool_name.tr('_', ' ')}",
+              'parameters' => tool_parameters,
+              'wait_for_fillers' => true,
+              'skip_fillers' => true,
+              'data_map' => { 'expressions' => expressions }
+            }
+          ]
+        end
 
-          [{ datamap: tool }]
+        def register_tools
+          get_tools.map { |tool| { datamap: tool } }
         end
 
         def get_parameter_schema

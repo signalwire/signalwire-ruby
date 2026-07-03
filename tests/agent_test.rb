@@ -1535,6 +1535,32 @@ class AgentPasswordNotLoggedTest < Minitest::Test
   end
 end
 
+# --- Identity / URL accessors (get_name, get_full_url) -------------------
+class AgentIdentityAccessorsTest < Minitest::Test
+  def test_get_name_returns_name
+    agent = SignalWire::AgentBase.new(name: 'my_agent')
+
+    assert_equal 'my_agent', agent.get_name
+    assert_equal agent.name, agent.get_name
+  end
+
+  def test_get_name_default
+    assert_equal 'agent', SignalWire::AgentBase.new.get_name
+  end
+
+  def test_get_full_url_default
+    agent = SignalWire::AgentBase.new(host: '127.0.0.1', port: 8080, route: '/bot')
+
+    assert_equal 'http://127.0.0.1:8080/bot', agent.get_full_url
+  end
+
+  def test_get_full_url_include_auth
+    agent = SignalWire::AgentBase.new(host: 'h', port: 3000, route: '/', basic_auth: %w[u p])
+
+    assert_equal 'http://u:p@h:3000/', agent.get_full_url(include_auth: true)
+  end
+end
+
 # --- Idiomatic-accessor alias prototype (RUBY_ERGONOMICS_MIGRATION.md) ---
 class AgentBaseIdiomaticAccessorsTest < Minitest::Test
   def setup

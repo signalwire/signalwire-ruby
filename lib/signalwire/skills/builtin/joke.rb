@@ -35,6 +35,9 @@ module SignalWire
           [{ datamap: dm.to_swaig_function }]
         end
 
+        # Python parity: ``JokeSkill.get_hints`` returns [].
+        def get_hints = []
+
         def get_global_data
           { 'joke_skill_enabled' => true }
         end

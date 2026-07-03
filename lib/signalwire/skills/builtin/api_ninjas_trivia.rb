@@ -28,6 +28,18 @@ module SignalWire
         def description = 'Get trivia questions from API Ninjas'
         def supports_multiple_instances? = true
 
+        # Python parity: ``ApiNinjasTriviaSkill.__init__`` extracts the
+        # configuration (tool_name / api_key / categories) off ``params``
+        # right after ``super().__init__``. Ruby normally reads these in
+        # {#setup}; this mirrors Python so the ivars exist at construction
+        # time. {#setup} re-reads them (and returns the validation bool).
+        def initialize(agent = nil, params = nil)
+          super
+          @tool_name  = get_param('tool_name', default: 'get_trivia')
+          @api_key    = get_param('api_key', env_var: 'API_NINJAS_KEY')
+          @categories = get_param('categories') || VALID_CATEGORIES.keys
+        end
+
         def setup
           @api_key    = get_param('api_key', env_var: 'API_NINJAS_KEY')
           @tool_name  = get_param('tool_name', default: 'get_trivia')
@@ -41,15 +53,22 @@ module SignalWire
 
         def instance_key = "api_ninjas_trivia_#{@tool_name}"
 
-        def register_tools
-          tool = {
-            'function' => @tool_name,
-            'description' => "Get trivia questions for #{@tool_name.tr('_', ' ')}",
-            'parameters' => tool_parameters,
-            'data_map' => tool_data_map
-          }
+        # Python parity: ``get_tools`` returns the raw SWAIG tool DEFINITION
+        # hashes (the DataMap tool the skill provides). {#register_tools}
+        # builds on top of this.
+        def get_tools
+          [
+            {
+              'function' => @tool_name,
+              'description' => "Get trivia questions for #{@tool_name.tr('_', ' ')}",
+              'parameters' => tool_parameters,
+              'data_map' => tool_data_map
+            }
+          ]
+        end
 
-          [{ datamap: tool }]
+        def register_tools
+          get_tools.map { |tool| { datamap: tool } }
         end
 
         def get_parameter_schema

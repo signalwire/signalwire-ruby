@@ -52,6 +52,10 @@ module SignalWire
           }]
         end
 
+        # Python parity: ``MathSkill.get_hints`` returns [] (the reference
+        # documents optional example hints in a comment but ships none).
+        def get_hints = []
+
         def get_prompt_sections
           PROMPT_SECTIONS.map(&:dup)
         end

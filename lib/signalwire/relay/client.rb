@@ -243,7 +243,18 @@ module SignalWire
         end
       end
 
-      # Graceful shutdown.
+      # Establish the RELAY connection without entering the blocking reconnect
+      # loop. Mirrors Python RelayClient.connect — brings the socket up and
+      # returns; use run() for the blocking, auto-reconnecting event loop and
+      # disconnect()/stop() to tear down.
+      def connect
+        @running = true
+        _connect_and_run_guarded
+        self
+      end
+
+      # Graceful shutdown. Also exposed as +disconnect+ (Python name) via the
+      # surface enumerator alias.
       def stop
         @running = false
         # Snapshot under the mutex, close outside it. The websocket-client

@@ -127,6 +127,14 @@ Metrics/ParameterLists:
 # Per-file exclusion until/unless a coupled adapter extraction is designed.
 Metrics/ClassLength:
   Exclude:
+    # 1:1 parity classes ported from the Python core.* modules whose public
+    # method surface IS the cross-port parity contract (config_loader.py 266
+    # lines / security_config.py 390 lines). Same surface-bearing-unit
+    # rationale as the classes below.
+    - 'lib/signalwire/core/config_loader.rb'
+    - 'lib/signalwire/core/security_config.rb'
+    - 'lib/signalwire/web/web_service.rb'
+    - 'lib/signalwire/core/auth_handler.rb'
     - 'lib/signalwire/agent/agent_base.rb'
     - 'lib/signalwire/swaig/function_result.rb'
     - 'lib/signalwire/relay/call.rb'
@@ -136,6 +144,7 @@ Metrics/ClassLength:
     - 'lib/signalwire/utils/schema_utils.rb'
     - 'lib/signalwire/contexts/context_builder.rb'
     - 'lib/signalwire/pom/section.rb'
+    - 'lib/signalwire/security/session_manager.rb'
     - 'lib/signalwire/skills/builtin/spider.rb'
     - 'lib/signalwire/prefabs/concierge.rb'
 

@@ -12,17 +12,18 @@ SignalWire::Skills::SkillRegistry.register_builtins!
 class RegistryDetailedTest < Minitest::Test
   EXPECTED_SKILLS = %w[
     api_ninjas_trivia claude_skills custom_skills datasphere datasphere_serverless
-    datetime google_maps info_gatherer joke math mcp_gateway native_vector_search
+    datetime google_maps info_gatherer joke math native_vector_search
     play_background_file spider swml_transfer weather_api web_search wikipedia_search
   ].freeze
 
-  def test_has_all_18_skills
+  def test_has_all_builtin_skills
     registered = SignalWire::Skills::SkillRegistry.list_skills.sort
 
     EXPECTED_SKILLS.each do |skill_name|
       assert_includes registered, skill_name, "Missing skill: #{skill_name}"
     end
-    assert_operator registered.size, :>=, 18
+    # mcp_gateway is NOT ported (approved Python-only per §I.1).
+    assert_operator registered.size, :>=, EXPECTED_SKILLS.size
   end
 
   def test_each_skill_can_be_instantiated

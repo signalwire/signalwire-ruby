@@ -402,6 +402,9 @@ module SignalWire
           ]
         end
 
+        # Python parity: ``WebSearchSkill.get_hints`` returns [].
+        def get_hints = []
+
         def get_global_data
           { 'web_search_enabled' => true, 'search_provider' => 'Google Custom Search', 'quality_filtering' => true }
         end

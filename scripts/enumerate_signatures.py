@@ -129,6 +129,22 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
     "SignalWire::Skills::SkillBase": "signalwire.core.skill_base",
     "SignalWire::Skills::SkillManager": "signalwire.core.skill_manager",
     "SignalWire::Skills::SkillRegistry": "signalwire.skills.registry",
+    # Item-I implemented subsystems — mirror enumerate_surface.rb so both
+    # gates route these classes to the same reference module.
+    "SignalWire::Swaig::SWAIGFunction": "signalwire.core.swaig_function",
+    "SignalWire::Core::AuthHandler": "signalwire.core.auth_handler",
+    "SignalWire::Core::ConfigLoader": "signalwire.core.config_loader",
+    "SignalWire::Core::SecurityConfig": "signalwire.core.security_config",
+    "SignalWire::Core::PomBuilder": "signalwire.core.pom_builder",
+    "SignalWire::Web::WebService": "signalwire.web.web_service",
+    "SignalWire::SWML::SwmlRenderer": "signalwire.core.swml_renderer",
+    "SignalWire::SWML::SWMLBuilder": "signalwire.core.swml_builder",
+    "SignalWire::SWML::AIVerbHandler": "signalwire.core.swml_handler",
+    "SignalWire::SWML::SWMLVerbHandler": "signalwire.core.swml_handler",
+    "SignalWire::SWML::VerbHandlerRegistry": "signalwire.core.swml_handler",
+    "SignalWire::Agents::BedrockAgent": "signalwire.agents.bedrock",
+    "SignalWire::Core::Agent::Prompt::PromptManager": "signalwire.core.agent.prompt.manager",
+    "SignalWire::Core::Agent::Tools::ToolRegistry": "signalwire.core.agent.tools.registry",
 
     # Prompt Object Model: Ruby's SignalWire::POM::* classes mirror Python's
     # signalwire.pom.pom.* module exactly (PromptObjectModel + Section).
@@ -144,7 +160,6 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
     "SignalWire::Prefabs::Receptionist": "signalwire.prefabs.receptionist",
     "SignalWire::Prefabs::Survey": "signalwire.prefabs.survey",
     "SignalWire::Skills::Builtin::SwmlTransferSkill": "signalwire.skills.swml_transfer.skill",
-    "SignalWire::Skills::Builtin::McpGatewaySkill": "signalwire.skills.mcp_gateway.skill",
     "SignalWire::Skills::Builtin::DatasphereSkill": "signalwire.skills.datasphere.skill",
     "SignalWire::Skills::Builtin::DatasphereServerlessSkill": "signalwire.skills.datasphere_serverless.skill",
     "SignalWire::Skills::Builtin::WebSearchSkill": "signalwire.skills.web_search.skill",
@@ -215,6 +230,7 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
     "SignalWire::REST::HttpClient": "signalwire.rest._base",
     "SignalWire::REST::SignalWireRestError": "signalwire.rest._base",
     "SignalWire::REST::BaseResource": "signalwire.rest._base",
+    "SignalWire::REST::ReadResource": "signalwire.rest._base",
     "SignalWire::REST::CrudResource": "signalwire.rest._base",
     "SignalWire::REST::CrudWithAddresses": "signalwire.rest._base",
     "SignalWire::REST::PaginatedIterator": "signalwire.rest._pagination",
@@ -279,7 +295,6 @@ RUBY_TO_PYTHON_CLASS_ALIASES = {
     "SignalWire::Prefabs::Receptionist": "ReceptionistAgent",
     "SignalWire::Prefabs::Survey": "SurveyAgent",
     "SignalWire::Skills::Builtin::SwmlTransferSkill": "SWMLTransferSkill",
-    "SignalWire::Skills::Builtin::McpGatewaySkill": "MCPGatewaySkill",
     "SignalWire::Skills::Builtin::DatasphereSkill": "DataSphereSkill",
     "SignalWire::Skills::Builtin::DatasphereServerlessSkill": "DataSphereServerlessSkill",
     "SignalWire::Relay::Client": "RelayClient",
@@ -289,12 +304,13 @@ RUBY_TO_PYTHON_CLASS_ALIASES = {
 MIXIN_PROJECTIONS = {
     ("signalwire.core.mixins.ai_config_mixin", "AIConfigMixin"): [
         "add_function_include", "add_hint", "add_hints", "add_internal_filler",
-        "add_language", "add_pattern_hint", "add_pronunciation",
-        "enable_debug_events",
+        "add_language", "add_mcp_server", "add_pattern_hint", "add_pronunciation",
+        "enable_debug_events", "enable_mcp_server",
         "get_language_params",
         "set_function_includes", "set_global_data", "set_internal_fillers",
         "set_language_params",
-        "set_languages", "set_native_functions", "set_param", "set_params",
+        "set_languages", "set_multilingual", "set_native_functions",
+        "set_param", "set_params",
         "set_post_prompt_llm_params", "set_prompt_llm_params",
         "set_pronunciations", "update_global_data",
     ],
@@ -332,14 +348,18 @@ MIXIN_PROJECTIONS = {
         "validate_basic_auth", "get_basic_auth_credentials",
     ],
     ("signalwire.core.mixins.web_mixin", "WebMixin"): [
-        "enable_debug_routes", "manual_set_proxy_url", "run", "serve",
-        "set_dynamic_config_callback", "on_request", "on_swml_request",
+        "as_router", "enable_debug_routes", "get_app", "manual_set_proxy_url",
+        "on_request", "on_swml_request", "register_routing_callback", "run",
+        "serve", "set_dynamic_config_callback", "setup_graceful_shutdown",
     ],
     ("signalwire.core.mixins.mcp_server_mixin", "MCPServerMixin"): [
         "add_mcp_server",
     ],
     ("signalwire.core.mixins.state_mixin", "StateMixin"): [
         "validate_tool_token",
+    ],
+    ("signalwire.core.mixins.serverless_mixin", "ServerlessMixin"): [
+        "handle_serverless_request",
     ],
 }
 

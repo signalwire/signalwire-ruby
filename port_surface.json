@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 40d07c012507c9a201f3e05c1770ae87f1ab85d9",
+  "generated_from": "signalwire-ruby @ 3763a23855b54d4ce612b653647cb3aa0a3441f3",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -34,31 +34,72 @@
       },
       "functions": []
     },
-    "signalwire.contexts": {
+    "signalwire.agents.bedrock": {
       "classes": {
-        "Contexts": [
-          "create_simple_context"
+        "BedrockAgent": [
+          "__init__",
+          "__repr__",
+          "set_inference_params",
+          "set_llm_model",
+          "set_llm_temperature",
+          "set_post_prompt_llm_params",
+          "set_prompt_llm_params",
+          "set_voice",
+          "to_s"
         ]
       },
       "functions": []
+    },
+    "signalwire.core.agent.prompt.manager": {
+      "classes": {
+        "PromptManager": [
+          "__init__",
+          "define_contexts",
+          "get_contexts",
+          "get_post_prompt",
+          "get_prompt",
+          "get_raw_prompt",
+          "pom",
+          "prompt_add_section",
+          "prompt_add_subsection",
+          "prompt_add_to_section",
+          "prompt_has_section",
+          "set_post_prompt",
+          "set_prompt_pom",
+          "set_prompt_text"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.core.agent.tools.registry": {
+      "classes": {
+        "ToolRegistry": [
+          "__init__",
+          "define_tool",
+          "get_all_functions",
+          "get_function",
+          "has_function",
+          "register_swaig_function",
+          "remove_function"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.core.agent.tools.type_inference": {
+      "classes": {},
+      "functions": [
+        "create_typed_handler_wrapper",
+        "infer_schema"
+      ]
     },
     "signalwire.core.agent_base": {
       "classes": {
         "AgentBase": [
           "__init__",
           "add_answer_verb",
-          "add_function_include",
-          "add_hint",
-          "add_hints",
-          "add_internal_filler",
-          "add_language",
-          "add_mcp_server",
-          "add_pattern_hint",
           "add_post_ai_verb",
           "add_post_answer_verb",
           "add_pre_answer_verb",
-          "add_pronunciation",
-          "add_skill",
           "add_swaig_query_params",
           "agent_id",
           "as_rack_app",
@@ -67,70 +108,76 @@
           "clear_post_answer_verbs",
           "clear_pre_answer_verbs",
           "clear_swaig_query_params",
-          "contexts",
           "create_tool_token",
           "default_webhook_url",
-          "define_contexts",
-          "define_tool",
-          "define_tools",
-          "enable_debug_events",
-          "enable_debug_routes",
-          "enable_mcp_server",
           "enable_sip_routing",
           "extract_sip_username",
           "extract_sip_username_from_request",
-          "get_basic_auth_credentials",
           "get_contexts",
-          "get_post_prompt",
-          "get_prompt",
+          "get_full_url",
+          "get_name",
           "get_raw_prompt",
           "handle_additional_route",
-          "has_skill?",
-          "list_skills",
           "list_tool_names",
           "logger",
-          "manual_set_proxy_url",
           "native_functions",
           "on_debug_event",
-          "on_function_call",
           "on_summary",
           "pom",
           "post_prompt",
           "prompt",
-          "prompt_add_section",
-          "prompt_add_subsection",
-          "prompt_add_to_section",
-          "prompt_has_section?",
           "prompt_text",
           "rack_app",
           "register_sip_username",
-          "register_swaig_function",
-          "remove_skill",
           "render_swml",
-          "reset_contexts",
-          "run",
-          "serve",
-          "set_dynamic_config_callback",
-          "set_function_includes",
-          "set_global_data",
-          "set_internal_fillers",
-          "set_languages",
-          "set_native_functions",
-          "set_param",
-          "set_params",
-          "set_post_prompt",
-          "set_post_prompt_llm_params",
           "set_post_prompt_url",
-          "set_prompt_llm_params",
-          "set_prompt_pom",
-          "set_prompt_text",
-          "set_pronunciations",
           "set_web_hook_url",
           "signing_key",
           "skill_manager",
-          "update_global_data",
-          "use_pom",
-          "validate_tool_token"
+          "use_pom"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.core.auth_error": {
+      "classes": {
+        "AuthError": [
+          "__init__",
+          "response"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.core.auth_handler": {
+      "classes": {
+        "AuthHandler": [
+          "__init__",
+          "auth_methods",
+          "flask_decorator",
+          "get_auth_info",
+          "get_fastapi_dependency",
+          "rack_dependency",
+          "rack_middleware",
+          "security_config",
+          "verify_api_key",
+          "verify_basic_auth",
+          "verify_bearer_token"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.core.config_loader": {
+      "classes": {
+        "ConfigLoader": [
+          "__init__",
+          "find_config_file",
+          "get",
+          "get_config",
+          "get_config_file",
+          "get_section",
+          "has_config",
+          "merge_with_env",
+          "substitute_vars"
         ]
       },
       "functions": []
@@ -162,7 +209,7 @@
           "set_user_prompt",
           "set_valid_contexts",
           "set_valid_steps",
-          "to_h"
+          "to_dict"
         ],
         "ContextBuilder": [
           "__init__",
@@ -170,8 +217,8 @@
           "attach_agent",
           "get_context",
           "reset",
-          "to_h",
-          "validate!"
+          "to_dict",
+          "validate"
         ],
         "GatherInfo": [
           "__init__",
@@ -180,7 +227,7 @@
           "output_key",
           "prompt",
           "questions",
-          "to_h"
+          "to_dict"
         ],
         "GatherQuestion": [
           "__init__",
@@ -189,7 +236,7 @@
           "key",
           "prompt",
           "question",
-          "to_h",
+          "to_dict",
           "type"
         ],
         "Step": [
@@ -212,10 +259,38 @@
           "set_text",
           "set_valid_contexts",
           "set_valid_steps",
-          "to_h"
+          "to_dict"
         ]
       },
-      "functions": []
+      "functions": [
+        "create_simple_context"
+      ]
+    },
+    "signalwire.core.data_map": {
+      "classes": {
+        "DataMap": [
+          "__init__",
+          "body",
+          "description",
+          "error_keys",
+          "expression",
+          "fallback_output",
+          "foreach",
+          "function_name",
+          "global_error_keys",
+          "output",
+          "parameter",
+          "params",
+          "purpose",
+          "to_swaig_function",
+          "webhook",
+          "webhook_expressions"
+        ]
+      },
+      "functions": [
+        "create_expression_tool",
+        "create_simple_api_tool"
+      ]
     },
     "signalwire.core.function_result": {
       "classes": {
@@ -268,7 +343,7 @@
           "swml_transfer",
           "swml_user_event",
           "tap",
-          "to_h",
+          "to_dict",
           "to_json",
           "toggle_functions",
           "update_global_data",
@@ -279,18 +354,145 @@
       "functions": []
     },
     "signalwire.core.logging_config": {
-      "classes": {
-        "LoggingConfig": [
-          "get_execution_mode"
-        ]
-      },
-      "functions": []
+      "classes": {},
+      "functions": [
+        "configure_logging",
+        "get_execution_mode",
+        "get_logger",
+        "reset_logging_configuration",
+        "strip_control_chars"
+      ]
     },
     "signalwire.core.mixins.ai_config_mixin": {
       "classes": {
         "AIConfigMixin": [
+          "add_function_include",
+          "add_hint",
+          "add_hints",
+          "add_internal_filler",
+          "add_language",
+          "add_mcp_server",
+          "add_pattern_hint",
+          "add_pronunciation",
+          "enable_debug_events",
+          "enable_mcp_server",
           "get_language_params",
-          "set_language_params"
+          "set_function_includes",
+          "set_global_data",
+          "set_internal_fillers",
+          "set_language_params",
+          "set_languages",
+          "set_multilingual",
+          "set_native_functions",
+          "set_param",
+          "set_params",
+          "set_post_prompt_llm_params",
+          "set_prompt_llm_params",
+          "set_pronunciations",
+          "update_global_data"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.core.mixins.auth_mixin": {
+      "classes": {
+        "AuthMixin": [
+          "get_basic_auth_credentials",
+          "validate_basic_auth"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.core.mixins.prompt_mixin": {
+      "classes": {
+        "PromptMixin": [
+          "contexts",
+          "define_contexts",
+          "get_post_prompt",
+          "get_prompt",
+          "prompt_add_section",
+          "prompt_add_subsection",
+          "prompt_add_to_section",
+          "prompt_has_section",
+          "reset_contexts",
+          "set_post_prompt",
+          "set_prompt_pom",
+          "set_prompt_text"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.core.mixins.serverless_mixin": {
+      "classes": {
+        "ServerlessMixin": [
+          "handle_serverless_request"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.core.mixins.skill_mixin": {
+      "classes": {
+        "SkillMixin": [
+          "add_skill",
+          "has_skill",
+          "list_skills",
+          "remove_skill"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.core.mixins.state_mixin": {
+      "classes": {
+        "StateMixin": [
+          "validate_tool_token"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.core.mixins.tool_mixin": {
+      "classes": {
+        "ToolMixin": [
+          "define_tool",
+          "define_tools",
+          "on_function_call",
+          "register_swaig_function"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.core.mixins.web_mixin": {
+      "classes": {
+        "WebMixin": [
+          "as_router",
+          "enable_debug_routes",
+          "get_app",
+          "manual_set_proxy_url",
+          "on_request",
+          "on_swml_request",
+          "register_routing_callback",
+          "run",
+          "serve",
+          "set_dynamic_config_callback",
+          "setup_graceful_shutdown"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.core.pom_builder": {
+      "classes": {
+        "PomBuilder": [
+          "__init__",
+          "add_section",
+          "add_subsection",
+          "add_to_section",
+          "from_sections",
+          "get_section",
+          "has_section",
+          "pom",
+          "render_markdown",
+          "render_xml",
+          "to_dict",
+          "to_json"
         ]
       },
       "functions": []
@@ -329,11 +531,14 @@
           "activate_session",
           "create_session",
           "create_token",
+          "create_tool_token",
           "debug_token",
           "end_session",
+          "generate_token",
           "get_session_metadata",
           "set_session_metadata",
-          "validate_token"
+          "validate_token",
+          "validate_tool_token"
         ]
       },
       "functions": []
@@ -354,20 +559,52 @@
         "validate_webhook_signature"
       ]
     },
+    "signalwire.core.security_config": {
+      "classes": {
+        "SecurityConfig": [
+          "__init__",
+          "allowed_hosts",
+          "basic_auth_password",
+          "basic_auth_user",
+          "cors_origins",
+          "domain",
+          "get_basic_auth",
+          "get_cors_config",
+          "get_security_headers",
+          "get_ssl_context_kwargs",
+          "get_url_scheme",
+          "hsts_max_age",
+          "load_from_env",
+          "log_config",
+          "max_request_size",
+          "rate_limit",
+          "request_timeout",
+          "should_allow_host",
+          "ssl_cert_path",
+          "ssl_enabled",
+          "ssl_key_path",
+          "ssl_verify_mode",
+          "use_hsts",
+          "validate_ssl_config"
+        ]
+      },
+      "functions": []
+    },
     "signalwire.core.skill_base": {
       "classes": {
         "SkillBase": [
           "__init__",
           "agent",
           "cleanup",
+          "define_tool",
           "description",
           "get_global_data",
           "get_hints",
+          "get_instance_key",
           "get_param",
           "get_parameter_schema",
           "get_prompt_sections",
           "get_skill_data",
-          "instance_key",
           "logger",
           "name",
           "params",
@@ -390,13 +627,13 @@
           "__init__",
           "agent",
           "clear",
-          "get",
-          "load",
-          "loaded?",
-          "loaded_keys",
+          "get_skill",
+          "has_skill",
+          "list_loaded_skills",
+          "load_skill",
           "logger",
           "size",
-          "unload"
+          "unload_skill"
         ]
       },
       "functions": []
@@ -410,10 +647,156 @@
       },
       "functions": []
     },
+    "signalwire.core.swaig_function": {
+      "classes": {
+        "SWAIGFunction": [
+          "__call__",
+          "__init__",
+          "description",
+          "execute",
+          "extra_swaig_fields",
+          "fillers",
+          "handler",
+          "is_external",
+          "is_typed_handler",
+          "name",
+          "parameters",
+          "required",
+          "secure",
+          "to_swaig",
+          "validate_args",
+          "wait_file",
+          "wait_file_loops",
+          "webhook_url"
+        ]
+      },
+      "functions": []
+    },
     "signalwire.core.swaig_request_generated": {
       "classes": {
         "SwaigArgument": [],
         "SwaigRequest": []
+      },
+      "functions": []
+    },
+    "signalwire.core.swml_builder": {
+      "classes": {
+        "SWMLBuilder": [
+          "__getattr__",
+          "__init__",
+          "add_section",
+          "ai",
+          "answer",
+          "build",
+          "hangup",
+          "play",
+          "render",
+          "reset",
+          "say",
+          "service"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.core.swml_handler": {
+      "classes": {
+        "AIVerbHandler": [
+          "build_config",
+          "get_verb_name",
+          "validate_config"
+        ],
+        "SWMLVerbHandler": [
+          "build_config",
+          "get_verb_name",
+          "validate_config"
+        ],
+        "VerbHandlerRegistry": [
+          "__init__",
+          "get_handler",
+          "has_handler",
+          "register_handler"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.core.swml_renderer": {
+      "classes": {
+        "SwmlRenderer": [
+          "render_function_response_swml",
+          "render_swml"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.core.swml_schema": {
+      "classes": {
+        "Schema": [
+          "__init__",
+          "get_verb",
+          "valid_verb?",
+          "verb_count",
+          "verb_names",
+          "verbs"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.core.swml_service": {
+      "classes": {
+        "SWMLService": [
+          "__getattr__",
+          "__init__",
+          "add_section",
+          "add_verb",
+          "add_verb_to_section",
+          "all_functions",
+          "as_router",
+          "basic_auth_credentials_with_source",
+          "config_file",
+          "define_tool",
+          "define_tools",
+          "document",
+          "execute_verb",
+          "extract_sip_username",
+          "full_validation_enabled",
+          "function?",
+          "get_all_functions",
+          "get_basic_auth_credentials",
+          "get_basic_auth_credentials_with_source",
+          "get_document",
+          "get_full_url",
+          "get_function",
+          "handle_additional_route",
+          "has_function",
+          "host",
+          "list_tool_names",
+          "manual_set_proxy_url",
+          "name",
+          "on_function_call",
+          "on_request",
+          "on_swml_request",
+          "port",
+          "rack_app",
+          "register_routing_callback",
+          "register_swaig_function",
+          "register_verb_handler",
+          "remove_function",
+          "render",
+          "render_document",
+          "render_main_swml",
+          "render_pretty",
+          "reset",
+          "reset_document",
+          "route",
+          "schema_path",
+          "schema_utils",
+          "schema_validation",
+          "serve",
+          "stop",
+          "swaig_pre_dispatch",
+          "validate_basic_auth",
+          "verb_registry"
+        ]
       },
       "functions": []
     },
@@ -577,31 +960,6 @@
       },
       "functions": []
     },
-    "signalwire.data_map": {
-      "classes": {
-        "DataMap": [
-          "__init__",
-          "body",
-          "create_expression_tool",
-          "create_simple_api_tool",
-          "description",
-          "error_keys",
-          "expression",
-          "fallback_output",
-          "foreach",
-          "function_name",
-          "global_error_keys",
-          "output",
-          "parameter",
-          "params",
-          "purpose",
-          "to_swaig_function",
-          "webhook",
-          "webhook_expressions"
-        ]
-      },
-      "functions": []
-    },
     "signalwire.logging": {
       "classes": {
         "Logging": [
@@ -626,7 +984,7 @@
           "render_markdown",
           "render_xml",
           "sections",
-          "to_h",
+          "to_dict",
           "to_json",
           "to_yaml"
         ],
@@ -643,7 +1001,7 @@
           "render_xml",
           "subsections",
           "title",
-          "to_h"
+          "to_dict"
         ]
       },
       "functions": []
@@ -675,11 +1033,11 @@
           "__init__",
           "faqs",
           "global_data",
-          "handle_search",
           "name",
           "on_summary",
           "prompt_sections",
           "route",
+          "search_faqs",
           "tools"
         ]
       },
@@ -690,14 +1048,14 @@
         "InfoGathererAgent": [
           "__init__",
           "global_data",
-          "handle_start",
-          "handle_submit",
           "name",
           "on_swml_request",
           "prompt_sections",
           "questions",
           "route",
           "set_question_callback",
+          "start_questions",
+          "submit_answer",
           "tools"
         ]
       },
@@ -752,7 +1110,7 @@
           "call",
           "completed",
           "control_id",
-          "done?",
+          "is_done",
           "is_done?",
           "on_completed",
           "result",
@@ -760,6 +1118,7 @@
         ],
         "Call": [
           "__init__",
+          "__repr__",
           "ai",
           "ai_hold",
           "ai_message",
@@ -785,7 +1144,6 @@
           "ended?",
           "hangup",
           "hold",
-          "inspect",
           "join_conference",
           "join_room",
           "leave_conference",
@@ -794,7 +1152,7 @@
           "live_translate",
           "node_id",
           "on",
-          "pass_call",
+          "pass_",
           "pay",
           "play",
           "play_and_collect",
@@ -816,7 +1174,7 @@
           "state",
           "stream",
           "tag",
-          "tap_audio",
+          "tap",
           "to_s",
           "transcribe",
           "transfer",
@@ -893,7 +1251,9 @@
         "ActionTimeoutError": [],
         "RelayClient": [
           "__init__",
+          "connect",
           "dial",
+          "disconnect",
           "execute",
           "host",
           "max_active_calls",
@@ -906,7 +1266,6 @@
           "run",
           "send_json",
           "send_message",
-          "stop",
           "unreceive"
         ],
         "RelayError": [
@@ -1183,13 +1542,13 @@
           "body",
           "context",
           "direction",
-          "done?",
           "from_number",
+          "is_done",
           "is_done?",
           "media",
           "message_id",
+          "on",
           "on_completed",
-          "on_event",
           "reason",
           "result",
           "segments",
@@ -1348,8 +1707,6 @@
         "CrudResource": [
           "create",
           "delete",
-          "get",
-          "list",
           "update",
           "update_method"
         ],
@@ -1367,6 +1724,10 @@
           "post",
           "project_id",
           "put"
+        ],
+        "ReadResource": [
+          "get",
+          "list"
         ],
         "SignalWireRestError": [
           "__init__",
@@ -2699,9 +3060,11 @@
     "signalwire.skills.api_ninjas_trivia.skill": {
       "classes": {
         "ApiNinjasTriviaSkill": [
+          "__init__",
           "description",
+          "get_instance_key",
           "get_parameter_schema",
-          "instance_key",
+          "get_tools",
           "name",
           "register_tools",
           "setup",
@@ -2729,9 +3092,9 @@
         "ClaudeSkillsSkill": [
           "description",
           "get_hints",
+          "get_instance_key",
           "get_parameter_schema",
           "get_prompt_sections",
-          "instance_key",
           "name",
           "register_tools",
           "setup",
@@ -2743,11 +3106,13 @@
     "signalwire.skills.datasphere.skill": {
       "classes": {
         "DataSphereSkill": [
+          "cleanup",
           "description",
           "get_global_data",
+          "get_hints",
+          "get_instance_key",
           "get_parameter_schema",
           "get_prompt_sections",
-          "instance_key",
           "name",
           "register_tools",
           "setup",
@@ -2761,9 +3126,10 @@
         "DataSphereServerlessSkill": [
           "description",
           "get_global_data",
+          "get_hints",
+          "get_instance_key",
           "get_parameter_schema",
           "get_prompt_sections",
-          "instance_key",
           "name",
           "register_tools",
           "setup",
@@ -2776,6 +3142,7 @@
       "classes": {
         "DateTimeSkill": [
           "description",
+          "get_hints",
           "get_parameter_schema",
           "get_prompt_sections",
           "name",
@@ -2804,9 +3171,9 @@
         "InfoGathererSkill": [
           "description",
           "get_global_data",
+          "get_instance_key",
           "get_parameter_schema",
           "get_prompt_sections",
-          "instance_key",
           "name",
           "register_tools",
           "setup",
@@ -2820,6 +3187,7 @@
         "JokeSkill": [
           "description",
           "get_global_data",
+          "get_hints",
           "get_parameter_schema",
           "get_prompt_sections",
           "name",
@@ -2833,20 +3201,6 @@
       "classes": {
         "MathSkill": [
           "description",
-          "get_parameter_schema",
-          "get_prompt_sections",
-          "name",
-          "register_tools",
-          "setup"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.skills.mcp_gateway.skill": {
-      "classes": {
-        "MCPGatewaySkill": [
-          "description",
-          "get_global_data",
           "get_hints",
           "get_parameter_schema",
           "get_prompt_sections",
@@ -2862,8 +3216,8 @@
         "NativeVectorSearchSkill": [
           "description",
           "get_hints",
+          "get_instance_key",
           "get_parameter_schema",
-          "instance_key",
           "name",
           "register_tools",
           "setup",
@@ -2875,9 +3229,11 @@
     "signalwire.skills.play_background_file.skill": {
       "classes": {
         "PlayBackgroundFileSkill": [
+          "__init__",
           "description",
+          "get_instance_key",
           "get_parameter_schema",
-          "instance_key",
+          "get_tools",
           "name",
           "register_tools",
           "setup",
@@ -2894,7 +3250,7 @@
           "discover_skills",
           "external_paths",
           "get_all_skills_schema",
-          "get_factory",
+          "get_skill_class",
           "last_registered",
           "list_all_skill_sources",
           "list_skills",
@@ -2919,11 +3275,12 @@
     "signalwire.skills.spider.skill": {
       "classes": {
         "SpiderSkill": [
+          "__init__",
           "cleanup",
           "description",
           "get_hints",
+          "get_instance_key",
           "get_parameter_schema",
-          "instance_key",
           "name",
           "register_tools",
           "setup",
@@ -2937,9 +3294,9 @@
         "SWMLTransferSkill": [
           "description",
           "get_hints",
+          "get_instance_key",
           "get_parameter_schema",
           "get_prompt_sections",
-          "instance_key",
           "name",
           "register_tools",
           "setup",
@@ -2951,8 +3308,10 @@
     "signalwire.skills.weather_api.skill": {
       "classes": {
         "WeatherApiSkill": [
+          "__init__",
           "description",
           "get_parameter_schema",
+          "get_tools",
           "name",
           "register_tools",
           "setup"
@@ -2965,9 +3324,10 @@
         "WebSearchSkill": [
           "description",
           "get_global_data",
+          "get_hints",
+          "get_instance_key",
           "get_parameter_schema",
           "get_prompt_sections",
-          "instance_key",
           "name",
           "register_tools",
           "setup",
@@ -2981,6 +3341,7 @@
       "classes": {
         "WikipediaSearchSkill": [
           "description",
+          "get_hints",
           "get_parameter_schema",
           "get_prompt_sections",
           "name",
@@ -3021,78 +3382,17 @@
       },
       "functions": []
     },
-    "signalwire.swml.schema": {
-      "classes": {
-        "Schema": [
-          "__init__",
-          "get_verb",
-          "valid_verb?",
-          "verb_count",
-          "verb_names",
-          "verbs"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.swml.service": {
-      "classes": {
-        "Service": [
-          "__init__",
-          "all_functions",
-          "basic_auth_credentials_with_source",
-          "config_file",
-          "define_tool",
-          "define_tools",
-          "document",
-          "execute_verb",
-          "function?",
-          "get_all_functions",
-          "get_basic_auth_credentials",
-          "get_basic_auth_credentials_with_source",
-          "get_full_url",
-          "get_function",
-          "handle_additional_route",
-          "has_function",
-          "host",
-          "list_tool_names",
-          "method_missing",
-          "name",
-          "on_function_call",
-          "on_request",
-          "on_swml_request",
-          "port",
-          "rack_app",
-          "register_routing_callback",
-          "register_swaig_function",
-          "remove_function",
-          "render",
-          "render_main_swml",
-          "render_pretty",
-          "route",
-          "schema_path",
-          "schema_utils",
-          "schema_validation",
-          "serve",
-          "stop",
-          "swaig_pre_dispatch",
-          "validate_basic_auth"
-        ]
-      },
-      "functions": []
-    },
     "signalwire.utils": {
-      "classes": {
-        "Utils": [
-          "is_serverless_mode"
-        ]
-      },
-      "functions": []
+      "classes": {},
+      "functions": [
+        "is_serverless_mode"
+      ]
     },
     "signalwire.utils.schema_utils": {
       "classes": {
         "SchemaUtils": [
           "__init__",
-          "full_validation_available?",
+          "full_validation_available",
           "generate_method_body",
           "generate_method_signature",
           "get_all_verb_names",
@@ -3114,9 +3414,28 @@
       "functions": []
     },
     "signalwire.utils.url_validator": {
+      "classes": {},
+      "functions": [
+        "validate_url"
+      ]
+    },
+    "signalwire.web.web_service": {
       "classes": {
-        "UrlValidator": [
-          "validate_url"
+        "WebService": [
+          "__init__",
+          "add_directory",
+          "allowed_extensions",
+          "blocked_extensions",
+          "directories",
+          "enable_cors",
+          "enable_directory_browsing",
+          "file_allowed?",
+          "max_file_size",
+          "port",
+          "remove_directory",
+          "security",
+          "start",
+          "stop"
         ]
       },
       "functions": []

@@ -55,6 +55,9 @@ module SignalWire
         Base64.urlsafe_encode64(token_raw, padding: false)
       end
 
+      alias generate_token create_token # Python-surface name for minting.
+      alias create_tool_token create_token # Python back-compat alias.
+
       # Validate a function-call token.
       #
       # Checks:
@@ -82,6 +85,8 @@ module SignalWire
         # Bad Base64, bad integer, etc.
         false
       end
+
+      alias validate_tool_token validate_token # Python back-compat alias.
 
       # Return the given +call_id+, or generate a new URL-safe session
       # identifier when none is supplied.

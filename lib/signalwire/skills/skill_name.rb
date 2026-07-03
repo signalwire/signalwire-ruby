@@ -42,7 +42,6 @@ module SignalWire
       INFO_GATHERER         = 'info_gatherer'
       JOKE                  = 'joke'
       MATH                  = 'math'
-      MCP_GATEWAY           = 'mcp_gateway'
       NATIVE_VECTOR_SEARCH  = 'native_vector_search'
       PLAY_BACKGROUND_FILE  = 'play_background_file'
       SPIDER                = 'spider'
@@ -66,7 +65,6 @@ module SignalWire
         INFO_GATHERER,
         JOKE,
         MATH,
-        MCP_GATEWAY,
         NATIVE_VECTOR_SEARCH,
         PLAY_BACKGROUND_FILE,
         SPIDER,
