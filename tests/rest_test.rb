@@ -136,9 +136,9 @@ class RestRestClientTest < Minitest::Test
     ENV.delete('SIGNALWIRE_SPACE')
   end
 
-  def test_all_21_namespaces_non_nil
+  def test_all_20_namespaces_non_nil
     assert_accessors_present new_client,
-                             %i[fabric calling phone_numbers datasphere video compat addresses
+                             %i[fabric calling phone_numbers datasphere video addresses
                                 queues recordings number_groups verified_callers sip_profile lookup
                                 short_codes imported_numbers mfa registry logs project pubsub chat]
   end
@@ -155,12 +155,6 @@ class RestRestClientTest < Minitest::Test
     assert_accessors_present new_client.video,
                              %i[rooms room_tokens room_sessions room_recordings conferences
                                 conference_tokens streams]
-  end
-
-  def test_compat_sub_resources
-    assert_accessors_present new_client.compat,
-                             %i[accounts calls messages faxes conferences phone_numbers applications
-                                laml_bins queues recordings transcriptions tokens]
   end
 
   def test_registry_sub_resources

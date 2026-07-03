@@ -521,19 +521,6 @@ signalwire.rest._base.SignalWireRestError.body: port-only: attr_reader for error
 signalwire.rest._base.SignalWireRestError.method_name: port-only: attr_reader for originating HTTP method
 signalwire.rest._base.SignalWireRestError.status_code: port-only: attr_reader for HTTP status
 signalwire.rest._base.SignalWireRestError.url: port-only: attr_reader for failed URL
-signalwire.rest.client.RestClient.compat: port-only: attr_reader for REST namespace (Python exposes via @property)
-signalwire.rest.namespaces.compat.CompatNamespace.accounts: port-only: attr_reader for sub-resource (Python uses @property)
-signalwire.rest.namespaces.compat.CompatNamespace.applications: port-only: attr_reader for sub-resource (Python uses @property)
-signalwire.rest.namespaces.compat.CompatNamespace.calls: port-only: attr_reader for sub-resource (Python uses @property)
-signalwire.rest.namespaces.compat.CompatNamespace.conferences: port-only: attr_reader for sub-resource (Python uses @property)
-signalwire.rest.namespaces.compat.CompatNamespace.faxes: port-only: attr_reader for sub-resource (Python uses @property)
-signalwire.rest.namespaces.compat.CompatNamespace.laml_bins: port-only: attr_reader for sub-resource (Python uses @property)
-signalwire.rest.namespaces.compat.CompatNamespace.messages: port-only: attr_reader for sub-resource (Python uses @property)
-signalwire.rest.namespaces.compat.CompatNamespace.phone_numbers: port-only: attr_reader for sub-resource (Python uses @property)
-signalwire.rest.namespaces.compat.CompatNamespace.queues: port-only: attr_reader for sub-resource (Python uses @property)
-signalwire.rest.namespaces.compat.CompatNamespace.recordings: port-only: attr_reader for sub-resource (Python uses @property)
-signalwire.rest.namespaces.compat.CompatNamespace.tokens: port-only: attr_reader for sub-resource (Python uses @property)
-signalwire.rest.namespaces.compat.CompatNamespace.transcriptions: port-only: attr_reader for sub-resource (Python uses @property)
 signalwire.rest.client.RestClient.generated_http_client: port-only: the HttpClient the generated ResourceTree accessors build resources off of (§8 composition seam; Python has no equivalent public accessor)
 signalwire.rest.namespaces._client_tree_generated.FabricNamespace.addresses: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
 signalwire.rest.namespaces._client_tree_generated.FabricNamespace.ai_agents: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)

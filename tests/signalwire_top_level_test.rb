@@ -24,7 +24,6 @@ class SignalWireTopLevelTest < Minitest::Test
     assert_kind_of SignalWire::REST::RestClient, client
     refute_nil client.fabric
     refute_nil client.calling
-    refute_nil client.compat
   end
 
   def test_rest_client_factory_with_positional_credentials

@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ ab8b6ee4535a4d092230f13b2d5ea349f3b00c33",
+  "generated_from": "signalwire-ruby @ cb1affe4a76c81196eefff5c030b10ddf11284f6",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -1078,7 +1078,6 @@
       "classes": {
         "RestClient": [
           "__init__",
-          "compat",
           "generated_http_client",
           "http",
           "project_id"
@@ -1192,166 +1191,6 @@
         "Chat": [
           "__init__",
           "create_token"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.compat_accounts": {
-      "classes": {
-        "CompatAccounts": [
-          "__init__",
-          "create",
-          "get",
-          "list",
-          "update"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.compat_applications": {
-      "classes": {
-        "CompatApplications": [
-          "update"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.compat_calls": {
-      "classes": {
-        "CompatCalls": [
-          "start_recording",
-          "start_stream",
-          "stop_stream",
-          "update",
-          "update_recording"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.compat_conferences": {
-      "classes": {
-        "CompatConferences": [
-          "delete_recording",
-          "get",
-          "get_participant",
-          "get_recording",
-          "list",
-          "list_participants",
-          "list_recordings",
-          "remove_participant",
-          "start_stream",
-          "stop_stream",
-          "update",
-          "update_participant",
-          "update_recording"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.compat_faxes": {
-      "classes": {
-        "CompatFaxes": [
-          "delete_media",
-          "get_media",
-          "list_media",
-          "update"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.compat_laml_bins": {
-      "classes": {
-        "CompatLamlBins": [
-          "update"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.compat_messages": {
-      "classes": {
-        "CompatMessages": [
-          "delete_media",
-          "get_media",
-          "list_media",
-          "update"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.compat_namespace": {
-      "classes": {
-        "CompatNamespace": [
-          "__init__",
-          "accounts",
-          "applications",
-          "calls",
-          "conferences",
-          "faxes",
-          "laml_bins",
-          "messages",
-          "phone_numbers",
-          "queues",
-          "recordings",
-          "tokens",
-          "transcriptions"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.compat_phone_numbers": {
-      "classes": {
-        "CompatPhoneNumbers": [
-          "__init__",
-          "delete",
-          "get",
-          "import_number",
-          "list",
-          "list_available_countries",
-          "purchase",
-          "search_local",
-          "search_toll_free",
-          "update"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.compat_queues": {
-      "classes": {
-        "CompatQueues": [
-          "dequeue_member",
-          "get_member",
-          "list_members",
-          "update"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.compat_recordings": {
-      "classes": {
-        "CompatRecordings": [
-          "delete",
-          "get",
-          "list"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.compat_tokens": {
-      "classes": {
-        "CompatTokens": [
-          "create",
-          "delete",
-          "update"
-        ]
-      },
-      "functions": []
-    },
-    "signalwire.rest.namespaces.compat_transcriptions": {
-      "classes": {
-        "CompatTranscriptions": [
-          "delete",
-          "get",
-          "list"
         ]
       },
       "functions": []

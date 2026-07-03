@@ -87,14 +87,6 @@ token = client.video.room_tokens.create(room_name: 'standup', user_name: 'alice'
 client.video.rooms.delete(room['id'])
 ```
 
-### Compatibility API (LAML)
-
-```ruby
-msg = client.compat.messages.create(From: '+15559876543', To: '+15551234567', Body: 'Hello!')
-call = client.compat.calls.create(From: '+15559876543', To: '+15551234567', Url: 'https://example.com/voice')
-client.compat.queues.create(FriendlyName: 'support')
-```
-
 ### MFA
 
 ```ruby

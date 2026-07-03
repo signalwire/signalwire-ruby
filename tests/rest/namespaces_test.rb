@@ -14,12 +14,12 @@ class RestNamespacesDetailedTest < Minitest::Test
   end
 
   ALL_NAMESPACES = %i[
-    fabric calling phone_numbers datasphere video compat addresses queues
+    fabric calling phone_numbers datasphere video addresses queues
     recordings number_groups verified_callers sip_profile lookup short_codes
     imported_numbers mfa registry logs project pubsub chat
   ].freeze
 
-  def test_all_21_namespaces_non_nil
+  def test_all_20_namespaces_non_nil
     client = SignalWire::REST::RestClient.new(
       project: 'proj', token: 'tok', host: 'test.signalwire.com'
     )
@@ -87,18 +87,6 @@ class RestNamespacesDetailedTest < Minitest::Test
     refute_nil video.room_sessions
     refute_nil video.conferences
     refute_nil video.streams
-  end
-
-  def test_compat_sub_resources
-    client = SignalWire::REST::RestClient.new(
-      project: 'proj', token: 'tok', host: 'test.signalwire.com'
-    )
-    compat = client.compat
-
-    refute_nil compat.accounts
-    refute_nil compat.calls
-    refute_nil compat.messages
-    refute_nil compat.faxes
   end
 
   def test_crud_resource_default_update_method

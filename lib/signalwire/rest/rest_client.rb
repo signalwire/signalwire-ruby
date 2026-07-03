@@ -4,7 +4,6 @@ require_relative 'http_client'
 require_relative 'pagination'
 require_relative 'phone_call_handler'
 require_relative 'namespaces/generated'
-require_relative 'namespaces/compat'
 
 module SignalWire
   module REST
@@ -26,17 +25,15 @@ module SignalWire
     #   client.calling.play(call_id, play: [...])
     #   client.phone_numbers.search(area_code: '512')
     #   client.video.rooms.create(name: 'standup')
-    #   client.compat.calls.list
     #
     # The flat resources + namespace containers (fabric/calling/video/…) are
     # supplied by the GENERATED ResourceTree module (scripts/generate_rest.py):
     # a lazy accessor per resource + per container, each built off
-    # +generated_http_client+ (this client's @http). Only +compat+ stays hand-
-    # wired here — it also needs the project id and has no generated counterpart.
+    # +generated_http_client+ (this client's @http).
     class RestClient
       include Namespaces::Generated::ResourceTree
 
-      attr_reader :compat, :project_id, :http
+      attr_reader :project_id, :http
 
       # +base_url+ overrides the derived +https://{space}+ default. The
       # audit harness uses this to point at the local fixture server.
@@ -51,7 +48,6 @@ module SignalWire
 
         @project_id = project_id
         @http = HttpClient.new(project_id, api_token, space, base_url: base_url, ca_file: ca_file)
-        @compat = Namespaces::CompatNamespace.new(@http, project_id)
         materialize_namespaces!
       end
 

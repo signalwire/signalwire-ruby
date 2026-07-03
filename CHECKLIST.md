@@ -379,18 +379,16 @@ Skip: search_*.md (4 files), bedrock_agent.md, livekit_comparison.md, pipecat_co
 - [ ] relay/examples/relay_dial_and_play.* (proves: outbound dial, play, hangup)
 - [ ] relay/examples/relay_ivr_connect.* (proves: collect DTMF, connect to department)
 
-### Top-level rest/ directory (REQUIRED — 19 files)
+### Top-level rest/ directory (REQUIRED — 17 files)
 - [ ] rest/README.md (API overview, namespace examples in target language)
 - [ ] rest/docs/getting-started.md
 - [ ] rest/docs/namespaces.md
 - [ ] rest/docs/calling.md
 - [ ] rest/docs/fabric.md
-- [ ] rest/docs/compat.md
 - [ ] rest/docs/client-reference.md
 - [ ] rest/examples/rest_10dlc_registration.* (proves: registry namespace)
 - [ ] rest/examples/rest_calling_ivr_and_ai.* (proves: calling namespace)
 - [ ] rest/examples/rest_calling_play_and_record.* (proves: calling play/record)
-- [ ] rest/examples/rest_compat_laml.* (proves: compat namespace)
 - [ ] rest/examples/rest_datasphere_search.* (proves: datasphere namespace)
 - [ ] rest/examples/rest_fabric_conferences_and_routing.* (proves: fabric sub-resources — **must NOT demonstrate `assign_phone_route` as the path to bind a phone number to a webhook; that's the anti-pattern the porting audit found**)
 - [ ] rest/examples/rest_fabric_subscribers_and_sip.* (proves: fabric SIP)

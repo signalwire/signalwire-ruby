@@ -28,10 +28,10 @@ ENV['SIGNALWIRE_LOG_MODE'] ||= 'off'
 require 'json'
 require 'signalwire/rest/rest_client'
 
-operation   = ENV['REST_OPERATION']
-fixture_url = ENV['REST_FIXTURE_URL']
-project     = ENV['SIGNALWIRE_PROJECT_ID']
-token       = ENV['SIGNALWIRE_API_TOKEN']
+operation   = ENV.fetch('REST_OPERATION', nil)
+fixture_url = ENV.fetch('REST_FIXTURE_URL', nil)
+project     = ENV.fetch('SIGNALWIRE_PROJECT_ID', nil)
+token       = ENV.fetch('SIGNALWIRE_API_TOKEN', nil)
 
 %w[REST_OPERATION REST_FIXTURE_URL SIGNALWIRE_PROJECT_ID SIGNALWIRE_API_TOKEN].each do |k|
   if ENV[k].nil? || ENV[k].empty?
@@ -40,7 +40,7 @@ token       = ENV['SIGNALWIRE_API_TOKEN']
   end
 end
 
-args_raw = ENV['REST_OPERATION_ARGS']
+args_raw = ENV.fetch('REST_OPERATION_ARGS', nil)
 args_raw = '{}' if args_raw.nil? || args_raw.empty?
 begin
   args = JSON.parse(args_raw)
@@ -50,8 +50,8 @@ rescue JSON::ParserError => e
 end
 
 client = SignalWire::REST::RestClient.new(
-  project:  project,
-  token:    token,
+  project: project,
+  token: token,
   base_url: fixture_url
 )
 
@@ -61,24 +61,25 @@ def args_to_kwargs(args)
   args.transform_keys(&:to_sym)
 end
 
+# The Twilio-compat (LAML) REST surface has been removed from the SDK, so the
+# three LAML-path audit probes (calling.list_calls / messaging.send /
+# compatibility.calls.list) no longer have a typed namespace. They still exercise
+# the REST transport, so we drive them straight through the client's HttpClient
+# on the hand-built LAML path — the audit fixture only checks the path substring
+# and the Basic-auth header, not a typed compat resource. Mirrors php commit
+# 7f5538a's RestAuditHarness (callingListCalls/messagingSend via getHttp()).
+def laml_base(client)
+  "/api/laml/2010-04-01/Accounts/#{client.project_id}"
+end
+
 # Dispatcher -----------------------------------------------------------
 
 result =
   case operation
   when 'calling.list_calls', 'compatibility.calls.list'
-    # The compat namespace handles Twilio-style LAML /Accounts/{proj}/Calls.
-    # The audit's expected_path_substring is /api/laml/2010-04-01/Accounts.
-    client.compat.calls.list(**args_to_kwargs(args))
+    client.http.get("#{laml_base(client)}/Calls.json", args_to_kwargs(args))
   when 'messaging.send'
-    body = {}
-    args.each do |k, v|
-      key = k == 'from_' ? 'From' : k.split('_').map(&:capitalize).join
-      body[key] = v
-    end
-    # Send via the Compat messages endpoint -- POST
-    # /Accounts/{proj}/Messages.json. The audit just checks for
-    # `Messages` in the path and a Basic auth header.
-    client.compat.messages.create(**args_to_kwargs(args))
+    client.http.post("#{laml_base(client)}/Messages.json", args_to_kwargs(args))
   when 'phone_numbers.list'
     client.phone_numbers.list(**args_to_kwargs(args))
   when 'fabric.subscribers.list'
