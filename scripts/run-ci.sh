@@ -78,6 +78,17 @@ run_gate "TEST" "bundle exec rake test" \
 run_gate "GEN-FRESH" "generated REST layer matches canonical specs" \
     python3 scripts/generate_rest.py --check
 
+# Gate 1b': GEN-FRESH-TESTS — the generated full-mock REST wire-test suite
+# (tests/rest/generated/<spec>_generated_test.rb) must match what
+# scripts/generate_rest_tests.py emits from the route-registry × spec-operationId
+# oracle (route_registry.rb + rest_test_plan.rb captured off the real client).
+# Fails if a spec/route changed without regenerating (or a generated test file
+# was hand-edited). These generated tests ARE the REST coverage suite (success +
+# error per implemented route); the port's analog of the go/php/ts REST
+# test-GEN-FRESH gate.
+run_gate "GEN-FRESH-TESTS" "generated REST wire-test suite matches route-registry × spec oracle" \
+    python3 scripts/generate_rest_tests.py --check
+
 # Gate 1c-e: GEN-FRESH for the generated READ-SIDE payload trees (changeset item
 # D). Each generator emits method-less typed data classes from a canonical spec:
 #   SWML-verbs config types (core/swml_verbs_generated) <- porting-sdk/schema.json $defs

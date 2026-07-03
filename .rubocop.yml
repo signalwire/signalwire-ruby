@@ -49,6 +49,13 @@ AllCops:
     - 'lib/signalwire/core/post_prompt_generated/**/*'
     - 'lib/signalwire/core/swaig_request_generated/**/*'
     - 'lib/signalwire/core/swaig_actions_generated/**/*'
+    # Machine-generated full-mock REST wire-test suite (changeset item E):
+    # scripts/generate_rest_tests.py emits one success+error test per implemented
+    # route from the route-registry × spec-operationId oracle (GEN-FRESH-gated).
+    # Class length / test-method count are inherent to a per-route generated
+    # coverage suite — linting generated code fights the generator, the same
+    # rationale as the generated lib/ trees above. Regenerate, don't hand-edit.
+    - 'tests/rest/generated/**/*'
 
 # ---------------------------------------------------------------------------
 # Documentation: the SDK documents its public API in YARD/markdown + the
