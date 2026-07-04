@@ -741,10 +741,14 @@ def process_namespace_module(mod, name, modules)
   elsif RUBY_MODULE_TO_PYTHON.key?(name)
     merge_module_functions(modules, RUBY_MODULE_TO_PYTHON[name], enumerate_module_methods(mod))
   else
-    # Port-only module with its own singleton methods: emit as a class-like
-    # entry (signalwire.runtime.Runtime etc.). These land in PORT_ADDITIONS.
-    modules[ruby_fqn_to_port_module(name)]['classes'][name.split('::').last] = enumerate_module_methods(mod)
+    emit_port_only_module(mod, name, modules)
   end
+end
+
+# Port-only module with its own singleton methods: emit as a class-like entry
+# (signalwire.runtime.Runtime etc.). These land in PORT_ADDITIONS.
+def emit_port_only_module(mod, name, modules)
+  modules[ruby_fqn_to_port_module(name)]['classes'][name.split('::').last] = enumerate_module_methods(mod)
 end
 
 def merge_module_functions(modules, target_mod, fns)
@@ -795,11 +799,17 @@ def project_mixin_methods(modules, ab_entry, target_mod, target_cls, expected)
   matched_ref_names = expected.select { |ref| ab_variant_for(ab_entry, ref) }
   return if matched_ref_names.empty?
 
+  record_projected_methods(modules, target_mod, target_cls, matched_ref_names)
   ab_variants = matched_ref_names.map { |ref| ab_variant_for(ab_entry, ref) }
+  ab_entry.reject! { |m| ab_variants.include?(m) }
+end
+
+# Record `ref_names` under target_mod/target_cls, creating the module entry if
+# absent and merging/sorting against any methods already there.
+def record_projected_methods(modules, target_mod, target_cls, ref_names)
   modules[target_mod] ||= { 'classes' => {}, 'functions' => [] }
   classes = modules[target_mod]['classes']
-  classes[target_cls] = ((classes[target_cls] || []) + matched_ref_names).uniq.sort
-  ab_entry.reject! { |m| ab_variants.include?(m) }
+  classes[target_cls] = ((classes[target_cls] || []) + ref_names).uniq.sort
 end
 
 # The AgentBase method name satisfying reference name `ref`: exact match, or
