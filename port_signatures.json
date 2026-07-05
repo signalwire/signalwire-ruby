@@ -21654,6 +21654,31 @@
               ],
               "returns": "void"
             },
+            "pause": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "behavior",
+                  "type": "optional<string>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "resume": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "start_input_timers": {
               "params": [
                 {
@@ -21815,6 +21840,13 @@
                 {
                   "name": "self",
                   "kind": "self"
+                },
+                {
+                  "name": "behavior",
+                  "type": "optional<string>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -21882,7 +21914,7 @@
                 },
                 {
                   "name": "behavior",
-                  "type": "any",
+                  "type": "optional<string>",
                   "kind": "keyword",
                   "required": false,
                   "default": null

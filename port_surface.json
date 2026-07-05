@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 9debc6323ff488078a35bcb39aaa2dc1a91a9fed",
+  "generated_from": "signalwire-ruby @ 34ce453bb9cfa98d66c671e5be5283dd8a563827",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -1190,6 +1190,8 @@
         ],
         "CollectAction": [
           "__init__",
+          "pause",
+          "resume",
           "start_input_timers",
           "stop",
           "volume"

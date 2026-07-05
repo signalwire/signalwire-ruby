@@ -399,10 +399,3 @@ signalwire.skills.web_search.skill_original.WebSearchSkill.get_parameter_schema:
 signalwire.skills.web_search.skill_original.WebSearchSkill.get_prompt_sections: search subsystem variant (Python has three parallel skill files); not ported
 signalwire.skills.web_search.skill_original.WebSearchSkill.register_tools: search subsystem variant (Python has three parallel skill files); not ported
 signalwire.skills.web_search.skill_original.WebSearchSkill.setup: search subsystem variant (Python has three parallel skill files); not ported
-signalwire.relay.call.PausableAction: impossible: abstract RELAY action mixin base — Ruby flattens pause/resume onto each concrete Action (PlayAction/RecordAction), so there is no standalone base class to enumerate (surface analog of the signature gate's abstract-action-base skip; TS/PHP flatten identically)
-signalwire.relay.call.PausableAction.pause: impossible: abstract RELAY action mixin base method — flattened onto concrete PlayAction/RecordAction.pause in Ruby (TS/PHP flatten identically)
-signalwire.relay.call.PausableAction.resume: impossible: abstract RELAY action mixin base method — flattened onto concrete PlayAction/RecordAction.resume in Ruby (TS/PHP flatten identically)
-signalwire.relay.call.StoppableAction: impossible: abstract RELAY action mixin base — Ruby flattens stop onto each concrete Action, no standalone base class (TS/PHP flatten identically)
-signalwire.relay.call.StoppableAction.stop: impossible: abstract RELAY action mixin base method — flattened onto each concrete Action.stop in Ruby (TS/PHP flatten identically)
-signalwire.relay.call.VolumeAction: impossible: abstract RELAY action mixin base — Ruby flattens volume onto concrete PlayAction/CollectAction, no standalone base class (TS/PHP flatten identically)
-signalwire.relay.call.VolumeAction.volume: impossible: abstract RELAY action mixin base method — flattened onto concrete PlayAction/CollectAction.volume in Ruby (TS/PHP flatten identically)

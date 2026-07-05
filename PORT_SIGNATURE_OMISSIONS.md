@@ -108,6 +108,8 @@ signalwire.relay.call.Call.wait_for_answered: kwargs-idiom — Ruby `timeout:` k
 signalwire.relay.call.Call.wait_for_ended: kwargs-idiom — Ruby `timeout:` keyword ≡ Python positional with default
 signalwire.relay.call.Call.wait_for_ending: kwargs-idiom — Ruby `timeout:` keyword ≡ Python positional with default
 signalwire.relay.call.Call.wait_for_ringing: kwargs-idiom — Ruby `timeout:` keyword ≡ Python positional with default
+signalwire.relay.call.PlayAction.pause: kwargs-idiom — Ruby `behavior:` keyword ≡ Python positional with default
+signalwire.relay.call.CollectAction.pause: kwargs-idiom — Ruby `behavior:` keyword ≡ Python positional with default
 signalwire.relay.call.RecordAction.pause: kwargs-idiom — Ruby keyword args ≡ Python positional with default
 signalwire.relay.client.RelayClient.on_call: kwargs-idiom — Ruby keyword args ≡ Python positional with default
 signalwire.relay.client.RelayClient.on_message: kwargs-idiom — Ruby keyword args ≡ Python positional with default
@@ -252,6 +254,8 @@ signalwire.core.swml_builder.SWMLBuilder.answer: kwargs-idiom — Ruby keyword a
 signalwire.core.swml_builder.SWMLBuilder.hangup: kwargs-idiom — Ruby keyword arg(s) (reason) ≡ Python positional with default
 signalwire.core.swml_builder.SWMLBuilder.play: kwargs-idiom — Ruby keyword arg(s) (url, urls, volume, say_voice, say_language, say_gender, auto_answer) ≡ Python positional with default
 signalwire.core.swml_builder.SWMLBuilder.say: kwargs-idiom — Ruby keyword arg(s) (voice, language, gender, volume) ≡ Python positional with default
+signalwire.relay.call.PlayAction.volume: untyped-idiom — Ruby is dynamically typed; the `volume` param carries no static type (untyped `any`) where Python types it `float`. Same value on the wire (`play.volume` with `volume` key); the type divergence is Ruby's runtime-typed idiom, not a wire difference.
+signalwire.relay.call.CollectAction.volume: untyped-idiom — Ruby is dynamically typed; the `volume` param carries no static type (untyped `any`) where Python types it `float`. Same value on the wire (`play_and_collect.volume` with `volume` key); the type divergence is Ruby's runtime-typed idiom, not a wire difference.
 signalwire.core.swml_handler.AIVerbHandler.build_config: kwargs-idiom — Ruby keyword arg(s) (prompt_text, prompt_pom, contexts, post_prompt, post_prompt_url, swaig) ≡ Python positional with default
 signalwire.core.swml_renderer.SwmlRenderer.render_function_response_swml: kwargs-idiom — Ruby keyword arg(s) (response_text, service, actions, format) ≡ Python positional with default
 signalwire.core.swml_renderer.SwmlRenderer.render_swml: kwargs-idiom — Ruby keyword arg(s) (prompt, service, post_prompt, post_prompt_url, swaig_functions, startup_hook_url, hangup_hook_url, prompt_is_pom, params, add_answer, record_call, record_format, record_stereo, format, default_webhook_url) ≡ Python positional with default
