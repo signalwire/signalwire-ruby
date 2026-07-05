@@ -245,7 +245,6 @@ signalwire.prefabs.concierge.ConciergeAgent.tools: port-only: Ruby attr_reader o
 signalwire.prefabs.concierge.ConciergeAgent.venue_name: port-only: Ruby attr_reader on prefab (configuration state)
 signalwire.prefabs.faq_bot.FAQBotAgent.faqs: port-only: Ruby attr_reader on prefab (configuration state)
 signalwire.prefabs.faq_bot.FAQBotAgent.global_data: port-only: Ruby attr_reader on prefab (configuration state)
-signalwire.prefabs.faq_bot.FAQBotAgent.handle_search: port-only: Ruby prefab handler method (Ruby naming differs from Python)
 signalwire.prefabs.faq_bot.FAQBotAgent.name: port-only: Ruby attr_reader on prefab (configuration state)
 signalwire.prefabs.faq_bot.FAQBotAgent.prompt_sections: port-only: Ruby attr_reader on prefab (configuration state)
 signalwire.prefabs.faq_bot.FAQBotAgent.route: port-only: Ruby attr_reader on prefab (configuration state)
@@ -628,7 +627,7 @@ signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.instance_ke
 signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.name: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
 signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.supports_multiple_instances?: port-only: Ruby predicate method (? suffix)
 signalwire.skills.registry.SkillRegistry.external_paths: port-only: Ruby attr_reader for registered skill directories (Python parity: `self._external_paths`)
-signalwire.skills.registry.SkillRegistry.get_factory: port-only: returns class-or-factory (see PORT_OMISSIONS for Python get_skill_class)
+signalwire.skills.registry.SkillRegistry.get_factory: rename-carried: the Ruby name for the reference `get_skill_class`. enumerate_surface.rb renames it surface-side (SURFACE-DIFF passes); the signature oracle records `get_skill_class` with a shape the Ruby method does not match 1:1, so the Ruby name is carried here signature-side rather than renamed. The reference HAS the counterpart — not invented surface.
 signalwire.skills.registry.SkillRegistry.last_registered: port-only: Ruby attr_reader recording the most recent skill name registered via #register_skill (test/audit helper)
 signalwire.skills.registry.SkillRegistry.logger: port-only: Ruby attr_reader for the registry's namespaced logger (Python parity: `self.logger`)
 signalwire.skills.registry.SkillRegistry.register: port-only: explicit registry registration (Ruby ships built-ins via register_builtins!)
