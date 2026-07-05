@@ -654,6 +654,22 @@ FREE_FN_NAME_OVERRIDES = {
     "rest_client": "RestClient",
 }
 
+# Per-method canonical RETURN-type overrides. Ruby is dynamically typed, so the
+# dump records ``any`` for every return by default (below). A few methods have a
+# well-defined, named cross-port return type we want recorded explicitly so the
+# signature diff reconciles on a NAMED type (not merely the ``any`` wildcard):
+#   as_router — the "embed my routes in a host app" mountable unit. Ruby returns
+#   its rack_app, a ``Rack::Builder`` app (an object responding to #call(env),
+#   mountable via Rails/Sinatra `mount`/`map`) — Ruby's idiom for Python's
+#   HostAppRouter. The native→canonical mapping (Rack::Builder → HostAppRouter)
+#   is documented in porting-sdk/type_aliases.yaml (ruby section); this
+#   enumerator applies it, emitting the canonical class-ref directly (the diff
+#   is invoked without --aliases, so ports canonicalize at enumerate time —
+#   Go's enumerator likewise stores `class:...HostAppRouter` for AsRouter).
+RETURN_TYPE_OVERRIDES = {
+    "as_router": "class:signalwire.core.web.HostAppRouter",
+}
+
 # Ruby-module-to-Python-module overrides for ``module`` kinds (vs the
 # class-keyed RUBY_TO_PYTHON_MODULE_OVERRIDES above). When a Ruby module
 # (e.g. ``SignalWire::Relay``) defines its own static methods, route them
@@ -1001,9 +1017,14 @@ def build_signature(method: dict, instance_method: bool) -> dict:
         else:
             param["required"] = True
         params_out.append(param)
+    name = method.get("name")
+    if name == "<init>":
+        returns = "void"
+    else:
+        returns = RETURN_TYPE_OVERRIDES.get(name, "any")
     return {
         "params": params_out,
-        "returns": "any" if method.get("name") != "<init>" else "void",
+        "returns": returns,
     }
 
 

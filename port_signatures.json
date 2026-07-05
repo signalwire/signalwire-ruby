@@ -5944,7 +5944,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.core.web.HostAppRouter"
             },
             "enable_debug_routes": {
               "params": [
@@ -10266,7 +10266,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "any"
+              "returns": "class:signalwire.core.web.HostAppRouter"
             },
             "basic_auth_credentials_with_source": {
               "params": [
