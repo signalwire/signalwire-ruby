@@ -297,7 +297,21 @@ RUBY_TO_PYTHON_CLASS_ALIASES = {
 # up as port additions; the Python classes are recorded as omissions with
 # rationale. This surfaces the design delta honestly rather than hiding it
 # behind fuzzy renames.
-RUBY_SWML_MODULE_OVERRIDES = {}.freeze
+#
+# SignalWire::SWML::Document MUST be pinned here: the Python oracle records a
+# UNIQUE class named `Document` (the method-less datasphere REST wire-type DTO,
+# signalwire.rest.namespaces.datasphere_types_generated.Document). Without this
+# override, translate_class step 3 (unique-Python-name match) routes the Ruby
+# SWML Document into the datasphere_types_generated slot, colliding with the
+# real DTO — last-write-wins in ObjectSpace order clobbers the method-less DTO
+# with SWML Document's methods (or vice-versa), making the surface regen
+# nondeterministic. Pinning it to signalwire.swml.document keeps the SWML
+# wrapper as its declared PORT_ADDITION and leaves the datasphere DTO untouched.
+# (Schema/Service need no pin: neither name matches a unique Python class, so
+# both already reach the fallback signalwire.swml.* path.)
+RUBY_SWML_MODULE_OVERRIDES = {
+  'SignalWire::SWML::Document' => 'signalwire.swml.document'
+}.freeze
 
 # Nested helper/middleware classes we don't want in the surface (they're
 # internal plumbing, not public API).

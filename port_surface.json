@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 3763a23855b54d4ce612b653647cb3aa0a3441f3",
+  "generated_from": "signalwire-ruby @ cb310ae05d6cf2615edf8a4ce40d63da1f4566eb",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -3378,6 +3378,25 @@
         "SWML": [
           "reset_schema!",
           "schema"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.swml.document": {
+      "classes": {
+        "Document": [
+          "__init__",
+          "add_section",
+          "add_verb",
+          "add_verb_to_section",
+          "get_verbs",
+          "has_section?",
+          "render",
+          "render_pretty",
+          "reset",
+          "sections",
+          "to_h",
+          "version"
         ]
       },
       "functions": []

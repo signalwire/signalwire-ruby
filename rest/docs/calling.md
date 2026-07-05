@@ -39,13 +39,15 @@ Update an active call's dialplan mid-call.
 client.calling.update(id=call_id, url="https://example.com/new-handler")
 ```
 
-### `end_call(call_id, **params) -> Hash`
+### `end(call_id, **params) -> Hash`
 
-Terminate a call. The method is named `end_call` in the Ruby port because
-`end` is a reserved keyword.
+Terminate a call. The wire operation is `end`; Ruby permits `def end` as a
+method definition, so the port keeps the wire name verbatim. Call it on the
+receiver (`client.calling.end(...)`) — `end` is only a reserved keyword as a
+bareword, not as a method call.
 
 ```ruby
-client.calling.end_call(call_id, reason: "hangup")
+client.calling.end(call_id, reason: "hangup")
 ```
 
 ### `transfer(call_id, **params) -> dict`

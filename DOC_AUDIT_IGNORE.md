@@ -92,3 +92,15 @@ get_customer_config: user-defined customer-config lookup in agent_guide example
 get_customer_settings: user-defined customer-settings lookup in agent_guide example
 get_customer_tier: user-defined customer-tier lookup in agent_guide example
 customer_settings: user-defined `database.customer_settings(...)` lookup in agent_guide dynamic-config example (idiomatic Ruby rename of get_customer_settings)
+
+## Real Ruby methods the surface enumerator aliases to their Python-oracle name
+
+These are genuine public methods that exist in the Ruby source and are called
+correctly in the docs/examples, but `scripts/enumerate_surface.rb`
+(`SURFACE_METHOD_ALIASES`) renames them to their Python-reference counterpart so
+the surface compares equal to the oracle. The port_surface.json therefore
+carries the oracle name, not the Ruby name — so the audit can't resolve the
+real Ruby name. The Ruby method is real; the rename is idiom reconciliation.
+
+get_factory: `SignalWire::Skills::SkillRegistry.get_factory` — surface-aliased to `get_skill_class` (enumerate_surface.rb line ~407)
+handle_search: `SignalWire::Prefabs::FaqBot#handle_search` — surface-aliased to `search_faqs` (enumerate_surface.rb line ~407)
