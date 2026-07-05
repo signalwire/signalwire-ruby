@@ -466,7 +466,15 @@ RUBY_FREE_FUNCTION_MODULES = {
 # a class factory method; the reference's is a module function — same callable.
 # [ruby_fqn, ref_module] => [method names to project as module functions].
 FREE_FUNCTION_PROJECTIONS = {
-  'SignalWire::DataMap' => ['signalwire.core.data_map', %w[create_expression_tool create_simple_api_tool]]
+  'SignalWire::DataMap' => ['signalwire.core.data_map', %w[create_expression_tool create_simple_api_tool]],
+  # The decomposed framework-free webhook-validation core. Ruby ships it as a
+  # `def self.validate` singleton method on WebhookMiddleware (the Rack #call
+  # wrapper delegates to it); the reference records it as the module-level
+  # function signalwire.core.security.webhook_middleware.validate. Move it off
+  # the class's method list onto the module's functions[] so the two compare
+  # EQUAL (mirrors SIG_FREE_FUNCTION_PROJECTIONS in enumerate_signatures.py).
+  'SignalWire::Security::WebhookMiddleware' =>
+    ['signalwire.core.security.webhook_middleware', %w[validate]]
 }.freeze
 
 # -----------------------------------------------------------------------------

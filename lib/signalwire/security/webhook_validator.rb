@@ -156,6 +156,25 @@ module SignalWire
       # Internal helpers (underscore-prefixed: not part of the public surface).
       # ----------------------------------------------------------------------
 
+      # @api private — case-insensitive lookup of the SignalWire (or legacy
+      # Twilio-compat) signature header out of a plain header Hash. Shared with
+      # the decomposed WebhookMiddleware.validate core.
+      def self._signature_from_headers(headers)
+        return nil unless headers.respond_to?(:each)
+
+        lower = {}
+        headers.each { |k, v| lower[k.to_s.downcase] = v }
+        sig = lower['x-signalwire-signature']
+        sig = lower['x-twilio-signature'] if sig.nil? || sig.to_s.empty?
+        sig&.to_s
+      end
+
+      # @api private — the canonical 403 rejection triple (no body detail).
+      # Shared with the decomposed WebhookMiddleware.validate core.
+      def self._forbidden_triple
+        [403, { 'content-type' => 'text/plain' }, ['']]
+      end
+
       def self._hex_hmac_sha1(key, message) = OpenSSL::HMAC.hexdigest('SHA1', key.to_s, message.to_s)
 
       def self._b64_hmac_sha1(key, message)

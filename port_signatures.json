@@ -8153,6 +8153,39 @@
             }
           }
         }
+      },
+      "functions": {
+        "validate": {
+          "params": [
+            {
+              "name": "method",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "url",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "headers",
+              "type": "dict<string,string>",
+              "required": true
+            },
+            {
+              "name": "body",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "signing_key",
+              "type": "string",
+              "kind": "keyword",
+              "required": true
+            }
+          ],
+          "returns": "any"
+        }
       }
     },
     "signalwire.core.security.webhook_validator": {

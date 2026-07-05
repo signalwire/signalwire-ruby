@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ cb310ae05d6cf2615edf8a4ce40d63da1f4566eb",
+  "generated_from": "signalwire-ruby @ 9debc6323ff488078a35bcb39aaa2dc1a91a9fed",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -550,7 +550,9 @@
           "call"
         ]
       },
-      "functions": []
+      "functions": [
+        "validate"
+      ]
     },
     "signalwire.core.security.webhook_validator": {
       "classes": {},

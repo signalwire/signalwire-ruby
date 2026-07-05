@@ -282,6 +282,16 @@ SIG_FREE_FUNCTION_PROJECTIONS: dict[tuple, tuple] = {
         "signalwire.core.data_map", ["create_expression_tool", "create_simple_api_tool"]),
     ("signalwire.contexts", "Contexts"): (
         "signalwire.core.contexts", ["create_simple_context"]),
+    # The decomposed framework-free webhook-validation core. Ruby ships it as a
+    # ``def self.validate`` singleton method on the WebhookMiddleware class (the
+    # natural home — the Rack #call wrapper delegates to it); the reference
+    # records it as the module-level function
+    # signalwire.core.security.webhook_middleware.validate. Project it to the
+    # module's functions[] so the two compare EQUAL. Param types
+    # (method/url/headers/body/signing_key) are re-attached from the oracle by
+    # project_reference_param_types (runs after this).
+    ("signalwire.core.security.webhook_middleware", "WebhookMiddleware"): (
+        "signalwire.core.security.webhook_middleware", ["validate"]),
 }
 
 

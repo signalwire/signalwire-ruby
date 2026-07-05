@@ -239,3 +239,67 @@ class WebhookMiddlewareMockRequestTest < Minitest::Test
                  'middleware must rewind rack.input so downstream can re-read'
   end
 end
+
+# Direct tests for the framework-free decomposed validation core
+# (WebhookMiddleware.validate) — the cross-port contract from
+# porting-sdk/webhooks.md decomposed at the HTTP boundary:
+#   validate(method, url, headers, body, signing_key:)
+#     -> nil (pass) | [status, headers, body] (reject triple)
+# This is the same decision the Rack #call wrapper makes, exercised without
+# constructing a middleware / Rack env.
+class WebhookMiddlewareValidateCoreTest < Minitest::Test
+  SIGNING_KEY = 'PSKtest1234567890abcdef'
+  URL = 'https://example.org/webhook'
+  BODY = '{"event":"call.state","params":{"call_id":"abc"}}'
+
+  def run_validate(headers, body: BODY, key: SIGNING_KEY, url: URL)
+    SignalWire::Security::WebhookMiddleware.validate('POST', url, headers, body, signing_key: key)
+  end
+
+  def hex_sig(key = SIGNING_KEY, url = URL, body = BODY)
+    OpenSSL::HMAC.hexdigest('SHA1', key, url + body)
+  end
+
+  def test_valid_signature_returns_nil_pass
+    result = run_validate({ 'X-SignalWire-Signature' => hex_sig })
+
+    assert_nil result, 'a valid signature must return nil (pass) from the decomposed core'
+  end
+
+  def test_bad_signature_returns_403_triple
+    status, headers, resp_body = run_validate({ 'X-SignalWire-Signature' => 'not-the-right-signature' })
+
+    assert_equal 403, status, 'a bad signature must return a 403 reject triple'
+    assert_instance_of Hash, headers
+    assert_instance_of Array, resp_body
+    assert_equal [''], resp_body, 'reject body must carry no detail (never leak which branch tripped)'
+  end
+
+  def test_missing_signature_header_returns_403_triple
+    status, = run_validate({})
+
+    assert_equal 403, status, 'a missing signature header must return a 403 reject triple (never raise)'
+  end
+
+  def test_twilio_signature_alias_honored
+    # X-Twilio-Signature is accepted as a legacy cXML/Compatibility alias of
+    # X-SignalWire-Signature (webhooks.md "The Header").
+    result = run_validate({ 'X-Twilio-Signature' => hex_sig })
+
+    assert_nil result, 'the X-Twilio-Signature alias must be honored (pass -> nil)'
+  end
+
+  def test_header_lookup_is_case_insensitive
+    # HTTP header names are case-insensitive; a lower-cased header must still be found.
+    result = run_validate({ 'x-signalwire-signature' => hex_sig })
+
+    assert_nil result, 'signature header lookup must be case-insensitive'
+  end
+
+  def test_missing_signing_key_raises
+    assert_raises(ArgumentError) do
+      SignalWire::Security::WebhookMiddleware.validate('POST', URL, { 'X-SignalWire-Signature' => hex_sig }, BODY,
+                                                       signing_key: nil)
+    end
+  end
+end
