@@ -1887,33 +1887,40 @@ module SignalWire
     # @param url [String] the full request URL.
     # @param headers [Hash{String=>String}] request headers as a plain Hash.
     # @param body [Hash, nil] the already-parsed JSON body for POST, or nil.
+    # @param request [Rack::Request, nil] the live Rack request when dispatched
+    #   from the served path, so dynamic config sees the request's query string
+    #   and headers; nil for the framework-free primitive path.
+    # @param skip_auth [Boolean] true when the served-path middleware already
+    #   validated basic auth (avoids a redundant re-check; the 307/render
+    #   decision still flows through here).
     # @return [Array(Integer, Hash{String=>String}, String)]
-    def handle_request(method, url, headers, body = nil)
+    def handle_request(method, url, headers, body = nil, request: nil, skip_auth: false)
       body ||= {}
       callback_path = _callback_path_for_url(url)
 
       _detect_proxy_from_primitives(url, headers)
-      return _unauthorized_triple unless _check_basic_auth_headers(headers)
+      return _unauthorized_triple unless skip_auth || _check_basic_auth_headers(headers)
 
       redirect = _routing_redirect(method, body, headers, callback_path)
       return redirect if redirect
 
-      _agent_render_triple(body, callback_path)
+      _agent_render_triple(body, callback_path, request:)
     end
 
     # 200 triple rendering agent SWML with any on_swml_request modifications
     # shallow-merged in. Split out of {#handle_request} for clarity.
-    def _agent_render_triple(body, callback_path)
-      modifications = _agent_on_swml_request(body, callback_path)
-      swml = render_swml(body)
+    def _agent_render_triple(body, callback_path, request: nil)
+      modifications = _agent_on_swml_request(body, callback_path, request)
+      swml = render_swml(body, request:)
       swml = swml.merge(modifications) if modifications.is_a?(Hash)
       [200, {}, JSON.generate(swml)]
     end
 
-    # Call +on_swml_request+ for the primitive path (parity: a raising modifier
-    # does not 500 the request), returning its modifications or nil.
-    def _agent_on_swml_request(body, callback_path)
-      on_swml_request(body, callback_path, request: nil)
+    # Call +on_swml_request+ (parity: a raising modifier does not 500 the
+    # request), returning its modifications or nil. +request+ is the live Rack
+    # request on the served path, or nil for the framework-free primitive path.
+    def _agent_on_swml_request(body, callback_path, request = nil)
+      on_swml_request(body, callback_path, request:)
     rescue StandardError => e
       @log&.error("error_in_request_modifier: #{e.message}")
       nil
@@ -2284,8 +2291,33 @@ module SignalWire
       extra = handle_additional_route(sub_path, request_data, env)
       return extra if extra
 
-      body = JSON.generate(render_swml(request_data, request: request))
-      [200, { 'content-type' => 'application/json' }, [body]]
+      # SWML fall-through: route through the decomposed handle_request core so the
+      # served path honors the routing-callback 307 redirect (#61) instead of
+      # unconditionally rendering SWML. Basic auth already ran in the Rack
+      # middleware, so skip the redundant re-check; the request is threaded
+      # through for dynamic config's query/header access.
+      _dispatch_via_handle_request(request, env, sub_path, request_data)
+    end
+
+    # Marshal the served Rack request into the (method, url, headers, body)
+    # primitives, call {#handle_request}, and turn its
+    # +[status, headers, body_string]+ triple back into a Rack response array.
+    def _dispatch_via_handle_request(request, env, sub_path, request_data)
+      method  = env['REQUEST_METHOD'] || 'GET'
+      url     = _served_request_url(env, sub_path)
+      headers = _extract_headers(request)
+      status, headers_out, body = handle_request(
+        method, url, headers, request_data, request:, skip_auth: true
+      )
+      resp_headers = { 'content-type' => 'application/json' }.merge(headers_out || {})
+      [status, resp_headers, [body.to_s]]
+    end
+
+    # Build the request URL (path + query string) that handle_request's
+    # callback-path matcher and proxy detection consume.
+    def _served_request_url(env, sub_path)
+      qs = env['QUERY_STRING']
+      qs && !qs.empty? ? "#{sub_path}?#{qs}" : sub_path
     end
 
     # Parse a POST/PUT JSON body. Prefers the raw body stashed by

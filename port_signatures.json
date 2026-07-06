@@ -1505,6 +1505,20 @@
                   "type": "any",
                   "required": false,
                   "default": null
+                },
+                {
+                  "name": "request",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "skip_auth",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
