@@ -193,7 +193,7 @@
                 },
                 {
                   "name": "callback_fn",
-                  "type": "callable<list<class:Request,dict<string,any>>,optional<string>>",
+                  "type": "callable<list<dict<string,any>,dict<string,any>>,optional<string>>",
                   "required": false,
                   "default": null
                 },
@@ -983,12 +983,12 @@
           "params": [
             {
               "name": "func",
-              "type": "any",
+              "type": "callable<list<any>,any>",
               "required": true
             },
             {
               "name": "has_raw_data",
-              "type": "any",
+              "type": "bool",
               "required": true
             }
           ],
@@ -998,7 +998,7 @@
           "params": [
             {
               "name": "func",
-              "type": "any",
+              "type": "callable<list<any>,any>",
               "required": true
             },
             {
