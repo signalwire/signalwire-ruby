@@ -221,10 +221,21 @@ module SignalWire
     end
 
     # Register a SIP username mapping to a route.
+    #
+    # Python parity: the username is lower-cased before storage (the mapping
+    # is case-insensitive), and the route is normalized (leading slash
+    # ensured, trailing slash stripped).
     def register_sip_username(username, route)
       route = "/#{route}" unless route.start_with?('/')
-      @mutex.synchronize { @sip_routes[username] = route }
+      route = route.chomp('/')
+      @mutex.synchronize { @sip_routes[username.to_s.downcase] = route }
       self
+    end
+
+    # Look up the route registered for a SIP username (case-insensitive).
+    # Python parity: AgentServer._lookup_sip_route — returns the route or nil.
+    def _lookup_sip_route(username)
+      @mutex.synchronize { @sip_routes[username.to_s.downcase] }
     end
 
     # Serve static files from a directory at a given route.

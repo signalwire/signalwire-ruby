@@ -193,7 +193,7 @@
                 },
                 {
                   "name": "callback_fn",
-                  "type": "callable<list<class:Request,dict<string,any>>,optional<string>>",
+                  "type": "callable<list<dict<string,any>,dict<string,any>>,optional<string>>",
                   "required": false,
                   "default": null
                 },
@@ -5142,14 +5142,21 @@
                   "kind": "self"
                 },
                 {
-                  "name": "phrase",
-                  "type": "any",
+                  "name": "replace",
+                  "type": "string",
                   "required": true
                 },
                 {
-                  "name": "pronunciation",
-                  "type": "any",
+                  "name": "with_text",
+                  "type": "string",
                   "required": true
+                },
+                {
+                  "name": "ignore_case",
+                  "type": "bool",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 },
                 {
                   "name": "language_code",
@@ -23307,8 +23314,8 @@
                   "default": null
                 },
                 {
-                  "name": "result_data",
-                  "type": "any",
+                  "name": "result",
+                  "type": "dict<string,any>",
                   "kind": "keyword",
                   "required": false,
                   "default": null
@@ -23358,7 +23365,7 @@
               ],
               "returns": "any"
             },
-            "result_data": {
+            "result": {
               "params": [
                 {
                   "name": "self",

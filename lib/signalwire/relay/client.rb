@@ -335,8 +335,11 @@ module SignalWire
         entry = { mutex: Mutex.new, cv: ConditionVariable.new, result: nil, error: nil }
         @pending_mutex.synchronize { @pending[id] = entry }
 
+        # Python parity: params are sent VERBATIM. The protocol is only carried
+        # on the signalwire.connect handshake (see _apply_session_restore), NOT
+        # injected into every calling.*/messaging.* frame.
         _send_json('jsonrpc' => '2.0', 'id' => id, 'method' => method,
-                   'params' => _augment_with_protocol(method, params))
+                   'params' => params)
         _await_response(id, entry, method)
 
         @pending_mutex.synchronize { @pending.delete(id) }
@@ -352,13 +355,6 @@ module SignalWire
         _connect_and_run
       rescue StandardError => e
         warn "[RELAY] Connection error: #{e.message}"
-      end
-
-      # Add protocol to params if we have one (except for signalwire.connect).
-      def _augment_with_protocol(method, params)
-        return params unless @protocol && method != METHOD_SIGNALWIRE_CONNECT
-
-        params.dup.tap { |p| p['protocol'] = @protocol }
       end
 
       # Exponential backoff between reconnect attempts.

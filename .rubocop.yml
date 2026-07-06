@@ -30,6 +30,15 @@ AllCops:
     - 'relay/examples/**/*'
     - 'rest/examples/**/*'
     - 'vendor/**/*'
+    # Layer-D cross-port dump programs (bin/*-dump) — the per-surface behavioral
+    # differ tooling, mirroring the Go reference's cmd/*-dump. Tutorial-style
+    # port-native dispatch programs, not audited library surface; same rationale
+    # as examples/ above and go's //go:build ignore dumps.
+    - 'bin/wire-dump'
+    - 'bin/swml-dump'
+    - 'bin/state-dump'
+    - 'bin/http-dump'
+    - 'bin/wire-relay-dump'
     # Machine-generated REST resource layer (scripts/generate_rest.py; regenerate,
     # don't hand-edit). Line length / method length / param count are inherent to
     # the spec-derived typed signatures — linting generated code fights the

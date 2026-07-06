@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 6930ac463f6a9267612af664a65bd87f8539c5cd",
+  "generated_from": "signalwire-ruby @ 771d626f486b8db65a7454d4411b5dcecf39f37e",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -1365,7 +1365,7 @@
           "control_id",
           "final",
           "from_payload",
-          "result_data",
+          "result",
           "state"
         ],
         "ConferenceEvent": [

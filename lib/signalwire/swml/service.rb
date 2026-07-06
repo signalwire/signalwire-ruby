@@ -276,8 +276,13 @@ module SignalWire
       # Routing callbacks & request handling
       # ------------------------------------------------------------------
 
+      # Register a routing callback at +path+. Python parity: the path is
+      # normalized for consistent lookup — trailing slash stripped, leading
+      # slash ensured (so "/sip/" and "sip" both store as "/sip").
       def register_routing_callback(path, &block)
-        @routing_callbacks[path] = block
+        normalized = path.to_s.chomp('/')
+        normalized = "/#{normalized}" unless normalized.start_with?('/')
+        @routing_callbacks[normalized] = block
       end
 
       # Framework-free request-dispatch core — the primitive dispatch surface
@@ -559,10 +564,14 @@ module SignalWire
       # "sip:user@domain" (or "tel:") URI's user portion, or nil.
       def self.extract_sip_username(request_body)
         to_field = request_body.dig('call', 'to') if request_body.is_a?(Hash)
-        return nil unless to_field.is_a?(String) && to_field.start_with?('sip:')
+        return nil unless to_field.is_a?(String)
 
-        user = to_field.delete_prefix('sip:').split('@', 2).first
-        user && !user.empty? ? user : nil
+        # Python parity: sip: -> username before '@'; tel: -> the number;
+        # otherwise the whole 'to' field is returned.
+        return to_field.delete_prefix('sip:').split('@', 2).first if to_field.start_with?('sip:')
+        return to_field.delete_prefix('tel:') if to_field.start_with?('tel:')
+
+        to_field
       rescue StandardError
         nil
       end
@@ -981,14 +990,14 @@ module SignalWire
         end
 
         def unauthorized
-          body = 'Unauthorized'
+          # Python parity: a JSON {"error":"Unauthorized"} body (not plain text).
           [
             401,
             {
-              'content-type' => 'text/plain',
+              'content-type' => 'application/json',
               'www-authenticate' => 'Basic realm="SignalWire SWML Service"'
             },
-            [body]
+            [JSON.generate('error' => 'Unauthorized')]
           ]
         end
 

@@ -1,0 +1,195 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Copyright (c) 2025 SignalWire
+#
+# Licensed under the MIT License.
+# See LICENSE file in the project root for full license information.
+
+#
+# state-dump — the Ruby port's STATE dump program for the cross-port state
+# differ (porting-sdk/scripts/diff_port_state.py).
+#
+# For each state_corpus case it builds the target object, applies the mutation
+# chain via the Ruby SDK's native API, reads the observable state through the
+# public accessor / rendered representation, and prints ONE JSON object mapping
+#
+#   case-id -> observed-state
+#
+# to stdout. The differ canonicalizes both sides and byte-compares against the
+# Python oracle. Only stdout carries JSON. This mirrors the Go reference dump
+# (signalwire-go/cmd/state-dump/main.go).
+#
+# Run from the signalwire-ruby repo root:
+#
+#   bin/state-dump      (or:  ruby bin/state-dump)
+
+require 'json'
+require_relative '../lib/signalwire'
+require_relative '../lib/signalwire/server/agent_server'
+require_relative '../lib/signalwire/skills/skill_registry'
+require_relative '../lib/signalwire/prefabs/info_gatherer'
+
+def demo_agent
+  SignalWire::AgentBase.new(name: 'demo', route: '/demo')
+end
+
+# ivar reads the requested instance variable — the STATE surface's observable
+# state is read from the same private stores the Python oracle reads
+# (obj._global_data / obj._sip_usernames).
+def ivar(obj, name)
+  obj.instance_variable_get(name)
+end
+
+# submit_answer_delta drives InfoGatherer#handle_submit and reduces the result
+# to the observable delta (mirrors diff_port_state submit_answer_delta): the
+# set_global_data action's question_index + answers, plus a `done` flag derived
+# from the completion message.
+def submit_answer_delta(ig, args, raw_data)
+  result = ig.handle_submit(args, raw_data)
+  h = result.to_h
+  gd = {}
+  Array(h['action']).each do |action|
+    if action.is_a?(Hash) && action.key?('set_global_data')
+      gd = action['set_global_data']
+      break
+    end
+  end
+  {
+    'question_index' => gd['question_index'],
+    'answers' => gd['answers'],
+    'done' => h['response'].to_s.include?('All questions have been answered')
+  }
+end
+
+# GreetVerbHandler is a minimal custom verb handler for the "greet" verb — the
+# Ruby analog of the corpus's throwaway __register_verb__ handler.
+class GreetVerbHandler < SignalWire::SWML::SWMLVerbHandler
+  def get_verb_name = 'greet'
+end
+
+out = {}
+
+# ---- global_data: set MERGES into the accumulated global data ----
+a = demo_agent
+a.set_global_data('company' => 'SignalWire', 'tier' => 'gold')
+out['state_set_global_data'] = ivar(a, :@global_data)
+
+a = demo_agent
+a.update_global_data('k1' => 'v1')
+a.update_global_data('k2' => 'v2')
+out['state_update_global_data'] = ivar(a, :@global_data)
+
+# MERGE semantics: overlapping key wins, sibling survives.
+a = demo_agent
+a.set_global_data('a' => 1, 'b' => 2)
+a.set_global_data('b' => 99, 'c' => 3)
+out['state_global_data_merge'] = ivar(a, :@global_data)
+
+# ---- sip-username registration on AgentBase (lowercased set) ----
+a = demo_agent
+a.register_sip_username('Bob')
+a.register_sip_username('alice')
+out['state_register_sip_username'] = ivar(a, :@sip_usernames).sort
+
+a = demo_agent
+a.register_sip_username('Bob')
+a.register_sip_username('BOB')
+a.register_sip_username('bob')
+out['state_register_sip_username_dedup'] = ivar(a, :@sip_usernames).sort
+
+# ---- AgentServer sip-username mapping (username -> route) + lookup ----
+s = SignalWire::AgentServer.new
+s.setup_sip_routing(auto_map: false)
+s.register_sip_username('Bob', '/agent')
+s.register_sip_username('sales', '/sales')
+out['server_sip_username_mapping'] = {
+  'mapping' => ivar(s, :@sip_routes),
+  'lookup_bob' => s._lookup_sip_route('bob'),
+  'lookup_BOB' => s._lookup_sip_route('BOB'),
+  'lookup_missing' => s._lookup_sip_route('nope')
+}
+
+# unregister removes the agent route from the registry.
+s = SignalWire::AgentServer.new
+s.register(demo_agent, route: '/agent')
+s.register(SignalWire::AgentBase.new(name: 'other', route: '/other'), route: '/other')
+s.unregister('/agent')
+out['server_unregister'] = s.get_agents.keys.sort
+
+# ---- routing-callback registration on SWMLService (path-normalized) ----
+svc = SignalWire::SWML::Service.new(name: 'svc', route: '/svc')
+noop = ->(_body, _headers) {}
+svc.register_routing_callback('/sip/', &noop)
+svc.register_routing_callback('voice', &noop)
+out['state_register_routing_callback'] = ivar(svc, :@routing_callbacks).keys.sort
+
+# ---- verb-handler registration (VerbHandlerRegistry: ai preloaded) ----
+reg = SignalWire::SWML::VerbHandlerRegistry.new
+reg.register_handler(GreetVerbHandler.new)
+out['state_register_verb_handler'] = {
+  'verbs' => ivar(reg, :@handlers).keys.sort,
+  'has_greet' => reg.has_handler('greet'),
+  'has_ai' => reg.has_handler('ai'),
+  'has_missing' => reg.has_handler('nope')
+}
+
+# ---- skill registration (SkillRegistry: name -> factory, idempotent) ----
+# The Ruby SkillRegistry factory store is a class-level singleton eagerly
+# populated with built-ins, whereas the Python oracle reads a fresh instance's
+# self._skills. The observable "register these customs" delta is the set of
+# names added over the pre-existing (built-in) baseline.
+skill_reg = SignalWire::Skills::SkillRegistry.new
+noop_factory = ->(_params = {}) {}
+before = SignalWire::Skills::SkillRegistry.list_skills
+skill_reg.register_skill('custom_alpha', noop_factory)
+skill_reg.register_skill('custom_beta', noop_factory)
+skill_reg.register_skill('custom_alpha', noop_factory) # idempotent
+out['state_register_skill'] = (SignalWire::Skills::SkillRegistry.list_skills - before).sort
+
+# ---- InfoGatherer.submit_answer: records answer + advances index ----
+ig = SignalWire::Prefabs::InfoGatherer.new(questions: [
+                                             { 'key_name' => 'name', 'question_text' => 'What is your name?' },
+                                             { 'key_name' => 'email', 'question_text' => 'What is your email?' }
+                                           ])
+out['infogatherer_submit_answer_first'] = submit_answer_delta(
+  ig, { 'answer' => 'Alice' },
+  { 'global_data' => {
+    'questions' => [
+      { 'key_name' => 'name', 'question_text' => 'What is your name?' },
+      { 'key_name' => 'email', 'question_text' => 'What is your email?' }
+    ],
+    'question_index' => 0, 'answers' => []
+  } }
+)
+
+ig = SignalWire::Prefabs::InfoGatherer.new(questions: [
+                                             { 'key_name' => 'name', 'question_text' => 'What is your name?' },
+                                             { 'key_name' => 'email', 'question_text' => 'What is your email?' }
+                                           ])
+out['infogatherer_submit_answer_last'] = submit_answer_delta(
+  ig, { 'answer' => 'a@b.com' },
+  { 'global_data' => {
+    'questions' => [
+      { 'key_name' => 'name', 'question_text' => 'What is your name?' },
+      { 'key_name' => 'email', 'question_text' => 'What is your email?' }
+    ],
+    'question_index' => 1,
+    'answers' => [{ 'key_name' => 'name', 'answer' => 'Alice' }]
+  } }
+)
+
+# ---- contexts/steps navigation (valid_steps rendered per step) ----
+a = demo_agent
+cb = a.define_contexts
+ctx = cb.add_context('default')
+ctx.add_step('greet').set_text('Greet the caller.').set_valid_steps(['collect'])
+ctx.add_step('collect').set_text('Collect their info.').set_valid_steps(['greet'])
+nav = {}
+cb.to_h.each do |cname, cdoc|
+  steps = cdoc['steps'] || []
+  nav[cname] = steps.map { |st| { 'name' => st['name'], 'valid_steps' => st['valid_steps'] } }
+end
+out['state_contexts_navigation'] = nav
+
+$stdout.puts(JSON.generate(out))

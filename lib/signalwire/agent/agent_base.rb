@@ -1019,9 +1019,15 @@ module SignalWire
     # language_code: is part of the Python-parity signature; the current rule
     # shape doesn't carry it, but the kwarg must stay for surface parity (renaming
     # to _language_code would change the public kwarg name). rubocop:disable below.
-    def add_pronunciation(phrase, pronunciation, language_code: 'en-US') # rubocop:disable Lint/UnusedMethodArgument
-      rule = { 'replace' => phrase, 'with' => pronunciation }
-      rule['ignore_case'] = false
+    # Python parity: add_pronunciation(replace, with_text, ignore_case=False).
+    # The +ignore_case+ key is only emitted when true (matching Python, which
+    # omits it otherwise); +language_code+ is accepted for Ruby back-compat but
+    # is not part of the wire shape.
+    def add_pronunciation(replace, with_text, ignore_case: false, language_code: 'en-US') # rubocop:disable Lint/UnusedMethodArgument
+      return self unless replace && with_text
+
+      rule = { 'replace' => replace, 'with' => with_text }
+      rule['ignore_case'] = true if ignore_case
       @pronounce << rule
       self
     end
@@ -1508,8 +1514,12 @@ module SignalWire
       nil
     end
 
+    # Register a SIP username routed to this agent. Python parity: the
+    # username is lower-cased and stored in a set (case-insensitive dedup),
+    # so "Bob"/"BOB"/"bob" collapse to a single "bob" entry.
     def register_sip_username(username)
-      @sip_usernames << username
+      normalized = username.to_s.downcase
+      @sip_usernames << normalized unless @sip_usernames.include?(normalized)
       self
     end
 
@@ -1803,14 +1813,13 @@ module SignalWire
     end
 
     # @api private
-    def _run_lambda(event, _context)
-      require 'stringio'
-      event ||= {}
-      path = event['path'] || event['rawPath'] || '/'
-      method = event['httpMethod'] || event.dig('requestContext', 'http', 'method') || 'GET'
-      env = rack_env(path: path, method: method, query: '', body: event['body'] || '')
-      status, headers, response_body = rack_app.call(env)
-      { 'statusCode' => Integer(status), 'headers' => headers, 'body' => join_rack_body(response_body) }
+    # Dispatch a Lambda invocation through the full RequestTranslation env
+    # builder so the request HEADERS (Authorization, Content-Type, …) and the
+    # base64/body handling reach the Rack app — a hand-rolled env that dropped
+    # headers made every authenticated serverless request 401.
+    def _run_lambda(event, context)
+      require_relative '../serverless/lambda_handler'
+      SignalWire::Serverless::LambdaHandler.for(self).call(event, context)
     end
 
     # @api private
@@ -2630,13 +2639,16 @@ module SignalWire
       end
 
       def _unauthorized
+        # Python parity (AuthMixin._send_lambda_auth_challenge / the CGI + server
+        # challenges): a JSON {"error":"Unauthorized"} body with a JSON
+        # content-type, not a plain-text "Unauthorized".
         [
           401,
           {
-            'content-type' => 'text/plain',
+            'content-type' => 'application/json',
             'www-authenticate' => 'Basic realm="SignalWire Agent"'
           },
-          ['Unauthorized']
+          [JSON.generate('error' => 'Unauthorized')]
         ]
       end
     end

@@ -1,0 +1,132 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Copyright (c) 2025 SignalWire
+#
+# Licensed under the MIT License.
+# See LICENSE file in the project root for full license information.
+
+#
+# wire-dump — the Ruby port's WIRE-CRYPTO dump program for the cross-port wire
+# differ (porting-sdk/scripts/diff_port_wire.py).
+#
+# It runs the shared wire_crypto corpus against the Ruby SDK's native security
+# module (SessionManager tokens, webhook-signature validation, redact/filter
+# helpers) and prints ONE JSON object mapping
+#
+#   case-id -> observable-artifact
+#
+# to stdout. The differ runs this program, canonicalizes both sides, and
+# byte-compares each entry against the Python oracle. Only stdout carries JSON.
+#
+# The corpus sentinels (__ORACLE_FORMAT_TOKEN__, __TAMPERED_TOKEN__,
+# __ORACLE_SIG__) are materialized here from the fixed per-case SECRET exactly
+# as the oracle materializes them, so the interop/tamper cases are reproducible.
+# This mirrors the Go reference dump (signalwire-go/cmd/wire-dump/main.go).
+#
+# Run from the signalwire-ruby repo root:
+#
+#   bin/wire-dump      (or:  ruby bin/wire-dump)
+
+require 'json'
+require 'base64'
+require 'openssl'
+require_relative '../lib/signalwire/security/session_manager'
+require_relative '../lib/signalwire/security/security_utils'
+require_relative '../lib/signalwire/security/webhook_validator'
+
+SM  = SignalWire::Security::SessionManager
+SU  = SignalWire::Security::SecurityUtils
+WV  = SignalWire::Security::WebhookValidator
+
+# SECRET mirrors wire_crypto_corpus.SECRET ("a" * 64).
+SECRET = 'a' * 64
+
+ORACLE_EXPIRY = 9_999_999_999 # fixed far-future expiry (deterministic)
+ORACLE_NONCE  = '0123456789abcdef' # fixed 16-hex nonce (deterministic)
+
+# oracle_token builds a token in the SDK wire format
+# (call_id.fn.expiry.nonce.sig, urlsafe base64) from the fixed SECRET — the Ruby
+# mirror of diff_port_wire._oracle_token.
+def oracle_token(call_id, func)
+  msg = "#{call_id}:#{func}:#{ORACLE_EXPIRY}:#{ORACLE_NONCE}"
+  sig = OpenSSL::HMAC.hexdigest('SHA256', SECRET, msg)
+  raw = "#{call_id}.#{func}.#{ORACLE_EXPIRY}.#{ORACLE_NONCE}.#{sig}"
+  Base64.urlsafe_encode64(raw)
+end
+
+# tampered_token flips one signature character — the Ruby mirror of
+# _tampered_token (flip the first char of the sig part).
+def tampered_token
+  tok = oracle_token('c', 'f')
+  raw = Base64.urlsafe_decode64(tok)
+  parts = raw.split('.')
+  first = parts[-1][0]
+  parts[-1] = (first == 'f' ? 'e' : 'f') + parts[-1][1..]
+  Base64.urlsafe_encode64(parts.join('.'))
+end
+
+# oracle_sig computes the correct webhook signature: hex(HMAC-SHA1(key, url+body)).
+def oracle_sig(url, body, key)
+  OpenSSL::HMAC.hexdigest('SHA1', key, url + body)
+end
+
+# observe_token_fields decodes a token and returns its wire-format shape.
+def observe_token_fields(token)
+  parts = Base64.urlsafe_decode64(token).split('.')
+  nonce = parts.length > 3 ? parts[3] : ''
+  {
+    'n_fields' => parts.length,
+    'call_id' => parts[0],
+    'function_name' => parts[1],
+    'nonce_len' => nonce.length,
+    'nonce_is_hex' => parts.length > 3 && nonce.chars.all? { |c| '0123456789abcdef'.include?(c) }
+  }
+end
+
+out = {}
+
+# token_format: mint a token via the SDK, decode its fields.
+sm = SM.new(secret_key: SECRET)
+out['token_format'] = observe_token_fields(sm.generate_token('my_func', 'call_1'))
+
+# token_nonce_distinct: two generations must differ (random nonce).
+n1 = sm.generate_token('f', 'c')
+n2 = sm.generate_token('f', 'c')
+out['token_nonce_distinct'] = { 'distinct' => n1 != n2 }
+
+# token_interop: validate an oracle-format token built from SECRET.
+out['token_interop'] = {
+  'valid' => sm.validate_token('oracle_fn', oracle_token('oracle_call', 'oracle_fn'), 'oracle_call')
+}
+
+# token_tamper_rejected: a one-byte-flipped signature must fail.
+out['token_tamper_rejected'] = { 'valid' => sm.validate_token('f', tampered_token, 'c') }
+
+# wire_validate_webhook_signature: correct HMAC-SHA1 -> valid.
+wh_url  = 'https://example.com/hook'
+wh_body = '{"event":"call.created"}'
+out['wire_validate_webhook_signature'] = {
+  'valid' => WV.validate_webhook_signature(SECRET, oracle_sig(wh_url, wh_body, SECRET), wh_url, wh_body)
+}
+# wire_validate_webhook_signature_bad: wrong sig -> invalid.
+bad_sig = 'deadbeef' * 8
+out['wire_validate_webhook_signature_bad'] = {
+  'valid' => WV.validate_webhook_signature(SECRET, bad_sig, wh_url, wh_body)
+}
+
+# redact_url: credentials + token redacted, structure preserved.
+out['wire_redact_url'] = {
+  'redacted' => SU.redact_url('https://user:s3cr3t@api.signalwire.com/path?token=abc')
+}
+
+# filter_sensitive_headers: authorization + x-api-key dropped, content-type kept.
+out['wire_filter_sensitive_headers'] = {
+  'filtered' => SU.filter_sensitive_headers(
+    'Authorization' => 'Bearer x',
+    'X-Api-Key' => 'y',
+    'Content-Type' => 'application/json'
+  )
+}
+
+$stdout.puts(JSON.generate(out))

@@ -320,7 +320,7 @@ signalwire.relay.event.CallingErrorEvent.message: port-only: Ruby attr_reader on
 signalwire.relay.event.CollectEvent.__init__: port-only: Ruby attr_reader on relay event (Python exposes same data as dataclass field)
 signalwire.relay.event.CollectEvent.control_id: port-only: Ruby attr_reader on relay event (Python exposes same data as dataclass field)
 signalwire.relay.event.CollectEvent.final: port-only: Ruby attr_reader on relay event (Python exposes same data as dataclass field)
-signalwire.relay.event.CollectEvent.result_data: port-only: Ruby attr_reader on relay event (Python exposes same data as dataclass field)
+signalwire.relay.event.CollectEvent.result: port-only: Ruby attr_reader on relay event (Python exposes same data as dataclass field)
 signalwire.relay.event.CollectEvent.state: port-only: Ruby attr_reader on relay event (Python exposes same data as dataclass field)
 signalwire.relay.event.ConferenceEvent.__init__: port-only: Ruby attr_reader on relay event (Python exposes same data as dataclass field)
 signalwire.relay.event.ConferenceEvent.conference_id: port-only: Ruby attr_reader on relay event (Python exposes same data as dataclass field)

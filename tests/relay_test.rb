@@ -173,7 +173,7 @@ class RelayEventParsingTest < Minitest::Test
     )
 
     assert_equal 'finished', event.state
-    assert_equal 'digit', event.result_data['type']
+    assert_equal 'digit', event.result['type']
   end
 
   def test_dial_event
