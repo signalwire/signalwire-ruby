@@ -217,6 +217,31 @@ sched_gate EMISSION desc="diff_port_emission vs python oracle" \
     -- python3 "$PORTING_SDK_DIR/scripts/diff_port_emission.py" \
         --dump-cmd "ruby bin/emit-corpus"
 
+sched_gate BEHAVIORAL-WIRE desc="diff_port_wire vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_wire.py" \
+        --port ruby \
+        --dump-cmd "ruby bin/wire-dump"
+
+sched_gate BEHAVIORAL-SWML desc="diff_port_swml vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_swml.py" \
+        --port ruby \
+        --dump-cmd "ruby bin/swml-dump"
+
+sched_gate BEHAVIORAL-STATE desc="diff_port_state vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_state.py" \
+        --port ruby \
+        --dump-cmd "ruby bin/state-dump"
+
+sched_gate BEHAVIORAL-HTTP desc="diff_port_http vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_http.py" \
+        --port ruby \
+        --dump-cmd "ruby bin/http-dump"
+
+sched_gate BEHAVIORAL-WIRE-RELAY desc="diff_port_wire_relay vs python oracle (Layer D)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_wire_relay.py" \
+        --port ruby \
+        --dump-cmd "ruby bin/wire-relay-dump"
+
 sched_gate FMT defer=1 desc="run-format.sh (local: apply; CI: --check)" \
     -- bash scripts/run-format.sh ${CI:+--check}
 
