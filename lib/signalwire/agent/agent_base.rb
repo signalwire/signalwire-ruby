@@ -1478,7 +1478,34 @@ module SignalWire
       @sip_routing_enabled = true
       @sip_auto_map        = auto_map
       @sip_path            = path
+
+      # Python parity (AgentBase.enable_sip_routing): register a routing
+      # callback at +path+ so the served +/sip+ endpoint actually CONSULTS the
+      # SIP mapping. Previously the mapping was stored but never wired into
+      # dispatch (a stored-but-unconsulted mapping). The callback extracts the
+      # SIP username from the request body and returns nil (matched → this agent
+      # handles the call so dispatch renders SWML; unmatched → routing
+      # continues) — exactly Python's sip_routing_callback.
+      register_routing_callback(path) { |body, _headers| _sip_routing_callback(body) }
+
+      auto_map_sip_usernames if auto_map
       self
+    end
+
+    # @api private
+    # SIP routing callback (Python parity: AgentBase.enable_sip_routing's inner
+    # sip_routing_callback). Extracts the SIP username from the body and logs
+    # whether it matched a registered username. Always returns nil: a matched
+    # username is handled by this agent (dispatch renders SWML), an unmatched
+    # one lets routing continue.
+    def _sip_routing_callback(body)
+      username = self.class.extract_sip_username_from_request(body)
+      return nil if username.nil?
+
+      @logger&.info("sip_username_extracted: #{username}")
+      matched = @sip_usernames.map(&:downcase).include?(username.downcase)
+      @logger&.info("sip_username_#{matched ? 'matched' : 'not_matched'}: #{username}")
+      nil
     end
 
     def register_sip_username(username)
@@ -1748,23 +1775,31 @@ module SignalWire
     # @param port [Integer, nil] override bind port (server mode)
     def run(event: nil, context: nil, force_mode: nil, host: nil, port: nil)
       mode = force_mode || _detect_run_mode
+      handler = SERVERLESS_DISPATCH[mode]
+      return handler.call(self, event, context) if handler
 
-      case mode
-      when 'lambda'
-        _run_lambda(event, context)
-      when 'cgi'
-        _run_cgi
-      else
-        serve(host: host, port: port)
-      end
+      serve(host: host, port: port)
     end
 
-    # @api private
-    def _detect_run_mode
-      return 'lambda' if ENV['AWS_LAMBDA_FUNCTION_NAME'] && !ENV['AWS_LAMBDA_FUNCTION_NAME'].empty?
-      return 'cgi'    if ENV['GATEWAY_INTERFACE']
+    # Serverless run-mode dispatch table: mode string → a lambda that invokes
+    # the matching per-platform handler. A mode absent here falls through to
+    # serve() (the long-running HTTP server).
+    SERVERLESS_DISPATCH = {
+      'lambda' => ->(a, event, context) { a._run_lambda(event, context) },
+      'cgi' => ->(a, _event, _context) { a._run_cgi },
+      'google_cloud_function' => ->(a, event, _context) { a._run_gcf(event) },
+      'gcf' => ->(a, event, _context) { a._run_gcf(event) },
+      'azure_function' => ->(a, event, _context) { a._run_azure(event) },
+      'azure' => ->(a, event, _context) { a._run_azure(event) }
+    }.freeze
 
-      'server'
+    # @api private
+    # Detect the serverless execution mode via the canonical
+    # {SignalWire::Runtime.execution_mode} detector (cgi / lambda /
+    # google_cloud_function / azure_function / server), returning the string
+    # form used by +run+.
+    def _detect_run_mode
+      SignalWire::Runtime.execution_mode.to_s
     end
 
     # @api private
@@ -1778,15 +1813,120 @@ module SignalWire
       { 'statusCode' => Integer(status), 'headers' => headers, 'body' => join_rack_body(response_body) }
     end
 
-    # Build a minimal Rack env hash for serverless/CGI invocation.
+    # @api private
+    # Handle a Google Cloud Functions / Cloud Run invocation. GCF hands the
+    # function an HTTP-request-shaped object; we accept either a Hash
+    # (+{ 'method', 'path', 'query', 'body', 'headers' }+ — the framework-free
+    # port idiom) or a Rack-request-like object, translate it into a Rack env,
+    # and return a +{ 'status', 'headers', 'body' }+ response (php-parity
+    # handleGcf shape).
+    def _run_gcf(request)
+      _run_http_serverless(request)
+    end
+
+    # @api private
+    # Handle an Azure Functions invocation. Azure passes an HTTP request
+    # object/dict (method / url / headers / body); translate to a Rack env and
+    # return a +{ 'status', 'headers', 'body' }+ response (php-parity
+    # handleAzure shape).
+    def _run_azure(request)
+      _run_http_serverless(request)
+    end
+
+    # @api private
+    # Shared GCF/Azure request pump: normalise the HTTP-request-shaped input
+    # into a Rack env, invoke the app, and return a +{status,headers,body}+
+    # response hash.
+    def _run_http_serverless(request)
+      require 'stringio'
+      method, path, query, body, headers = _extract_http_request(request)
+      env = rack_env(path: path, method: method, query: query, body: body)
+      _apply_env_headers(env, headers)
+      status, resp_headers, resp_body = rack_app.call(env)
+      { 'status' => Integer(status), 'headers' => resp_headers, 'body' => join_rack_body(resp_body) }
+    end
+
+    # @api private
+    # Normalise a serverless HTTP request (Hash with string/symbol keys, or a
+    # Rack-request-like object) into +[method, path, query, body, headers]+.
+    # For Azure, a full +url+ is split into path + query string.
+    def _extract_http_request(request)
+      req = request || {}
+      method = (_req_field(req, :method, :request_method, :httpMethod) || 'GET').to_s.upcase
+      path, query = _extract_path_and_query(req)
+      [method, path, query, (_req_field(req, :body) || '').to_s, _req_field(req, :headers) || {}]
+    end
+
+    # Resolve [path, query] from a request: the target may be a bare path or a
+    # full URL (Azure); the query may come from a dedicated field or the URL.
+    def _extract_path_and_query(req)
+      path, url_query = _split_url_path((_req_field(req, :path, :url, :rawPath, :request_uri) || '/').to_s)
+      query = (_req_field(req, :query, :query_string, :rawQueryString) || url_query || '').to_s
+      [path, query]
+    end
+
+    # Split a request target into [path, query]. Accepts a bare path
+    # ("/health?x=1") or a full URL ("https://host/health?x=1", as Azure sends)
+    # and returns just the path component + query string.
+    def _split_url_path(raw)
+      if raw.include?('://')
+        require 'uri'
+        parsed = URI.parse(raw)
+        [parsed.path.empty? ? '/' : parsed.path, parsed.query]
+      else
+        raw.split('?', 2)
+      end
+    rescue URI::InvalidURIError
+      raw.split('?', 2)
+    end
+
+    # Look up the first present key (string or symbol) from a Hash, or call the
+    # first matching reader on a request-like object.
+    def _req_field(req, *names)
+      if req.is_a?(Hash)
+        names.each do |n|
+          return req[n.to_s] if req.key?(n.to_s)
+          return req[n] if req.key?(n)
+        end
+      else
+        names.each { |n| return req.public_send(n) if req.respond_to?(n) }
+      end
+      nil
+    end
+
+    # Rack env keys for headers Rack expects unprefixed (not HTTP_*).
+    UNPREFIXED_HEADER_ENV = {
+      'content-type' => 'CONTENT_TYPE', 'content-length' => 'CONTENT_LENGTH'
+    }.freeze
+
+    # Merge request headers (a Hash) into a Rack env as HTTP_* keys, pulling out
+    # CONTENT_TYPE / CONTENT_LENGTH which Rack expects unprefixed.
+    def _apply_env_headers(env, headers)
+      return unless headers.is_a?(Hash)
+
+      headers.each do |name, value|
+        key = name.to_s.downcase
+        env_key = UNPREFIXED_HEADER_ENV[key] || "HTTP_#{key.tr('-', '_').upcase}"
+        env[env_key] = value.to_s
+      end
+    end
+
+    # Build a minimal Rack env hash for serverless/CGI invocation. Includes the
+    # keys Rack::URLMap (used by the mounted rack_app) requires — notably
+    # SCRIPT_NAME, which it string-concatenates, and SERVER_NAME/PORT +
+    # rack.url_scheme for URL construction.
+    # Static Rack env keys that don't depend on the request (Rack::URLMap needs
+    # SCRIPT_NAME; SERVER_* + rack.url_scheme drive URL construction).
+    STATIC_RACK_ENV = {
+      'SCRIPT_NAME' => '', 'SERVER_NAME' => 'serverless', 'SERVER_PORT' => '443',
+      'SERVER_PROTOCOL' => 'HTTP/1.1', 'rack.url_scheme' => 'https'
+    }.freeze
+
     def rack_env(path:, method:, query:, body:)
-      {
-        'PATH_INFO' => path,
-        'REQUEST_METHOD' => method,
-        'QUERY_STRING' => query,
-        'rack.input' => StringIO.new(body),
-        'rack.errors' => $stderr
-      }
+      STATIC_RACK_ENV.merge(
+        'PATH_INFO' => path, 'REQUEST_METHOD' => method, 'QUERY_STRING' => query,
+        'rack.input' => StringIO.new(body), 'rack.errors' => $stderr
+      )
     end
 
     def join_rack_body(body)

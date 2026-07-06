@@ -19413,7 +19413,7 @@
                   "default": null
                 },
                 {
-                  "name": "_opts",
+                  "name": "**",
                   "type": "any",
                   "kind": "var_keyword",
                   "required": false,
@@ -19423,15 +19423,6 @@
               "returns": "void"
             },
             "global_data": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "name": {
               "params": [
                 {
                   "name": "self",
@@ -19486,15 +19477,6 @@
               ],
               "returns": "any"
             },
-            "route": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "set_question_callback": {
               "params": [
                 {
@@ -19530,9 +19512,10 @@
                   "required": true
                 },
                 {
-                  "name": "_raw_data",
-                  "type": "any",
-                  "required": true
+                  "name": "raw_data",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -19549,9 +19532,10 @@
                   "required": true
                 },
                 {
-                  "name": "_raw_data",
-                  "type": "any",
-                  "required": true
+                  "name": "raw_data",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"

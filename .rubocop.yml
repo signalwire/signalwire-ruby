@@ -147,6 +147,9 @@ Metrics/ClassLength:
     - 'lib/signalwire/security/session_manager.rb'
     - 'lib/signalwire/skills/builtin/spider.rb'
     - 'lib/signalwire/prefabs/concierge.rb'
+    # Real functional prefab (subclasses AgentBase, registers tools + a real
+    # submit_answer state machine); 1:1 with Python's InfoGathererAgent surface.
+    - 'lib/signalwire/prefabs/info_gatherer.rb'
 
 # Same surface-bearing-unit rationale as Metrics/ClassLength, for the one
 # module surface that exceeds the threshold.

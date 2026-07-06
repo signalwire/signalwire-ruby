@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 3c1c2472c7a649e13c49b7007f441253b47e8059",
+  "generated_from": "signalwire-ruby @ 6930ac463f6a9267612af664a65bd87f8539c5cd",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -1052,11 +1052,9 @@
         "InfoGathererAgent": [
           "__init__",
           "global_data",
-          "name",
           "on_swml_request",
           "prompt_sections",
           "questions",
-          "route",
           "set_question_callback",
           "start_questions",
           "submit_answer",

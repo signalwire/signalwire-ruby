@@ -372,3 +372,55 @@ class AIConfigChainingTest < Minitest::Test
     assert_same agent, agent.set_post_prompt_llm_params(temperature: 0.5)
   end
 end
+
+# ===========================================================================
+# Behavioral contract #2: set_prompt_llm_params / set_post_prompt_llm_params
+# MERGE (not replace). Python does self._prompt_llm_params.update(params).
+# Two calls with distinct keys must leave BOTH keys present in the rendered
+# SWML — a replace stub would drop the first key.
+# ===========================================================================
+class AIConfigLlmParamsMergeTest < Minitest::Test
+  def prompt_obj(agent)
+    swml = agent.render_swml
+    swml['sections']['main'].find { |v| v.key?('ai') }['ai']['prompt']
+  end
+
+  def post_prompt_obj(agent)
+    swml = agent.render_swml
+    swml['sections']['main'].find { |v| v.key?('ai') }['ai']['post_prompt']
+  end
+
+  def test_set_prompt_llm_params_merges_across_calls
+    agent = SignalWire::AgentBase.new
+    agent.set_prompt_text('hi')
+    agent.set_prompt_llm_params(temperature: 0.5)
+    agent.set_prompt_llm_params(top_p: 0.9)
+
+    prompt = prompt_obj(agent)
+
+    assert_in_delta 0.5, prompt['temperature'], 1e-9, 'first key must survive the second call (merge, not replace)'
+    assert_in_delta 0.9, prompt['top_p'], 1e-9
+  end
+
+  def test_set_post_prompt_llm_params_merges_across_calls
+    agent = SignalWire::AgentBase.new
+    agent.set_prompt_text('hi')
+    agent.set_post_prompt('summarize')
+    agent.set_post_prompt_llm_params(temperature: 0.3)
+    agent.set_post_prompt_llm_params(top_p: 0.8)
+
+    pp = post_prompt_obj(agent)
+
+    assert_in_delta 0.3, pp['temperature'], 1e-9, 'first post-prompt key must survive the second call'
+    assert_in_delta 0.8, pp['top_p'], 1e-9
+  end
+
+  def test_prompt_llm_params_last_write_wins_on_same_key
+    agent = SignalWire::AgentBase.new
+    agent.set_prompt_text('hi')
+    agent.set_prompt_llm_params(temperature: 0.5)
+    agent.set_prompt_llm_params(temperature: 0.2)
+
+    assert_in_delta 0.2, prompt_obj(agent)['temperature'], 1e-9
+  end
+end

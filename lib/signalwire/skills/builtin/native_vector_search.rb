@@ -78,14 +78,22 @@ module SignalWire
         end
 
         def post_search(query, count)
-          uri = URI(@remote_url)
-          params = { query: query, count: count }
+          # Python parity: POST to "<remote_base_url>/search" (the remote_url is
+          # a base URL; the /search endpoint is appended).
+          uri = URI(search_endpoint)
+          params = { query: query, count: count, similarity_threshold: @threshold }
           params[:index_name] = @index_name if @index_name
 
-          req = Net::HTTP::Post.new(uri.path.empty? ? '/' : uri.path)
+          req = Net::HTTP::Post.new(uri.request_uri)
           req['Content-Type'] = 'application/json'
           req.body = params.to_json
           search_http(uri).request(req)
+        end
+
+        # Build "<remote_url>/search", collapsing any duplicate slash between
+        # the base and the endpoint.
+        def search_endpoint
+          "#{@remote_url.chomp('/')}/search"
         end
 
         def search_http(uri)
