@@ -193,7 +193,7 @@
                 },
                 {
                   "name": "callback_fn",
-                  "type": "callable<list<dict<string,any>,dict<string,any>>,optional<string>>",
+                  "type": "callable<list<class:Request,dict<string,any>>,optional<string>>",
                   "required": false,
                   "default": null
                 },
@@ -1475,6 +1475,36 @@
                   "name": "env",
                   "type": "any",
                   "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "handle_request": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "method",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "url",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "headers",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "body",
+                  "type": "any",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -10531,6 +10561,36 @@
                   "name": "_env",
                   "type": "any",
                   "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "handle_request": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "method",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "url",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "headers",
+                  "type": "dict<string,string>",
+                  "required": true
+                },
+                {
+                  "name": "body",
+                  "type": "optional<dict<string,any>>",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"

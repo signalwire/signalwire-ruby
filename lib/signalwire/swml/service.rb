@@ -280,6 +280,185 @@ module SignalWire
         @routing_callbacks[path] = block
       end
 
+      # Framework-free request-dispatch core — the primitive dispatch surface
+      # the SDK ports share (mirrors python
+      # ``SWMLService.handle_request(method, url, headers, body)`` and dotnet's
+      # ``(int, Dictionary, string) HandleRequest``). Performs proxy detection,
+      # basic-auth, the routing-callback check, and the ``on_request``
+      # modification hook over plain primitives instead of the Rack ``env``,
+      # returning a ``[status, headers, body_string]`` triple. The Rack path
+      # (+handle_main_route+) delegates here so both produce identical responses.
+      #
+      # @param method [String] HTTP method, e.g. "GET" / "POST".
+      # @param url [String] the full request URL (proxy detection + callback path).
+      # @param headers [Hash{String=>String}] request headers as a plain Hash.
+      # @param body [Hash, nil] the already-parsed JSON body for POST, or nil.
+      # @return [Array(Integer, Hash{String=>String}, String)]
+      #   +[status_code, response_headers, body_string]+. 200 → a JSON SWML
+      #   document; a routing redirect → 307 with a +Location+ header and empty
+      #   body; an auth failure → 401 with a +WWW-Authenticate: Basic+ header.
+      def handle_request(method, url, headers, body = nil)
+        callback_path = _callback_path_for_url(url)
+        _handle_request_core(method, url, headers, body || {}, callback_path)
+      end
+
+      # Shared decomposed dispatch logic over primitives. Both +handle_request+
+      # and the Rack +handle_main_route+ delegate here so dispatch behavior has a
+      # single source. Returns a +[status, headers, body_string]+ triple.
+      def _handle_request_core(method, url, headers, body, callback_path)
+        _detect_proxy_from_primitives(url, headers)
+        return _unauthorized_triple unless _check_basic_auth_headers(headers)
+
+        redirect = _routing_redirect(method, body, headers, callback_path)
+        return redirect if redirect
+
+        modifications = on_request(body, callback_path)
+        _render_dispatch_triple(modifications)
+      end
+
+      # 401 triple with the standard WWW-Authenticate header.
+      def _unauthorized_triple
+        [401, { 'WWW-Authenticate' => 'Basic' }, JSON.generate('error' => 'Unauthorized')]
+      end
+
+      # Run the routing callback for a POST with a non-empty body on a path that
+      # has one registered; a non-nil return is a redirect route → 307 (preserves
+      # the POST method + body). Returns the 307 triple, or nil to continue.
+      def _routing_redirect(method, body, headers, callback_path)
+        return nil unless method == 'POST' && body && !body.empty? && callback_path
+        return nil unless @routing_callbacks.key?(callback_path)
+
+        route = _invoke_routing_callback(@routing_callbacks[callback_path], body, headers)
+        return nil if route.nil?
+
+        [307, { 'Location' => route }, '']
+      end
+
+      # Invoke a routing callback with +(body, headers)+ (python parity). Blocks
+      # that declare a single parameter still work — arity 1 is called with
+      # +body+ only. Swallows callback errors (parity: a raising callback does not
+      # 500 the request), returning nil so dispatch falls through to render.
+      def _invoke_routing_callback(callback, body, headers)
+        if callback.arity == 1
+          callback.call(body)
+        else
+          callback.call(body, headers)
+        end
+      rescue StandardError => e
+        @log&.error("error_in_routing_callback: #{e.message}")
+        nil
+      end
+
+      # Turn an +on_request+ modification result into the 200 SWML triple. A Hash
+      # of modifications is shallow-merged over the current document; otherwise the
+      # default rendered document is returned.
+      def _render_dispatch_triple(modifications)
+        if modifications.is_a?(Hash) && !modifications.empty?
+          document = get_document
+          modifications.each { |k, v| document[k] = v if document.key?(k) }
+          return [200, {}, JSON.generate(document)]
+        end
+        [200, {}, render_document]
+      end
+
+      # Derive the registered routing-callback path (if any) that +url+ targets.
+      # The Rack path gets the callback path from PATH_INFO directly; the
+      # primitive +handle_request+ recovers the equivalent by matching the URL's
+      # normalized path against the registered callbacks.
+      def _callback_path_for_url(url)
+        return nil if @routing_callbacks.nil? || @routing_callbacks.empty?
+
+        path = _url_path(url)
+        stripped = path.gsub(%r{\A/+|/+\z}, '')
+        normalized = stripped.empty? ? path.chomp('/') : "/#{stripped}"
+        @routing_callbacks.each_key do |cb_path|
+          return cb_path if normalized == cb_path || normalized.end_with?(cb_path)
+        end
+        nil
+      end
+
+      # Extract the path component from a full URL or a bare path.
+      def _url_path(url)
+        if url.include?('://')
+          require 'uri'
+          URI.parse(url).path
+        elsif url.start_with?('/')
+          url.split('?', 2).first
+        else
+          url
+        end
+      rescue URI::InvalidURIError
+        url
+      end
+
+      # Framework-free basic-auth check over a plain headers Hash — the primitive
+      # the Rack TimingSafeBasicAuth and +handle_request+ share. Tolerates common
+      # Authorization header casings.
+      def _check_basic_auth_headers(headers)
+        username, password = _decode_basic_auth(_header_lookup(headers, 'Authorization'))
+        return false if username.nil? || password.nil?
+
+        validate_basic_auth(username, password)
+      rescue StandardError
+        false
+      end
+
+      # Decode a +Basic <base64>+ Authorization header value into a
+      # +[username, password]+ pair, or +[nil, nil]+ when absent/malformed.
+      def _decode_basic_auth(auth)
+        return [nil, nil] if auth.nil? || auth.empty?
+
+        scheme, credentials = auth.split(' ', 2)
+        return [nil, nil] unless scheme&.downcase == 'basic' && credentials
+
+        require 'base64'
+        Base64.decode64(credentials).split(':', 2)
+      end
+
+      # Framework-free proxy detection over a URL + plain headers Hash, mirroring
+      # python's +_detect_proxy_from_primitives+: honor an already-set proxy base,
+      # else auto-configure +@proxy_url_base+ from X-Forwarded-* (then RFC-7239
+      # Forwarded). No-op when neither is present.
+      def _detect_proxy_from_primitives(_url, headers)
+        return if @proxy_url_base && !@proxy_url_base.empty?
+
+        forwarded_host = _header_lookup(headers, 'X-Forwarded-Host')
+        if forwarded_host && !forwarded_host.empty?
+          proto = _header_lookup(headers, 'X-Forwarded-Proto') || 'http'
+          @proxy_url_base = "#{proto}://#{forwarded_host}"
+          return
+        end
+
+        _detect_proxy_from_rfc7239(_header_lookup(headers, 'Forwarded'))
+      end
+
+      # Parse an RFC-7239 +Forwarded: for=..;host=..;proto=..+ header and set the
+      # proxy base from its host/proto directives.
+      def _detect_proxy_from_rfc7239(forwarded)
+        return if forwarded.nil? || forwarded.empty?
+
+        parts = forwarded.split(';').map(&:strip)
+        host  = _rfc7239_directive(parts, 'host')
+        proto = _rfc7239_directive(parts, 'proto') || 'http'
+        @proxy_url_base = "#{proto}://#{host}" if host && !host.empty?
+      end
+
+      # Extract a single +name=value+ directive value (quotes stripped) from a
+      # split RFC-7239 Forwarded header, or nil when absent.
+      def _rfc7239_directive(parts, name)
+        prefix = "#{name}="
+        parts.find { |p| p.start_with?(prefix) }&.delete_prefix(prefix)&.delete('"')
+      end
+
+      # Case-tolerant header lookup over a plain Hash (accepts the header's
+      # conventional casing, its lowercase form, or the Rack HTTP_ env form).
+      def _header_lookup(headers, name)
+        return nil unless headers.is_a?(Hash)
+
+        headers[name] || headers[name.downcase] || headers[name.upcase] ||
+          headers["HTTP_#{name.upcase.tr('-', '_')}"]
+      end
+
       # Customization hook called when SWML is requested. Default
       # delegates to {#on_swml_request} and returns its result.
       # Subclasses typically override +on_swml_request+ rather than
@@ -622,12 +801,12 @@ module SignalWire
       #
       # +request_data+ is the parsed JSON body (or nil). Returns the
       # SWML hash to serialise as the response.
-      def dispatch_request(request_data, callback_path)
+      def dispatch_request(request_data, callback_path, headers = {})
         override = on_request(request_data, callback_path)
         return override if override.is_a?(Hash) && !override.empty?
 
         if @routing_callbacks.key?(callback_path)
-          @routing_callbacks[callback_path].call(request_data)
+          _invoke_routing_callback(@routing_callbacks[callback_path], request_data, headers)
         else
           @document.to_h
         end
@@ -676,8 +855,20 @@ module SignalWire
         return extra if extra
 
         # Fallback: customization hook, routing-callback, then SWML doc.
-        result = dispatch_request(request_data, sub_path)
+        result = dispatch_request(request_data, sub_path, _rack_headers(env))
         [200, { 'content-type' => 'application/json' }, [JSON.generate(result)]]
+      end
+
+      # Extract request headers from a Rack +env+ as a plain Hash of the
+      # conventional header names (so routing callbacks receive the same
+      # +(body, headers)+ shape the primitive +handle_request+ passes).
+      def _rack_headers(env)
+        env.each_with_object({}) do |(k, v), acc|
+          next unless k.is_a?(String) && k.start_with?('HTTP_')
+
+          name = k.delete_prefix('HTTP_').split('_').map(&:capitalize).join('-')
+          acc[name] = v
+        end
       end
 
       # Parse a JSON request body for POST/PUT, returning nil on absence or

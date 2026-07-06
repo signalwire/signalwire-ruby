@@ -1874,6 +1874,51 @@ module SignalWire
       agent._render_swml_internal
     end
 
+    # Framework-free request-dispatch core for AgentBase — overrides
+    # {SWMLService#handle_request} so the primitive dispatch surface renders SWML
+    # via the agent's {#render_swml} (mirroring the Rack +_handle_main_request+
+    # path) instead of the base +render_document+. Performs proxy detection,
+    # basic-auth, the routing-callback check, and the +on_swml_request+
+    # modification hook over plain primitives, returning a
+    # +[status, headers, body_string]+ triple with the 401-auth and 307-redirect
+    # behavior preserved.
+    #
+    # @param method [String] HTTP method, e.g. "GET" / "POST".
+    # @param url [String] the full request URL.
+    # @param headers [Hash{String=>String}] request headers as a plain Hash.
+    # @param body [Hash, nil] the already-parsed JSON body for POST, or nil.
+    # @return [Array(Integer, Hash{String=>String}, String)]
+    def handle_request(method, url, headers, body = nil)
+      body ||= {}
+      callback_path = _callback_path_for_url(url)
+
+      _detect_proxy_from_primitives(url, headers)
+      return _unauthorized_triple unless _check_basic_auth_headers(headers)
+
+      redirect = _routing_redirect(method, body, headers, callback_path)
+      return redirect if redirect
+
+      _agent_render_triple(body, callback_path)
+    end
+
+    # 200 triple rendering agent SWML with any on_swml_request modifications
+    # shallow-merged in. Split out of {#handle_request} for clarity.
+    def _agent_render_triple(body, callback_path)
+      modifications = _agent_on_swml_request(body, callback_path)
+      swml = render_swml(body)
+      swml = swml.merge(modifications) if modifications.is_a?(Hash)
+      [200, {}, JSON.generate(swml)]
+    end
+
+    # Call +on_swml_request+ for the primitive path (parity: a raising modifier
+    # does not 500 the request), returning its modifications or nil.
+    def _agent_on_swml_request(body, callback_path)
+      on_swml_request(body, callback_path, request: nil)
+    rescue StandardError => e
+      @log&.error("error_in_request_modifier: #{e.message}")
+      nil
+    end
+
     def apply_dynamic_config(request_data, request)
       agent = _create_ephemeral_copy
       query_params = request ? _parse_query_string(request) : {}

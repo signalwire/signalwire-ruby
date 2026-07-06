@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 34ce453bb9cfa98d66c671e5be5283dd8a563827",
+  "generated_from": "signalwire-ruby @ 3c1c2472c7a649e13c49b7007f441253b47e8059",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -118,6 +118,7 @@
           "get_name",
           "get_raw_prompt",
           "handle_additional_route",
+          "handle_request",
           "list_tool_names",
           "logger",
           "native_functions",
@@ -769,6 +770,7 @@
           "get_full_url",
           "get_function",
           "handle_additional_route",
+          "handle_request",
           "has_function",
           "host",
           "list_tool_names",
