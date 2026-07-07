@@ -6,6 +6,7 @@
 # different answer types (rating, open-ended, yes/no).
 
 require 'signalwire'
+require 'signalwire/prefabs/survey'  # opt-in subsystem (Python: from signalwire.prefabs import ...)
 
 # Create the Survey prefab
 survey = SignalWire::Prefabs::Survey.new(

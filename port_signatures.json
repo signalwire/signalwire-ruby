@@ -10334,6 +10334,63 @@
               ],
               "returns": "void"
             },
+            "add_section": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "section_name",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "add_verb": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "verb_name",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "config",
+                  "type": "union<dict<string,any>,int>",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "add_verb_to_section": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "section_name",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "verb_name",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "config",
+                  "type": "union<dict<string,any>,int>",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
             "all_functions": {
               "params": [
                 {
@@ -11062,63 +11119,6 @@
                 {
                   "name": "self",
                   "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "add_section": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "section_name",
-                  "type": "string",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "add_verb": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "verb_name",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "config",
-                  "type": "union<dict<string,any>,int>",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "add_verb_to_section": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                },
-                {
-                  "name": "section_name",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "verb_name",
-                  "type": "string",
-                  "required": true
-                },
-                {
-                  "name": "config",
-                  "type": "union<dict<string,any>,int>",
-                  "required": true
                 }
               ],
               "returns": "any"
@@ -28598,7 +28598,7 @@
                 },
                 {
                   "name": "agent_id",
-                  "type": "class:signalwire.rest.namespaces.fabric_types_generated.uuid",
+                  "type": "optional<class:signalwire.rest.namespaces.fabric_types_generated.uuid>",
                   "kind": "keyword",
                   "required": false,
                   "default": null
@@ -30483,7 +30483,7 @@
                 },
                 {
                   "name": "id",
-                  "type": "class:signalwire.rest.namespaces.fabric_types_generated.uuid",
+                  "type": "optional<class:signalwire.rest.namespaces.fabric_types_generated.uuid>",
                   "kind": "keyword",
                   "required": false,
                   "default": null
@@ -37590,8 +37590,8 @@
                   "kind": "self"
                 },
                 {
-                  "name": "section_name",
-                  "type": "string",
+                  "name": "name",
+                  "type": "any",
                   "required": true
                 }
               ],
@@ -37605,12 +37605,12 @@
                 },
                 {
                   "name": "verb_name",
-                  "type": "string",
+                  "type": "any",
                   "required": true
                 },
                 {
                   "name": "config",
-                  "type": "union<dict<string,any>,int>",
+                  "type": "any",
                   "required": true
                 }
               ],
@@ -37623,18 +37623,18 @@
                   "kind": "self"
                 },
                 {
-                  "name": "section_name",
-                  "type": "string",
+                  "name": "section",
+                  "type": "any",
                   "required": true
                 },
                 {
                   "name": "verb_name",
-                  "type": "string",
+                  "type": "any",
                   "required": true
                 },
                 {
                   "name": "config",
-                  "type": "union<dict<string,any>,int>",
+                  "type": "any",
                   "required": true
                 }
               ],

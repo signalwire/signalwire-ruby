@@ -30,6 +30,9 @@ require_relative 'signalwire/skills/skill_base'
 require_relative 'signalwire/skills/skill_manager'
 require_relative 'signalwire/skills/skill_registry'
 require_relative 'signalwire/agent/agent_base'
+# AgentServer is top-level public API (Python: ``from signalwire import
+# AgentServer``); expose it via ``require 'signalwire'``.
+require_relative 'signalwire/server/agent_server'
 require_relative 'signalwire/core/agent/prompt/manager'
 require_relative 'signalwire/core/agent/tools/registry'
 require_relative 'signalwire/core/agent/tools/type_inference'

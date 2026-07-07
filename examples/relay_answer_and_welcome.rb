@@ -12,6 +12,7 @@
 #   SIGNALWIRE_SPACE        - your SignalWire space
 
 require 'signalwire'
+require 'signalwire/relay/client'  # opt-in subsystem (Python: from signalwire.relay import RelayClient)
 
 client = SignalWire::Relay::Client.new(contexts: ['default'])
 

@@ -6,6 +6,7 @@
 # pre-defined knowledge base and logs conversation summaries.
 
 require 'signalwire'
+require 'signalwire/prefabs/faq_bot'  # opt-in subsystem (Python: from signalwire.prefabs import ...)
 
 faqs = [
   {

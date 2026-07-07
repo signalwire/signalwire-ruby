@@ -534,6 +534,46 @@ module SignalWire
         self
       end
 
+      # Add a verb to the main section of the current document. Mirrors
+      # Python SWMLService.add_verb(verb_name, config).
+      #
+      # The +sleep+ verb accepts a bare Integer; every other verb takes a
+      # config Hash. Config is validated (specialized handler if registered,
+      # otherwise the schema validator) and a SchemaValidationError is raised
+      # on failure. Returns true on success, false when +config+ is neither a
+      # Hash nor a valid direct value.
+      def add_verb(verb_name, config)
+        verb_name = verb_name.to_s
+        return @document.add_verb(verb_name, config) if sleep_direct?(verb_name, config)
+        return false unless verb_config_valid!(verb_name, config)
+
+        @document.add_verb(verb_name, config)
+      end
+
+      # Add a new (empty) section to the current document. Mirrors Python
+      # SWMLService.add_section(section_name). Returns false if it already
+      # exists, true otherwise.
+      def add_section(section_name)
+        @document.add_section(section_name.to_s)
+      end
+
+      # Add a verb to a specific section. Mirrors Python
+      # SWMLService.add_verb_to_section(section_name, verb_name, config). The
+      # +sleep+ verb accepts a bare Integer; other verbs take a config Hash
+      # (validated as in {#add_verb}).
+      def add_verb_to_section(section_name, verb_name, config)
+        section_name = section_name.to_s
+        verb_name    = verb_name.to_s
+
+        # Parity: Python auto-creates the section if it doesn't exist.
+        @document.add_section(section_name) unless @document.has_section?(section_name)
+
+        return @document.add_verb_to_section(section_name, verb_name, config) if sleep_direct?(verb_name, config)
+        return false unless verb_config_valid!(verb_name, config)
+
+        @document.add_verb_to_section(section_name, verb_name, config)
+      end
+
       # Register a custom verb handler with this service's registry. Mirrors
       # register_verb_handler(handler) — delegates to the VerbHandlerRegistry.
       def register_verb_handler(handler)
@@ -649,6 +689,38 @@ module SignalWire
       private
 
       # ------------------------------------------------------------------
+
+      # Whether this is the +sleep+ verb passed a bare Integer duration
+      # (the one verb that takes a direct value instead of a config Hash).
+      def sleep_direct?(verb_name, config)
+        verb_name == 'sleep' && config.is_a?(Integer)
+      end
+
+      # Validate a verb config Hash (specialized handler if registered, else
+      # the schema validator). Returns false and logs when +config+ is not a
+      # Hash; raises SchemaValidationError when validation fails; returns true
+      # when valid.
+      def verb_config_valid!(verb_name, config)
+        unless config.is_a?(Hash)
+          @log.warn "invalid_config_type verb=#{verb_name} expected=Hash got=#{config.class}"
+          return false
+        end
+
+        is_valid, errors = validate_verb_config(verb_name, config)
+        raise ::SignalWire::Utils::SchemaValidationError.new(verb_name, errors) unless is_valid
+
+        true
+      end
+
+      # Run the verb config through a registered specialized handler when one
+      # exists, otherwise the schema validator. Returns [is_valid, errors].
+      def validate_verb_config(verb_name, config)
+        if verb_registry.has_handler(verb_name)
+          verb_registry.get_handler(verb_name).validate_config(config)
+        else
+          schema_utils.validate_verb(verb_name, config)
+        end
+      end
 
       # Construct the WEBrick server, mount the Rack app, and install the
       # INT/TERM shutdown traps.
