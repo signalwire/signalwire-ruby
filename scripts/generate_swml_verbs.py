@@ -132,20 +132,25 @@ def build_outputs(psdk: Path) -> dict:
     outs: dict = {}
     emitted_names: set = set()
 
-    def emit(rb_name: str, props: dict, desc: str) -> None:
+    def emit(rb_name: str, props: dict, desc: str, spec_schema_name: "str | None" = None) -> None:
         if rb_name in emitted_names:
             return
         emitted_names.add(rb_name)
         fn = "/".join(SWML_VERBS_SUBDIR) + f"/{GR.snake(rb_name)}.rb"
+        # Pass the SPEC schema name (the schema.json $defs key, e.g. 'AIParams') + psdk so
+        # emit_methodless_class can consult x-sdk-overlay.yaml (hidden/deprecated). Scoped
+        # by the spec name, NOT the emitted Ruby class name. Synthetic <Verb>Config classes
+        # have no spec name (None) — the overlay's AIParams-scoped rules never match them.
         outs[fn] = GR.emit_methodless_class(SWML_VERBS_MODULE, rb_name, props, desc,
-                                            emit_readers=True)
+                                            emit_readers=True,
+                                            spec_schema_name=spec_schema_name, psdk=psdk)
 
     # 1. One data class per OBJECT $defs schema.
     for raw_name, node in defs.items():
         if not isinstance(node, dict) or not GR.is_object_schema(node):
             continue
         emit(GR.type_name(raw_name), node.get("properties") or {},
-             f"schema.json $defs schema {raw_name!r}")
+             f"schema.json $defs schema {raw_name!r}", spec_schema_name=raw_name)
 
     # 2. One <Verb>Config class per flattenable SWMLMethod.anyOf verb.
     sm = defs.get("SWMLMethod")

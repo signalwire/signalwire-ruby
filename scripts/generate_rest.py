@@ -69,6 +69,57 @@ except ImportError:  # pragma: no cover
     raise
 
 
+# ---------------------------------------------------------------------------
+# SDK-surface policy overlay (rest-apis/x-sdk-overlay.yaml) — the SINGLE
+# authoritative source for which spec fields the SDKs hide or deprecate. It is a
+# policy overlay, NOT wire truth / markup in the (often vendored) specs, so the
+# same field is governed once and applied wherever it surfaces (schema.json
+# $defs/AIParams for swml-verbs + the calling/fabric REST projections). Each rule
+# matches by (field name, containing SPEC schema name): `scope` is compared to the
+# schema's name AS IT APPEARS IN THE SPEC (the $defs / components.schemas key) — NOT
+# the Ruby class name this generator later emits — so one scope value works cross-port.
+#   - hidden:     DROP the field from the SDK surface entirely (still on the wire).
+#   - deprecated: EMIT the field but flag it deprecated (a `# deprecated:` comment).
+# _overlay_cache holds {"hidden": set, "deprecated": set} of (field, scope-or-None).
+_overlay_cache: "dict[str, set[tuple[str, str | None]]] | None" = None
+
+
+def _load_overlay(psdk: Path) -> "dict[str, set[tuple[str, str | None]]]":
+    global _overlay_cache
+    if _overlay_cache is None:
+        def rules(key: str, data: dict) -> "set[tuple[str, str | None]]":
+            out: set[tuple[str, str | None]] = set()
+            for entry in data.get(key) or []:
+                if isinstance(entry, dict) and entry.get("field"):
+                    out.add((entry["field"], entry.get("scope")))
+            return out
+        path = psdk / "rest-apis" / "x-sdk-overlay.yaml"
+        data = yaml.safe_load(path.read_text()) if path.is_file() else {}
+        data = data or {}
+        _overlay_cache = {"hidden": rules("hidden", data),
+                          "deprecated": rules("deprecated", data)}
+    return _overlay_cache
+
+
+def _overlay_match(rules: "set[tuple[str, str | None]]", field: str,
+                   schema_name: "str | None") -> bool:
+    # A rule matches when its field equals `field` AND (it is unscoped OR its scope
+    # equals the containing SPEC schema name — the $defs / components.schemas key,
+    # NOT the emitted Ruby class name).
+    for rf, scope in rules:
+        if rf == field and (scope is None or scope == schema_name):
+            return True
+    return False
+
+
+def overlay_hidden(field: str, schema_name: "str | None", psdk: Path) -> bool:
+    return _overlay_match(_load_overlay(psdk)["hidden"], field, schema_name)
+
+
+def overlay_deprecated(field: str, schema_name: "str | None", psdk: Path) -> bool:
+    return _overlay_match(_load_overlay(psdk)["deprecated"], field, schema_name)
+
+
 # The 12 real REST spec directories (registry has no own dir — its resources
 # live inside relay-rest via namespace: registry; swml-webhooks is types-only).
 SPEC_DIRS = [
@@ -1314,8 +1365,12 @@ def _wire_field_type_symbol(psc: dict) -> str:
     return ":any"
 
 
-def emit_type_class(ns_mod: str, raw_name: str, node: dict, ns_key: str) -> str:
-    """Emit one method-less Ruby data class for an object schema."""
+def emit_type_class(ns_mod: str, raw_name: str, node: dict, ns_key: str,
+                    psdk: "Path | None" = None) -> str:
+    """Emit one method-less Ruby data class for an object schema.
+
+    ``raw_name`` is the SPEC schema name (the components/schemas key) — that, not the
+    emitted Ruby class name, is what the x-sdk-overlay policy is scoped by."""
     rb_name = type_name(raw_name)
     lines: list[str] = []
     lines.append("module SignalWire")
@@ -1332,11 +1387,19 @@ def emit_type_class(ns_mod: str, raw_name: str, node: dict, ns_key: str) -> str:
     lines.append("            # initialize — the reference records this as a method-less type")
     lines.append("            # definition, so the surface enumerator surfaces the bare class name.")
     lines.append(f"            class {rb_name}")
-    props = node.get("properties") or {}
+    # SDK-surface policy from the single overlay (rest-apis/x-sdk-overlay.yaml), keyed by
+    # the SPEC schema name (raw_name, the components/schemas key — NOT the emitted Ruby
+    # class name): hidden fields dropped entirely, deprecated fields flagged.
+    props = {
+        k: v for k, v in (node.get("properties") or {}).items()
+        if not (psdk and overlay_hidden(k, raw_name, psdk))
+    }
     if props:
         lines.append("              FIELDS = {")
         for wire_key, psc in props.items():
             sym = _wire_field_type_symbol(psc if isinstance(psc, dict) else {})
+            if psdk and overlay_deprecated(wire_key, raw_name, psdk):
+                lines.append(f"                # deprecated: {wire_key}")
             lines.append(f"                {rb_str(wire_key)} => {sym},")
         lines.append("              }.freeze")
     else:
@@ -1430,7 +1493,9 @@ def _reader_name(wire_key: str) -> str:
 
 
 def emit_methodless_class(module_segments: list, rb_name: str, properties: dict,
-                          source_desc: str, emit_readers: bool = False) -> str:
+                          source_desc: str, emit_readers: bool = False,
+                          spec_schema_name: "str | None" = None,
+                          psdk: "Path | None" = None) -> str:
     """Emit one generated Ruby data class under an ARBITRARY nested module path,
     carrying a frozen FIELDS constant that maps each snake wire key to its JSON
     type symbol. Shared by the REST wire-type emitter and the SWML-verbs /
@@ -1470,16 +1535,30 @@ def emit_methodless_class(module_segments: list, rb_name: str, properties: dict,
         lines.append(f"{indent}# reference records method-less on both surface and signatures.")
     lines.append(f"{indent}class {rb_name}")
     inner = indent + "  "
-    if properties:
+    # SDK-surface policy from the single overlay (rest-apis/x-sdk-overlay.yaml), keyed
+    # by the SPEC schema name (spec_schema_name) — hidden fields are dropped entirely
+    # (FIELDS + reader), deprecated fields are emitted with a `# deprecated:` marker.
+    # Only applied when the caller passes the spec name + psdk (swml-verbs does; the
+    # relay-protocol / swaig-payload callers don't and are unaffected).
+    def _hidden(k: str) -> bool:
+        return bool(spec_schema_name and psdk and overlay_hidden(k, spec_schema_name, psdk))
+
+    def _deprecated(k: str) -> bool:
+        return bool(spec_schema_name and psdk and overlay_deprecated(k, spec_schema_name, psdk))
+
+    props_kept = {k: v for k, v in (properties or {}).items() if not _hidden(k)}
+    if props_kept:
         lines.append(f"{inner}FIELDS = {{")
-        for wire_key, psc in properties.items():
+        for wire_key, psc in props_kept.items():
             sym = _wire_field_type_symbol(psc if isinstance(psc, dict) else {})
+            if _deprecated(wire_key):
+                lines.append(f"{inner}  # deprecated: {wire_key}")
             lines.append(f"{inner}  {rb_str(wire_key)} => {sym},")
         lines.append(f"{inner}}}.freeze")
         if emit_readers:
             readers: list[str] = []
             used: set = set()
-            for wire_key in properties:
+            for wire_key in props_kept:
                 r = _reader_name(wire_key)
                 while r in used:
                     r += "_"
@@ -1531,7 +1610,7 @@ def emit_types(psdk: Path, outs: dict) -> None:
                 # First-seen wins within a namespace (names don't collide inside one
                 # spec's components.schemas — verified; guard is belt-and-braces).
                 if fn not in outs:
-                    outs[fn] = emit_type_class(ns_mod, raw_name, node, ns_key)
+                    outs[fn] = emit_type_class(ns_mod, raw_name, node, ns_key, psdk)
 
 
 # ---------------------------------------------------------------------------
