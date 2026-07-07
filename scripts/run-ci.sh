@@ -165,6 +165,23 @@ surface_diff_gate() {
     return $check_rc
 }
 
+# ARTIFACT-DENY — no porting artifact may ship inside the PUBLISHED gem. The
+# git-ls-files proxy over-reports in-repo-but-unpublished files; feed the REAL
+# gem's file listing to --listing instead. A .gem is a tar wrapping data.tar.gz
+# (the actual shipped files), so build the gem into repo-local scratch and unpack
+# data.tar.gz's listing.
+dayone_artifact_deny() {
+    local gem="$PORT_ROOT/.sw-tmp/artifact_deny.gem"
+    gem build "$PORT_ROOT"/*.gemspec -o "$gem" >/dev/null 2>&1 || {
+        echo "gem build failed" >&2; return 1
+    }
+    tar xOf "$gem" data.tar.gz | tar tzf - 2>/dev/null \
+        | python3 "$PORTING_SDK_DIR/scripts/artifact_deny.py" --port ruby --repo . --listing -
+    local rc=$?
+    rm -f "$gem"
+    return $rc
+}
+
 # ---- register gates ----------------------------------------------------------
 sched_init "$@"
 
@@ -272,6 +289,24 @@ sched_gate SWAIG-CLI desc="swaig-test shared mini-contract (verbs/serverless-rej
         --serverless-argv='AGENT_FILE_PLACEHOLDER|--simulate-serverless|bogus-platform-xyz|--dump-swml' \
         --agent-file-suffix '.rb' \
         --agent-file-content "require 'signalwire'; AGENT = SignalWire::AgentBase.new(name: 'p', route: '/'); AGENT.set_prompt_text('hi')"
+
+sched_gate DOC-LANG-PURITY res=dayone desc="no python-verbatim docs in a non-python port" \
+    -- python3 "$PORTING_SDK_DIR/scripts/doc_lang_purity.py" --port ruby --repo .
+
+sched_gate DOC-LINKS res=dayone desc="every relative markdown link resolves to a tracked file" \
+    -- python3 "$PORTING_SDK_DIR/scripts/doc_links.py" --port ruby --repo .
+
+sched_gate ROOT-HYGIENE res=dayone desc="no audit/scratch clutter tracked at repo root (allowlist ROOT_HYGIENE_ALLOW.md)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/root_hygiene.py" --port ruby --repo .
+
+sched_gate IGNORE-LEDGER-VERIFY res=dayone desc="no laundered false-absence entries in DOC_AUDIT_IGNORE.md" \
+    -- python3 "$PORTING_SDK_DIR/scripts/ignore_ledger_verify.py" --port ruby --repo .
+
+sched_gate META-CONSISTENT res=dayone desc="package metadata consistency" \
+    -- python3 "$PORTING_SDK_DIR/scripts/meta_consistent.py" --port ruby --repo .
+
+sched_gate ARTIFACT-DENY res=dayone desc="no porting artifacts in the PUBLISHED package (authoritative listing)" \
+    --fn dayone_artifact_deny
 
 sched_run
 rc=$?
