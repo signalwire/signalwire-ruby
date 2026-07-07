@@ -45,26 +45,11 @@ NODE = 'node-abc'
 CALL = 'call-xyz'
 CID  = 'ctl-123'
 
-# RecordingCall overrides _execute to capture the {method, params} frame — the
-# Ruby mirror of the differ's _RecordingCall.
-class RecordingCall < R::Call
-  attr_reader :frames
-
-  def initialize(*args, **kwargs)
-    @frames = []
-    super
-  end
-
-  def _execute(method, extra_params = nil)
-    params = { 'node_id' => @node_id, 'call_id' => @call_id }
-    params.merge!(extra_params) if extra_params
-    @frames << { 'method' => "calling.#{method}", 'params' => params }
-    { 'code' => '200' } # canned success so _start_action registers cleanly
-  end
-end
-
-# RecordingClient overrides execute to capture the {method, params} frame — the
-# Ruby mirror of the differ's _RecordingClient.
+# RecordingClient overrides execute to capture the {method, params} frame at the
+# CLIENT-SEND boundary — the Ruby mirror of the differ's _RecordingClient. A Call
+# verb is only observed if it actually transmits (Call#_execute -> @client.execute):
+# a verb that builds a frame but never reaches the client records NOTHING here and
+# fails the differ. This is the transmission-observation contract.
 class RecordingClient < R::Client
   attr_reader :frames
 
@@ -82,9 +67,17 @@ class RecordingClient < R::Client
   end
 end
 
+# new_call builds a REAL Call attached to a recording client, so a verb's frame is
+# captured only when the verb transmits through Call#_execute -> @client.execute
+# (not from any in-memory record). Frames are read from the call's client.
 def new_call
-  RecordingCall.new(nil, call_id: CALL, node_id: NODE, project_id: 'proj-1',
-                         context: 'ctx', state: 'answered')
+  client = RecordingClient.new(project: 'proj-1', token: 'tok-1', host: 'mock')
+  call = R::Call.new(client, call_id: CALL, node_id: NODE, project_id: 'proj-1',
+                             context: 'ctx', state: 'answered')
+  # Expose the client's captured frames on the call so the corpus reads
+  # c.frames.last as before (now sourced from the client-send boundary).
+  call.define_singleton_method(:frames) { client.frames }
+  call
 end
 
 def frame(method, params)
