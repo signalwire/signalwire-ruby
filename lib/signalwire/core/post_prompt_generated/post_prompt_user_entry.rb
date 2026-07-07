@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+# rubocop:disable Layout/LineLength
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # post-prompt components/schemas 'PostPromptUserEntry'
@@ -30,27 +35,12 @@ module SignalWire
           'merge_count' => :integer,
           'entity' => :object,
           'eot' => :object,
-          'timing' => :object,
+          'timing' => :object
         }.freeze
 
-        attr_reader :role
-        attr_reader :content
-        attr_reader :timestamp
-        attr_reader :confidence
-        attr_reader :content_type
-        attr_reader :speaker
-        attr_reader :start_timestamp
-        attr_reader :end_timestamp
-        attr_reader :speaking_to_final_event
-        attr_reader :speaking_to_turn_detection
-        attr_reader :turn_detection_to_final_event
-        attr_reader :barge_count
-        attr_reader :merged
-        attr_reader :merge_count
-        attr_reader :entity
-        attr_reader :eot
-        attr_reader :timing
+        attr_reader :role, :content, :timestamp, :confidence, :content_type, :speaker, :start_timestamp, :end_timestamp, :speaking_to_final_event, :speaking_to_turn_detection, :turn_detection_to_final_event, :barge_count, :merged, :merge_count, :entity, :eot, :timing
       end
     end
   end
 end
+# rubocop:enable Layout/LineLength

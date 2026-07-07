@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # swaig-response action 'context_switch' value object
@@ -19,7 +23,7 @@ module SignalWire
           'system_pom' => :any,
           'user_pom' => :any,
           'consolidate' => :boolean,
-          'full_reset' => :boolean,
+          'full_reset' => :boolean
         }.freeze
       end
     end

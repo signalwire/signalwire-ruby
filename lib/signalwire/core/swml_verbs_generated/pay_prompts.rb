@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # schema.json $defs schema 'PayPrompts'
@@ -18,14 +22,10 @@ module SignalWire
           'for' => :string,
           'attempts' => :string,
           'card_type' => :string,
-          'error_type' => :string,
+          'error_type' => :string
         }.freeze
 
-        attr_reader :actions
-        attr_reader :for
-        attr_reader :attempts
-        attr_reader :card_type
-        attr_reader :error_type
+        attr_reader :actions, :for, :attempts, :card_type, :error_type
       end
     end
   end

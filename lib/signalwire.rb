@@ -54,16 +54,15 @@ module SignalWire
 
   # Construct a {SignalWire::REST::RestClient} instance.
   #
-  # Mirrors Python's top-level ``signalwire.RestClient(*args, **kwargs)``
-  # factory — a thin wrapper that lazy-imports
-  # ``signalwire.rest.RestClient`` and instantiates it. Supports both
-  # positional credentials (matching Go-style ``RestClient(project,
-  # token, host)``) and keyword credentials (Ruby-idiomatic).
+  # A thin top-level factory that lazy-requires and instantiates
+  # {SignalWire::REST::RestClient}. Supports both positional credentials
+  # (``RestClient(project, token, host)``) and keyword credentials
+  # (Ruby-idiomatic).
   #
   # @param args [Array<String>] Positional credentials (compat shim).
   # @param kwargs [Hash] Keyword credentials forwarded to the constructor.
   # @return [SignalWire::REST::RestClient]
-  # rubocop:disable Naming/MethodName -- parity: mirrors Python's top-level signalwire.RestClient() factory; renaming breaks the public surface oracle
+  # rubocop:disable Naming/MethodName -- mirrors the top-level RestClient() factory; renaming breaks the public API
   def RestClient(*args, **kwargs)
     require_relative 'signalwire/rest/rest_client'
     if args.length >= 3 && kwargs.empty?

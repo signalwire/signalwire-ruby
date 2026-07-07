@@ -144,8 +144,8 @@ module SignalWire
         swaig_config
       end
 
-      # Render a document Hash as YAML (parity with the reference's optional yaml
-      # branch). Ruby's stdlib +yaml+ is always available.
+      # Render a document Hash as YAML. Ruby's stdlib +yaml+ is always
+      # available.
       def self.render_yaml(doc)
         require 'yaml'
         YAML.dump(doc)

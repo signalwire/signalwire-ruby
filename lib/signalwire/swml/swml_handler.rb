@@ -18,9 +18,9 @@ module SignalWire
     # Base interface for SWML verb handlers.
     #
     # Verb handlers provide specialized logic for complex SWML verbs that cannot
-    # be handled generically. Python parity: the abstract SWMLVerbHandler ABC.
-    # Ruby has no ABCs; the base methods raise NotImplementedError so a subclass
-    # that forgets to override them fails loudly (the analog of @abstractmethod).
+    # be handled generically. This is an abstract base: the base methods raise
+    # NotImplementedError so a subclass that forgets to override them fails
+    # loudly.
     class SWMLVerbHandler
       # Get the name of the verb this handler handles.
       #
@@ -82,7 +82,7 @@ module SignalWire
       # Requires exactly one of +prompt_text+ / +prompt_pom+ (mutually
       # exclusive). +languages+, +hints+, +pronounce+ and +global_data+ are
       # placed at the top level; every other extra keyword is placed into
-      # +config['params']+ (Python parity).
+      # +config['params']+.
       #
       # @param prompt_text [String, nil] base text prompt
       # @param prompt_pom [Array<Hash>, nil] POM structure prompt
@@ -107,7 +107,7 @@ module SignalWire
         config
       end
 
-      # Top-level AI keys that live outside the params object (Python parity).
+      # Top-level AI keys that live outside the params object.
       TOP_LEVEL_AI_KEYS = %i[languages hints pronounce global_data].freeze
 
       private
@@ -141,7 +141,7 @@ module SignalWire
       end
 
       # Route extra kwargs: recognised top-level keys stay at the top level,
-      # everything else drops into config['params'] (Python parity).
+      # everything else drops into config['params'].
       def route_extra_kwargs(config, kwargs)
         kwargs.each do |key, value|
           if TOP_LEVEL_AI_KEYS.include?(key)
@@ -157,7 +157,7 @@ module SignalWire
     #
     # Maintains a registry of handlers for special SWML verbs and provides
     # methods for accessing them. The "ai" verb handler is registered
-    # automatically on construction (Python parity).
+    # automatically on construction.
     class VerbHandlerRegistry
       # Initialize the registry with default handlers.
       def initialize

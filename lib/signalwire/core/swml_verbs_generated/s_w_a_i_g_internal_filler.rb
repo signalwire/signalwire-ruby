@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+# rubocop:disable Layout/LineLength
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # schema.json $defs schema 'SWAIGInternalFiller'
@@ -22,19 +27,12 @@ module SignalWire
           'next_step' => :object,
           'change_context' => :object,
           'get_visual_input' => :object,
-          'get_ideal_strategy' => :object,
+          'get_ideal_strategy' => :object
         }.freeze
 
-        attr_reader :hangup
-        attr_reader :check_time
-        attr_reader :wait_for_user
-        attr_reader :wait_seconds
-        attr_reader :adjust_response_latency
-        attr_reader :next_step
-        attr_reader :change_context
-        attr_reader :get_visual_input
-        attr_reader :get_ideal_strategy
+        attr_reader :hangup, :check_time, :wait_for_user, :wait_seconds, :adjust_response_latency, :next_step, :change_context, :get_visual_input, :get_ideal_strategy
       end
     end
   end
 end
+# rubocop:enable Layout/LineLength

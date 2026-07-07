@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+# rubocop:disable Layout/LineLength
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # post-prompt components/schemas 'PostPromptSwaigLogEntry'
@@ -26,23 +31,12 @@ module SignalWire
           'mcp_url' => :string,
           'mcp_tool' => :string,
           'mcp_response' => :object,
-          'mcp_error' => :string,
+          'mcp_error' => :string
         }.freeze
 
-        attr_reader :command_name
-        attr_reader :command_arg
-        attr_reader :epoch_time
-        attr_reader :native
-        attr_reader :active_count
-        attr_reader :url
-        attr_reader :post_data
-        attr_reader :post_response
-        attr_reader :delayed_post_response
-        attr_reader :mcp_url
-        attr_reader :mcp_tool
-        attr_reader :mcp_response
-        attr_reader :mcp_error
+        attr_reader :command_name, :command_arg, :epoch_time, :native, :active_count, :url, :post_data, :post_response, :delayed_post_response, :mcp_url, :mcp_tool, :mcp_response, :mcp_error
       end
     end
   end
 end
+# rubocop:enable Layout/LineLength

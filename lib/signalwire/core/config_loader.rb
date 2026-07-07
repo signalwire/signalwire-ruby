@@ -56,7 +56,7 @@ module SignalWire
       # Recursively substitute environment variables in configuration values.
       # Supports ``${VAR|default}`` syntax. After substitution, string values
       # that look like booleans/integers/floats are coerced to those native
-      # types (Python parity). Raises ArgumentError when +max_depth+ exhausts.
+      # types. Raises ArgumentError when +max_depth+ exhausts.
       def substitute_vars(value, max_depth = 10)
         raise ArgumentError, 'Maximum variable substitution depth exceeded' if max_depth <= 0
 

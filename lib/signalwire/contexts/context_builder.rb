@@ -259,9 +259,8 @@ module SignalWire
       #   email, geocode a ZIP), pass that tool name in this question's
       #   +functions:+ option. Functions listed here are active ONLY for
       #   this question.
-      # Python parity: ``add_gather_question(key, question, type='string',
-      # confirm=False, prompt=None, functions=None)``. Ruby exposes the
-      # same parameter set as keyword args.
+      # The +type+, +confirm+, +prompt+ and +functions+ options are all
+      # optional keyword args.
       def add_gather_question(key:, question:, type: 'string', confirm: false,
                               prompt: nil, functions: nil)
         raise ArgumentError, 'Must call set_gather_info before add_gather_question' if @gather_info.nil?
@@ -394,9 +393,9 @@ module SignalWire
 
       # Add a new step. Returns the new Step object (not self).
       #
-      # Python parity: ``Context.add_step(name, *, task=None, bullets=None,
-      # criteria=None, functions=None, valid_steps=None)``. The optional
-      # keyword arguments give a one-call configuration shortcut:
+      # The optional +task+, +bullets+, +criteria+, +functions+ and
+      # +valid_steps+ keyword arguments give a one-call configuration
+      # shortcut:
       #
       #   ctx.add_step("greet",
       #     task: "Greet the caller",
@@ -705,11 +704,9 @@ module SignalWire
     # previous step's active set. See Step#set_functions for details
     # and examples.
     class ContextBuilder
-      # Python parity: ``ContextBuilder.__init__(self, agent)`` accepts
-      # an owning agent so ``validate!`` can introspect registered
-      # SWAIG tools when checking for reserved-name collisions.
-      # Ruby allows nil for standalone use (tests, idiom of building
-      # a builder before attaching).
+      # Accepts an owning agent so ``validate!`` can introspect registered
+      # SWAIG tools when checking for reserved-name collisions. Allows nil
+      # for standalone use (building a builder before attaching).
       def initialize(agent = nil)
         @contexts      = {} # name => Context
         @context_order = []

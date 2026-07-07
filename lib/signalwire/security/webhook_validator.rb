@@ -34,8 +34,8 @@ module SignalWire
     # Stateless validator for SignalWire-signed webhook requests.
     #
     # Both Scheme A (JSON, hex digest) and Scheme B (form-encoded, base64
-    # digest with bodySHA256 fallback) per porting-sdk/webhooks.md are
-    # tried by the combined entry point.
+    # digest with bodySHA256 fallback) of the SignalWire webhook signing
+    # scheme are tried by the combined entry point.
     #
     # The two public entry points are exposed via ``module_function`` so
     # they can be invoked as ``WebhookValidator.validate_webhook_signature(...)``.
@@ -53,7 +53,8 @@ module SignalWire
       #   returns false without raising.
       # @param url [String] The full URL SignalWire POSTed to (scheme, host,
       #   optional port, path, query). Must match what the platform saw —
-      #   see the URL reconstruction section of porting-sdk/webhooks.md.
+      #   see the URL reconstruction rules of the SignalWire webhook signing
+      #   scheme.
       # @param raw_body [String] The raw request body bytes as a UTF-8 string,
       #   BEFORE any JSON / form parsing. Must be a ``String`` — passing a
       #   parsed Hash raises ``TypeError``.

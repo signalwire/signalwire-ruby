@@ -21,16 +21,14 @@ module SignalWire
     # all SignalWire services. All credential comparisons are timing-safe
     # (``Rack::Utils.secure_compare``).
     #
-    # Ruby idiom note: Python's ``flask_decorator`` / ``get_fastapi_dependency``
-    # are framework-bound (Flask / FastAPI). Ruby has neither; the native
-    # equivalents here are (a) +rack_middleware+ -- a Rack middleware wrapping
-    # an app so unauthenticated requests get a 401 -- exposed under the parity
-    # name +flask_decorator+, and (b) +rack_dependency+ -- a callable taking a
-    # Rack +env+ and returning an auth-result Hash -- exposed under the parity
-    # name +get_fastapi_dependency+.
+    # Two Rack-native entry points are provided: (a) +rack_middleware+ -- a
+    # Rack middleware wrapping an app so unauthenticated requests get a 401,
+    # also available under the alias +flask_decorator+, and (b)
+    # +rack_dependency+ -- a callable taking a Rack +env+ and returning an
+    # auth-result Hash, also available under the alias +get_fastapi_dependency+.
     class AuthHandler
-      # Lightweight credential carriers (parity with FastAPI's
-      # HTTPBasicCredentials / HTTPAuthorizationCredentials).
+      # Lightweight credential carriers for HTTP Basic and Bearer
+      # authorization.
       BasicCredentials = Struct.new(:username, :password)
       BearerCredentials = Struct.new(:credentials)
 

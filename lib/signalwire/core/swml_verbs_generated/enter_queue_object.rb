@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # schema.json $defs schema 'EnterQueueObject'
@@ -18,14 +22,10 @@ module SignalWire
           'transfer_after_bridge' => :object,
           'status_url' => :string,
           'wait_url' => :object,
-          'wait_time' => :object,
+          'wait_time' => :object
         }.freeze
 
-        attr_reader :queue_name
-        attr_reader :transfer_after_bridge
-        attr_reader :status_url
-        attr_reader :wait_url
-        attr_reader :wait_time
+        attr_reader :queue_name, :transfer_after_bridge, :status_url, :wait_url, :wait_time
       end
     end
   end

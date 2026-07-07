@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+# rubocop:disable Layout/LineLength
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # schema.json $defs schema 'PickPropertiesSummarizeConversationSWAIGFunctionPickedSWAIGFunctionProps'
@@ -21,18 +26,12 @@ module SignalWire
           'meta_data_token' => :string,
           'data_map' => :object,
           'web_hook_url' => :string,
-          'function' => :string,
+          'function' => :string
         }.freeze
 
-        attr_reader :description
-        attr_reader :parameters
-        attr_reader :active
-        attr_reader :meta_data
-        attr_reader :meta_data_token
-        attr_reader :data_map
-        attr_reader :web_hook_url
-        attr_reader :function
+        attr_reader :description, :parameters, :active, :meta_data, :meta_data_token, :data_map, :web_hook_url, :function
       end
     end
   end
 end
+# rubocop:enable Layout/LineLength

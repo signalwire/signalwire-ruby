@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+# rubocop:disable Layout/LineLength
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # post-prompt components/schemas 'PostPromptToolEntry'
@@ -28,25 +33,12 @@ module SignalWire
           'start_timestamp' => :integer,
           'end_timestamp' => :integer,
           'distilled' => :boolean,
-          'original_result' => :string,
+          'original_result' => :string
         }.freeze
 
-        attr_reader :role
-        attr_reader :tool_call_id
-        attr_reader :content
-        attr_reader :timestamp
-        attr_reader :function_name
-        attr_reader :latency
-        attr_reader :utterance_latency
-        attr_reader :function_latency
-        attr_reader :audio_latency
-        attr_reader :execution_latency
-        attr_reader :deprecation_warning
-        attr_reader :start_timestamp
-        attr_reader :end_timestamp
-        attr_reader :distilled
-        attr_reader :original_result
+        attr_reader :role, :tool_call_id, :content, :timestamp, :function_name, :latency, :utterance_latency, :function_latency, :audio_latency, :execution_latency, :deprecation_warning, :start_timestamp, :end_timestamp, :distilled, :original_result
       end
     end
   end
 end
+# rubocop:enable Layout/LineLength

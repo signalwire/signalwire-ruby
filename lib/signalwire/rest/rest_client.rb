@@ -63,9 +63,8 @@ module SignalWire
       # Eagerly build every generated resource/container so they exist as instance
       # variables at construction time. The ResourceTree accessors are lazy
       # (memoized on first call); calling each once here populates @fabric,
-      # @calling, … so introspection over the live client (scripts/route_registry.rb
-      # walks client.instance_variables) sees every implemented route — the lazy
-      # tree must not blind the SPEC-PARITY registry (SESSION_CHANGESET L11).
+      # @calling, … so introspection over the live client sees every
+      # implemented route.
       def materialize_namespaces!
         Namespaces::Generated::ResourceTree.instance_methods(false).each { |m| send(m) }
       end

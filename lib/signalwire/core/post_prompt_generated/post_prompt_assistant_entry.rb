@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+# rubocop:disable Layout/LineLength
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # post-prompt components/schemas 'PostPromptAssistantEntry'
@@ -33,30 +38,12 @@ module SignalWire
           'barged' => :boolean,
           'barge_elapsed_ms' => :number,
           'text_heard_approx' => :string,
-          'text_spoken_total' => :string,
+          'text_spoken_total' => :string
         }.freeze
 
-        attr_reader :role
-        attr_reader :content
-        attr_reader :timestamp
-        attr_reader :tool_calls
-        attr_reader :latency
-        attr_reader :utterance_latency
-        attr_reader :audio_latency
-        attr_reader :acoustic_latency
-        attr_reader :eos_to_push_latency
-        attr_reader :dg_decision_latency
-        attr_reader :poll
-        attr_reader :speech_start_wall_us
-        attr_reader :last_word_end_wall_us
-        attr_reader :turn_decided_wall_us
-        attr_reader :status_pushed_wall_us
-        attr_reader :stamps_us
-        attr_reader :barged
-        attr_reader :barge_elapsed_ms
-        attr_reader :text_heard_approx
-        attr_reader :text_spoken_total
+        attr_reader :role, :content, :timestamp, :tool_calls, :latency, :utterance_latency, :audio_latency, :acoustic_latency, :eos_to_push_latency, :dg_decision_latency, :poll, :speech_start_wall_us, :last_word_end_wall_us, :turn_decided_wall_us, :status_pushed_wall_us, :stamps_us, :barged, :barge_elapsed_ms, :text_heard_approx, :text_spoken_total
       end
     end
   end
 end
+# rubocop:enable Layout/LineLength

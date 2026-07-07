@@ -15,18 +15,16 @@ module SignalWire
         def name = 'math'
         def description = 'Perform basic mathematical calculations'
 
-        # Python parity: ``MathSkill.setup`` -> ``return True``. The math skill
-        # has no external packages or environment to validate; it is always
-        # ready once constructed.
+        # The math skill has no external packages or environment to
+        # validate; it is always ready once constructed.
         def setup
           true
         end
 
-        # Python parity: ``MathSkill.get_parameter_schema`` returns only the
-        # base-class schema (the math skill adds no custom parameters). The
-        # explicit super-only override is REQUIRED — the cross-port audit checks
-        # public_instance_methods(false) includes it, so it must be defined here
-        # directly, not merely inherited. rubocop:disable for that reason.
+        # Returns only the base-class schema (the math skill adds no custom
+        # parameters). The explicit super-only override is defined here
+        # directly so it appears on public_instance_methods(false); the
+        # cop is disabled on the def line for that reason.
         def get_parameter_schema # rubocop:disable Lint/UselessMethodDefinition
           super
         end
@@ -52,8 +50,7 @@ module SignalWire
           }]
         end
 
-        # Python parity: ``MathSkill.get_hints`` returns [] (the reference
-        # documents optional example hints in a comment but ships none).
+        # Returns [] — this skill ships no example hints.
         def get_hints = []
 
         def get_prompt_sections

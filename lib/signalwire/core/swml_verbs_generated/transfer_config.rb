@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # flattened SWMLMethod verb 'transfer' config
@@ -16,12 +20,10 @@ module SignalWire
         FIELDS = {
           'dest' => :string,
           'params' => :object,
-          'meta' => :object,
+          'meta' => :object
         }.freeze
 
-        attr_reader :dest
-        attr_reader :params
-        attr_reader :meta
+        attr_reader :dest, :params, :meta
       end
     end
   end

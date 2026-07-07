@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+# rubocop:disable Layout/LineLength, Naming/MethodName
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # post-prompt components/schemas 'PostPrompt'
@@ -55,52 +60,12 @@ module SignalWire
           'total_tts_chars' => :number,
           'total_tts_chars_per_min' => :number,
           'total_asr_minutes' => :number,
-          'total_asr_cost_factor' => :number,
+          'total_asr_cost_factor' => :number
         }.freeze
 
-        attr_reader :content_type
-        attr_reader :content_disposition
-        attr_reader :conversation_type
-        attr_reader :action
-        attr_reader :project_id
-        attr_reader :space_id
-        attr_reader :call_id
-        attr_reader :app_name
-        attr_reader :ai_session_id
-        attr_reader :ai_id_tag
-        attr_reader :conversation_id
-        attr_reader :call_ended_by
-        attr_reader :caller_id_name
-        attr_reader :caller_id_number
-        attr_reader :conversation_summary
-        attr_reader :hard_timeout
-        attr_reader :call_start_date
-        attr_reader :call_answer_date
-        attr_reader :call_end_date
-        attr_reader :ai_start_date
-        attr_reader :ai_end_date
-        attr_reader :post_prompt_data
-        attr_reader :global_data
-        attr_reader :SWMLVars
-        attr_reader :SWMLCall
-        attr_reader :call_log
-        attr_reader :raw_call_log
-        attr_reader :call_timeline
-        attr_reader :previous_contexts
-        attr_reader :times
-        attr_reader :swaig_log
-        attr_reader :total_minutes
-        attr_reader :total_input_tokens
-        attr_reader :total_output_tokens
-        attr_reader :total_wire_input_tokens
-        attr_reader :total_wire_input_tokens_per_minute
-        attr_reader :total_wire_output_tokens
-        attr_reader :total_wire_output_tokens_per_minute
-        attr_reader :total_tts_chars
-        attr_reader :total_tts_chars_per_min
-        attr_reader :total_asr_minutes
-        attr_reader :total_asr_cost_factor
+        attr_reader :content_type, :content_disposition, :conversation_type, :action, :project_id, :space_id, :call_id, :app_name, :ai_session_id, :ai_id_tag, :conversation_id, :call_ended_by, :caller_id_name, :caller_id_number, :conversation_summary, :hard_timeout, :call_start_date, :call_answer_date, :call_end_date, :ai_start_date, :ai_end_date, :post_prompt_data, :global_data, :SWMLVars, :SWMLCall, :call_log, :raw_call_log, :call_timeline, :previous_contexts, :times, :swaig_log, :total_minutes, :total_input_tokens, :total_output_tokens, :total_wire_input_tokens, :total_wire_input_tokens_per_minute, :total_wire_output_tokens, :total_wire_output_tokens_per_minute, :total_tts_chars, :total_tts_chars_per_min, :total_asr_minutes, :total_asr_cost_factor
       end
     end
   end
 end
+# rubocop:enable Layout/LineLength, Naming/MethodName

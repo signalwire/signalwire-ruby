@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # schema.json $defs schema 'ContextsTextObject'
@@ -18,14 +22,10 @@ module SignalWire
           'isolated' => :boolean,
           'enter_fillers' => :array,
           'exit_fillers' => :array,
-          'text' => :string,
+          'text' => :string
         }.freeze
 
-        attr_reader :steps
-        attr_reader :isolated
-        attr_reader :enter_fillers
-        attr_reader :exit_fillers
-        attr_reader :text
+        attr_reader :steps, :isolated, :enter_fillers, :exit_fillers, :text
       end
     end
   end

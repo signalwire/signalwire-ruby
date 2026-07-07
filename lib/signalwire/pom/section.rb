@@ -20,7 +20,7 @@ module SignalWire
     # * +subsections+ — nested Section objects.
     # * +numbered+ — whether this section should be numbered.
     # * +numbered_bullets+ — whether bullets should be numbered (rendered
-    #   to/from the JSON/YAML key +numberedBullets+ for Python parity).
+    #   to/from the JSON/YAML key +numberedBullets+).
     class Section
       attr_accessor :title, :body, :bullets, :subsections, :numbered, :numbered_bullets
 

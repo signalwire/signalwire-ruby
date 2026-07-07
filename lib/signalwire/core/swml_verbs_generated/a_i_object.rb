@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+# rubocop:disable Layout/LineLength, Naming/MethodName
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # schema.json $defs schema 'AIObject'
@@ -22,19 +27,12 @@ module SignalWire
           'post_prompt_url' => :string,
           'pronounce' => :array,
           'prompt' => :object,
-          'SWAIG' => :object,
+          'SWAIG' => :object
         }.freeze
 
-        attr_reader :global_data
-        attr_reader :hints
-        attr_reader :languages
-        attr_reader :params
-        attr_reader :post_prompt
-        attr_reader :post_prompt_url
-        attr_reader :pronounce
-        attr_reader :prompt
-        attr_reader :SWAIG
+        attr_reader :global_data, :hints, :languages, :params, :post_prompt, :post_prompt_url, :pronounce, :prompt, :SWAIG
       end
     end
   end
 end
+# rubocop:enable Layout/LineLength, Naming/MethodName

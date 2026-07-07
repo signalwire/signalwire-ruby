@@ -40,9 +40,9 @@ module SignalWire
   #
   # All configuration methods return +self+ for method chaining.
   class AgentBase < SWML::Service
-    # Python parity:
-    # - ``logger`` — agent-specific structured logger (Python: ``self.log``).
-    # - ``skill_manager`` — owning SkillManager (Python's ``self.skill_manager``).
+    # Attributes:
+    # - ``logger`` — agent-specific structured logger.
+    # - ``skill_manager`` — owning SkillManager.
     # - ``agent_id`` — UUID identifier from constructor or auto-generated.
     # - ``default_webhook_url`` — base URL for SWAIG webhook fallbacks.
     # - ``native_functions`` — names of built-in SWAIG functions to advertise.
@@ -156,10 +156,10 @@ module SignalWire
       @record_stereo = record_stereo
     end
 
-    # Python parity: use_pom toggles POM-vs-raw rendering; agent_id is an
-    # optional explicit UUID; default_webhook_url is used when SWAIG functions
-    # carry no explicit URL; native_functions lists native SWAIG callables; the
-    # *_override flags are wired through the endpoint dispatcher.
+    # use_pom toggles POM-vs-raw rendering; agent_id is an optional explicit
+    # UUID; default_webhook_url is used when SWAIG functions carry no explicit
+    # URL; native_functions lists native SWAIG callables; the *_override flags
+    # are wired through the endpoint dispatcher.
     def init_identity(**opts)
       @use_pom = opts[:use_pom]
       @agent_id            = opts[:agent_id] || SecureRandom.uuid
@@ -169,7 +169,8 @@ module SignalWire
       @check_for_input_override    = opts[:check_for_input_override]
     end
 
-    # Webhook signature validation (porting-sdk/webhooks.md). Resolution:
+    # Webhook signature validation (per the SignalWire webhook signing spec).
+    # Resolution:
     # explicit arg → SIGNALWIRE_SIGNING_KEY env. When set, _build_rack_app
     # mounts WebhookMiddleware on the signed routes; when unset, warn so
     # production users notice unsigned traffic is being accepted.
@@ -267,10 +268,9 @@ module SignalWire
 
     # Return the agent's name.
     #
-    # Python parity: ``AgentBase.get_name`` returns ``self.name``. The
-    # name is stored on the parent {SWML::Service} as ``@name`` (also
-    # exposed via the ``name`` reader); this getter mirrors the Python
-    # method surface.
+    # The name is stored on the parent {SWML::Service} as ``@name`` (also
+    # exposed via the ``name`` reader); this getter exposes it under the
+    # ``get_name`` method name.
     #
     # @return [String] the agent name
     def get_name
@@ -280,9 +280,8 @@ module SignalWire
     # Build the full URL for this agent.
     #
     # {SWML::Service} already defines ``get_full_url``; AgentBase inherits
-    # it. This explicit override (delegating to +super+) makes the method
-    # surface as an own-method of AgentBase for cross-port parity while
-    # preserving identical behaviour.
+    # it. This explicit override (delegating to +super+) exposes the method
+    # as an own-method of AgentBase while preserving identical behaviour.
     #
     # @param include_auth [Boolean] embed basic-auth credentials in the URL
     # @return [String] the full URL
@@ -317,10 +316,6 @@ module SignalWire
     end
 
     # Add a POM section.
-    #
-    # Python parity:
-    # ``prompt_add_section(title, body="", bullets=None,
-    # numbered=False, numbered_bullets=False, subsections=None)``.
     #
     # @param title [String] section title
     # @param body  [String, nil] optional body text
@@ -368,10 +363,7 @@ module SignalWire
 
     # Append content to an existing POM section, creating it if absent.
     #
-    # Python parity:
-    # ``prompt_add_to_section(title, body=None, bullet=None,
-    # bullets=None)``. Supports appending body text, a single bullet,
-    # or a list of bullets.
+    # Supports appending body text, a single bullet, or a list of bullets.
     #
     # @param title [String] section title
     # @param body  [String, nil] body text to append
@@ -424,8 +416,8 @@ module SignalWire
     end
 
     # Return the current prompt: either a string (text mode) or an array (POM).
-    # @!visibility private  (idiomatic alias: #prompt; original kept for
-    #   cross-port audit parity + back-compat)
+    # @!visibility private  (idiomatic alias: #prompt; the original
+    #   ``get_prompt`` name is kept for back-compat)
     def get_prompt
       return @prompt_text if @prompt_text
       return @prompt_pom  if @prompt_pom
@@ -437,10 +429,9 @@ module SignalWire
     # Read-only snapshot of the agent's POM as a typed
     # {SignalWire::POM::PromptObjectModel} instance.
     #
-    # Python parity: ``agent.pom`` instance attribute (agent_base.py
-    # line 209) is a ``PromptObjectModel`` instance. Returns ``nil`` when
-    # raw-text prompt mode is in effect (``set_prompt_text`` was called)
-    # — mirrors Python's ``self.pom = None when use_pom=False``.
+    # Returns ``nil`` when raw-text prompt mode is in effect
+    # (``set_prompt_text`` was called); the POM is only available when
+    # ``use_pom`` is enabled.
     #
     # The returned PromptObjectModel is a fresh build of the agent's
     # current section state, so caller mutations do not leak into agent
@@ -476,13 +467,10 @@ module SignalWire
     end
 
     # Returns the post-prompt text whatever set_post_prompt stored, or
-    # nil when no post-prompt has been set.
-    #
-    # Mirrors Python's PromptManager#get_post_prompt /
-    # PromptMixin#get_post_prompt — used by SWML rendering when a
+    # nil when no post-prompt has been set. Used by SWML rendering when a
     # post-prompt is configured.
-    # @!visibility private  (idiomatic alias: #post_prompt; original kept for
-    #   cross-port audit parity + back-compat)
+    # @!visibility private  (idiomatic alias: #post_prompt; the original
+    #   ``get_post_prompt`` name is kept for back-compat)
     def get_post_prompt
       @post_prompt_text
     end
@@ -490,10 +478,8 @@ module SignalWire
     # Returns the raw prompt text whatever set_prompt_text stored, or
     # nil when no raw prompt has been set. Distinct from #get_prompt
     # which may return the POM array when use_pom is true.
-    #
-    # Mirrors Python's PromptManager#get_raw_prompt.
-    # @!visibility private  (idiomatic alias: #prompt_text; original kept for
-    #   cross-port audit parity + back-compat)
+    # @!visibility private  (idiomatic alias: #prompt_text; the original
+    #   ``get_raw_prompt`` name is kept for back-compat)
     def get_raw_prompt
       @prompt_text
     end
@@ -580,11 +566,8 @@ module SignalWire
 
     # Returns the contexts dictionary as a serialised hash, or nil when
     # no contexts have been defined yet.
-    #
-    # Mirrors Python's PromptManager#get_contexts which returns the
-    # contexts dict or None.
-    # @!visibility private  (idiomatic alias: #contexts; original kept for
-    #   cross-port audit parity + back-compat)
+    # @!visibility private  (idiomatic alias: #contexts; the original
+    #   ``get_contexts`` name is kept for back-compat)
     def get_contexts
       return nil if @context_builder.nil?
 
@@ -658,12 +641,6 @@ module SignalWire
     # @yield [args, raw_data] the tool handler
     # Define a SWAIG tool.
     #
-    # Python parity:
-    # ``define_tool(name, description, parameters, handler,
-    # secure=True, fillers=None, wait_file=None, wait_file_loops=None,
-    # webhook_url=None, required=None, is_typed_handler=False,
-    # **swaig_fields)``.
-    #
     # @param name [String] tool name
     # @param description [String] LLM-facing description
     # @param parameters [Hash] JSON-Schema parameters
@@ -680,8 +657,8 @@ module SignalWire
     #   instead of dispatching to the local handler
     # @param required [Array<String>, nil] required parameter names
     # @param is_typed_handler [Boolean] handler accepts type-coerced
-    #   keyword args (parity flag; Ruby uses dynamic typing so this
-    #   is a no-op at runtime but is preserved for surface parity)
+    #   keyword args (Ruby uses dynamic typing so this is a no-op at
+    #   runtime but is accepted for signature compatibility)
     # @param swaig_fields [Hash, nil] additional fields merged into
     #   the SWAIG function definition
     # @yield [args, raw_data] tool handler body (alternative to
@@ -705,7 +682,7 @@ module SignalWire
     end
 
     # Normalise parameters into JSON-Schema form and inject the caller's
-    # `required:` list (Python parity) onto an object schema.
+    # `required:` list onto an object schema.
     def build_tool_param_schema(parameters, required)
       param_schema = _normalise_parameters(parameters)
       if required.is_a?(Array) && !required.empty? && param_schema.is_a?(Hash) && param_schema['type'] == 'object'
@@ -750,9 +727,8 @@ module SignalWire
 
     # Mint a per-call SWAIG-function token via the agent's SessionManager.
     #
-    # Python parity: state_mixin.StateMixin#_create_tool_token —
-    # delegates to SessionManager#create_token and returns "" on any
-    # raised error (Python rescues all exceptions and returns "").
+    # Delegates to SessionManager#create_token and returns "" on any
+    # raised error.
     def create_tool_token(tool_name, call_id)
       @session_manager.create_token(tool_name, call_id)
     rescue StandardError
@@ -761,10 +737,8 @@ module SignalWire
 
     # Validate a per-call SWAIG-function token. Returns false when the
     # function is not registered, when the SessionManager rejects the
-    # token, or on any underlying exception.
-    #
-    # Python parity: state_mixin.StateMixin#validate_tool_token —
-    # rejects unknown function names up-front and rescues exceptions.
+    # token, or on any underlying exception. Unknown function names are
+    # rejected up-front.
     def validate_tool_token(function_name, token, call_id)
       return false unless has_function(function_name)
 
@@ -836,11 +810,10 @@ module SignalWire
 
     # Add a complex (pattern-matched) hint.
     #
-    # Python parity:
-    # ``add_pattern_hint(hint, pattern, replace, ignore_case=False)``.
-    # Ruby supports both the Python-style positional form and the
-    # legacy keyword form (``add_pattern_hint(pattern, hint:, language:)``)
-    # for backward compat.
+    # Two call shapes are supported: the positional form
+    # ``add_pattern_hint(hint, pattern, replace, ignore_case: false)`` and
+    # the legacy keyword form ``add_pattern_hint(pattern, hint:, language:)``
+    # (kept for backward compat).
     #
     # @overload add_pattern_hint(hint, pattern, replace, ignore_case: false)
     #   @param hint [String] hint to match
@@ -889,10 +862,9 @@ module SignalWire
 
     # Add a language configuration.
     #
-    # Python parity: ``add_language(name, code, voice, speech_fillers=None,
-    # function_fillers=None, engine=None, model=None)``. Ruby supports
-    # both the Python-style positional shape AND the original
-    # ``add_language(config)`` hash form.
+    # Two call shapes are supported: the positional shape
+    # ``add_language(name, code, voice, speech_fillers:, function_fillers:,
+    # engine:, model:)`` and the original ``add_language(config)`` hash form.
     #
     # Voice argument can be either a simple voice id (``"en-US-Neural2-F"``)
     # or a combined ``"engine.voice:model"`` string
@@ -1016,13 +988,11 @@ module SignalWire
       self
     end
 
-    # language_code: is part of the Python-parity signature; the current rule
-    # shape doesn't carry it, but the kwarg must stay for surface parity (renaming
-    # to _language_code would change the public kwarg name). rubocop:disable below.
-    # Python parity: add_pronunciation(replace, with_text, ignore_case=False).
-    # The +ignore_case+ key is only emitted when true (matching Python, which
-    # omits it otherwise); +language_code+ is accepted for Ruby back-compat but
-    # is not part of the wire shape.
+    # +language_code+ is accepted for Ruby back-compat but the current rule
+    # shape doesn't carry it; the kwarg must stay because renaming to
+    # _language_code would change the public kwarg name (hence the # ).
+    # The +ignore_case+ key is only emitted when true; +language_code+ is
+    # accepted for Ruby back-compat but is not part of the wire shape.
     def add_pronunciation(replace, with_text, ignore_case: false, language_code: 'en-US') # rubocop:disable Lint/UnusedMethodArgument
       return self unless replace && with_text
 
@@ -1236,19 +1206,16 @@ module SignalWire
 
     # Define / retrieve the ContextBuilder for this agent.
     #
-    # Python parity: ``define_contexts(contexts)`` accepts either a
-    # ``ContextBuilder`` (calls ``.to_dict()`` to materialise) or a
-    # raw ``dict`` and stores it on the agent. Ruby supports both
-    # forms PLUS the original lazy-getter idiom:
+    # ``define_contexts(contexts)`` accepts either a ``ContextBuilder`` or a
+    # raw contexts Hash and stores it on the agent, and also supports the
+    # lazy-getter idiom:
     #
-    # 1. **Lazy getter** (Ruby idiom) — ``agent.define_contexts``
-    #    returns the existing builder, creating one if needed.
+    # 1. **Lazy getter** — ``agent.define_contexts`` returns the existing
+    #    builder, creating one if needed.
     # 2. **Override with builder** — ``agent.define_contexts(other_cb)``
-    #    replaces the current builder with the supplied one (Python
-    #    parity).
+    #    replaces the current builder with the supplied one.
     # 3. **Override with hash** — ``agent.define_contexts({...})``
-    #    builds a fresh builder using the provided contexts hash
-    #    (Python parity for raw-dict input).
+    #    builds a fresh builder using the provided contexts hash.
     #
     # @param contexts [SignalWire::Contexts::ContextBuilder, Hash, nil]
     #   optional override
@@ -1272,7 +1239,7 @@ module SignalWire
       builder
     end
 
-    # Build a ContextBuilder from a raw contexts Hash (Python-parity dict input).
+    # Build a ContextBuilder from a raw contexts Hash.
     def build_context_builder_from_hash(contexts)
       cb = Contexts::ContextBuilder.new(self)
       contexts.each do |name, body|
@@ -1499,8 +1466,7 @@ module SignalWire
     end
 
     # @api private
-    # SIP routing callback (Python parity: AgentBase.enable_sip_routing's inner
-    # sip_routing_callback). Extracts the SIP username from the body and logs
+    # SIP routing callback. Extracts the SIP username from the body and logs
     # whether it matched a registered username. Always returns nil: a matched
     # username is handled by this agent (dispatch renders SWML), an unmatched
     # one lets routing continue.
@@ -1514,9 +1480,9 @@ module SignalWire
       nil
     end
 
-    # Register a SIP username routed to this agent. Python parity: the
-    # username is lower-cased and stored in a set (case-insensitive dedup),
-    # so "Bob"/"BOB"/"bob" collapse to a single "bob" entry.
+    # Register a SIP username routed to this agent. The username is
+    # lower-cased and stored with case-insensitive dedup, so
+    # "Bob"/"BOB"/"bob" collapse to a single "bob" entry.
     def register_sip_username(username)
       normalized = username.to_s.downcase
       @sip_usernames << normalized unless @sip_usernames.include?(normalized)
@@ -1526,11 +1492,9 @@ module SignalWire
     # Automatically register common SIP usernames based on this agent's
     # name and route.
     #
-    # Python parity: ``AgentBase.auto_map_sip_usernames`` derives SIP
-    # usernames from the agent name and route (lower-cased, stripped to
-    # ``[a-z0-9_]``) plus a no-vowels variant of the name, registering
-    # each via {#register_sip_username}. Duplicates are skipped so the
-    # registered set matches Python's set-backed dedup.
+    # Derives SIP usernames from the agent name and route (lower-cased,
+    # stripped to ``[a-z0-9_]``) plus a no-vowels variant of the name,
+    # registering each via {#register_sip_username}. Duplicates are skipped.
     #
     # @return [self] for method chaining
     def auto_map_sip_usernames
@@ -1740,17 +1704,15 @@ module SignalWire
     # Lifecycle
     # ==================================================================
 
-    # Python parity: ``on_summary(self, summary, raw_data=None)`` is a
-    # virtual hook called when a post-prompt summary is received.
-    # Ruby supports two equivalent shapes:
+    # A virtual hook called when a post-prompt summary is received.
+    # Two equivalent shapes are supported:
     #
-    # 1. **Registration** (Ruby idiom) — pass a block to install a
-    #    callback. The block receives ``(summary, raw_data)`` when a
-    #    summary is delivered. ``on_summary { |sum, raw| ... }``
-    # 2. **Override** (Python idiom) — subclass and override
-    #    ``on_summary(summary, raw_data = nil)``. Default
-    #    implementation calls the registered block (if any) and
-    #    otherwise no-ops.
+    # 1. **Registration** — pass a block to install a callback. The block
+    #    receives ``(summary, raw_data)`` when a summary is delivered.
+    #    ``on_summary { |sum, raw| ... }``
+    # 2. **Override** — subclass and override
+    #    ``on_summary(summary, raw_data = nil)``. Default implementation
+    #    calls the registered block (if any) and otherwise no-ops.
     #
     # @param summary [Hash, nil] the post-prompt summary
     # @param raw_data [Hash, nil] the complete raw POST data
@@ -1826,9 +1788,8 @@ module SignalWire
     # Handle a Google Cloud Functions / Cloud Run invocation. GCF hands the
     # function an HTTP-request-shaped object; we accept either a Hash
     # (+{ 'method', 'path', 'query', 'body', 'headers' }+ — the framework-free
-    # port idiom) or a Rack-request-like object, translate it into a Rack env,
-    # and return a +{ 'status', 'headers', 'body' }+ response (php-parity
-    # handleGcf shape).
+    # idiom) or a Rack-request-like object, translate it into a Rack env,
+    # and return a +{ 'status', 'headers', 'body' }+ response.
     def _run_gcf(request)
       _run_http_serverless(request)
     end
@@ -1836,8 +1797,7 @@ module SignalWire
     # @api private
     # Handle an Azure Functions invocation. Azure passes an HTTP request
     # object/dict (method / url / headers / body); translate to a Rack env and
-    # return a +{ 'status', 'headers', 'body' }+ response (php-parity
-    # handleAzure shape).
+    # return a +{ 'status', 'headers', 'body' }+ response.
     def _run_azure(request)
       _run_http_serverless(request)
     end
@@ -1957,8 +1917,8 @@ module SignalWire
 
     # Start the HTTP server (blocking).
     #
-    # Python parity: ``serve(host=None, port=None)``. ``host`` /
-    # ``port`` overrides default to constructor-supplied values.
+    # ``host`` / ``port`` overrides default to the constructor-supplied
+    # values.
     def serve(host: nil, port: nil)
       require 'webrick'
       bind_host = host || @host
@@ -2065,7 +2025,7 @@ module SignalWire
       [200, {}, JSON.generate(swml)]
     end
 
-    # Call +on_swml_request+ (parity: a raising modifier does not 500 the
+    # Call +on_swml_request+ (a raising modifier does not 500 the
     # request), returning its modifications or nil. +request+ is the live Rack
     # request on the served path, or nil for the framework-free primitive path.
     def _agent_on_swml_request(body, callback_path, request = nil)
@@ -2115,7 +2075,6 @@ module SignalWire
 
     # Get the configured basic-auth credentials.
     #
-    # Python parity: ``get_basic_auth_credentials(include_source=False)``.
     # When ``include_source`` is true, returns a 3-tuple ``[user,
     # pass, source]`` (``"environment"`` / ``"auto-generated"`` /
     # ``"provided"``). Otherwise returns ``[user, pass]``.

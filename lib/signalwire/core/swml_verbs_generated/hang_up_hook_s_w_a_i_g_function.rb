@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+# rubocop:disable Layout/LineLength
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # schema.json $defs schema 'HangUpHookSWAIGFunction'
@@ -28,25 +33,12 @@ module SignalWire
           'wait_file' => :string,
           'wait_file_loops' => :object,
           'wait_for_fillers' => :object,
-          'function' => :string,
+          'function' => :string
         }.freeze
 
-        attr_reader :description
-        attr_reader :purpose
-        attr_reader :parameters
-        attr_reader :fillers
-        attr_reader :argument
-        attr_reader :active
-        attr_reader :meta_data
-        attr_reader :meta_data_token
-        attr_reader :data_map
-        attr_reader :skip_fillers
-        attr_reader :web_hook_url
-        attr_reader :wait_file
-        attr_reader :wait_file_loops
-        attr_reader :wait_for_fillers
-        attr_reader :function
+        attr_reader :description, :purpose, :parameters, :fillers, :argument, :active, :meta_data, :meta_data_token, :data_map, :skip_fillers, :web_hook_url, :wait_file, :wait_file_loops, :wait_for_fillers, :function
       end
     end
   end
 end
+# rubocop:enable Layout/LineLength

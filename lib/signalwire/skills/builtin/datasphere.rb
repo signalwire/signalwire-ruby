@@ -135,11 +135,10 @@ module SignalWire
 
         def instance_key = "datasphere_#{@tool_name}"
 
-        # Python parity: ``DatasphereSkill.cleanup`` closes the
-        # ``requests.Session`` it opened in setup. Ruby opens a fresh
-        # Net::HTTP connection per request (no persistent session to close),
-        # so teardown drops the cached search endpoint and logs that the
-        # skill was cleaned up. Safe to call more than once (idempotent).
+        # Tears down the skill. A fresh Net::HTTP connection is opened per
+        # request (no persistent session to close), so teardown drops the
+        # cached search endpoint and logs that the skill was cleaned up.
+        # Safe to call more than once (idempotent).
         def cleanup
           @api_url = nil
           logger.info('DataSphere skill cleaned up')
@@ -159,9 +158,7 @@ module SignalWire
           ]
         end
 
-        # Python parity: ``DatasphereSkill.get_hints`` returns [] (the
-        # reference documents optional example hints in a comment but ships
-        # none). Overriding here keeps the SKILL-INTERFACE surface aligned.
+        # Returns [] — this skill ships no example hints.
         def get_hints = []
 
         def get_global_data

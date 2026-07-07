@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # schema.json $defs schema 'ContextTextSteps'
@@ -21,17 +25,10 @@ module SignalWire
           'skip_user_turn' => :object,
           'end' => :boolean,
           'valid_steps' => :array,
-          'text' => :string,
+          'text' => :string
         }.freeze
 
-        attr_reader :name
-        attr_reader :step_criteria
-        attr_reader :functions
-        attr_reader :valid_contexts
-        attr_reader :skip_user_turn
-        attr_reader :end
-        attr_reader :valid_steps
-        attr_reader :text
+        attr_reader :name, :step_criteria, :functions, :valid_contexts, :skip_user_turn, :end, :valid_steps, :text
       end
     end
   end

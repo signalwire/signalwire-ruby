@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # post-prompt components/schemas 'PostPromptTimesEntry'
@@ -20,16 +24,10 @@ module SignalWire
           'token_time' => :number,
           'tokens' => :integer,
           'avg_tps' => :number,
-          'tps' => :number,
+          'tps' => :number
         }.freeze
 
-        attr_reader :response
-        attr_reader :response_word_count
-        attr_reader :answer_time
-        attr_reader :token_time
-        attr_reader :tokens
-        attr_reader :avg_tps
-        attr_reader :tps
+        attr_reader :response, :response_word_count, :answer_time, :token_time, :tokens, :avg_tps, :tps
       end
     end
   end

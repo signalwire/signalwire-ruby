@@ -35,7 +35,7 @@ module SignalWire
           [{ datamap: dm.to_swaig_function }]
         end
 
-        # Python parity: ``JokeSkill.get_hints`` returns [].
+        # Returns [] — this skill ships no example hints.
         def get_hints = []
 
         def get_global_data

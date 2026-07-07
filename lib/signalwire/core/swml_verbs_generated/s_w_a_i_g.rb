@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # schema.json $defs schema 'SWAIG'
@@ -18,14 +22,10 @@ module SignalWire
           'native_functions' => :array,
           'includes' => :array,
           'functions' => :array,
-          'internal_fillers' => :object,
+          'internal_fillers' => :object
         }.freeze
 
-        attr_reader :defaults
-        attr_reader :native_functions
-        attr_reader :includes
-        attr_reader :functions
-        attr_reader :internal_fillers
+        attr_reader :defaults, :native_functions, :includes, :functions, :internal_fillers
       end
     end
   end

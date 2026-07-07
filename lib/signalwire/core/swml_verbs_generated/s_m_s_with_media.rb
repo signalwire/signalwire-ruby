@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # schema.json $defs schema 'SMSWithMedia'
@@ -19,15 +23,10 @@ module SignalWire
           'region' => :string,
           'tags' => :array,
           'media' => :array,
-          'body' => :string,
+          'body' => :string
         }.freeze
 
-        attr_reader :to_number
-        attr_reader :from_number
-        attr_reader :region
-        attr_reader :tags
-        attr_reader :media
-        attr_reader :body
+        attr_reader :to_number, :from_number, :region, :tags, :media, :body
       end
     end
   end

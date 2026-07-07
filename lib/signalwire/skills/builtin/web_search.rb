@@ -293,7 +293,7 @@ module SignalWire
           }
         end
 
-        # Latency-control params (Python parity: 51101da + 295745b). The
+        # Latency-control params. The
         # SignalWire kernel times out webhook responses around 55s; these
         # bound per-page and whole-call latency and offer a sub-second
         # snippets-only mode.
@@ -402,7 +402,7 @@ module SignalWire
           ]
         end
 
-        # Python parity: ``WebSearchSkill.get_hints`` returns [].
+        # Returns [] — this skill ships no example hints.
         def get_hints = []
 
         def get_global_data

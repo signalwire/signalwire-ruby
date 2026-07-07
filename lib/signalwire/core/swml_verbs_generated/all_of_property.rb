@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+# rubocop:disable Naming/MethodName
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # schema.json $defs schema 'AllOfProperty'
@@ -14,7 +19,7 @@ module SignalWire
       # accessors (dropped on the SURFACE by the enumerator — method-less there).
       class AllOfProperty
         FIELDS = {
-          'allOf' => :array,
+          'allOf' => :array
         }.freeze
 
         attr_reader :allOf
@@ -22,3 +27,4 @@ module SignalWire
     end
   end
 end
+# rubocop:enable Naming/MethodName

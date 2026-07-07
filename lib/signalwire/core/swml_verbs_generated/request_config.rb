@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # flattened SWMLMethod verb 'request' config
@@ -20,16 +24,10 @@ module SignalWire
           'body' => :object,
           'timeout' => :object,
           'connect_timeout' => :object,
-          'save_variables' => :object,
+          'save_variables' => :object
         }.freeze
 
-        attr_reader :url
-        attr_reader :method
-        attr_reader :headers
-        attr_reader :body
-        attr_reader :timeout
-        attr_reader :connect_timeout
-        attr_reader :save_variables
+        attr_reader :url, :method, :headers, :body, :timeout, :connect_timeout, :save_variables
       end
     end
   end

@@ -33,9 +33,9 @@ module SignalWire
 
       # Initialize a BedrockAgent.
       #
-      # Python parity: ``__init__(name="bedrock_agent", route="/bedrock",
-      # system_prompt=None, voice_id="matthew", temperature=0.7,
-      # top_p=0.9, max_tokens=1024, **kwargs)``.
+      # Defaults: ``name="bedrock_agent"``, ``route="/bedrock"``,
+      # ``voice_id="matthew"``, ``temperature=0.7``, ``top_p=0.9``,
+      # ``max_tokens=1024``.
       #
       # @param name [String] agent name
       # @param route [String] HTTP route for the agent
@@ -62,10 +62,9 @@ module SignalWire
       # Render the SWML document, transforming the ``ai`` verb into an
       # ``amazon_bedrock`` verb.
       #
-      # Python parity: ``_render_swml`` overrides the base render to swap
-      # the ``ai`` verb structure for ``amazon_bedrock``. In Ruby the
-      # base render builds a Hash (not a JSON string), so this operates on
-      # that Hash directly.
+      # Overrides the base render to swap the ``ai`` verb structure for
+      # ``amazon_bedrock``. The base render builds a Hash (not a JSON
+      # string), so this operates on that Hash directly.
       #
       # @api private
       def _render_swml_internal
@@ -90,9 +89,6 @@ module SignalWire
 
       # Update Bedrock inference parameters. Only non-nil values are
       # applied.
-      #
-      # Python parity: ``set_inference_params(temperature=None,
-      # top_p=None, max_tokens=None)``.
       #
       # @param temperature [Float, nil]
       # @param top_p [Float, nil]
@@ -145,9 +141,8 @@ module SignalWire
 
       # String representation of the agent.
       #
-      # Python parity: ``__repr__``. Ruby has no ``__repr__`` — the
-      # enumerator maps it to ``inspect``. Both ``inspect`` and ``to_s``
-      # are implemented and return the same representation.
+      # Both ``inspect`` and ``to_s`` are implemented and return the same
+      # representation.
       #
       # @return [String]
       def inspect

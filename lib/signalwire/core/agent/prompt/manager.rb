@@ -32,8 +32,7 @@ module SignalWire
           attr_reader :pom
 
           # @param agent [Object, nil] optional parent AgentBase instance
-          #   (kept as a back-reference for parity with the Python/TS
-          #   managers; may be nil for standalone use).
+          #   (kept as a back-reference; may be nil for standalone use).
           def initialize(agent = nil)
             @agent = agent
             @pom = SignalWire::POM::PromptObjectModel.new

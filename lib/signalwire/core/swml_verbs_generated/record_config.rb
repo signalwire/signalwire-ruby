@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+# rubocop:disable Layout/LineLength
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # flattened SWMLMethod verb 'record' config
@@ -23,20 +28,12 @@ module SignalWire
           'initial_timeout' => :object,
           'end_silence_timeout' => :object,
           'max_length' => :object,
-          'status_url' => :string,
+          'status_url' => :string
         }.freeze
 
-        attr_reader :stereo
-        attr_reader :format
-        attr_reader :direction
-        attr_reader :terminators
-        attr_reader :beep
-        attr_reader :input_sensitivity
-        attr_reader :initial_timeout
-        attr_reader :end_silence_timeout
-        attr_reader :max_length
-        attr_reader :status_url
+        attr_reader :stereo, :format, :direction, :terminators, :beep, :input_sensitivity, :initial_timeout, :end_silence_timeout, :max_length, :status_url
       end
     end
   end
 end
+# rubocop:enable Layout/LineLength

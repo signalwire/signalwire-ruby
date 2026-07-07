@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+# rubocop:disable Layout/LineLength
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # schema.json $defs schema 'Webhook'
@@ -23,20 +28,12 @@ module SignalWire
           'input_args_as_params' => :object,
           'params' => :object,
           'require_args' => :object,
-          'output' => :object,
+          'output' => :object
         }.freeze
 
-        attr_reader :expressions
-        attr_reader :error_keys
-        attr_reader :url
-        attr_reader :foreach
-        attr_reader :headers
-        attr_reader :method
-        attr_reader :input_args_as_params
-        attr_reader :params
-        attr_reader :require_args
-        attr_reader :output
+        attr_reader :expressions, :error_keys, :url, :foreach, :headers, :method, :input_args_as_params, :params, :require_args, :output
       end
     end
   end
 end
+# rubocop:enable Layout/LineLength

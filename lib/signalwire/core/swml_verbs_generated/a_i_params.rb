@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+# rubocop:disable Layout/LineLength
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # schema.json $defs schema 'AIParams'
@@ -105,102 +110,12 @@ module SignalWire
           'wait_for_user' => :object,
           'wake_prefix' => :string,
           'eleven_labs_stability' => :object,
-          'eleven_labs_similarity' => :object,
+          'eleven_labs_similarity' => :object
         }.freeze
 
-        attr_reader :acknowledge_interruptions
-        attr_reader :ai_model
-        attr_reader :ai_name
-        attr_reader :ai_volume
-        attr_reader :app_name
-        attr_reader :asr_smart_format
-        attr_reader :attention_timeout
-        attr_reader :attention_timeout_prompt
-        attr_reader :asr_diarize
-        attr_reader :asr_speaker_affinity
-        attr_reader :audible_debug
-        attr_reader :audible_latency
-        attr_reader :background_file
-        attr_reader :background_file_loops
-        attr_reader :background_file_volume
-        attr_reader :enable_barge
-        attr_reader :enable_inner_dialog
-        attr_reader :enable_pause
-        attr_reader :enable_turn_detection
-        attr_reader :barge_match_string
-        attr_reader :barge_min_words
-        attr_reader :barge_functions
-        attr_reader :cache_mode
-        attr_reader :conscience
-        attr_reader :convo
-        attr_reader :conversation_id
-        attr_reader :conversation_sliding_window
-        attr_reader :debug_webhook_level
-        attr_reader :debug_webhook_url
-        attr_reader :debug
-        attr_reader :direction
-        attr_reader :digit_terminators
-        attr_reader :digit_timeout
-        attr_reader :end_of_speech_timeout
-        attr_reader :enable_accounting
-        attr_reader :enable_thinking
-        attr_reader :enable_vision
-        attr_reader :energy_level
-        attr_reader :first_word_timeout
-        attr_reader :function_wait_for_talking
-        attr_reader :functions_on_no_response
-        attr_reader :hard_stop_prompt
-        attr_reader :hard_stop_time
-        attr_reader :hold_music
-        attr_reader :hold_on_process
-        attr_reader :inactivity_timeout
-        attr_reader :inner_dialog_model
-        attr_reader :inner_dialog_prompt
-        attr_reader :inner_dialog_synced
-        attr_reader :initial_sleep_ms
-        attr_reader :input_poll_freq
-        attr_reader :interrupt_on_noise
-        attr_reader :interrupt_prompt
-        attr_reader :languages_enabled
-        attr_reader :local_tz
-        attr_reader :llm_diarize_aware
-        attr_reader :max_emotion
-        attr_reader :max_response_tokens
-        attr_reader :openai_asr_engine
-        attr_reader :outbound_attention_timeout
-        attr_reader :persist_global_data
-        attr_reader :pom_format
-        attr_reader :save_conversation
-        attr_reader :speech_event_timeout
-        attr_reader :speech_gen_quick_stops
-        attr_reader :speech_timeout
-        attr_reader :speak_when_spoken_to
-        attr_reader :start_paused
-        attr_reader :static_greeting
-        attr_reader :static_greeting_no_barge
-        attr_reader :summary_mode
-        attr_reader :swaig_allow_settings
-        attr_reader :swaig_allow_swml
-        attr_reader :swaig_post_conversation
-        attr_reader :swaig_set_global_data
-        attr_reader :swaig_post_swml_vars
-        attr_reader :thinking_model
-        attr_reader :transparent_barge
-        attr_reader :transparent_barge_max_time
-        attr_reader :transfer_summary
-        attr_reader :turn_detection_timeout
-        attr_reader :tts_number_format
-        attr_reader :verbose_logs
-        attr_reader :video_listening_file
-        attr_reader :video_idle_file
-        attr_reader :video_talking_file
-        attr_reader :vision_model
-        attr_reader :vad_config
-        attr_reader :wait_for_user
-        attr_reader :wake_prefix
-        attr_reader :eleven_labs_stability
-        attr_reader :eleven_labs_similarity
+        attr_reader :acknowledge_interruptions, :ai_model, :ai_name, :ai_volume, :app_name, :asr_smart_format, :attention_timeout, :attention_timeout_prompt, :asr_diarize, :asr_speaker_affinity, :audible_debug, :audible_latency, :background_file, :background_file_loops, :background_file_volume, :enable_barge, :enable_inner_dialog, :enable_pause, :enable_turn_detection, :barge_match_string, :barge_min_words, :barge_functions, :cache_mode, :conscience, :convo, :conversation_id, :conversation_sliding_window, :debug_webhook_level, :debug_webhook_url, :debug, :direction, :digit_terminators, :digit_timeout, :end_of_speech_timeout, :enable_accounting, :enable_thinking, :enable_vision, :energy_level, :first_word_timeout, :function_wait_for_talking, :functions_on_no_response, :hard_stop_prompt, :hard_stop_time, :hold_music, :hold_on_process, :inactivity_timeout, :inner_dialog_model, :inner_dialog_prompt, :inner_dialog_synced, :initial_sleep_ms, :input_poll_freq, :interrupt_on_noise, :interrupt_prompt, :languages_enabled, :local_tz, :llm_diarize_aware, :max_emotion, :max_response_tokens, :openai_asr_engine, :outbound_attention_timeout, :persist_global_data, :pom_format, :save_conversation, :speech_event_timeout, :speech_gen_quick_stops, :speech_timeout, :speak_when_spoken_to, :start_paused, :static_greeting, :static_greeting_no_barge, :summary_mode, :swaig_allow_settings, :swaig_allow_swml, :swaig_post_conversation, :swaig_set_global_data, :swaig_post_swml_vars, :thinking_model, :transparent_barge, :transparent_barge_max_time, :transfer_summary, :turn_detection_timeout, :tts_number_format, :verbose_logs, :video_listening_file, :video_idle_file, :video_talking_file, :vision_model, :vad_config, :wait_for_user, :wake_prefix, :eleven_labs_stability, :eleven_labs_similarity
       end
     end
   end
 end
+# rubocop:enable Layout/LineLength

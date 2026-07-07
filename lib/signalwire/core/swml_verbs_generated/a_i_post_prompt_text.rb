@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # schema.json $defs schema 'AIPostPromptText'
@@ -20,16 +24,10 @@ module SignalWire
           'confidence' => :object,
           'presence_penalty' => :object,
           'frequency_penalty' => :object,
-          'text' => :string,
+          'text' => :string
         }.freeze
 
-        attr_reader :max_tokens
-        attr_reader :temperature
-        attr_reader :top_p
-        attr_reader :confidence
-        attr_reader :presence_penalty
-        attr_reader :frequency_penalty
-        attr_reader :text
+        attr_reader :max_tokens, :temperature, :top_p, :confidence, :presence_penalty, :frequency_penalty, :text
       end
     end
   end

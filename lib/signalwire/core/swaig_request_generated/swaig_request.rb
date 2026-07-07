@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+# rubocop:disable Layout/LineLength
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # swaig-request `SwaigRequest` schema
@@ -40,37 +45,12 @@ module SignalWire
           'project_id' => :string,
           'raw_call_log' => :array,
           'space_id' => :string,
-          'version' => :any,
+          'version' => :any
         }.freeze
 
-        attr_reader :ai_session_id
-        attr_reader :app_name
-        attr_reader :args
-        attr_reader :argument
-        attr_reader :argument_desc
-        attr_reader :call_id
-        attr_reader :call_log
-        attr_reader :caller_id_name
-        attr_reader :caller_id_num
-        attr_reader :channel_active
-        attr_reader :channel_offhook
-        attr_reader :channel_ready
-        attr_reader :content_disposition
-        attr_reader :content_type
-        attr_reader :conversation_id
-        attr_reader :description
-        attr_reader :error_reason
-        attr_reader :fatal_error
-        attr_reader :function
-        attr_reader :global_data
-        attr_reader :input
-        attr_reader :meta_data
-        attr_reader :meta_data_token
-        attr_reader :project_id
-        attr_reader :raw_call_log
-        attr_reader :space_id
-        attr_reader :version
+        attr_reader :ai_session_id, :app_name, :args, :argument, :argument_desc, :call_id, :call_log, :caller_id_name, :caller_id_num, :channel_active, :channel_offhook, :channel_ready, :content_disposition, :content_type, :conversation_id, :description, :error_reason, :fatal_error, :function, :global_data, :input, :meta_data, :meta_data_token, :project_id, :raw_call_log, :space_id, :version
       end
     end
   end
 end
+# rubocop:enable Layout/LineLength

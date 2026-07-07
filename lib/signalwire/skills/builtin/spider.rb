@@ -14,17 +14,15 @@ module SignalWire
         def description = 'Fast web scraping and crawling capabilities'
         def supports_multiple_instances? = true
 
-        # Default user-agent (Python parity: SpiderSkill.__init__).
+        # Default user-agent.
         DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
 
-        # Python parity: ``SpiderSkill.__init__`` extracts the performance /
-        # crawling / content-processing configuration off ``params`` and
-        # allocates the per-instance response cache right after
-        # ``super().__init__``. Ruby normally reads these in {#setup}; this
-        # mirrors Python so the ivars (and the cache #cleanup tears down)
-        # exist at construction time. {#setup} re-reads them and returns
-        # +true+. Ruby opens a fresh Net::HTTP per request, so there is no
-        # persistent session ivar (Python's ``requests.Session``).
+        # Extracts the performance / crawling / content-processing
+        # configuration off ``params`` and allocates the per-instance
+        # response cache at construction time so the ivars (and the cache
+        # #cleanup tears down) exist immediately. {#setup} re-reads them and
+        # returns +true+. A fresh Net::HTTP is opened per request, so there
+        # is no persistent session ivar.
         def initialize(agent = nil, params = nil)
           super
           @max_text_length = get_param('max_text_length', default: 10_000).to_i
@@ -49,11 +47,10 @@ module SignalWire
           true
         end
 
-        # Python parity: ``SpiderSkill.cleanup`` closes the HTTP session, clears
-        # the response cache, and logs. Ruby opens a fresh Net::HTTP connection
-        # per request (no persistent session to close), so teardown here drops
-        # the response cache and logs that the skill was cleaned up. Safe to
-        # call more than once.
+        # Tears down the skill: clears the response cache and logs. A fresh
+        # Net::HTTP connection is opened per request (no persistent session
+        # to close), so teardown here drops the response cache and logs that
+        # the skill was cleaned up. Safe to call more than once.
         def cleanup
           @cache&.clear
           @cache = nil

@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+# rubocop:disable Layout/LineLength
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # schema.json $defs schema 'JoinConferenceObject'
@@ -31,28 +36,12 @@ module SignalWire
           'recording_status_callback' => :string,
           'recording_status_callback_method' => :object,
           'recording_status_callback_event' => :object,
-          'result' => :object,
+          'result' => :object
         }.freeze
 
-        attr_reader :name
-        attr_reader :muted
-        attr_reader :beep
-        attr_reader :start_on_enter
-        attr_reader :end_on_exit
-        attr_reader :wait_url
-        attr_reader :max_participants
-        attr_reader :record
-        attr_reader :region
-        attr_reader :trim
-        attr_reader :coach
-        attr_reader :status_callback_event
-        attr_reader :status_callback
-        attr_reader :status_callback_method
-        attr_reader :recording_status_callback
-        attr_reader :recording_status_callback_method
-        attr_reader :recording_status_callback_event
-        attr_reader :result
+        attr_reader :name, :muted, :beep, :start_on_enter, :end_on_exit, :wait_url, :max_participants, :record, :region, :trim, :coach, :status_callback_event, :status_callback, :status_callback_method, :recording_status_callback, :recording_status_callback_method, :recording_status_callback_event, :result
       end
     end
   end
 end
+# rubocop:enable Layout/LineLength

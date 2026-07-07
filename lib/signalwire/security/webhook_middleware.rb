@@ -52,8 +52,8 @@ module SignalWire
       RAW_BODY_ENV_KEY = 'signalwire.raw_body'
 
       # @param app [#call] the wrapped Rack app.
-      # Framework-free decomposed validation core (the cross-port contract from
-      # porting-sdk/webhooks.md §"Combined Validator" decomposed at the HTTP
+      # Framework-free decomposed validation core (the SignalWire webhook
+      # signing scheme's combined validator, decomposed at the HTTP
       # boundary). Given the raw HTTP request primitives — method, full public
       # URL, headers, raw body — plus the Signing Key, return ``nil`` when the
       # request is authentic (let it through) or a Rack-shaped
@@ -71,7 +71,7 @@ module SignalWire
       # Header lookup is case-insensitive (HTTP header names are).
       #
       # @param method [String] the request HTTP method (``POST`` etc.). Accepted
-      #   for signature/parity with the cross-port contract; validation applies
+      #   as part of the validation signature; validation applies
       #   to any method (the Rack wrapper does the method allowlisting).
       # @param url [String] the full public URL SignalWire POSTed to (scheme,
       #   host, optional port, path, query) — see webhooks.md URL reconstruction.
@@ -85,10 +85,9 @@ module SignalWire
       #
       # @raise [ArgumentError] when ``signing_key`` is missing.
       #
-      # The ``method`` param is part of the cross-port decomposed contract
-      # (signature parity with the reference + the other ports) but is not
-      # consulted here — the Rack wrapper does method allowlisting; the
-      # signature check itself is method-agnostic.
+      # The ``method`` param is part of the decomposed validator's signature
+      # but is not consulted here — the Rack wrapper does method allowlisting;
+      # the signature check itself is method-agnostic.
       def self.validate(method, url, headers, body, signing_key:) # rubocop:disable Lint/UnusedMethodArgument
         # Missing signing key is a programming error, not a validation failure —
         # raise (webhooks.md "Error modes"), consistent with the L1 validator.

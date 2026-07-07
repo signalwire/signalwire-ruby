@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # schema.json $defs schema 'LanguagesWithFillers'
@@ -23,19 +27,10 @@ module SignalWire
           'engine' => :string,
           'params' => :object,
           'function_fillers' => :array,
-          'speech_fillers' => :array,
+          'speech_fillers' => :array
         }.freeze
 
-        attr_reader :name
-        attr_reader :code
-        attr_reader :voice
-        attr_reader :model
-        attr_reader :emotion
-        attr_reader :speed
-        attr_reader :engine
-        attr_reader :params
-        attr_reader :function_fillers
-        attr_reader :speech_fillers
+        attr_reader :name, :code, :voice, :model, :emotion, :speed, :engine, :params, :function_fillers, :speech_fillers
       end
     end
   end

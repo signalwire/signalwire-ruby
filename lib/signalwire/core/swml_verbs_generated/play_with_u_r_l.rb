@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # schema.json $defs schema 'PlayWithURL'
@@ -20,16 +24,10 @@ module SignalWire
           'say_language' => :string,
           'say_gender' => :string,
           'status_url' => :string,
-          'url' => :object,
+          'url' => :object
         }.freeze
 
-        attr_reader :auto_answer
-        attr_reader :volume
-        attr_reader :say_voice
-        attr_reader :say_language
-        attr_reader :say_gender
-        attr_reader :status_url
-        attr_reader :url
+        attr_reader :auto_answer, :volume, :say_voice, :say_language, :say_gender, :status_url, :url
       end
     end
   end

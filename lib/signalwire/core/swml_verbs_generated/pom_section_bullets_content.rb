@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+# rubocop:disable Naming/MethodName
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # schema.json $defs schema 'PomSectionBulletsContent'
@@ -19,16 +24,12 @@ module SignalWire
           'numbered' => :object,
           'numberedBullets' => :object,
           'body' => :string,
-          'bullets' => :array,
+          'bullets' => :array
         }.freeze
 
-        attr_reader :title
-        attr_reader :subsections
-        attr_reader :numbered
-        attr_reader :numberedBullets
-        attr_reader :body
-        attr_reader :bullets
+        attr_reader :title, :subsections, :numbered, :numberedBullets, :body, :bullets
       end
     end
   end
 end
+# rubocop:enable Naming/MethodName

@@ -11,10 +11,8 @@ module SignalWire
         def description = 'Control background file playback'
         def supports_multiple_instances? = true
 
-        # Python parity: ``PlayBackgroundFileSkill.__init__`` extracts the
-        # configuration (tool_name / files) off ``params`` right after
-        # ``super().__init__``. Ruby normally reads these in {#setup}; this
-        # mirrors Python so the ivars exist at construction time. {#setup}
+        # Extracts the configuration (tool_name / files) off ``params`` at
+        # construction time so the ivars exist immediately. {#setup}
         # re-reads them (and returns the validation bool).
         def initialize(agent = nil, params = nil)
           super
@@ -33,10 +31,9 @@ module SignalWire
 
         def instance_key = "play_background_file_#{@tool_name}"
 
-        # Python parity: ``get_tools`` returns the raw SWAIG tool DEFINITION
-        # hashes (the DataMap tool the skill provides), including the
-        # ``wait_for_fillers``/``skip_fillers`` flags. {#register_tools}
-        # builds on top of this.
+        # Returns the raw SWAIG tool DEFINITION hashes (the DataMap tool the
+        # skill provides), including the ``wait_for_fillers``/``skip_fillers``
+        # flags. {#register_tools} builds on top of this.
         def get_tools
           [
             {

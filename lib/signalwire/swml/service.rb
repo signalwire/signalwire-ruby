@@ -15,15 +15,15 @@ module SignalWire
     # Rack serving) plus the two nested Rack middleware classes must live together;
     # splitting breaks the 1:1 surface mapping to the reference.
     class Service
-      # Python parity:
-      # - ``name``, ``route``, ``host``, ``port`` — surface from
-      #   SWMLService.
+      # Attributes:
+      # - ``name``, ``route``, ``host``, ``port`` — service identity and
+      #   bind configuration.
       # - ``schema_path`` — path to the SWML schema file (or nil to use
       #   the gem-bundled default).
       # - ``config_file`` — optional TOML/YAML config file path.
-      # - ``schema_validation`` — boolean flag mirroring Python's
-      #   ``self._schema_validation``. ``SWML_SKIP_SCHEMA_VALIDATION=1``
-      #   env var forces this to false.
+      # - ``schema_validation`` — boolean flag controlling out-bound SWML
+      #   schema validation. ``SWML_SKIP_SCHEMA_VALIDATION=1`` env var
+      #   forces this to false.
       attr_reader :name, :route, :host, :port,
                   :schema_path, :config_file, :schema_validation
 
@@ -108,9 +108,8 @@ module SignalWire
       end
 
       # Whether a SWAIG function with the given name is registered.
-      # (Python parity: ToolRegistry#has_function.)
-      # @!visibility private  (idiomatic alias: #function?; original kept for
-      #   cross-port audit parity + back-compat)
+      # @!visibility private  (idiomatic alias: #function?; original name kept
+      #   for back-compat)
       def has_function(name)
         @tools.key?(name) || @swaig_functions.key?(name)
       end
@@ -124,15 +123,13 @@ module SignalWire
       def function?(name) = has_function(name)
 
       # Get a registered SWAIG function by name, or nil when absent.
-      # (Python parity: ToolRegistry#get_function.)
       def get_function(name)
         @tools[name] || @swaig_functions[name]
       end
 
       # Snapshot of all registered SWAIG functions keyed by name.
-      # (Python parity: ToolRegistry#get_all_functions.)
-      # @!visibility private  (idiomatic alias: #all_functions; original kept
-      #   for cross-port audit parity + back-compat)
+      # @!visibility private  (idiomatic alias: #all_functions; original name
+      #   kept for back-compat)
       def get_all_functions
         out = {}
         @tools.each { |k, v| out[k] = v }
@@ -142,7 +139,6 @@ module SignalWire
 
       # Remove a registered SWAIG function. Returns true on success,
       # false when the function was not registered.
-      # (Python parity: ToolRegistry#remove_function.)
       def remove_function(name)
         if @tools.key?(name)
           @tools.delete(name)
@@ -223,7 +219,6 @@ module SignalWire
 
       # Get the configured basic-auth credentials.
       #
-      # Python parity: ``get_basic_auth_credentials(include_source=False)``.
       # When ``include_source`` is true, returns a 3-tuple ``[user,
       # pass, source]`` where ``source`` is one of ``"environment"``,
       # ``"auto-generated"``, or ``"provided"``. Otherwise returns the
@@ -240,7 +235,6 @@ module SignalWire
 
       # Validate provided basic-auth credentials against the configured ones
       # using a constant-time comparison.
-      # Python parity: AuthMixin#validate_basic_auth(username, password).
       def validate_basic_auth(username, password)
         require 'openssl'
         u, p = @basic_auth
@@ -256,7 +250,7 @@ module SignalWire
       # Backwards-compat alias for the legacy 3-tuple-only form.
       # @return [Array(String, String, String)]
       # @!visibility private  (idiomatic alias: #basic_auth_credentials_with_source;
-      #   original kept for cross-port audit parity + back-compat)
+      #   original name kept for back-compat)
       def get_basic_auth_credentials_with_source
         get_basic_auth_credentials(include_source: true)
       end
@@ -276,9 +270,9 @@ module SignalWire
       # Routing callbacks & request handling
       # ------------------------------------------------------------------
 
-      # Register a routing callback at +path+. Python parity: the path is
-      # normalized for consistent lookup — trailing slash stripped, leading
-      # slash ensured (so "/sip/" and "sip" both store as "/sip").
+      # Register a routing callback at +path+. The path is normalized for
+      # consistent lookup — trailing slash stripped, leading slash ensured
+      # (so "/sip/" and "sip" both store as "/sip").
       def register_routing_callback(path, &block)
         normalized = path.to_s.chomp('/')
         normalized = "/#{normalized}" unless normalized.start_with?('/')
@@ -339,10 +333,10 @@ module SignalWire
         [307, { 'Location' => route }, '']
       end
 
-      # Invoke a routing callback with +(body, headers)+ (python parity). Blocks
-      # that declare a single parameter still work — arity 1 is called with
-      # +body+ only. Swallows callback errors (parity: a raising callback does not
-      # 500 the request), returning nil so dispatch falls through to render.
+      # Invoke a routing callback with +(body, headers)+. Blocks that declare a
+      # single parameter still work — arity 1 is called with +body+ only.
+      # Swallows callback errors (a raising callback does not 500 the request),
+      # returning nil so dispatch falls through to render.
       def _invoke_routing_callback(callback, body, headers)
         if callback.arity == 1
           callback.call(body)
@@ -472,14 +466,10 @@ module SignalWire
       # Return +nil+ to use the default SWML rendering, or a Hash of
       # modifications to merge into the document.
       #
-      # Python parity: WebMixin#on_request(request_data, callback_path).
-      # The Python third +request+ argument is FastAPI-specific and
-      # intentionally not mirrored.
-      # Python parity: ``on_request(request_data, callback_path)``. The
-      # third Python parameter (``request``) — a FastAPI ``Request`` —
-      # is propagated through Ruby as the optional ``request:`` keyword
-      # so subclasses can read query/header info when a Rack-style
-      # request is available. Default: delegate to ``on_swml_request``.
+      # Signature: ``on_request(request_data, callback_path)`` with an
+      # optional ``request:`` keyword carrying the Rack request, so
+      # subclasses can read query/header info when a Rack-style request is
+      # available. Default: delegate to ``on_swml_request``.
       def on_request(request_data = nil, callback_path = nil, request: nil)
         on_swml_request(request_data, callback_path, request: request)
       end
@@ -487,11 +477,9 @@ module SignalWire
       # Customization point for subclasses to modify SWML based on
       # request data. The default returns nil (no modification).
       #
-      # Python parity:
-      # ``on_swml_request(request_data, callback_path, request)``. The
-      # ``request:`` keyword carries the Rack request (or FastAPI
-      # ``Request`` analogue) for subclasses that need query params
-      # or headers.
+      # Signature: ``on_swml_request(request_data, callback_path)``. The
+      # ``request:`` keyword carries the Rack request for subclasses that
+      # need query params or headers.
       def on_swml_request(_request_data = nil, _callback_path = nil, request: nil) # rubocop:disable Lint/UnusedMethodArgument
         nil
       end
@@ -644,12 +632,9 @@ module SignalWire
 
       # Start serving (blocking).
       #
-      # Python parity:
-      # ``serve(host=None, port=None, ssl_cert=None, ssl_key=None,
-      # ssl_enabled=None, domain=None)``. When SSL parameters are
-      # supplied the server is started with HTTPS bindings; otherwise
-      # plain HTTP. ``host``/``port`` overrides default to the
-      # constructor-provided values.
+      # When SSL parameters are supplied the server is started with HTTPS
+      # bindings; otherwise plain HTTP. ``host``/``port`` overrides default
+      # to the constructor-provided values.
       #
       # @param host [String, nil] override bind host
       # @param port [Integer, nil] override bind port
@@ -806,15 +791,14 @@ module SignalWire
         @swaig_functions = {}  # name => raw hash (DataMap etc.)
       end
 
-      # Python parity:
+      # Parameters:
       # - ``schema_path`` — explicit path to the SWML schema file. When nil we
       #   fall back to the schema bundled with the gem via SWML::Schema.
-      # - ``config_file`` — TOML/YAML configuration override file (Python's
-      #   ``ConfigLoader``). Ruby v1 stashes the path; the loader is wired by
-      #   AgentBase only when needed.
+      # - ``config_file`` — TOML/YAML configuration override file. Ruby v1
+      #   stashes the path; the loader is wired by AgentBase only when needed.
       # - ``schema_validation`` — when true (default), out-bound SWML is
       #   validated against the schema. ``SWML_SKIP_SCHEMA_VALIDATION=1`` env
-      #   var overrides to false (Python parity).
+      #   var overrides to false.
       def init_schema_config(schema_path, config_file, schema_validation)
         @schema_path        = schema_path
         @config_file        = config_file
@@ -841,10 +825,10 @@ module SignalWire
         end
       end
 
-      # Python parity (SecurityConfig.load_from_env): the server can be told
-      # to serve HTTPS via three env vars, consumed by +serve+ / +AgentBase#serve+
-      # to bind WEBrick with SSLEnable. Explicit serve(ssl_cert:, ssl_key:,
-      # ssl_enabled:) kwargs still override these at call time.
+      # The server can be told to serve HTTPS via three env vars, consumed by
+      # +serve+ / +AgentBase#serve+ to bind WEBrick with SSLEnable. Explicit
+      # serve(ssl_cert:, ssl_key:, ssl_enabled:) kwargs still override these at
+      # call time.
       #   SWML_SSL_ENABLED   — "true"/"1"/"yes" (case-insensitive) → on
       #   SWML_SSL_CERT_PATH — PEM certificate path
       #   SWML_SSL_KEY_PATH  — PEM private-key path
@@ -860,8 +844,8 @@ module SignalWire
       # Loads the PEM cert + private key with the generic +OpenSSL::PKey.read+
       # so RSA and EC keys both work. A no-op when SSL is off or incomplete,
       # so plain-HTTP serving is untouched. Shared by +SWMLService#serve+ and
-      # +AgentBase#serve+ (WebMixin parity) so both code paths bind TLS
-      # identically. Returns true when SSL was applied, false otherwise.
+      # +AgentBase#serve+ so both code paths bind TLS identically. Returns true
+      # when SSL was applied, false otherwise.
       # @api private
       def _apply_webrick_ssl!(opts)
         return false unless @ssl_enabled && @ssl_cert_path && @ssl_key_path
@@ -876,9 +860,8 @@ module SignalWire
 
       # Internal request dispatcher: invoked by the rack app to produce
       # the final SWML hash for a request. Tries (in order) the
-      # +on_request+ customization hook (Python WebMixin parity), then
-      # any registered routing callback, then the default rendered
-      # document.
+      # +on_request+ customization hook, then any registered routing
+      # callback, then the default rendered document.
       #
       # +request_data+ is the parsed JSON body (or nil). Returns the
       # SWML hash to serialise as the response.

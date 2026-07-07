@@ -81,17 +81,15 @@ module SignalWire
       @factories = {} # skill_name => lambda { |params| SkillBase }
       @mutex     = Mutex.new
 
-      # Per-instance state for the skill-directory parity surface; the
-      # class-method API above is preserved for backwards compatibility,
-      # but `add_skill_directory` mirrors Python's instance-method shape
-      # exactly (Python's `signalwire.skills.registry.SkillRegistry`).
+      # Per-instance state for the skill-directory API; the class-method
+      # API above is preserved for backwards compatibility, while
+      # `add_skill_directory` exposes the same behavior in instance form.
       def initialize
         @external_paths = []
         @inst_mutex     = Mutex.new
         @logger         = ::SignalWire::Logging.logger('skill_registry')
       end
 
-      # Python parity: ``self.logger = get_logger("skill_registry")``.
       # Per-instance logger; the class-level API uses the same name.
       attr_reader :logger
 
@@ -134,46 +132,39 @@ module SignalWire
 
       # List all registered skill names (instance form).
       #
-      # Python parity: ``SkillRegistry.list_skills(self)`` returns a list of
-      # dictionaries describing each skill. Ruby v1 returns the
-      # registered names plus available metadata (description / version)
-      # when the factory can be instantiated without arguments.
+      # Returns the registered skill names plus available metadata
+      # (description / version) when the factory can be instantiated
+      # without arguments.
       #
       # @return [Array<Hash>]
       def list_skills = self.class.send(:_list_skills_full)
 
       # Ensure built-in skills are discovered/registered (instance form).
       #
-      # Python parity: ``SkillRegistry.discover_skills`` is a deprecated
-      # no-op there because skills load on-demand. Ruby ships its
-      # built-ins explicitly, so the faithful equivalent is to make sure
-      # they're registered — idempotent, since {register_builtins!} just
-      # re-requires the (already loaded) built-in files. Returns the
-      # registered skill names so callers can confirm discovery ran.
+      # Ensures the built-in skills are registered — idempotent, since
+      # {register_builtins!} just re-requires the (already loaded) built-in
+      # files. Returns the registered skill names so callers can confirm
+      # discovery ran.
       #
       # @return [Array<String>] currently registered skill names.
       def discover_skills = self.class.discover_skills
 
       # List skill sources and the skills available from each (instance form).
       #
-      # Python parity: ``SkillRegistry.list_all_skill_sources`` returns a
-      # hash mapping source type to skill names. This instance form folds
-      # in any directories registered via {#add_skill_directory}.
+      # Returns a hash mapping source type to skill names. This instance
+      # form folds in any directories registered via {#add_skill_directory}.
       #
       # @return [Hash{String => Array<String>}]
       def list_all_skill_sources = self.class.list_all_skill_sources(external_paths: @external_paths)
 
       # Register a skill class or factory (instance form).
       #
-      # Python parity: ``SkillRegistry.register_skill(self, skill_class)``
-      # accepts a SkillBase subclass and stores its factory. Ruby
-      # accepts either a class with a ``new(params)`` constructor, a
-      # ``Proc`` /``Lambda``, or a 2-arg ``(name, factory)`` form for
-      # explicit naming. Returns ``self`` for chaining.
+      # Accepts either a SkillBase subclass with a ``new(params)``
+      # constructor, a ``Proc`` /``Lambda``, or a 2-arg ``(name, factory)``
+      # form for explicit naming. Returns ``self`` for chaining.
       #
       # @param skill_class_or_name [Class, String] either a SkillBase
-      #   subclass (Python style) or a string skill name (legacy
-      #   2-arg form).
+      #   subclass or a string skill name (legacy 2-arg form).
       # @param factory [Proc, nil] explicit factory when first arg
       #   is a string (legacy form).
       def register_skill(skill_class_or_name, factory = nil)
@@ -245,9 +236,9 @@ module SignalWire
         # @return [Array<String>]
         def list_skills = @mutex.synchronize { @factories.keys.dup }
 
-        # Full skill metadata (Python instance-method parity for
-        # SkillRegistry.list_skills). Returns one dict per skill with
-        # name + description + version when available.
+        # Full skill metadata backing the instance-method {#list_skills}.
+        # Returns one dict per skill with name + description + version when
+        # available.
         # @api private
         def _list_skills_full
           @mutex.synchronize { @factories.keys.sort.map { |skill_name| _skill_summary(skill_name) } }
@@ -283,10 +274,9 @@ module SignalWire
 
         # Ensure built-in skills are registered and return their names.
         #
-        # Python parity: ``SkillRegistry.discover_skills`` (a no-op there
-        # since skills load on-demand). Ruby ships built-ins explicitly,
-        # so this guarantees they're registered via {register_builtins!}
-        # (idempotent) and returns the registered skill names.
+        # Guarantees the built-in skills are registered via
+        # {register_builtins!} (idempotent) and returns the registered
+        # skill names.
         #
         # @return [Array<String>] currently registered skill names.
         def discover_skills
@@ -296,12 +286,11 @@ module SignalWire
 
         # List all skill sources and the skills available from each.
         #
-        # Python parity: ``SkillRegistry.list_all_skill_sources`` returns
-        # a hash keyed by source type. Ruby has no Python-style entry
-        # points, so that bucket is always empty; +registered+ holds any
-        # skill that isn't a shipped built-in (e.g. registered via
-        # {register_skill}). +external_paths+ folds in skill subdirectory
-        # names found under any directories passed in.
+        # Returns a hash keyed by source type. The +entry_points+ bucket
+        # is always empty; +registered+ holds any skill that isn't a
+        # shipped built-in (e.g. registered via {register_skill}).
+        # +external_paths+ folds in skill subdirectory names found under
+        # any directories passed in.
         #
         # @param external_paths [Array<String>] directories registered via
         #   an instance's #add_skill_directory.

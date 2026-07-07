@@ -64,10 +64,9 @@ module SignalWire
         configure_agent_settings
       end
 
-      # Register a callback for dynamic, per-request question configuration —
-      # Python parity (InfoGathererAgent#set_question_callback). The callback
-      # receives (query_params, body_params, headers) and returns the list of
-      # questions to ask on that call.
+      # Register a callback for dynamic, per-request question configuration.
+      # The callback receives (query_params, body_params, headers) and
+      # returns the list of questions to ask on that call.
       #
       # @param callback [#call] callable taking three Hash args, returning
       #   an Array of question Hashes
@@ -143,14 +142,13 @@ module SignalWire
         build_submit_result(questions, next_index, new_answers)
       end
 
-      # Lifecycle hook: on_swml_request — Python parity
-      # (InfoGathererAgent#on_swml_request). In dynamic mode, invokes the
+      # Lifecycle hook: on_swml_request. In dynamic mode, invokes the
       # registered question callback (or a fallback) and returns a
       # { 'global_data' => {...} } Hash that AgentBase merges into the SWML
       # response. In static mode this is a no-op (returns nil).
       #
       # @param request_data [Hash, nil] parsed request body
-      # @param callback_path [String, nil] callback path (accepted for parity)
+      # @param callback_path [String, nil] callback path (accepted but unused)
       # @param request [#query_params, #headers, nil] request object
       # @return [Hash, nil]
       def on_swml_request(request_data = nil, _callback_path = nil, request: nil)

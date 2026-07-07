@@ -57,12 +57,10 @@ module SignalWire
         EVENT_MESSAGING_STATE => :_handle_message_state
       }.freeze
 
-      # Python parity:
-      # ``RelayClient(project=None, token=None, jwt_token=None,
-      # host=None, contexts=None, max_active_calls=None)``. Ruby v1
-      # accepted ``space:`` for the same purpose; both keyword names
-      # are honoured for backwards compat. ``host`` is the canonical
-      # Python name and now drives the WebSocket endpoint.
+      # Construct a RelayClient. An earlier release accepted ``space:``
+      # for the same purpose; both keyword names are honoured for
+      # backwards compat. ``host`` is the canonical name and drives the
+      # WebSocket endpoint.
       #
       # @param project [String, nil] project ID (env: SIGNALWIRE_PROJECT_ID)
       # @param token [String, nil] API token (env: SIGNALWIRE_API_TOKEN)
@@ -72,8 +70,8 @@ module SignalWire
       #   (``myspace.signalwire.com``).
       # @param contexts [Array<String>] context names to subscribe to
       # @param max_active_calls [Integer, nil] cap on simultaneous
-      #   active inbound calls. ``nil`` means unlimited (Python parity:
-      #   matches ``RELAY_MAX_ACTIVE_CALLS`` env override).
+      #   active inbound calls. ``nil`` means unlimited (overridable via
+      #   the ``RELAY_MAX_ACTIVE_CALLS`` env var).
       # @param space [String, nil] backwards-compat alias for ``host``.
       def initialize(project: nil, token: nil, jwt_token: nil, host: nil,
                      contexts: ['default'], max_active_calls: nil,
@@ -103,7 +101,8 @@ module SignalWire
         explicit || ENV[env_key] || ''
       end
 
-      # Python parity: max_active_calls override + RELAY_MAX_ACTIVE_CALLS env.
+      # Resolve max_active_calls: the explicit arg, else the
+      # RELAY_MAX_ACTIVE_CALLS env var.
       def _resolve_max_active_calls(max_active_calls)
         if max_active_calls.nil?
           env_val = ENV.fetch('RELAY_MAX_ACTIVE_CALLS', nil)
@@ -204,21 +203,18 @@ module SignalWire
         @protocol = value
       end
 
-      # Return the SDK's tracked authorization-state blob (Python parity:
-      # +RelayClient._authorization_state+). Captured from
+      # Return the SDK's tracked authorization-state blob. Captured from
       # +signalwire.authorization.state+ events for use on reconnect.
       def _authorization_state
         @authorization_state
       end
 
       # Return the server-assigned session id captured from the connect
-      # handshake. Internal/test surface only (single-underscore => excluded
-      # from the public surface oracle, like +_set_protocol+): the mock-relay
-      # test harness reads it to scope its journal/scenario calls to this
-      # connection so the shared mock is safe under parallel test execution.
-      # Mirrors the frozen TypeScript port's private +_sessionId+; not part of
-      # Python's public surface. +nil+ until +run+/+connect+ completes the
-      # handshake.
+      # handshake. Internal/test surface only (single-underscore => not part
+      # of the public API, like +_set_protocol+): the test harness reads it
+      # to scope its journal/scenario calls to this connection so the shared
+      # mock is safe under parallel test execution. +nil+ until
+      # +run+/+connect+ completes the handshake.
       def _session_id
         @session_id
       end

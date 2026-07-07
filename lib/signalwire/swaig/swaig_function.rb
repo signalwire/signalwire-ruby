@@ -93,10 +93,9 @@ module SignalWire
       #
       # Uses the json-schema gem for full JSON-Schema validation when it is
       # installed; otherwise falls back to a lightweight built-in check of the
-      # +required+ list and each property's +type+ (parity with the Python
-      # reference's optional-validator behaviour — the reference tries
-      # jsonschema_rs/jsonschema and skips when neither is present; Ruby keeps a
-      # minimal always-available check so basic validation still works).
+      # +required+ list and each property's +type+. The full validator is
+      # optional, so a minimal always-available check keeps basic validation
+      # working when the gem is absent.
       #
       # @param args [Hash] arguments to validate
       # @return [Array(Boolean, Array<String>)] (is_valid, errors)
@@ -135,7 +134,7 @@ module SignalWire
       private
 
       # Validate against +schema+ using the json-schema gem when installed,
-      # else the built-in fallback (Python parity: optional-validator behaviour).
+      # else the built-in fallback (the full validator is optional).
       def validate_against_schema(schema, args)
         require 'json-schema'
         errors = JSON::Validator.fully_validate(schema, args)
@@ -144,7 +143,7 @@ module SignalWire
         validate_args_builtin(schema, args)
       end
 
-      # Coerce a handler return value into a FunctionResult Hash (Python parity).
+      # Coerce a handler return value into a FunctionResult Hash.
       def coerce_result(result)
         return result.to_h if result.is_a?(FunctionResult)
         return result if result.is_a?(Hash) && result.key?('response')

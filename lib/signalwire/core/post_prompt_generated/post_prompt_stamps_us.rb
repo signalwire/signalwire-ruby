@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+# rubocop:disable Layout/LineLength
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # post-prompt components/schemas 'PostPromptStampsUs'
@@ -22,19 +27,12 @@ module SignalWire
           'request_detect' => :integer,
           'first_token' => :integer,
           'first_utterance' => :integer,
-          'first_audio' => :integer,
+          'first_audio' => :integer
         }.freeze
 
-        attr_reader :speech_start
-        attr_reader :last_word_end
-        attr_reader :suspected_end
-        attr_reader :turn_decided
-        attr_reader :status_pushed
-        attr_reader :request_detect
-        attr_reader :first_token
-        attr_reader :first_utterance
-        attr_reader :first_audio
+        attr_reader :speech_start, :last_word_end, :suspected_end, :turn_decided, :status_pushed, :request_detect, :first_token, :first_utterance, :first_audio
       end
     end
   end
 end
+# rubocop:enable Layout/LineLength

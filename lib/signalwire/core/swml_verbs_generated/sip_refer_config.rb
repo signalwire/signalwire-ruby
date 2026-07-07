@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # flattened SWMLMethod verb 'sip_refer' config
@@ -17,13 +21,10 @@ module SignalWire
           'to_uri' => :string,
           'status_url' => :string,
           'username' => :string,
-          'password' => :string,
+          'password' => :string
         }.freeze
 
-        attr_reader :to_uri
-        attr_reader :status_url
-        attr_reader :username
-        attr_reader :password
+        attr_reader :to_uri, :status_url, :username, :password
       end
     end
   end

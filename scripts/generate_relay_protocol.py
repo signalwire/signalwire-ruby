@@ -47,6 +47,9 @@ import json
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _gen_format import rubocop_format, wrap_spec_derived_disables  # noqa: E402
+
 
 def _load_rest_generator():
     here = Path(__file__).resolve().parent
@@ -117,6 +120,14 @@ def main(argv: list) -> int:
     outs = build_outputs(psdk)
 
     out_dir = Path(args.out) if args.out else repo_root() / "lib" / "signalwire"
+
+    if not args.out:
+        # Format-on-emit (see _gen_format): wrap the spec-derived disable pair, then run the
+        # repo rubocop safe-autocorrect so the committed tree is GEN-FRESH + FMT/LINT clean.
+        rel_base = out_dir.relative_to(repo_root()).as_posix()
+        wrapped = {f"{rel_base}/{fn}": wrap_spec_derived_disables(src) for fn, src in outs.items()}
+        formatted = rubocop_format(wrapped)
+        outs = {fn: formatted[f"{rel_base}/{fn}"] for fn in outs}
 
     if args.check:
         stale: list = []

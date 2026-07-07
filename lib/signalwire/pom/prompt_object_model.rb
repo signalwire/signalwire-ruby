@@ -64,11 +64,9 @@ module SignalWire
 
       # Add a top-level section to the model and return the new Section.
       #
-      # Mirrors Python's ``PromptObjectModel.add_section``. If +bullets+
-      # is a String it is wrapped into a single-element Array (Python
-      # parity). Raises ArgumentError when +title+ is nil and the model
-      # already has at least one section (only the first section may
-      # be untitled).
+      # If +bullets+ is a String it is wrapped into a single-element Array.
+      # Raises ArgumentError when +title+ is nil and the model already has
+      # at least one section (only the first section may be untitled).
       def add_section(title = nil, body: '', bullets: nil, numbered: nil, numbered_bullets: false)
         raise ArgumentError, 'Only the first section can have no title' if title.nil? && !@sections.empty?
 

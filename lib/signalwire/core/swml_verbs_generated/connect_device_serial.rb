@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+# rubocop:disable Layout/LineLength
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # schema.json $defs schema 'ConnectDeviceSerial'
@@ -32,29 +37,12 @@ module SignalWire
           'call_state_url' => :string,
           'transfer_after_bridge' => :object,
           'call_state_events' => :array,
-          'serial' => :array,
+          'serial' => :array
         }.freeze
 
-        attr_reader :from
-        attr_reader :headers
-        attr_reader :codecs
-        attr_reader :webrtc_media
-        attr_reader :session_timeout
-        attr_reader :ringback
-        attr_reader :result
-        attr_reader :timeout
-        attr_reader :max_duration
-        attr_reader :answer_on_bridge
-        attr_reader :confirm
-        attr_reader :confirm_timeout
-        attr_reader :username
-        attr_reader :password
-        attr_reader :encryption
-        attr_reader :call_state_url
-        attr_reader :transfer_after_bridge
-        attr_reader :call_state_events
-        attr_reader :serial
+        attr_reader :from, :headers, :codecs, :webrtc_media, :session_timeout, :ringback, :result, :timeout, :max_duration, :answer_on_bridge, :confirm, :confirm_timeout, :username, :password, :encryption, :call_state_url, :transfer_after_bridge, :call_state_events, :serial
       end
     end
   end
 end
+# rubocop:enable Layout/LineLength

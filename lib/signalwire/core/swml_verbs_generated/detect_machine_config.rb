@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+# rubocop:disable Layout/LineLength
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # flattened SWMLMethod verb 'detect_machine' config
@@ -24,21 +29,12 @@ module SignalWire
           'status_url' => :string,
           'timeout' => :object,
           'tone' => :object,
-          'wait' => :object,
+          'wait' => :object
         }.freeze
 
-        attr_reader :detect_message_end
-        attr_reader :detectors
-        attr_reader :end_silence_timeout
-        attr_reader :initial_timeout
-        attr_reader :machine_ready_timeout
-        attr_reader :machine_voice_threshold
-        attr_reader :machine_words_threshold
-        attr_reader :status_url
-        attr_reader :timeout
-        attr_reader :tone
-        attr_reader :wait
+        attr_reader :detect_message_end, :detectors, :end_silence_timeout, :initial_timeout, :machine_ready_timeout, :machine_voice_threshold, :machine_words_threshold, :status_url, :timeout, :tone, :wait
       end
     end
   end
 end
+# rubocop:enable Layout/LineLength

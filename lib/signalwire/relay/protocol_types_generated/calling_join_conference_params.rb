@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+# Spec-derived generated surface: wire keys, folded schema constants, and per-schema
+# CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
+# generator's rubocop pass to exactly those that fire.
+
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # RELAY method 'calling.join_conference', params
@@ -37,7 +41,7 @@ module SignalWire
           'stream' => :any,
           'swml' => :boolean,
           'trim' => :string,
-          'wait_url' => :string,
+          'wait_url' => :string
         }.freeze
       end
     end
