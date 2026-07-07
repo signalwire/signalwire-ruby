@@ -17,10 +17,9 @@ module SignalWire
             super(http, '/api/fabric/resources/ai_agents')
           end
 
-          def create(prompt:, agent_id:, name:, global_data: nil, hints: nil, languages: nil, params: nil, post_prompt: nil, post_prompt_url: nil, pronounce: nil, sWAIG: nil, extras: {}, **kwargs)
+          def create(prompt:, name:, global_data: nil, hints: nil, languages: nil, params: nil, post_prompt: nil, post_prompt_url: nil, pronounce: nil, sWAIG: nil, agent_id: nil, extras: {}, **kwargs)
             body = {}
             body['prompt'] = prompt
-            body['agent_id'] = agent_id
             body['name'] = name
             body['global_data'] = global_data unless global_data.nil?
             body['hints'] = hints unless hints.nil?
@@ -30,6 +29,7 @@ module SignalWire
             body['post_prompt_url'] = post_prompt_url unless post_prompt_url.nil?
             body['pronounce'] = pronounce unless pronounce.nil?
             body['SWAIG'] = sWAIG unless sWAIG.nil?
+            body['agent_id'] = agent_id unless agent_id.nil?
             body = body.merge(extras).merge(kwargs)
             @http.post(@base_path, body)
           end

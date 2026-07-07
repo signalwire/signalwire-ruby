@@ -28535,12 +28535,6 @@
                   "required": true
                 },
                 {
-                  "name": "agent_id",
-                  "type": "class:signalwire.rest.namespaces.fabric_types_generated.uuid",
-                  "kind": "keyword",
-                  "required": true
-                },
-                {
                   "name": "name",
                   "type": "string",
                   "kind": "keyword",
@@ -28598,6 +28592,13 @@
                 {
                   "name": "SWAIG",
                   "type": "optional<class:signalwire.rest.namespaces.fabric_types_generated.SWAIG>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "agent_id",
+                  "type": "class:signalwire.rest.namespaces.fabric_types_generated.uuid",
                   "kind": "keyword",
                   "required": false,
                   "default": null
@@ -30433,12 +30434,6 @@
                   "kind": "self"
                 },
                 {
-                  "name": "id",
-                  "type": "class:signalwire.rest.namespaces.fabric_types_generated.uuid",
-                  "kind": "keyword",
-                  "required": true
-                },
-                {
                   "name": "username",
                   "type": "string",
                   "kind": "keyword",
@@ -30485,6 +30480,13 @@
                   "type": "optional<class:signalwire.rest.namespaces.fabric_types_generated.uuid>",
                   "kind": "keyword",
                   "required": true
+                },
+                {
+                  "name": "id",
+                  "type": "class:signalwire.rest.namespaces.fabric_types_generated.uuid",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 },
                 {
                   "name": "extras",

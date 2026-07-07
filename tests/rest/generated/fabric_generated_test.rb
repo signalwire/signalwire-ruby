@@ -63,7 +63,7 @@ class FabricGeneratedTest < Minitest::Test
   end
 
   def test_ai_agents_create_success
-    @client.fabric.ai_agents.create(prompt: 'x', agent_id: 'x', name: 'x')
+    @client.fabric.ai_agents.create(prompt: 'x', name: 'x')
     last = @mock.last
 
     assert_equal 'POST', last.method
@@ -72,7 +72,7 @@ class FabricGeneratedTest < Minitest::Test
 
   def test_ai_agents_create_error
     @mock.push_scenario('fabric.create_ai_agent', status: 500, response: { 'error' => 'x' })
-    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.fabric.ai_agents.create(prompt: 'x', agent_id: 'x', name: 'x') }
+    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.fabric.ai_agents.create(prompt: 'x', name: 'x') }
 
     assert_equal 500, err.status_code
     assert_equal 500, @mock.last.response_status
@@ -998,7 +998,7 @@ class FabricGeneratedTest < Minitest::Test
   end
 
   def test_sip_endpoints_create_success
-    @client.fabric.sip_endpoints.create(id: 'x', username: 'x', caller_id: 'x', send_as: 'x', ciphers: 'x', codecs: 'x', encryption: 'x', call_handler: 'x', calling_handler_resource_id: 'x')
+    @client.fabric.sip_endpoints.create(username: 'x', caller_id: 'x', send_as: 'x', ciphers: 'x', codecs: 'x', encryption: 'x', call_handler: 'x', calling_handler_resource_id: 'x')
     last = @mock.last
 
     assert_equal 'POST', last.method
@@ -1007,7 +1007,7 @@ class FabricGeneratedTest < Minitest::Test
 
   def test_sip_endpoints_create_error
     @mock.push_scenario('fabric.create_sip_endpoint', status: 500, response: { 'error' => 'x' })
-    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.fabric.sip_endpoints.create(id: 'x', username: 'x', caller_id: 'x', send_as: 'x', ciphers: 'x', codecs: 'x', encryption: 'x', call_handler: 'x', calling_handler_resource_id: 'x') }
+    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.fabric.sip_endpoints.create(username: 'x', caller_id: 'x', send_as: 'x', ciphers: 'x', codecs: 'x', encryption: 'x', call_handler: 'x', calling_handler_resource_id: 'x') }
 
     assert_equal 500, err.status_code
     assert_equal 500, @mock.last.response_status

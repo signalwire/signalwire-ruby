@@ -17,9 +17,8 @@ module SignalWire
             super(http, '/api/fabric/resources/sip_endpoints')
           end
 
-          def create(id:, username:, caller_id:, send_as:, ciphers:, codecs:, encryption:, call_handler:, calling_handler_resource_id:, extras: {}, **kwargs)
+          def create(username:, caller_id:, send_as:, ciphers:, codecs:, encryption:, call_handler:, calling_handler_resource_id:, id: nil, extras: {}, **kwargs)
             body = {}
-            body['id'] = id
             body['username'] = username
             body['caller_id'] = caller_id
             body['send_as'] = send_as
@@ -28,6 +27,7 @@ module SignalWire
             body['encryption'] = encryption
             body['call_handler'] = call_handler
             body['calling_handler_resource_id'] = calling_handler_resource_id
+            body['id'] = id unless id.nil?
             body = body.merge(extras).merge(kwargs)
             @http.post(@base_path, body)
           end
