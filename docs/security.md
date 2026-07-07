@@ -70,17 +70,19 @@ export SWML_BASIC_AUTH_PASSWORD=mysecurepassword
 
 SWML-based services automatically use the unified security configuration:
 
-```python
-from signalwire import AgentBase
+```ruby
+require 'signalwire'
 
-class MyAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="secure-agent", route="/agent")
-        # Security is automatically configured from environment
+class MyAgent < SignalWire::AgentBase
+  def initialize
+    super(name: 'secure-agent', route: '/agent')
+    # Security is automatically configured from environment
+  end
+end
 
 # The agent will use HTTPS if SWML_SSL_ENABLED=true
-agent = MyAgent()
-agent.run()
+agent = MyAgent.new
+agent.run
 ```
 
 ### Search Service
@@ -173,12 +175,12 @@ export SWML_RATE_LIMIT=20
 
 Monitor security-related logs:
 
-```python
+```ruby
 # Security events are logged with structured data
 # Look for log entries with:
 # - "security_config_loaded" - Configuration details
 # - "ssl_config_invalid" - SSL configuration errors
-# - "starting_search_service" / "starting_server" - Service startup with security info
+# - "starting_server" - Service startup with security info
 ```
 
 ## Migration Guide

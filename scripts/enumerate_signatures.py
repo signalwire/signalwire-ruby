@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -34,7 +35,14 @@ HERE = Path(__file__).resolve().parent
 PORT_ROOT = HERE.parent
 PSDK = (PORT_ROOT.parent / "porting-sdk").resolve()
 if not PSDK.is_dir():
-    PSDK = Path("/usr/local/home/devuser/src/porting-sdk")
+    env_psdk = os.environ.get("PORTING_SDK")
+    if env_psdk and Path(env_psdk).is_dir():
+        PSDK = Path(env_psdk).resolve()
+    else:
+        raise SystemExit(
+            "porting-sdk not found: expected a sibling of this repo "
+            f"({PORT_ROOT.parent / 'porting-sdk'}) or a $PORTING_SDK override."
+        )
 
 # The generated REST resource layer (scripts/generate_rest.py) emits every
 # class into SignalWire::REST::Namespaces::Generated::<Name>; the idiom-blind

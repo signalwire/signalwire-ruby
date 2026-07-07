@@ -9,19 +9,20 @@ All SignalWire services (SWML-based agents, Search, MCP Gateway) now support opt
 ## Quick Start
 
 ### Zero Configuration (Default)
-```python
+```ruby
 # Works exactly as before - no config needed
-agent = MyAgent()
-agent.run()
+agent = MyAgent.new
+agent.run
 ```
 
-### With Configuration File
-```python
-# Automatically detects config.json if present
-agent = MyAgent()
+### With Environment-Driven Configuration
+```ruby
+# The Ruby port is configured from environment variables (no ConfigLoader).
+# Set the relevant SWML_* vars, then instantiate as usual.
+ENV['SWML_SSL_ENABLED']   = 'true'
+ENV['SWML_SSL_CERT_PATH'] = '/etc/ssl/cert.pem'
 
-# Or specify a config file
-agent = MyAgent(config_file="production_config.json")
+agent = MyAgent.new
 ```
 
 ## Configuration Files
@@ -252,13 +253,15 @@ driven entirely from environment variables (see
 agent-specific environment variables before instantiating your agent:
 
 ```ruby
-ENV["SWML_BASIC_AUTH_USER"]     = "admin"
-ENV["SWML_BASIC_AUTH_PASSWORD"] = "secret"
-ENV["SWML_SERVER_PORT"]         = "3000"
+require 'signalwire'
 
-class MyAgent < Signalwire::Agent::AgentBase
+ENV['SWML_BASIC_AUTH_USER']     = 'admin'
+ENV['SWML_BASIC_AUTH_PASSWORD'] = 'secret'
+ENV['SWML_SERVER_PORT']         = '3000'
+
+class MyAgent < SignalWire::AgentBase
   def initialize
-    super(name: "my-agent")
+    super(name: 'my-agent')
   end
 end
 
@@ -279,9 +282,9 @@ constructor explicitly.
    ```
 
 2. Enable debug logging:
-   ```python
-   import logging
-   logging.basicConfig(level=logging.DEBUG)
+   ```ruby
+   require 'signalwire'
+   SignalWire::Logging.global_level = :debug
    ```
 
 3. Check for syntax errors in variable substitution

@@ -100,7 +100,6 @@ client.mfa.verify(result['id'], token: '123456')
 - [Client Reference](docs/client-reference.md) -- RestClient constructor, namespaces, error handling
 - [Fabric Resources](docs/fabric.md) -- managing AI agents, SWML scripts, subscribers, call flows, and more
 - [Calling Commands](docs/calling.md) -- REST-based call control (dial, play, record, collect, AI, etc.)
-- [Compatibility API](docs/compat.md) -- Twilio-compatible LAML endpoints
 - [All Namespaces](docs/namespaces.md) -- phone numbers, video, datasphere, logs, registry, and more
 
 ## Examples

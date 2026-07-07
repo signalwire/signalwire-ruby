@@ -1,7 +1,7 @@
 # PORT_OMISSIONS.md
 
 Symbols present in `python_surface.json` (the Python SDK reference at
-`/home/devuser/src/porting-sdk/python_surface.json`) that this Ruby port
+`../porting-sdk/python_surface.json`) that this Ruby port
 deliberately does **not** implement. Each line has the form:
 
     <fully.qualified.symbol>: <one-sentence rationale>

@@ -34,11 +34,11 @@ The tool automatically detects function types, provides appropriate execution en
 
 ## Installation
 
-Install as part of the signalwire package:
+Install as part of the signalwire-sdk gem:
 
 ```bash
-pip install -e .
-swaig-test --help
+gem install signalwire-sdk
+ruby bin/swaig-test --help
 ```
 
 ## Quick Start
@@ -1125,16 +1125,15 @@ The CLI tool supports testing three types of webhook functions:
 
 External webhook functions are automatically detected when a function has a `webhook_url` parameter and are tested by making HTTP requests to the external service:
 
-```python
-@AgentBase.tool(
-    name="get_weather",
-    description="Get weather from external service",
-    parameters={"location": {"type": "string"}},
-    webhook_url="https://weather-api.example.com/current"
-)
-def get_weather_external(self, args, raw_data):
-    # This function body is never called for external webhooks
-    pass
+```ruby
+define_tool(
+  name: 'get_weather',
+  description: 'Get weather from external service',
+  parameters: { 'location' => { 'type' => 'string' } },
+  webhook_url: 'https://weather-api.example.com/current'
+) do |args, raw_data|
+  # This block is never called for external webhooks
+end
 ```
 
 **Testing External Webhooks:**

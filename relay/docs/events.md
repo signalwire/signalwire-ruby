@@ -6,10 +6,10 @@ RELAY events are server-pushed notifications about call state changes and operat
 
 ### On a Call
 
-```python
+```ruby
 client.on_call do |call|
   # Register a listener
-  call.on("calling.call.play") { |event| puts "Play: #{event.params}" }
+  call.on('calling.call.play') { |event| puts "Play: #{event.params}" }
 
   # Or wait for a specific action to complete via its returned Action object
   # (see "Via Actions" below), or for the call to end:
@@ -21,9 +21,9 @@ end
 
 Actions returned by `play()`, `record()`, etc. have a `wait()` method that resolves when the operation completes:
 
-```python
-action = await call.play([{"type": "tts", "params": {"text": "Hello"}}])
-event = await action.wait(timeout=30.0)
+```ruby
+action = call.play([{ 'type' => 'tts', 'params' => { 'text' => 'Hello' } }])
+event = action.wait(timeout: 30.0)
 # event is a RelayEvent with the terminal state
 ```
 
@@ -60,17 +60,18 @@ All event type constants are importable from `signalwire.relay`:
 
 Raw events are always `RelayEvent` with a `params` dict. For convenience, typed event classes provide named properties:
 
-```python
-from signalwire.relay import CallStateEvent, PlayEvent, RecordEvent, parse_event
+```ruby
+require 'signalwire'
 
 # Automatic parsing
-event = parse_event(raw_payload)
+event = SignalWire::Relay::RelayEvent.parse_event(raw_payload)
 
 # Or construct directly
-if event.event_type == "calling.call.state":
-    state_event = CallStateEvent.from_payload(raw_payload)
-    print(state_event.call_state)   # "answered"
-    print(state_event.end_reason)   # "hangup" (only on ended)
+if event.event_type == 'calling.call.state'
+  state_event = SignalWire::Relay::CallStateEvent.from_payload(raw_payload)
+  puts state_event.call_state   # "answered"
+  puts state_event.end_reason   # "hangup" (only on ended)
+end
 ```
 
 ### Available Typed Events

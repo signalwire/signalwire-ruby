@@ -27,10 +27,10 @@ The class is designed to be extended for specific use cases, while providing a f
 
 ## Installation
 
-The `SWMLService` class is part of the SignalWire AI Agent SDK. Install it using pip:
+The `SWMLService` class is part of the SignalWire AI Agent SDK. Install it as a gem:
 
 ```bash
-pip install signalwire-agents
+gem install signalwire-sdk
 ```
 
 ## Basic Usage
@@ -376,10 +376,10 @@ end.to_app
 
 You can specify a custom path to the schema file:
 
-```python
-service = SWMLService(
-    name="my-service",
-    schema_path="/path/to/schema.json"
+```ruby
+service = Signalwire::SWML::Service.new(
+  name: "my-service",
+  schema_path: "/path/to/schema.json"
 )
 ```
 

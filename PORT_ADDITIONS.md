@@ -762,7 +762,7 @@ signalwire.pom.pom.Section.title: port-only: Ruby attr_accessor for the section 
 signalwire.pom.pom.Section.to_h: port-only: Ruby idiom replacing Python's to_dict (which is itself listed in PORT_OMISSIONS.md)
 signalwire.core.agent_base.AgentBase.signing_key: ruby_idiom_port_only: AgentBase exposes a `signing_key` accessor; Python keeps it as private state (no public getter). Public access in Ruby for testability and middleware mounting.
 
-# --- Idiomatic Ruby accessor aliases (RUBY_ERGONOMICS_MIGRATION.md prototype) ---
+# --- Idiomatic Ruby accessor aliases (eng/RUBY_ERGONOMICS_MIGRATION.md prototype) ---
 # Additive aliases over the Python-named get_/set_ originals (which stay for
 # audit parity). Prototype scope: AgentBase prompt accessors only.
 signalwire.core.agent_base.AgentBase.prompt: ruby-idiom alias (reader) over get_prompt; native `agent.prompt` accessor, Python name retained for parity

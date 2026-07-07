@@ -82,13 +82,12 @@ DataMap tools follow a pipeline execution model on the SignalWire server:
 ### Core Components
 
 1. **Builder Pattern**: Fluent interface for constructing data_map configurations
-   ```python
-   tool = (DataMap('function_name')
-       .description('Function purpose')
-       .parameter('param', 'string', 'Description', required=True)
-       .webhook('GET', 'https://api.example.com/endpoint')
-       .output(SwaigFunctionResult('Response template'))
-   )
+   ```ruby
+   tool = SignalWire::DataMap.new('function_name')
+          .description('Function purpose')
+          .parameter('param', 'string', 'Description', required: true)
+          .webhook('GET', 'https://api.example.com/endpoint')
+          .output(SignalWire::Swaig::FunctionResult.new('Response template'))
    ```
 
 2. **Processing Pipeline**: Ordered execution with early termination
@@ -109,28 +108,25 @@ DataMap tools follow a pipeline execution model on the SignalWire server:
 The system supports different tool patterns:
 
 1. **API Integration Tools**: Direct REST API calls
-   ```python
-   weather_tool = (DataMap('get_weather')
-       .webhook('GET', 'https://api.weather.com/v1/current?q=${location}')
-       .output(SwaigFunctionResult('Weather: ${response.current.condition}'))
-   )
+   ```ruby
+   weather_tool = SignalWire::DataMap.new('get_weather')
+                  .webhook('GET', 'https://api.weather.com/v1/current?q=${location}')
+                  .output(SignalWire::Swaig::FunctionResult.new('Weather: ${response.current.condition}'))
    ```
 
 2. **Expression-Based Tools**: Pattern matching without API calls
-   ```python
-   control_tool = (DataMap('file_control')
-       .expression(r'start.*', SwaigFunctionResult().add_action('start', True))
-       .expression(r'stop.*', SwaigFunctionResult().add_action('stop', True))
-   )
+   ```ruby
+   control_tool = SignalWire::DataMap.new('file_control')
+                  .expression('${args.command}', /start.*/, SignalWire::Swaig::FunctionResult.new.add_action('start', true))
+                  .expression('${args.command}', /stop.*/, SignalWire::Swaig::FunctionResult.new.add_action('stop', true))
    ```
 
 3. **Array Processing Tools**: Handle list responses
-   ```python
-   search_tool = (DataMap('search_docs')
-       .webhook('GET', 'https://api.docs.com/search')
-       .foreach('${response.results}')
-       .output(SwaigFunctionResult('Found: ${foreach.title}'))
-   )
+   ```ruby
+   search_tool = SignalWire::DataMap.new('search_docs')
+                 .webhook('GET', 'https://api.docs.com/search')
+                 .foreach({ 'input_key' => 'results', 'output_key' => 'formatted', 'append' => 'Found: ${this.title}\n' })
+                 .output(SignalWire::Swaig::FunctionResult.new('${formatted}'))
    ```
 
 ### Integration with Agent Architecture
@@ -268,25 +264,28 @@ The skills system follows a three-layer architecture:
 
 Skills support configurable parameters for customization:
 
-```python
+```ruby
 # Default behavior
-agent.add_skill("web_search")
+agent.add_skill('web_search')
 
 # Custom configuration
-agent.add_skill("web_search", {
-    "num_results": 3,
-    "delay": 0.5
+agent.add_skill('web_search', {
+  'num_results' => 3,
+  'delay' => 0.5
 })
 ```
 
-Parameters are passed to the skill constructor and accessible via `self.params`:
+Parameters are passed to the skill constructor and accessible via `params`:
 
-```python
-class WebSearchSkill(SkillBase):
-    def setup(self) -> bool:
-        self.num_results = self.params.get('num_results', 1)
-        self.delay = self.params.get('delay', 0)
-        # Configure behavior based on parameters
+```ruby
+class WebSearchSkill < SignalWire::Skills::SkillBase
+  def setup
+    @num_results = params.fetch('num_results', 1)
+    @delay = params.fetch('delay', 0)
+    # Configure behavior based on parameters
+    true
+  end
+end
 ```
 
 ### Error Handling
@@ -341,90 +340,102 @@ The SDK implements a multi-layer security model:
 The SDK is designed to be highly extensible:
 
 1. **Custom Agents**: Extend AgentBase to create specialized agents
-   ```python
-   class CustomAgent(AgentBase):
-       def __init__(self):
-           super().__init__(name="custom", route="/custom")
+   ```ruby
+   class CustomAgent < SignalWire::AgentBase
+     def initialize
+       super(name: 'custom', route: '/custom')
+     end
+   end
    ```
 
-2. **Tool Registration**: Add new tools using the decorator pattern
-   ```python
-   @AgentBase.tool(
-       name="tool_name", 
-       description="Tool description",
-       parameters={...},
-       secure=True
-   )
-   def my_tool(self, args, raw_data):
-       # Tool implementation
+2. **Tool Registration**: Add new tools with `define_tool` and a block handler
+   ```ruby
+   define_tool(
+     name: 'tool_name',
+     description: 'Tool description',
+     parameters: {},
+     secure: true
+   ) do |args, raw_data|
+     # Tool implementation
+     SignalWire::Swaig::FunctionResult.new('Done')
+   end
    ```
 
 3. **Prompt Customization**: Add sections, hints, languages
-   ```python
-   agent.add_language(name="English", code="en-US", voice="elevenlabs.josh")
-   agent.add_hints(["SignalWire", "SWML", "SWAIG"])
+   ```ruby
+   agent.add_language('English', 'en-US', 'elevenlabs.josh')
+   agent.add_hints(['SignalWire', 'SWML', 'SWAIG'])
    ```
 
 4. **Session Management**: The SDK includes session management for secure function calls
 
 5. **Request Handling**: Override request handling methods
-   ```python
-   def on_swml_request(self, request_data):
-       # Custom request handling
+   ```ruby
+   def on_swml_request(request_data = nil, callback_path = nil, request: nil)
+     # Custom request handling
+   end
    ```
 
 6. **Custom Prefabs**: Create reusable agent patterns
-   ```python
-   class MyCustomPrefab(AgentBase):
-       def __init__(self, config_param1, config_param2, **kwargs):
-           super().__init__(**kwargs)
-           # Configure the agent based on parameters
-           self.prompt_add_section("Personality", body=f"Customized based on: {config_param1}")
+   ```ruby
+   class MyCustomPrefab < SignalWire::AgentBase
+     def initialize(config_param1:, config_param2:, **kwargs)
+       super(**kwargs)
+       # Configure the agent based on parameters
+       prompt_add_section('Personality', "Customized based on: #{config_param1}")
+     end
+   end
    ```
 
 7. **Dynamic Configuration**: Per-request agent configuration for flexible behavior
-   ```python
-   def configure_agent_dynamically(self, query_params, body_params, headers, agent):
-       # Configure agent differently based on request data
-       # agent is the actual AgentBase instance
-       tier = query_params.get('tier', 'standard')
-       agent.set_params({"end_of_speech_timeout": 300 if tier == 'premium' else 500})
-   
-   self.set_dynamic_config_callback(self.configure_agent_dynamically)
+   ```ruby
+   def configure_agent_dynamically(query_params, body_params, headers, agent)
+     # Configure agent differently based on request data
+     # agent is the actual AgentBase instance
+     tier = query_params.fetch('tier', 'standard')
+     agent.set_params({ 'end_of_speech_timeout' => tier == 'premium' ? 300 : 500 })
+   end
+
+   set_dynamic_config_callback(method(:configure_agent_dynamically))
    ```
 
 8. **Skills Integration**: Add capabilities with one-liner calls
-   ```python
+   ```ruby
    # Add built-in skills
-   agent.add_skill("web_search")
-   agent.add_skill("datetime")
-   agent.add_skill("math")
-   
+   agent.add_skill('web_search')
+   agent.add_skill('datetime')
+   agent.add_skill('math')
+
    # Configure skills with parameters
-   agent.add_skill("web_search", {
-       "num_results": 3,
-       "delay": 0.5
+   agent.add_skill('web_search', {
+     'num_results' => 3,
+     'delay' => 0.5
    })
    ```
 
 9. **Custom Skills**: Create reusable skill modules
-   ```python
-   from signalwire.core.skill_base import SkillBase
-   
-   class MyCustomSkill(SkillBase):
-       SKILL_NAME = "my_skill"
-       SKILL_DESCRIPTION = "A custom skill"
-       REQUIRED_PACKAGES = ["requests"]
-       REQUIRED_ENV_VARS = ["API_KEY"]
-       
-       def setup(self) -> bool:
-           # Initialize the skill
-           return True
-           
-       def register_tools(self) -> None:
-           # Register tools with the agent using the wrapper method
-           # This automatically includes swaig_fields
-           self.define_tool(...)
+   ```ruby
+   require 'signalwire'
+
+   class MyCustomSkill < SignalWire::Skills::SkillBase
+     def name = 'my_skill'
+     def description = 'A custom skill'
+     def required_packages = ['some_gem']
+     def required_env_vars = ['API_KEY']
+
+     def setup
+       # Initialize the skill
+       true
+     end
+
+     def register_tools
+       # Register tools with the agent using the wrapper method
+       # This automatically includes swaig_fields
+       define_tool(name: 'my_tool', description: '...', parameters: {}) do |args, raw_data|
+         SignalWire::Swaig::FunctionResult.new('...')
+       end
+     end
+   end
    ```
 
 ### Dynamic Configuration
@@ -684,45 +695,46 @@ Users can create their own prefab agents by extending `AgentBase` or any existin
 Key steps for creating custom prefabs:
 
 1. **Extend the base class**:
-   ```python
-   class MyCustomPrefab(AgentBase):
-       def __init__(self, custom_param, **kwargs):
-           super().__init__(**kwargs)
-           self._custom_param = custom_param
+   ```ruby
+   class MyCustomPrefab < SignalWire::AgentBase
+     def initialize(custom_param:, **kwargs)
+       super(**kwargs)
+       @custom_param = custom_param
+     end
+   end
    ```
 
 2. **Configure defaults**:
-   ```python
+   ```ruby
    # Set standard prompt sections
-   self.prompt_add_section("Personality", body="I am a specialized agent for...")
-   self.prompt_add_section("Goal", body="Help users with...")
-   
-   # Add default tools
-   self.register_default_tools()
+   prompt_add_section('Personality', 'I am a specialized agent for...')
+   prompt_add_section('Goal', 'Help users with...')
+
+   # Register any tools this prefab needs with define_tool
    ```
 
 3. **Add specialized tools**:
-   ```python
-   @AgentBase.tool(
-       name="specialized_function", 
-       description="Do something specialized",
-       parameters={...}
-   )
-   def specialized_function(self, args, raw_data):
-       # Implementation
-       return SwaigFunctionResult("Function result")
+   ```ruby
+   define_tool(
+     name: 'specialized_function',
+     description: 'Do something specialized',
+     parameters: {}
+   ) do |args, raw_data|
+     # Implementation
+     SignalWire::Swaig::FunctionResult.new('Function result')
+   end
    ```
 
 4. **Create a factory method** (optional):
-   ```python
-   @classmethod
-   def create(cls, config_dict, **kwargs):
-       """Create an instance from a configuration dictionary"""
-       return cls(
-           custom_param=config_dict.get("custom_param", "default"),
-           name=config_dict.get("name", "custom_prefab"),
-           **kwargs
-       )
+   ```ruby
+   # Create an instance from a configuration hash
+   def self.create(config_hash, **kwargs)
+     new(
+       custom_param: config_hash.fetch('custom_param', 'default'),
+       name: config_hash.fetch('name', 'custom_prefab'),
+       **kwargs
+     )
+   end
    ```
 
 ### Prefab Customization Points
@@ -992,20 +1004,20 @@ Functions are defined with:
 - Security settings
 
 Example:
-```python
-@AgentBase.tool(
-    name="get_weather",
-    description="Get the current weather for a location",
-    parameters={
-        "location": {
-            "type": "string",
-            "description": "The city or location to get weather for"
-        }
+```ruby
+define_tool(
+  name: 'get_weather',
+  description: 'Get the current weather for a location',
+  parameters: {
+    'location' => {
+      'type' => 'string',
+      'description' => 'The city or location to get weather for'
     }
-)
-def get_weather(self, args, raw_data):
-    location = args.get("location", "Unknown location")
-    return SwaigFunctionResult(f"It's sunny and 72°F in {location}.")
+  }
+) do |args, raw_data|
+  location = args.fetch('location', 'Unknown location')
+  SignalWire::Swaig::FunctionResult.new("It's sunny and 72°F in #{location}.")
+end
 ```
 
 ### HTTP Routing

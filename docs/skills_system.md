@@ -6,21 +6,21 @@ The SignalWire Agents SDK now includes a modular skills system that lets you add
 
 Instead of manually implementing every agent capability, you can now:
 
-```python
-from signalwire import AgentBase
+```ruby
+require 'signalwire'
 
 # Create an agent
-agent = AgentBase("My Assistant")
+agent = SignalWire::AgentBase.new(name: 'My Assistant')
 
 # Add skills with one-liners!
-agent.add_skill("web_search")   # Web search capability with default settings
-agent.add_skill("datetime")     # Current date/time info  
-agent.add_skill("math")         # Mathematical calculations
+agent.add_skill('web_search')   # Web search capability with default settings
+agent.add_skill('datetime')     # Current date/time info
+agent.add_skill('math')         # Mathematical calculations
 
 # Add skills with custom parameters!
-agent.add_skill("web_search", {
-    "num_results": 3,  # Get 3 search results instead of default 1
-    "delay": 0.5       # Add 0.5s delay between requests instead of default 0
+agent.add_skill('web_search', {
+  'num_results' => 3,  # Get 3 search results instead of default 1
+  'delay' => 0.5       # Add 0.5s delay between requests instead of default 0
 })
 
 # Your agent now has all these capabilities automatically
@@ -62,20 +62,20 @@ Search the internet and extract content from web pages.
 - `web_search(query, num_results)` - Search and scrape web content
 
 **Usage examples:**
-```python
+```ruby
 # Default: fast single result
-agent.add_skill("web_search")
+agent.add_skill('web_search')
 
 # Custom: multiple results with delay
-agent.add_skill("web_search", {
-    "num_results": 3,
-    "delay": 0.5
+agent.add_skill('web_search', {
+  'num_results' => 3,
+  'delay' => 0.5
 })
 
 # Speed optimized: single result, no delay
-agent.add_skill("web_search", {
-    "num_results": 1,
-    "delay": 0
+agent.add_skill('web_search', {
+  'num_results' => 1,
+  'delay' => 0
 })
 ```
 
@@ -172,204 +172,212 @@ Transfer calls between agents using pattern matching.
 - `transfer_call(transfer_type, ...required_fields)` (or custom tool_name) - Transfer based on pattern matching with optional required fields
 
 **Usage examples:**
-```python
+```ruby
 # Simple transfer between departments
-agent.add_skill("swml_transfer", {
-    "tool_name": "transfer_to_department",
-    "transfers": {
-        "/sales/i": {
-            "url": "https://example.com/sales",
-            "message": "Transferring to sales...",
-            "return_message": "Sales transfer complete."
-        },
-        "/support/i": {
-            "url": "https://example.com/support",
-            "message": "Transferring to support...",
-            "return_message": "Support transfer complete."
-        }
+agent.add_skill('swml_transfer', {
+  'tool_name' => 'transfer_to_department',
+  'transfers' => {
+    '/sales/i' => {
+      'url' => 'https://example.com/sales',
+      'message' => 'Transferring to sales...',
+      'return_message' => 'Sales transfer complete.'
+    },
+    '/support/i' => {
+      'url' => 'https://example.com/support',
+      'message' => 'Transferring to support...',
+      'return_message' => 'Support transfer complete.'
     }
+  }
 })
 
 # Multiple instances for different transfer types
-agent.add_skill("swml_transfer", {
-    "tool_name": "route_call",
-    "parameter_name": "department",
-    "transfers": {
-        "/sales|billing/i": {
-            "url": "https://api.company.com/sales",
-            "message": "Connecting to sales team...",
-            "post_process": True
-        },
-        "/technical|support/i": {
-            "url": "https://api.company.com/support",
-            "message": "Connecting to support team...",
-            "post_process": True
-        }
+agent.add_skill('swml_transfer', {
+  'tool_name' => 'route_call',
+  'parameter_name' => 'department',
+  'transfers' => {
+    '/sales|billing/i' => {
+      'url' => 'https://api.company.com/sales',
+      'message' => 'Connecting to sales team...',
+      'post_process' => true
     },
-    "default_message": "Would you like sales or support?"
+    '/technical|support/i' => {
+      'url' => 'https://api.company.com/support',
+      'message' => 'Connecting to support team...',
+      'post_process' => true
+    }
+  },
+  'default_message' => 'Would you like sales or support?'
 })
 ```
 
 ## Usage Examples
 
 ### Basic Usage
-```python
-from signalwire import AgentBase
+```ruby
+require 'signalwire'
 
 # Create agent and add skills
-agent = AgentBase("Assistant", route="/assistant")
-agent.add_skill("datetime")
-agent.add_skill("math") 
-agent.add_skill("web_search")  # Uses defaults: 1 result, no delay
+agent = SignalWire::AgentBase.new(name: 'Assistant', route: '/assistant')
+agent.add_skill('datetime')
+agent.add_skill('math')
+agent.add_skill('web_search')  # Uses defaults: 1 result, no delay
 
 # Start the agent
-agent.run()
+agent.run
 ```
 
 ### Skills with Custom Parameters
-```python
-from signalwire import AgentBase
+```ruby
+require 'signalwire'
 
 # Create agent
-agent = AgentBase("Research Assistant", route="/research")
+agent = SignalWire::AgentBase.new(name: 'Research Assistant', route: '/research')
 
 # Add web search optimized for research (more results)
-agent.add_skill("web_search", {
-    "num_results": 5,   # Get more comprehensive results
-    "delay": 1.0        # Be respectful to websites
+agent.add_skill('web_search', {
+  'num_results' => 5,   # Get more comprehensive results
+  'delay' => 1.0        # Be respectful to websites
 })
 
 # Add other skills without parameters
-agent.add_skill("datetime")
-agent.add_skill("math")
+agent.add_skill('datetime')
+agent.add_skill('math')
 
 # Start the agent
-agent.run()
+agent.run
 ```
 
 ### Different Parameter Configurations
-```python
+```ruby
 # Speed-optimized for quick responses
-agent.add_skill("web_search", {
-    "num_results": 1,
-    "delay": 0
+agent.add_skill('web_search', {
+  'num_results' => 1,
+  'delay' => 0
 })
 
 # Comprehensive research mode
-agent.add_skill("web_search", {
-    "num_results": 5,
-    "delay": 1.0
+agent.add_skill('web_search', {
+  'num_results' => 5,
+  'delay' => 1.0
 })
 
 # Balanced approach
-agent.add_skill("web_search", {
-    "num_results": 3,
-    "delay": 0.5
+agent.add_skill('web_search', {
+  'num_results' => 3,
+  'delay' => 0.5
 })
 ```
 
 ### Check Available Skills
-```python
-from signalwire.skills.registry import skill_registry
+```ruby
+require 'signalwire'
 
-# List all discovered skills
-for skill in skill_registry.list_skills():
-    print(f"- {skill['name']}: {skill['description']}")
-    if skill['required_env_vars']:
-        print(f"  Requires: {', '.join(skill['required_env_vars'])}")
+# List all discovered skills (name + description per registered skill)
+SignalWire.list_skills_with_params.each do |name, info|
+  puts "- #{name}: #{info['description']}"
+end
 ```
 
 ### Runtime Skill Management
-```python
-agent = AgentBase("Dynamic Agent")
+```ruby
+agent = SignalWire::AgentBase.new(name: 'Dynamic Agent')
 
 # Add skills with different configurations
-agent.add_skill("math")
-agent.add_skill("datetime")
-agent.add_skill("web_search", {"num_results": 2, "delay": 0.3})
+agent.add_skill('math')
+agent.add_skill('datetime')
+agent.add_skill('web_search', { 'num_results' => 2, 'delay' => 0.3 })
 
 # Check what's loaded
-print("Loaded skills:", agent.list_skills())
+puts "Loaded skills: #{agent.list_skills}"
 
 # Remove a skill
-agent.remove_skill("math")
+agent.remove_skill('math')
 
 # Check if a specific skill is loaded (note the Ruby predicate `?`)
-if agent.has_skill?("datetime")
-  puts "Date/time capabilities available"
+if agent.has_skill?('datetime')
+  puts 'Date/time capabilities available'
 end
 ```
 
 ## Creating Custom Skills
 
-Create a new skill by extending `Signalwire::Skills::SkillBase` with
+Create a new skill by extending `SignalWire::Skills::SkillBase` with
 parameter support:
 
 ```ruby
-# lib/signalwire/skills/my_skill.rb
-require "signalwire/skills"
+# lib/signalwire/skills/builtin/my_skill.rb
+require 'signalwire'
 
-class MyCustomSkill < Signalwire::Skills::SkillBase
-  SKILL_NAME        = "my_skill"
-  SKILL_DESCRIPTION = "Does something awesome with configurable parameters"
-  SKILL_VERSION     = "1.0.0"
-  REQUIRED_ENV_VARS = ["API_KEY"] # Optional — validated manually below
+class MyCustomSkill < SignalWire::Skills::SkillBase
+  REQUIRED_ENV_VARS = ['API_KEY'].freeze
+
+  def name = 'my_skill'
+  def description = 'Does something awesome with configurable parameters'
+  def version = '1.0.0'
 
   def setup
-    # Explicit env-var checks; the Ruby port does not ship a bundled
-    # validate_env_vars helper (see PORT_OMISSIONS.md).
+    # Explicit env-var checks (or return false from validate_env_vars).
     REQUIRED_ENV_VARS.each do |var|
       return false if ENV[var].nil? || ENV[var].empty?
     end
 
-    # Use parameters with defaults
-    @max_items   = params.fetch(:max_items, 10)
-    @timeout     = params.fetch(:timeout, 30)
-    @retry_count = params.fetch(:retry_count, 3)
+    # Use parameters with defaults (params has string keys).
+    @max_items   = params.fetch('max_items', 10)
+    @timeout     = params.fetch('timeout', 30)
+    @retry_count = params.fetch('retry_count', 3)
 
     true
   end
 
   def register_tools
     define_tool(
-            name="my_function",
-            description=f"Does something cool (max {self.max_items} items)",
-            parameters={
-                "input": {
-                    "type": "string",
-                    "description": "Input parameter"
-                }
-            },
-            handler=self._my_handler
-        )
-    
-    def _my_handler(self, args, raw_data):
-        """Handle the tool call using configured parameters"""
-        # Use self.max_items, self.timeout, self.retry_count in your logic
-        return SwaigFunctionResult(f"Processed with max_items={self.max_items}")
-        
-    def get_hints(self):
-        """Speech recognition hints"""
-        return ["custom", "skill", "awesome"]
-        
-    def get_prompt_sections(self):
-        """Prompt sections to add to agent"""
-        return [{
-            "title": "Custom Capability",
-            "body": f"You can do custom things with my_skill (configured for {self.max_items} items)."
-        }]
+      name: 'my_function',
+      description: "Does something cool (max #{@max_items} items)",
+      parameters: {
+        'input' => {
+          'type' => 'string',
+          'description' => 'Input parameter'
+        }
+      }
+    ) do |args, raw_data|
+      handle_my_function(args, raw_data)
+    end
+  end
+
+  # Handle the tool call using configured parameters.
+  def handle_my_function(args, _raw_data)
+    # Use @max_items, @timeout, @retry_count in your logic
+    SignalWire::Swaig::FunctionResult.new("Processed with max_items=#{@max_items}")
+  end
+
+  # Speech recognition hints.
+  def get_hints = ['custom', 'skill', 'awesome']
+
+  # Prompt sections to add to the agent.
+  def get_prompt_sections
+    [{
+      'title' => 'Custom Capability',
+      'body' => "You can do custom things with my_skill (configured for #{@max_items} items)."
+    }]
+  end
+end
+
+# Register the skill so agents can load it by name.
+SignalWire::Skills::SkillRegistry.register('my_skill') do |params|
+  MyCustomSkill.new(params)
+end
 ```
 
-The skill will be automatically discovered and available as:
-```python
+The skill will be available once registered as:
+```ruby
 # Use defaults
-agent.add_skill("my_skill")
+agent.add_skill('my_skill')
 
 # Use custom parameters
-agent.add_skill("my_skill", {
-    "max_items": 20,
-    "timeout": 60,
-    "retry_count": 5
+agent.add_skill('my_skill', {
+  'max_items' => 20,
+  'timeout' => 60,
+  'retry_count' => 5
 })
 ```
 
@@ -377,12 +385,12 @@ agent.add_skill("my_skill", {
 
 1. **Install dependencies:**
    ```bash
-   pip install pytz beautifulsoup4 requests
+   gem install signalwire-sdk
    ```
 
 2. **Run the demo:**
    ```bash
-   python examples/skills_demo.py
+   ruby examples/skills_demo.rb
    ```
 
 3. **For web search, set environment variables:**
@@ -395,29 +403,26 @@ agent.add_skill("my_skill", {
 
 Test the skills system with parameters:
 
-```bash
-python3 -c "
-from signalwire import AgentBase
-from signalwire.skills.registry import skill_registry
+```ruby
+require 'signalwire'
 
 # Show discovered skills
-print('Available skills:', [s['name'] for s in skill_registry.list_skills()])
+puts "Available skills: #{SignalWire.list_skills_with_params.keys}"
 
 # Create agent and load skills with parameters
-agent = AgentBase('Test', route='/test')
+agent = SignalWire::AgentBase.new(name: 'Test', route: '/test')
 agent.add_skill('datetime')
 agent.add_skill('math')
-agent.add_skill('web_search', {'num_results': 2, 'delay': 0.5})
+agent.add_skill('web_search', { 'num_results' => 2, 'delay' => 0.5 })
 
-print('Loaded skills:', agent.list_skills())
-print('Skills system with parameters working!')
-"
+puts "Loaded skills: #{agent.list_skills}"
+puts 'Skills system with parameters working!'
 ```
 
 ## Benefits
 
-- **One-liner integration** - `agent.add_skill("skill_name")`
-- **Configurable parameters** - `agent.add_skill("skill_name", {"param": "value"})`
+- **One-liner integration** - `agent.add_skill('skill_name')`
+- **Configurable parameters** - `agent.add_skill('skill_name', { 'param' => 'value' })`
 - **Automatic discovery** - Drop skills in the directory and they're available
 - **Dependency validation** - Checks packages and environment variables
 - **Modular architecture** - Skills are self-contained and reusable

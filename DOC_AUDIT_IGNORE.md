@@ -1,46 +1,45 @@
 # Doc Audit Ignore List
 
 Names listed here are ignored by `scripts/audit_docs.py` when it scans the
-Ruby port's docs and examples for method calls. Every entry must have a
-one-line rationale — these are **not** phantom SignalWire APIs; they are:
+Ruby port's docs and examples for method calls. Every entry carries a
+one-line rationale plus an approver and date — these are **not** phantom
+SignalWire APIs; they are:
 
 - Ruby stdlib / gem calls (`dig`, `fetch`, `merge`, `sleep`, `JSON.pretty_generate`, ...)
 - User-defined placeholders in illustrative examples (`alert_ops_team`, `load_user_preferences`, ...)
-- Intentionally omitted Python features that docs still reference with a "not ported" note
-  (see [`PORT_OMISSIONS.md`](PORT_OMISSIONS.md))
+- Python syntax retained verbatim in a contrast/migration example block
 - Internal logger helpers (`Signalwire::Logging::Logger#info` etc. are
   intentionally excluded from `port_surface.json` as internal plumbing)
 
 Phantom SignalWire APIs (things docs promised that don't exist in the port)
 are not ignored — they are fixed in the docs.
 
+Field format: `name: rationale (by <approver>, YYYY-MM-DD)`.
+
 ---
 
 ## Ruby stdlib, core, and common gems
 
-new: Ruby `Class.new` constructor — ubiquitous across all Ruby code
-fetch: `Hash#fetch` and `Array#fetch` — Ruby stdlib
-first: `Array#first` / `Enumerable#first` — Ruby stdlib
-dig: `Hash#dig` / `Array#dig` — Ruby stdlib
-merge: `Hash#merge` — Ruby stdlib
-sleep: `Kernel#sleep` — Ruby stdlib
-pack: `Array#pack` — Ruby stdlib (used for Base64 header building)
-pretty_generate: `JSON.pretty_generate` — Ruby stdlib (json gem)
-generate: `JSON.generate` — Ruby stdlib (json gem)
-rb: Ruby filename extension literal (e.g. `"foo.rb"`) — not a method call
-expand_path: `File.expand_path` — Ruby stdlib (used to resolve $LOAD_PATH)
-reject: `Enumerable#reject` — Ruby stdlib
-sub: `String#sub` — Ruby stdlib
-transform_keys: `Hash#transform_keys` — Ruby stdlib (Ruby 2.5+)
-clamp: `Comparable#clamp` / `Integer#clamp` — Ruby stdlib (constrain a number to a range)
+new: Ruby `Class.new` constructor — ubiquitous across all Ruby code (by orchestrator, 2026-07-06)
+fetch: `Hash#fetch` and `Array#fetch` — Ruby stdlib (by orchestrator, 2026-07-06)
+first: `Array#first` / `Enumerable#first` — Ruby stdlib (by orchestrator, 2026-07-06)
+dig: `Hash#dig` / `Array#dig` — Ruby stdlib (by orchestrator, 2026-07-06)
+merge: `Hash#merge` — Ruby stdlib (by orchestrator, 2026-07-06)
+sleep: `Kernel#sleep` — Ruby stdlib (by orchestrator, 2026-07-06)
+pack: `Array#pack` — Ruby stdlib, used for Base64 header building (by orchestrator, 2026-07-06)
+pretty_generate: `JSON.pretty_generate` — Ruby stdlib json gem (by orchestrator, 2026-07-06)
+generate: `JSON.generate` — Ruby stdlib json gem (by orchestrator, 2026-07-06)
+rb: Ruby filename extension literal (e.g. `"foo.rb"`) — not a method call (by orchestrator, 2026-07-06)
+expand_path: `File.expand_path` — Ruby stdlib, resolves $LOAD_PATH (by orchestrator, 2026-07-06)
+reject: `Enumerable#reject` — Ruby stdlib (by orchestrator, 2026-07-06)
+sub: `String#sub` — Ruby stdlib (by orchestrator, 2026-07-06)
+transform_keys: `Hash#transform_keys` — Ruby stdlib, Ruby 2.5+ (by orchestrator, 2026-07-06)
+clamp: `Comparable#clamp` / `Integer#clamp` — Ruby stdlib, constrain a number to a range (by orchestrator, 2026-07-06)
 
-## Python-decorator syntax retained in illustrative examples
+## Python syntax retained verbatim in contrast/migration example blocks
 
-tool: Python `@AgentBase.tool(...)` decorator syntax from Python docs;
-    Ruby uses `define_tool(name:, ...) do |args, raw| ... end` blocks
-basicConfig: Python `logging.basicConfig` — Ruby uses
-    `Signalwire::Logging.global_level=` instead
-to_dict: Python `to_dict()` — Ruby uses `to_h` instead
+tool: Python `@AgentBase.tool(...)` decorator syntax shown for contrast; Ruby uses `define_tool(name:, ...) do |args, raw| ... end` blocks (by orchestrator, 2026-07-06)
+warning: Python-style `.warning` kept in a Python contrast block; the Ruby method is `warn` (by orchestrator, 2026-07-06)
 
 ## SignalWire internal logger (`Signalwire::Logging::Logger`)
 
@@ -48,20 +47,10 @@ The Logger class is intentionally excluded from `port_surface.json` by
 `scripts/enumerate_surface.rb` (`RUBY_EXCLUDED_CLASSES`) as internal plumbing.
 Its public methods appear in Ruby example code and docs:
 
-debug: `Signalwire::Logging::Logger#debug`
-info: `Signalwire::Logging::Logger#info`
-warn: `Signalwire::Logging::Logger#warn`
-warning: Python-style `.warning` kept in a Python example block; Ruby method is `warn`
-error: `Signalwire::Logging::Logger#error`
-
-## Intentionally omitted subsystems (see PORT_OMISSIONS.md)
-
-validate_packages: `SkillBase#validate_packages` — not ported; Python-specific
-    package validation that doesn't map to the gem ecosystem
-validate_env_vars: `SkillBase#validate_env_vars` — not_yet_implemented helper;
-    Ruby skills perform env-var validation manually
-list_all_skill_sources: `SkillRegistry#list_all_skill_sources` — external
-    skill source listing not_yet_implemented
+debug: `Signalwire::Logging::Logger#debug` internal logger helper (by orchestrator, 2026-07-06)
+info: `Signalwire::Logging::Logger#info` internal logger helper (by orchestrator, 2026-07-06)
+warn: `Signalwire::Logging::Logger#warn` internal logger helper (by orchestrator, 2026-07-06)
+error: `Signalwire::Logging::Logger#error` internal logger helper (by orchestrator, 2026-07-06)
 
 ## Prefab-authoring pattern: user-defined private helpers
 
@@ -69,29 +58,18 @@ These appear inside example prefab classes to illustrate the authoring
 pattern. They are user code, not SDK API. Audit cannot distinguish
 `self.my_helper(...)` as user code from a phantom SDK call, so we list them.
 
-_configure_instructions: user-defined prefab helper in agent_guide example
-_register_custom_tools: user-defined prefab helper in api_reference example
-_register_default_tools: user-defined prefab helper in agent_guide example
-_setup_contexts: user-defined prefab helper in api_reference example
-_setup_static_config: user-defined prefab helper in agent_guide example
-_test_api_connection: user-defined skill helper in third_party_skills example
-apply_custom_config: user-defined prefab helper in agent_guide example
-apply_default_config: user-defined prefab helper in agent_guide example
-register_default_tools: user-defined prefab helper in architecture.md
-register_knowledge_base_tool: user-defined prefab helper in agent_guide example
-schedule_follow_up: user-defined application callback in api_reference example
+apply_custom_config: user-defined prefab helper in agent_guide example (by orchestrator, 2026-07-06)
+apply_default_config: user-defined prefab helper in agent_guide example (by orchestrator, 2026-07-06)
+register_knowledge_base_tool: user-defined prefab helper in agent_guide example (by orchestrator, 2026-07-06)
+schedule_follow_up: user-defined application callback in api_reference example (by orchestrator, 2026-07-06)
 
 ## User-defined application callbacks in lifecycle / analytics examples
 
 These names illustrate the shape of callbacks developers would implement —
 they are explicitly application-specific hooks, not SDK-provided methods.
 
-alert_ops_team: user-defined alerting helper in api_reference example
-is_valid_customer: user-defined auth helper in agent_guide example
-get_customer_config: user-defined customer-config lookup in agent_guide example
-get_customer_settings: user-defined customer-settings lookup in agent_guide example
-get_customer_tier: user-defined customer-tier lookup in agent_guide example
-customer_settings: user-defined `database.customer_settings(...)` lookup in agent_guide dynamic-config example (idiomatic Ruby rename of get_customer_settings)
+alert_ops_team: user-defined alerting helper in api_reference example (by orchestrator, 2026-07-06)
+customer_settings: user-defined `database.customer_settings(...)` lookup in agent_guide dynamic-config example (by orchestrator, 2026-07-06)
 
 ## Real Ruby methods the surface enumerator aliases to their Python-oracle name
 
@@ -102,5 +80,6 @@ the surface compares equal to the oracle. The port_surface.json therefore
 carries the oracle name, not the Ruby name — so the audit can't resolve the
 real Ruby name. The Ruby method is real; the rename is idiom reconciliation.
 
-get_factory: `SignalWire::Skills::SkillRegistry.get_factory` — surface-aliased to `get_skill_class` (enumerate_surface.rb line ~407)
-handle_search: `SignalWire::Prefabs::FaqBot#handle_search` — surface-aliased to `search_faqs` (enumerate_surface.rb line ~407)
+get_factory: `SignalWire::Skills::SkillRegistry.get_factory` surface-aliased to `get_skill_class` in enumerate_surface.rb (by orchestrator, 2026-07-06)
+handle_search: `SignalWire::Prefabs::FaqBot#handle_search` surface-aliased to `search_faqs` in enumerate_surface.rb (by orchestrator, 2026-07-06)
+tap_audio: `SignalWire::Relay::Call#tap_audio` (call.rb) surface-aliased to `tap` in enumerate_surface.rb (SURFACE_METHOD_ALIASES) to avoid colliding with `Object#tap`; the docs use the real Ruby name (by orchestrator, 2026-07-06)
