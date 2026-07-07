@@ -29,7 +29,7 @@ AGENT = SignalWire::AgentBase.new(
   route: '/'
 )
 
-AGENT.add_language('name' => 'English', 'code' => 'en-US', 'voice' => 'elevenlabs.rachel')
+AGENT.add_language('English', 'en-US', 'elevenlabs.rachel')
 
 AGENT.prompt_add_section(
   'Role',

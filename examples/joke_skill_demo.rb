@@ -15,7 +15,7 @@ abort("Error: API_NINJAS_KEY environment variable is required.\n" \
 
 agent = SignalWire::AgentBase.new(name: 'joke-skill-demo', route: '/joke-skill')
 
-agent.add_language('name' => 'English', 'code' => 'en-US', 'voice' => 'elevenlabs.rachel')
+agent.add_language('English', 'en-US', 'elevenlabs.rachel')
 
 agent.prompt_add_section(
   'Personality',

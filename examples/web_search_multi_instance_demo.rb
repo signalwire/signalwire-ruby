@@ -14,7 +14,7 @@ engine_id = ENV['GOOGLE_SEARCH_ENGINE_ID']
 
 agent = SignalWire::AgentBase.new(name: 'multi-search', route: '/multi-search')
 
-agent.add_language('name' => 'English', 'code' => 'en-US', 'voice' => 'elevenlabs.rachel')
+agent.add_language('English', 'en-US', 'elevenlabs.rachel')
 
 agent.prompt_add_section(
   'Role',

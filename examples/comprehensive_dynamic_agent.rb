@@ -42,12 +42,12 @@ agent.set_dynamic_config_callback do |query_params, _body, _headers, ephemeral|
   case language
   when 'en'
     code = locale == 'ca' ? 'en-CA' : 'en-US'
-    ephemeral.add_language('name' => 'English', 'code' => code, 'voice' => voice)
+    ephemeral.add_language('English', code, voice)
   when 'es'
     code = locale == 'mx' ? 'es-MX' : 'es-ES'
-    ephemeral.add_language('name' => 'Spanish', 'code' => code, 'voice' => voice)
+    ephemeral.add_language('Spanish', code, voice)
   else
-    ephemeral.add_language('name' => 'English', 'code' => 'en-US', 'voice' => voice)
+    ephemeral.add_language('English', 'en-US', voice)
   end
 
   # --- Tier-based AI params ---

@@ -28,9 +28,9 @@ agent.set_dynamic_config_callback do |query_params, _body_params, _headers, clon
   # Voice and language
   voice = is_vip ? 'elevenlabs.nova' : 'elevenlabs.rachel'
   if language == 'es'
-    clone.add_language('name' => 'Spanish', 'code' => 'es-ES', 'voice' => voice)
+    clone.add_language('Spanish', 'es-ES', voice)
   else
-    clone.add_language('name' => 'English', 'code' => 'en-US', 'voice' => voice)
+    clone.add_language('English', 'en-US', voice)
   end
 
   # AI parameters

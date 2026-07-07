@@ -12,7 +12,7 @@ require 'signalwire'
 
 agent = SignalWire::AgentBase.new(name: 'Multi-DataSphere', route: '/datasphere-demo')
 
-agent.add_language('name' => 'English', 'code' => 'en-US', 'voice' => 'elevenlabs.rachel')
+agent.add_language('English', 'en-US', 'elevenlabs.rachel')
 
 # Add utility skills
 begin

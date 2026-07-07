@@ -13,7 +13,7 @@ agent = SignalWire::AgentBase.new(
   route: '/patient-intake'
 )
 
-agent.add_language('name' => 'English', 'code' => 'en-US', 'voice' => 'elevenlabs.rachel')
+agent.add_language('English', 'en-US', 'elevenlabs.rachel')
 
 agent.prompt_add_section(
   'Role',

@@ -21,7 +21,7 @@ voice.prompt_add_section('Instructions', nil, bullets: [
   'Be concise in your responses.',
   'Use the get_time function when asked about the current time.'
 ])
-voice.add_language('name' => 'English', 'code' => 'en-US', 'voice' => 'elevenlabs.rachel')
+voice.add_language('English', 'en-US', 'elevenlabs.rachel')
 
 voice.define_tool(
   name: 'get_time', description: 'Get the current time', parameters: {}

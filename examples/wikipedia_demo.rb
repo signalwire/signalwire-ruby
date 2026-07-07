@@ -9,7 +9,7 @@ require 'signalwire'
 
 agent = SignalWire::AgentBase.new(name: 'Wikipedia Assistant', route: '/wiki-demo')
 
-agent.add_language('name' => 'English', 'code' => 'en-US', 'voice' => 'elevenlabs.rachel')
+agent.add_language('English', 'en-US', 'elevenlabs.rachel')
 
 # Add datetime skill for basic date/time queries
 begin
