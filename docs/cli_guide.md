@@ -45,22 +45,22 @@ ruby bin/swaig-test --help
 
 ### Agent Discovery
 
-The tool can automatically discover agents in Python files:
+The tool can automatically discover agents in Ruby files:
 
 ```bash
 # Discover all agents in a file (auto-runs when no other args provided)
-swaig-test examples/joke_skill_demo.py
+swaig-test examples/joke_skill_demo.rb
 
 # Explicitly list available agents
-swaig-test matti_and_sigmond/dual_agent_app.py --list-agents
+swaig-test examples/multi_agent_server.rb --list-agents
 
 # List agents with details
-swaig-test matti_and_sigmond/dual_agent_app.py --list-agents --verbose
+swaig-test examples/multi_agent_server.rb --list-agents --verbose
 ```
 
 **Example Output:**
 ```
-Available agents in matti_and_sigmond/dual_agent_app.py:
+Available agents in examples/multi_agent_server.rb:
 
   MattiAgent
     Type: Ready instance
@@ -75,30 +75,30 @@ Available agents in matti_and_sigmond/dual_agent_app.py:
     Description: Advanced conversational agent with data access
 
 To use a specific agent with this tool:
-  swaig-test matti_and_sigmond/dual_agent_app.py [tool_name] [args] --agent-class <AgentClassName>
-  swaig-test matti_and_sigmond/dual_agent_app.py [tool_name] [args] --route <route_path>
+  swaig-test examples/multi_agent_server.rb [tool_name] [args] --agent-class <AgentClassName>
+  swaig-test examples/multi_agent_server.rb [tool_name] [args] --route <route_path>
 
 Examples:
-  swaig-test matti_and_sigmond/dual_agent_app.py --list-tools --agent-class MattiAgent
-  swaig-test matti_and_sigmond/dual_agent_app.py --dump-swml --agent-class SigmondAgent
-  swaig-test matti_and_sigmond/dual_agent_app.py --list-tools --route /matti-agent
-  swaig-test matti_and_sigmond/dual_agent_app.py --dump-swml --route /sigmond-agent
+  swaig-test examples/multi_agent_server.rb --list-tools --agent-class MattiAgent
+  swaig-test examples/multi_agent_server.rb --dump-swml --agent-class SigmondAgent
+  swaig-test examples/multi_agent_server.rb --list-tools --route /matti-agent
+  swaig-test examples/multi_agent_server.rb --dump-swml --route /sigmond-agent
 ```
 
 ### List Available Functions
 
 ```bash
 # List functions in single-agent file (auto-selected)
-swaig-test examples/joke_skill_demo.py --list-tools
+swaig-test examples/joke_skill_demo.rb --list-tools
 
 # List functions for specific agent in multi-agent file
-swaig-test matti_and_sigmond/dual_agent_app.py --agent-class MattiAgent --list-tools
+swaig-test examples/multi_agent_server.rb --agent-class MattiAgent --list-tools
 
 # List functions using route selection
-swaig-test matti_and_sigmond/dual_agent_app.py --route /matti-agent --list-tools
+swaig-test examples/multi_agent_server.rb --route /matti-agent --list-tools
 
 # Detailed function listing with schemas
-swaig-test examples/joke_skill_demo.py --list-tools --verbose
+swaig-test examples/joke_skill_demo.rb --list-tools --verbose
 ```
 
 **Example Output:**
@@ -119,20 +119,20 @@ Available SWAIG functions:
 
 ```bash
 # Basic SWML generation with fake call data
-swaig-test examples/my_agent.py --dump-swml
+swaig-test examples/my_agent.rb --dump-swml
 
 # Raw SWML JSON output for piping
-swaig-test examples/my_agent.py --dump-swml --raw | jq '.'
+swaig-test examples/my_agent.rb --dump-swml --raw | jq '.'
 
 # Verbose SWML testing with detailed fake data
-swaig-test examples/my_agent.py --dump-swml --verbose
+swaig-test examples/my_agent.rb --dump-swml --verbose
 
 # Custom call types and scenarios
-swaig-test examples/my_agent.py --dump-swml --call-type sip --call-direction outbound
+swaig-test examples/my_agent.rb --dump-swml --call-type sip --call-direction outbound
 
 # Test SWML in serverless environments
-swaig-test examples/my_agent.py --simulate-serverless lambda --dump-swml
-swaig-test examples/my_agent.py --simulate-serverless cgi --cgi-host example.com --dump-swml
+swaig-test examples/my_agent.rb --simulate-serverless lambda --dump-swml
+swaig-test examples/my_agent.rb --simulate-serverless cgi --cgi-host example.com --dump-swml
 ```
 
 ## Logging and Output Control
@@ -141,13 +141,13 @@ By default, `swaig-test` suppresses agent logs to keep output clean. Use these o
 
 ```bash
 # Default behavior - logs are suppressed
-swaig-test examples/my_agent.py --exec my_function --param value
+swaig-test examples/my_agent.rb --exec my_function --param value
 
 # Enable logs with --verbose flag  
-swaig-test examples/my_agent.py --verbose --exec my_function --param value
+swaig-test examples/my_agent.rb --verbose --exec my_function --param value
 
 # Clean SWML output (logs always suppressed)
-swaig-test examples/my_agent.py --dump-swml --raw
+swaig-test examples/my_agent.rb --dump-swml --raw
 ```
 
 The tool automatically:
@@ -163,19 +163,19 @@ The CLI tool provides comprehensive serverless platform simulation, allowing you
 
 ```bash
 # Test agent in Lambda environment
-swaig-test examples/my_agent.py --simulate-serverless lambda --dump-swml
+swaig-test examples/my_agent.rb --simulate-serverless lambda --dump-swml
 
 # Test function execution in Lambda context
-swaig-test examples/my_agent.py --simulate-serverless lambda --exec my_function --param value
+swaig-test examples/my_agent.rb --simulate-serverless lambda --exec my_function --param value
 
 # Test with custom Lambda configuration
-swaig-test examples/my_agent.py --simulate-serverless lambda --aws-function-name my-func --aws-region us-west-2 --exec my_function
+swaig-test examples/my_agent.rb --simulate-serverless lambda --aws-function-name my-func --aws-region us-west-2 --exec my_function
 
 # Test CGI environment with custom host
-swaig-test examples/my_agent.py --simulate-serverless cgi --cgi-host example.com --dump-swml
+swaig-test examples/my_agent.rb --simulate-serverless cgi --cgi-host example.com --dump-swml
 
 # Test with environment variables
-swaig-test examples/my_agent.py --simulate-serverless lambda --env DEBUG=1 --env TEST_MODE=cli --exec my_function
+swaig-test examples/my_agent.rb --simulate-serverless lambda --env DEBUG=1 --env TEST_MODE=cli --exec my_function
 ```
 
 ### Supported Serverless Platforms
@@ -193,24 +193,24 @@ swaig-test examples/my_agent.py --simulate-serverless lambda --env DEBUG=1 --env
 
 ```bash
 # Default Lambda simulation with auto-generated URLs
-swaig-test examples/my_agent.py --simulate-serverless lambda --dump-swml
+swaig-test examples/my_agent.rb --simulate-serverless lambda --dump-swml
 
 # Custom Lambda function configuration
-swaig-test examples/my_agent.py --simulate-serverless lambda \
+swaig-test examples/my_agent.rb --simulate-serverless lambda \
   --aws-function-name my-custom-function \
   --aws-function-url https://abc123.lambda-url.us-west-2.on.aws/ \
   --aws-region us-west-2 \
   --dump-swml
 
 # API Gateway configuration
-swaig-test examples/my_agent.py --simulate-serverless lambda \
+swaig-test examples/my_agent.rb --simulate-serverless lambda \
   --aws-api-gateway-id abc123def \
   --aws-region us-east-1 \
   --aws-stage prod \
   --exec my_function --param value
 
 # Test function execution in Lambda context
-swaig-test examples/my_agent.py --simulate-serverless lambda \
+swaig-test examples/my_agent.rb --simulate-serverless lambda \
   --exec get_weather --location "San Francisco" \
   --full-request
 ```
@@ -226,10 +226,10 @@ swaig-test examples/my_agent.py --simulate-serverless lambda \
 
 ```bash
 # Basic CGI simulation
-swaig-test examples/my_agent.py --simulate-serverless cgi --cgi-host example.com --dump-swml
+swaig-test examples/my_agent.rb --simulate-serverless cgi --cgi-host example.com --dump-swml
 
 # Custom CGI configuration
-swaig-test examples/my_agent.py --simulate-serverless cgi \
+swaig-test examples/my_agent.rb --simulate-serverless cgi \
   --cgi-host my-server.com \
   --cgi-script-name /cgi-bin/my-agent.cgi \
   --cgi-https \
@@ -237,7 +237,7 @@ swaig-test examples/my_agent.py --simulate-serverless cgi \
   --exec my_function --param value
 
 # Test CGI with specific environment
-swaig-test examples/my_agent.py --simulate-serverless cgi \
+swaig-test examples/my_agent.rb --simulate-serverless cgi \
   --cgi-host production.example.com \
   --cgi-https \
   --env REMOTE_USER=admin \
@@ -255,10 +255,10 @@ swaig-test examples/my_agent.py --simulate-serverless cgi \
 
 ```bash
 # Basic Cloud Function simulation
-swaig-test examples/my_agent.py --simulate-serverless cloud_function --dump-swml
+swaig-test examples/my_agent.rb --simulate-serverless cloud_function --dump-swml
 
 # Custom GCP configuration
-swaig-test examples/my_agent.py --simulate-serverless cloud_function \
+swaig-test examples/my_agent.rb --simulate-serverless cloud_function \
   --gcp-project my-project \
   --gcp-function-url https://my-function-abc123.cloudfunctions.net \
   --gcp-region us-central1 \
@@ -276,10 +276,10 @@ swaig-test examples/my_agent.py --simulate-serverless cloud_function \
 
 ```bash
 # Basic Azure Functions simulation
-swaig-test examples/my_agent.py --simulate-serverless azure_function --dump-swml
+swaig-test examples/my_agent.rb --simulate-serverless azure_function --dump-swml
 
 # Custom Azure configuration
-swaig-test examples/my_agent.py --simulate-serverless azure_function \
+swaig-test examples/my_agent.rb --simulate-serverless azure_function \
   --azure-env production \
   --azure-function-url https://my-function.azurewebsites.net \
   --exec my_function --param value
@@ -296,14 +296,14 @@ swaig-test examples/my_agent.py --simulate-serverless azure_function \
 
 ```bash
 # Set custom environment variables
-swaig-test examples/my_agent.py --simulate-serverless lambda \
+swaig-test examples/my_agent.rb --simulate-serverless lambda \
   --env API_KEY=secret123 \
   --env DEBUG=true \
   --env TIMEOUT=30 \
   --exec my_function
 
 # Multiple environment variables
-swaig-test examples/my_agent.py --simulate-serverless cgi \
+swaig-test examples/my_agent.rb --simulate-serverless cgi \
   --env DB_HOST=localhost \
   --env DB_PORT=5432 \
   --env LOG_LEVEL=info \
@@ -326,12 +326,12 @@ TIMEOUT=60
 EOF
 
 # Use environment file
-swaig-test examples/my_agent.py --simulate-serverless lambda \
+swaig-test examples/my_agent.rb --simulate-serverless lambda \
   --env-file lambda.env \
   --exec my_function --param value
 
 # Override specific variables from file
-swaig-test examples/my_agent.py --simulate-serverless lambda \
+swaig-test examples/my_agent.rb --simulate-serverless lambda \
   --env-file lambda.env \
   --env DEBUG=true \
   --env AWS_REGION=us-east-1 \
@@ -356,18 +356,18 @@ The serverless simulation automatically generates appropriate webhook URLs for e
 
 ```bash
 # Lambda Function URL
-swaig-test examples/my_agent.py --simulate-serverless lambda \
+swaig-test examples/my_agent.rb --simulate-serverless lambda \
   --aws-function-url https://custom123.lambda-url.us-west-2.on.aws/ \
   --dump-swml --format-json | jq '.sections.main[1].ai.SWAIG.defaults.web_hook_url'
 
 # CGI with custom host
-swaig-test examples/my_agent.py --simulate-serverless cgi \
+swaig-test examples/my_agent.rb --simulate-serverless cgi \
   --cgi-host my-production-server.com \
   --cgi-https \
   --dump-swml --format-json | jq '.sections.main[1].ai.SWAIG.defaults.web_hook_url'
 
 # Cloud Functions with custom URL
-swaig-test examples/my_agent.py --simulate-serverless cloud_function \
+swaig-test examples/my_agent.rb --simulate-serverless cloud_function \
   --gcp-function-url https://my-custom-function.cloudfunctions.net \
   --dump-swml --format-json | jq '.sections.main[1].ai.SWAIG.defaults.web_hook_url'
 ```
@@ -380,12 +380,12 @@ Test function execution with platform-specific request/response formats:
 
 ```bash
 # Test function in Lambda context
-swaig-test examples/my_agent.py --simulate-serverless lambda \
+swaig-test examples/my_agent.rb --simulate-serverless lambda \
   --exec get_weather --location "Miami" \
   --full-request
 
 # Example output shows Lambda event format
-swaig-test examples/my_agent.py --simulate-serverless lambda \
+swaig-test examples/my_agent.rb --simulate-serverless lambda \
   --exec calculate --expression "2+2" \
   --full-request --format-json
 ```
@@ -405,7 +405,7 @@ swaig-test examples/my_agent.py --simulate-serverless lambda \
 
 ```bash
 # Test function in CGI context
-swaig-test examples/my_agent.py --simulate-serverless cgi \
+swaig-test examples/my_agent.rb --simulate-serverless cgi \
   --cgi-host example.com \
   --exec my_function --param value
 ```
@@ -418,10 +418,10 @@ The tool includes built-in environment presets for each platform:
 
 ```bash
 # Use default Lambda preset
-swaig-test examples/my_agent.py --simulate-serverless lambda --dump-swml
+swaig-test examples/my_agent.rb --simulate-serverless lambda --dump-swml
 
 # Override preset values
-swaig-test examples/my_agent.py --simulate-serverless lambda \
+swaig-test examples/my_agent.rb --simulate-serverless lambda \
   --aws-function-name custom-name \
   --env CUSTOM_VAR=value \
   --dump-swml
@@ -436,7 +436,7 @@ The tool automatically clears conflicting environment variables between platform
 export AWS_LAMBDA_FUNCTION_NAME=old-function
 
 # This will clear AWS variables and set GCP variables
-swaig-test examples/my_agent.py --simulate-serverless cloud_function \
+swaig-test examples/my_agent.rb --simulate-serverless cloud_function \
   --gcp-project new-project \
   --dump-swml
 ```
@@ -447,13 +447,13 @@ swaig-test examples/my_agent.py --simulate-serverless cloud_function \
 # Test the same agent across multiple platforms
 for platform in lambda cgi cloud_function azure_function; do
   echo "Testing $platform..."
-  swaig-test examples/my_agent.py --simulate-serverless $platform \
+  swaig-test examples/my_agent.rb --simulate-serverless $platform \
     --exec my_function --param value
 done
 
 # Compare SWML generation across platforms
-swaig-test examples/my_agent.py --simulate-serverless lambda --dump-swml > lambda.swml
-swaig-test examples/my_agent.py --simulate-serverless cgi --cgi-host example.com --dump-swml > cgi.swml
+swaig-test examples/my_agent.rb --simulate-serverless lambda --dump-swml > lambda.swml
+swaig-test examples/my_agent.rb --simulate-serverless cgi --cgi-host example.com --dump-swml > cgi.swml
 diff lambda.swml cgi.swml
 ```
 
@@ -463,12 +463,12 @@ diff lambda.swml cgi.swml
 
 ```bash
 # See detailed environment setup
-swaig-test examples/my_agent.py --simulate-serverless lambda \
+swaig-test examples/my_agent.rb --simulate-serverless lambda \
   --verbose \
   --dump-swml
 
 # Debug function execution
-swaig-test examples/my_agent.py --simulate-serverless lambda \
+swaig-test examples/my_agent.rb --simulate-serverless lambda \
   --verbose \
   --exec my_function --param value \
   --full-request
@@ -478,7 +478,7 @@ swaig-test examples/my_agent.py --simulate-serverless lambda \
 
 ```bash
 # Show environment variables being set
-swaig-test examples/my_agent.py --simulate-serverless lambda \
+swaig-test examples/my_agent.rb --simulate-serverless lambda \
   --env DEBUG=1 \
   --exec get_status  # Use a function that returns environment info
 ```
@@ -487,11 +487,11 @@ swaig-test examples/my_agent.py --simulate-serverless lambda \
 
 ```bash
 # Pretty-print JSON output
-swaig-test examples/my_agent.py --simulate-serverless lambda \
+swaig-test examples/my_agent.rb --simulate-serverless lambda \
   --dump-swml --format-json
 
 # Raw JSON for piping
-swaig-test examples/my_agent.py --simulate-serverless lambda \
+swaig-test examples/my_agent.rb --simulate-serverless lambda \
   --dump-swml --format-json | jq '.sections.main[1].ai.SWAIG.functions[0]'
 ```
 
@@ -509,12 +509,12 @@ swaig-test examples/my_agent.py --simulate-serverless lambda \
 
 ```bash
 # Lambda development workflow
-swaig-test examples/my_agent.py --list-tools  # First test locally
-swaig-test examples/my_agent.py --simulate-serverless lambda --dump-swml  # Check SWML
-swaig-test examples/my_agent.py --simulate-serverless lambda --exec my_function --param value  # Test functions
+swaig-test examples/my_agent.rb --list-tools  # First test locally
+swaig-test examples/my_agent.rb --simulate-serverless lambda --dump-swml  # Check SWML
+swaig-test examples/my_agent.rb --simulate-serverless lambda --exec my_function --param value  # Test functions
 
 # Production-like testing
-swaig-test examples/my_agent.py --simulate-serverless lambda \
+swaig-test examples/my_agent.rb --simulate-serverless lambda \
   --env-file production.env \
   --aws-function-name prod-my-agent \
   --aws-region us-east-1 \
@@ -539,8 +539,8 @@ API_TIMEOUT=30
 EOF
 
 # Test both environments
-swaig-test examples/my_agent.py --simulate-serverless lambda --env-file dev.env --exec my_function
-swaig-test examples/my_agent.py --simulate-serverless lambda --env-file prod.env --exec my_function
+swaig-test examples/my_agent.rb --simulate-serverless lambda --env-file dev.env --exec my_function
+swaig-test examples/my_agent.rb --simulate-serverless lambda --env-file prod.env --exec my_function
 ```
 
 ### Legacy Compatibility
@@ -549,10 +549,10 @@ The tool maintains backward compatibility with existing serverless parameters:
 
 ```bash
 # Legacy syntax (still supported)
-swaig-test examples/my_agent.py --serverless-mode lambda --function my_function --args '{"param":"value"}'
+swaig-test examples/my_agent.rb --serverless-mode lambda --function my_function --args '{"param":"value"}'
 
 # New syntax (recommended)
-swaig-test examples/my_agent.py --simulate-serverless lambda --exec my_function --param value
+swaig-test examples/my_agent.rb --simulate-serverless lambda --exec my_function --param value
 ```
 
 ### CLI Syntax with --exec
@@ -561,26 +561,26 @@ The `--exec` syntax provides an intuitive way to test functions:
 
 ```bash
 # --exec syntax (recommended) - CLI flags BEFORE --exec
-swaig-test examples/joke_skill_demo.py --verbose --exec get_joke --type dadjokes
-swaig-test examples/web_search_agent.py --exec web_search --query "AI agents" --limit 5
-swaig-test matti_and_sigmond/dual_agent_app.py --agent-class MattiAgent --exec get_weather --location "New York"
+swaig-test examples/joke_skill_demo.rb --verbose --exec get_joke --type dadjokes
+swaig-test examples/web_search_agent.rb --exec web_search --query "AI agents" --limit 5
+swaig-test examples/multi_agent_server.rb --agent-class MattiAgent --exec get_weather --location "New York"
 
 # Multiple agents - specify which one to use
-swaig-test matti_and_sigmond/dual_agent_app.py --verbose --agent-class SigmondAgent --exec search_knowledge --query "SignalWire"
+swaig-test examples/multi_agent_server.rb --verbose --agent-class SigmondAgent --exec search_knowledge --query "SignalWire"
 
 # Auto-agent selection (when only one agent in file)
-swaig-test examples/joke_skill_demo.py --exec get_joke --type jokes
+swaig-test examples/joke_skill_demo.rb --exec get_joke --type jokes
 
 # All CLI flags must come BEFORE --exec
-swaig-test examples/agent.py --verbose --custom-data '{"test":"data"}' --exec my_function --param value
+swaig-test examples/agent.rb --verbose --custom-data '{"test":"data"}' --exec my_function --param value
 ```
 
 ### JSON Syntax (Alternative)
 
 ```bash
 # JSON syntax (alternative approach)
-swaig-test examples/joke_skill_demo.py get_joke '{"type":"dadjokes"}'
-swaig-test examples/web_search_agent.py web_search '{"query":"AI agents","limit":5}'
+swaig-test examples/joke_skill_demo.rb get_joke '{"type":"dadjokes"}'
+swaig-test examples/web_search_agent.rb web_search '{"query":"AI agents","limit":5}'
 ```
 
 ## CLI Argument Syntax
@@ -594,15 +594,15 @@ The `--exec` syntax separates CLI flags from function arguments:
 swaig-test <file> [--cli-flags] --exec <function> [--function-args]
 
 # All CLI flags must come BEFORE --exec
-swaig-test examples/agent.py --verbose --agent-class MyAgent --exec search --query "test" --limit 10
+swaig-test examples/agent.rb --verbose --agent-class MyAgent --exec search --query "test" --limit 10
 
 # Function arguments come AFTER --exec function-name
-swaig-test examples/joke_skill_demo.py --exec get_joke --type dadjokes
+swaig-test examples/joke_skill_demo.rb --exec get_joke --type dadjokes
 #                                      ^^^^                            ^^^^^^^^
 #                                      Wrong place!                    Wrong place!
 
 # Correct usage - CLI flags before --exec
-swaig-test examples/joke_skill_demo.py --verbose --exec get_joke --type dadjokes
+swaig-test examples/joke_skill_demo.rb --verbose --exec get_joke --type dadjokes
 #                                      ^^^^^^^^         ^^^^^^^^ ^^^^^^^^^^^^^^
 #                                      CLI flag         Function Function args
 ```
@@ -623,19 +623,19 @@ The tool automatically converts arguments based on function schema:
 
 ```bash
 # String parameters
-swaig-test examples/agent.py --exec greet --name "Alice"
+swaig-test examples/agent.rb --exec greet --name "Alice"
 
 # Multiple parameters with type conversion
-swaig-test examples/agent.py --exec search --query "AI" --limit 5 --include-metadata
+swaig-test examples/agent.rb --exec search --query "AI" --limit 5 --include-metadata
 
 # Boolean flags
-swaig-test examples/agent.py --exec process --input "data" --verify --async false
+swaig-test examples/agent.rb --exec process --input "data" --verify --async false
 
 # Array parameters (comma-separated)
-swaig-test examples/agent.py --exec filter --categories "tech,science,health" --max-results 20
+swaig-test examples/agent.rb --exec filter --categories "tech,science,health" --max-results 20
 
 # Complex example with multiple agent support
-swaig-test matti_and_sigmond/dual_agent_app.py --verbose --agent-class SigmondAgent --exec get_trivia --category science
+swaig-test examples/multi_agent_server.rb --verbose --agent-class SigmondAgent --exec get_trivia --category science
 ```
 
 ## Multi-Agent Support
@@ -646,7 +646,7 @@ When a file contains only one agent, it's automatically selected:
 
 ```bash
 # Auto-selects the single agent
-swaig-test examples/joke_skill_demo.py --exec get_joke --type jokes
+swaig-test examples/joke_skill_demo.rb --exec get_joke --type jokes
 ```
 
 ### Multi-Agent Files
@@ -655,15 +655,15 @@ For files with multiple agents, specify which one to use:
 
 ```bash
 # Discover available agents
-swaig-test matti_and_sigmond/dual_agent_app.py
+swaig-test examples/multi_agent_server.rb
 
 # Use specific agent
-swaig-test matti_and_sigmond/dual_agent_app.py --agent-class MattiAgent --exec get_weather --location "San Francisco"
-swaig-test matti_and_sigmond/dual_agent_app.py --agent-class SigmondAgent --exec search_knowledge --query "AI"
+swaig-test examples/multi_agent_server.rb --agent-class MattiAgent --exec get_weather --location "San Francisco"
+swaig-test examples/multi_agent_server.rb --agent-class SigmondAgent --exec search_knowledge --query "AI"
 
 # Different operations with different agents
-swaig-test matti_and_sigmond/dual_agent_app.py --agent-class MattiAgent --list-tools
-swaig-test matti_and_sigmond/dual_agent_app.py --agent-class SigmondAgent --dump-swml
+swaig-test examples/multi_agent_server.rb --agent-class MattiAgent --list-tools
+swaig-test examples/multi_agent_server.rb --agent-class SigmondAgent --dump-swml
 ```
 
 ## DataMap Function Testing
@@ -674,7 +674,7 @@ DataMap functions are automatically detected and properly simulated:
 
 ```bash
 # DataMap function - automatically detected and simulated
-swaig-test examples/joke_skill_demo.py --verbose --exec get_joke --type dadjokes
+swaig-test examples/joke_skill_demo.rb --verbose --exec get_joke --type dadjokes
 ```
 
 **Complete DataMap Processing Pipeline:**
@@ -718,7 +718,7 @@ When APIs fail, DataMap functions gracefully fall back:
 
 ```bash
 # Test with invalid parameters to see fallback
-swaig-test examples/joke_skill_demo.py --verbose --exec get_joke --type invalid
+swaig-test examples/joke_skill_demo.rb --verbose --exec get_joke --type invalid
 ```
 
 **Fallback Output:**
@@ -737,16 +737,16 @@ The tool automatically detects whether a function is a local webhook, external w
 
 ```bash
 # Test local webhook function - auto-detected
-swaig-test examples/datasphere_webhook_env_demo.py search_knowledge '{"query":"SignalWire"}'
+swaig-test examples/datasphere_webhook_env_demo.rb search_knowledge '{"query":"SignalWire"}'
 
 # Test DataMap function - auto-detected  
-swaig-test examples/datasphere_serverless_env_demo.py search_knowledge '{"query":"SignalWire"}'
+swaig-test examples/datasphere_serverless_env.rb search_knowledge '{"query":"SignalWire"}'
 
 # Test local webhook function with get_weather
-swaig-test examples/simple_agent.py get_weather '{"location":"New York"}' --verbose
+swaig-test examples/simple_agent.rb get_weather '{"location":"New York"}' --verbose
 
 # Test math skill function - auto-detected
-swaig-test examples/datasphere_serverless_env_demo.py calculate '{"expression":"25 * 47"}'
+swaig-test examples/datasphere_serverless_env.rb calculate '{"expression":"25 * 47"}'
 ```
 
 #### External Webhook Function Testing
@@ -755,10 +755,10 @@ External webhook functions are automatically detected and tested by making HTTP 
 
 ```bash
 # Test external webhook with verbose output
-swaig-test examples/my_agent.py getWeather '{"location":"San Francisco"}' --verbose
+swaig-test examples/my_agent.rb getWeather '{"location":"San Francisco"}' --verbose
 
 # List functions with their types (local vs external)
-swaig-test examples/my_agent.py --list-tools
+swaig-test examples/my_agent.rb --list-tools
 ```
 
 **Example Output for External Webhook:**
@@ -811,13 +811,13 @@ You can test agents that have both local and external webhook functions:
 
 ```bash
 # Test local function
-swaig-test examples/my_agent.py getHelp '{}'
+swaig-test examples/my_agent.rb getHelp '{}'
 
 # Test external function
-swaig-test examples/my_agent.py getWeather '{"location":"Tokyo"}'
+swaig-test examples/my_agent.rb getWeather '{"location":"Tokyo"}'
 
 # Show all function types
-swaig-test examples/my_agent.py --list-tools
+swaig-test examples/my_agent.rb --list-tools
 ```
 
 ## SWML Generation and Testing
@@ -828,7 +828,7 @@ The tool automatically generates realistic fake SWML post_data that matches Sign
 
 ```bash
 # Generate SWML with fake call data
-swaig-test examples/my_agent.py --dump-swml --verbose
+swaig-test examples/my_agent.rb --dump-swml --verbose
 ```
 
 **Generated fake post_data structure:**
@@ -861,10 +861,10 @@ Support for different call types with appropriate metadata:
 
 ```bash
 # WebRTC call (default)
-swaig-test examples/agent.py --dump-swml --call-type webrtc
+swaig-test examples/agent.rb --dump-swml --call-type webrtc
 
 # SIP call with phone numbers
-swaig-test examples/agent.py --dump-swml --call-type sip
+swaig-test examples/agent.rb --dump-swml --call-type sip
 ```
 
 **SIP vs WebRTC differences:**
@@ -892,29 +892,29 @@ Precise control over fake data using dot notation paths:
 
 ```bash
 # Simple value overrides
-swaig-test examples/agent.py --dump-swml --override call.state=answered --override call.timeout=60
+swaig-test examples/agent.rb --dump-swml --override call.state=answered --override call.timeout=60
 
 # JSON overrides for complex data
-swaig-test examples/agent.py --dump-swml --override-json vars.userVariables='{"vip":true,"tier":"gold"}'
+swaig-test examples/agent.rb --dump-swml --override-json vars.userVariables='{"vip":true,"tier":"gold"}'
 
 # User variables and environment variables
-swaig-test examples/agent.py --dump-swml --user-vars '{"customer_id":"12345","tier":"premium"}'
+swaig-test examples/agent.rb --dump-swml --user-vars '{"customer_id":"12345","tier":"premium"}'
 
 # Query parameters (merged into userVariables)
-swaig-test examples/agent.py --dump-swml --query-params '{"source":"api","debug":"true"}'
+swaig-test examples/agent.rb --dump-swml --query-params '{"source":"api","debug":"true"}'
 ```
 
 **Override Examples:**
 ```bash
 # Multiple overrides
-swaig-test examples/agent.py --dump-swml \
+swaig-test examples/agent.rb --dump-swml \
   --override call.project_id=my-project \
   --override call.direction=outbound \
   --override call.state=answered \
   --user-vars '{"vip_customer":true}'
 
 # Complex JSON overrides
-swaig-test examples/agent.py --dump-swml \
+swaig-test examples/agent.rb --dump-swml \
   --override-json call.headers='{"X-Custom":"value"}' \
   --override-json vars.userVariables='{"settings":{"theme":"dark","lang":"en"}}'
 ```
@@ -925,10 +925,10 @@ Test dynamic agents that generate request-dependent SWML:
 
 ```bash
 # Basic dynamic agent testing
-swaig-test examples/dynamic_agent.py --dump-swml --header "Authorization=Bearer token"
+swaig-test examples/simple_dynamic_agent.rb --dump-swml --header "Authorization=Bearer token"
 
 # Custom request simulation
-swaig-test examples/dynamic_agent.py --dump-swml \
+swaig-test examples/simple_dynamic_agent.rb --dump-swml \
   --method GET \
   --header "X-Source=api" \
   --header "Content-Type=application/json" \
@@ -936,7 +936,7 @@ swaig-test examples/dynamic_agent.py --dump-swml \
   --body '{"custom_data":"test"}'
 
 # Combined dynamic testing
-swaig-test examples/dynamic_agent.py --dump-swml \
+swaig-test examples/simple_dynamic_agent.rb --dump-swml \
   --call-type sip \
   --call-direction outbound \
   --header "X-Call-Source=external" \
@@ -956,18 +956,18 @@ swaig-test examples/dynamic_agent.py --dump-swml \
 
 ```bash
 # Standard output with headers
-swaig-test examples/agent.py --dump-swml
+swaig-test examples/agent.rb --dump-swml
 # Output: Headers + formatted SWML + footers
 
 # Raw JSON for automation
-swaig-test examples/agent.py --dump-swml --raw
+swaig-test examples/agent.rb --dump-swml --raw
 # Output: Raw JSON only
 
 # Pipe to jq for processing
-swaig-test examples/agent.py --dump-swml --raw | jq '.sections.main[1].ai.SWAIG.functions'
+swaig-test examples/agent.rb --dump-swml --raw | jq '.sections.main[1].ai.SWAIG.functions'
 
 # Verbose with fake data details
-swaig-test examples/agent.py --dump-swml --verbose
+swaig-test examples/agent.rb --dump-swml --verbose
 # Output: Fake data details + agent info + SWML
 ```
 
@@ -979,13 +979,13 @@ Instead of JSON strings, use CLI-style arguments:
 
 ```bash
 # Traditional JSON syntax
-swaig-test examples/agent.py search_function '{"query":"test","limit":10,"verbose":true}'
+swaig-test examples/agent.rb search_function '{"query":"test","limit":10,"verbose":true}'
 
 # Alternative CLI syntax  
-swaig-test examples/agent.py search_function --args --query "test" --limit 10 --verbose
+swaig-test examples/agent.rb search_function --args --query "test" --limit 10 --verbose
 
 # Schema-based type conversion
-swaig-test examples/agent.py calculate --args --expression "25 * 47" --precision 2
+swaig-test examples/agent.rb calculate --args --expression "25 * 47" --precision 2
 ```
 
 ### Argument Type Handling
@@ -1004,16 +1004,16 @@ The tool automatically converts arguments based on function schema:
 
 ```bash
 # Simple string parameter
-swaig-test examples/agent.py greet --args --name "Alice"
+swaig-test examples/agent.rb greet --args --name "Alice"
 
 # Multiple parameters with type conversion
-swaig-test examples/agent.py search --args --query "AI" --limit 5 --include-metadata
+swaig-test examples/agent.rb search --args --query "AI" --limit 5 --include-metadata
 
 # Boolean flags
-swaig-test examples/agent.py process --args --input "data" --verify --async false
+swaig-test examples/agent.rb process --args --input "data" --verify --async false
 
 # Array parameters (comma-separated)
-swaig-test examples/agent.py filter --args --categories "tech,science,health" --max-results 20
+swaig-test examples/agent.rb filter --args --categories "tech,science,health" --max-results 20
 ```
 
 ## DataMap Function Execution
@@ -1032,7 +1032,7 @@ DataMap functions follow the SignalWire server-side processing pipeline:
 
 ```bash
 # Test DataSphere serverless search with verbose output
-swaig-test examples/datasphere_serverless_env_demo.py search_knowledge '{"query":"SignalWire"}' --verbose
+swaig-test examples/datasphere_serverless_env.rb search_knowledge '{"query":"SignalWire"}' --verbose
 ```
 
 **Example Execution Flow:**
@@ -1140,10 +1140,10 @@ end
 
 ```bash
 # Test external webhook function
-swaig-test examples/my_agent.py getWeather '{"location":"Paris"}' --verbose
+swaig-test examples/my_agent.rb getWeather '{"location":"Paris"}' --verbose
 
 # Compare with local function
-swaig-test examples/my_agent.py getHelp '{}' --verbose
+swaig-test examples/my_agent.rb getHelp '{}' --verbose
 ```
 
 **External Webhook Request Format:**
@@ -1173,7 +1173,7 @@ The CLI tool sends the same payload format that SignalWire uses:
 
 ```bash
 # Test with unreachable external service
-swaig-test examples/my_agent.py testBrokenWebhook '{"message":"test"}' --verbose
+swaig-test examples/my_agent.rb testBrokenWebhook '{"message":"test"}' --verbose
 ```
 
 Output shows connection errors and HTTP status codes:
@@ -1190,13 +1190,13 @@ Dict: {
 
 #### 1. Default Mode (Minimal Data)
 ```bash
-swaig-test my_agent.py my_function '{"param":"value"}'
+swaig-test my_agent.rb my_function '{"param":"value"}'
 ```
 **Includes**: `function`, `argument`, `call_id`, `meta_data`, `global_data`
 
 #### 2. Comprehensive Mode (Full SignalWire Environment)
 ```bash
-swaig-test my_agent.py my_function '{"param":"value"}' --fake-full-data
+swaig-test my_agent.rb my_function '{"param":"value"}' --fake-full-data
 ```
 
 **Includes complete post_data with all SignalWire keys:**
@@ -1210,7 +1210,7 @@ swaig-test my_agent.py my_function '{"param":"value"}' --fake-full-data
 
 #### 3. Custom Data Mode
 ```bash
-swaig-test my_agent.py my_function '{"param":"value"}' --custom-data '{"call_id":"test-123","global_data":{"environment":"production"}}'
+swaig-test my_agent.rb my_function '{"param":"value"}' --custom-data '{"call_id":"test-123","global_data":{"environment":"production"}}'
 ```
 
 ### Comprehensive Post Data Example
@@ -1273,7 +1273,7 @@ swaig-test my_agent.py my_function '{"param":"value"}' --custom-data '{"call_id"
 
 ```bash
 # Test DataSphere serverless function
-swaig-test examples/datasphere_serverless_env_demo.py search_knowledge '{"query":"AI agents"}' --verbose
+swaig-test examples/datasphere_serverless_env.rb search_knowledge '{"query":"AI agents"}' --verbose
 ```
 
 **Expected Output:**
@@ -1304,7 +1304,7 @@ Response: I found results for "AI agents": ...
 
 ```bash
 # Test webhook-style math function
-swaig-test examples/datasphere_serverless_env_demo.py calculate '{"expression":"25 * 47"}' --verbose
+swaig-test examples/datasphere_serverless_env.rb calculate '{"expression":"25 * 47"}' --verbose
 ```
 
 **Expected Output:**
@@ -1321,7 +1321,7 @@ SwaigFunctionResult: The result of 25 * 47 is 1175.
 
 ```bash
 # Test datetime function with comprehensive data
-swaig-test examples/datasphere_serverless_env_demo.py get_datetime '{}' --fake-full-data
+swaig-test examples/datasphere_serverless_env.rb get_datetime '{}' --fake-full-data
 ```
 
 ## Function Type Detection
@@ -1334,7 +1334,7 @@ The tool automatically detects function types:
 
 **Detection Example:**
 ```bash
-swaig-test my_agent.py --list-tools --verbose
+swaig-test my_agent.rb --list-tools --verbose
 
 Available SWAIG functions:
   search_knowledge - DataMap function (serverless)
@@ -1403,51 +1403,51 @@ Available SWAIG functions:
 
 ```bash
 # Test dad jokes with verbose output
-swaig-test examples/joke_skill_demo.py --verbose --exec get_joke --type dadjokes
+swaig-test examples/joke_skill_demo.rb --verbose --exec get_joke --type dadjokes
 
 # Test regular jokes  
-swaig-test examples/joke_skill_demo.py --exec get_joke --type jokes
+swaig-test examples/joke_skill_demo.rb --exec get_joke --type jokes
 
 # Test error handling with invalid type
-swaig-test examples/joke_skill_demo.py --verbose --exec get_joke --type invalid
+swaig-test examples/joke_skill_demo.rb --verbose --exec get_joke --type invalid
 ```
 
 ### Testing Multi-Agent Applications
 
 ```bash
 # Discover available agents
-swaig-test matti_and_sigmond/dual_agent_app.py
+swaig-test examples/multi_agent_server.rb
 
 # Test MattiAgent functions
-swaig-test matti_and_sigmond/dual_agent_app.py --agent-class MattiAgent --list-tools
-swaig-test matti_and_sigmond/dual_agent_app.py --agent-class MattiAgent --exec get_weather --location "Tokyo"
-swaig-test matti_and_sigmond/dual_agent_app.py --agent-class MattiAgent --exec transfer --name "support"
+swaig-test examples/multi_agent_server.rb --agent-class MattiAgent --list-tools
+swaig-test examples/multi_agent_server.rb --agent-class MattiAgent --exec get_weather --location "Tokyo"
+swaig-test examples/multi_agent_server.rb --agent-class MattiAgent --exec transfer --name "support"
 
 # Test SigmondAgent functions  
-swaig-test matti_and_sigmond/dual_agent_app.py --agent-class SigmondAgent --list-tools
-swaig-test matti_and_sigmond/dual_agent_app.py --agent-class SigmondAgent --exec search_knowledge --query "SignalWire"
-swaig-test matti_and_sigmond/dual_agent_app.py --agent-class SigmondAgent --exec get_joke --type dadjokes
+swaig-test examples/multi_agent_server.rb --agent-class SigmondAgent --list-tools
+swaig-test examples/multi_agent_server.rb --agent-class SigmondAgent --exec search_knowledge --query "SignalWire"
+swaig-test examples/multi_agent_server.rb --agent-class SigmondAgent --exec get_joke --type dadjokes
 
 # Generate SWML for different agents
-swaig-test matti_and_sigmond/dual_agent_app.py --agent-class MattiAgent --dump-swml
-swaig-test matti_and_sigmond/dual_agent_app.py --agent-class SigmondAgent --dump-swml --raw | jq '.'
+swaig-test examples/multi_agent_server.rb --agent-class MattiAgent --dump-swml
+swaig-test examples/multi_agent_server.rb --agent-class SigmondAgent --dump-swml --raw | jq '.'
 ```
 
 ### Testing External Webhook Functions
 
 ```bash
 # Test external webhook with verbose output
-swaig-test examples/my_agent.py --verbose --exec getWeather --location "San Francisco"
+swaig-test examples/my_agent.rb --verbose --exec getWeather --location "San Francisco"
 
 # List functions with their types (local vs external)
-swaig-test examples/my_agent.py --list-tools
+swaig-test examples/my_agent.rb --list-tools
 ```
 
 ### Advanced SWML Testing
 
 ```bash
 # Test dynamic agent with custom headers and data
-swaig-test examples/dynamic_agent.py --dump-swml \
+swaig-test examples/simple_dynamic_agent.rb --dump-swml \
   --header "Authorization=Bearer test-token" \
   --header "X-User-ID=12345" \
   --method POST \
@@ -1456,11 +1456,11 @@ swaig-test examples/dynamic_agent.py --dump-swml \
   --verbose
 
 # Test SIP vs WebRTC calls
-swaig-test examples/agent.py --dump-swml --call-type sip --from-number "+15551234567"
-swaig-test examples/agent.py --dump-swml --call-type webrtc --from-number "user@domain.com"
+swaig-test examples/agent.rb --dump-swml --call-type sip --from-number "+15551234567"
+swaig-test examples/agent.rb --dump-swml --call-type webrtc --from-number "user@domain.com"
 
 # Test with multi-agent file
-swaig-test matti_and_sigmond/dual_agent_app.py --agent-class MattiAgent --dump-swml --call-type sip --verbose
+swaig-test examples/multi_agent_server.rb --agent-class MattiAgent --dump-swml --call-type sip --verbose
 ```
 
 ### SWML Generation Examples
@@ -1469,7 +1469,7 @@ swaig-test matti_and_sigmond/dual_agent_app.py --agent-class MattiAgent --dump-s
 
 ```bash
 # Generate SWML for static agent
-swaig-test examples/simple_agent.py --dump-swml
+swaig-test examples/simple_agent.rb --dump-swml
 ```
 
 **Expected Output:**
@@ -1488,7 +1488,7 @@ SWML Document:
 
 ```bash
 # Test dynamic agent with custom headers and data
-swaig-test examples/dynamic_agent.py --dump-swml \
+swaig-test examples/simple_dynamic_agent.rb --dump-swml \
   --header "Authorization=Bearer test-token" \
   --header "X-User-ID=12345" \
   --method POST \
@@ -1528,7 +1528,7 @@ SWML Document:
 
 ```bash
 # SIP call scenario
-swaig-test examples/agent.py --dump-swml \
+swaig-test examples/agent.rb --dump-swml \
   --call-type sip \
   --call-direction outbound \
   --from-number "+15551234567" \
@@ -1536,7 +1536,7 @@ swaig-test examples/agent.py --dump-swml \
   --verbose
 
 # WebRTC call scenario  
-swaig-test examples/agent.py --dump-swml \
+swaig-test examples/agent.rb --dump-swml \
   --call-type webrtc \
   --call-direction inbound \
   --from-number "customer@company.com" \
@@ -1549,7 +1549,7 @@ swaig-test examples/agent.py --dump-swml \
 
 ```bash
 # Complex call state testing
-swaig-test examples/agent.py --dump-swml \
+swaig-test examples/agent.rb --dump-swml \
   --call-state answered \
   --override call.timeout=120 \
   --override call.max_duration=7200 \
@@ -1558,7 +1558,7 @@ swaig-test examples/agent.py --dump-swml \
   --verbose
 
 # Multi-environment testing
-swaig-test examples/agent.py --dump-swml \
+swaig-test examples/agent.rb --dump-swml \
   --override call.project_id=prod-project-123 \
   --override call.space_id=prod-space-456 \
   --override-json vars.userVariables='{"environment":"production","region":"us-east-1","feature_flags":{"new_ui":true,"beta_features":false}}' \
@@ -1571,10 +1571,10 @@ swaig-test examples/agent.py --dump-swml \
 
 ```bash
 # Traditional JSON approach
-swaig-test examples/datasphere_agent.py search_knowledge '{"query":"SignalWire features","count":"3","distance":"0.5"}'
+swaig-test examples/datasphere.rb search_knowledge '{"query":"SignalWire features","count":"3","distance":"0.5"}'
 
 # CLI syntax approach
-swaig-test examples/datasphere_agent.py search_knowledge --args \
+swaig-test examples/datasphere.rb search_knowledge --args \
   --query "SignalWire features" \
   --count 3 \
   --distance 0.5
@@ -1584,7 +1584,7 @@ swaig-test examples/datasphere_agent.py search_knowledge --args \
 
 ```bash
 # CLI syntax with automatic type conversion
-swaig-test examples/math_agent.py calculate --args \
+swaig-test examples/math_agent.rb calculate --args \
   --expression "sqrt(144) + log(100)" \
   --precision 4 \
   --scientific-notation false
@@ -1594,7 +1594,7 @@ swaig-test examples/math_agent.py calculate --args \
 
 ```bash
 # Function with string, number, boolean, and array parameters
-swaig-test examples/complex_agent.py process_data --args \
+swaig-test examples/complex_agent.rb process_data --args \
   --input-text "Process this data" \
   --max-items 50 \
   --include-metadata \
@@ -1611,7 +1611,7 @@ swaig-test examples/complex_agent.py process_data --args \
 
 ```bash
 # Test inbound call flow
-swaig-test examples/ivr_agent.py --dump-swml \
+swaig-test examples/ivr_agent.rb --dump-swml \
   --call-type sip \
   --call-direction inbound \
   --call-state created \
@@ -1620,14 +1620,14 @@ swaig-test examples/ivr_agent.py --dump-swml \
   --verbose
 
 # Test transfer scenario
-swaig-test examples/ivr_agent.py --dump-swml \
+swaig-test examples/ivr_agent.rb --dump-swml \
   --call-state answered \
   --override call.timeout=30 \
   --user-vars '{"transfer_reason":"escalation","agent_type":"supervisor"}' \
   --verbose
 
 # Test callback scenario
-swaig-test examples/callback_agent.py --dump-swml \
+swaig-test examples/callback_agent.rb --dump-swml \
   --call-direction outbound \
   --override call.state=created \
   --user-vars '{"callback_scheduled":"2024-01-15T14:30:00Z","customer_id":"CUST-789"}' \
@@ -1640,7 +1640,7 @@ swaig-test examples/callback_agent.py --dump-swml \
 # Test with different project configurations
 for project in test-proj staging-proj prod-proj; do
   echo "Testing project: $project"
-  swaig-test examples/multi_tenant_agent.py --dump-swml \
+  swaig-test examples/multi_tenant_agent.rb --dump-swml \
     --project-id $project \
     --user-vars "{\"tenant\":\"$project\"}" \
     --raw | jq '.sections.main[0].ai.params.ai_instructions'
@@ -1649,7 +1649,7 @@ done
 # Test with different user types
 for tier in basic premium enterprise; do
   echo "Testing tier: $tier"
-  swaig-test examples/tiered_agent.py --dump-swml \
+  swaig-test examples/tiered_agent.rb --dump-swml \
     --user-vars "{\"customer_tier\":\"$tier\"}" \
     --verbose
 done
@@ -1659,16 +1659,16 @@ done
 
 ```bash
 # Extract specific SWML components
-swaig-test examples/agent.py --dump-swml --raw | jq '.sections.main[0].ai.SWAIG.functions[].function'
+swaig-test examples/agent.rb --dump-swml --raw | jq '.sections.main[0].ai.SWAIG.functions[].function'
 
 # Test multiple agents and compare
-for agent in examples/agent*.py; do
+for agent in examples/*agent*.rb; do
   echo "Agent: $agent"
   swaig-test $agent --dump-swml --raw | jq '.sections.main[0].ai.params.ai_instructions' 
 done
 
 # Validate SWML structure
-swaig-test examples/agent.py --dump-swml --raw | jq 'has("version") and has("sections")'
+swaig-test examples/agent.rb --dump-swml --raw | jq 'has("version") and has("sections")'
 ```
 
 ### Mock Request Testing
@@ -1677,20 +1677,20 @@ swaig-test examples/agent.py --dump-swml --raw | jq 'has("version") and has("sec
 
 ```bash
 # Test API key validation
-swaig-test examples/api_agent.py --dump-swml \
+swaig-test examples/api_agent.rb --dump-swml \
   --header "Authorization=Bearer valid-token" \
   --body '{"api_version":"v2"}' \
   --verbose
 
 # Test user authentication
-swaig-test examples/auth_agent.py --dump-swml \
+swaig-test examples/auth_agent.rb --dump-swml \
   --header "X-User-ID=user123" \
   --header "X-Session-Token=session456" \
   --query-params '{"authenticated":"true"}' \
   --verbose
 
 # Test webhook validation
-swaig-test examples/webhook_agent.py --dump-swml \
+swaig-test examples/webhook_agent.rb --dump-swml \
   --method POST \
   --header "X-Webhook-Signature=sha256=..." \
   --body '{"event":"call.created","data":{"call_id":"test"}}' \
@@ -1701,19 +1701,19 @@ swaig-test examples/webhook_agent.py --dump-swml \
 
 ```bash
 # Test GET request handling
-swaig-test examples/rest_agent.py --dump-swml \
+swaig-test examples/rest_agent.rb --dump-swml \
   --method GET \
   --query-params '{"action":"get_config","format":"json"}' \
   --header "Accept=application/json"
 
 # Test form data handling
-swaig-test examples/form_agent.py --dump-swml \
+swaig-test examples/form_agent.rb --dump-swml \
   --method POST \
   --header "Content-Type=application/x-www-form-urlencoded" \
   --body '{"form_field":"value","submit":"true"}'
 
 # Test file upload simulation
-swaig-test examples/upload_agent.py --dump-swml \
+swaig-test examples/upload_agent.rb --dump-swml \
   --method POST \
   --header "Content-Type=multipart/form-data" \
   --body '{"filename":"test.txt","content_type":"text/plain"}'
@@ -1757,16 +1757,16 @@ For SWML generation issues:
 
 ```bash
 # Check basic SWML generation
-swaig-test my_agent.py --dump-swml --verbose
+swaig-test my_agent.rb --dump-swml --verbose
 
 # Test with minimal overrides
-swaig-test my_agent.py --dump-swml --override call.state=test --verbose
+swaig-test my_agent.rb --dump-swml --override call.state=test --verbose
 
 # Validate JSON structure
-swaig-test my_agent.py --dump-swml --raw | python -m json.tool
+swaig-test my_agent.rb --dump-swml --raw | ruby -rjson -e "puts JSON.pretty_generate(JSON.parse(STDIN.read))"
 
 # Check dynamic agent callback
-swaig-test my_agent.py --dump-swml --header "test=value" --verbose
+swaig-test my_agent.rb --dump-swml --header "test=value" --verbose
 ```
 
 Look for:
@@ -1782,13 +1782,13 @@ For `--args` parsing issues:
 
 ```bash
 # Verify function schema
-swaig-test my_agent.py --list-tools --verbose | grep -A 10 my_function
+swaig-test my_agent.rb --list-tools --verbose | grep -A 10 my_function
 
 # Test with simple parameters first
-swaig-test my_agent.py my_function --args --simple-param "value"
+swaig-test my_agent.rb my_function --args --simple-param "value"
 
 # Check type conversion
-swaig-test my_agent.py my_function --args --number-param 42 --bool-param --verbose
+swaig-test my_agent.rb my_function --args --number-param 42 --bool-param --verbose
 ```
 
 Look for:
@@ -1803,7 +1803,7 @@ Test how DataMap functions handle API failures:
 
 ```bash
 # Test with verbose output to see fallback processing
-swaig-test my_agent.py my_datamap_func '{"input":"test"}' --verbose
+swaig-test my_agent.rb my_datamap_func '{"input":"test"}' --verbose
 ```
 
 If the primary webhook fails, you'll see:
@@ -1819,7 +1819,7 @@ Simulate different environments with custom data:
 
 ```bash
 # Simulate production environment
-swaig-test my_agent.py my_function '{"input":"test"}' --fake-full-data --custom-data '{
+swaig-test my_agent.rb my_function '{"input":"test"}' --fake-full-data --custom-data '{
   "global_data": {
     "environment": "production", 
     "api_tier": "premium",
@@ -1837,7 +1837,7 @@ swaig-test my_agent.py my_function '{"input":"test"}' --fake-full-data --custom-
 For DataMap functions with multiple webhooks and complex foreach processing:
 
 ```bash
-swaig-test my_agent.py complex_search '{"query":"test","filters":["type1","type2"]}' --verbose
+swaig-test my_agent.rb complex_search '{"query":"test","filters":["type1","type2"]}' --verbose
 ```
 
 This shows the complete processing pipeline:
@@ -1852,10 +1852,10 @@ For DataMap function issues:
 
 ```bash
 # Enable verbose to see HTTP details
-swaig-test my_agent.py --verbose --exec my_datamap_func --input test
+swaig-test my_agent.rb --verbose --exec my_datamap_func --input test
 
 # Check the complete configuration
-swaig-test my_agent.py --list-tools --verbose | grep -A 20 my_datamap
+swaig-test my_agent.rb --list-tools --verbose | grep -A 20 my_datamap
 ```
 
 Look for:
@@ -1870,10 +1870,10 @@ Look for:
 
 ```bash
 # Test all functions systematically
-functions=$(swaig-test my_agent.py --list-tools | grep "  " | cut -d' ' -f3)
+functions=$(swaig-test my_agent.rb --list-tools | grep "  " | cut -d' ' -f3)
 for func in $functions; do
     echo "Testing $func..."
-    swaig-test my_agent.py $func '{"test":"data"}' --fake-full-data
+    swaig-test my_agent.rb $func '{"test":"data"}' --fake-full-data
 done
 ```
 
@@ -1887,7 +1887,7 @@ The tool returns appropriate exit codes:
 # GitHub Actions example
 - name: Test SWAIG Functions
   run: |
-    swaig-test my_agent.py critical_function '{"input":"test"}' --fake-full-data
+    swaig-test my_agent.rb critical_function '{"input":"test"}' --fake-full-data
     if [ $? -ne 0 ]; then
       echo "Critical function test failed"
       exit 1
@@ -1965,36 +1965,36 @@ When a webhook fails, the tool:
 
 ```bash
 # Debug environment variable setup
-swaig-test my_agent.py --simulate-serverless lambda --verbose --exec get_status
+swaig-test my_agent.rb --simulate-serverless lambda --verbose --exec get_status
 
 # Check what environment variables are set
-swaig-test my_agent.py --simulate-serverless lambda --env DEBUG=1 --exec debug_env
+swaig-test my_agent.rb --simulate-serverless lambda --env DEBUG=1 --exec debug_env
 
 # Test environment file loading
-swaig-test my_agent.py --simulate-serverless lambda --env-file my.env --verbose --dump-swml
+swaig-test my_agent.rb --simulate-serverless lambda --env-file my.env --verbose --dump-swml
 
 # Clear conflicting variables
 unset AWS_LAMBDA_FUNCTION_NAME GOOGLE_CLOUD_PROJECT
-swaig-test my_agent.py --simulate-serverless cloud_function --verbose --dump-swml
+swaig-test my_agent.rb --simulate-serverless cloud_function --verbose --dump-swml
 ```
 
 #### Platform-Specific Debugging
 
 ```bash
 # Debug Lambda configuration
-swaig-test my_agent.py --simulate-serverless lambda \
+swaig-test my_agent.rb --simulate-serverless lambda \
   --aws-function-name my-function \
   --aws-region us-west-2 \
   --verbose --dump-swml
 
 # Debug CGI configuration  
-swaig-test my_agent.py --simulate-serverless cgi \
+swaig-test my_agent.rb --simulate-serverless cgi \
   --cgi-host example.com \
   --cgi-https \
   --verbose --dump-swml
 
 # Debug webhook URL generation
-swaig-test my_agent.py --simulate-serverless lambda \
+swaig-test my_agent.rb --simulate-serverless lambda \
   --dump-swml --format-json | jq '.sections.main[1].ai.SWAIG.defaults.web_hook_url'
 ```
 
@@ -2002,14 +2002,14 @@ swaig-test my_agent.py --simulate-serverless lambda \
 
 ```bash
 # Debug function execution in serverless context
-swaig-test my_agent.py --simulate-serverless lambda \
+swaig-test my_agent.rb --simulate-serverless lambda \
   --verbose \
   --exec my_function --param value \
   --full-request
 
 # Compare responses across platforms
-swaig-test my_agent.py --exec my_function --param value > local.json
-swaig-test my_agent.py --simulate-serverless lambda --exec my_function --param value > lambda.json
+swaig-test my_agent.rb --exec my_function --param value > local.json
+swaig-test my_agent.rb --simulate-serverless lambda --exec my_function --param value > lambda.json
 diff local.json lambda.json
 ```
 
@@ -2017,23 +2017,23 @@ diff local.json lambda.json
 
 ```bash
 # Debug agent discovery
-swaig-test my_file.py --list-agents --verbose
+swaig-test my_file.rb --list-agents --verbose
 
 # Check if agent is auto-selected
-swaig-test my_file.py --verbose --exec my_function --param value
+swaig-test my_file.rb --verbose --exec my_function --param value
 
 # Explicitly specify agent
-swaig-test my_file.py --agent-class MyAgent --verbose --exec my_function --param value
+swaig-test my_file.rb --agent-class MyAgent --verbose --exec my_function --param value
 ```
 
 ### DataMap Debugging
 
 ```bash
 # Enable verbose to see complete DataMap processing
-swaig-test my_agent.py --verbose --exec my_datamap_func --input test
+swaig-test my_agent.rb --verbose --exec my_datamap_func --input test
 
 # Check URL template expansion
-swaig-test my_agent.py --verbose --exec my_func --location "New York"
+swaig-test my_agent.rb --verbose --exec my_func --location "New York"
 ```
 
 Look for:
@@ -2048,7 +2048,7 @@ Look for:
 
 ```bash
 # Test with valid API key - shows successful DataMap processing
-API_NINJAS_KEY=your_api_key swaig-test examples/joke_skill_demo.py get_joke '{"type": "jokes"}' --verbose
+API_NINJAS_KEY=your_api_key swaig-test examples/joke_skill_demo.rb get_joke '{"type": "jokes"}' --verbose
 ```
 
 **Expected Output:**
@@ -2071,7 +2071,7 @@ Response: Here's a joke: What do you call a bear with no teeth? A gummy bear!
 
 ```bash
 # Test with invalid API key - shows fallback output processing
-swaig-test examples/joke_agent.py get_joke '{"type": "jokes"}' --verbose
+swaig-test examples/joke_agent.rb get_joke '{"type": "jokes"}' --verbose
 ```
 
 **Expected Output (when API key is invalid):**
@@ -2099,8 +2099,8 @@ This demonstrates both:
 
 ### Development Workflow
 
-1. **Start with discovery**: `swaig-test my_agent.py` to see available agents
-2. **List functions**: `swaig-test my_agent.py --list-tools` to see available functions
+1. **Start with discovery**: `swaig-test my_agent.rb` to see available agents
+2. **List functions**: `swaig-test my_agent.rb --list-tools` to see available functions
 3. **Test functions**: Use `--exec` syntax for cleaner testing
 4. **Test SWML**: Use `--dump-swml` to verify agent configuration
 5. **Use verbose mode**: Enable `--verbose` when debugging issues
