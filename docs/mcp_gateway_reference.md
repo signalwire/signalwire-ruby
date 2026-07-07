@@ -56,8 +56,6 @@ Python reference's MCP gateway documentation to configure and deploy the service
 
 ## Examples
 
-- [`examples/mcp_gateway_demo.rb`](../examples/mcp_gateway_demo.rb) -- agent
-  connecting to MCP servers through the `mcp_gateway` skill.
 - [`examples/mcp_agent.rb`](../examples/mcp_agent.rb) -- agent using direct MCP
   integration via `add_mcp_server` / `enable_mcp_server`.
 
