@@ -308,6 +308,27 @@ sched_gate META-CONSISTENT res=dayone desc="package metadata consistency" \
 sched_gate ARTIFACT-DENY res=dayone desc="no porting artifacts in the PUBLISHED package (authoritative listing)" \
     --fn dayone_artifact_deny
 
+# --- Expansion gates (GATE_EXPANSION_PLAN) — enforcing (backlog burned to zero) ---
+# ROUTE-COLLISION is intentionally NOT wired here: with ruby's route_registry.rb it
+# fails on a SPEC-FAITHFUL route-split — the fabric spec declares SINGULAR sibling
+# paths /resources/call_flow/{id}/addresses + /resources/conference_room/{id}/addresses
+# (operationIds list_call_flow_addresses / list_conference_room_addresses) while the
+# class collection base is plural. Ruby's generated code matches the spec exactly, so
+# this is a proven exception that needs a human-approved ROUTE_COLLISION_ALLOW.md entry
+# before the gate can be wired enforcing — not added autonomously. Follow-up.
+
+sched_gate GEN-TYPE-DEGENERACY res=dayone desc="no degenerate generated-typed aliases (no consumers / collapse to a base)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/gen_type_degeneracy.py" --port ruby --repo .
+
+sched_gate PUBLIC-JARGON res=dayone desc="no porting-internal jargon leaks into the public/published surface" \
+    -- python3 "$PORTING_SDK_DIR/scripts/public_jargon.py" --port ruby --repo .
+
+sched_gate GEN-IDIOM res=dayone desc="generated code is not lint-excluded (idiom parity with hand code)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/gen_idiom.py" --port ruby --repo .
+
+sched_gate RELEASE-FRESH res=dayone desc="publish workflow runs the gates before publishing (gated release path)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/release_fresh.py" --port ruby --repo .
+
 sched_run
 rc=$?
 if [ "$rc" -eq 0 ]; then
