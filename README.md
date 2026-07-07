@@ -45,12 +45,13 @@ gem install signalwire-sdk
 
 Each agent is a self-contained microservice that generates [SWML](docs/swml_service_guide.md) (SignalWire Markup Language) and handles [SWAIG](docs/swaig_reference.md) (SignalWire AI Gateway) tool calls. The SignalWire platform runs the entire AI pipeline (STT, LLM, TTS) -- your agent just defines the behavior.
 
+<!-- include: examples/quickstart_agent.rb#agent -->
 ```ruby
 require 'signalwire'
 
 agent = SignalWire::AgentBase.new(name: 'my-agent', route: '/')
 
-agent.add_language('name' => 'English', 'code' => 'en-US', 'voice' => 'elevenlabs.rachel')
+agent.add_language('English', 'en-US', 'elevenlabs.rachel')
 agent.prompt_add_section('Role', 'You are a helpful assistant.')
 
 agent.define_tool(
@@ -114,8 +115,10 @@ See [examples/README.md](examples/README.md) for the full list organized by cate
 
 Real-time call control and messaging over WebSocket. The RELAY client connects to SignalWire via the Blade protocol and gives you threaded, imperative control over live phone calls and SMS/MMS.
 
+<!-- include: examples/quickstart_relay.rb#relay -->
 ```ruby
 require 'signalwire'
+require 'signalwire/relay/client'
 
 client = SignalWire::Relay::Client.new(
   project:  'your-project-id',
@@ -147,8 +150,10 @@ See the **[RELAY documentation](relay/README.md)** for the full guide, API refer
 
 Synchronous REST client for managing SignalWire resources and controlling calls over HTTP. No WebSocket required.
 
+<!-- include: examples/quickstart_rest.rb#rest -->
 ```ruby
 require 'signalwire'
+require 'signalwire/rest/rest_client'
 
 client = SignalWire::REST::RestClient.new(
   project: 'your-project-id',
