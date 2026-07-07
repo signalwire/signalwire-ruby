@@ -140,6 +140,7 @@ agent.post_prompt = "Always be polite and professional."
 
 ##### `set_prompt_llm_params`
 
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
 def set_prompt_llm_params(**params) # => AgentBase
 ```
@@ -168,6 +169,7 @@ agent.set_prompt_llm_params(
 
 ##### `set_post_prompt_llm_params`
 
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
 def set_post_prompt_llm_params(**params) # => AgentBase
 ```
@@ -194,6 +196,7 @@ agent.set_post_prompt_llm_params(
 
 ##### `prompt_add_section`
 
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
 def prompt_add_section(
   title,                      # String (positional)
@@ -237,6 +240,7 @@ agent.prompt_add_section(
 
 ##### `prompt_add_to_section`
 
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
 def prompt_add_to_section(
   title,                      # String (positional)
@@ -267,6 +271,7 @@ agent.prompt_add_to_section("Process", bullets: ["Follow up", "Close ticket"])
 
 ##### `prompt_add_subsection`
 
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
 def prompt_add_subsection(
   parent_title,               # String (positional)
@@ -297,6 +302,7 @@ agent.prompt_add_subsection(
 
 ##### `add_language`
 
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
 def add_language(
   name,                       # String (positional)
@@ -376,6 +382,7 @@ agent.add_hints(["SignalWire", "SWML", "API", "webhook", "SIP"])
 
 ##### `add_pattern_hint`
 
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
 def add_pattern_hint(
   hint,                       # String (positional)
@@ -403,6 +410,7 @@ agent.add_pattern_hint(
 
 ##### `add_pronunciation`
 
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
 def add_pronunciation(
   replace,                    # String (positional)
@@ -526,6 +534,7 @@ agent.update_global_data({
 
 ##### `define_tool`
 
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
 def define_tool(
   name:,                      # String
@@ -622,6 +631,7 @@ end
 
 ##### `register_swaig_function`
 
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
 def register_swaig_function(
   func_def                    # Hash — complete SWAIG function definition
@@ -686,6 +696,7 @@ end
 
 ##### `add_skill`
 
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
 def add_skill(
   skill_name,                 # String
@@ -834,6 +845,7 @@ agent.internal_fillers = {
 
 ##### `add_internal_filler`
 
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
 def add_internal_filler(
   func_name,                  # String
@@ -860,6 +872,7 @@ agent.add_internal_filler("next_step", "en-US", [
 
 ##### `add_function_include`
 
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
 def add_function_include(
   url,                        # String (positional)
@@ -972,6 +985,7 @@ agent.clear_swaig_query_params
 
 ##### `enable_debug_events`
 
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
 def enable_debug_events(level = 1) # => AgentBase
 ```
@@ -1143,6 +1157,7 @@ end
 
 ##### `enable_sip_routing`
 
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
 def enable_sip_routing(
   auto_map: true,             # Boolean
@@ -1329,6 +1344,7 @@ end
 
 ##### `on_function_call`
 
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
 def on_function_call(
   name,                       # String
@@ -1362,6 +1378,7 @@ end
 
 ##### `on_request`
 
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
 def on_request(
   request_data = nil,         # Hash (positional)
@@ -1380,6 +1397,7 @@ Override to handle general requests.
 
 ##### `on_swml_request`
 
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
 def on_swml_request(
   request_data = nil,         # Hash (positional)

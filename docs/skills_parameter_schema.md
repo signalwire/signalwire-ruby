@@ -271,6 +271,7 @@ end
 
 Always mark sensitive parameters as `hidden` and provide an `env_var` option:
 
+<!-- snippet: no-compile ruby keyword-argument/hash-pair shape fragment (bare label, not standalone) -->
 ```ruby
 'api_key' => {
   'type' => 'string',
@@ -285,6 +286,7 @@ Always mark sensitive parameters as `hidden` and provide an `env_var` option:
 
 Use `min` and `max` to enforce valid ranges:
 
+<!-- snippet: no-compile ruby keyword-argument/hash-pair shape fragment (bare label, not standalone) -->
 ```ruby
 'port' => {
   'type' => 'integer',
@@ -300,6 +302,7 @@ Use `min` and `max` to enforce valid ranges:
 
 Use `enum` to restrict to specific values:
 
+<!-- snippet: no-compile ruby keyword-argument/hash-pair shape fragment (bare label, not standalone) -->
 ```ruby
 'log_level' => {
   'type' => 'string',
@@ -314,6 +317,7 @@ Use `enum` to restrict to specific values:
 
 Use boolean parameters for optional features:
 
+<!-- snippet: no-compile ruby keyword-argument/hash-pair shape fragment (bare label, not standalone) -->
 ```ruby
 'enable_analytics' => {
   'type' => 'boolean',

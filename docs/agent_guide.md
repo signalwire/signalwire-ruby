@@ -462,6 +462,7 @@ end
 
 The parameters for a SWAIG function are defined using JSON Schema:
 
+<!-- snippet: no-compile ruby keyword-argument/hash-pair shape fragment (bare label, not standalone) -->
 ```ruby
 parameters: {
   'parameter_name' => {
