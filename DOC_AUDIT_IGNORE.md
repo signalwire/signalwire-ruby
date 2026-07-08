@@ -35,11 +35,13 @@ reject: `Enumerable#reject` — Ruby stdlib (by orchestrator, 2026-07-06)
 sub: `String#sub` — Ruby stdlib (by orchestrator, 2026-07-06)
 transform_keys: `Hash#transform_keys` — Ruby stdlib, Ruby 2.5+ (by orchestrator, 2026-07-06)
 clamp: `Comparable#clamp` / `Integer#clamp` — Ruby stdlib, constrain a number to a range (by orchestrator, 2026-07-06)
+HTTP: `Net::HTTP` stdlib constant named in an examples/skills_audit_harness.rb prose comment ("issues real HTTP through Net::HTTP"), not a method call (by orchestrator, 2026-07-08)
 
 ## Python syntax retained verbatim in contrast/migration example blocks
 
 tool: Python `@AgentBase.tool(...)` decorator syntax shown for contrast; Ruby uses `define_tool(name:, ...) do |args, raw| ... end` blocks (by orchestrator, 2026-07-06)
 warning: Python-style `.warning` kept in a Python contrast block; the Ruby method is `warn` (by orchestrator, 2026-07-06)
+include_router: Python FastAPI `app.include_router(...)` shown in a docs/architecture.md multi-agent-mode contrast example; Ruby mounts via `agent.rack_app` / `AgentServer` (by orchestrator, 2026-07-08)
 
 ## SignalWire internal logger (`Signalwire::Logging::Logger`)
 
