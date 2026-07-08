@@ -25,6 +25,14 @@
 #   bin/state-dump      (or:  ruby bin/state-dump)
 
 require 'json'
+
+# Keep stdout PURE JSON: the behavioral differ does json.loads(proc.stdout), so any stray
+# byte written to stdout during require/agent-init (a gem notice, a banner, a logger that
+# lands on stdout in some environments) corrupts the parse ("Expecting value: line 1 col 1").
+# Save the real stdout, point $stdout at stderr for all setup, and restore only to emit JSON.
+REAL_STDOUT = $stdout.dup
+$stdout.reopen($stderr)
+
 require_relative '../lib/signalwire'
 require_relative '../lib/signalwire/server/agent_server'
 require_relative '../lib/signalwire/skills/skill_registry'
@@ -192,4 +200,5 @@ cb.to_h.each do |cname, cdoc|
 end
 out['state_contexts_navigation'] = nav
 
-$stdout.puts(JSON.generate(out))
+REAL_STDOUT.puts(JSON.generate(out))
+REAL_STDOUT.flush

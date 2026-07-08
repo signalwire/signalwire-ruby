@@ -31,6 +31,13 @@
 #   bin/http-dump      (or:  ruby bin/http-dump)
 
 require 'json'
+
+# Keep stdout PURE JSON: the behavioral differ does json.loads(proc.stdout), so any stray
+# byte written to stdout during require/agent-init (a gem notice, a banner, a logger that
+# lands on stdout in some environments) corrupts the parse ("Expecting value: line 1 col 1").
+# Save the real stdout, point $stdout at stderr for all setup, and restore only to emit JSON.
+REAL_STDOUT = $stdout.dup
+$stdout.reopen($stderr)
 require 'base64'
 require 'openssl'
 require_relative '../lib/signalwire'
@@ -200,4 +207,5 @@ out['http_webhook_validate_twilio_alias'] = webhook_decision(
 out['http_serverless_lambda_swaig'] = serverless_swaig
 out['http_serverless_lambda_noauth_401'] = serverless_noauth
 
-$stdout.puts(JSON.generate(out))
+REAL_STDOUT.puts(JSON.generate(out))
+REAL_STDOUT.flush
