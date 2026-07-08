@@ -58,6 +58,55 @@ module SignalWire
         !v.nil? && !v.empty?
       end
       private_class_method :env_set?
+
+      # Control characters that could be used for log injection. Mirrors the
+      # Python reference's _CONTROL_CHAR_RE (C0/C1 controls minus \t\n\r).
+      CONTROL_CHAR_RE = Regexp.new("[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]")
+
+      # Strip control characters from every string value of a log event hash,
+      # preventing log-injection. Mirrors
+      # signalwire.core.logging_config.strip_control_chars — a structlog
+      # processor in Python; here it is a plain hash transformer.
+      #
+      # @param event_dict [Hash] the log event
+      # @return [Hash] the same hash with string values sanitised
+      def strip_control_chars(event_dict)
+        event_dict.each do |key, value|
+          event_dict[key] = value.gsub(CONTROL_CHAR_RE, '') if value.is_a?(String)
+        end
+        event_dict
+      end
+
+      # Configure the SDK logging system once, globally, based on the
+      # SIGNALWIRE_LOG_MODE / SIGNALWIRE_LOG_LEVEL environment variables.
+      # Mirrors signalwire.core.logging_config.configure_logging: idempotent —
+      # a second call is a no-op unless reset_logging_configuration ran first.
+      def configure_logging
+        return if @logging_configured
+
+        SignalWire::Logging.configure if SignalWire::Logging.respond_to?(:configure)
+        @logging_configured = true
+      end
+
+      # Reset the one-time configuration guard so configure_logging can run
+      # again (used when environment variables change after initial setup).
+      # Mirrors signalwire.core.logging_config.reset_logging_configuration.
+      def reset_logging_configuration
+        @logging_configured = false
+        SignalWire::Logging.reset! if SignalWire::Logging.respond_to?(:reset!)
+        nil
+      end
+
+      # Return a named logger. Mirrors
+      # signalwire.core.logging_config.get_logger — ensures logging is
+      # configured, then returns a logger bound to +name+.
+      #
+      # @param name [String] the logger name
+      # @return [Object] a logger instance
+      def get_logger(name)
+        configure_logging
+        SignalWire::Logging.logger(name)
+      end
     end
   end
 end

@@ -40,9 +40,9 @@ module SignalWire
   #
   # All configuration methods return +self+ for method chaining.
   class AgentBase < SWML::Service
-    # Python parity:
-    # - ``logger`` — agent-specific structured logger (Python: ``self.log``).
-    # - ``skill_manager`` — owning SkillManager (Python's ``self.skill_manager``).
+    # Attributes:
+    # - ``logger`` — agent-specific structured logger.
+    # - ``skill_manager`` — owning SkillManager.
     # - ``agent_id`` — UUID identifier from constructor or auto-generated.
     # - ``default_webhook_url`` — base URL for SWAIG webhook fallbacks.
     # - ``native_functions`` — names of built-in SWAIG functions to advertise.
@@ -156,10 +156,10 @@ module SignalWire
       @record_stereo = record_stereo
     end
 
-    # Python parity: use_pom toggles POM-vs-raw rendering; agent_id is an
-    # optional explicit UUID; default_webhook_url is used when SWAIG functions
-    # carry no explicit URL; native_functions lists native SWAIG callables; the
-    # *_override flags are wired through the endpoint dispatcher.
+    # use_pom toggles POM-vs-raw rendering; agent_id is an optional explicit
+    # UUID; default_webhook_url is used when SWAIG functions carry no explicit
+    # URL; native_functions lists native SWAIG callables; the *_override flags
+    # are wired through the endpoint dispatcher.
     def init_identity(**opts)
       @use_pom = opts[:use_pom]
       @agent_id            = opts[:agent_id] || SecureRandom.uuid
@@ -169,7 +169,8 @@ module SignalWire
       @check_for_input_override    = opts[:check_for_input_override]
     end
 
-    # Webhook signature validation (porting-sdk/webhooks.md). Resolution:
+    # Webhook signature validation (per the SignalWire webhook signing spec).
+    # Resolution:
     # explicit arg → SIGNALWIRE_SIGNING_KEY env. When set, _build_rack_app
     # mounts WebhookMiddleware on the signed routes; when unset, warn so
     # production users notice unsigned traffic is being accepted.
@@ -210,6 +211,7 @@ module SignalWire
     def init_ai_config_state
       @hints               = []
       @languages           = []
+      @multilingual_config = nil
       @pronounce           = []
       @params              = {}
       @global_data         = {}
@@ -261,6 +263,33 @@ module SignalWire
     public
 
     # ==================================================================
+    # Identity / URL
+    # ==================================================================
+
+    # Return the agent's name.
+    #
+    # The name is stored on the parent {SWML::Service} as ``@name`` (also
+    # exposed via the ``name`` reader); this getter exposes it under the
+    # ``get_name`` method name.
+    #
+    # @return [String] the agent name
+    def get_name
+      @name
+    end
+
+    # Build the full URL for this agent.
+    #
+    # {SWML::Service} already defines ``get_full_url``; AgentBase inherits
+    # it. This explicit override (delegating to +super+) exposes the method
+    # as an own-method of AgentBase while preserving identical behaviour.
+    #
+    # @param include_auth [Boolean] embed basic-auth credentials in the URL
+    # @return [String] the full URL
+    def get_full_url(include_auth: false)
+      super
+    end
+
+    # ==================================================================
     # Prompt methods
     # ==================================================================
 
@@ -287,10 +316,6 @@ module SignalWire
     end
 
     # Add a POM section.
-    #
-    # Python parity:
-    # ``prompt_add_section(title, body="", bullets=None,
-    # numbered=False, numbered_bullets=False, subsections=None)``.
     #
     # @param title [String] section title
     # @param body  [String, nil] optional body text
@@ -338,10 +363,7 @@ module SignalWire
 
     # Append content to an existing POM section, creating it if absent.
     #
-    # Python parity:
-    # ``prompt_add_to_section(title, body=None, bullet=None,
-    # bullets=None)``. Supports appending body text, a single bullet,
-    # or a list of bullets.
+    # Supports appending body text, a single bullet, or a list of bullets.
     #
     # @param title [String] section title
     # @param body  [String, nil] body text to append
@@ -394,8 +416,8 @@ module SignalWire
     end
 
     # Return the current prompt: either a string (text mode) or an array (POM).
-    # @!visibility private  (idiomatic alias: #prompt; original kept for
-    #   cross-port audit parity + back-compat)
+    # @!visibility private  (idiomatic alias: #prompt; the original
+    #   ``get_prompt`` name is kept for back-compat)
     def get_prompt
       return @prompt_text if @prompt_text
       return @prompt_pom  if @prompt_pom
@@ -407,10 +429,9 @@ module SignalWire
     # Read-only snapshot of the agent's POM as a typed
     # {SignalWire::POM::PromptObjectModel} instance.
     #
-    # Python parity: ``agent.pom`` instance attribute (agent_base.py
-    # line 209) is a ``PromptObjectModel`` instance. Returns ``nil`` when
-    # raw-text prompt mode is in effect (``set_prompt_text`` was called)
-    # — mirrors Python's ``self.pom = None when use_pom=False``.
+    # Returns ``nil`` when raw-text prompt mode is in effect
+    # (``set_prompt_text`` was called); the POM is only available when
+    # ``use_pom`` is enabled.
     #
     # The returned PromptObjectModel is a fresh build of the agent's
     # current section state, so caller mutations do not leak into agent
@@ -446,13 +467,10 @@ module SignalWire
     end
 
     # Returns the post-prompt text whatever set_post_prompt stored, or
-    # nil when no post-prompt has been set.
-    #
-    # Mirrors Python's PromptManager#get_post_prompt /
-    # PromptMixin#get_post_prompt — used by SWML rendering when a
+    # nil when no post-prompt has been set. Used by SWML rendering when a
     # post-prompt is configured.
-    # @!visibility private  (idiomatic alias: #post_prompt; original kept for
-    #   cross-port audit parity + back-compat)
+    # @!visibility private  (idiomatic alias: #post_prompt; the original
+    #   ``get_post_prompt`` name is kept for back-compat)
     def get_post_prompt
       @post_prompt_text
     end
@@ -460,10 +478,8 @@ module SignalWire
     # Returns the raw prompt text whatever set_prompt_text stored, or
     # nil when no raw prompt has been set. Distinct from #get_prompt
     # which may return the POM array when use_pom is true.
-    #
-    # Mirrors Python's PromptManager#get_raw_prompt.
-    # @!visibility private  (idiomatic alias: #prompt_text; original kept for
-    #   cross-port audit parity + back-compat)
+    # @!visibility private  (idiomatic alias: #prompt_text; the original
+    #   ``get_raw_prompt`` name is kept for back-compat)
     def get_raw_prompt
       @prompt_text
     end
@@ -550,11 +566,8 @@ module SignalWire
 
     # Returns the contexts dictionary as a serialised hash, or nil when
     # no contexts have been defined yet.
-    #
-    # Mirrors Python's PromptManager#get_contexts which returns the
-    # contexts dict or None.
-    # @!visibility private  (idiomatic alias: #contexts; original kept for
-    #   cross-port audit parity + back-compat)
+    # @!visibility private  (idiomatic alias: #contexts; the original
+    #   ``get_contexts`` name is kept for back-compat)
     def get_contexts
       return nil if @context_builder.nil?
 
@@ -628,12 +641,6 @@ module SignalWire
     # @yield [args, raw_data] the tool handler
     # Define a SWAIG tool.
     #
-    # Python parity:
-    # ``define_tool(name, description, parameters, handler,
-    # secure=True, fillers=None, wait_file=None, wait_file_loops=None,
-    # webhook_url=None, required=None, is_typed_handler=False,
-    # **swaig_fields)``.
-    #
     # @param name [String] tool name
     # @param description [String] LLM-facing description
     # @param parameters [Hash] JSON-Schema parameters
@@ -650,8 +657,8 @@ module SignalWire
     #   instead of dispatching to the local handler
     # @param required [Array<String>, nil] required parameter names
     # @param is_typed_handler [Boolean] handler accepts type-coerced
-    #   keyword args (parity flag; Ruby uses dynamic typing so this
-    #   is a no-op at runtime but is preserved for surface parity)
+    #   keyword args (Ruby uses dynamic typing so this is a no-op at
+    #   runtime but is accepted for signature compatibility)
     # @param swaig_fields [Hash, nil] additional fields merged into
     #   the SWAIG function definition
     # @yield [args, raw_data] tool handler body (alternative to
@@ -675,7 +682,7 @@ module SignalWire
     end
 
     # Normalise parameters into JSON-Schema form and inject the caller's
-    # `required:` list (Python parity) onto an object schema.
+    # `required:` list onto an object schema.
     def build_tool_param_schema(parameters, required)
       param_schema = _normalise_parameters(parameters)
       if required.is_a?(Array) && !required.empty? && param_schema.is_a?(Hash) && param_schema['type'] == 'object'
@@ -720,9 +727,8 @@ module SignalWire
 
     # Mint a per-call SWAIG-function token via the agent's SessionManager.
     #
-    # Python parity: state_mixin.StateMixin#_create_tool_token —
-    # delegates to SessionManager#create_token and returns "" on any
-    # raised error (Python rescues all exceptions and returns "").
+    # Delegates to SessionManager#create_token and returns "" on any
+    # raised error.
     def create_tool_token(tool_name, call_id)
       @session_manager.create_token(tool_name, call_id)
     rescue StandardError
@@ -731,10 +737,8 @@ module SignalWire
 
     # Validate a per-call SWAIG-function token. Returns false when the
     # function is not registered, when the SessionManager rejects the
-    # token, or on any underlying exception.
-    #
-    # Python parity: state_mixin.StateMixin#validate_tool_token —
-    # rejects unknown function names up-front and rescues exceptions.
+    # token, or on any underlying exception. Unknown function names are
+    # rejected up-front.
     def validate_tool_token(function_name, token, call_id)
       return false unless has_function(function_name)
 
@@ -806,11 +810,10 @@ module SignalWire
 
     # Add a complex (pattern-matched) hint.
     #
-    # Python parity:
-    # ``add_pattern_hint(hint, pattern, replace, ignore_case=False)``.
-    # Ruby supports both the Python-style positional form and the
-    # legacy keyword form (``add_pattern_hint(pattern, hint:, language:)``)
-    # for backward compat.
+    # Two call shapes are supported: the positional form
+    # ``add_pattern_hint(hint, pattern, replace, ignore_case: false)`` and
+    # the legacy keyword form ``add_pattern_hint(pattern, hint:, language:)``
+    # (kept for backward compat).
     #
     # @overload add_pattern_hint(hint, pattern, replace, ignore_case: false)
     #   @param hint [String] hint to match
@@ -859,10 +862,9 @@ module SignalWire
 
     # Add a language configuration.
     #
-    # Python parity: ``add_language(name, code, voice, speech_fillers=None,
-    # function_fillers=None, engine=None, model=None)``. Ruby supports
-    # both the Python-style positional shape AND the original
-    # ``add_language(config)`` hash form.
+    # Two call shapes are supported: the positional shape
+    # ``add_language(name, code, voice, speech_fillers:, function_fillers:,
+    # engine:, model:)`` and the original ``add_language(config)`` hash form.
     #
     # Voice argument can be either a simple voice id (``"en-US-Neural2-F"``)
     # or a combined ``"engine.voice:model"`` string
@@ -986,12 +988,16 @@ module SignalWire
       self
     end
 
-    # language_code: is part of the Python-parity signature; the current rule
-    # shape doesn't carry it, but the kwarg must stay for surface parity (renaming
-    # to _language_code would change the public kwarg name). rubocop:disable below.
-    def add_pronunciation(phrase, pronunciation, language_code: 'en-US') # rubocop:disable Lint/UnusedMethodArgument
-      rule = { 'replace' => phrase, 'with' => pronunciation }
-      rule['ignore_case'] = false
+    # +language_code+ is accepted for Ruby back-compat but the current rule
+    # shape doesn't carry it; the kwarg must stay because renaming to
+    # _language_code would change the public kwarg name (hence the # ).
+    # The +ignore_case+ key is only emitted when true; +language_code+ is
+    # accepted for Ruby back-compat but is not part of the wire shape.
+    def add_pronunciation(replace, with_text, ignore_case: false, language_code: 'en-US') # rubocop:disable Lint/UnusedMethodArgument
+      return self unless replace && with_text
+
+      rule = { 'replace' => replace, 'with' => with_text }
+      rule['ignore_case'] = true if ignore_case
       @pronounce << rule
       self
     end
@@ -1200,19 +1206,16 @@ module SignalWire
 
     # Define / retrieve the ContextBuilder for this agent.
     #
-    # Python parity: ``define_contexts(contexts)`` accepts either a
-    # ``ContextBuilder`` (calls ``.to_dict()`` to materialise) or a
-    # raw ``dict`` and stores it on the agent. Ruby supports both
-    # forms PLUS the original lazy-getter idiom:
+    # ``define_contexts(contexts)`` accepts either a ``ContextBuilder`` or a
+    # raw contexts Hash and stores it on the agent, and also supports the
+    # lazy-getter idiom:
     #
-    # 1. **Lazy getter** (Ruby idiom) — ``agent.define_contexts``
-    #    returns the existing builder, creating one if needed.
+    # 1. **Lazy getter** — ``agent.define_contexts`` returns the existing
+    #    builder, creating one if needed.
     # 2. **Override with builder** — ``agent.define_contexts(other_cb)``
-    #    replaces the current builder with the supplied one (Python
-    #    parity).
+    #    replaces the current builder with the supplied one.
     # 3. **Override with hash** — ``agent.define_contexts({...})``
-    #    builds a fresh builder using the provided contexts hash
-    #    (Python parity for raw-dict input).
+    #    builds a fresh builder using the provided contexts hash.
     #
     # @param contexts [SignalWire::Contexts::ContextBuilder, Hash, nil]
     #   optional override
@@ -1236,7 +1239,7 @@ module SignalWire
       builder
     end
 
-    # Build a ContextBuilder from a raw contexts Hash (Python-parity dict input).
+    # Build a ContextBuilder from a raw contexts Hash.
     def build_context_builder_from_hash(contexts)
       cb = Contexts::ContextBuilder.new(self)
       contexts.each do |name, body|
@@ -1359,6 +1362,62 @@ module SignalWire
       self
     end
 
+    # ------------------------------------------------------------------
+    # Web / routing surface (Python WebMixin parity — item I). Several of
+    # these delegate to the inherited SWMLService implementation; explicit
+    # overrides make them part of AgentBase's own public surface (Python
+    # composes them via mixins, so the reference records them on AgentBase).
+    # ------------------------------------------------------------------
+
+    # The Rack application for this agent (deployment adapters mount this).
+    # Mirrors Python WebMixin.get_app (which returns the FastAPI app).
+    def get_app
+      rack_app
+    end
+
+    # A Rack-mountable router/app for this agent. Mirrors WebMixin.as_router
+    # (Python returns a FastAPI APIRouter; Ruby returns the Rack app).
+    def as_router
+      rack_app
+    end
+
+    # NOTE: register_routing_callback / on_request / on_swml_request /
+    # validate_basic_auth are inherited from SWMLService. The reference records
+    # them on WebMixin/AuthMixin (which Python's AgentBase composes); the Ruby
+    # surface enumerator projects them onto those mixins from the base
+    # SWML::Service via SURFACE_METHOD_DONORS, so no useless super-only
+    # override is defined here.
+
+    # Install SIGTERM/SIGINT handlers for graceful shutdown (Kubernetes).
+    # Mirrors WebMixin.setup_graceful_shutdown.
+    def setup_graceful_shutdown
+      %w[TERM INT].each do |sig|
+        Signal.trap(sig) do
+          @log&.info("shutdown_signal_received signal=#{sig}")
+          stop
+        end
+      end
+      self
+    rescue ArgumentError
+      # Some platforms/threads can't trap a given signal; ignore quietly.
+      self
+    end
+
+    # Handle a serverless-environment request (CGI / Lambda / Cloud Functions).
+    # Mirrors ServerlessMixin.handle_serverless_request — routes to the normal
+    # run() entry point with the serverless event/context/mode.
+    def handle_serverless_request(event: nil, context: nil, mode: nil)
+      run(event: event, context: context, force_mode: mode)
+    end
+
+    # Configure ASR-driven multilingual mode (Mode B). Emits a top-level
+    # ``multilingual`` object on the AI verb. Mirrors
+    # AIConfigMixin.set_multilingual — mutually exclusive with set_languages.
+    def set_multilingual(config)
+      @multilingual_config = config
+      self
+    end
+
     def set_web_hook_url(url)
       @web_hook_url_override = url
       self
@@ -1392,22 +1451,50 @@ module SignalWire
       @sip_routing_enabled = true
       @sip_auto_map        = auto_map
       @sip_path            = path
+
+      # Python parity (AgentBase.enable_sip_routing): register a routing
+      # callback at +path+ so the served +/sip+ endpoint actually CONSULTS the
+      # SIP mapping. Previously the mapping was stored but never wired into
+      # dispatch (a stored-but-unconsulted mapping). The callback extracts the
+      # SIP username from the request body and returns nil (matched → this agent
+      # handles the call so dispatch renders SWML; unmatched → routing
+      # continues) — exactly Python's sip_routing_callback.
+      register_routing_callback(path) { |body, _headers| _sip_routing_callback(body) }
+
+      auto_map_sip_usernames if auto_map
       self
     end
 
+    # @api private
+    # SIP routing callback. Extracts the SIP username from the body and logs
+    # whether it matched a registered username. Always returns nil: a matched
+    # username is handled by this agent (dispatch renders SWML), an unmatched
+    # one lets routing continue.
+    def _sip_routing_callback(body)
+      username = self.class.extract_sip_username_from_request(body)
+      return nil if username.nil?
+
+      @logger&.info("sip_username_extracted: #{username}")
+      matched = @sip_usernames.map(&:downcase).include?(username.downcase)
+      @logger&.info("sip_username_#{matched ? 'matched' : 'not_matched'}: #{username}")
+      nil
+    end
+
+    # Register a SIP username routed to this agent. The username is
+    # lower-cased and stored with case-insensitive dedup, so
+    # "Bob"/"BOB"/"bob" collapse to a single "bob" entry.
     def register_sip_username(username)
-      @sip_usernames << username
+      normalized = username.to_s.downcase
+      @sip_usernames << normalized unless @sip_usernames.include?(normalized)
       self
     end
 
     # Automatically register common SIP usernames based on this agent's
     # name and route.
     #
-    # Python parity: ``AgentBase.auto_map_sip_usernames`` derives SIP
-    # usernames from the agent name and route (lower-cased, stripped to
-    # ``[a-z0-9_]``) plus a no-vowels variant of the name, registering
-    # each via {#register_sip_username}. Duplicates are skipped so the
-    # registered set matches Python's set-backed dedup.
+    # Derives SIP usernames from the agent name and route (lower-cased,
+    # stripped to ``[a-z0-9_]``) plus a no-vowels variant of the name,
+    # registering each via {#register_sip_username}. Duplicates are skipped.
     #
     # @return [self] for method chaining
     def auto_map_sip_usernames
@@ -1617,17 +1704,15 @@ module SignalWire
     # Lifecycle
     # ==================================================================
 
-    # Python parity: ``on_summary(self, summary, raw_data=None)`` is a
-    # virtual hook called when a post-prompt summary is received.
-    # Ruby supports two equivalent shapes:
+    # A virtual hook called when a post-prompt summary is received.
+    # Two equivalent shapes are supported:
     #
-    # 1. **Registration** (Ruby idiom) — pass a block to install a
-    #    callback. The block receives ``(summary, raw_data)`` when a
-    #    summary is delivered. ``on_summary { |sum, raw| ... }``
-    # 2. **Override** (Python idiom) — subclass and override
-    #    ``on_summary(summary, raw_data = nil)``. Default
-    #    implementation calls the registered block (if any) and
-    #    otherwise no-ops.
+    # 1. **Registration** — pass a block to install a callback. The block
+    #    receives ``(summary, raw_data)`` when a summary is delivered.
+    #    ``on_summary { |sum, raw| ... }``
+    # 2. **Override** — subclass and override
+    #    ``on_summary(summary, raw_data = nil)``. Default implementation
+    #    calls the registered block (if any) and otherwise no-ops.
     #
     # @param summary [Hash, nil] the post-prompt summary
     # @param raw_data [Hash, nil] the complete raw POST data
@@ -1662,45 +1747,155 @@ module SignalWire
     # @param port [Integer, nil] override bind port (server mode)
     def run(event: nil, context: nil, force_mode: nil, host: nil, port: nil)
       mode = force_mode || _detect_run_mode
+      handler = SERVERLESS_DISPATCH[mode]
+      return handler.call(self, event, context) if handler
 
-      case mode
-      when 'lambda'
-        _run_lambda(event, context)
-      when 'cgi'
-        _run_cgi
+      serve(host: host, port: port)
+    end
+
+    # Serverless run-mode dispatch table: mode string → a lambda that invokes
+    # the matching per-platform handler. A mode absent here falls through to
+    # serve() (the long-running HTTP server).
+    SERVERLESS_DISPATCH = {
+      'lambda' => ->(a, event, context) { a._run_lambda(event, context) },
+      'cgi' => ->(a, _event, _context) { a._run_cgi },
+      'google_cloud_function' => ->(a, event, _context) { a._run_gcf(event) },
+      'gcf' => ->(a, event, _context) { a._run_gcf(event) },
+      'azure_function' => ->(a, event, _context) { a._run_azure(event) },
+      'azure' => ->(a, event, _context) { a._run_azure(event) }
+    }.freeze
+
+    # @api private
+    # Detect the serverless execution mode via the canonical
+    # {SignalWire::Runtime.execution_mode} detector (cgi / lambda /
+    # google_cloud_function / azure_function / server), returning the string
+    # form used by +run+.
+    def _detect_run_mode
+      SignalWire::Runtime.execution_mode.to_s
+    end
+
+    # @api private
+    # Dispatch a Lambda invocation through the full RequestTranslation env
+    # builder so the request HEADERS (Authorization, Content-Type, …) and the
+    # base64/body handling reach the Rack app — a hand-rolled env that dropped
+    # headers made every authenticated serverless request 401.
+    def _run_lambda(event, context)
+      require_relative '../serverless/lambda_handler'
+      SignalWire::Serverless::LambdaHandler.for(self).call(event, context)
+    end
+
+    # @api private
+    # Handle a Google Cloud Functions / Cloud Run invocation. GCF hands the
+    # function an HTTP-request-shaped object; we accept either a Hash
+    # (+{ 'method', 'path', 'query', 'body', 'headers' }+ — the framework-free
+    # idiom) or a Rack-request-like object, translate it into a Rack env,
+    # and return a +{ 'status', 'headers', 'body' }+ response.
+    def _run_gcf(request)
+      _run_http_serverless(request)
+    end
+
+    # @api private
+    # Handle an Azure Functions invocation. Azure passes an HTTP request
+    # object/dict (method / url / headers / body); translate to a Rack env and
+    # return a +{ 'status', 'headers', 'body' }+ response.
+    def _run_azure(request)
+      _run_http_serverless(request)
+    end
+
+    # @api private
+    # Shared GCF/Azure request pump: normalise the HTTP-request-shaped input
+    # into a Rack env, invoke the app, and return a +{status,headers,body}+
+    # response hash.
+    def _run_http_serverless(request)
+      require 'stringio'
+      method, path, query, body, headers = _extract_http_request(request)
+      env = rack_env(path: path, method: method, query: query, body: body)
+      _apply_env_headers(env, headers)
+      status, resp_headers, resp_body = rack_app.call(env)
+      { 'status' => Integer(status), 'headers' => resp_headers, 'body' => join_rack_body(resp_body) }
+    end
+
+    # @api private
+    # Normalise a serverless HTTP request (Hash with string/symbol keys, or a
+    # Rack-request-like object) into +[method, path, query, body, headers]+.
+    # For Azure, a full +url+ is split into path + query string.
+    def _extract_http_request(request)
+      req = request || {}
+      method = (_req_field(req, :method, :request_method, :httpMethod) || 'GET').to_s.upcase
+      path, query = _extract_path_and_query(req)
+      [method, path, query, (_req_field(req, :body) || '').to_s, _req_field(req, :headers) || {}]
+    end
+
+    # Resolve [path, query] from a request: the target may be a bare path or a
+    # full URL (Azure); the query may come from a dedicated field or the URL.
+    def _extract_path_and_query(req)
+      path, url_query = _split_url_path((_req_field(req, :path, :url, :rawPath, :request_uri) || '/').to_s)
+      query = (_req_field(req, :query, :query_string, :rawQueryString) || url_query || '').to_s
+      [path, query]
+    end
+
+    # Split a request target into [path, query]. Accepts a bare path
+    # ("/health?x=1") or a full URL ("https://host/health?x=1", as Azure sends)
+    # and returns just the path component + query string.
+    def _split_url_path(raw)
+      if raw.include?('://')
+        require 'uri'
+        parsed = URI.parse(raw)
+        [parsed.path.empty? ? '/' : parsed.path, parsed.query]
       else
-        serve(host: host, port: port)
+        raw.split('?', 2)
+      end
+    rescue URI::InvalidURIError
+      raw.split('?', 2)
+    end
+
+    # Look up the first present key (string or symbol) from a Hash, or call the
+    # first matching reader on a request-like object.
+    def _req_field(req, *names)
+      if req.is_a?(Hash)
+        names.each do |n|
+          return req[n.to_s] if req.key?(n.to_s)
+          return req[n] if req.key?(n)
+        end
+      else
+        names.each { |n| return req.public_send(n) if req.respond_to?(n) }
+      end
+      nil
+    end
+
+    # Rack env keys for headers Rack expects unprefixed (not HTTP_*).
+    UNPREFIXED_HEADER_ENV = {
+      'content-type' => 'CONTENT_TYPE', 'content-length' => 'CONTENT_LENGTH'
+    }.freeze
+
+    # Merge request headers (a Hash) into a Rack env as HTTP_* keys, pulling out
+    # CONTENT_TYPE / CONTENT_LENGTH which Rack expects unprefixed.
+    def _apply_env_headers(env, headers)
+      return unless headers.is_a?(Hash)
+
+      headers.each do |name, value|
+        key = name.to_s.downcase
+        env_key = UNPREFIXED_HEADER_ENV[key] || "HTTP_#{key.tr('-', '_').upcase}"
+        env[env_key] = value.to_s
       end
     end
 
-    # @api private
-    def _detect_run_mode
-      return 'lambda' if ENV['AWS_LAMBDA_FUNCTION_NAME'] && !ENV['AWS_LAMBDA_FUNCTION_NAME'].empty?
-      return 'cgi'    if ENV['GATEWAY_INTERFACE']
+    # Build a minimal Rack env hash for serverless/CGI invocation. Includes the
+    # keys Rack::URLMap (used by the mounted rack_app) requires — notably
+    # SCRIPT_NAME, which it string-concatenates, and SERVER_NAME/PORT +
+    # rack.url_scheme for URL construction.
+    # Static Rack env keys that don't depend on the request (Rack::URLMap needs
+    # SCRIPT_NAME; SERVER_* + rack.url_scheme drive URL construction).
+    STATIC_RACK_ENV = {
+      'SCRIPT_NAME' => '', 'SERVER_NAME' => 'serverless', 'SERVER_PORT' => '443',
+      'SERVER_PROTOCOL' => 'HTTP/1.1', 'rack.url_scheme' => 'https'
+    }.freeze
 
-      'server'
-    end
-
-    # @api private
-    def _run_lambda(event, _context)
-      require 'stringio'
-      event ||= {}
-      path = event['path'] || event['rawPath'] || '/'
-      method = event['httpMethod'] || event.dig('requestContext', 'http', 'method') || 'GET'
-      env = rack_env(path: path, method: method, query: '', body: event['body'] || '')
-      status, headers, response_body = rack_app.call(env)
-      { 'statusCode' => Integer(status), 'headers' => headers, 'body' => join_rack_body(response_body) }
-    end
-
-    # Build a minimal Rack env hash for serverless/CGI invocation.
     def rack_env(path:, method:, query:, body:)
-      {
-        'PATH_INFO' => path,
-        'REQUEST_METHOD' => method,
-        'QUERY_STRING' => query,
-        'rack.input' => StringIO.new(body),
-        'rack.errors' => $stderr
-      }
+      STATIC_RACK_ENV.merge(
+        'PATH_INFO' => path, 'REQUEST_METHOD' => method, 'QUERY_STRING' => query,
+        'rack.input' => StringIO.new(body), 'rack.errors' => $stderr
+      )
     end
 
     def join_rack_body(body)
@@ -1722,8 +1917,8 @@ module SignalWire
 
     # Start the HTTP server (blocking).
     #
-    # Python parity: ``serve(host=None, port=None)``. ``host`` /
-    # ``port`` overrides default to constructor-supplied values.
+    # ``host`` / ``port`` overrides default to the constructor-supplied
+    # values.
     def serve(host: nil, port: nil)
       require 'webrick'
       bind_host = host || @host
@@ -1788,6 +1983,58 @@ module SignalWire
       agent._render_swml_internal
     end
 
+    # Framework-free request-dispatch core for AgentBase — overrides
+    # {SWMLService#handle_request} so the primitive dispatch surface renders SWML
+    # via the agent's {#render_swml} (mirroring the Rack +_handle_main_request+
+    # path) instead of the base +render_document+. Performs proxy detection,
+    # basic-auth, the routing-callback check, and the +on_swml_request+
+    # modification hook over plain primitives, returning a
+    # +[status, headers, body_string]+ triple with the 401-auth and 307-redirect
+    # behavior preserved.
+    #
+    # @param method [String] HTTP method, e.g. "GET" / "POST".
+    # @param url [String] the full request URL.
+    # @param headers [Hash{String=>String}] request headers as a plain Hash.
+    # @param body [Hash, nil] the already-parsed JSON body for POST, or nil.
+    # @param request [Rack::Request, nil] the live Rack request when dispatched
+    #   from the served path, so dynamic config sees the request's query string
+    #   and headers; nil for the framework-free primitive path.
+    # @param skip_auth [Boolean] true when the served-path middleware already
+    #   validated basic auth (avoids a redundant re-check; the 307/render
+    #   decision still flows through here).
+    # @return [Array(Integer, Hash{String=>String}, String)]
+    def handle_request(method, url, headers, body = nil, request: nil, skip_auth: false)
+      body ||= {}
+      callback_path = _callback_path_for_url(url)
+
+      _detect_proxy_from_primitives(url, headers)
+      return _unauthorized_triple unless skip_auth || _check_basic_auth_headers(headers)
+
+      redirect = _routing_redirect(method, body, headers, callback_path)
+      return redirect if redirect
+
+      _agent_render_triple(body, callback_path, request:)
+    end
+
+    # 200 triple rendering agent SWML with any on_swml_request modifications
+    # shallow-merged in. Split out of {#handle_request} for clarity.
+    def _agent_render_triple(body, callback_path, request: nil)
+      modifications = _agent_on_swml_request(body, callback_path, request)
+      swml = render_swml(body, request:)
+      swml = swml.merge(modifications) if modifications.is_a?(Hash)
+      [200, {}, JSON.generate(swml)]
+    end
+
+    # Call +on_swml_request+ (a raising modifier does not 500 the
+    # request), returning its modifications or nil. +request+ is the live Rack
+    # request on the served path, or nil for the framework-free primitive path.
+    def _agent_on_swml_request(body, callback_path, request = nil)
+      on_swml_request(body, callback_path, request:)
+    rescue StandardError => e
+      @log&.error("error_in_request_modifier: #{e.message}")
+      nil
+    end
+
     def apply_dynamic_config(request_data, request)
       agent = _create_ephemeral_copy
       query_params = request ? _parse_query_string(request) : {}
@@ -1828,7 +2075,6 @@ module SignalWire
 
     # Get the configured basic-auth credentials.
     #
-    # Python parity: ``get_basic_auth_credentials(include_source=False)``.
     # When ``include_source`` is true, returns a 3-tuple ``[user,
     # pass, source]`` (``"environment"`` / ``"auto-generated"`` /
     # ``"provided"``). Otherwise returns ``[user, pass]``.
@@ -1914,6 +2160,10 @@ module SignalWire
       config['hints']     = @hints.dup     unless @hints.empty?
       config['languages'] = @languages.dup unless @languages.empty?
       config['pronounce'] = @pronounce.dup unless @pronounce.empty?
+      # ASR-driven multilingual mode (set_multilingual): emit the top-level
+      # `multilingual` object on the AI verb. Mutually exclusive with
+      # `languages` — the server prefers `multilingual` when both are present.
+      config['multilingual'] = @multilingual_config if @multilingual_config && !@multilingual_config.empty?
     end
 
     def add_ai_params(config)
@@ -2149,8 +2399,33 @@ module SignalWire
       extra = handle_additional_route(sub_path, request_data, env)
       return extra if extra
 
-      body = JSON.generate(render_swml(request_data, request: request))
-      [200, { 'content-type' => 'application/json' }, [body]]
+      # SWML fall-through: route through the decomposed handle_request core so the
+      # served path honors the routing-callback 307 redirect (#61) instead of
+      # unconditionally rendering SWML. Basic auth already ran in the Rack
+      # middleware, so skip the redundant re-check; the request is threaded
+      # through for dynamic config's query/header access.
+      _dispatch_via_handle_request(request, env, sub_path, request_data)
+    end
+
+    # Marshal the served Rack request into the (method, url, headers, body)
+    # primitives, call {#handle_request}, and turn its
+    # +[status, headers, body_string]+ triple back into a Rack response array.
+    def _dispatch_via_handle_request(request, env, sub_path, request_data)
+      method  = env['REQUEST_METHOD'] || 'GET'
+      url     = _served_request_url(env, sub_path)
+      headers = _extract_headers(request)
+      status, headers_out, body = handle_request(
+        method, url, headers, request_data, request:, skip_auth: true
+      )
+      resp_headers = { 'content-type' => 'application/json' }.merge(headers_out || {})
+      [status, resp_headers, [body.to_s]]
+    end
+
+    # Build the request URL (path + query string) that handle_request's
+    # callback-path matcher and proxy detection consume.
+    def _served_request_url(env, sub_path)
+      qs = env['QUERY_STRING']
+      qs && !qs.empty? ? "#{sub_path}?#{qs}" : sub_path
     end
 
     # Parse a POST/PUT JSON body. Prefers the raw body stashed by
@@ -2323,13 +2598,16 @@ module SignalWire
       end
 
       def _unauthorized
+        # Python parity (AuthMixin._send_lambda_auth_challenge / the CGI + server
+        # challenges): a JSON {"error":"Unauthorized"} body with a JSON
+        # content-type, not a plain-text "Unauthorized".
         [
           401,
           {
-            'content-type' => 'text/plain',
+            'content-type' => 'application/json',
             'www-authenticate' => 'Basic realm="SignalWire Agent"'
           },
-          ['Unauthorized']
+          [JSON.generate('error' => 'Unauthorized')]
         ]
       end
     end

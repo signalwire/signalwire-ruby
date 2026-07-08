@@ -48,11 +48,7 @@ agent.set_dynamic_config_callback do |query_params, body_params, headers, epheme
   # Customise based on a header
   lang = headers['accept-language']
   if lang && lang.start_with?('es')
-    ephemeral.add_language(
-      'name'  => 'Spanish',
-      'code'  => 'es-US',
-      'voice' => 'elevenlabs.antonio'
-    )
+    ephemeral.add_language('Spanish', 'es-US', 'elevenlabs.antonio')
   end
 end
 

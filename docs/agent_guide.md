@@ -386,14 +386,11 @@ end
 You can test external webhook functions using the CLI tool:
 
 ```bash
-# Test local function
-swaig-test examples/my_agent.rb --exec get_help
-
-# Test external webhook function
-swaig-test examples/my_agent.rb --verbose --exec get_weather --param location "New York"
+# Test external webhook function against a running agent (URL mode)
+swaig-test --url http://user:pass@localhost:3000/ --verbose --exec get_weather --param location="New York"
 
 # List all functions with their types
-swaig-test examples/my_agent.rb --list-tools
+swaig-test --url http://user:pass@localhost:3000/ --list-tools
 ```
 
 The CLI tool will automatically detect external webhook functions and make HTTP requests to the external services, simulating what SignalWire does in production.
@@ -462,6 +459,7 @@ end
 
 The parameters for a SWAIG function are defined using JSON Schema:
 
+<!-- snippet: no-compile ruby keyword-argument/hash-pair shape fragment (bare label, not standalone) -->
 ```ruby
 parameters: {
   'parameter_name' => {
@@ -2683,187 +2681,49 @@ The SDK provides several endpoints for different purposes:
 ## Testing
 
 The SignalWire AI Agent SDK provides a `swaig-test` CLI tool (shipped as the
-gem's executable) that lets you test agents locally and simulate serverless
-environments without deployment.
+gem's executable) that lets you exercise an agent's SWML and SWAIG functions
+locally. It has three modes: **URL mode** (`--url`) against a running agent,
+**serverless simulation** (`AGENT_FILE --simulate-serverless lambda`) through
+the AWS Lambda handler adapter, and **in-process file mode**
+(`--file PATH --list-tools`). The actions are `--dump-swml`, `--list-tools`, and
+`--exec NAME` (with repeatable `--param KEY=VALUE`).
 
-> **Ruby note:** the Ruby `swaig-test` supports `--list-tools`, `--exec` with
-> `--param key value`, `--dump-swml`, `--simulate-serverless`, `--url`,
-> `--raw`, and `--verbose`. The platform-specific flags shown in some examples
-> below (`--aws-function-name`, `--aws-region`, `--cgi-host`, `--gcp-project`,
-> `--azure-*`, `--env-file`, `--full-request`, `--format-json`, `--list-agents`,
-> `--agent-class`) come from the Python reference CLI and may not be available
-> in the Ruby port — run `swaig-test --help` to see the supported flags.
+> **Ruby note:** the Ruby port implements only the flags listed above (plus
+> `--env` / `--env-file` for the Lambda simulation, `--raw`, and `--verbose`).
+> The larger Python `swaig-test` surface — multi-agent selection
+> (`--list-agents` / `--agent-class` / `--route`), CGI / Cloud Functions / Azure
+> simulation, per-function argument flags, and mock-request/data-override flags —
+> is **not** implemented here. Run `swaig-test --help` for the authoritative flag
+> set.
 
-### Local Agent Testing
-
-Test your agents locally before deployment:
-
-```bash
-# Discover agents in a file
-swaig-test examples/my_agent.rb
-
-# List available functions
-swaig-test examples/my_agent.rb --list-tools
-
-# Test SWAIG functions
-swaig-test examples/my_agent.rb --exec get_weather --param location "New York"
-
-# Generate SWML documents
-swaig-test examples/my_agent.rb --dump-swml
-```
-
-### Serverless Environment Simulation
-
-Test your agents in simulated serverless environments to ensure they work correctly when deployed:
-
-#### AWS Lambda Testing
+### Local testing (Lambda simulation)
 
 ```bash
-# Basic Lambda environment simulation
-swaig-test examples/my_agent.rb --simulate-serverless lambda --dump-swml
+# List an agent's SWAIG functions
+swaig-test examples/lambda_agent.rb --simulate-serverless lambda --list-tools
 
-# Test with custom Lambda configuration
-swaig-test examples/my_agent.rb --simulate-serverless lambda \
-  --aws-function-name my-production-function \
-  --aws-region us-west-2 \
-  --exec my_function --param value
+# Render the SWML document (add --raw for compact JSON)
+swaig-test examples/lambda_agent.rb --simulate-serverless lambda --dump-swml
 
-# Test function execution in Lambda context
-swaig-test examples/my_agent.rb --simulate-serverless lambda \
-  --exec get_weather --param location "Miami" \
-  --full-request
+# Execute a function with arguments (repeatable --param KEY=VALUE)
+swaig-test examples/lambda_agent.rb --simulate-serverless lambda \
+  --exec greet_user --param name=Alice
 ```
 
-#### CGI Environment Testing
+Only `lambda` is supported; other platforms are rejected with a "not
+implemented" error. Use `--env KEY=VALUE` / `--env-file PATH` to override the
+simulated environment.
+
+### Testing a running agent (URL mode)
 
 ```bash
-# Test CGI environment
-swaig-test examples/my_agent.rb --simulate-serverless cgi \
-  --cgi-host my-server.com \
-  --cgi-https \
-  --dump-swml
-
-# Test function in CGI context
-swaig-test examples/my_agent.rb --simulate-serverless cgi \
-  --cgi-host example.com \
-  --exec my_function --param value
+swaig-test --url http://user:pass@localhost:3000/ --list-tools
+swaig-test --url http://user:pass@localhost:3000/ --exec get_weather --param city=Miami
+swaig-test --url http://user:pass@localhost:3000/ --dump-swml --raw | jq '.'
 ```
 
-#### Google Cloud Functions Testing
-
-```bash
-# Test Cloud Functions environment
-swaig-test examples/my_agent.rb --simulate-serverless cloud_function \
-  --gcp-project my-project \
-  --gcp-function-url https://my-function.cloudfunctions.net \
-  --dump-swml
-```
-
-#### Azure Functions Testing
-
-```bash
-# Test Azure Functions environment
-swaig-test examples/my_agent.rb --simulate-serverless azure_function \
-  --azure-env production \
-  --azure-function-url https://my-function.azurewebsites.net \
-  --exec my_function
-```
-
-### Environment Variable Management
-
-Use environment files for consistent testing across different platforms:
-
-```bash
-# Create environment file for production testing
-cat > production.env << EOF
-AWS_LAMBDA_FUNCTION_NAME=prod-my-agent
-AWS_REGION=us-east-1
-API_KEY=prod_api_key_123
-DEBUG=false
-TIMEOUT=60
-EOF
-
-# Test with environment file
-swaig-test examples/my_agent.rb --simulate-serverless lambda \
-  --env-file production.env \
-  --exec critical_function --param input "test"
-
-# Override specific variables
-swaig-test examples/my_agent.rb --simulate-serverless lambda \
-  --env-file production.env \
-  --env DEBUG=true \
-  --dump-swml
-```
-
-### Cross-Platform Testing
-
-Test the same agent across multiple platforms to ensure compatibility:
-
-```bash
-# Test across all platforms
-for platform in lambda cgi cloud_function azure_function; do
-  echo "Testing $platform..."
-  swaig-test examples/my_agent.rb --simulate-serverless $platform \
-    --exec my_function --param value
-done
-
-# Compare SWML generation across platforms
-swaig-test examples/my_agent.rb --simulate-serverless lambda --dump-swml > lambda.swml
-swaig-test examples/my_agent.rb --simulate-serverless cgi --cgi-host example.com --dump-swml > cgi.swml
-diff lambda.swml cgi.swml
-```
-
-### Webhook URL Verification
-
-The serverless simulation automatically generates platform-appropriate webhook URLs:
-
-| Platform | Example Webhook URL |
-|----------|-------------------|
-| Lambda (Function URL) | `https://abc123.lambda-url.us-east-1.on.aws/swaig/` |
-| Lambda (API Gateway) | `https://api123.execute-api.us-east-1.amazonaws.com/prod/swaig/` |
-| CGI | `https://example.com/cgi-bin/agent.cgi/swaig/` |
-| Cloud Functions | `https://my-function-abc123.cloudfunctions.net/swaig/` |
-| Azure Functions | `https://my-function.azurewebsites.net/swaig/` |
-
-Verify webhook URLs are generated correctly:
-
-```bash
-# Check Lambda webhook URL
-swaig-test examples/my_agent.rb --simulate-serverless lambda \
-  --dump-swml --format-json | jq '.sections.main[1].ai.SWAIG.defaults.web_hook_url'
-
-# Check CGI webhook URL
-swaig-test examples/my_agent.rb --simulate-serverless cgi \
-  --cgi-host my-production-server.com \
-  --dump-swml --format-json | jq '.sections.main[1].ai.SWAIG.defaults.web_hook_url'
-```
-
-### Testing Best Practices
-
-1. **Test locally first**: Always test your agent in local mode before serverless simulation
-2. **Test target platforms**: Test on all platforms where you plan to deploy
-3. **Use environment files**: Create reusable environment configurations for different stages
-4. **Verify webhook URLs**: Ensure URLs are generated correctly for your target platform
-5. **Test function execution**: Verify that functions work correctly in serverless context
-6. **Use verbose mode**: Enable `--verbose` for debugging environment setup and execution
-
-### Multi-Agent Testing
-
-For files with multiple agents, specify which agent to test:
-
-```bash
-# Discover available agents
-swaig-test multi_agent_file.rb --list-agents
-
-# Test specific agent
-swaig-test multi_agent_file.rb --agent-class MyAgent --simulate-serverless lambda --dump-swml
-
-# Test different agents across platforms
-swaig-test multi_agent_file.rb --agent-class AgentA --simulate-serverless lambda --exec function1
-swaig-test multi_agent_file.rb --agent-class AgentB --simulate-serverless cgi --cgi-host example.com --exec function2
-```
-
-For more detailed testing documentation, see the [CLI Guide](cli_guide.md).
+For the full mode/flag reference and worked examples, see the
+[CLI Guide](cli_guide.md).
 
 ## Examples
 

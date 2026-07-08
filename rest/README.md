@@ -87,14 +87,6 @@ token = client.video.room_tokens.create(room_name: 'standup', user_name: 'alice'
 client.video.rooms.delete(room['id'])
 ```
 
-### Compatibility API (LAML)
-
-```ruby
-msg = client.compat.messages.create(From: '+15559876543', To: '+15551234567', Body: 'Hello!')
-call = client.compat.calls.create(From: '+15559876543', To: '+15551234567', Url: 'https://example.com/voice')
-client.compat.queues.create(FriendlyName: 'support')
-```
-
 ### MFA
 
 ```ruby
@@ -108,7 +100,6 @@ client.mfa.verify(result['id'], token: '123456')
 - [Client Reference](docs/client-reference.md) -- RestClient constructor, namespaces, error handling
 - [Fabric Resources](docs/fabric.md) -- managing AI agents, SWML scripts, subscribers, call flows, and more
 - [Calling Commands](docs/calling.md) -- REST-based call control (dial, play, record, collect, AI, etc.)
-- [Compatibility API](docs/compat.md) -- Twilio-compatible LAML endpoints
 - [All Namespaces](docs/namespaces.md) -- phone numbers, video, datasphere, logs, registry, and more
 
 ## Examples

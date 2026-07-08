@@ -39,7 +39,6 @@ class SkillRegistryTest < Minitest::Test
     info_gatherer
     joke
     math
-    mcp_gateway
     native_vector_search
     play_background_file
     spider
@@ -49,14 +48,15 @@ class SkillRegistryTest < Minitest::Test
     wikipedia_search
   ].freeze
 
-  def test_registry_has_all_18_skills
+  def test_registry_has_all_builtin_skills
     registered = SignalWire::Skills::SkillRegistry.list_skills.sort
 
     EXPECTED_SKILLS.each do |skill_name|
       assert_includes registered, skill_name, "Missing skill: #{skill_name}"
     end
-    assert_equal 18, EXPECTED_SKILLS.size
-    assert_operator registered.size, :>=, 18, "Expected at least 18 skills, got #{registered.size}"
+    # 17 built-ins: mcp_gateway is NOT ported (approved Python-only per §I.1).
+    assert_equal 17, EXPECTED_SKILLS.size
+    assert_operator registered.size, :>=, 17, "Expected at least 17 skills, got #{registered.size}"
   end
 
   def test_each_skill_can_be_instantiated

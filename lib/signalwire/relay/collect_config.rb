@@ -10,8 +10,7 @@ module SignalWire
     # pass through verbatim onto the +calling.collect+ /
     # +calling.play_and_collect+ wire frame.
     #
-    # The shape is fully grounded in
-    # +porting-sdk/relay-protocol/calling.collect.params.json+: a +digits+
+    # The shape matches the +calling.collect+ RELAY parameters: a +digits+
     # sub-object (+max+, +min+, +digit_timeout+, +terminators+), a +speech+
     # sub-object (+end_silence_timeout+, +hints+, +language+, +model+,
     # +speech_timeout+), and top-level toggles (+initial_timeout+,
@@ -122,7 +121,7 @@ module SignalWire
       end
       alias eql? ==
 
-      # Hash key parity with {#==}.
+      # Hash key consistent with {#==}.
       def hash
         [self.class, to_h].hash
       end

@@ -115,8 +115,10 @@ module SignalWire
         @call._execute('play.stop', { 'control_id' => @control_id })
       end
 
-      def pause
-        @call._execute('play.pause', { 'control_id' => @control_id })
+      def pause(behavior: nil)
+        params = { 'control_id' => @control_id }
+        params['behavior'] = behavior if behavior
+        @call._execute('play.pause', params)
       end
 
       def resume
@@ -193,6 +195,16 @@ module SignalWire
 
       def stop
         @call._execute('play_and_collect.stop', { 'control_id' => @control_id })
+      end
+
+      def pause(behavior: nil)
+        params = { 'control_id' => @control_id }
+        params['behavior'] = behavior if behavior
+        @call._execute('play_and_collect.pause', params)
+      end
+
+      def resume
+        @call._execute('play_and_collect.resume', { 'control_id' => @control_id })
       end
 
       def volume(vol)

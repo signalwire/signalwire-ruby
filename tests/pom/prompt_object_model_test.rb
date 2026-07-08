@@ -13,9 +13,9 @@ require_relative '../../lib/signalwire/pom/prompt_object_model'
 # Python's ``signalwire.pom.pom`` emits. The Ruby port must reproduce the
 # same byte-for-byte output so cross-language POM documents interoperate.
 #
-# The Python source-of-truth lives at:
-#   /home/devuser/src/signalwire-python/tests/unit/pom/test_pom_render_parity.py
-#   /home/devuser/src/signalwire-python/tests/unit/pom/test_pom_object_model.py
+# The Python source-of-truth lives at (sibling checkout):
+#   ../signalwire-python/tests/unit/pom/test_pom_render_parity.py
+#   ../signalwire-python/tests/unit/pom/test_pom_object_model.py
 #
 # When you change rendering behaviour in either port, update the parity
 # fixtures in BOTH languages.

@@ -73,19 +73,26 @@ class CallingMockTest < Minitest::Test
 
   def test_dial_forwards_codecs_array
     body = @client.calling.dial(
-      url: 'https://example.com/swml', to: '+15551234567', codecs: %w[OPUS G729 VP8 PCMA]
+      from: '+15550000000', to: '+15551234567', url: 'https://example.com/swml',
+      codecs: %w[OPUS G729 VP8 PCMA]
     )
 
     assert_call_command(body, command: 'dial',
-                              params: { 'codecs' => %w[OPUS G729 VP8 PCMA], 'to' => '+15551234567' })
+                              params: { 'from' => '+15550000000', 'to' => '+15551234567',
+                                        'url' => 'https://example.com/swml',
+                                        'codecs' => %w[OPUS G729 VP8 PCMA] })
   end
 
   def test_dial_forwards_codecs_string
     body = @client.calling.dial(
-      url: 'https://example.com/swml', to: '+15551234567', codecs: 'OPUS,G729,VP8,PCMA'
+      from: '+15550000000', to: '+15551234567', url: 'https://example.com/swml',
+      codecs: 'OPUS,G729,VP8,PCMA'
     )
 
-    assert_call_command(body, command: 'dial', params: { 'codecs' => 'OPUS,G729,VP8,PCMA' })
+    assert_call_command(body, command: 'dial',
+                              params: { 'from' => '+15550000000', 'to' => '+15551234567',
+                                        'url' => 'https://example.com/swml',
+                                        'codecs' => 'OPUS,G729,VP8,PCMA' })
   end
 
   def test_update
@@ -98,12 +105,10 @@ class CallingMockTest < Minitest::Test
   end
 
   def test_transfer
-    body = @client.calling.transfer(
-      'call-123', destination: '+15551234567', from_number: '+15559876543'
-    )
+    body = @client.calling.transfer('call-123', dest: '+15551234567')
 
     assert_call_command(body, command: 'calling.transfer', id: 'call-123',
-                              params: { 'destination' => '+15551234567', 'from_number' => '+15559876543' })
+                              params: { 'dest' => '+15551234567' })
   end
 
   def test_disconnect
@@ -296,9 +301,10 @@ class CallingMockMediaTest < Minitest::Test
   end
 
   def test_ai_stop
-    body = @client.calling.ai_stop('call-1')
+    body = @client.calling.ai_stop('call-1', control_id: 'ai-1')
 
-    assert_call_command(body, command: 'calling.ai.stop', id: 'call-1')
+    assert_call_command(body, command: 'calling.ai.stop', id: 'call-1',
+                              params: { 'control_id' => 'ai-1' })
   end
 
   # -------------------------------------------------------------------
@@ -306,19 +312,19 @@ class CallingMockMediaTest < Minitest::Test
   # -------------------------------------------------------------------
 
   def test_live_transcribe
-    body = @client.calling.live_transcribe('call-1', language: 'en-US')
+    body = @client.calling.live_transcribe('call-1', action: 'start')
 
     assert_call_command(body, command: 'calling.live_transcribe', id: 'call-1',
-                              params: { 'language' => 'en-US' })
+                              params: { 'action' => 'start' })
   end
 
   def test_live_translate
     body = @client.calling.live_translate(
-      'call-1', source_language: 'en', target_language: 'es'
+      'call-1', action: 'start', status_url: 'https://example.com/status'
     )
 
     assert_call_command(body, command: 'calling.live_translate', id: 'call-1',
-                              params: { 'source_language' => 'en', 'target_language' => 'es' })
+                              params: { 'action' => 'start', 'status_url' => 'https://example.com/status' })
   end
 
   # -------------------------------------------------------------------
@@ -326,15 +332,17 @@ class CallingMockMediaTest < Minitest::Test
   # -------------------------------------------------------------------
 
   def test_send_fax_stop
-    body = @client.calling.send_fax_stop('call-1')
+    body = @client.calling.send_fax_stop('call-1', control_id: 'fax-1')
 
-    assert_call_command(body, command: 'calling.send_fax.stop', id: 'call-1')
+    assert_call_command(body, command: 'calling.send_fax.stop', id: 'call-1',
+                              params: { 'control_id' => 'fax-1' })
   end
 
   def test_receive_fax_stop
-    body = @client.calling.receive_fax_stop('call-1')
+    body = @client.calling.receive_fax_stop('call-1', control_id: 'fax-1')
 
-    assert_call_command(body, command: 'calling.receive_fax.stop', id: 'call-1')
+    assert_call_command(body, command: 'calling.receive_fax.stop', id: 'call-1',
+                              params: { 'control_id' => 'fax-1' })
   end
 
   # -------------------------------------------------------------------
@@ -342,18 +350,16 @@ class CallingMockMediaTest < Minitest::Test
   # -------------------------------------------------------------------
 
   def test_refer
-    body = @client.calling.refer('call-1', to: 'sip:other@example.com')
+    body = @client.calling.refer('call-1', device: 'sip:other@example.com')
 
     assert_call_command(body, command: 'calling.refer', id: 'call-1',
-                              params: { 'to' => 'sip:other@example.com' })
+                              params: { 'device' => 'sip:other@example.com' })
   end
 
   def test_user_event
-    body = @client.calling.user_event(
-      'call-1', event_name: 'my-event', payload: { 'foo' => 'bar' }
-    )
+    body = @client.calling.user_event('call-1', event: { 'foo' => 'bar' })
 
     assert_call_command(body, command: 'calling.user_event', id: 'call-1',
-                              params: { 'event_name' => 'my-event', 'payload' => { 'foo' => 'bar' } })
+                              params: { 'event' => { 'foo' => 'bar' } })
   end
 end

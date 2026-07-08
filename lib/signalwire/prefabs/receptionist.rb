@@ -61,8 +61,7 @@ module SignalWire
         result
       end
 
-      # Lifecycle hook: on_summary — Python parity
-      # (signalwire.prefabs.receptionist.ReceptionistAgent#on_summary).
+      # Lifecycle hook: on_summary.
       #
       # No-op extension point: the base receptionist does not process the
       # transfer summary. Subclasses override this to handle the summary

@@ -14,13 +14,13 @@ SignalWire AI Agents SDK provides methods to customize LLM parameters for both t
 
 Sets LLM parameters for the main agent prompt. Accepts any parameters that will be passed to the server.
 
-```python
+```ruby
 agent.set_prompt_llm_params(
-    temperature=0.7,
-    top_p=0.9,
-    barge_confidence=0.6,
-    presence_penalty=0.0,
-    frequency_penalty=0.0
+  temperature: 0.7,
+  top_p: 0.9,
+  barge_confidence: 0.6,
+  presence_penalty: 0.0,
+  frequency_penalty: 0.0
 )
 ```
 
@@ -28,12 +28,12 @@ agent.set_prompt_llm_params(
 
 Sets LLM parameters for the post-prompt (conversation summary). Accepts any parameters that will be passed to the server.
 
-```python
+```ruby
 agent.set_post_prompt_llm_params(
-    temperature=0.3,
-    top_p=0.95,
-    presence_penalty=0.0,
-    frequency_penalty=0.0
+  temperature: 0.3,
+  top_p: 0.95,
+  presence_penalty: 0.0,
+  frequency_penalty: 0.0
 )
 ```
 
@@ -78,81 +78,97 @@ Repetition control. Penalizes tokens based on their frequency in the conversatio
 ## Use Case Examples
 
 ### Customer Service Agent
-```python
-class CustomerServiceAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="customer-service", route="/support")
-        
-        self.prompt_add_section("Role", "You are a professional customer service representative.")
-        
-        # Consistent, helpful responses
-        self.set_prompt_llm_params(
-            temperature=0.3,        # Low randomness for consistency
-            top_p=0.9,             # Focused token selection
-            barge_confidence=0.6,  # Moderate interruption threshold (default 0.0 is too easy)
-            presence_penalty=0.1,  # Slight penalty to avoid repetition
-            frequency_penalty=0.1  # Encourage varied language
-        )
+```ruby
+require 'signalwire'
+
+class CustomerServiceAgent < SignalWire::AgentBase
+  def initialize
+    super(name: 'customer-service', route: '/support')
+
+    prompt_add_section('Role', 'You are a professional customer service representative.')
+
+    # Consistent, helpful responses
+    set_prompt_llm_params(
+      temperature: 0.3,        # Low randomness for consistency
+      top_p: 0.9,              # Focused token selection
+      barge_confidence: 0.6,   # Moderate interruption threshold (default 0.0 is too easy)
+      presence_penalty: 0.1,   # Slight penalty to avoid repetition
+      frequency_penalty: 0.1   # Encourage varied language
+    )
+  end
+end
 ```
 
 ### Creative Writing Assistant
-```python
-class CreativeWritingAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="creative-writer", route="/writer")
-        
-        self.prompt_add_section("Role", "You are a creative writing assistant.")
-        
-        # Creative, diverse responses
-        self.set_prompt_llm_params(
-            temperature=0.8,        # High randomness for creativity
-            top_p=0.95,            # Wide token selection
-            barge_confidence=0.3,  # Easy to interrupt for collaboration (but not default 0.0)
-            presence_penalty=-0.1, # Allow topic revisiting
-            frequency_penalty=0.3  # Encourage vocabulary diversity
-        )
+```ruby
+require 'signalwire'
+
+class CreativeWritingAgent < SignalWire::AgentBase
+  def initialize
+    super(name: 'creative-writer', route: '/writer')
+
+    prompt_add_section('Role', 'You are a creative writing assistant.')
+
+    # Creative, diverse responses
+    set_prompt_llm_params(
+      temperature: 0.8,         # High randomness for creativity
+      top_p: 0.95,              # Wide token selection
+      barge_confidence: 0.3,    # Easy to interrupt for collaboration (but not default 0.0)
+      presence_penalty: -0.1,   # Allow topic revisiting
+      frequency_penalty: 0.3    # Encourage vocabulary diversity
+    )
+  end
+end
 ```
 
 ### Technical Documentation Bot
-```python
-class TechnicalDocsAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="tech-docs", route="/docs")
-        
-        self.prompt_add_section("Role", "You are a technical documentation assistant.")
-        
-        # Precise, accurate responses
-        self.set_prompt_llm_params(
-            temperature=0.2,        # Very low randomness
-            top_p=0.8,             # More focused token selection
-            barge_confidence=0.8,  # Hard to interrupt - let it finish
-            presence_penalty=0.0,  # Neutral on repetition
-            frequency_penalty=0.2  # Some vocabulary variety
-        )
-        
-        # Even more focused for summaries
-        self.set_post_prompt_llm_params(
-            temperature=0.1       # Extremely consistent
-        )
+```ruby
+require 'signalwire'
+
+class TechnicalDocsAgent < SignalWire::AgentBase
+  def initialize
+    super(name: 'tech-docs', route: '/docs')
+
+    prompt_add_section('Role', 'You are a technical documentation assistant.')
+
+    # Precise, accurate responses
+    set_prompt_llm_params(
+      temperature: 0.2,         # Very low randomness
+      top_p: 0.8,               # More focused token selection
+      barge_confidence: 0.8,    # Hard to interrupt - let it finish
+      presence_penalty: 0.0,    # Neutral on repetition
+      frequency_penalty: 0.2    # Some vocabulary variety
+    )
+
+    # Even more focused for summaries
+    set_post_prompt_llm_params(
+      temperature: 0.1          # Extremely consistent
+    )
+  end
+end
 ```
 
 ### Legal Advisor Bot
-```python
-class LegalAdvisorAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="legal-advisor", route="/legal")
-        
-        self.prompt_add_section("Role", "You are a legal information assistant.")
-        self.prompt_add_section("Disclaimer", "Always remind users to consult a real attorney.")
-        
-        # Cautious, precise responses
-        self.set_prompt_llm_params(
-            temperature=0.2,        # Very consistent
-            top_p=0.85,            # Focused selection
-            barge_confidence=0.9,  # Very hard to interrupt - legal accuracy important
-            presence_penalty=0.0,  # Allow legal term repetition
-            frequency_penalty=0.0  # Legal language often repeats
-        )
+```ruby
+require 'signalwire'
+
+class LegalAdvisorAgent < SignalWire::AgentBase
+  def initialize
+    super(name: 'legal-advisor', route: '/legal')
+
+    prompt_add_section('Role', 'You are a legal information assistant.')
+    prompt_add_section('Disclaimer', 'Always remind users to consult a real attorney.')
+
+    # Cautious, precise responses
+    set_prompt_llm_params(
+      temperature: 0.2,         # Very consistent
+      top_p: 0.85,              # Focused selection
+      barge_confidence: 0.9,    # Very hard to interrupt - legal accuracy important
+      presence_penalty: 0.0,    # Allow legal term repetition
+      frequency_penalty: 0.0    # Legal language often repeats
+    )
+  end
+end
 ```
 
 ## Best Practices
@@ -222,18 +238,18 @@ Presence and frequency penalties can be used together:
 - Server-side optimization based on model capabilities
 
 **Partial Configuration:** You can set only the parameters you want to customize. For example:
-```python
+```ruby
 # Only set temperature, let server handle other parameters
-agent.set_prompt_llm_params(temperature=0.7)
+agent.set_prompt_llm_params(temperature: 0.7)
 
 # Or set multiple specific parameters
 agent.set_prompt_llm_params(
-    temperature=0.5,
-    barge_confidence=0.6
+  temperature: 0.5,
+  barge_confidence: 0.6
 )
 ```
 
 ## Examples
 
-- `examples/llm_params_demo.py` - Three agent personas (customer service, creative, technical) demonstrating different LLM parameter configurations
-- `examples/simple_agent.py` - Basic LLM parameter tuning with `set_prompt_llm_params()`
+- `examples/llm_params_demo.rb` - Three agent personas (customer service, creative, technical) demonstrating different LLM parameter configurations
+- `examples/simple_agent.rb` - Basic LLM parameter tuning with `set_prompt_llm_params()`

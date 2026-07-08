@@ -15,7 +15,7 @@ agent = SignalWire::AgentBase.new(
 
 # --- Static configuration (set once at startup) ---
 
-agent.add_language('name' => 'English', 'code' => 'en-US', 'voice' => 'elevenlabs.rachel')
+agent.add_language('English', 'en-US', 'elevenlabs.rachel')
 
 agent.set_params(
   'end_of_speech_timeout'    => 500,

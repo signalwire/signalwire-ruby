@@ -18,15 +18,14 @@ module SignalWire
     #   manager.unload('datetime')
     #
     class SkillManager
-      # Python parity:
+      # Attributes:
       # - ``agent`` — owning AgentBase instance (or nil)
       # - ``logger`` — namespaced logger
       attr_reader :agent, :logger
 
-      # Python parity: ``SkillManager.__init__(self, agent)`` —
       # SkillManager keeps a back-pointer to its agent so loaded
       # skills can attach prompt sections / SWAIG tools directly.
-      # Ruby allows nil for standalone use (tests, registry tools).
+      # Allows nil for standalone use (tests, registry tools).
       def initialize(agent = nil)
         @agent  = agent
         @skills = {} # instance_key => SkillBase instance

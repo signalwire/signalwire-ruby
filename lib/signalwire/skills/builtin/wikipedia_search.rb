@@ -36,6 +36,9 @@ module SignalWire
           ]
         end
 
+        # Returns [] — this skill ships no example hints.
+        def get_hints = []
+
         def get_prompt_sections
           body = 'You can search Wikipedia for factual information using search_wiki. ' \
                  "This will return up to #{@num_results || 1} Wikipedia article summaries."
@@ -54,13 +57,12 @@ module SignalWire
           }
         end
 
-        # Python parity: ``WikipediaSearchSkill.search_wiki(query)`` — the
-        # extracted helper that performs the two-step Wikipedia API lookup
+        # The helper that performs the two-step Wikipedia API lookup
         # (search, then per-title extract) and returns the formatted article
         # text (or the no-results message). Public so callers/tests can invoke
-        # the lookup directly, matching Python where the tool handler delegates
-        # to this method. ``@num_results``/``@no_results_msg`` are populated by
-        # #setup; fall back to defaults if called before setup.
+        # the lookup directly; the tool handler delegates to this method.
+        # ``@num_results``/``@no_results_msg`` are populated by #setup; fall
+        # back to defaults if called before setup.
         def search_wiki(query)
           @num_results    ||= 1
           @no_results_msg ||= DEFAULT_NO_RESULTS_MSG

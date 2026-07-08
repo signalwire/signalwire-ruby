@@ -11,6 +11,16 @@ module SignalWire
         def name = 'weather_api'
         def description = 'Get current weather information from WeatherAPI.com'
 
+        # Extracts the configuration (tool_name / api_key / temperature_unit)
+        # off ``params`` at construction time so the ivars exist immediately.
+        # {#setup} re-reads them (and returns the validation bool).
+        def initialize(agent = nil, params = nil)
+          super
+          @api_key   = get_param('api_key', env_var: 'WEATHER_API_KEY')
+          @tool_name = get_param('tool_name', default: 'get_weather')
+          @temp_unit = get_param('temperature_unit', default: 'fahrenheit')
+        end
+
         def setup
           @api_key   = get_param('api_key', env_var: 'WEATHER_API_KEY')
           @tool_name = get_param('tool_name', default: 'get_weather')
@@ -20,15 +30,21 @@ module SignalWire
           true
         end
 
-        def register_tools
-          tool = {
-            'function' => @tool_name,
-            'description' => 'Get current weather information for any location',
-            'parameters' => tool_parameters,
-            'data_map' => tool_data_map
-          }
+        # Returns the raw SWAIG tool DEFINITION hashes (the DataMap tool the
+        # skill provides). {#register_tools} builds on top of this.
+        def get_tools
+          [
+            {
+              'function' => @tool_name,
+              'description' => 'Get current weather information for any location',
+              'parameters' => tool_parameters,
+              'data_map' => tool_data_map
+            }
+          ]
+        end
 
-          [{ datamap: tool }]
+        def register_tools
+          get_tools.map { |tool| { datamap: tool } }
         end
 
         private

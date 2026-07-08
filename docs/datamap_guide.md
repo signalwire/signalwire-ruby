@@ -140,17 +140,24 @@ Function Call → Template Expansion → HTTP Request → Response Processing �
 | **Development Speed** | Slower (code + deploy) | Faster (configuration only) |
 
 **Traditional Webhook Example:**
-```python
-def search_knowledge(args, post_data):
-    # Custom HTTP request logic
-    response = requests.post("https://api.example.com/search", 
-                           json={"query": args["query"]})
-    # Custom error handling
-    if response.status_code != 200:
-        return {"error": "API request failed"}
-    # Custom response processing
-    data = response.json()
-    return {"response": f"Found: {data['results'][0]['text']}"}
+```ruby
+define_tool(
+  name: 'search_knowledge',
+  description: 'Search the knowledge base',
+  parameters: { 'query' => { 'type' => 'string' } }
+) do |args, raw_data|
+  # Custom HTTP request logic
+  uri = URI('https://api.example.com/search')
+  response = Net::HTTP.post(uri, { query: args['query'] }.to_json,
+                            'Content-Type' => 'application/json')
+  # Custom error handling
+  unless response.is_a?(Net::HTTPSuccess)
+    next SignalWire::Swaig::FunctionResult.new('API request failed')
+  end
+  # Custom response processing
+  data = JSON.parse(response.body)
+  SignalWire::Swaig::FunctionResult.new("Found: #{data['results'][0]['text']}")
+end
 ```
 
 **DataMap Equivalent:**
@@ -2291,41 +2298,38 @@ For common patterns, convenience functions simplify DataMap creation:
 
 #### Simple API Tool
 
-```python
-from signalwire.core.data_map import create_simple_api_tool
+```ruby
+require 'signalwire'
 
-weather = create_simple_api_tool(
-    name='get_weather',
-    url='https://api.weather.com/v1/current?key=API_KEY&q=${location}',
-    response_template='Weather: ${response.current.condition.text}, ${response.current.temp_f}°F',
-    parameters={
-        'location': {
-            'type': 'string',
-            'description': 'City name',
-            'required': True
-        }
-    },
-    headers={'X-API-Key': 'your-api-key'},
-    error_keys=['error']
+weather = SignalWire::DataMap.create_simple_api_tool(
+  name: 'get_weather',
+  url: 'https://api.weather.com/v1/current?key=API_KEY&q=${location}',
+  response_template: 'Weather: ${response.current.condition.text}, ${response.current.temp_f}°F',
+  parameters: {
+    'location' => {
+      'type' => 'string',
+      'description' => 'City name',
+      'required' => true
+    }
+  },
+  headers: { 'X-API-Key' => 'your-api-key' },
+  error_keys: ['error']
 )
 ```
 
 #### Expression Tool
 
-```python
-from signalwire.core.data_map import create_expression_tool
+```ruby
+require 'signalwire'
 
-control = create_expression_tool(
-    name='media_control',
-    patterns={
-        r'start|play|begin': SwaigFunctionResult().add_action('start', True),
-        r'stop|end|pause': SwaigFunctionResult().add_action('stop', True),
-        r'next|skip': SwaigFunctionResult().add_action('next', True)
-    },
-    parameters={
-        'command': {'type': 'string', 'description': 'Control command'}
-    }
-)
+# Build directly with .expression(test_value, pattern, result) when several
+# patterns test the same value. (create_expression_tool takes a
+# test_value => [pattern, result] Hash, so it is best for one-pattern-per-value.)
+control = SignalWire::DataMap.new('media_control')
+          .parameter('command', 'string', 'Control command')
+          .expression('${args.command}', /start|play|begin/, SignalWire::Swaig::FunctionResult.new.add_action('start', true))
+          .expression('${args.command}', /stop|end|pause/, SignalWire::Swaig::FunctionResult.new.add_action('stop', true))
+          .expression('${args.command}', /next|skip/, SignalWire::Swaig::FunctionResult.new.add_action('next', true))
 ```
 
 ### 12.1 Multiple Webhook Fallback Chains

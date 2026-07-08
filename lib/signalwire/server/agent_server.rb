@@ -19,10 +19,9 @@ module SignalWire
   class AgentServer
     attr_reader :host, :port, :log_level, :logger
 
-    # Public Rack application — Python parity: ``server.app`` exposes
-    # the underlying FastAPI instance. Ruby exposes the cached Rack
-    # app (a Proc) so callers can mount it on their own server or
-    # pass it to Rack-compatible test harnesses.
+    # Public Rack application — the cached Rack app (a Proc) so callers
+    # can mount it on their own server or pass it to Rack-compatible test
+    # harnesses.
     def app
       @app ||= rack_app
     end
@@ -60,10 +59,9 @@ module SignalWire
 
     # Construct an AgentServer.
     #
-    # Python parity: ``AgentServer(host, port, log_level)`` —
-    # ``log_level`` controls the AgentServer's logger verbosity. The
-    # Ruby port maps it through ``SignalWire::Logging.logger`` so the
-    # WARN/INFO/DEBUG semantics match Python's ``logging`` levels.
+    # ``log_level`` controls the AgentServer's logger verbosity, mapped
+    # through ``SignalWire::Logging.logger`` to the standard
+    # WARN/INFO/DEBUG levels.
     #
     # @param host [String] bind address (default ``"0.0.0.0"``)
     # @param port [Integer] bind port (default ``3000``)
@@ -189,16 +187,13 @@ module SignalWire
 
     # Register a routing callback across all agents.
     #
-    # Python parity:
-    # ``AgentServer.register_global_routing_callback(callback_fn, path)``.
     # Adds unified routing logic to every registered agent at the same
     # path. The +path+ is normalized (leading slash ensured, trailing
     # slash stripped) and the callback is registered on each agent that
     # exposes +register_routing_callback+.
     #
     # The callback may be supplied either as a Ruby block or as a
-    # callable (Proc/lambda) +callback_fn+ positional argument, matching
-    # Python's function-valued first parameter.
+    # callable (Proc/lambda) +callback_fn+ positional argument.
     #
     # @param callback_fn [#call, nil] the routing callback (Proc/lambda)
     # @param path [String] the path to register the callback at
@@ -221,10 +216,21 @@ module SignalWire
     end
 
     # Register a SIP username mapping to a route.
+    #
+    # The username is lower-cased before storage (the mapping is
+    # case-insensitive), and the route is normalized (leading slash
+    # ensured, trailing slash stripped).
     def register_sip_username(username, route)
       route = "/#{route}" unless route.start_with?('/')
-      @mutex.synchronize { @sip_routes[username] = route }
+      route = route.chomp('/')
+      @mutex.synchronize { @sip_routes[username.to_s.downcase] = route }
       self
+    end
+
+    # Look up the route registered for a SIP username (case-insensitive).
+    # Returns the route or nil.
+    def _lookup_sip_route(username)
+      @mutex.synchronize { @sip_routes[username.to_s.downcase] }
     end
 
     # Serve static files from a directory at a given route.
@@ -306,8 +312,7 @@ module SignalWire
     end
 
     # @api private
-    # Handle a CGI request — minimal Ruby parity for Python's
-    # ``_handle_cgi_request``. Reads ``PATH_INFO``, dispatches to the
+    # Handle a CGI request. Reads ``PATH_INFO``, dispatches to the
     # matching agent, and returns a CGI-formatted response string.
     def _handle_cgi_request
       require 'stringio'

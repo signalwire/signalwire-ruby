@@ -58,8 +58,8 @@ module SignalWire
       # @param url [String] URL to validate
       # @param allow_private [Boolean] when true, bypass the IP-blocklist check
       # @return [Boolean] true if the URL is safe to fetch
-      # parity: mirrors Python validate_url(url, allow_private=False) positional bool default;
-      # a kwarg changes the enumerated param kind (opt->key) and risks surface drift.
+      # +allow_private+ is a positional boolean (defaulting to false) rather
+      # than a keyword, to keep the public method signature stable.
       def self.validate_url(url, allow_private = false)
         parsed = URI.parse(url)
         return false unless _valid_scheme?(parsed)

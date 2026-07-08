@@ -12,8 +12,8 @@ module SignalWire
     # a phone/sip/agora device is hand-built as a raw Hash at every call site.
     # +Device+ types the *shape* — a +type+ discriminant plus a free-form
     # +params+ map — while leaving +type+ a String, because the discriminant
-    # ("phone", "sip", "agora", …) is **not** schema-enumerated in
-    # +porting-sdk/relay-protocol/calling.{connect,refer,dial,tap}.params.json+
+    # ("phone", "sip", "agora", …) is **not** schema-enumerated in the
+    # +calling.connect+/+refer+/+dial+/+tap+ RELAY parameters
     # (each declares +type+ as a bare +"string"+). Typing it as an enum would
     # invent a closed set the wire contract does not promise.
     #
@@ -126,7 +126,7 @@ module SignalWire
       end
       alias eql? ==
 
-      # Hash key parity with {#==}: equal devices share a hash bucket.
+      # Hash key consistent with {#==}: equal devices share a hash bucket.
       def hash
         [self.class, @type, @params].hash
       end

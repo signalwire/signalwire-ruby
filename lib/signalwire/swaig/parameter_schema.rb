@@ -11,12 +11,10 @@ module SignalWire
   module Swaig
     # ------------------------------------------------------------------
     # ParameterSchema — a typed, block-DSL builder for SWAIG tool
-    # parameters (the Tier-2 idiom flagship for the Ruby port; see
-    # porting-sdk/IDIOM_PASS_JOURNAL.md §4).
+    # parameters.
     #
-    # Defining a SWAIG tool's +parameters+ in the Python reference (and in
-    # the existing Ruby path) means hand-writing a JSON-Schema blob as
-    # nested Hashes:
+    # Defining a SWAIG tool's +parameters+ the plain way means
+    # hand-writing a JSON-Schema blob as nested Hashes:
     #
     #     define_tool(name: "lookup", description: "...", parameters: {
     #       "service" => { "type" => "string", "description" => "The service" },

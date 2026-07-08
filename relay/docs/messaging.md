@@ -6,73 +6,72 @@ Send and receive SMS/MMS messages through the RELAY client.
 
 Use `client.send_message()` to send an outbound SMS or MMS.
 
-```python
-message = await client.send_message(
-    to_number="+15552222222",
-    from_number="+15551111111",
-    body="Hello from SignalWire!",
+```ruby
+message = client.send_message(
+  to_number: '+15552222222',
+  from_number: '+15551111111',
+  body: 'Hello from SignalWire!'
 )
 ```
 
 ### Wait for delivery
 
-```python
-message = await client.send_message(
-    to_number="+15552222222",
-    from_number="+15551111111",
-    body="Hello!",
+```ruby
+message = client.send_message(
+  to_number: '+15552222222',
+  from_number: '+15551111111',
+  body: 'Hello!'
 )
-event = await message.wait()  # blocks until delivered/failed
-print(f"Final state: {message.state}")
-if message.reason:
-    print(f"Reason: {message.reason}")
+event = message.wait # blocks until delivered/failed
+puts "Final state: #{message.state}"
+puts "Reason: #{message.reason}" if message.reason
 ```
 
 ### Fire and forget
 
-```python
-message = await client.send_message(
-    to_number="+15552222222",
-    from_number="+15551111111",
-    body="Hello!",
+```ruby
+message = client.send_message(
+  to_number: '+15552222222',
+  from_number: '+15551111111',
+  body: 'Hello!'
 )
-# don't call message.wait() — continue immediately
+# don't call message.wait — continue immediately
 ```
 
 ### Callback on completion
 
-```python
-message = await client.send_message(
-    to_number="+15552222222",
-    from_number="+15551111111",
-    body="Hello!",
-    on_completed=lambda event: print(f"Delivery: {event.params.get('message_state')}"),
+```ruby
+message = client.send_message(
+  to_number: '+15552222222',
+  from_number: '+15551111111',
+  body: 'Hello!',
+  on_completed: ->(event) { puts "Delivery: #{event.params['message_state']}" }
 )
 ```
 
 ### MMS (media messages)
 
-```python
-message = await client.send_message(
-    to_number="+15552222222",
-    from_number="+15551111111",
-    body="Check this out!",
-    media=["https://example.com/image.jpg"],
+```ruby
+message = client.send_message(
+  to_number: '+15552222222',
+  from_number: '+15551111111',
+  body: 'Check this out!',
+  media: ['https://example.com/image.jpg']
 )
 ```
 
 ### All parameters
 
-```python
-message = await client.send_message(
-    to_number="+15552222222",       # required — E.164 format
-    from_number="+15551111111",     # required — E.164 format
-    body="Message text",            # required if no media
-    media=["https://..."],          # required if no body
-    context="my_context",           # context for state events (default: relay protocol)
-    tags=["vip", "support"],        # optional tags for searching in UI
-    region="us",                    # optional origination region
-    on_completed=callback_fn,       # optional completion callback
+```ruby
+message = client.send_message(
+  to_number: '+15552222222',       # required — E.164 format
+  from_number: '+15551111111',     # required — E.164 format
+  body: 'Message text',            # required if no media
+  media: ['https://...'],          # required if no body
+  context: 'my_context',           # context for state events (default: relay protocol)
+  tags: %w[vip support],           # optional tags for searching in UI
+  region: 'us',                    # optional origination region
+  on_completed: callback           # optional completion callback (a callable)
 )
 ```
 
@@ -80,32 +79,31 @@ message = await client.send_message(
 
 Register a handler with `@client.on_message` to receive inbound SMS/MMS.
 
-```python
-from signalwire.relay import RelayClient
+```ruby
+require 'signalwire'
 
-client = RelayClient(
-    project="your-project-id",
-    token="your-api-token",
-    host="example.signalwire.com",
-    contexts=["default"],
+client = SignalWire::Relay::Client.new(
+  project: 'your-project-id',
+  token: 'your-api-token',
+  host: 'example.signalwire.com',
+  contexts: ['default']
 )
 
-@client.on_message
-async def handle_message(message):
-    print(f"From: {message.from_number}")
-    print(f"To: {message.to_number}")
-    print(f"Body: {message.body}")
-    if message.media:
-        print(f"Media: {message.media}")
+client.on_message do |message|
+  puts "From: #{message.from_number}"
+  puts "To: #{message.to_number}"
+  puts "Body: #{message.body}"
+  puts "Media: #{message.media}" unless message.media.nil? || message.media.empty?
 
-    # Reply back
-    await client.send_message(
-        to_number=message.from_number,
-        from_number=message.to_number,
-        body=f"You said: {message.body}",
-    )
+  # Reply back
+  client.send_message(
+    to_number: message.from_number,
+    from_number: message.to_number,
+    body: "You said: #{message.body}"
+  )
+end
 
-client.run()
+client.run
 ```
 
 ## Message Object
@@ -132,8 +130,8 @@ client.run()
 
 | Method | Description |
 |--------|-------------|
-| `await message.wait(timeout=None)` | Block until terminal state. Returns the terminal `RelayEvent`. |
-| `message.on(handler)` | Register a listener for state change events. |
+| `message.wait(timeout: nil)` | Block until terminal state. Returns the terminal `RelayEvent`. |
+| `message.on_event { |event| ... }` | Register a listener block for state change events. |
 
 ### Message States
 
@@ -157,26 +155,27 @@ Inbound messages always arrive with state `received`.
 | `MessageReceiveEvent` | Inbound message received |
 | `MessageStateEvent` | Outbound message state change |
 
-```python
-from signalwire.relay import MessageReceiveEvent, MessageStateEvent
+```ruby
+require 'signalwire'
+# SignalWire::Relay::MessageReceiveEvent, SignalWire::Relay::MessageStateEvent
 ```
 
 ## Combining Calls and Messages
 
 The same `RelayClient` handles both calls and messages:
 
-```python
-client = RelayClient(project="...", token="...", contexts=["default"])
+```ruby
+client = SignalWire::Relay::Client.new(project: '...', token: '...', contexts: ['default'])
 
-@client.on_call
-async def handle_call(call):
-    await call.answer()
-    await call.play([{"type": "tts", "params": {"text": "Hello!"}}])
-    await call.hangup()
+client.on_call do |call|
+  call.answer
+  call.play([{ 'type' => 'tts', 'params' => { 'text' => 'Hello!' } }])
+  call.hangup
+end
 
-@client.on_message
-async def handle_message(message):
-    print(f"SMS from {message.from_number}: {message.body}")
+client.on_message do |message|
+  puts "SMS from #{message.from_number}: #{message.body}"
+end
 
-client.run()
+client.run
 ```

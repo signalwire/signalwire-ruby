@@ -76,11 +76,10 @@ class FabricMockTest < Minitest::Test
 
   # ---- CxmlApplicationsResource.create raises NotImplementedError -----
 
-  def test_cxml_applications_create_raises_not_implemented
-    err = assert_raises(NotImplementedError) do
-      @client.fabric.cxml_applications.create(name: 'never_built')
-    end
-    assert_match(/cXML applications cannot/, err.message)
+  def test_cxml_applications_create_not_available
+    # cXML applications cannot be created via this API: the generated resource
+    # deliberately omits +create+, so the accessor does not respond to it.
+    refute_respond_to @client.fabric.cxml_applications, :create
     # Nothing should have hit the wire.
     assert_equal [], @mock.journal
   end
@@ -132,22 +131,22 @@ class FabricMockTest < Minitest::Test
   # ---- FabricTokens — every token-creation endpoint -------------------
 
   def test_tokens_create_invite_token
-    body = @client.fabric.tokens.create_invite_token(email: 'invitee@example.com')
+    body = @client.fabric.tokens.create_invite_token(address_id: 'addr-42')
 
     assert_kind_of Hash, body
     # subscriber/invites uses the singular 'subscriber' path segment.
     last = assert_last_request('POST', "#{FABRIC_BASE}/subscriber/invites")
     assert_kind_of Hash, last.body
-    assert_equal 'invitee@example.com', last.body['email']
+    assert_equal 'addr-42', last.body['address_id']
   end
 
   def test_tokens_create_embed_token
-    body = @client.fabric.tokens.create_embed_token(allowed_addresses: %w[addr-1 addr-2])
+    body = @client.fabric.tokens.create_embed_token(token: 'embed-token-1')
 
     assert_kind_of Hash, body
     last = assert_last_request('POST', "#{FABRIC_BASE}/embeds/tokens")
     assert_kind_of Hash, last.body
-    assert_equal %w[addr-1 addr-2], last.body['allowed_addresses']
+    assert_equal 'embed-token-1', last.body['token']
   end
 
   def test_tokens_refresh_subscriber_token

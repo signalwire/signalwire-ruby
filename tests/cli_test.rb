@@ -5,6 +5,7 @@ require 'json'
 require 'net/http'
 require 'uri'
 require 'socket'
+require 'stringio'
 
 # Suppress logging during tests
 ENV['SIGNALWIRE_LOG_MODE'] = 'off'
@@ -108,6 +109,81 @@ class SwaigTestCLIParsingTest < Minitest::Test
     cli = SwaigTest::CLI.new(['--url', 'http://u:p@h:80/', '--dump-swml', '--list-tools'])
 
     assert_raises(SystemExit) { cli.run }
+  end
+end
+
+# --parse-only / --dry-run: validate the invocation's arguments and exit WITHOUT
+# loading the agent, touching the filesystem, or hitting the network. Valid args
+# print exactly "parse OK" and exit 0; invalid args exit 2 without printing
+# "parse OK". Canonical contract mirrored by every SDK port.
+class SwaigTestCLIParseOnlyTest < Minitest::Test
+  # Run the CLI and return [captured_stdout, exit_status]. run_parse_only always
+  # exits (0 on success, 2 on bad args), so we trap the SystemExit.
+  def run_parse_only(argv)
+    old_stdout = $stdout
+    $stdout = StringIO.new
+    SwaigTest::CLI.new(argv).run
+  rescue SystemExit => e
+    [$stdout.string, e.status]
+  ensure
+    $stdout = old_stdout
+  end
+
+  def test_parse_only_flag_recognised
+    cli = SwaigTest::CLI.new(['--url', 'http://u:p@h:80/', '--list-tools', '--parse-only'])
+
+    assert cli.options[:parse_only]
+  end
+
+  def test_dry_run_is_an_exact_alias
+    cli = SwaigTest::CLI.new(['--url', 'http://u:p@h:80/', '--list-tools', '--dry-run'])
+
+    assert cli.options[:parse_only]
+  end
+
+  def test_valid_invocation_prints_parse_ok_and_exits_zero
+    out, status = run_parse_only(['--url', 'http://u:p@h:80/', '--list-tools', '--parse-only'])
+
+    assert_equal 'parse OK', out.strip
+    assert_equal 0, status
+  end
+
+  # Position-independent: --parse-only is honoured even when it TRAILS an --exec
+  # invocation (the position the DOC-CLI gate appends it).
+  def test_position_independent_after_exec
+    out, status = run_parse_only(
+      ['--url', 'http://u:p@h:80/', '--exec', 'foo', '--param', 'bar=1', '--parse-only']
+    )
+
+    assert_equal 'parse OK', out.strip
+    assert_equal 0, status
+  end
+
+  # File existence is a runtime concern, not an argument-validity concern: a
+  # syntactically valid invocation naming a non-existent agent file still
+  # reports "parse OK" (the flag never touches the filesystem).
+  def test_does_not_require_agent_file_to_exist
+    out, status = run_parse_only(
+      ['/definitely/not/here.rb', '--simulate-serverless', 'lambda', '--list-tools', '--parse-only']
+    )
+
+    assert_equal 'parse OK', out.strip
+    assert_equal 0, status
+    refute_includes out, 'not found'
+  end
+
+  def test_mutually_exclusive_actions_exit_two_without_parse_ok
+    out, status = run_parse_only(['--url', 'http://u:p@h:80/', '--dump-swml', '--list-tools', '--parse-only'])
+
+    assert_equal 2, status
+    refute_includes out, 'parse OK'
+  end
+
+  def test_missing_mode_exits_two_without_parse_ok
+    out, status = run_parse_only(['--parse-only'])
+
+    assert_equal 2, status
+    refute_includes out, 'parse OK'
   end
 end
 

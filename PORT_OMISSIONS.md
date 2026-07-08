@@ -1,7 +1,7 @@
 # PORT_OMISSIONS.md
 
 Symbols present in `python_surface.json` (the Python SDK reference at
-`/home/devuser/src/porting-sdk/python_surface.json`) that this Ruby port
+`../porting-sdk/python_surface.json`) that this Ruby port
 deliberately does **not** implement. Each line has the form:
 
     <fully.qualified.symbol>: <one-sentence rationale>
@@ -69,15 +69,6 @@ deferral — track those for future work.
 
 # Omitted symbols
 
-signalwire.agents.bedrock.BedrockAgent: Bedrock agent omitted - not core to the port
-signalwire.agents.bedrock.BedrockAgent.__init__: Bedrock agent omitted - not core to the port
-signalwire.agents.bedrock.BedrockAgent.__repr__: Bedrock agent omitted - not core to the port
-signalwire.agents.bedrock.BedrockAgent.set_inference_params: Bedrock agent omitted - not core to the port
-signalwire.agents.bedrock.BedrockAgent.set_llm_model: Bedrock agent omitted - not core to the port
-signalwire.agents.bedrock.BedrockAgent.set_llm_temperature: Bedrock agent omitted - not core to the port
-signalwire.agents.bedrock.BedrockAgent.set_post_prompt_llm_params: Bedrock agent omitted - not core to the port
-signalwire.agents.bedrock.BedrockAgent.set_prompt_llm_params: Bedrock agent omitted - not core to the port
-signalwire.agents.bedrock.BedrockAgent.set_voice: Bedrock agent omitted - not core to the port
 signalwire.cli.build_search.console_entry_point: Ruby SDK does not ship a CLI; Python CLI is a separate tool
 signalwire.cli.build_search.main: Ruby SDK does not ship a CLI; Python CLI is a separate tool
 signalwire.cli.build_search.migrate_command: Ruby SDK does not ship a CLI; Python CLI is a separate tool
@@ -205,418 +196,173 @@ signalwire.cli.types.DataMapConfig: Ruby SDK does not ship a CLI; Python CLI is 
 signalwire.cli.types.FunctionInfo: Ruby SDK does not ship a CLI; Python CLI is a separate tool
 signalwire.cli.types.PostData: Ruby SDK does not ship a CLI; Python CLI is a separate tool
 signalwire.cli.types.VarsData: Ruby SDK does not ship a CLI; Python CLI is a separate tool
-signalwire.core.agent.prompt.manager.PromptManager: prompt management inlined in SignalWire::AgentBase; no standalone PromptManager
-signalwire.core.agent.prompt.manager.PromptManager.__init__: prompt management inlined in SignalWire::AgentBase; no standalone PromptManager
-signalwire.core.agent.prompt.manager.PromptManager.define_contexts: prompt management inlined in SignalWire::AgentBase; no standalone PromptManager
-signalwire.core.agent.prompt.manager.PromptManager.get_contexts: prompt management inlined in SignalWire::AgentBase; no standalone PromptManager
-signalwire.core.agent.prompt.manager.PromptManager.get_post_prompt: prompt management inlined in SignalWire::AgentBase; no standalone PromptManager
-signalwire.core.agent.prompt.manager.PromptManager.get_prompt: prompt management inlined in SignalWire::AgentBase; no standalone PromptManager
-signalwire.core.agent.prompt.manager.PromptManager.get_raw_prompt: prompt management inlined in SignalWire::AgentBase; no standalone PromptManager
-signalwire.core.agent.prompt.manager.PromptManager.prompt_add_section: prompt management inlined in SignalWire::AgentBase; no standalone PromptManager
-signalwire.core.agent.prompt.manager.PromptManager.prompt_add_subsection: prompt management inlined in SignalWire::AgentBase; no standalone PromptManager
-signalwire.core.agent.prompt.manager.PromptManager.prompt_add_to_section: prompt management inlined in SignalWire::AgentBase; no standalone PromptManager
-signalwire.core.agent.prompt.manager.PromptManager.prompt_has_section: prompt management inlined in SignalWire::AgentBase; no standalone PromptManager
-signalwire.core.agent.prompt.manager.PromptManager.set_post_prompt: prompt management inlined in SignalWire::AgentBase; no standalone PromptManager
-signalwire.core.agent.prompt.manager.PromptManager.set_prompt_pom: prompt management inlined in SignalWire::AgentBase; no standalone PromptManager
-signalwire.core.agent.prompt.manager.PromptManager.set_prompt_text: prompt management inlined in SignalWire::AgentBase; no standalone PromptManager
-signalwire.core.agent.tools.decorator.ToolDecorator: Ruby uses keyword-arg registration, not decorators; ToolDecorator has no equivalent
-signalwire.core.agent.tools.decorator.ToolDecorator.create_class_decorator: Ruby uses keyword-arg registration, not decorators; ToolDecorator has no equivalent
-signalwire.core.agent.tools.decorator.ToolDecorator.create_instance_decorator: Ruby uses keyword-arg registration, not decorators; ToolDecorator has no equivalent
-signalwire.core.agent.tools.registry.ToolRegistry: tool registry inlined in SignalWire::AgentBase; no standalone ToolRegistry
-signalwire.core.agent.tools.registry.ToolRegistry.__init__: tool registry inlined in SignalWire::AgentBase; no standalone ToolRegistry
-signalwire.core.agent.tools.registry.ToolRegistry.define_tool: tool registry inlined in SignalWire::AgentBase; no standalone ToolRegistry
-signalwire.core.agent.tools.registry.ToolRegistry.get_all_functions: tool registry inlined in SignalWire::AgentBase; no standalone ToolRegistry
-signalwire.core.agent.tools.registry.ToolRegistry.get_function: tool registry inlined in SignalWire::AgentBase; no standalone ToolRegistry
-signalwire.core.agent.tools.registry.ToolRegistry.has_function: tool registry inlined in SignalWire::AgentBase; no standalone ToolRegistry
-signalwire.core.agent.tools.registry.ToolRegistry.register_class_decorated_tools: tool registry inlined in SignalWire::AgentBase; no standalone ToolRegistry
-signalwire.core.agent.tools.registry.ToolRegistry.register_swaig_function: tool registry inlined in SignalWire::AgentBase; no standalone ToolRegistry
-signalwire.core.agent.tools.registry.ToolRegistry.remove_function: tool registry inlined in SignalWire::AgentBase; no standalone ToolRegistry
-signalwire.core.agent.tools.type_inference.create_typed_handler_wrapper: type inference for decorator-based tool registration; not applicable to Ruby
-signalwire.core.agent.tools.type_inference.infer_schema: type inference for decorator-based tool registration; not applicable to Ruby
-signalwire.core.agent_base.AgentBase.get_full_url: Ruby uses attr_reader accessors (host/port/route) plus manual_set_proxy_url; no get_full_url helper
-signalwire.core.agent_base.AgentBase.get_name: Ruby exposes SignalWire::AgentBase#name (attr_reader) instead
-signalwire.core.auth_handler.AuthHandler: Ruby basic-auth in SignalWire::AgentBase directly (rack middleware); no flask/fastapi decorator class
-signalwire.core.auth_handler.AuthHandler.__init__: Ruby basic-auth in SignalWire::AgentBase directly (rack middleware); no flask/fastapi decorator class
-signalwire.core.auth_handler.AuthHandler.flask_decorator: Ruby basic-auth in SignalWire::AgentBase directly (rack middleware); no flask/fastapi decorator class
-signalwire.core.auth_handler.AuthHandler.get_auth_info: Ruby basic-auth in SignalWire::AgentBase directly (rack middleware); no flask/fastapi decorator class
-signalwire.core.auth_handler.AuthHandler.get_fastapi_dependency: Ruby basic-auth in SignalWire::AgentBase directly (rack middleware); no flask/fastapi decorator class
-signalwire.core.auth_handler.AuthHandler.verify_api_key: Ruby basic-auth in SignalWire::AgentBase directly (rack middleware); no flask/fastapi decorator class
-signalwire.core.auth_handler.AuthHandler.verify_basic_auth: Ruby basic-auth in SignalWire::AgentBase directly (rack middleware); no flask/fastapi decorator class
-signalwire.core.auth_handler.AuthHandler.verify_bearer_token: Ruby basic-auth in SignalWire::AgentBase directly (rack middleware); no flask/fastapi decorator class
-signalwire.core.config_loader.ConfigLoader: config loader not ported - Ruby uses ENV directly
-signalwire.core.config_loader.ConfigLoader.__init__: config loader not ported - Ruby uses ENV directly
-signalwire.core.config_loader.ConfigLoader.find_config_file: config loader not ported - Ruby uses ENV directly
-signalwire.core.config_loader.ConfigLoader.get: config loader not ported - Ruby uses ENV directly
-signalwire.core.config_loader.ConfigLoader.get_config: config loader not ported - Ruby uses ENV directly
-signalwire.core.config_loader.ConfigLoader.get_config_file: config loader not ported - Ruby uses ENV directly
-signalwire.core.config_loader.ConfigLoader.get_section: config loader not ported - Ruby uses ENV directly
-signalwire.core.config_loader.ConfigLoader.has_config: config loader not ported - Ruby uses ENV directly
-signalwire.core.config_loader.ConfigLoader.merge_with_env: config loader not ported - Ruby uses ENV directly
-signalwire.core.config_loader.ConfigLoader.substitute_vars: config loader not ported - Ruby uses ENV directly
-signalwire.core.contexts.Context.to_dict: Ruby convention: SignalWire::Contexts::Context#to_h replaces to_dict
-signalwire.core.contexts.ContextBuilder.to_dict: Ruby convention: to_h replaces to_dict
-signalwire.core.contexts.ContextBuilder.validate: Ruby convention: SignalWire::Contexts::ContextBuilder#validate! (bang) replaces validate
-signalwire.core.contexts.GatherInfo.to_dict: Ruby convention: to_h replaces to_dict
-signalwire.core.contexts.GatherQuestion.to_dict: Ruby convention: to_h replaces to_dict
-signalwire.core.contexts.Step.to_dict: Ruby convention: to_h replaces to_dict
-signalwire.core.contexts.create_simple_context: Ruby exposes SignalWire::Contexts.create_simple_context (module function) - emitted under signalwire.contexts.Contexts in port surface
-signalwire.core.data_map.create_expression_tool: Ruby exposes SignalWire::DataMap.create_expression_tool as a class method
-signalwire.core.data_map.create_simple_api_tool: Ruby exposes SignalWire::DataMap.create_simple_api_tool as a class method
-signalwire.core.function_result.FunctionResult.to_dict: Ruby convention: SignalWire::Swaig::FunctionResult#to_h replaces to_dict
-signalwire.core.logging_config.configure_logging: SignalWire::Logging exposes the same surface without a separate config class
-signalwire.core.logging_config.get_execution_mode: SignalWire::Logging exposes the same surface without a separate config class
-signalwire.core.logging_config.get_logger: SignalWire::Logging exposes the same surface without a separate config class
-signalwire.core.logging_config.reset_logging_configuration: SignalWire::Logging exposes the same surface without a separate config class
-signalwire.core.logging_config.strip_control_chars: SignalWire::Logging exposes the same surface without a separate config class
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin: mixin class collapsed into SignalWire::AgentBase (Ruby single-inheritance + modules); methods present on AgentBase
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_function_include: mixin class collapsed into SignalWire::AgentBase (Ruby single-inheritance + modules); methods present on AgentBase
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_hint: mixin class collapsed into SignalWire::AgentBase (Ruby single-inheritance + modules); methods present on AgentBase
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_hints: mixin class collapsed into SignalWire::AgentBase (Ruby single-inheritance + modules); methods present on AgentBase
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_internal_filler: mixin class collapsed into SignalWire::AgentBase (Ruby single-inheritance + modules); methods present on AgentBase
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_language: mixin class collapsed into SignalWire::AgentBase (Ruby single-inheritance + modules); methods present on AgentBase
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_mcp_server: mixin class collapsed into SignalWire::AgentBase (Ruby single-inheritance + modules); methods present on AgentBase
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_pattern_hint: mixin class collapsed into SignalWire::AgentBase (Ruby single-inheritance + modules); methods present on AgentBase
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_pronunciation: mixin class collapsed into SignalWire::AgentBase (Ruby single-inheritance + modules); methods present on AgentBase
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.enable_debug_events: mixin class collapsed into SignalWire::AgentBase (Ruby single-inheritance + modules); methods present on AgentBase
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.enable_mcp_server: mixin class collapsed into SignalWire::AgentBase (Ruby single-inheritance + modules); methods present on AgentBase
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.set_function_includes: mixin class collapsed into SignalWire::AgentBase (Ruby single-inheritance + modules); methods present on AgentBase
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.set_global_data: mixin class collapsed into SignalWire::AgentBase (Ruby single-inheritance + modules); methods present on AgentBase
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.set_internal_fillers: mixin class collapsed into SignalWire::AgentBase (Ruby single-inheritance + modules); methods present on AgentBase
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.set_languages: mixin class collapsed into SignalWire::AgentBase (Ruby single-inheritance + modules); methods present on AgentBase
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.set_native_functions: mixin class collapsed into SignalWire::AgentBase (Ruby single-inheritance + modules); methods present on AgentBase
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.set_param: mixin class collapsed into SignalWire::AgentBase (Ruby single-inheritance + modules); methods present on AgentBase
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.set_params: mixin class collapsed into SignalWire::AgentBase (Ruby single-inheritance + modules); methods present on AgentBase
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.set_post_prompt_llm_params: mixin class collapsed into SignalWire::AgentBase (Ruby single-inheritance + modules); methods present on AgentBase
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.set_prompt_llm_params: mixin class collapsed into SignalWire::AgentBase (Ruby single-inheritance + modules); methods present on AgentBase
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.set_pronunciations: mixin class collapsed into SignalWire::AgentBase (Ruby single-inheritance + modules); methods present on AgentBase
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.update_global_data: mixin class collapsed into SignalWire::AgentBase (Ruby single-inheritance + modules); methods present on AgentBase
-signalwire.core.mixins.auth_mixin.AuthMixin: mixin class collapsed into SignalWire::AgentBase; get_basic_auth_credentials lives on AgentBase
-signalwire.core.mixins.auth_mixin.AuthMixin.get_basic_auth_credentials: mixin class collapsed into SignalWire::AgentBase; get_basic_auth_credentials lives on AgentBase
-signalwire.core.mixins.auth_mixin.AuthMixin.validate_basic_auth: mixin class collapsed into SignalWire::AgentBase; get_basic_auth_credentials lives on AgentBase
-signalwire.core.mixins.mcp_server_mixin.MCPServerMixin: mixin class collapsed into SignalWire::AgentBase (add_mcp_server/enable_mcp_server)
-signalwire.core.mixins.prompt_mixin.PromptMixin: mixin class collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.mixins.prompt_mixin.PromptMixin.contexts: mixin class collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.mixins.prompt_mixin.PromptMixin.define_contexts: mixin class collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.mixins.prompt_mixin.PromptMixin.get_post_prompt: mixin class collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.mixins.prompt_mixin.PromptMixin.get_prompt: mixin class collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.mixins.prompt_mixin.PromptMixin.prompt_add_section: mixin class collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.mixins.prompt_mixin.PromptMixin.prompt_add_subsection: mixin class collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.mixins.prompt_mixin.PromptMixin.prompt_add_to_section: mixin class collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.mixins.prompt_mixin.PromptMixin.prompt_has_section: mixin class collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.mixins.prompt_mixin.PromptMixin.reset_contexts: mixin class collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.mixins.prompt_mixin.PromptMixin.set_post_prompt: mixin class collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.mixins.prompt_mixin.PromptMixin.set_prompt_pom: mixin class collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.mixins.prompt_mixin.PromptMixin.set_prompt_text: mixin class collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.mixins.serverless_mixin.ServerlessMixin: serverless handling in SignalWire::Serverless::LambdaHandler, not a mixin
-signalwire.core.mixins.serverless_mixin.ServerlessMixin.handle_serverless_request: serverless handling in SignalWire::Serverless::LambdaHandler, not a mixin
-signalwire.core.mixins.skill_mixin.SkillMixin: mixin class collapsed into SignalWire::AgentBase skill methods
-signalwire.core.mixins.skill_mixin.SkillMixin.add_skill: mixin class collapsed into SignalWire::AgentBase skill methods
-signalwire.core.mixins.skill_mixin.SkillMixin.has_skill: mixin class collapsed into SignalWire::AgentBase skill methods
-signalwire.core.mixins.skill_mixin.SkillMixin.list_skills: mixin class collapsed into SignalWire::AgentBase skill methods
-signalwire.core.mixins.skill_mixin.SkillMixin.remove_skill: mixin class collapsed into SignalWire::AgentBase skill methods
-signalwire.core.mixins.state_mixin.StateMixin: mixin class collapsed into SignalWire::AgentBase (validate_tool_token via SessionManager)
-signalwire.core.mixins.state_mixin.StateMixin.validate_tool_token: mixin class collapsed into SignalWire::AgentBase (validate_tool_token via SessionManager)
-signalwire.core.mixins.tool_mixin.ToolMixin: mixin class collapsed into SignalWire::AgentBase tool methods
-signalwire.core.mixins.tool_mixin.ToolMixin.define_tool: mixin class collapsed into SignalWire::AgentBase tool methods
-signalwire.core.mixins.tool_mixin.ToolMixin.define_tools: mixin class collapsed into SignalWire::AgentBase tool methods
-signalwire.core.mixins.tool_mixin.ToolMixin.on_function_call: mixin class collapsed into SignalWire::AgentBase tool methods
-signalwire.core.mixins.tool_mixin.ToolMixin.register_swaig_function: mixin class collapsed into SignalWire::AgentBase tool methods
-signalwire.core.mixins.tool_mixin.ToolMixin.tool: mixin class collapsed into SignalWire::AgentBase tool methods
-signalwire.core.mixins.web_mixin.WebMixin: mixin class collapsed into SignalWire::AgentBase HTTP methods
-signalwire.core.mixins.web_mixin.WebMixin.as_router: mixin class collapsed into SignalWire::AgentBase HTTP methods
-signalwire.core.mixins.web_mixin.WebMixin.enable_debug_routes: mixin class collapsed into SignalWire::AgentBase HTTP methods
-signalwire.core.mixins.web_mixin.WebMixin.get_app: mixin class collapsed into SignalWire::AgentBase HTTP methods
-signalwire.core.mixins.web_mixin.WebMixin.manual_set_proxy_url: mixin class collapsed into SignalWire::AgentBase HTTP methods
-signalwire.core.mixins.web_mixin.WebMixin.on_request: mixin class collapsed into SignalWire::AgentBase HTTP methods
-signalwire.core.mixins.web_mixin.WebMixin.on_swml_request: mixin class collapsed into SignalWire::AgentBase HTTP methods
-signalwire.core.mixins.web_mixin.WebMixin.register_routing_callback: mixin class collapsed into SignalWire::AgentBase HTTP methods
-signalwire.core.mixins.web_mixin.WebMixin.run: mixin class collapsed into SignalWire::AgentBase HTTP methods
-signalwire.core.mixins.web_mixin.WebMixin.serve: mixin class collapsed into SignalWire::AgentBase HTTP methods
-signalwire.core.mixins.web_mixin.WebMixin.set_dynamic_config_callback: mixin class collapsed into SignalWire::AgentBase HTTP methods
-signalwire.core.mixins.web_mixin.WebMixin.setup_graceful_shutdown: mixin class collapsed into SignalWire::AgentBase HTTP methods
-signalwire.core.pom_builder.PomBuilder: POM builder collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.pom_builder.PomBuilder.__init__: POM builder collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.pom_builder.PomBuilder.add_section: POM builder collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.pom_builder.PomBuilder.add_subsection: POM builder collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.pom_builder.PomBuilder.add_to_section: POM builder collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.pom_builder.PomBuilder.from_sections: POM builder collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.pom_builder.PomBuilder.get_section: POM builder collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.pom_builder.PomBuilder.has_section: POM builder collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.pom_builder.PomBuilder.render_markdown: POM builder collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.pom_builder.PomBuilder.render_xml: POM builder collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.pom_builder.PomBuilder.to_dict: POM builder collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.pom_builder.PomBuilder.to_json: POM builder collapsed into SignalWire::AgentBase prompt methods
-signalwire.core.security.session_manager.SessionManager.create_tool_token: Ruby SignalWire::Security::SessionManager#create_token covers this - different name
-signalwire.core.security.session_manager.SessionManager.generate_token: Ruby SignalWire::Security::SessionManager#create_token covers this - different name
-signalwire.core.security.session_manager.SessionManager.validate_tool_token: Ruby SignalWire::Security::SessionManager#validate_token covers this - different name
-signalwire.core.security_config.SecurityConfig: security-config class not ported - settings live in SignalWire::AgentBase and middleware
-signalwire.core.security_config.SecurityConfig.__init__: security-config class not ported - settings live in SignalWire::AgentBase and middleware
-signalwire.core.security_config.SecurityConfig.get_basic_auth: security-config class not ported - settings live in SignalWire::AgentBase and middleware
-signalwire.core.security_config.SecurityConfig.get_cors_config: security-config class not ported - settings live in SignalWire::AgentBase and middleware
-signalwire.core.security_config.SecurityConfig.get_security_headers: security-config class not ported - settings live in SignalWire::AgentBase and middleware
-signalwire.core.security_config.SecurityConfig.get_ssl_context_kwargs: security-config class not ported - settings live in SignalWire::AgentBase and middleware
-signalwire.core.security_config.SecurityConfig.get_url_scheme: security-config class not ported - settings live in SignalWire::AgentBase and middleware
-signalwire.core.security_config.SecurityConfig.load_from_env: security-config class not ported - settings live in SignalWire::AgentBase and middleware
-signalwire.core.security_config.SecurityConfig.log_config: security-config class not ported - settings live in SignalWire::AgentBase and middleware
-signalwire.core.security_config.SecurityConfig.should_allow_host: security-config class not ported - settings live in SignalWire::AgentBase and middleware
-signalwire.core.security_config.SecurityConfig.validate_ssl_config: security-config class not ported - settings live in SignalWire::AgentBase and middleware
-signalwire.core.security.webhook_middleware.make_webhook_validation_dependency: FastAPI-only idiom — Ruby ships SignalWire::Security::WebhookMiddleware (Rack) instead; same WebhookValidator core
-signalwire.core.skill_base.SkillBase.define_tool: Ruby SignalWire::Skills::SkillBase#register_tools does this via SignalWire::AgentBase#define_tool
-signalwire.core.skill_base.SkillBase.get_instance_key: Ruby uses SignalWire::Skills::SkillBase#instance_key (attr_reader)
-signalwire.core.skill_manager.SkillManager.get_skill: Ruby SignalWire::Skills::SkillManager#get covers this - different name
-signalwire.core.skill_manager.SkillManager.has_skill: Ruby SignalWire::Skills::SkillManager#loaded? covers this - different name
-signalwire.core.skill_manager.SkillManager.list_loaded_skills: Ruby SignalWire::Skills::SkillManager#loaded_keys covers this - different name
-signalwire.core.skill_manager.SkillManager.load_skill: Ruby SignalWire::Skills::SkillManager#load covers this - different name
-signalwire.core.skill_manager.SkillManager.unload_skill: Ruby SignalWire::Skills::SkillManager#unload covers this - different name
-signalwire.core.swaig_function.SWAIGFunction: SWAIG functions registered as hashes in Ruby (SignalWire::AgentBase#register_swaig_function); no SWAIGFunction wrapper class
-signalwire.core.swaig_function.SWAIGFunction.__call__: SWAIG functions registered as hashes in Ruby (SignalWire::AgentBase#register_swaig_function); no SWAIGFunction wrapper class
-signalwire.core.swaig_function.SWAIGFunction.__init__: SWAIG functions registered as hashes in Ruby (SignalWire::AgentBase#register_swaig_function); no SWAIGFunction wrapper class
-signalwire.core.swaig_function.SWAIGFunction.execute: SWAIG functions registered as hashes in Ruby (SignalWire::AgentBase#register_swaig_function); no SWAIGFunction wrapper class
-signalwire.core.swaig_function.SWAIGFunction.to_swaig: SWAIG functions registered as hashes in Ruby (SignalWire::AgentBase#register_swaig_function); no SWAIGFunction wrapper class
-signalwire.core.swaig_function.SWAIGFunction.validate_args: SWAIG functions registered as hashes in Ruby (SignalWire::AgentBase#register_swaig_function); no SWAIGFunction wrapper class
-signalwire.core.swml_builder.SWMLBuilder: consolidated into SignalWire::SWML::Document - render/add_verb/add_section live there
-signalwire.core.swml_builder.SWMLBuilder.__getattr__: consolidated into SignalWire::SWML::Document - render/add_verb/add_section live there
-signalwire.core.swml_builder.SWMLBuilder.__init__: consolidated into SignalWire::SWML::Document - render/add_verb/add_section live there
-signalwire.core.swml_builder.SWMLBuilder.add_section: consolidated into SignalWire::SWML::Document - render/add_verb/add_section live there
-signalwire.core.swml_builder.SWMLBuilder.ai: consolidated into SignalWire::SWML::Document - render/add_verb/add_section live there
-signalwire.core.swml_builder.SWMLBuilder.answer: consolidated into SignalWire::SWML::Document - render/add_verb/add_section live there
-signalwire.core.swml_builder.SWMLBuilder.build: consolidated into SignalWire::SWML::Document - render/add_verb/add_section live there
-signalwire.core.swml_builder.SWMLBuilder.hangup: consolidated into SignalWire::SWML::Document - render/add_verb/add_section live there
-signalwire.core.swml_builder.SWMLBuilder.play: consolidated into SignalWire::SWML::Document - render/add_verb/add_section live there
-signalwire.core.swml_builder.SWMLBuilder.render: consolidated into SignalWire::SWML::Document - render/add_verb/add_section live there
-signalwire.core.swml_builder.SWMLBuilder.reset: consolidated into SignalWire::SWML::Document - render/add_verb/add_section live there
-signalwire.core.swml_builder.SWMLBuilder.say: consolidated into SignalWire::SWML::Document - render/add_verb/add_section live there
-signalwire.core.swml_handler.AIVerbHandler: SWML verb handlers are schema-driven in SignalWire::SWML::Schema/Service; no per-verb handler classes
-signalwire.core.swml_handler.AIVerbHandler.build_config: SWML verb handlers are schema-driven in SignalWire::SWML::Schema/Service; no per-verb handler classes
-signalwire.core.swml_handler.AIVerbHandler.get_verb_name: SWML verb handlers are schema-driven in SignalWire::SWML::Schema/Service; no per-verb handler classes
-signalwire.core.swml_handler.AIVerbHandler.validate_config: SWML verb handlers are schema-driven in SignalWire::SWML::Schema/Service; no per-verb handler classes
-signalwire.core.swml_handler.SWMLVerbHandler: SWML verb handlers are schema-driven in SignalWire::SWML::Schema/Service; no per-verb handler classes
-signalwire.core.swml_handler.SWMLVerbHandler.build_config: SWML verb handlers are schema-driven in SignalWire::SWML::Schema/Service; no per-verb handler classes
-signalwire.core.swml_handler.SWMLVerbHandler.get_verb_name: SWML verb handlers are schema-driven in SignalWire::SWML::Schema/Service; no per-verb handler classes
-signalwire.core.swml_handler.SWMLVerbHandler.validate_config: SWML verb handlers are schema-driven in SignalWire::SWML::Schema/Service; no per-verb handler classes
-signalwire.core.swml_handler.VerbHandlerRegistry: SWML verb handlers are schema-driven in SignalWire::SWML::Schema/Service; no per-verb handler classes
-signalwire.core.swml_handler.VerbHandlerRegistry.__init__: SWML verb handlers are schema-driven in SignalWire::SWML::Schema/Service; no per-verb handler classes
-signalwire.core.swml_handler.VerbHandlerRegistry.get_handler: SWML verb handlers are schema-driven in SignalWire::SWML::Schema/Service; no per-verb handler classes
-signalwire.core.swml_handler.VerbHandlerRegistry.has_handler: SWML verb handlers are schema-driven in SignalWire::SWML::Schema/Service; no per-verb handler classes
-signalwire.core.swml_handler.VerbHandlerRegistry.register_handler: SWML verb handlers are schema-driven in SignalWire::SWML::Schema/Service; no per-verb handler classes
-signalwire.core.swml_renderer.SwmlRenderer: consolidated into SignalWire::SWML::Document#render and SignalWire::Swaig::FunctionResult
-signalwire.core.swml_renderer.SwmlRenderer.render_function_response_swml: consolidated into SignalWire::SWML::Document#render and SignalWire::Swaig::FunctionResult
-signalwire.core.swml_renderer.SwmlRenderer.render_swml: consolidated into SignalWire::SWML::Document#render and SignalWire::Swaig::FunctionResult
-signalwire.core.swml_service.SWMLService: consolidated into SignalWire::SWML::Service - see port_surface.json signalwire.swml.service
-signalwire.core.swml_service.SWMLService.__getattr__: consolidated into SignalWire::SWML::Service - see port_surface.json signalwire.swml.service
-signalwire.core.swml_service.SWMLService.__init__: consolidated into SignalWire::SWML::Service - see port_surface.json signalwire.swml.service
-signalwire.core.swml_service.SWMLService.add_section: consolidated into SignalWire::SWML::Service - see port_surface.json signalwire.swml.service
-signalwire.core.swml_service.SWMLService.add_verb: consolidated into SignalWire::SWML::Service - see port_surface.json signalwire.swml.service
-signalwire.core.swml_service.SWMLService.add_verb_to_section: consolidated into SignalWire::SWML::Service - see port_surface.json signalwire.swml.service
-signalwire.core.swml_service.SWMLService.as_router: consolidated into SignalWire::SWML::Service - see port_surface.json signalwire.swml.service
-signalwire.core.swml_service.SWMLService.extract_sip_username: consolidated into SignalWire::SWML::Service - see port_surface.json signalwire.swml.service
-signalwire.core.swml_service.SWMLService.full_validation_enabled: consolidated into SignalWire::SWML::Service - see port_surface.json signalwire.swml.service
-signalwire.core.swml_service.SWMLService.get_basic_auth_credentials: consolidated into SignalWire::SWML::Service - see port_surface.json signalwire.swml.service
-signalwire.core.swml_service.SWMLService.get_document: consolidated into SignalWire::SWML::Service - see port_surface.json signalwire.swml.service
-signalwire.core.swml_service.SWMLService.manual_set_proxy_url: consolidated into SignalWire::SWML::Service - see port_surface.json signalwire.swml.service
-signalwire.core.swml_service.SWMLService.on_request: consolidated into SignalWire::SWML::Service - see port_surface.json signalwire.swml.service
-signalwire.core.swml_service.SWMLService.register_routing_callback: consolidated into SignalWire::SWML::Service - see port_surface.json signalwire.swml.service
-signalwire.core.swml_service.SWMLService.register_verb_handler: consolidated into SignalWire::SWML::Service - see port_surface.json signalwire.swml.service
-signalwire.core.swml_service.SWMLService.render_document: consolidated into SignalWire::SWML::Service - see port_surface.json signalwire.swml.service
-signalwire.core.swml_service.SWMLService.reset_document: consolidated into SignalWire::SWML::Service - see port_surface.json signalwire.swml.service
-signalwire.core.swml_service.SWMLService.serve: consolidated into SignalWire::SWML::Service - see port_surface.json signalwire.swml.service
-signalwire.core.swml_service.SWMLService.stop: consolidated into SignalWire::SWML::Service - see port_surface.json signalwire.swml.service
-signalwire.livewire.Agent: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.Agent.__init__: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.Agent.llm_node: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.Agent.on_enter: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.Agent.on_exit: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.Agent.on_user_turn_completed: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.Agent.session: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.Agent.stt_node: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.Agent.tts_node: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.Agent.update_instructions: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.Agent.update_tools: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.AgentHandoff: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.AgentHandoff.__init__: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.AgentServer: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.AgentServer.__init__: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.AgentServer.rtc_session: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.AgentSession: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.AgentSession.__init__: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.AgentSession.generate_reply: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.AgentSession.history: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.AgentSession.interrupt: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.AgentSession.say: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.AgentSession.start: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.AgentSession.update_agent: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.AgentSession.userdata: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.ChatContext: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.ChatContext.__init__: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.ChatContext.append: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.InferenceLLM: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.InferenceLLM.__init__: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.InferenceSTT: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.InferenceSTT.__init__: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.InferenceTTS: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.InferenceTTS.__init__: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.JobContext: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.JobContext.__init__: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.JobContext.connect: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.JobContext.wait_for_participant: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.JobProcess: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.JobProcess.__init__: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.Room: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.RunContext: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.RunContext.__init__: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.RunContext.userdata: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.StopResponse: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.ToolError: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.function_tool: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.plugins.CartesiaTTS: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.plugins.CartesiaTTS.__init__: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.plugins.DeepgramSTT: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.plugins.DeepgramSTT.__init__: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.plugins.ElevenLabsTTS: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.plugins.ElevenLabsTTS.__init__: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.plugins.OpenAILLM: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.plugins.OpenAILLM.__init__: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.plugins.SileroVAD: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.plugins.SileroVAD.__init__: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.plugins.SileroVAD.load: LiveKit compatibility shim - to be added once core port is stable
-signalwire.livewire.run_app: LiveKit compatibility shim - to be added once core port is stable
-signalwire.mcp_gateway.gateway_service.MCPGateway: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.gateway_service.MCPGateway.__init__: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.gateway_service.MCPGateway.run: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.gateway_service.MCPGateway.shutdown: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.gateway_service.main: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.mcp_manager.MCPClient: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.mcp_manager.MCPClient.__init__: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.mcp_manager.MCPClient.call_method: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.mcp_manager.MCPClient.call_tool: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.mcp_manager.MCPClient.get_tools: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.mcp_manager.MCPClient.start: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.mcp_manager.MCPClient.stop: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.mcp_manager.MCPManager: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.mcp_manager.MCPManager.__init__: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.mcp_manager.MCPManager.create_client: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.mcp_manager.MCPManager.get_service: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.mcp_manager.MCPManager.get_service_tools: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.mcp_manager.MCPManager.list_services: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.mcp_manager.MCPManager.shutdown: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.mcp_manager.MCPManager.validate_services: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.mcp_manager.MCPService: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.mcp_manager.MCPService.__hash__: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.mcp_manager.MCPService.__post_init__: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.session_manager.Session: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.session_manager.Session.is_alive: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.session_manager.Session.is_expired: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.session_manager.Session.touch: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.session_manager.SessionManager: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.session_manager.SessionManager.__init__: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.session_manager.SessionManager.close_session: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.session_manager.SessionManager.create_session: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.session_manager.SessionManager.get_service_session_count: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.session_manager.SessionManager.get_session: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.session_manager.SessionManager.list_sessions: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.mcp_gateway.session_manager.SessionManager.shutdown: MCP gateway service is a separate daemon; Ruby agents consume MCP via SignalWire::AgentBase#add_mcp_server
-signalwire.pom.pom.PromptObjectModel.to_dict: Ruby convention: to_h replaces to_dict (see SignalWire::POM::PromptObjectModel#to_h)
-signalwire.pom.pom.Section.to_dict: Ruby convention: to_h replaces to_dict (see SignalWire::POM::Section#to_h)
+signalwire.core.agent.tools.decorator.ToolDecorator: impossible: Python @tool class/instance decorator API relies on the decorator protocol; Ruby registers tools via define_tool(name:, description:, parameters:, &handler) directly (TS + PHP both omit this as impossible)
+signalwire.core.agent.tools.decorator.ToolDecorator.create_class_decorator: impossible: Python @tool decorator-protocol method; Ruby registers tools via define_tool directly (TS + PHP both omit as impossible)
+signalwire.core.agent.tools.decorator.ToolDecorator.create_instance_decorator: impossible: Python @tool decorator-protocol method; Ruby registers tools via define_tool directly (TS + PHP both omit as impossible)
+signalwire.core.agent.tools.registry.ToolRegistry.register_class_decorated_tools: impossible: discovers @tool-decorated class methods via the Python decorator protocol; Ruby has no method-decorator feature to discover, so there is nothing to register (TS + PHP both omit as impossible)
+signalwire.core.mixins.mcp_server_mixin.MCPServerMixin: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.core.mixins.tool_mixin.ToolMixin.tool: impossible: Python @tool class/instance decorator relies on the decorator protocol; Ruby has no method-decorator feature — tools register via define_tool(name:, description:, parameters:, &handler) directly (TS + PHP both omit this as impossible)
+signalwire.core.security.webhook_middleware.make_webhook_validation_dependency: impossible: framework-bound factory returning a FastAPI dependency; Ruby ships the equivalent as the SignalWire::Security::WebhookMiddleware Rack middleware (a PORT_ADDITION) — the FastAPI-dependency FORM has no Rack analog (TS/PHP ship native middleware likewise)
+signalwire.livewire.Agent: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.Agent.__init__: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.Agent.llm_node: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.Agent.on_enter: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.Agent.on_exit: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.Agent.on_user_turn_completed: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.Agent.session: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.Agent.stt_node: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.Agent.tts_node: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.Agent.update_instructions: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.Agent.update_tools: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.AgentHandoff: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.AgentHandoff.__init__: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.AgentServer: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.AgentServer.__init__: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.AgentServer.rtc_session: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.AgentSession: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.AgentSession.__init__: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.AgentSession.generate_reply: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.AgentSession.history: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.AgentSession.interrupt: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.AgentSession.say: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.AgentSession.start: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.AgentSession.update_agent: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.AgentSession.userdata: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.ChatContext: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.ChatContext.__init__: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.ChatContext.append: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.InferenceLLM: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.InferenceLLM.__init__: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.InferenceSTT: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.InferenceSTT.__init__: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.InferenceTTS: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.InferenceTTS.__init__: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.JobContext: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.JobContext.__init__: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.JobContext.connect: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.JobContext.wait_for_participant: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.JobProcess: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.JobProcess.__init__: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.Room: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.RunContext: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.RunContext.__init__: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.RunContext.userdata: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.StopResponse: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.ToolError: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.function_tool: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.plugins.CartesiaTTS: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.plugins.CartesiaTTS.__init__: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.plugins.DeepgramSTT: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.plugins.DeepgramSTT.__init__: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.plugins.ElevenLabsTTS: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.plugins.ElevenLabsTTS.__init__: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.plugins.OpenAILLM: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.plugins.OpenAILLM.__init__: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.plugins.SileroVAD: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.plugins.SileroVAD.__init__: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.plugins.SileroVAD.load: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.livewire.run_app: approved: livewire is LiveKit-agents-compat; LiveKit ships no Ruby agents SDK (only Python + Node/TS), so it is not ported to Ruby — invented surface otherwise (user, 2026-07)
+signalwire.mcp_gateway.gateway_service.MCPGateway: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.gateway_service.MCPGateway.__init__: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.gateway_service.MCPGateway.run: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.gateway_service.MCPGateway.shutdown: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.gateway_service.main: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.mcp_manager.MCPClient: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.mcp_manager.MCPClient.__init__: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.mcp_manager.MCPClient.call_method: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.mcp_manager.MCPClient.call_tool: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.mcp_manager.MCPClient.get_tools: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.mcp_manager.MCPClient.start: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.mcp_manager.MCPClient.stop: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.mcp_manager.MCPManager: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.mcp_manager.MCPManager.__init__: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.mcp_manager.MCPManager.create_client: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.mcp_manager.MCPManager.get_service: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.mcp_manager.MCPManager.get_service_tools: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.mcp_manager.MCPManager.list_services: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.mcp_manager.MCPManager.shutdown: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.mcp_manager.MCPManager.validate_services: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.mcp_manager.MCPService: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.mcp_manager.MCPService.__hash__: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.mcp_manager.MCPService.__post_init__: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.session_manager.Session: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.session_manager.Session.is_alive: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.session_manager.Session.is_expired: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.session_manager.Session.touch: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.session_manager.SessionManager: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.session_manager.SessionManager.__init__: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.session_manager.SessionManager.close_session: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.session_manager.SessionManager.create_session: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.session_manager.SessionManager.get_service_session_count: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.session_manager.SessionManager.get_session: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.session_manager.SessionManager.list_sessions: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.mcp_gateway.session_manager.SessionManager.shutdown: approved: Python-only MCP gateway subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
 signalwire.pom.pom_tool.detect_file_format: pom_tool is a Python CLI utility; Ruby ships the POM library only
 signalwire.pom.pom_tool.load_pom: pom_tool is a Python CLI utility; Ruby ships the POM library only
 signalwire.pom.pom_tool.main: pom_tool is a Python CLI utility; Ruby ships the POM library only
 signalwire.pom.pom_tool.render_pom: pom_tool is a Python CLI utility; Ruby ships the POM library only
-signalwire.prefabs.faq_bot.FAQBotAgent.search_faqs: Ruby uses SignalWire::Prefabs::FaqBot#handle_search - different name
-signalwire.prefabs.info_gatherer.InfoGathererAgent.start_questions: Ruby uses SignalWire::Prefabs::InfoGatherer#handle_start - different name
-signalwire.prefabs.info_gatherer.InfoGathererAgent.submit_answer: Ruby uses SignalWire::Prefabs::InfoGatherer#handle_submit - different name
-signalwire.relay.call.Action.is_done: Ruby uses is_done? and done? (idiomatic Ruby predicates)
-signalwire.relay.call.Call.__repr__: Ruby uses inspect/to_s idioms
-signalwire.relay.call.Call.pass_: Ruby uses SignalWire::Relay::Call#pass_call - pass is a Ruby keyword
-signalwire.relay.call.Call.tap: Ruby uses SignalWire::Relay::Call#tap_audio - tap is a Ruby core method
-signalwire.relay.client.RelayClient.__aenter__: Python async-context-manager protocol; Ruby uses block-style Client.new { |c| ... }
-signalwire.relay.client.RelayClient.__aexit__: Python async-context-manager protocol; Ruby uses block-style Client.new { |c| ... }
-signalwire.relay.client.RelayClient.__del__: Ruby finalizers differ; no explicit __del__ equivalent
-signalwire.relay.client.RelayClient.connect: Ruby auto-connects on Client.new (constructor); no separate connect method
-signalwire.relay.client.RelayClient.disconnect: Ruby SignalWire::Relay::Client#stop covers this - different name
-signalwire.relay.client.RelayClient.relay_protocol: Ruby SignalWire::Relay::Client#protocol covers this - different name
-signalwire.relay.message.Message.__repr__: Ruby uses inspect/to_s idioms
-signalwire.relay.message.Message.is_done: Ruby uses is_done? and done? predicates
-signalwire.relay.message.Message.on: Ruby uses SignalWire::Relay::Message#on_event and #on_completed - different name
+signalwire.relay.client.RelayClient.__aenter__: impossible: Python async-context-manager protocol dunder; Ruby uses block form / explicit connect+disconnect — no __aenter__ equivalent (TS/PHP omit identically)
+signalwire.relay.client.RelayClient.__aexit__: impossible: Python async-context-manager protocol dunder; Ruby uses block form / explicit connect+disconnect (TS/PHP omit identically)
+signalwire.relay.client.RelayClient.__del__: impossible: Python finalizer dunder; Ruby has no deterministic __del__ finalizer protocol (TS/PHP omit identically)
+signalwire.relay.client.RelayClient.relay_protocol: impossible: Python property exposing the internal relay-protocol object; Ruby keeps the protocol object private (no public accessor) — internal plumbing, not public surface (TS/PHP omit identically)
+signalwire.relay.message.Message.__repr__: impossible: Python object-repr dunder; Ruby provides the equivalent via the shared MessageSerialization module's inspect/to_s, but the __repr__ NAME itself has no standalone Ruby form (mirrors Call.__repr__; TS/PHP omit identically)
 signalwire.rest.call_handler.PhoneCallHandler: Ruby SignalWire::REST::PhoneCallHandler is an empty marker (matches Python - no methods on either)
 signalwire.rest.namespaces.calling.CallingNamespace.end: Ruby uses SignalWire::REST::Namespaces::CallingNamespace#end_call - end is a Ruby keyword
-signalwire.search.document_processor.DocumentProcessor: search subsystem omitted - vector search/indexing not ported
-signalwire.search.document_processor.DocumentProcessor.__init__: search subsystem omitted - vector search/indexing not ported
-signalwire.search.document_processor.DocumentProcessor.create_chunks: search subsystem omitted - vector search/indexing not ported
-signalwire.search.index_builder.IndexBuilder: search subsystem omitted - vector search/indexing not ported
-signalwire.search.index_builder.IndexBuilder.__init__: search subsystem omitted - vector search/indexing not ported
-signalwire.search.index_builder.IndexBuilder.build_index: search subsystem omitted - vector search/indexing not ported
-signalwire.search.index_builder.IndexBuilder.build_index_from_sources: search subsystem omitted - vector search/indexing not ported
-signalwire.search.index_builder.IndexBuilder.validate_index: search subsystem omitted - vector search/indexing not ported
-signalwire.search.migration.SearchIndexMigrator: search subsystem omitted - vector search/indexing not ported
-signalwire.search.migration.SearchIndexMigrator.__init__: search subsystem omitted - vector search/indexing not ported
-signalwire.search.migration.SearchIndexMigrator.get_index_info: search subsystem omitted - vector search/indexing not ported
-signalwire.search.migration.SearchIndexMigrator.migrate_pgvector_to_sqlite: search subsystem omitted - vector search/indexing not ported
-signalwire.search.migration.SearchIndexMigrator.migrate_sqlite_to_pgvector: search subsystem omitted - vector search/indexing not ported
-signalwire.search.models.resolve_model_alias: search subsystem omitted - vector search/indexing not ported
-signalwire.search.pgvector_backend.PgVectorBackend: search subsystem omitted - vector search/indexing not ported
-signalwire.search.pgvector_backend.PgVectorBackend.__init__: search subsystem omitted - vector search/indexing not ported
-signalwire.search.pgvector_backend.PgVectorBackend.close: search subsystem omitted - vector search/indexing not ported
-signalwire.search.pgvector_backend.PgVectorBackend.create_schema: search subsystem omitted - vector search/indexing not ported
-signalwire.search.pgvector_backend.PgVectorBackend.delete_collection: search subsystem omitted - vector search/indexing not ported
-signalwire.search.pgvector_backend.PgVectorBackend.get_stats: search subsystem omitted - vector search/indexing not ported
-signalwire.search.pgvector_backend.PgVectorBackend.list_collections: search subsystem omitted - vector search/indexing not ported
-signalwire.search.pgvector_backend.PgVectorBackend.store_chunks: search subsystem omitted - vector search/indexing not ported
-signalwire.search.pgvector_backend.PgVectorSearchBackend: search subsystem omitted - vector search/indexing not ported
-signalwire.search.pgvector_backend.PgVectorSearchBackend.__init__: search subsystem omitted - vector search/indexing not ported
-signalwire.search.pgvector_backend.PgVectorSearchBackend.close: search subsystem omitted - vector search/indexing not ported
-signalwire.search.pgvector_backend.PgVectorSearchBackend.fetch_candidates: search subsystem omitted - vector search/indexing not ported
-signalwire.search.pgvector_backend.PgVectorSearchBackend.get_stats: search subsystem omitted - vector search/indexing not ported
-signalwire.search.pgvector_backend.PgVectorSearchBackend.search: search subsystem omitted - vector search/indexing not ported
-signalwire.search.query_processor.detect_language: search subsystem omitted - vector search/indexing not ported
-signalwire.search.query_processor.ensure_nltk_resources: search subsystem omitted - vector search/indexing not ported
-signalwire.search.query_processor.get_synonyms: search subsystem omitted - vector search/indexing not ported
-signalwire.search.query_processor.get_wordnet_pos: search subsystem omitted - vector search/indexing not ported
-signalwire.search.query_processor.load_spacy_model: search subsystem omitted - vector search/indexing not ported
-signalwire.search.query_processor.preprocess_document_content: search subsystem omitted - vector search/indexing not ported
-signalwire.search.query_processor.preprocess_query: search subsystem omitted - vector search/indexing not ported
-signalwire.search.query_processor.remove_duplicate_words: search subsystem omitted - vector search/indexing not ported
-signalwire.search.query_processor.set_global_model: search subsystem omitted - vector search/indexing not ported
-signalwire.search.query_processor.vectorize_query: search subsystem omitted - vector search/indexing not ported
-signalwire.search.search_engine.SearchEngine: search subsystem omitted - vector search/indexing not ported
-signalwire.search.search_engine.SearchEngine.__init__: search subsystem omitted - vector search/indexing not ported
-signalwire.search.search_engine.SearchEngine.get_stats: search subsystem omitted - vector search/indexing not ported
-signalwire.search.search_engine.SearchEngine.search: search subsystem omitted - vector search/indexing not ported
-signalwire.search.search_service.SearchService: search subsystem omitted - vector search/indexing not ported
-signalwire.search.search_service.SearchService.__init__: search subsystem omitted - vector search/indexing not ported
-signalwire.search.search_service.SearchService.search_direct: search subsystem omitted - vector search/indexing not ported
-signalwire.search.search_service.SearchService.start: search subsystem omitted - vector search/indexing not ported
-signalwire.search.search_service.SearchService.stop: search subsystem omitted - vector search/indexing not ported
-signalwire.skills.api_ninjas_trivia.skill.ApiNinjasTriviaSkill.__init__: Ruby built-in skills use the SignalWire::Skills::SkillBase constructor
-signalwire.skills.api_ninjas_trivia.skill.ApiNinjasTriviaSkill.get_instance_key: Ruby SignalWire::Skills::SkillBase#instance_key (attr_reader)
-signalwire.skills.api_ninjas_trivia.skill.ApiNinjasTriviaSkill.get_tools: Ruby built-in skills register tools in setup, not get_tools
-signalwire.skills.claude_skills.skill.ClaudeSkillsSkill.get_instance_key: Ruby SignalWire::Skills::SkillBase#instance_key (attr_reader)
-signalwire.skills.datasphere.skill.DataSphereSkill.cleanup: Ruby inherits base cleanup; Python's per-skill cleanup is a no-op (pass) — not re-declared in Ruby (idiomatic, zero behavioral difference)
-signalwire.skills.datasphere.skill.DataSphereSkill.get_hints: Ruby inherits the identical base SkillBase#get_hints (Python's per-skill override is a no-op placeholder returning []); not re-declared in Ruby — idiomatic, zero behavioral difference (go/rust/cpp ports also omit; ts/php/perl/java/dotnet re-declare the no-op)
-signalwire.skills.datasphere.skill.DataSphereSkill.get_instance_key: Ruby SignalWire::Skills::SkillBase#instance_key (attr_reader)
-signalwire.skills.datasphere_serverless.skill.DataSphereServerlessSkill.get_hints: Ruby inherits the identical base SkillBase#get_hints (Python's per-skill override is a no-op placeholder returning []); not re-declared in Ruby — idiomatic, zero behavioral difference (go/rust/cpp ports also omit; ts/php/perl/java/dotnet re-declare the no-op)
-signalwire.skills.datasphere_serverless.skill.DataSphereServerlessSkill.get_instance_key: Ruby SignalWire::Skills::SkillBase#instance_key (attr_reader)
-signalwire.skills.datetime.skill.DateTimeSkill.get_hints: Ruby inherits the identical base SkillBase#get_hints (Python's per-skill override is a no-op placeholder returning []); not re-declared in Ruby — idiomatic, zero behavioral difference (go/rust/cpp ports also omit; ts/php/perl/java/dotnet re-declare the no-op)
+signalwire.search.document_processor.DocumentProcessor: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.document_processor.DocumentProcessor.__init__: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.document_processor.DocumentProcessor.create_chunks: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.index_builder.IndexBuilder: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.index_builder.IndexBuilder.__init__: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.index_builder.IndexBuilder.build_index: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.index_builder.IndexBuilder.build_index_from_sources: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.index_builder.IndexBuilder.validate_index: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.migration.SearchIndexMigrator: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.migration.SearchIndexMigrator.__init__: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.migration.SearchIndexMigrator.get_index_info: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.migration.SearchIndexMigrator.migrate_pgvector_to_sqlite: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.migration.SearchIndexMigrator.migrate_sqlite_to_pgvector: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.models.resolve_model_alias: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.pgvector_backend.PgVectorBackend: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.pgvector_backend.PgVectorBackend.__init__: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.pgvector_backend.PgVectorBackend.close: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.pgvector_backend.PgVectorBackend.create_schema: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.pgvector_backend.PgVectorBackend.delete_collection: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.pgvector_backend.PgVectorBackend.get_stats: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.pgvector_backend.PgVectorBackend.list_collections: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.pgvector_backend.PgVectorBackend.store_chunks: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.pgvector_backend.PgVectorSearchBackend: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.pgvector_backend.PgVectorSearchBackend.__init__: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.pgvector_backend.PgVectorSearchBackend.close: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.pgvector_backend.PgVectorSearchBackend.fetch_candidates: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.pgvector_backend.PgVectorSearchBackend.get_stats: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.pgvector_backend.PgVectorSearchBackend.search: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.query_processor.detect_language: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.query_processor.ensure_nltk_resources: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.query_processor.get_synonyms: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.query_processor.get_wordnet_pos: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.query_processor.load_spacy_model: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.query_processor.preprocess_document_content: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.query_processor.preprocess_query: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.query_processor.remove_duplicate_words: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.query_processor.set_global_model: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.query_processor.vectorize_query: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.search_engine.SearchEngine: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.search_engine.SearchEngine.__init__: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.search_engine.SearchEngine.get_stats: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.search_engine.SearchEngine.search: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.search_service.SearchService: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.search_service.SearchService.__init__: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.search_service.SearchService.search_direct: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.search_service.SearchService.start: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.search.search_service.SearchService.stop: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
 signalwire.skills.google_maps.skill.GoogleMapsClient: internal HTTP client not exposed in Ruby port
 signalwire.skills.google_maps.skill.GoogleMapsClient.__init__: internal HTTP client not exposed in Ruby port
 signalwire.skills.google_maps.skill.GoogleMapsClient.compute_route: internal HTTP client not exposed in Ruby port
 signalwire.skills.google_maps.skill.GoogleMapsClient.validate_address: internal HTTP client not exposed in Ruby port
-signalwire.skills.info_gatherer.skill.InfoGathererSkill.get_instance_key: Ruby SignalWire::Skills::SkillBase#instance_key (attr_reader)
-signalwire.skills.joke.skill.JokeSkill.get_hints: Ruby inherits the identical base SkillBase#get_hints (Python's per-skill override is a no-op placeholder returning []); not re-declared in Ruby — idiomatic, zero behavioral difference (go/rust/cpp ports also omit; ts/php/perl/java/dotnet re-declare the no-op)
-signalwire.skills.math.skill.MathSkill.get_hints: Ruby inherits the identical base SkillBase#get_hints (Python's per-skill override is a no-op placeholder returning []); not re-declared in Ruby — idiomatic, zero behavioral difference (go/rust/cpp ports also omit; ts/php/perl/java/dotnet re-declare the no-op)
-signalwire.skills.native_vector_search.skill.NativeVectorSearchSkill.cleanup: search subsystem omitted
-signalwire.skills.native_vector_search.skill.NativeVectorSearchSkill.get_global_data: search subsystem omitted
-signalwire.skills.native_vector_search.skill.NativeVectorSearchSkill.get_instance_key: Ruby SignalWire::Skills::SkillBase#instance_key (attr_reader)
-signalwire.skills.native_vector_search.skill.NativeVectorSearchSkill.get_prompt_sections: search subsystem omitted
-signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.__init__: Ruby built-in skills use SignalWire::Skills::SkillBase constructor
-signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.get_instance_key: Ruby SignalWire::Skills::SkillBase#instance_key (attr_reader)
-signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.get_tools: Ruby built-in skills register tools in setup
-signalwire.skills.registry.SkillRegistry.__init__: Ruby SignalWire::Skills::SkillRegistry is a singleton module; no constructor
+signalwire.skills.native_vector_search.skill.NativeVectorSearchSkill.cleanup: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.skills.native_vector_search.skill.NativeVectorSearchSkill.get_global_data: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
+signalwire.skills.native_vector_search.skill.NativeVectorSearchSkill.get_prompt_sections: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
 signalwire.skills.registry.SkillRegistry.get_skill_class: Ruby SignalWire::Skills::SkillRegistry#get_factory returns class-or-factory - different name
-signalwire.skills.spider.skill.SpiderSkill.__init__: Ruby built-in skills use SignalWire::Skills::SkillBase constructor
-signalwire.skills.spider.skill.SpiderSkill.get_instance_key: Ruby SignalWire::Skills::SkillBase#instance_key (attr_reader)
-signalwire.skills.swml_transfer.skill.SWMLTransferSkill.get_instance_key: Ruby SignalWire::Skills::SkillBase#instance_key (attr_reader)
-signalwire.skills.weather_api.skill.WeatherApiSkill.__init__: Ruby built-in skills use SignalWire::Skills::SkillBase constructor
-signalwire.skills.weather_api.skill.WeatherApiSkill.get_tools: Ruby built-in skills register tools in setup
 signalwire.skills.web_search.skill.GoogleSearchScraper: part of search subsystem; scraper class omitted
 signalwire.skills.web_search.skill.GoogleSearchScraper.__init__: part of search subsystem; scraper class omitted
 signalwire.skills.web_search.skill.GoogleSearchScraper.extract_html_content: part of search subsystem; scraper class omitted
@@ -626,8 +372,6 @@ signalwire.skills.web_search.skill.GoogleSearchScraper.is_reddit_url: part of se
 signalwire.skills.web_search.skill.GoogleSearchScraper.search_and_scrape: part of search subsystem; scraper class omitted
 signalwire.skills.web_search.skill.GoogleSearchScraper.search_and_scrape_best: part of search subsystem; scraper class omitted
 signalwire.skills.web_search.skill.GoogleSearchScraper.search_google: part of search subsystem; scraper class omitted
-signalwire.skills.web_search.skill.WebSearchSkill.get_hints: Ruby inherits the identical base SkillBase#get_hints (Python's per-skill override is a no-op placeholder returning []); not re-declared in Ruby — idiomatic, zero behavioral difference (go/rust/cpp ports also omit; ts/php/perl/java/dotnet re-declare the no-op)
-signalwire.skills.web_search.skill.WebSearchSkill.get_instance_key: Ruby SignalWire::Skills::SkillBase#instance_key (attr_reader)
 signalwire.skills.web_search.skill_improved.GoogleSearchScraper: search subsystem variant (Python has three parallel skill files); not ported
 signalwire.skills.web_search.skill_improved.GoogleSearchScraper.__init__: search subsystem variant (Python has three parallel skill files); not ported
 signalwire.skills.web_search.skill_improved.GoogleSearchScraper.extract_text_from_url: search subsystem variant (Python has three parallel skill files); not ported
@@ -655,24 +399,3 @@ signalwire.skills.web_search.skill_original.WebSearchSkill.get_parameter_schema:
 signalwire.skills.web_search.skill_original.WebSearchSkill.get_prompt_sections: search subsystem variant (Python has three parallel skill files); not ported
 signalwire.skills.web_search.skill_original.WebSearchSkill.register_tools: search subsystem variant (Python has three parallel skill files); not ported
 signalwire.skills.web_search.skill_original.WebSearchSkill.setup: search subsystem variant (Python has three parallel skill files); not ported
-signalwire.skills.wikipedia_search.skill.WikipediaSearchSkill.get_hints: Ruby inherits the identical base SkillBase#get_hints (Python's per-skill override is a no-op placeholder returning []); not re-declared in Ruby — idiomatic, zero behavioral difference (go/rust/cpp ports also omit; ts/php/perl/java/dotnet re-declare the no-op)
-signalwire.utils.schema_utils.SchemaUtils: SchemaUtils consolidated into SignalWire::SWML::Schema - see port_surface.json signalwire.swml.schema
-signalwire.utils.schema_utils.SchemaUtils.__init__: SchemaUtils consolidated into SignalWire::SWML::Schema - see port_surface.json signalwire.swml.schema
-signalwire.utils.schema_utils.SchemaUtils.full_validation_available: SchemaUtils consolidated into SignalWire::SWML::Schema - see port_surface.json signalwire.swml.schema
-signalwire.utils.schema_utils.SchemaUtils.generate_method_body: SchemaUtils consolidated into SignalWire::SWML::Schema - see port_surface.json signalwire.swml.schema
-signalwire.utils.schema_utils.SchemaUtils.generate_method_signature: SchemaUtils consolidated into SignalWire::SWML::Schema - see port_surface.json signalwire.swml.schema
-signalwire.utils.schema_utils.SchemaUtils.get_all_verb_names: SchemaUtils consolidated into SignalWire::SWML::Schema - see port_surface.json signalwire.swml.schema
-signalwire.utils.schema_utils.SchemaUtils.get_verb_parameters: SchemaUtils consolidated into SignalWire::SWML::Schema - see port_surface.json signalwire.swml.schema
-signalwire.utils.schema_utils.SchemaUtils.get_verb_properties: SchemaUtils consolidated into SignalWire::SWML::Schema - see port_surface.json signalwire.swml.schema
-signalwire.utils.schema_utils.SchemaUtils.get_verb_required_properties: SchemaUtils consolidated into SignalWire::SWML::Schema - see port_surface.json signalwire.swml.schema
-signalwire.utils.schema_utils.SchemaUtils.load_schema: SchemaUtils consolidated into SignalWire::SWML::Schema - see port_surface.json signalwire.swml.schema
-signalwire.utils.schema_utils.SchemaUtils.validate_document: SchemaUtils consolidated into SignalWire::SWML::Schema - see port_surface.json signalwire.swml.schema
-signalwire.utils.schema_utils.SchemaUtils.validate_verb: SchemaUtils consolidated into SignalWire::SWML::Schema - see port_surface.json signalwire.swml.schema
-signalwire.web.web_service.WebService: standalone WebService not ported; static files served from SignalWire::Server::AgentServer
-signalwire.web.web_service.WebService.__init__: standalone WebService not ported; static files served from SignalWire::Server::AgentServer
-signalwire.web.web_service.WebService.add_directory: standalone WebService not ported; static files served from SignalWire::Server::AgentServer
-signalwire.web.web_service.WebService.remove_directory: standalone WebService not ported; static files served from SignalWire::Server::AgentServer
-signalwire.web.web_service.WebService.start: standalone WebService not ported; static files served from SignalWire::Server::AgentServer
-signalwire.web.web_service.WebService.stop: standalone WebService not ported; static files served from SignalWire::Server::AgentServer
-signalwire.utils.is_serverless_mode: implemented as SignalWire::Utils.is_serverless_mode (module function; present in port_signatures.json); the Ruby surface enumerator does not emit module-level functions, so it is absent from port_surface.json
-signalwire.utils.url_validator.validate_url: Ruby exposes this as the UrlValidator.validate_url class method (see PORT_ADDITIONS); there is no module-level free function, so the Python free-function symbol is surface-omitted

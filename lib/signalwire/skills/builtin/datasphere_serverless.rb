@@ -39,6 +39,9 @@ module SignalWire
           [{ datamap: dm.to_swaig_function }]
         end
 
+        # Returns [] — this skill ships no example hints.
+        def get_hints = []
+
         def get_global_data
           {
             'datasphere_serverless_enabled' => true,

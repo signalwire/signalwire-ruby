@@ -8,9 +8,9 @@
 require 'signalwire'
 
 # --- Voicemail Service ---
-voicemail = SignalWire::SWMLService.new(name: 'voicemail', route: '/voicemail')
+voicemail = SignalWire::SWML::Service.new(name: 'voicemail', route: '/voicemail')
 
-voicemail.add_answer_verb
+voicemail.answer
 voicemail.play(url: 'say:Hello, you have reached the voicemail service. Please leave a message after the beep.')
 voicemail.sleep(1000)
 voicemail.play(url: 'https://example.com/beep.wav')
@@ -23,12 +23,12 @@ voicemail.record(
   status_url: 'https://example.com/voicemail-status'
 )
 voicemail.play(url: 'say:Thank you for your message. Goodbye!')
-voicemail.add_hangup_verb
+voicemail.hangup
 
 # --- IVR Menu Service ---
-ivr = SignalWire::SWMLService.new(name: 'ivr', route: '/ivr')
+ivr = SignalWire::SWML::Service.new(name: 'ivr', route: '/ivr')
 
-ivr.add_answer_verb
+ivr.answer
 ivr.add_section('main_menu')
 ivr.add_verb_to_section('main_menu', 'prompt',
   'play'        => 'say:Press 1 for sales, 2 for support, or 3 to leave a message.',
@@ -44,9 +44,9 @@ ivr.add_verb_to_section('main_menu', 'switch',
 ivr.add_verb('transfer', 'dest' => 'main_menu')
 
 # --- Call Transfer Service ---
-transfer = SignalWire::SWMLService.new(name: 'transfer', route: '/transfer')
+transfer = SignalWire::SWML::Service.new(name: 'transfer', route: '/transfer')
 
-transfer.add_answer_verb
+transfer.answer
 transfer.add_verb('play', 'url' => 'say:Connecting you with the next available agent.')
 transfer.add_verb('connect',
   'from'     => '+15551234567',
@@ -56,8 +56,8 @@ transfer.add_verb('connect',
     { 'to' => '+15554445555' }
   ])
 transfer.add_verb('record', 'format' => 'mp3', 'beep' => true, 'max_length' => 120)
-transfer.add_hangup_verb
+transfer.hangup
 
 # Run the voicemail service by default
 puts "Starting voicemail service on port #{voicemail.port}..."
-voicemail.run
+voicemail.serve

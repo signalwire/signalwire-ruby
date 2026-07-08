@@ -44,7 +44,6 @@ The file names mirror the Python reference SDK so the examples are easy to cross
 | [datasphere_multi_instance_demo.rb](datasphere_multi_instance_demo.rb) | DataSphere multi-instance with custom tool names |
 | [datasphere_serverless_env.rb](datasphere_serverless_env.rb) | DataSphere serverless from environment variables |
 | [datasphere_webhook_env_demo.rb](datasphere_webhook_env_demo.rb) | Webhook-based DataSphere from environment variables |
-| [mcp_gateway_demo.rb](mcp_gateway_demo.rb) | MCP gateway skill connecting to Model Context Protocol servers |
 
 ## Prefab Examples
 

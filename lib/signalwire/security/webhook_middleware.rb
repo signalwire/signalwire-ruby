@@ -52,6 +52,61 @@ module SignalWire
       RAW_BODY_ENV_KEY = 'signalwire.raw_body'
 
       # @param app [#call] the wrapped Rack app.
+      # Framework-free decomposed validation core (the SignalWire webhook
+      # signing scheme's combined validator, decomposed at the HTTP
+      # boundary). Given the raw HTTP request primitives — method, full public
+      # URL, headers, raw body — plus the Signing Key, return ``nil`` when the
+      # request is authentic (let it through) or a Rack-shaped
+      # ``[status, headers, body]`` rejection triple when it must be blocked.
+      #
+      # This is the SAME decision the Rack ``#call`` wrapper makes; ``#call``
+      # simply extracts these primitives from the Rack ``env`` and delegates
+      # here. Exposing it separately lets non-Rack hosts (Sinatra route blocks,
+      # AWS Lambda handlers, plain scripts) reuse the exact validation logic
+      # without constructing a middleware object. A ``nil`` return is the pass
+      # signal; a triple is the ready-to-serve 403.
+      #
+      # The ``X-SignalWire-Signature`` header is honored, with
+      # ``X-Twilio-Signature`` accepted as a legacy cXML/Compatibility alias.
+      # Header lookup is case-insensitive (HTTP header names are).
+      #
+      # @param method [String] the request HTTP method (``POST`` etc.). Accepted
+      #   as part of the validation signature; validation applies
+      #   to any method (the Rack wrapper does the method allowlisting).
+      # @param url [String] the full public URL SignalWire POSTed to (scheme,
+      #   host, optional port, path, query) — see webhooks.md URL reconstruction.
+      # @param headers [Hash{String=>String}] request headers (any casing).
+      # @param body [String] the raw request body bytes as a UTF-8 String,
+      #   BEFORE any JSON / form parsing.
+      # @param signing_key [String] the customer Signing Key (required).
+      #
+      # @return [Array(Integer, Hash, Array<String>), nil] ``nil`` to pass;
+      #   a ``[403, headers, body]`` Rack triple to reject.
+      #
+      # @raise [ArgumentError] when ``signing_key`` is missing.
+      #
+      # The ``method`` param is part of the decomposed validator's signature
+      # but is not consulted here — the Rack wrapper does method allowlisting;
+      # the signature check itself is method-agnostic.
+      def self.validate(method, url, headers, body, signing_key:) # rubocop:disable Lint/UnusedMethodArgument
+        # Missing signing key is a programming error, not a validation failure —
+        # raise (webhooks.md "Error modes"), consistent with the L1 validator.
+        raise ArgumentError, 'signing_key is required' if signing_key.nil? || signing_key.to_s.empty?
+
+        signature = WebhookValidator._signature_from_headers(headers)
+        return WebhookValidator._forbidden_triple if signature.nil? || signature.empty?
+
+        ok =
+          begin
+            WebhookValidator.validate_webhook_signature(signing_key, signature, url, body.to_s)
+          rescue TypeError
+            # A non-String body slipped through — treat as a plain rejection
+            # rather than leaking the boundary error to the caller / client.
+            false
+          end
+        ok ? nil : WebhookValidator._forbidden_triple
+      end
+
       # @param signing_key [String] customer Signing Key (required, non-empty).
       # @param trust_proxy [Boolean] honor X-Forwarded-Proto / X-Forwarded-Host
       #   when reconstructing the request URL. Default false — proxy headers
@@ -81,25 +136,29 @@ module SignalWire
         raw_body = _read_raw_body(env)
         env[RAW_BODY_ENV_KEY] = raw_body
 
-        signature = _extract_signature_header(env)
-        return _forbidden if signature.nil? || signature.empty?
-
         url = _reconstruct_url(env)
-        return _forbidden unless _signature_valid?(signature, url, raw_body)
+        # Delegate the pass/reject decision to the framework-free decomposed
+        # core (the cross-port contract). It returns nil to pass or a Rack
+        # [status, headers, body] triple to reject.
+        rejection = self.class.validate(
+          env['REQUEST_METHOD'].to_s, url, _rack_signature_headers(env), raw_body,
+          signing_key: @signing_key
+        )
+        return rejection if rejection
 
         @app.call(env)
       end
 
       private
 
-      # @api private
-      # Validate the signature, treating boundary programming errors
-      # (ArgumentError/TypeError) as a plain rejection — never leak which
-      # branch tripped, never raise.
-      def _signature_valid?(signature, url, raw_body)
-        WebhookValidator.validate_webhook_signature(@signing_key, signature, url, raw_body)
-      rescue ArgumentError, TypeError
-        false
+      # @api private — surface the signature header(s) from the Rack env as a
+      # plain header Hash the decomposed #validate can read (both the canonical
+      # and the legacy-compat header name, un-CGI-mangled).
+      def _rack_signature_headers(env)
+        {
+          'X-SignalWire-Signature' => env[SIGNALWIRE_SIGNATURE_HEADER],
+          'X-Twilio-Signature' => env[TWILIO_COMPAT_SIGNATURE_HEADER]
+        }.compact
       end
 
       # @api private
@@ -129,13 +188,6 @@ module SignalWire
         body.to_s
       rescue StandardError
         ''
-      end
-
-      # @api private
-      def _extract_signature_header(env)
-        sig = env[SIGNALWIRE_SIGNATURE_HEADER]
-        sig = env[TWILIO_COMPAT_SIGNATURE_HEADER] if sig.nil? || sig.empty?
-        sig
       end
 
       # @api private
@@ -202,12 +254,6 @@ module SignalWire
       def _nonstandard_port?(scheme, port)
         (scheme == 'http' && port.to_s != '80') ||
           (scheme == 'https' && port.to_s != '443')
-      end
-
-      # @api private
-      def _forbidden
-        # No body detail — never leak which branch tripped.
-        [403, { 'content-type' => 'text/plain' }, ['']]
       end
     end
   end

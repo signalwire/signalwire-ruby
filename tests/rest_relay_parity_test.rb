@@ -87,13 +87,13 @@ class CrudWithAddressesParityTest < Minitest::Test
   def test_fabric_resource_inherits_list_addresses_from_mixin
     # Python's FabricResource(CrudWithAddresses) inherits list_addresses
     # rather than declaring it. Mirror that hierarchy in the Ruby port.
-    assert_operator SignalWire::REST::Namespaces::FabricResource, :<, SignalWire::REST::CrudWithAddresses
-    refute_includes SignalWire::REST::Namespaces::FabricResource.public_instance_methods(false),
+    assert_operator SignalWire::REST::Namespaces::Generated::FabricResource, :<, SignalWire::REST::CrudWithAddresses
+    refute_includes SignalWire::REST::Namespaces::Generated::FabricResource.public_instance_methods(false),
                     :list_addresses,
                     'list_addresses should be inherited, not redeclared on FabricResource'
 
     http = RecordingHttp.new
-    SignalWire::REST::Namespaces::FabricResource
+    SignalWire::REST::Namespaces::Generated::FabricResource
       .new(http, '/api/fabric/resources/ai_agents')
       .list_addresses('abc')
 

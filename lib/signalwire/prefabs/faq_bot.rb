@@ -66,8 +66,7 @@ module SignalWire
         )
       end
 
-      # Lifecycle hook: on_summary — Python parity
-      # (signalwire.prefabs.faq_bot.FAQBotAgent#on_summary).
+      # Lifecycle hook: on_summary.
       #
       # Logs the post-prompt interaction summary; structured (Hash) summaries
       # are emitted as pretty JSON. Subclasses may override to persist.

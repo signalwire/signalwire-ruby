@@ -760,21 +760,22 @@ module SwaigTest
     def build_parser
       OptionParser.new do |opts|
         opts.banner = 'Usage: swaig-test [agent_file] [options]'
-        register_mode_options(opts)
+        register_url_and_file_options(opts)
+        register_simulate_option(opts)
         register_action_options(opts)
+        register_parse_only_option(opts)
         register_output_options(opts)
       end
     end
 
-    def register_mode_options(opts)
-      register_url_option(opts)
-      register_simulate_option(opts)
-      register_file_option(opts)
-    end
-
-    def register_url_option(opts)
+    def register_url_and_file_options(opts)
       opts.on('--url URL', 'Agent URL with embedded auth (http://user:pass@host:port/route)') do |v|
         @options[:url] = v
+      end
+      opts.on('--file PATH', '--example PATH',
+              'Load a SWML::Service subclass from PATH in-process and read its tool registry ' \
+              'directly (no HTTP, no simulator). Required for --list-tools on a non-AgentBase Service.') do |v|
+        @options[:file] = v
       end
     end
 
@@ -805,14 +806,6 @@ module SwaigTest
       end
     end
 
-    def register_file_option(opts)
-      opts.on('--file PATH', '--example PATH',
-              'Load a SWML::Service subclass from PATH in-process and read its tool registry ' \
-              'directly (no HTTP, no simulator). Required for --list-tools on a non-AgentBase Service.') do |v|
-        @options[:file] = v
-      end
-    end
-
     def register_action_options(opts)
       opts.on('--dump-swml', 'GET SWML document and pretty-print it') do
         @options[:dump_swml] = true
@@ -822,6 +815,15 @@ module SwaigTest
       end
       opts.on('--exec NAME', 'Execute a SWAIG function by name') do |v|
         @options[:exec] = v
+      end
+    end
+
+    # --parse-only / --dry-run: validate args then exit without loading the agent
+    # or hitting the network. Position-independent (OptionParser accepts it anywhere,
+    # so it is honoured even when it trails an --exec).
+    def register_parse_only_option(opts)
+      opts.on('--parse-only', '--dry-run', 'Validate args and exit (prints "parse OK")') do
+        @options[:parse_only] = true
       end
     end
 
@@ -909,6 +911,9 @@ module SwaigTest
         warn "Usage: swaig-test AGENT_FILE --simulate-serverless #{platform} [--dump-swml | --exec NAME]"
         exit 1
       end
+      # Under --parse-only we validate argument well-formedness only and never
+      # touch the filesystem, so agent-file existence is not checked.
+      return if @options[:parse_only]
       return if File.exist?(@options[:agent_file])
 
       warn "Error: agent file not found: #{@options[:agent_file]}"
@@ -1007,6 +1012,10 @@ module SwaigTest
     end
 
     def reject_missing_file!
+      # Under --parse-only we validate argument well-formedness only and never
+      # touch the filesystem, so file existence is not checked (a syntactically
+      # valid invocation naming a non-existent file still reports "parse OK").
+      return if @options[:parse_only]
       return if File.exist?(@options[:file])
 
       warn "Error: file not found: #{@options[:file]}"
@@ -1045,6 +1054,8 @@ module SwaigTest
     end
 
     def run
+      return run_parse_only if @options[:parse_only]
+
       OptionsValidator.new(@options).validate!
 
       if @options[:file]
@@ -1056,6 +1067,21 @@ module SwaigTest
       end
     end
 
+    # --parse-only / --dry-run: run the same argument validation as a real
+    # invocation, then report success and exit WITHOUT loading the agent,
+    # touching the filesystem, or hitting the network. On a valid invocation
+    # print exactly "parse OK" and exit 0; on an invalid one exit 2 (canonical
+    # bad-args code, matching the Python reference) without printing "parse OK".
+    # The validators exit(1) on a bad invocation, which we re-map to 2 here.
+    def run_parse_only
+      OptionsValidator.new(@options).validate!
+    rescue SystemExit
+      exit 2
+    else
+      puts 'parse OK'
+      exit 0
+    end
+
     private
 
     def default_options
@@ -1063,7 +1089,7 @@ module SwaigTest
         url: nil, agent_file: nil, file: nil, simulate_serverless: nil,
         dump_swml: false, list_tools: false, exec: nil,
         params: {}, raw: false, verbose: false,
-        env: {}, env_file: nil
+        env: {}, env_file: nil, parse_only: false
       }
     end
 
@@ -1159,5 +1185,14 @@ module SwaigTest
   end
 end
 
-# Run when invoked directly
-SwaigTest::CLI.new.run if __FILE__ == $PROGRAM_NAME
+# Run when invoked directly. An OptionParser error (unknown flag, missing value)
+# is a usage error: report it cleanly and exit 2 (the canonical bad-args code,
+# matching the reference), rather than surfacing a raw stack trace.
+if __FILE__ == $PROGRAM_NAME
+  begin
+    SwaigTest::CLI.new.run
+  rescue OptionParser::ParseError => e
+    warn "Error: #{e.message}"
+    exit 2
+  end
+end

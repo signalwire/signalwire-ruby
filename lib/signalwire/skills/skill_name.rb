@@ -9,19 +9,18 @@ module SignalWire
   module Skills
     # Named constants for the skills that ship built in with this gem.
     #
-    # Skill names are an open *string* set in the Python reference
-    # (`add_skill` takes a bare +str+), which keeps parity and lets callers
-    # load custom / third-party skills. {SkillName} gives the built-in
-    # skills a named alternative so a typo — +add_skill("datetiem")+ — has a
-    # canonical constant to reach for instead, while the string path stays
-    # available for parity and custom skills.
+    # Skill names are an open *string* set — +add_skill+ takes a bare
+    # +str+, which lets callers load custom / third-party skills.
+    # {SkillName} gives the built-in skills a named alternative so a typo —
+    # +add_skill("datetiem")+ — has a canonical constant to reach for
+    # instead, while the string path stays available for custom skills.
     #
     # Each constant's value IS the snake_case wire name the
     # {SkillRegistry} is keyed by (the same string a skill reports from its
     # +#name+), so these are interchangeable:
     #
     #   agent.add_skill(SignalWire::Skills::SkillName::DATETIME) # named
-    #   agent.add_skill("datetime")                              # string (parity)
+    #   agent.add_skill("datetime")                              # string
     #   agent.add_skill("my_custom_skill")                       # open set: custom ok
     #
     # Single source of truth: {ALL} is exactly the set the registry
@@ -42,7 +41,6 @@ module SignalWire
       INFO_GATHERER         = 'info_gatherer'
       JOKE                  = 'joke'
       MATH                  = 'math'
-      MCP_GATEWAY           = 'mcp_gateway'
       NATIVE_VECTOR_SEARCH  = 'native_vector_search'
       PLAY_BACKGROUND_FILE  = 'play_background_file'
       SPIDER                = 'spider'
@@ -66,7 +64,6 @@ module SignalWire
         INFO_GATHERER,
         JOKE,
         MATH,
-        MCP_GATEWAY,
         NATIVE_VECTOR_SEARCH,
         PLAY_BACKGROUND_FILE,
         SPIDER,

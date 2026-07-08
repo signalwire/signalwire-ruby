@@ -1,0 +1,211 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Copyright (c) 2025 SignalWire
+#
+# Licensed under the MIT License.
+# See LICENSE file in the project root for full license information.
+
+#
+# http-dump — the Ruby port's HTTP dump program for the cross-port HTTP differ
+# (porting-sdk/scripts/diff_port_http.py).
+#
+# For each http_corpus case it feeds a synthetic request into the Ruby SDK's
+# framework-free dispatch core (SWMLService#handle_request, the class-method
+# extract_sip_username, the webhook WebhookMiddleware.validate decision, and the
+# lambda serverless adapter) and prints ONE JSON object mapping
+#
+#   case-id -> reduced-artifact
+#
+# to stdout, reduced to the same shape the Python oracle emits. The differ
+# canonicalizes both sides and byte-compares. Only stdout carries JSON. This
+# mirrors the Go reference dump (signalwire-go/cmd/http-dump/main.go).
+#
+# The corpus sentinels (__AUTH__/__AUTH_BAD__ Basic headers, __SIG__ webhook
+# signature, __REDIRECT_CB__ routing callback, __HELLO_HANDLER__ SWAIG handler,
+# __JSON__: lambda body prefix) are materialized here as the oracle materializes
+# them, so the interop cases are reproducible.
+#
+# Run from the signalwire-ruby repo root:
+#
+#   bin/http-dump      (or:  ruby bin/http-dump)
+
+require 'json'
+
+# Keep stdout PURE JSON: the behavioral differ does json.loads(proc.stdout), so any stray
+# byte written to stdout during require/agent-init (a gem notice, a banner, a logger that
+# lands on stdout in some environments) corrupts the parse ("Expecting value: line 1 col 1").
+# Save the real stdout, point $stdout at stderr for all setup, and restore only to emit JSON.
+REAL_STDOUT = $stdout.dup
+$stdout.reopen($stderr)
+require 'base64'
+require 'openssl'
+require_relative '../lib/signalwire'
+require_relative '../lib/signalwire/security/webhook_middleware'
+
+USER = 'user'
+PASSWORD = 'pass'
+SIGNING_KEY = 'PSK-fixed-signing-key'
+WH_URL = 'https://agent.example.com/webhook'
+WH_BODY = '{"event":"call.created","id":"abc"}'
+
+def basic_auth(user, pass)
+  "Basic #{Base64.strict_encode64("#{user}:#{pass}")}"
+end
+
+def webhook_sig(url, body, key)
+  OpenSSL::HMAC.hexdigest('SHA1', key, url + body)
+end
+
+# observe_response reduces a (status, headers, body) triple to a comparable
+# artifact — the Ruby mirror of diff_port_http._observe_response.
+def observe_response(status, headers, body_str, kind)
+  out = { 'status' => status, 'header_keys' => headers.keys.sort }
+  out['location'] = headers['Location'] if headers.key?('Location')
+  out['www_authenticate'] = headers['WWW-Authenticate'] if headers.key?('WWW-Authenticate')
+  if kind == 'response_full'
+    out['body'] =
+      if body_str.nil? || body_str.empty?
+        ''
+      else
+        begin
+          JSON.parse(body_str)
+        rescue JSON::ParserError
+          body_str
+        end
+      end
+  end
+  out
+end
+
+def new_swml_service
+  SignalWire::SWML::Service.new(name: 'demo', route: '/swml', basic_auth: [USER, PASSWORD])
+end
+
+# redirect_cb redirects one specific 'to', else passes through (nil).
+def redirect_cb
+  lambda do |body, _headers|
+    call = body['call'] if body.is_a?(Hash)
+    to = call.is_a?(Hash) ? call['to'] : nil
+    to == 'sip:redirect-me@space' ? '/other-route' : nil
+  end
+end
+
+def extract_username(body)
+  u = SignalWire::SWML::Service.extract_sip_username(body)
+  { 'username' => (u.nil? || u.empty? ? nil : u) }
+end
+
+def webhook_decision(method, url, body, headers)
+  rej = SignalWire::Security::WebhookMiddleware.validate(method, url, headers, body, signing_key: SIGNING_KEY)
+  rej.nil? ? { 'decision' => 'pass' } : { 'decision' => 'reject', 'status' => rej[0] }
+end
+
+# reduce_lambda reduces a lambda response hash to {status, body} with the body
+# parsed as JSON — mirroring the oracle's serverless_result observer.
+def reduce_lambda(resp)
+  body = resp['body']
+  parsed =
+    if body.is_a?(String) && !body.empty?
+      begin
+        JSON.parse(body)
+      rescue JSON::ParserError
+        body
+      end
+    else
+      body
+    end
+  { 'status' => resp['statusCode'], 'body' => parsed }
+end
+
+# serverless_swaig drives the lambda adapter for the /swaig dispatch case. The
+# agent is built at route "/" so the event's root-relative "/swaig" path routes
+# correctly — matching Python's serverless dispatch, which treats rawPath as
+# agent-relative (the Go reference does the same).
+def serverless_swaig
+  a = SignalWire::AgentBase.new(name: 'demo', route: '/', basic_auth: [USER, PASSWORD])
+  a.define_tool(name: 'say_hello', description: 'greet', parameters: {}) do |_args, _raw|
+    SignalWire::Swaig::FunctionResult.new('hello there')
+  end
+  event = {
+    'version' => '2.0',
+    'rawPath' => '/swaig',
+    'headers' => { 'authorization' => basic_auth(USER, PASSWORD), 'content-type' => 'application/json' },
+    'requestContext' => { 'http' => { 'method' => 'POST' } },
+    'body' => '{"function":"say_hello","argument":{"parsed":[{}]},"call_id":"c1"}'
+  }
+  reduce_lambda(a.handle_serverless_request(event: event, mode: 'lambda'))
+end
+
+def serverless_noauth
+  a = SignalWire::AgentBase.new(name: 'demo', route: '/', basic_auth: [USER, PASSWORD])
+  event = {
+    'version' => '2.0',
+    'rawPath' => '/',
+    'headers' => {},
+    'requestContext' => { 'http' => { 'method' => 'GET' } }
+  }
+  reduce_lambda(a.handle_serverless_request(event: event, mode: 'lambda'))
+end
+
+out = {}
+
+# ---- handle_request: 200 SWML happy path ----
+svc = new_swml_service
+status, headers, body = svc.handle_request('GET', 'http://localhost:3000/swml',
+                                           { 'Authorization' => basic_auth(USER, PASSWORD) }, nil)
+out['http_handle_request_200_swml'] = observe_response(status, headers, body, 'response_full')
+
+# ---- handle_request: 401 no auth ----
+svc = new_swml_service
+status, headers, body = svc.handle_request('GET', 'http://localhost:3000/swml', {}, nil)
+out['http_handle_request_401_no_auth'] = observe_response(status, headers, body, 'response_full')
+
+# ---- handle_request: 401 bad password (status+headers only) ----
+svc = new_swml_service
+status, headers, body = svc.handle_request('GET', 'http://localhost:3000/swml',
+                                           { 'Authorization' => basic_auth(USER, 'wrong') }, nil)
+out['http_handle_request_401_bad_password'] = observe_response(status, headers, body, 'response_status_headers')
+
+# ---- handle_request: 307 redirect via routing callback ----
+svc = new_swml_service
+cb = redirect_cb
+svc.register_routing_callback('/sip', &cb)
+status, headers, body = svc.handle_request('POST', 'http://localhost:3000/swml/sip',
+                                           { 'Authorization' => basic_auth(USER, PASSWORD) },
+                                           { 'call' => { 'to' => 'sip:redirect-me@space' } })
+out['http_handle_request_307_redirect'] = observe_response(status, headers, body, 'response_full')
+
+# ---- handle_request: callback returns nil -> normal 200 SWML ----
+svc = new_swml_service
+svc.register_routing_callback('/sip', &cb)
+status, headers, body = svc.handle_request('POST', 'http://localhost:3000/swml/sip',
+                                           { 'Authorization' => basic_auth(USER, PASSWORD) },
+                                           { 'call' => { 'to' => 'sip:keep@space' } })
+out['http_handle_request_callback_passthrough_200'] = observe_response(status, headers, body, 'response_full')
+
+# ---- extract_sip_username: pure extractor ----
+out['http_extract_sip_username_sip'] = extract_username('call' => { 'to' => 'sip:alice@agents.signalwire.com' })
+out['http_extract_sip_username_tel'] = extract_username('call' => { 'to' => 'tel:+15551234567' })
+out['http_extract_sip_username_plain'] = extract_username('call' => { 'to' => 'support' })
+out['http_extract_sip_username_missing'] = extract_username('vars' => {})
+
+# ---- webhook validate ----
+out['http_webhook_validate_ok'] = webhook_decision(
+  'POST', WH_URL, WH_BODY, { 'x-signalwire-signature' => webhook_sig(WH_URL, WH_BODY, SIGNING_KEY) }
+)
+bad_sig = 'deadbeef' * 5
+out['http_webhook_validate_bad_sig'] = webhook_decision(
+  'POST', WH_URL, WH_BODY, { 'x-signalwire-signature' => bad_sig }
+)
+out['http_webhook_validate_missing_sig'] = webhook_decision('POST', WH_URL, WH_BODY, {})
+out['http_webhook_validate_twilio_alias'] = webhook_decision(
+  'POST', WH_URL, WH_BODY, { 'x-twilio-signature' => webhook_sig(WH_URL, WH_BODY, SIGNING_KEY) }
+)
+
+# ---- serverless (lambda) ----
+out['http_serverless_lambda_swaig'] = serverless_swaig
+out['http_serverless_lambda_noauth_401'] = serverless_noauth
+
+REAL_STDOUT.puts(JSON.generate(out))
+REAL_STDOUT.flush

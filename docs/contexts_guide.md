@@ -215,6 +215,7 @@ context = contexts.add_context(name) # => Context
 
 Represents a conversation context or workflow state.
 
+<!-- snippet: no-compile ruby interface reference (class with signature-only defs, no method bodies) -->
 ```ruby
 class Context
   # Create a new step in this context
@@ -292,6 +293,7 @@ end
 
 Represents a single step within a context workflow.
 
+<!-- snippet: no-compile ruby interface reference (class with signature-only defs, no method bodies) -->
 ```ruby
 class Step
   # --- Content definition (choose one approach) ---
@@ -652,6 +654,7 @@ Each question has a `type` that controls the JSON schema of the `answer` paramet
 
 When `confirm=True`, the AI must read the answer back to the caller and get explicit confirmation before submitting:
 
+<!-- snippet: no-compile ruby method-chain continuation fragment (leading `.method`) -->
 ```ruby
 .add_gather_question(
   key:      'last_name',
@@ -672,6 +675,7 @@ How it works:
 
 Each question can have additional instructions and specific functions made available:
 
+<!-- snippet: no-compile ruby method-chain continuation fragment (leading `.method`) -->
 ```ruby
 .add_gather_question(
   key:       'home_airport',

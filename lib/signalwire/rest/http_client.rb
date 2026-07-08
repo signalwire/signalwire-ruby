@@ -153,8 +153,21 @@ module SignalWire
       end
     end
 
-    # Standard CRUD resource with list/create/get/update/delete.
-    class CrudResource < BaseResource
+    # Read-only resource with get/list. Mirrors Python's
+    # +signalwire.rest._base.ReadResource+: the read half of the CRUD surface,
+    # extended by CrudResource with create/update/delete.
+    class ReadResource < BaseResource
+      def list(**params)
+        @http.get(@base_path, params.empty? ? nil : params)
+      end
+
+      def get(resource_id)
+        @http.get(_path(resource_id))
+      end
+    end
+
+    # Standard CRUD resource: ReadResource (get/list) + create/update/delete.
+    class CrudResource < ReadResource
       # @update_method is a class-INSTANCE variable, which Ruby subclasses do NOT
       # inherit. FabricResourcePUT sets it to 'PUT', but its subclasses
       # (CallFlowsResource, ConferenceRoomsResource, CxmlApplicationsResource,
@@ -176,16 +189,8 @@ module SignalWire
         attr_writer :update_method
       end
 
-      def list(**params)
-        @http.get(@base_path, params.empty? ? nil : params)
-      end
-
       def create(**kwargs)
         @http.post(@base_path, kwargs)
-      end
-
-      def get(resource_id)
-        @http.get(_path(resource_id))
       end
 
       def update(resource_id, **kwargs)

@@ -30,9 +30,7 @@ agent.set_dynamic_config_callback do |query_params, _body, _headers, ephemeral|
     "The user's name is #{user_name}. They are interested in discussing #{topic}."
   )
 
-  ephemeral.add_language(
-    'name' => 'English', 'code' => 'en-US', 'voice' => 'elevenlabs.rachel'
-  )
+  ephemeral.add_language('English', 'en-US', 'elevenlabs.rachel')
 
   style = case mood
           when 'professional' then 'Maintain a professional, business-appropriate tone.'

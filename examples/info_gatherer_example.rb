@@ -6,6 +6,7 @@
 # a structured set of questions, confirms answers, and collects results.
 
 require 'signalwire'
+require 'signalwire/prefabs/info_gatherer'  # opt-in subsystem (Python: from signalwire.prefabs import ...)
 
 # Create the InfoGatherer prefab
 gatherer = SignalWire::Prefabs::InfoGatherer.new(

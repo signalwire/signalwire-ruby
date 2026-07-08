@@ -30,6 +30,22 @@ AllCops:
     - 'relay/examples/**/*'
     - 'rest/examples/**/*'
     - 'vendor/**/*'
+    # Layer-D cross-port dump programs (bin/*-dump) — the per-surface behavioral
+    # differ tooling, mirroring the Go reference's cmd/*-dump. Tutorial-style
+    # port-native dispatch programs, not audited library surface; same rationale
+    # as examples/ above and go's //go:build ignore dumps.
+    - 'bin/wire-dump'
+    - 'bin/swml-dump'
+    - 'bin/state-dump'
+    - 'bin/http-dump'
+    - 'bin/wire-relay-dump'
+    # NOTE: the machine-generated trees (REST resource layer, READ-SIDE typed
+    # payload trees, and the full-mock REST wire-test suite) are DELIBERATELY NOT
+    # excluded here — generated code is linted like hand-written code so a
+    # generator bug can't hide behind a lint pass. Where a cop's finding is
+    # inherent to a per-spec generated shape (irreducible line/method/class SIZE,
+    # never a naming/type-idiom rule), that specific cop is scoped OFF for the
+    # generated globs below (near the relevant cop), NOT the whole tree excluded.
 
 # ---------------------------------------------------------------------------
 # Documentation: the SDK documents its public API in YARD/markdown + the
@@ -101,6 +117,14 @@ Metrics/ParameterLists:
 # Per-file exclusion until/unless a coupled adapter extraction is designed.
 Metrics/ClassLength:
   Exclude:
+    # 1:1 parity classes ported from the Python core.* modules whose public
+    # method surface IS the cross-port parity contract (config_loader.py 266
+    # lines / security_config.py 390 lines). Same surface-bearing-unit
+    # rationale as the classes below.
+    - 'lib/signalwire/core/config_loader.rb'
+    - 'lib/signalwire/core/security_config.rb'
+    - 'lib/signalwire/web/web_service.rb'
+    - 'lib/signalwire/core/auth_handler.rb'
     - 'lib/signalwire/agent/agent_base.rb'
     - 'lib/signalwire/swaig/function_result.rb'
     - 'lib/signalwire/relay/call.rb'
@@ -110,8 +134,12 @@ Metrics/ClassLength:
     - 'lib/signalwire/utils/schema_utils.rb'
     - 'lib/signalwire/contexts/context_builder.rb'
     - 'lib/signalwire/pom/section.rb'
+    - 'lib/signalwire/security/session_manager.rb'
     - 'lib/signalwire/skills/builtin/spider.rb'
     - 'lib/signalwire/prefabs/concierge.rb'
+    # Real functional prefab (subclasses AgentBase, registers tools + a real
+    # submit_answer state machine); 1:1 with Python's InfoGathererAgent surface.
+    - 'lib/signalwire/prefabs/info_gatherer.rb'
 
 # Same surface-bearing-unit rationale as Metrics/ClassLength, for the one
 # module surface that exceeds the threshold.

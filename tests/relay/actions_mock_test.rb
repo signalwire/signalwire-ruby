@@ -124,6 +124,16 @@ class RelayPlayActionTest < RelayActionsTestBase
     assert_in_delta(-3.0, vol.last.frame['params']['volume'])
   end
 
+  def test_play_pause_forwards_optional_behavior
+    call = answered_inbound_call('call-play-beh')
+    action = call.play([{ 'type' => 'silence', 'params' => { 'duration' => 60 } }], control_id: 'play-ctl-beh')
+    action.pause(behavior: 'stop')
+    pauses = recv('calling.play.pause')
+
+    refute_empty pauses
+    assert_equal 'stop', pauses.last.frame['params']['behavior']
+  end
+
   def test_play_on_completed_callback_fires
     call = answered_inbound_call('call-play-cb')
     @mock.arm_method('calling.play', [{ 'emit' => { 'state' => 'finished' }, 'delay_ms' => 1 }])
@@ -259,6 +269,68 @@ class RelayPlayAndCollectActionTest < RelayActionsTestBase
 
     refute_empty stops
     assert_equal 'pac-stop', stops.last.frame['params']['control_id']
+  end
+
+  def test_play_and_collect_pause_resume_journal
+    call = answered_inbound_call('call-pac-prv')
+    action = call.play_and_collect([{ 'type' => 'silence', 'params' => { 'duration' => 1 } }],
+                                   { 'digits' => { 'max' => 1 } }, control_id: 'pac-prv')
+    action.pause(behavior: 'stop')
+    action.resume
+
+    pause_params = recv('calling.play_and_collect.pause').last&.frame&.dig('params')
+
+    refute_nil pause_params, 'no calling.play_and_collect.pause frame'
+    assert_equal 'pac-prv', pause_params['control_id']
+    assert_equal 'stop', pause_params['behavior']
+    refute_empty recv('calling.play_and_collect.resume'), 'no calling.play_and_collect.resume frame'
+  end
+end
+
+# ---- Concrete-action control-method surface --------------------------
+# The RELAY oracle projects Stoppable/Pausable/Volume onto the concrete
+# actions. Assert each concrete action exposes exactly the control methods
+# the reference declares (RecordAction has no volume; only Play/Collect are
+# fully pausable+volume; the rest are stop-only).
+class RelayActionControlSurfaceTest < Minitest::Test
+  R = SignalWire::Relay
+
+  def test_play_action_control_surface
+    %i[stop pause resume volume].each do |m|
+      assert R.const_get(:PlayAction).method_defined?(m), "PlayAction missing ##{m}"
+    end
+  end
+
+  def test_collect_action_control_surface
+    %i[stop pause resume volume start_input_timers].each do |m|
+      assert R.const_get(:CollectAction).method_defined?(m), "CollectAction missing ##{m}"
+    end
+  end
+
+  def test_record_action_is_pausable_but_not_volume
+    %i[stop pause resume].each do |m|
+      assert R.const_get(:RecordAction).method_defined?(m), "RecordAction missing ##{m}"
+    end
+    refute R.const_get(:RecordAction).method_defined?(:volume), 'RecordAction must not expose #volume'
+  end
+
+  def test_pause_accepts_optional_behavior
+    %i[PlayAction RecordAction CollectAction].each do |cls|
+      params = R.const_get(cls).instance_method(:pause).parameters
+
+      assert_includes params, %i[key behavior], "#{cls}#pause must accept optional behavior: keyword"
+    end
+  end
+
+  def test_stop_only_actions_are_not_pausable
+    %i[DetectAction FaxAction TapAction StreamAction PayAction TranscribeAction AIAction
+       StandaloneCollectAction].each do |cls|
+      k = R.const_get(cls)
+
+      assert k.method_defined?(:stop), "#{cls} missing #stop"
+      refute k.method_defined?(:pause), "#{cls} must not be pausable"
+      refute k.method_defined?(:volume), "#{cls} must not expose #volume"
+    end
   end
 end
 

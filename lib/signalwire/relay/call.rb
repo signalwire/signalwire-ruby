@@ -217,14 +217,11 @@ module SignalWire
 
       # Wait for a specific event, optionally filtered by a predicate.
       #
-      # Python parity: ``Call.wait_for(event_type, predicate=None,
-      # timeout=None)``. Registers a one-shot listener for +event_type+ and
-      # blocks until the first matching event arrives (or +timeout+ seconds
-      # elapse). When +predicate+ is supplied, only events for which it
-      # returns truthy satisfy the wait. The Python coroutine resolves an
-      # asyncio future; the Ruby port blocks the calling thread on a
-      # ConditionVariable, mirroring +#wait_for_ended+'s synchronization
-      # model.
+      # Registers a one-shot listener for +event_type+ and blocks until the
+      # first matching event arrives (or +timeout+ seconds elapse). When
+      # +predicate+ is supplied, only events for which it returns truthy
+      # satisfy the wait. Blocks the calling thread on a ConditionVariable,
+      # mirroring +#wait_for_ended+'s synchronization model.
       #
       # @param event_type [String] the RELAY event type to wait for
       # @param predicate [#call, nil] optional filter +->(event) { ... }+

@@ -82,12 +82,11 @@ module RouteRegistry
   # "<namespace>.<resource>.<method>" or a "<namespace>.<resource>.*" wildcard.
   # Every entry needs a reason; a method that merely raises is an ERROR, not an
   # implicit skip -- add it here (justified) or fix the harness so it invokes.
-  REGISTRY_SKIP = {
-    # cXML applications expose the CRUD surface for symmetry but create is
-    # intentionally unsupported (raises NotImplementedError) -- there is no
-    # POST /cxml_applications canonical route (mirrors python + typescript).
-    'fabric.cxml_applications.create' => 'no create route -- raises NotImplementedError by design'
-  }.freeze
+  # The generated CxmlApplications resource (base BaseResource, no create) omits
+  # create entirely — there is no POST /cxml_applications canonical route
+  # (mirrors python + typescript). The old raising-create scaffold that needed a
+  # skip entry here is gone with the generated adoption, so no skips remain.
+  REGISTRY_SKIP = {}.freeze
 
   module_function
 

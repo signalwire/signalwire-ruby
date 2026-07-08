@@ -6,6 +6,7 @@
 # custom greeting, and caller info collection.
 
 require 'signalwire'
+require 'signalwire/prefabs/receptionist'  # opt-in subsystem (Python: from signalwire.prefabs import ...)
 
 departments = [
   { 'name' => 'sales',   'description' => 'Product inquiries and pricing',     'number' => '+15551235555' },

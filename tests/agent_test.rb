@@ -1535,6 +1535,32 @@ class AgentPasswordNotLoggedTest < Minitest::Test
   end
 end
 
+# --- Identity / URL accessors (get_name, get_full_url) -------------------
+class AgentIdentityAccessorsTest < Minitest::Test
+  def test_get_name_returns_name
+    agent = SignalWire::AgentBase.new(name: 'my_agent')
+
+    assert_equal 'my_agent', agent.get_name
+    assert_equal agent.name, agent.get_name
+  end
+
+  def test_get_name_default
+    assert_equal 'agent', SignalWire::AgentBase.new.get_name
+  end
+
+  def test_get_full_url_default
+    agent = SignalWire::AgentBase.new(host: '127.0.0.1', port: 8080, route: '/bot')
+
+    assert_equal 'http://127.0.0.1:8080/bot', agent.get_full_url
+  end
+
+  def test_get_full_url_include_auth
+    agent = SignalWire::AgentBase.new(host: 'h', port: 3000, route: '/', basic_auth: %w[u p])
+
+    assert_equal 'http://u:p@h:3000/', agent.get_full_url(include_auth: true)
+  end
+end
+
 # --- Idiomatic-accessor alias prototype (RUBY_ERGONOMICS_MIGRATION.md) ---
 class AgentBaseIdiomaticAccessorsTest < Minitest::Test
   def setup
@@ -1575,5 +1601,83 @@ class AgentBaseIdiomaticAccessorsTest < Minitest::Test
     @agent.prompt_text = 'hello'
 
     assert_equal @agent.get_prompt, @agent.prompt
+  end
+end
+
+# =========================================================================
+# as_router: the "embed my routes in a host app" mountable-handler capability.
+#
+# Python parity: AgentBase.as_router() returns a HostAppRouter that a host app
+# mounts. Ruby's idiomatic equivalent is a Rack app -- an object responding to
+# #call(env) -- mountable via Rails/Sinatra `mount`/`map`. as_router returns the
+# agent's rack_app (the same mountable unit), carrying this agent's routes
+# (/, /swaig, /post_prompt, /health, /ready + routing callbacks).
+# =========================================================================
+class AgentAsRouterTest < Minitest::Test
+  include Rack::Test::Methods
+  include AgentRenderHelpers
+
+  def build_agent
+    agent = SignalWire::AgentBase.new(basic_auth: %w[testuser testpass])
+    agent.set_prompt_text('Hello')
+    agent.define_tool(name: 'echo', description: 'Echo') do |args, _raw|
+      SignalWire::Swaig::FunctionResult.new("Echo: #{args['msg']}")
+    end
+    agent
+  end
+
+  # Rack::Test drives the router returned by as_router (mounted at the root),
+  # proving it is the mountable unit a host app would embed.
+  def app
+    @agent ||= build_agent
+    @agent.as_router
+  end
+
+  def auth_header
+    "Basic #{['testuser:testpass'].pack('m0')}"
+  end
+
+  # as_router must return a Rack-compatible app: an object responding to #call.
+  def test_returns_rack_callable
+    router = build_agent.as_router
+
+    assert_respond_to router, :call, 'as_router must return a Rack app (responds to #call)'
+  end
+
+  # It is the same mountable unit as rack_app (Ruby's rack-mountable idiom for
+  # HostAppRouter), so host-app mounting and direct serving share one handler.
+  def test_is_the_rack_app
+    agent = build_agent
+
+    assert_same agent.rack_app, agent.as_router
+  end
+
+  # The router carries this agent's public (no-auth) route.
+  def test_router_serves_health
+    get '/health'
+
+    assert_equal 200, last_response.status
+    assert_equal 'healthy', JSON.parse(last_response.body)['status']
+  end
+
+  # The router carries the agent's authenticated SWML route (GET /).
+  def test_router_serves_swml_root
+    header 'Authorization', auth_header
+    get '/'
+
+    assert_equal 200, last_response.status
+    assert_equal '1.0.0', JSON.parse(last_response.body)['version']
+  end
+
+  # The router carries the SWAIG dispatch route.
+  def test_router_serves_swaig
+    header 'Authorization', auth_header
+    header 'Content-Type', 'application/json'
+    post '/swaig', JSON.generate('function' => 'echo',
+                                 'argument' => { 'parsed' => [{ 'msg' => 'hi' }] },
+                                 'call_id' => 'call-1')
+
+    assert_equal 200, last_response.status
+    assert_equal 'Echo: hi', JSON.parse(last_response.body)['response']
   end
 end

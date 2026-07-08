@@ -125,8 +125,8 @@ module SignalWire
       end
       alias eql? ==
 
-      # Hash key parity with {#==}: equal events share a hash bucket, so they
-      # behave correctly as Set members and Hash keys.
+      # Hash key consistent with {#==}: equal events share a hash bucket, so
+      # they behave correctly as Set members and Hash keys.
       def hash
         [self.class, to_h].hash
       end
@@ -293,7 +293,8 @@ module SignalWire
 
     # calling.call.collect
     class CollectEvent < RelayEvent
-      attr_reader :control_id, :state, :result_data, :final
+      # The decoded field is +result+ (formerly +result_data+).
+      attr_reader :control_id, :state, :result, :final
 
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
@@ -302,16 +303,16 @@ module SignalWire
           **_base_kwargs(base),
           control_id: p['control_id'] || '',
           state: p['state'] || '',
-          result_data: p['result'] || {},
+          result: p['result'] || {},
           final: p['final']
         )
       end
 
-      def initialize(control_id: '', state: '', result_data: {}, final: nil, **base)
+      def initialize(control_id: '', state: '', result: {}, final: nil, **base)
         super(**base)
         @control_id  = control_id
         @state       = state
-        @result_data = result_data
+        @result      = result
         @final       = final
       end
 
@@ -319,7 +320,7 @@ module SignalWire
 
       def _event_fields
         { control_id: @control_id, state: @state,
-          result_data: @result_data, final: @final }
+          result: @result, final: @final }
       end
     end
 

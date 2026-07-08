@@ -102,7 +102,6 @@ call.wait_for_ended
 - [Events](docs/events.md) -- event types, call states
 - [Messaging](docs/messaging.md) -- sending and receiving SMS/MMS messages
 - [Client Reference](docs/client-reference.md) -- Client configuration, methods, connection behavior
-- [RELAY Implementation Guide](RELAY_IMPLEMENTATION_GUIDE.md) -- protocol internals
 
 ## Examples
 

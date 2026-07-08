@@ -20,7 +20,10 @@ Gem::Specification.new do |s|
 
   s.required_ruby_version = '>= 3.2'
 
-  s.files = Dir['lib/**/*', 'bin/*', 'README.md', 'LICENSE']
+  # Ship only the library + the one user-facing executable. The other bin/
+  # scripts (emit-corpus, emit-skills, *-dump) are porting-audit tooling, not
+  # part of the published gem — they stay tracked in-repo but out of the package.
+  s.files = Dir['lib/**/*', 'README.md', 'LICENSE'] + ['bin/swaig-test']
   s.require_paths = ['lib']
   s.executables = ['swaig-test']
 

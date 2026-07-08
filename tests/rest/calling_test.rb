@@ -9,7 +9,7 @@ class RestCallingDetailedTest < Minitest::Test
   end
 
   def test_calling_path
-    resource = SignalWire::REST::Namespaces::CallingNamespace.new(@http)
+    resource = SignalWire::REST::Namespaces::Generated::Calling.new(@http)
 
     assert_equal '/api/calling/calls', resource.instance_variable_get(:@base_path)
   end

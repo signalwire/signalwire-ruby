@@ -9,7 +9,7 @@ require 'signalwire'
 
 agent = SignalWire::AgentBase.new(name: 'multi-datasphere', route: '/datasphere-multi')
 
-agent.add_language('name' => 'English', 'code' => 'en-US', 'voice' => 'elevenlabs.rachel')
+agent.add_language('English', 'en-US', 'elevenlabs.rachel')
 
 agent.prompt_add_section(
   'Role',

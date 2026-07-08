@@ -1,0 +1,140 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Copyright (c) 2025 SignalWire
+#
+# Licensed under the MIT License.
+# See LICENSE file in the project root for full license information.
+
+#
+# swml-dump — the Ruby port's SWML dump program for the cross-port SWML differ
+# (porting-sdk/scripts/diff_port_swml.py).
+#
+# For each swml_corpus case it builds an AgentBase, applies the setter chain,
+# renders the SWML document, and extracts the observed dotted path (e.g.
+# "ai.prompt.pom") — emitting ONE JSON object mapping
+#
+#   case-id -> extracted-fragment
+#
+# to stdout. The differ canonicalizes both sides and byte-compares against the
+# Python oracle. Only stdout carries JSON. This mirrors the Go reference dump
+# (signalwire-go/cmd/swml-dump/main.go).
+#
+# Run from the signalwire-ruby repo root:
+#
+#   bin/swml-dump      (or:  ruby bin/swml-dump)
+
+require 'json'
+
+# Keep stdout PURE JSON: the behavioral differ does json.loads(proc.stdout), so any stray
+# byte written to stdout during require/agent-init (a gem notice, a banner, a logger that
+# lands on stdout in some environments) corrupts the parse ("Expecting value: line 1 col 1").
+# Save the real stdout, point $stdout at stderr for all setup, and restore only to emit JSON.
+REAL_STDOUT = $stdout.dup
+$stdout.reopen($stderr)
+require_relative '../lib/signalwire'
+
+# new_agent constructs a demo AgentBase (name "demo", route "/demo") with POM
+# enabled (the default) so prompt_add_section renders into ai.prompt.pom.
+def new_agent
+  SignalWire::AgentBase.new(name: 'demo', route: '/demo')
+end
+
+# extract walks a dotted path into a rendered SWML doc. "ai.prompt" means: find
+# the ai verb in sections.main, then index into it — the Ruby mirror of
+# diff_port_swml._extract.
+def extract(doc, path)
+  ai = nil
+  sections = doc['sections']
+  main = sections.is_a?(Hash) ? sections['main'] : nil
+  if main.is_a?(Array)
+    found = main.find { |sec| sec.is_a?(Hash) && sec.key?('ai') }
+    ai = found['ai'] if found
+  end
+  node = ai.nil? ? doc : { 'ai' => ai }
+  path.split('.').each do |part|
+    return nil unless node.is_a?(Hash)
+
+    node = node[part]
+  end
+  node
+end
+
+# pick reduces a hash fragment to the listed keys (mirrors the oracle's `pick`).
+def pick(frag, keys)
+  return frag unless frag.is_a?(Hash)
+
+  keys.each_with_object({}) { |k, acc| acc[k] = frag[k] }
+end
+
+# swaig_field selects one SWAIG function by name from a functions list, then
+# returns one field of it (mirrors the oracle's swaig_fn/field filter in
+# diff_port_swml.build_oracle).
+def swaig_field(functions, fn_name, field)
+  return nil unless functions.is_a?(Array)
+
+  match = functions.find { |f| f.is_a?(Hash) && f['function'] == fn_name }
+  return nil if match.nil?
+
+  field ? match[field] : match
+end
+
+def render(agent)
+  agent.render_swml
+end
+
+out = {}
+
+# swml_set_prompt_llm_params: two set_prompt_llm_params calls MERGE.
+a = new_agent
+a.set_prompt_llm_params(temperature: 0.5)
+a.set_prompt_llm_params(top_p: 0.9)
+out['swml_set_prompt_llm_params'] = pick(extract(render(a), 'ai.prompt'), %w[temperature top_p])
+
+# swml_set_post_prompt_llm_params: establish a post-prompt, then merge params.
+a = new_agent
+a.set_post_prompt('Summarize the call.')
+a.set_post_prompt_llm_params(temperature: 0.3)
+a.set_post_prompt_llm_params(top_p: 0.8)
+out['swml_set_post_prompt_llm_params'] = pick(extract(render(a), 'ai.post_prompt'), %w[temperature top_p])
+
+# swml_add_language: engine/model/voice carried into ai.languages.
+a = new_agent
+a.add_language('English', 'en-US', 'rime.spore', engine: 'rime', model: 'mistv2')
+out['swml_add_language'] = extract(render(a), 'ai.languages')
+
+# swml_add_pattern_hint: structured hint into ai.hints.
+a = new_agent
+a.add_pattern_hint(hint: 'SignalWire', pattern: 'signal wire', replace: 'SignalWire', ignore_case: true)
+out['swml_add_pattern_hint'] = extract(render(a), 'ai.hints')
+
+# swml_add_hint: a plain string hint.
+a = new_agent
+a.add_hint('SignalWire')
+out['swml_add_hint'] = extract(render(a), 'ai.hints')
+
+# swml_prompt_add_section: POM sections render into ai.prompt.pom.
+a = new_agent
+a.prompt_add_section('Role', 'You are a helpful assistant.')
+a.prompt_add_section('Rules', bullets: ['Be concise', 'Be accurate'])
+out['swml_prompt_add_section'] = extract(render(a), 'ai.prompt.pom')
+
+# swml_add_pronunciation: renders into ai.pronounce.
+a = new_agent
+a.add_pronunciation('SW', 'SignalWire', ignore_case: true)
+out['swml_add_pronunciation'] = extract(render(a), 'ai.pronounce')
+
+# swml_define_tool_complete_schema: define_tool given a COMPLETE
+# {type,properties,required} schema must render the SWAIG function's parameters
+# as that schema FLAT (pass-through), NOT double-wrapped. Observe the "lookup"
+# function's parameters in ai.SWAIG.functions.
+a = new_agent
+a.define_tool(name: 'lookup', description: 'Look up a thing',
+              parameters: { 'type' => 'object',
+                            'properties' => { 'q' => { 'type' => 'string' } },
+                            'required' => ['q'] }) { |_args, _raw| nil }
+out['swml_define_tool_complete_schema'] =
+  swaig_field(extract(render(a), 'ai.SWAIG.functions'), 'lookup', 'parameters')
+
+REAL_STDOUT.puts(JSON.generate(out))
+REAL_STDOUT.flush

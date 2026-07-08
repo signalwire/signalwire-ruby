@@ -20,27 +20,27 @@ The `AgentBase` class is the foundation for creating AI agents. It extends `SWML
 
 ### Constructor
 
-```python
-AgentBase(
-    name: str,
-    route: str = "/",
-    host: str = "0.0.0.0",
-    port: int = 3000,
-    basic_auth: Optional[Tuple[str, str]] = None,
-    use_pom: bool = True,
-    token_expiry_secs: int = 3600,
-    auto_answer: bool = True,
-    record_call: bool = False,
-    record_format: str = "mp4",
-    record_stereo: bool = True,
-    default_webhook_url: Optional[str] = None,
-    agent_id: Optional[str] = None,
-    native_functions: Optional[List[str]] = None,
-    schema_path: Optional[str] = None,
-    suppress_logs: bool = False,
-    enable_post_prompt_override: bool = False,
-    check_for_input_override: bool = False,
-    config_file: Optional[str] = None
+```ruby
+SignalWire::AgentBase.new(
+  name:,                          # String
+  route: "/",                     # String
+  host: "0.0.0.0",                # String
+  port: 3000,                     # Integer
+  basic_auth: nil,                # [username, password] or nil
+  use_pom: true,                  # Boolean
+  token_expiry_secs: 3600,        # Integer
+  auto_answer: true,              # Boolean
+  record_call: false,             # Boolean
+  record_format: "mp4",           # String
+  record_stereo: true,            # Boolean
+  default_webhook_url: nil,       # String or nil
+  agent_id: nil,                  # String or nil
+  native_functions: nil,          # Array<String> or nil
+  schema_path: nil,               # String or nil
+  suppress_logs: false,           # Boolean
+  enable_post_prompt_override: false, # Boolean
+  check_for_input_override: false,    # Boolean
+  config_file: nil                # String or nil
 )
 ```
 
@@ -80,16 +80,17 @@ Auto-detects deployment environment and runs the agent appropriately.
 - `port` (Optional[int]): Override port number
 
 **Usage:**
-```python
+```ruby
 # Auto-detect environment
-agent.run()
+agent.run
 
 # Force server mode
-agent.run(force_mode="server", host="localhost", port=8080)
+agent.run(force_mode: "server", host: "localhost", port: 8080)
 
 # Lambda handler
-def lambda_handler(event, context):
-    return agent.run(event, context)
+def lambda_handler(event, context)
+  agent.run(event: event, context: context)
+end
 ```
 
 ##### `serve(host=None, port=None)`
@@ -100,9 +101,9 @@ Explicitly run as HTTP server using FastAPI/Uvicorn.
 - `port` (Optional[int]): Port number to listen on
 
 **Usage:**
-```python
-agent.serve()  # Use constructor defaults
-agent.serve(host="0.0.0.0", port=3000)
+```ruby
+agent.serve                          # Use constructor defaults
+agent.serve(host: "0.0.0.0", port: 3000)
 ```
 
 ### Prompt Configuration
@@ -139,8 +140,9 @@ agent.post_prompt = "Always be polite and professional."
 
 ##### `set_prompt_llm_params`
 
-```python
-def set_prompt_llm_params(**params) -> AgentBase
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
+```ruby
+def set_prompt_llm_params(**params) # => AgentBase
 ```
 Set Language Model parameters for the main prompt. Accepts any parameters which will be passed through to the SignalWire server. The server validates and applies parameters based on the target model's capabilities.
 
@@ -154,21 +156,22 @@ Set Language Model parameters for the main prompt. Accepts any parameters which 
 Note: No defaults are sent unless explicitly set. Invalid parameters for the selected model will be handled/ignored by the server.
 
 **Usage:**
-```python
+```ruby
 # Configure for consistent, professional responses
 agent.set_prompt_llm_params(
-    temperature=0.3,
-    top_p=0.9,
-    barge_confidence=0.7,
-    presence_penalty=0.1,
-    frequency_penalty=0.2
+  temperature: 0.3,
+  top_p: 0.9,
+  barge_confidence: 0.7,
+  presence_penalty: 0.1,
+  frequency_penalty: 0.2
 )
 ```
 
 ##### `set_post_prompt_llm_params`
 
-```python
-def set_post_prompt_llm_params(**params) -> AgentBase
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
+```ruby
+def set_post_prompt_llm_params(**params) # => AgentBase
 ```
 Set Language Model parameters for the post-prompt. Accepts any parameters which will be passed through to the SignalWire server. The server validates and applies parameters based on the target model's capabilities.
 
@@ -181,11 +184,11 @@ Set Language Model parameters for the post-prompt. Accepts any parameters which 
 Note: barge_confidence is not applicable to post-prompt. No defaults are sent unless explicitly set.
 
 **Usage:**
-```python
+```ruby
 # Configure for focused summaries
 agent.set_post_prompt_llm_params(
-    temperature=0.2,
-    top_p=0.9
+  temperature: 0.2,
+  top_p: 0.9
 )
 ```
 
@@ -193,15 +196,16 @@ agent.set_post_prompt_llm_params(
 
 ##### `prompt_add_section`
 
-```python
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
+```ruby
 def prompt_add_section(
-    title: str, 
-    body: str = "", 
-    bullets: Optional[List[str]] = None, 
-    numbered: bool = False, 
-    numbered_bullets: bool = False, 
-    subsections: Optional[List[Dict[str, Any]]] = None
-) -> AgentBase
+  title,                      # String (positional)
+  body = nil,                 # String (positional)
+  bullets: nil,               # Array<String>
+  numbered: false,            # Boolean
+  numbered_bullets: false,    # Boolean
+  subsections: nil            # Array<Hash>
+) # => AgentBase
 ```
 Add a structured section to the prompt using Prompt Object Model.
 
@@ -214,35 +218,36 @@ Add a structured section to the prompt using Prompt Object Model.
 - `subsections` (Optional[List[Dict]]): Nested subsections
 
 **Usage:**
-```python
+```ruby
 # Simple section
 agent.prompt_add_section("Role", "You are a customer service representative.")
 
 # Section with bullets
 agent.prompt_add_section(
-    "Guidelines", 
-    "Follow these principles:",
-    bullets=["Be helpful", "Stay professional", "Listen carefully"]
+  "Guidelines",
+  "Follow these principles:",
+  bullets: ["Be helpful", "Stay professional", "Listen carefully"]
 )
 
 # Numbered bullets
 agent.prompt_add_section(
-    "Process",
-    "Follow these steps:",
-    bullets=["Greet the customer", "Identify their need", "Provide solution"],
-    numbered_bullets=True
+  "Process",
+  "Follow these steps:",
+  bullets: ["Greet the customer", "Identify their need", "Provide solution"],
+  numbered_bullets: true
 )
 ```
 
 ##### `prompt_add_to_section`
 
-```python
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
+```ruby
 def prompt_add_to_section(
-    title: str, 
-    body: Optional[str] = None, 
-    bullet: Optional[str] = None, 
-    bullets: Optional[List[str]] = None
-) -> AgentBase
+  title,                      # String (positional)
+  body: nil,                  # String
+  bullet: nil,                # String
+  bullets: nil                # Array<String>
+) # => AgentBase
 ```
 Add content to an existing prompt section.
 
@@ -253,26 +258,27 @@ Add content to an existing prompt section.
 - `bullets` (Optional[List[str]]): Multiple bullet points to add
 
 **Usage:**
-```python
+```ruby
 # Add body text to existing section
-agent.prompt_add_to_section("Guidelines", "Remember to always verify customer identity.")
+agent.prompt_add_to_section("Guidelines", body: "Remember to always verify customer identity.")
 
 # Add single bullet
-agent.prompt_add_to_section("Process", bullet="Document the interaction")
+agent.prompt_add_to_section("Process", bullet: "Document the interaction")
 
 # Add multiple bullets
-agent.prompt_add_to_section("Process", bullets=["Follow up", "Close ticket"])
+agent.prompt_add_to_section("Process", bullets: ["Follow up", "Close ticket"])
 ```
 
 ##### `prompt_add_subsection`
 
-```python
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
+```ruby
 def prompt_add_subsection(
-    parent_title: str, 
-    title: str, 
-    body: str = "", 
-    bullets: Optional[List[str]] = None
-) -> AgentBase
+  parent_title,               # String (positional)
+  title,                      # String (positional)
+  body = nil,                 # String (positional)
+  bullets: nil                # Array<String>
+) # => AgentBase
 ```
 Add a subsection to an existing prompt section.
 
@@ -283,12 +289,12 @@ Add a subsection to an existing prompt section.
 - `bullets` (Optional[List[str]]): Subsection bullet points
 
 **Usage:**
-```python
+```ruby
 agent.prompt_add_subsection(
-    "Guidelines",
-    "Escalation Rules", 
-    "Escalate when:",
-    bullets=["Customer is angry", "Technical issue beyond scope"]
+  "Guidelines",
+  "Escalation Rules",
+  "Escalate when:",
+  bullets: ["Customer is angry", "Technical issue beyond scope"]
 )
 ```
 
@@ -296,16 +302,17 @@ agent.prompt_add_subsection(
 
 ##### `add_language`
 
-```python
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
+```ruby
 def add_language(
-    name: str, 
-    code: str, 
-    voice: str, 
-    speech_fillers: Optional[List[str]] = None, 
-    function_fillers: Optional[List[str]] = None, 
-    engine: Optional[str] = None, 
-    model: Optional[str] = None
-) -> AgentBase
+  name,                       # String (positional)
+  code = nil,                 # String (positional)
+  voice = nil,                # String (positional)
+  speech_fillers: nil,        # Array<String>
+  function_fillers: nil,      # Array<String>
+  engine: nil,                # String
+  model: nil                  # String
+) # => AgentBase
 ```
 Configure voice and language settings for the agent.
 
@@ -319,17 +326,17 @@ Configure voice and language settings for the agent.
 - `model` (Optional[str]): AI model to use
 
 **Usage:**
-```python
+```ruby
 # Basic language setup
 agent.add_language("English", "en-US", "rime.spore")
 
 # With custom fillers
 agent.add_language(
-    "English", 
-    "en-US", 
-    "nova.luna",
-    speech_fillers=["Let me think...", "One moment..."],
-    function_fillers=["Processing...", "Looking that up..."]
+  "English",
+  "en-US",
+  "nova.luna",
+  speech_fillers: ["Let me think...", "One moment..."],
+  function_fillers: ["Processing...", "Looking that up..."]
 )
 ```
 
@@ -358,7 +365,7 @@ Add a single speech recognition hint.
 - `hint` (str): Word or phrase to improve recognition accuracy
 
 **Usage:**
-```python
+```ruby
 agent.add_hint("SignalWire")
 ```
 
@@ -369,19 +376,20 @@ Add multiple speech recognition hints.
 - `hints` (List[str]): List of words/phrases for better recognition
 
 **Usage:**
-```python
+```ruby
 agent.add_hints(["SignalWire", "SWML", "API", "webhook", "SIP"])
 ```
 
 ##### `add_pattern_hint`
 
-```python
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
+```ruby
 def add_pattern_hint(
-    hint: str, 
-    pattern: str, 
-    replace: str, 
-    ignore_case: bool = False
-) -> AgentBase
+  hint,                       # String (positional)
+  pattern,                    # String (positional)
+  replace,                    # String (positional)
+  ignore_case: false          # Boolean
+) # => AgentBase
 ```
 Add a pattern-based hint for speech recognition.
 
@@ -392,22 +400,23 @@ Add a pattern-based hint for speech recognition.
 - `ignore_case` (bool): Case-insensitive matching (default: False)
 
 **Usage:**
-```python
+```ruby
 agent.add_pattern_hint(
-    "phone number",
-    r"(\d{3})-(\d{3})-(\d{4})",
-    r"(\1) \2-\3"
+  "phone number",
+  '(\d{3})-(\d{3})-(\d{4})',
+  '(\1) \2-\3'
 )
 ```
 
 ##### `add_pronunciation`
 
-```python
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
+```ruby
 def add_pronunciation(
-    replace: str, 
-    with_text: str, 
-    ignore_case: bool = False
-) -> AgentBase
+  replace,                    # String (positional)
+  with_text,                  # String (positional)
+  ignore_case: false          # Boolean
+) # => AgentBase
 ```
 Add pronunciation rules for text-to-speech.
 
@@ -417,7 +426,7 @@ Add pronunciation rules for text-to-speech.
 - `ignore_case` (bool): Case-insensitive replacement (default: False)
 
 **Usage:**
-```python
+```ruby
 agent.add_pronunciation("API", "A P I")
 agent.add_pronunciation("SWML", "swim-el")
 ```
@@ -453,7 +462,7 @@ Set a single AI parameter.
 - `value` (Any): Parameter value
 
 **Usage:**
-```python
+```ruby
 agent.set_param("ai_model", "gpt-4.1-nano")
 agent.set_param("end_of_speech_timeout", 500)
 ```
@@ -514,10 +523,10 @@ Update existing global data (merge with existing).
 - `data` (Dict[str, Any]): Data to merge with existing global data
 
 **Usage:**
-```python
+```ruby
 agent.update_global_data({
-    "current_promotion": "20% off all services",
-    "promotion_expires": "2024-12-31"
+  "current_promotion" => "20% off all services",
+  "promotion_expires" => "2024-12-31"
 })
 ```
 
@@ -525,18 +534,21 @@ agent.update_global_data({
 
 ##### `define_tool`
 
-```python
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
+```ruby
 def define_tool(
-    name: str,
-    description: str,
-    parameters: Dict[str, Any],
-    handler: Callable,
-    secure: bool = True,
-    fillers: Optional[Dict[str, List[str]]] = None,
-    webhook_url: Optional[str] = None,
-    is_typed_handler: bool = False,
-    **swaig_fields
-) -> AgentBase
+  name:,                      # String
+  description:,               # String
+  parameters: {},             # Hash — property_name => JSON-schema hash
+  handler: nil,               # Callable (block is canonical; see below)
+  secure: false,              # Boolean
+  fillers: nil,               # Hash — language code => Array<String>
+  webhook_url: nil,           # String
+  required: nil,              # Array<String> — required parameter names
+  is_typed_handler: false,    # Boolean
+  swaig_fields: nil,          # Hash — additional SWAIG properties
+  &block                      # canonical handler: |args, raw_data|
+) # => AgentBase
 ```
 Define a custom SWAIG function/tool.
 
@@ -551,27 +563,22 @@ Define a custom SWAIG function/tool.
 - `**swaig_fields`: Additional SWAIG function properties
 
 **Usage:**
-```python
-def get_weather(args, raw_data):
-    location = args.get("location", "Unknown")
-    return SwaigFunctionResult(f"The weather in {location} is sunny and 75°F")
-
+```ruby
 agent.define_tool(
-    name="get_weather",
-    description="Get current weather for a location",
-    parameters={
-        "type": "object",
-        "properties": {
-            "location": {
-                "type": "string",
-                "description": "City name"
-            }
-        },
-        "required": ["location"]
-    },
-    handler=get_weather,
-    fillers={"en-US": ["Checking weather...", "Looking up forecast..."]}
-)
+  name: "get_weather",
+  description: "Get current weather for a location",
+  parameters: {
+    "location" => {
+      "type" => "string",
+      "description" => "City name"
+    }
+  },
+  required: ["location"],
+  fillers: { "en-US" => ["Checking weather...", "Looking up forecast..."] }
+) do |args, raw_data|
+  location = args["location"] || "Unknown"
+  SignalWire::Swaig::FunctionResult.new("The weather in #{location} is sunny and 75°F")
+end
 ```
 
 ##### `@AgentBase.tool(name=None, **kwargs)` (Class Decorator)
@@ -584,37 +591,51 @@ Decorator for defining tools as class methods.
 When `parameters` is omitted and the handler has type-hinted parameters (beyond `self`), the schema is inferred automatically from the type hints. The description is extracted from the docstring's first line, and per-parameter descriptions come from the `Args:` block.
 
 **Usage (explicit schema):**
-```python
-class MyAgent(AgentBase):
-    @AgentBase.tool(
-        description="Get current time",
-        parameters={"type": "object", "properties": {}}
-    )
-    def get_time(self, args, raw_data):
-        import datetime
-        return SwaigFunctionResult(f"Current time: {datetime.datetime.now()}")
+```ruby
+class MyAgent < SignalWire::AgentBase
+  def initialize
+    super(name: "my-agent", route: "/agent")
+
+    # Ruby has no decorator; register the tool with a block handler.
+    define_tool(
+      name: "get_time",
+      description: "Get current time",
+      parameters: {}
+    ) do |args, raw_data|
+      SignalWire::Swaig::FunctionResult.new("Current time: #{Time.now}")
+    end
+  end
+end
 ```
 
 **Usage (type-hinted, schema inferred):**
-```python
-class MyAgent(AgentBase):
-    @AgentBase.tool(name="get_weather")
-    def get_weather(self, city: str, units: str = "celsius"):
-        """Get the weather forecast.
+```ruby
+class MyAgent < SignalWire::AgentBase
+  def initialize
+    super(name: "my-agent", route: "/agent")
 
-        Args:
-            city: Name of the city
-            units: Temperature units
-        """
-        return SwaigFunctionResult(f"Weather in {city}")
+    define_tool(
+      name: "get_weather",
+      description: "Get the weather forecast.",
+      parameters: {
+        "city"  => { "type" => "string", "description" => "Name of the city" },
+        "units" => { "type" => "string", "description" => "Temperature units" }
+      },
+      required: ["city"]
+    ) do |args, raw_data|
+      SignalWire::Swaig::FunctionResult.new("Weather in #{args['city']}")
+    end
+  end
+end
 ```
 
 ##### `register_swaig_function`
 
-```python
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
+```ruby
 def register_swaig_function(
-    function_dict: Dict[str, Any]
-) -> AgentBase
+  func_def                    # Hash — complete SWAIG function definition
+) # => AgentBase
 ```
 Register a pre-built SWAIG function dictionary.
 
@@ -622,10 +643,10 @@ Register a pre-built SWAIG function dictionary.
 - `function_dict` (Dict[str, Any]): Complete SWAIG function definition
 
 **Usage:**
-```python
+```ruby
 # Register a DataMap tool
-weather_tool = DataMap('get_weather').webhook('GET', 'https://api.weather.com/...')
-agent.register_swaig_function(weather_tool.to_swaig_function())
+weather_tool = SignalWire::DataMap.new("get_weather").webhook("GET", "https://api.weather.com/...")
+agent.register_swaig_function(weather_tool.to_swaig_function)
 ```
 
 ### Session Lifecycle Hooks
@@ -636,32 +657,32 @@ SignalWire AI agents support special SWAIG functions that are automatically call
 Called when a new conversation/call begins.
 
 **Implementation:**
-```python
-@AgentBase.tool(
-    name="startup_hook",
-    description="Called when a new conversation starts to initialize state",
-    parameters={}
-)
-def startup_hook(self, args, raw_data):
-    call_id = raw_data.get("call_id")
-    # Initialize session resources, load user data, etc.
-    return SwaigFunctionResult("Session initialized")
+```ruby
+agent.define_tool(
+  name: "startup_hook",
+  description: "Called when a new conversation starts to initialize state",
+  parameters: {}
+) do |args, raw_data|
+  call_id = raw_data["call_id"]
+  # Initialize session resources, load user data, etc.
+  SignalWire::Swaig::FunctionResult.new("Session initialized")
+end
 ```
 
 ##### `hangup_hook`
 Called when a conversation/call ends.
 
 **Implementation:**
-```python
-@AgentBase.tool(
-    name="hangup_hook",
-    description="Called when conversation ends to clean up resources",
-    parameters={}
-)
-def hangup_hook(self, args, raw_data):
-    call_id = raw_data.get("call_id")
-    # Clean up resources, save session data, etc.
-    return SwaigFunctionResult("Session ended")
+```ruby
+agent.define_tool(
+  name: "hangup_hook",
+  description: "Called when conversation ends to clean up resources",
+  parameters: {}
+) do |args, raw_data|
+  call_id = raw_data["call_id"]
+  # Clean up resources, save session data, etc.
+  SignalWire::Swaig::FunctionResult.new("Session ended")
+end
 ```
 
 **Common Use Cases:**
@@ -675,11 +696,12 @@ def hangup_hook(self, args, raw_data):
 
 ##### `add_skill`
 
-```python
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
+```ruby
 def add_skill(
-    skill_name: str, 
-    params: Optional[Dict[str, Any]] = None
-) -> AgentBase
+  skill_name,                 # String
+  params = {}                 # Hash — skill configuration
+) # => AgentBase
 ```
 Add a modular skill to the agent.
 
@@ -695,29 +717,29 @@ Add a modular skill to the agent.
 - `native_vector_search`: Local document search
 
 **Usage:**
-```python
+```ruby
 # Simple skill
 agent.add_skill("datetime")
 agent.add_skill("math")
 
 # Skill with configuration
 agent.add_skill("web_search", {
-    "api_key": "your-google-api-key",
-    "search_engine_id": "your-search-engine-id",
-    "num_results": 3
+  "api_key" => "your-google-api-key",
+  "search_engine_id" => "your-search-engine-id",
+  "num_results" => 3
 })
 
 # Multiple instances with different names
 agent.add_skill("web_search", {
-    "api_key": "your-api-key",
-    "search_engine_id": "general-engine",
-    "tool_name": "search_general"
+  "api_key" => "your-api-key",
+  "search_engine_id" => "general-engine",
+  "tool_name" => "search_general"
 })
 
 agent.add_skill("web_search", {
-    "api_key": "your-api-key", 
-    "search_engine_id": "news-engine",
-    "tool_name": "search_news"
+  "api_key" => "your-api-key",
+  "search_engine_id" => "news-engine",
+  "tool_name" => "search_news"
 })
 ```
 
@@ -728,7 +750,7 @@ Remove a skill from the agent.
 - `skill_name` (str): Name of skill to remove
 
 **Usage:**
-```python
+```ruby
 agent.remove_skill("web_search")
 ```
 
@@ -739,9 +761,9 @@ Get list of currently added skills.
 - List[str]: Names of active skills
 
 **Usage:**
-```python
-active_skills = agent.list_skills()
-print(f"Active skills: {active_skills}")
+```ruby
+active_skills = agent.list_skills
+puts "Active skills: #{active_skills}"
 ```
 
 ##### `has_skill?(skill_name) -> Boolean`
@@ -823,12 +845,13 @@ agent.internal_fillers = {
 
 ##### `add_internal_filler`
 
-```python
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
+```ruby
 def add_internal_filler(
-    function_name: str, 
-    language_code: str, 
-    fillers: List[str]
-) -> AgentBase
+  func_name,                  # String
+  lang_code,                  # String
+  fillers                     # Array<String>
+) # => AgentBase
 ```
 Add internal fillers for a specific function and language.
 
@@ -838,10 +861,10 @@ Add internal fillers for a specific function and language.
 - `fillers` (List[str]): List of filler phrases
 
 **Usage:**
-```python
+```ruby
 agent.add_internal_filler("next_step", "en-US", [
-    "Great! Let's move to the next step...",
-    "Perfect! Moving forward..."
+  "Great! Let's move to the next step...",
+  "Perfect! Moving forward..."
 ])
 ```
 
@@ -849,12 +872,13 @@ agent.add_internal_filler("next_step", "en-US", [
 
 ##### `add_function_include`
 
-```python
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
+```ruby
 def add_function_include(
-    url: str, 
-    functions: List[str], 
-    meta_data: Optional[Dict[str, Any]] = None
-) -> AgentBase
+  url,                        # String (positional)
+  functions,                  # Array<String> (positional)
+  meta_data: nil              # Hash
+) # => AgentBase
 ```
 Include external SWAIG functions from another service.
 
@@ -864,11 +888,11 @@ Include external SWAIG functions from another service.
 - `meta_data` (Optional[Dict[str, Any]]): Additional metadata
 
 **Usage:**
-```python
+```ruby
 agent.add_function_include(
-    "https://external-service.com/swaig",
-    ["external_function1", "external_function2"],
-    meta_data={"service": "external", "version": "1.0"}
+  "https://external-service.com/swaig",
+  ["external_function1", "external_function2"],
+  meta_data: { "service" => "external", "version" => "1.0" }
 )
 ```
 
@@ -937,32 +961,33 @@ This is useful for preserving dynamic configuration state across SWAIG callbacks
 - `params` (dict): Dictionary of query parameter key-value pairs
 
 **Usage:**
-```python
+```ruby
 # In dynamic config callback, preserve configuration parameters
-def configure_agent(query_params, headers, body, agent):
-    customer_id = query_params.get("customer_id")
-    if customer_id:
-        # Pass through to SWAIG callbacks
-        agent.add_swaig_query_params({"customer_id": customer_id})
-        agent.add_skill("customer_lookup", {"customer_id": customer_id})
-
-agent.set_dynamic_config_callback(configure_agent)
+agent.set_dynamic_config_callback do |query_params, body, headers, config|
+  customer_id = query_params["customer_id"]
+  if customer_id
+    # Pass through to SWAIG callbacks
+    config.add_swaig_query_params({ "customer_id" => customer_id })
+    config.add_skill("customer_lookup", { "customer_id" => customer_id })
+  end
+end
 ```
 
 ##### `clear_swaig_query_params() -> AgentBase`
 Clear all SWAIG query parameters.
 
 **Usage:**
-```python
-agent.clear_swaig_query_params()
+```ruby
+agent.clear_swaig_query_params
 ```
 
 ### Debug Events
 
 ##### `enable_debug_events`
 
-```python
-def enable_debug_events(level: int = 1) -> AgentBase
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
+```ruby
+def enable_debug_events(level = 1) # => AgentBase
 ```
 Enable the debug event webhook for this agent. When enabled, the AI module will POST real-time debug events to a `/debug_events` endpoint on this agent during calls. Events are automatically logged via the agent's structured logger and can optionally be handled with a custom callback via `on_debug_event()`.
 
@@ -970,9 +995,9 @@ Enable the debug event webhook for this agent. When enabled, the AI module will 
 - `level` (int): Debug event verbosity level. `1` = high-level events (barge, errors, session start/end, step changes). `2+` = adds high-volume events (every LLM request/response, conversation_add). Default: `1`
 
 **Usage:**
-```python
-agent.enable_debug_events()        # level 1 (default)
-agent.enable_debug_events(level=2) # include high-volume events
+```ruby
+agent.enable_debug_events    # level 1 (default)
+agent.enable_debug_events(2) # include high-volume events
 ```
 
 **How it works:**
@@ -1021,16 +1046,16 @@ Add a verb to run before the call is answered (while still ringing).
 - `config` (dict): Verb configuration dictionary
 
 **Usage:**
-```python
+```ruby
 # Send SMS before answering
 agent.add_pre_answer_verb("send_sms", {
-    "to": "+15551234567",
-    "from": "+15559876543",
-    "body": "Incoming call from AI agent"
+  "to" => "+15551234567",
+  "from" => "+15559876543",
+  "body" => "Incoming call from AI agent"
 })
 
 # Set variables before answer
-agent.add_pre_answer_verb("set", {"call_start": "${system.timestamp}"})
+agent.add_pre_answer_verb("set", { "call_start" => "${system.timestamp}" })
 ```
 
 ##### `add_answer_verb(config: dict = None) -> AgentBase`
@@ -1040,9 +1065,9 @@ Configure the answer verb that connects the call.
 - `config` (dict, optional): Answer verb configuration (e.g., `{"max_duration": 3600}`)
 
 **Usage:**
-```python
+```ruby
 # Set maximum call duration to 1 hour
-agent.add_answer_verb({"max_duration": 3600})
+agent.add_answer_verb({ "max_duration" => 3600 })
 ```
 
 ##### `add_post_answer_verb(verb_name: str, config: dict) -> AgentBase`
@@ -1053,14 +1078,14 @@ Add a verb to run after the call is answered but before the AI starts.
 - `config` (dict): Verb configuration dictionary
 
 **Usage:**
-```python
+```ruby
 # Play welcome message before AI starts
 agent.add_post_answer_verb("play", {
-    "url": "say:Welcome to our AI assistant. This call may be recorded."
+  "url" => "say:Welcome to our AI assistant. This call may be recorded."
 })
 
 # Add a brief pause
-agent.add_post_answer_verb("sleep", {"duration": 1})
+agent.add_post_answer_verb("sleep", { "duration" => 1 })
 ```
 
 ##### `add_post_ai_verb(verb_name: str, config: dict) -> AgentBase`
@@ -1071,17 +1096,17 @@ Add a verb to run after the AI conversation ends.
 - `config` (dict): Verb configuration dictionary
 
 **Usage:**
-```python
+```ruby
 # Clean hangup after AI ends
 agent.add_post_ai_verb("hangup", {})
 
 # Transfer to human after AI conversation
-agent.add_post_ai_verb("transfer", {"to": "+15551234567"})
+agent.add_post_ai_verb("transfer", { "to" => "+15551234567" })
 
 # Log call completion
 agent.add_post_ai_verb("request", {
-    "url": "https://myserver.com/call-complete",
-    "method": "POST"
+  "url" => "https://myserver.com/call-complete",
+  "method" => "POST"
 })
 ```
 
@@ -1095,10 +1120,10 @@ Remove all post-answer verbs.
 Remove all post-AI verbs.
 
 **Method Chaining Example:**
-```python
-agent.add_pre_answer_verb("set", {"source": "ai_agent"}) \
-     .add_answer_verb({"max_duration": 1800}) \
-     .add_post_answer_verb("play", {"url": "say:Hello!"}) \
+```ruby
+agent.add_pre_answer_verb("set", { "source" => "ai_agent" })
+     .add_answer_verb({ "max_duration" => 1800 })
+     .add_post_answer_verb("play", { "url" => "say:Hello!" })
      .add_post_ai_verb("hangup", {})
 ```
 
@@ -1106,10 +1131,10 @@ agent.add_pre_answer_verb("set", {"source": "ai_agent"}) \
 
 ##### `set_dynamic_config_callback`
 
-```python
-def set_dynamic_config_callback(
-    callback: Callable[[dict, dict, dict, AgentBase], None]
-) -> AgentBase
+```ruby
+# Pass a block (canonical) or a callable via the positional arg.
+# The callback receives (query_params, body, headers, config).
+def set_dynamic_config_callback(callable = nil, &block) # => AgentBase
 ```
 Set callback for per-request dynamic configuration.
 
@@ -1117,29 +1142,27 @@ Set callback for per-request dynamic configuration.
 - `callback` (Callable): Function that receives (query_params, headers, body, config)
 
 **Usage:**
-```python
-def configure_agent(query_params, headers, body, config):
-    # Configure based on request
-    if query_params.get("language") == "spanish":
-        config.add_language("Spanish", "es-ES", "nova.luna")
-    
-    # Set customer-specific data
-    customer_id = headers.get("X-Customer-ID")
-    if customer_id:
-        config.set_global_data({"customer_id": customer_id})
+```ruby
+agent.set_dynamic_config_callback do |query_params, body, headers, config|
+  # Configure based on request
+  config.add_language("Spanish", "es-ES", "nova.luna") if query_params["language"] == "spanish"
 
-agent.set_dynamic_config_callback(configure_agent)
+  # Set customer-specific data
+  customer_id = headers["X-Customer-ID"]
+  config.set_global_data({ "customer_id" => customer_id }) if customer_id
+end
 ```
 
 ### SIP Integration
 
 ##### `enable_sip_routing`
 
-```python
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
+```ruby
 def enable_sip_routing(
-    auto_map: bool = True, 
-    path: str = "/sip"
-) -> AgentBase
+  auto_map: true,             # Boolean
+  path: "/sip"                # String
+) # => AgentBase
 ```
 Enable SIP-based routing for voice calls.
 
@@ -1148,8 +1171,8 @@ Enable SIP-based routing for voice calls.
 - `path` (str): SIP routing endpoint path (default: "/sip")
 
 **Usage:**
-```python
-agent.enable_sip_routing()
+```ruby
+agent.enable_sip_routing
 ```
 
 ##### `register_sip_username(sip_username: str) -> AgentBase`
@@ -1159,18 +1182,17 @@ Register a specific SIP username for this agent.
 - `sip_username` (str): SIP username to register
 
 **Usage:**
-```python
+```ruby
 agent.register_sip_username("support")
 agent.register_sip_username("sales")
 ```
 
 ##### `register_routing_callback`
 
-```python
-def register_routing_callback(
-    callback_fn: Callable[[Request, Dict[str, Any]], Optional[str]], 
-    path: str = "/sip"
-) -> None
+```ruby
+# The routing logic is supplied as a block returning the agent route
+# (or nil) based on the request; path is the routing endpoint.
+def register_routing_callback(path, &block) # => nil
 ```
 Register custom routing logic for SIP calls.
 
@@ -1179,16 +1201,13 @@ Register custom routing logic for SIP calls.
 - `path` (str): Routing endpoint path (default: "/sip")
 
 **Usage:**
-```python
-def route_call(request, body):
-    sip_username = body.get("sip_username")
-    if sip_username == "support":
-        return "/support-agent"
-    elif sip_username == "sales":
-        return "/sales-agent"
-    return None
-
-agent.register_routing_callback(route_call)
+```ruby
+agent.register_routing_callback("/sip") do |body, headers|
+  case body["sip_username"]
+  when "support" then "/support-agent"
+  when "sales"   then "/sales-agent"
+  end
+end
 ```
 
 ### Utility Methods
@@ -1223,11 +1242,9 @@ end.to_app
 
 ##### `on_summary`
 
-```python
-def on_summary(
-    summary: Optional[Dict[str, Any]],
-    raw_data: Optional[Dict[str, Any]] = None
-) -> None
+```ruby
+# Register a handler with a block, or override this method in a subclass.
+def on_summary(summary = nil, raw_data = nil, &block) # => self / nil
 ```
 Override to handle conversation summaries. This callback is triggered when the AI generates a summary based on your `post_prompt` configuration.
 
@@ -1236,45 +1253,51 @@ Override to handle conversation summaries. This callback is triggered when the A
 - `raw_data` (Optional[Dict[str, Any]]): Complete raw POST data including `post_prompt_data` with both `raw` and `parsed` fields
 
 **Usage:**
-```python
-class MyAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="summary-agent", route="/agent")
+```ruby
+class MyAgent < SignalWire::AgentBase
+  def initialize
+    super(name: "summary-agent", route: "/agent")
 
-        # Configure post-prompt to request JSON summary
-        self.set_post_prompt("""
-        Return a JSON summary of the conversation:
-        {
-            "topic": "MAIN_TOPIC",
-            "satisfied": true/false,
-            "follow_up_needed": true/false,
-            "key_points": ["point1", "point2"]
-        }
-        """)
+    # Configure post-prompt to request JSON summary
+    self.post_prompt = <<~PROMPT
+      Return a JSON summary of the conversation:
+      {
+          "topic": "MAIN_TOPIC",
+          "satisfied": true/false,
+          "follow_up_needed": true/false,
+          "key_points": ["point1", "point2"]
+      }
+    PROMPT
+  end
 
-    def on_summary(self, summary, raw_data):
-        """Handle conversation summaries after call ends"""
-        if summary:
-            # Access parsed JSON fields directly
-            topic = summary.get("topic", "Unknown")
-            satisfied = summary.get("satisfied", False)
+  # Handle conversation summaries after call ends
+  def on_summary(summary = nil, raw_data = nil)
+    if summary
+      # Access parsed JSON fields directly
+      topic = summary["topic"] || "Unknown"
+      satisfied = summary["satisfied"] || false
 
-            print(f"Call about: {topic}, Customer satisfied: {satisfied}")
+      puts "Call about: #{topic}, Customer satisfied: #{satisfied}"
 
-            # Save to database, send to CRM, trigger follow-up, etc.
-            if summary.get("follow_up_needed"):
-                self.schedule_follow_up(summary)
+      # Save to database, send to CRM, trigger follow-up, etc.
+      schedule_follow_up(summary) if summary["follow_up_needed"]
+    end
 
-        # Access raw summary text if needed
-        if raw_data and 'post_prompt_data' in raw_data:
-            raw_text = raw_data['post_prompt_data'].get('raw', '')
-            print(f"Raw summary: {raw_text}")
+    # Access raw summary text if needed
+    if raw_data && raw_data.key?("post_prompt_data")
+      raw_text = raw_data["post_prompt_data"]["raw"] || ""
+      puts "Raw summary: #{raw_text}"
+    end
+  end
+end
 ```
 
 ##### `on_debug_event`
 
-```python
-def on_debug_event(handler: Callable) -> Callable
+```ruby
+# Register a handler by passing a block; the block receives
+# |event_type, data|. Requires enable_debug_events first.
+def on_debug_event(&block) # => AgentBase
 ```
 Register a handler for debug webhook events. Use as a decorator. Requires `enable_debug_events()` to be called first.
 
@@ -1285,44 +1308,49 @@ The handler receives:
 The handler may be sync or async.
 
 **Usage (decorator style):**
-```python
-agent = AgentBase("my_agent")
-agent.enable_debug_events()
+```ruby
+agent = SignalWire::AgentBase.new(name: "my_agent")
+agent.enable_debug_events
 
-@agent.on_debug_event
-def handle_debug(event_type, data):
-    call_id = data.get("call_id")
-    if event_type == "llm_error":
-        print(f"LLM error on call {call_id}: {data.get('event')}")
-    elif event_type == "barge":
-        print(f"Barge after {data.get('barge_elapsed_ms')}ms")
-    elif event_type == "session_end":
-        print(f"Call ended: {data.get('reason')}, duration: {data.get('duration_ms')}ms")
+agent.on_debug_event do |event_type, data|
+  call_id = data["call_id"]
+  case event_type
+  when "llm_error"
+    puts "LLM error on call #{call_id}: #{data['event']}"
+  when "barge"
+    puts "Barge after #{data['barge_elapsed_ms']}ms"
+  when "session_end"
+    puts "Call ended: #{data['reason']}, duration: #{data['duration_ms']}ms"
+  end
+end
 ```
 
 **Usage (subclass style):**
-```python
-class MyAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="debug-agent", route="/agent")
-        self.enable_debug_events(level=2)
-        self.on_debug_event(self.handle_debug)
+```ruby
+class MyAgent < SignalWire::AgentBase
+  def initialize
+    super(name: "debug-agent", route: "/agent")
+    enable_debug_events(2)
+    on_debug_event { |event_type, data| handle_debug(event_type, data) }
+  end
 
-    def handle_debug(self, event_type, data):
-        if event_type == "llm_error":
-            self.alert_ops_team(data)
+  def handle_debug(event_type, data)
+    alert_ops_team(data) if event_type == "llm_error"
+  end
+end
 ```
 
 > **Note:** Even without registering a handler, all debug events are automatically logged via the agent's structured logger when `enable_debug_events()` is called.
 
 ##### `on_function_call`
 
-```python
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
+```ruby
 def on_function_call(
-    name: str,
-    args: Dict[str, Any],
-    raw_data: Optional[Dict[str, Any]] = None
-) -> Any
+  name,                       # String
+  args,                       # Hash
+  raw_data = nil              # Hash
+) # => Object (typically FunctionResult)
 ```
 Override to handle function calls with custom logic.
 
@@ -1335,23 +1363,28 @@ Override to handle function calls with custom logic.
 - Any: Function result (typically SwaigFunctionResult)
 
 **Usage:**
-```python
-class MyAgent(AgentBase):
-    def on_function_call(self, name, args, raw_data):
-        if name == "get_weather":
-            location = args.get("location")
-            # Custom weather logic
-            return SwaigFunctionResult(f"Weather in {location}: Sunny")
-        return super().on_function_call(name, args, raw_data)
+```ruby
+class MyAgent < SignalWire::AgentBase
+  def on_function_call(name, args, raw_data = nil)
+    if name == "get_weather"
+      location = args["location"]
+      # Custom weather logic
+      return SignalWire::Swaig::FunctionResult.new("Weather in #{location}: Sunny")
+    end
+    super
+  end
+end
 ```
 
 ##### `on_request`
 
-```python
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
+```ruby
 def on_request(
-    request_data: Optional[dict] = None, 
-    callback_path: Optional[str] = None
-) -> Optional[dict]
+  request_data = nil,         # Hash (positional)
+  callback_path = nil,        # String (positional)
+  request: nil                # Rack request object
+) # => Hash or nil
 ```
 Override to handle general requests.
 
@@ -1364,12 +1397,13 @@ Override to handle general requests.
 
 ##### `on_swml_request`
 
-```python
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
+```ruby
 def on_swml_request(
-    request_data: Optional[dict] = None, 
-    callback_path: Optional[str] = None, 
-    request: Optional[Request] = None
-) -> Optional[dict]
+  request_data = nil,         # Hash (positional)
+  callback_path = nil,        # String (positional)
+  request: nil                # Rack request object
+) # => Hash or nil
 ```
 Override to handle SWML generation requests.
 
@@ -1394,19 +1428,21 @@ Override to implement custom basic authentication logic.
 - bool: True if credentials are valid
 
 **Usage:**
-```python
-class MyAgent(AgentBase):
-    def validate_basic_auth(self, username, password):
-        # Custom auth logic
-        return username == "admin" and password == "secret"
+```ruby
+class MyAgent < SignalWire::AgentBase
+  def validate_basic_auth(username, password)
+    # Custom auth logic
+    username == "admin" && password == "secret"
+  end
+end
 ```
 
 ##### `get_basic_auth_credentials`
 
-```python
-def get_basic_auth_credentials(
-    include_source: bool = False
-) -> Union[Tuple[str, str], Tuple[str, str, str]]
+```ruby
+# Returns [username, password], or [username, password, source]
+# when include_source is true.
+def get_basic_auth_credentials(include_source: false) # => Array<String>
 ```
 Get basic auth credentials from environment or constructor.
 
@@ -1448,31 +1484,28 @@ The `SwaigFunctionResult` class is used to create structured responses from SWAI
 
 ### Constructor
 
-```python
-SwaigFunctionResult(
-    response: Optional[str] = None, 
-    post_process: bool = False
-)
+```ruby
+SignalWire::Swaig::FunctionResult.new(response = nil, post_process: false)
 ```
 
 **Parameters:**
-- `response` (Optional[str]): Natural language response text for the AI to speak
-- `post_process` (bool): Whether to let AI take another turn before executing actions (default: False)
+- `response` (String, optional): Natural language response text for the AI to speak
+- `post_process` (Boolean): Whether to let AI take another turn before executing actions (default: false)
 
 **Post-processing Behavior:**
-- `post_process=False` (default): Execute actions immediately after AI response
-- `post_process=True`: Let AI respond to user one more time, then execute actions
+- `post_process: false` (default): Execute actions immediately after AI response
+- `post_process: true`: Let AI respond to user one more time, then execute actions
 
 **Usage:**
-```python
+```ruby
 # Simple response
-result = SwaigFunctionResult("The weather is sunny and 75°F")
+result = SignalWire::Swaig::FunctionResult.new("The weather is sunny and 75°F")
 
 # Response with post-processing enabled
-result = SwaigFunctionResult("I'll transfer you now", post_process=True)
+result = SignalWire::Swaig::FunctionResult.new("I'll transfer you now", post_process: true)
 
 # Empty response (actions only)
-result = SwaigFunctionResult()
+result = SignalWire::Swaig::FunctionResult.new
 ```
 
 ### Core Methods
@@ -1489,7 +1522,7 @@ fluent building.
 
 **Usage:**
 ```ruby
-result = Signalwire::Swaig::FunctionResult.new
+result = SignalWire::Swaig::FunctionResult.new
 result.response = "I found your order information"
 ```
 
@@ -1503,46 +1536,46 @@ remains for fluent building.
 
 **Usage:**
 ```ruby
-result = Signalwire::Swaig::FunctionResult.new("I'll help you with that")
+result = SignalWire::Swaig::FunctionResult.new("I'll help you with that")
 result.post_process = true  # Let AI handle follow-up questions first
 ```
 
 #### Action Management
 
-##### `add_action(name: str, data: Any) -> SwaigFunctionResult`
+##### `add_action(name, data) -> FunctionResult`
 Add a structured action to execute.
 
 **Parameters:**
-- `name` (str): Action name/type (e.g., "play", "transfer", "set_global_data")
-- `data` (Any): Action data - can be string, boolean, object, or array
+- `name` (String): Action name/type (e.g., "play", "transfer", "set_global_data")
+- `data` (Object): Action data - can be a string, boolean, hash, or array
 
 **Usage:**
-```python
+```ruby
 # Simple action with boolean
-result.add_action("hangup", True)
+result.add_action("hangup", true)
 
 # Action with string data
 result.add_action("play", "welcome.mp3")
 
 # Action with object data
-result.add_action("set_global_data", {"customer_id": "12345", "status": "verified"})
+result.add_action("set_global_data", { "customer_id" => "12345", "status" => "verified" })
 
 # Action with array data
 result.add_action("send_sms", ["+15551234567", "Your order is ready!"])
 ```
 
-##### `add_actions(actions: List[Dict[str, Any]]) -> SwaigFunctionResult`
+##### `add_actions(actions) -> FunctionResult`
 Add multiple actions at once.
 
 **Parameters:**
-- `actions` (List[Dict[str, Any]]): List of action dictionaries
+- `actions` (Array<Hash>): List of action hashes
 
 **Usage:**
-```python
+```ruby
 result.add_actions([
-    {"play": "hold_music.mp3"},
-    {"set_global_data": {"status": "on_hold"}},
-    {"wait": 5000}
+  { "play" => "hold_music.mp3" },
+  { "set_global_data" => { "status" => "on_hold" } },
+  { "wait" => 5000 }
 ])
 ```
 
@@ -1550,164 +1583,164 @@ result.add_actions([
 
 #### Call Transfer and Connection
 
-##### `connect(destination: str, final: bool = True, from_addr: Optional[str] = None) -> SwaigFunctionResult`
+##### `connect(destination, final: true, from_addr: nil) -> FunctionResult`
 Transfer or connect the call to another destination.
 
 **Parameters:**
-- `destination` (str): Phone number, SIP address, or other destination
-- `final` (bool): Permanent transfer (True) vs temporary transfer (False) (default: True)
-- `from_addr` (Optional[str]): Override caller ID
+- `destination` (String): Phone number, SIP address, or other destination
+- `final` (Boolean): Permanent transfer (true) vs temporary transfer (false) (default: true)
+- `from_addr` (String, optional): Override caller ID
 
 **Transfer Types:**
-- `final=True`: Permanent transfer - call exits agent completely
-- `final=False`: Temporary transfer - call returns to agent if far end hangs up
+- `final: true`: Permanent transfer - call exits agent completely
+- `final: false`: Temporary transfer - call returns to agent if far end hangs up
 
 **Usage:**
-```python
+```ruby
 # Permanent transfer to phone number
-result.connect("+15551234567", final=True)
+result.connect("+15551234567", final: true)
 
 # Temporary transfer to SIP address with custom caller ID
-result.connect("support@company.com", final=False, from_addr="+15559876543")
+result.connect("support@company.com", final: false, from_addr: "+15559876543")
 
 # Transfer with response
-result = SwaigFunctionResult("Transferring you to our sales team")
+result = SignalWire::Swaig::FunctionResult.new("Transferring you to our sales team")
 result.connect("sales@company.com")
 ```
 
-##### `swml_transfer(dest: str, ai_response: str) -> SwaigFunctionResult`
+##### `swml_transfer(dest, ai_response, final: true) -> FunctionResult`
 Create a SWML-based transfer with AI response setup.
 
 **Parameters:**
-- `dest` (str): Transfer destination
-- `ai_response` (str): AI response when transfer completes
+- `dest` (String): Transfer destination
+- `ai_response` (String): AI response when transfer completes
 
 **Usage:**
-```python
+```ruby
 result.swml_transfer(
-    "+15551234567", 
-    "You've been transferred back to me. How else can I help?"
+  "+15551234567",
+  "You've been transferred back to me. How else can I help?"
 )
 ```
 
-##### `sip_refer(to_uri: str) -> SwaigFunctionResult`
+##### `sip_refer(to_uri) -> FunctionResult`
 Perform a SIP REFER transfer.
 
 **Parameters:**
-- `to_uri` (str): SIP URI to transfer to
+- `to_uri` (String): SIP URI to transfer to
 
 **Usage:**
-```python
+```ruby
 result.sip_refer("sip:support@company.com")
 ```
 
 #### Call Management
 
-##### `hangup() -> SwaigFunctionResult`
+##### `hangup -> FunctionResult`
 End the call immediately.
 
 **Usage:**
-```python
-result = SwaigFunctionResult("Thank you for calling. Goodbye!")
-result.hangup()
+```ruby
+result = SignalWire::Swaig::FunctionResult.new("Thank you for calling. Goodbye!")
+result.hangup
 ```
 
-##### `hold(timeout: int = 300) -> SwaigFunctionResult`
+##### `hold(timeout = 300) -> FunctionResult`
 Put the call on hold.
 
 **Parameters:**
-- `timeout` (int): Hold timeout in seconds (default: 300)
+- `timeout` (Integer): Hold timeout in seconds (default: 300)
 
 **Usage:**
-```python
-result = SwaigFunctionResult("Please hold while I look that up")
-result.hold(timeout=60)
+```ruby
+result = SignalWire::Swaig::FunctionResult.new("Please hold while I look that up")
+result.hold(60)
 ```
 
-##### `stop() -> SwaigFunctionResult`
+##### `stop -> FunctionResult`
 Stop current audio playback or recording.
 
 **Usage:**
-```python
-result.stop()
+```ruby
+result.stop
 ```
 
 #### Audio Control
 
-##### `say(text: str) -> SwaigFunctionResult`
+##### `say(text) -> FunctionResult`
 Add text for the AI to speak.
 
 **Parameters:**
-- `text` (str): Text to speak
+- `text` (String): Text to speak
 
 **Usage:**
-```python
+```ruby
 result.say("Please wait while I process your request")
 ```
 
-##### `play_background_file(filename: str, wait: bool = False) -> SwaigFunctionResult`
+##### `play_background_file(filename, wait: false) -> FunctionResult`
 Play an audio file in the background.
 
 **Parameters:**
-- `filename` (str): Audio file path or URL
-- `wait` (bool): Wait for file to finish before continuing (default: False)
+- `filename` (String): Audio file path or URL
+- `wait` (Boolean): Wait for file to finish before continuing (default: false)
 
 **Usage:**
-```python
+```ruby
 # Play hold music in background
 result.play_background_file("hold_music.mp3")
 
 # Play announcement and wait for completion
-result.play_background_file("important_announcement.wav", wait=True)
+result.play_background_file("important_announcement.wav", wait: true)
 ```
 
-##### `stop_background_file() -> SwaigFunctionResult`
+##### `stop_background_file -> FunctionResult`
 Stop background audio playback.
 
 **Usage:**
-```python
-result.stop_background_file()
+```ruby
+result.stop_background_file
 ```
 
 ### Data Management Actions
 
-##### `set_global_data(data: Dict[str, Any]) -> SwaigFunctionResult`
+##### `set_global_data(data) -> FunctionResult`
 Set global data for the conversation.
 
 **Parameters:**
-- `data` (Dict[str, Any]): Global data to set
+- `data` (Hash): Global data to set
 
 **Usage:**
-```python
+```ruby
 result.set_global_data({
-    "customer_id": "12345",
-    "order_status": "shipped",
-    "tracking_number": "1Z999AA1234567890"
+  "customer_id" => "12345",
+  "order_status" => "shipped",
+  "tracking_number" => "1Z999AA1234567890"
 })
 ```
 
-##### `update_global_data(data: Dict[str, Any]) -> SwaigFunctionResult`
+##### `update_global_data(data) -> FunctionResult`
 Update existing global data (merge with existing).
 
 **Parameters:**
-- `data` (Dict[str, Any]): Data to merge
+- `data` (Hash): Data to merge
 
 **Usage:**
-```python
+```ruby
 result.update_global_data({
-    "last_interaction": "2024-01-15T10:30:00Z",
-    "agent_notes": "Customer satisfied with resolution"
+  "last_interaction" => "2024-01-15T10:30:00Z",
+  "agent_notes" => "Customer satisfied with resolution"
 })
 ```
 
-##### `remove_global_data(keys: Union[str, List[str]]) -> SwaigFunctionResult`
+##### `remove_global_data(keys) -> FunctionResult`
 Remove specific keys from global data.
 
 **Parameters:**
-- `keys` (Union[str, List[str]]): Key name or list of key names to remove
+- `keys` (String or Array<String>): Key name or list of key names to remove
 
 **Usage:**
-```python
+```ruby
 # Remove single key
 result.remove_global_data("temporary_data")
 
@@ -1732,14 +1765,14 @@ result.metadata = {
 }
 ```
 
-##### `remove_metadata(keys: Union[str, List[str]]) -> SwaigFunctionResult`
+##### `remove_metadata(keys) -> FunctionResult`
 Remove specific metadata keys.
 
 **Parameters:**
-- `keys` (Union[str, List[str]]): Key name or list of key names to remove
+- `keys` (String or Array<String>): Key name or list of key names to remove
 
 **Usage:**
-```python
+```ruby
 result.remove_metadata(["temporary_flag", "debug_info"])
 ```
 
@@ -1775,347 +1808,347 @@ remains for fluent building.
 result.speech_event_timeout = 5000
 ```
 
-##### `wait_for_user(enabled: Optional[bool] = None, timeout: Optional[int] = None, answer_first: bool = False) -> SwaigFunctionResult`
+##### `wait_for_user(enabled: nil, timeout: nil, answer_first: false) -> FunctionResult`
 Control whether to wait for user input.
 
 **Parameters:**
-- `enabled` (Optional[bool]): Enable/disable waiting for user
-- `timeout` (Optional[int]): Timeout in milliseconds
-- `answer_first` (bool): Answer call before waiting (default: False)
+- `enabled` (Boolean, optional): Enable/disable waiting for user
+- `timeout` (Integer, optional): Timeout in milliseconds
+- `answer_first` (Boolean): Answer call before waiting (default: false)
 
 **Usage:**
-```python
+```ruby
 # Wait for user input with 10 second timeout
-result.wait_for_user(enabled=True, timeout=10000)
+result.wait_for_user(enabled: true, timeout: 10000)
 
 # Don't wait for user (immediate response)
-result.wait_for_user(enabled=False)
+result.wait_for_user(enabled: false)
 ```
 
-##### `toggle_functions(function_toggles: List[Dict[str, Any]]) -> SwaigFunctionResult`
+##### `toggle_functions(function_toggles) -> FunctionResult`
 Enable or disable specific functions.
 
 **Parameters:**
-- `function_toggles` (List[Dict[str, Any]]): List of function toggle configurations
+- `function_toggles` (Array<Hash>): List of function toggle configurations
 
 **Usage:**
-```python
+```ruby
 result.toggle_functions([
-    {"name": "transfer_to_sales", "enabled": True},
-    {"name": "end_call", "enabled": False},
-    {"name": "escalate", "enabled": True, "timeout": 30000}
+  { "name" => "transfer_to_sales", "enabled" => true },
+  { "name" => "end_call", "enabled" => false },
+  { "name" => "escalate", "enabled" => true, "timeout" => 30000 }
 ])
 ```
 
-##### `enable_functions_on_timeout(enabled: bool = True) -> SwaigFunctionResult`
+##### `enable_functions_on_timeout(enabled = true) -> FunctionResult`
 Control whether functions are enabled when timeout occurs.
 
 **Parameters:**
-- `enabled` (bool): Enable functions on timeout (default: True)
+- `enabled` (Boolean): Enable functions on timeout (default: true)
 
 **Usage:**
-```python
-result.enable_functions_on_timeout(False)  # Disable functions on timeout
+```ruby
+result.enable_functions_on_timeout(false)  # Disable functions on timeout
 ```
 
-##### `enable_extensive_data(enabled: bool = True) -> SwaigFunctionResult`
+##### `enable_extensive_data(enabled = true) -> FunctionResult`
 Enable extensive data collection.
 
 **Parameters:**
-- `enabled` (bool): Enable extensive data (default: True)
+- `enabled` (Boolean): Enable extensive data (default: true)
 
 **Usage:**
-```python
-result.enable_extensive_data(True)
+```ruby
+result.enable_extensive_data(true)
 ```
 
-##### `update_settings(settings: Dict[str, Any]) -> SwaigFunctionResult`
+##### `update_settings(settings) -> FunctionResult`
 Update various AI settings.
 
 **Parameters:**
-- `settings` (Dict[str, Any]): Settings to update
+- `settings` (Hash): Settings to update
 
 **Usage:**
-```python
+```ruby
 result.update_settings({
-    "temperature": 0.8,
-    "max_tokens": 150,
-    "end_of_speech_timeout": 800
+  "temperature" => 0.8,
+  "max_tokens" => 150,
+  "end_of_speech_timeout" => 800
 })
 ```
 
 ### Context and Conversation Control
 
-##### `switch_context(system_prompt: Optional[str] = None, user_prompt: Optional[str] = None, consolidate: bool = False, full_reset: bool = False) -> SwaigFunctionResult`
+##### `switch_context(system_prompt: nil, user_prompt: nil, consolidate: false, full_reset: false) -> FunctionResult`
 Switch conversation context or reset the conversation.
 
 **Parameters:**
-- `system_prompt` (Optional[str]): New system prompt
-- `user_prompt` (Optional[str]): New user prompt
-- `consolidate` (bool): Consolidate conversation history (default: False)
-- `full_reset` (bool): Completely reset conversation (default: False)
+- `system_prompt` (String, optional): New system prompt
+- `user_prompt` (String, optional): New user prompt
+- `consolidate` (Boolean): Consolidate conversation history (default: false)
+- `full_reset` (Boolean): Completely reset conversation (default: false)
 
 **Usage:**
-```python
+```ruby
 # Switch to technical support context
 result.switch_context(
-    system_prompt="You are now a technical support specialist",
-    user_prompt="The customer needs technical help"
+  system_prompt: "You are now a technical support specialist",
+  user_prompt: "The customer needs technical help"
 )
 
 # Reset conversation completely
-result.switch_context(full_reset=True)
+result.switch_context(full_reset: true)
 
 # Consolidate conversation history
-result.switch_context(consolidate=True)
+result.switch_context(consolidate: true)
 ```
 
-##### `simulate_user_input(text: str) -> SwaigFunctionResult`
+##### `simulate_user_input(text) -> FunctionResult`
 Simulate user input for testing or automation.
 
 **Parameters:**
-- `text` (str): Text to simulate as user input
+- `text` (String): Text to simulate as user input
 
 **Usage:**
-```python
+```ruby
 result.simulate_user_input("I need help with my order")
 ```
 
 ### Communication Actions
 
-##### `send_sms(to_number: str, from_number: str, body: Optional[str] = None, media: Optional[List[str]] = None, tags: Optional[List[str]] = None, region: Optional[str] = None) -> SwaigFunctionResult`
+##### `send_sms(to_number:, from_number:, body: nil, media: nil, tags: nil, region: nil) -> FunctionResult`
 Send an SMS message.
 
 **Parameters:**
-- `to_number` (str): Recipient phone number
-- `from_number` (str): Sender phone number
-- `body` (Optional[str]): SMS message text
-- `media` (Optional[List[str]]): List of media URLs
-- `tags` (Optional[List[str]]): Message tags
-- `region` (Optional[str]): SignalWire region
+- `to_number` (String): Recipient phone number
+- `from_number` (String): Sender phone number
+- `body` (String, optional): SMS message text
+- `media` (Array<String>, optional): List of media URLs
+- `tags` (Array<String>, optional): Message tags
+- `region` (String, optional): SignalWire region
 
 **Usage:**
-```python
+```ruby
 # Simple text message
 result.send_sms(
-    to_number="+15551234567",
-    from_number="+15559876543", 
-    body="Your order #12345 has shipped!"
+  to_number: "+15551234567",
+  from_number: "+15559876543",
+  body: "Your order #12345 has shipped!"
 )
 
 # Message with media and tags
 result.send_sms(
-    to_number="+15551234567",
-    from_number="+15559876543",
-    body="Here's your receipt",
-    media=["https://example.com/receipt.pdf"],
-    tags=["receipt", "order_12345"]
+  to_number: "+15551234567",
+  from_number: "+15559876543",
+  body: "Here's your receipt",
+  media: ["https://example.com/receipt.pdf"],
+  tags: ["receipt", "order_12345"]
 )
 ```
 
 ### Recording and Media
 
-##### `record_call(control_id: Optional[str] = None, stereo: bool = False, format: str = "wav", direction: str = "both", terminators: Optional[str] = None, beep: bool = False, input_sensitivity: float = 44.0, initial_timeout: float = 0.0, end_silence_timeout: float = 0.0, max_length: Optional[float] = None, status_url: Optional[str] = None) -> SwaigFunctionResult`
+##### `record_call(control_id: nil, stereo: false, format: RecordFormat::WAV, direction: RecordDirection::BOTH, terminators: nil, beep: false, input_sensitivity: 44.0, initial_timeout: 0.0, end_silence_timeout: 0.0, max_length: nil, status_url: nil) -> FunctionResult`
 Start call recording.
 
 **Parameters:**
-- `control_id` (Optional[str]): Unique identifier for this recording
-- `stereo` (bool): Record in stereo (default: False)
-- `format` (str): Recording format: "wav", "mp3", "mp4" (default: "wav")
-- `direction` (str): Recording direction: "both", "inbound", "outbound" (default: "both")
-- `terminators` (Optional[str]): DTMF keys to stop recording
-- `beep` (bool): Play beep before recording (default: False)
-- `input_sensitivity` (float): Input sensitivity level (default: 44.0)
-- `initial_timeout` (float): Initial timeout in seconds (default: 0.0)
-- `end_silence_timeout` (float): End silence timeout in seconds (default: 0.0)
-- `max_length` (Optional[float]): Maximum recording length in seconds
-- `status_url` (Optional[str]): Webhook URL for recording status
+- `control_id` (String, optional): Unique identifier for this recording
+- `stereo` (Boolean): Record in stereo (default: false)
+- `format` (String): Recording format: "wav", "mp3", "mp4" (default: "wav")
+- `direction` (String): Recording direction: "both", "inbound", "outbound" (default: "both")
+- `terminators` (String, optional): DTMF keys to stop recording
+- `beep` (Boolean): Play beep before recording (default: false)
+- `input_sensitivity` (Float): Input sensitivity level (default: 44.0)
+- `initial_timeout` (Float): Initial timeout in seconds (default: 0.0)
+- `end_silence_timeout` (Float): End silence timeout in seconds (default: 0.0)
+- `max_length` (Float, optional): Maximum recording length in seconds
+- `status_url` (String, optional): Webhook URL for recording status
 
 **Usage:**
-```python
+```ruby
 # Basic recording
-result.record_call(format="mp3", direction="both")
+result.record_call(format: "mp3", direction: "both")
 
 # Recording with control ID and settings
 result.record_call(
-    control_id="customer_call_001",
-    stereo=True,
-    format="wav",
-    beep=True,
-    max_length=300.0,
-    terminators="#*"
+  control_id: "customer_call_001",
+  stereo: true,
+  format: "wav",
+  beep: true,
+  max_length: 300.0,
+  terminators: "#*"
 )
 ```
 
-##### `stop_record_call(control_id: Optional[str] = None) -> SwaigFunctionResult`
+##### `stop_record_call(control_id: nil) -> FunctionResult`
 Stop call recording.
 
 **Parameters:**
-- `control_id` (Optional[str]): Control ID of recording to stop
+- `control_id` (String, optional): Control ID of recording to stop
 
 **Usage:**
-```python
-result.stop_record_call()
-result.stop_record_call(control_id="customer_call_001")
+```ruby
+result.stop_record_call
+result.stop_record_call(control_id: "customer_call_001")
 ```
 
 ### Conference and Room Management
 
-##### `join_room(name: str) -> SwaigFunctionResult`
+##### `join_room(name) -> FunctionResult`
 Join a SignalWire room.
 
 **Parameters:**
-- `name` (str): Room name to join
+- `name` (String): Room name to join
 
 **Usage:**
-```python
+```ruby
 result.join_room("support_room_1")
 ```
 
-##### `join_conference(name: str, muted: bool = False, beep: str = "true", start_on_enter: bool = True, end_on_exit: bool = False, wait_url: Optional[str] = None, max_participants: int = 250, record: str = "do-not-record", region: Optional[str] = None, trim: str = "trim-silence", coach: Optional[str] = None, status_callback_event: Optional[str] = None, status_callback: Optional[str] = None, status_callback_method: str = "POST", recording_status_callback: Optional[str] = None, recording_status_callback_method: str = "POST", recording_status_callback_event: str = "completed", result: Optional[Any] = None) -> SwaigFunctionResult`
+##### `join_conference(name, muted: false, beep: "true", start_on_enter: true, end_on_exit: false, wait_url: nil, max_participants: 250, record: "do-not-record", region: nil, trim: "trim-silence", coach: nil, status_callback_event: nil, status_callback: nil, status_callback_method: "POST", recording_status_callback: nil, recording_status_callback_method: "POST", recording_status_callback_event: "completed", result: nil) -> FunctionResult`
 Join a conference call.
 
 **Parameters:**
-- `name` (str): Conference name
-- `muted` (bool): Join muted (default: False)
-- `beep` (str): Beep setting: "true", "false", "onEnter", "onExit" (default: "true")
-- `start_on_enter` (bool): Start conference when this participant enters (default: True)
-- `end_on_exit` (bool): End conference when this participant exits (default: False)
-- `wait_url` (Optional[str]): URL for hold music/content
-- `max_participants` (int): Maximum participants (default: 250)
-- `record` (str): Recording setting (default: "do-not-record")
-- `region` (Optional[str]): SignalWire region
-- `trim` (str): Trim setting for recordings (default: "trim-silence")
-- `coach` (Optional[str]): Coach participant identifier
-- `status_callback_event` (Optional[str]): Status callback events
-- `status_callback` (Optional[str]): Status callback URL
-- `status_callback_method` (str): Status callback HTTP method (default: "POST")
-- `recording_status_callback` (Optional[str]): Recording status callback URL
-- `recording_status_callback_method` (str): Recording status callback method (default: "POST")
-- `recording_status_callback_event` (str): Recording status callback events (default: "completed")
+- `name` (String): Conference name
+- `muted` (Boolean): Join muted (default: false)
+- `beep` (String): Beep setting: "true", "false", "onEnter", "onExit" (default: "true")
+- `start_on_enter` (Boolean): Start conference when this participant enters (default: true)
+- `end_on_exit` (Boolean): End conference when this participant exits (default: false)
+- `wait_url` (String, optional): URL for hold music/content
+- `max_participants` (Integer): Maximum participants (default: 250)
+- `record` (String): Recording setting (default: "do-not-record")
+- `region` (String, optional): SignalWire region
+- `trim` (String): Trim setting for recordings (default: "trim-silence")
+- `coach` (String, optional): Coach participant identifier
+- `status_callback_event` (String, optional): Status callback events
+- `status_callback` (String, optional): Status callback URL
+- `status_callback_method` (String): Status callback HTTP method (default: "POST")
+- `recording_status_callback` (String, optional): Recording status callback URL
+- `recording_status_callback_method` (String): Recording status callback method (default: "POST")
+- `recording_status_callback_event` (String): Recording status callback events (default: "completed")
 
 **Usage:**
-```python
+```ruby
 # Basic conference join
 result.join_conference("sales_meeting")
 
 # Conference with recording and settings
 result.join_conference(
-    name="support_conference",
-    muted=False,
-    beep="onEnter",
-    record="record-from-start",
-    max_participants=10
+  name: "support_conference",
+  muted: false,
+  beep: "onEnter",
+  record: "record-from-start",
+  max_participants: 10
 )
 ```
 
 ### Payment Processing
 
-##### `pay(payment_connector_url: str, input_method: str = "dtmf", status_url: Optional[str] = None, payment_method: str = "credit-card", timeout: int = 5, max_attempts: int = 1, security_code: bool = True, postal_code: Union[bool, str] = True, min_postal_code_length: int = 0, token_type: str = "reusable", charge_amount: Optional[str] = None, currency: str = "usd", language: str = "en-US", voice: str = "woman", description: Optional[str] = None, valid_card_types: str = "visa mastercard amex", parameters: Optional[List[Dict[str, str]]] = None, prompts: Optional[List[Dict[str, Any]]] = None) -> SwaigFunctionResult`
+##### `pay(payment_connector_url:, input_method: "dtmf", status_url: nil, payment_method: "credit-card", timeout: 5, max_attempts: 1, security_code: true, postal_code: true, min_postal_code_length: 0, token_type: "reusable", charge_amount: nil, currency: "usd", language: "en-US", voice: "woman", description: nil, valid_card_types: "visa mastercard amex", parameters: nil, prompts: nil) -> FunctionResult`
 Process a payment through the call.
 
 **Parameters:**
-- `payment_connector_url` (str): Payment processor webhook URL
-- `input_method` (str): Input method: "dtmf", "speech" (default: "dtmf")
-- `status_url` (Optional[str]): Payment status webhook URL
-- `payment_method` (str): Payment method: "credit-card" (default: "credit-card")
-- `timeout` (int): Input timeout in seconds (default: 5)
-- `max_attempts` (int): Maximum retry attempts (default: 1)
-- `security_code` (bool): Require security code (default: True)
-- `postal_code` (Union[bool, str]): Require postal code (default: True)
-- `min_postal_code_length` (int): Minimum postal code length (default: 0)
-- `token_type` (str): Token type: "reusable", "one-time" (default: "reusable")
-- `charge_amount` (Optional[str]): Amount to charge
-- `currency` (str): Currency code (default: "usd")
-- `language` (str): Language for prompts (default: "en-US")
-- `voice` (str): Voice for prompts (default: "woman")
-- `description` (Optional[str]): Payment description
-- `valid_card_types` (str): Accepted card types (default: "visa mastercard amex")
-- `parameters` (Optional[List[Dict[str, str]]]): Additional parameters
-- `prompts` (Optional[List[Dict[str, Any]]]): Custom prompts
+- `payment_connector_url` (String): Payment processor webhook URL
+- `input_method` (String): Input method: "dtmf", "speech" (default: "dtmf")
+- `status_url` (String, optional): Payment status webhook URL
+- `payment_method` (String): Payment method: "credit-card" (default: "credit-card")
+- `timeout` (Integer): Input timeout in seconds (default: 5)
+- `max_attempts` (Integer): Maximum retry attempts (default: 1)
+- `security_code` (Boolean): Require security code (default: true)
+- `postal_code` (Boolean or String): Require postal code (default: true)
+- `min_postal_code_length` (Integer): Minimum postal code length (default: 0)
+- `token_type` (String): Token type: "reusable", "one-time" (default: "reusable")
+- `charge_amount` (String, optional): Amount to charge
+- `currency` (String): Currency code (default: "usd")
+- `language` (String): Language for prompts (default: "en-US")
+- `voice` (String): Voice for prompts (default: "woman")
+- `description` (String, optional): Payment description
+- `valid_card_types` (String): Accepted card types (default: "visa mastercard amex")
+- `parameters` (Array<Hash>, optional): Additional parameters
+- `prompts` (Array<Hash>, optional): Custom prompts
 
 **Usage:**
-```python
+```ruby
 # Basic payment processing
 result.pay(
-    payment_connector_url="https://payment-processor.com/webhook",
-    charge_amount="29.99",
-    description="Monthly subscription"
+  payment_connector_url: "https://payment-processor.com/webhook",
+  charge_amount: "29.99",
+  description: "Monthly subscription"
 )
 
 # Payment with custom settings
 result.pay(
-    payment_connector_url="https://payment-processor.com/webhook",
-    input_method="speech",
-    timeout=10,
-    max_attempts=3,
-    security_code=True,
-    postal_code=True,
-    charge_amount="149.99",
-    currency="usd",
-    description="Premium service upgrade"
+  payment_connector_url: "https://payment-processor.com/webhook",
+  input_method: "speech",
+  timeout: 10,
+  max_attempts: 3,
+  security_code: true,
+  postal_code: true,
+  charge_amount: "149.99",
+  currency: "usd",
+  description: "Premium service upgrade"
 )
 ```
 
 ### Call Monitoring
 
-##### `tap(uri: str, control_id: Optional[str] = None, direction: str = "both", codec: str = "PCMU", rtp_ptime: int = 20, status_url: Optional[str] = None) -> SwaigFunctionResult`
+##### `tap(uri, control_id: nil, direction: TapDirection::BOTH, codec: Codec::PCMU, rtp_ptime: 20, status_url: nil) -> FunctionResult`
 Start call tapping/monitoring.
 
 **Parameters:**
-- `uri` (str): URI to send tapped audio to
-- `control_id` (Optional[str]): Unique identifier for this tap
-- `direction` (str): Tap direction: "both", "inbound", "outbound" (default: "both")
-- `codec` (str): Audio codec: "PCMU", "PCMA", "G722" (default: "PCMU")
-- `rtp_ptime` (int): RTP packet time in milliseconds (default: 20)
-- `status_url` (Optional[str]): Status webhook URL
+- `uri` (String): URI to send tapped audio to
+- `control_id` (String, optional): Unique identifier for this tap
+- `direction` (String): Tap direction: "both", "inbound", "outbound" (default: "both")
+- `codec` (String): Audio codec: "PCMU", "PCMA", "G722" (default: "PCMU")
+- `rtp_ptime` (Integer): RTP packet time in milliseconds (default: 20)
+- `status_url` (String, optional): Status webhook URL
 
 **Usage:**
-```python
+```ruby
 # Basic call tapping
 result.tap("sip:monitor@company.com")
 
 # Tap with specific settings
 result.tap(
-    uri="sip:quality@company.com",
-    control_id="quality_monitor_001",
-    direction="both",
-    codec="G722"
+  "sip:quality@company.com",
+  control_id: "quality_monitor_001",
+  direction: "both",
+  codec: "G722"
 )
 ```
 
-##### `stop_tap(control_id: Optional[str] = None) -> SwaigFunctionResult`
+##### `stop_tap(control_id: nil) -> FunctionResult`
 Stop call tapping.
 
 **Parameters:**
-- `control_id` (Optional[str]): Control ID of tap to stop
+- `control_id` (String, optional): Control ID of tap to stop
 
 **Usage:**
-```python
-result.stop_tap()
-result.stop_tap(control_id="quality_monitor_001")
+```ruby
+result.stop_tap
+result.stop_tap(control_id: "quality_monitor_001")
 ```
 
 ### Advanced SWML Execution
 
-##### `execute_swml(swml_content, transfer: bool = False) -> SwaigFunctionResult`
+##### `execute_swml(swml_content, transfer: false) -> FunctionResult`
 Execute custom SWML content.
 
 **Parameters:**
 - `swml_content`: SWML document or content to execute
-- `transfer` (bool): Whether this is a transfer operation (default: False)
+- `transfer` (Boolean): Whether this is a transfer operation (default: false)
 
 **Usage:**
-```python
+```ruby
 # Execute custom SWML
 custom_swml = {
-    "version": "1.0.0",
-    "sections": {
-        "main": [
-            {"play": {"url": "https://example.com/custom.mp3"}},
-            {"say": {"text": "Custom SWML execution"}}
-        ]
-    }
+  "version" => "1.0.0",
+  "sections" => {
+    "main" => [
+      { "play" => { "url" => "https://example.com/custom.mp3" } },
+      { "say" => { "text" => "Custom SWML execution" } }
+    ]
+  }
 }
 result.execute_swml(custom_swml)
 ```
@@ -2130,7 +2163,7 @@ Convert the result to a Hash for serialization.
 
 **Usage:**
 ```ruby
-result = Signalwire::Swaig::FunctionResult.new("Hello world")
+result = SignalWire::Swaig::FunctionResult.new("Hello world")
 result.add_action("play", "music.mp3")
 result_hash = result.to_h
 puts result_hash
@@ -2139,74 +2172,74 @@ puts result_hash
 
 ### Static Helper Methods
 
-##### `create_payment_prompt(for_situation: str, actions: List[Dict[str, str]], card_type: Optional[str] = None, error_type: Optional[str] = None) -> Dict[str, Any]`
+##### `FunctionResult.create_payment_prompt(for_situation, actions, card_type: nil, error_type: nil) -> Hash`
 Create a payment prompt configuration.
 
 **Parameters:**
-- `for_situation` (str): Situation identifier
-- `actions` (List[Dict[str, str]]): List of action configurations
-- `card_type` (Optional[str]): Card type for prompts
-- `error_type` (Optional[str]): Error type for error prompts
+- `for_situation` (String): Situation identifier
+- `actions` (Array<Hash>): List of action configurations
+- `card_type` (String, optional): Card type for prompts
+- `error_type` (String, optional): Error type for error prompts
 
 **Usage:**
-```python
-prompt = SwaigFunctionResult.create_payment_prompt(
-    for_situation="card_number",
-    actions=[
-        SwaigFunctionResult.create_payment_action("say", "Please enter your card number")
-    ]
+```ruby
+prompt = SignalWire::Swaig::FunctionResult.create_payment_prompt(
+  "card_number",
+  [
+    SignalWire::Swaig::FunctionResult.create_payment_action("say", "Please enter your card number")
+  ]
 )
 ```
 
-##### `create_payment_action(action_type: str, phrase: str) -> Dict[str, str]`
+##### `FunctionResult.create_payment_action(action_type, phrase) -> Hash`
 Create a payment action configuration.
 
 **Parameters:**
-- `action_type` (str): Action type
-- `phrase` (str): Action phrase
+- `action_type` (String): Action type
+- `phrase` (String): Action phrase
 
 **Usage:**
-```python
-action = SwaigFunctionResult.create_payment_action("say", "Enter your card number")
+```ruby
+action = SignalWire::Swaig::FunctionResult.create_payment_action("say", "Enter your card number")
 ```
 
-##### `create_payment_parameter(name: str, value: str) -> Dict[str, str]`
+##### `FunctionResult.create_payment_parameter(name, value) -> Hash`
 Create a payment parameter configuration.
 
 **Parameters:**
-- `name` (str): Parameter name
-- `value` (str): Parameter value
+- `name` (String): Parameter name
+- `value` (String): Parameter value
 
 **Usage:**
-```python
-param = SwaigFunctionResult.create_payment_parameter("merchant_id", "12345")
+```ruby
+param = SignalWire::Swaig::FunctionResult.create_payment_parameter("merchant_id", "12345")
 ```
 
 ### Method Chaining
 
 All methods return `self`, enabling fluent method chaining:
 
-```python
-result = (SwaigFunctionResult("I'll help you with that")
-    .set_post_process(True)
-    .update_global_data({"status": "helping"})
-    .set_end_of_speech_timeout(800)
-    .add_action("play", "thinking.mp3"))
+```ruby
+result = SignalWire::Swaig::FunctionResult.new("I'll help you with that")
+  .set_post_process(true)
+  .update_global_data({ "status" => "helping" })
+  .set_end_of_speech_timeout(800)
+  .add_action("play", "thinking.mp3")
 
 # Complex workflow
-result = (SwaigFunctionResult("Processing your payment")
-    .set_post_process(True)
-    .update_global_data({"payment_status": "processing"})
-    .pay(
-        payment_connector_url="https://payments.com/webhook",
-        charge_amount="99.99",
-        description="Service payment"
-    )
-    .send_sms(
-        to_number="+15551234567",
-        from_number="+15559876543",
-        body="Payment confirmation will be sent shortly"
-    ))
+result = SignalWire::Swaig::FunctionResult.new("Processing your payment")
+  .set_post_process(true)
+  .update_global_data({ "payment_status" => "processing" })
+  .pay(
+    payment_connector_url: "https://payments.com/webhook",
+    charge_amount: "99.99",
+    description: "Service payment"
+  )
+  .send_sms(
+    to_number: "+15551234567",
+    from_number: "+15559876543",
+    body: "Payment confirmation will be sent shortly"
+  )
 ```
 
 This concludes Part 2 of the API reference covering the SwaigFunctionResult class. The document will continue with DataMap and other components in subsequent parts.
@@ -2219,72 +2252,72 @@ The `DataMap` class provides a declarative approach to creating SWAIG tools that
 
 ### Constructor
 
-```python
-DataMap(function_name: str)
+```ruby
+SignalWire::DataMap.new(function_name)
 ```
 
 **Parameters:**
-- `function_name` (str): Name of the SWAIG function this DataMap will create
+- `function_name` (String): Name of the SWAIG function this DataMap will create
 
 **Usage:**
-```python
+```ruby
 # Create a new DataMap tool
-weather_map = DataMap('get_weather')
-search_map = DataMap('search_docs')
+weather_map = SignalWire::DataMap.new('get_weather')
+search_map = SignalWire::DataMap.new('search_docs')
 ```
 
 ### Core Configuration Methods
 
 #### Function Metadata
 
-##### `purpose(description: str) -> DataMap`
+##### `purpose(description) -> DataMap`
 Set the function description/purpose.
 
 **Parameters:**
-- `description` (str): Human-readable description of what this function does
+- `description` (String): Human-readable description of what this function does
 
 **Usage:**
-```python
-data_map = DataMap('get_weather').purpose('Get current weather information for any city')
+```ruby
+data_map = SignalWire::DataMap.new('get_weather').purpose('Get current weather information for any city')
 ```
 
-##### `description(description: str) -> DataMap`
+##### `description(description) -> DataMap`
 Alias for `purpose()` - set the function description.
 
 **Parameters:**
-- `description` (str): Function description
+- `description` (String): Function description
 
 **Usage:**
-```python
-data_map = DataMap('search_api').description('Search our knowledge base for information')
+```ruby
+data_map = SignalWire::DataMap.new('search_api').description('Search our knowledge base for information')
 ```
 
 #### Parameter Definition
 
-##### `parameter(name: str, param_type: str, description: str, required: bool = False, enum: Optional[List[str]] = None) -> DataMap`
+##### `parameter(name, param_type, description, required: false, enum: nil) -> DataMap`
 Add a function parameter with JSON schema validation.
 
 **Parameters:**
-- `name` (str): Parameter name
-- `param_type` (str): JSON schema type: "string", "number", "boolean", "array", "object"
-- `description` (str): Parameter description for the AI
-- `required` (bool): Whether parameter is required (default: False)
-- `enum` (Optional[List[str]]): List of allowed values for validation
+- `name` (String): Parameter name
+- `param_type` (String): JSON schema type: "string", "number", "boolean", "array", "object"
+- `description` (String): Parameter description for the AI
+- `required` (Boolean): Whether parameter is required (default: false)
+- `enum` (Array<String>, optional): List of allowed values for validation
 
 **Usage:**
-```python
+```ruby
 # Required string parameter
-data_map.parameter('location', 'string', 'City name or ZIP code', required=True)
+data_map.parameter('location', 'string', 'City name or ZIP code', required: true)
 
 # Optional number parameter
-data_map.parameter('days', 'number', 'Number of forecast days', required=False)
+data_map.parameter('days', 'number', 'Number of forecast days', required: false)
 
 # Enum parameter with allowed values
-data_map.parameter('units', 'string', 'Temperature units', 
-                  enum=['celsius', 'fahrenheit'], required=False)
+data_map.parameter('units', 'string', 'Temperature units',
+                   enum: ['celsius', 'fahrenheit'], required: false)
 
 # Boolean parameter
-data_map.parameter('include_alerts', 'boolean', 'Include weather alerts', required=False)
+data_map.parameter('include_alerts', 'boolean', 'Include weather alerts', required: false)
 
 # Array parameter
 data_map.parameter('categories', 'array', 'Search categories to include')
@@ -2294,16 +2327,16 @@ data_map.parameter('categories', 'array', 'Search categories to include')
 
 #### HTTP Webhook Configuration
 
-##### `webhook(method: str, url: str, headers: Optional[Dict[str, str]] = None, form_param: Optional[str] = None, input_args_as_params: bool = False, require_args: Optional[List[str]] = None) -> DataMap`
+##### `webhook(method, url, headers: nil, form_param: nil, input_args_as_params: false, require_args: nil) -> DataMap`
 Configure an HTTP API call.
 
 **Parameters:**
-- `method` (str): HTTP method: "GET", "POST", "PUT", "DELETE", "PATCH"
-- `url` (str): API endpoint URL (supports `${variable}` substitution)
-- `headers` (Optional[Dict[str, str]]): HTTP headers to send
-- `form_param` (Optional[str]): Send JSON body as single form parameter with this name
-- `input_args_as_params` (bool): Merge function arguments into URL parameters (default: False)
-- `require_args` (Optional[List[str]]): Only execute if these arguments are present
+- `method` (String): HTTP method: "GET", "POST", "PUT", "DELETE", "PATCH"
+- `url` (String): API endpoint URL (supports `${variable}` substitution)
+- `headers` (Hash, optional): HTTP headers to send
+- `form_param` (String, optional): Send JSON body as single form parameter with this name
+- `input_args_as_params` (Boolean): Merge function arguments into URL parameters (default: false)
+- `require_args` (Array<String>, optional): Only execute if these arguments are present
 
 **Variable Substitution in URLs:**
 - `${args.parameter_name}`: Function argument values
@@ -2311,75 +2344,75 @@ Configure an HTTP API call.
 - `${meta_data.call_id}`: Call and function metadata
 
 **Usage:**
-```python
+```ruby
 # Simple GET request with parameter substitution
 data_map.webhook('GET', 'https://api.weather.com/v1/current?key=API_KEY&q=${args.location}')
 
 # POST request with authentication headers
 data_map.webhook(
-    'POST', 
-    'https://api.company.com/search',
-    headers={
-        'Authorization': 'Bearer YOUR_TOKEN',
-        'Content-Type': 'application/json'
-    }
+  'POST',
+  'https://api.company.com/search',
+  headers: {
+    'Authorization' => 'Bearer YOUR_TOKEN',
+    'Content-Type' => 'application/json'
+  }
 )
 
 # Webhook that requires specific arguments
 data_map.webhook(
-    'GET',
-    'https://api.service.com/data?id=${args.customer_id}',
-    require_args=['customer_id']
+  'GET',
+  'https://api.service.com/data?id=${args.customer_id}',
+  require_args: ['customer_id']
 )
 
 # Use global data for call-related info (NOT credentials)
 data_map.webhook(
-    'GET',
-    'https://api.service.com/customer/${global_data.customer_id}/orders',
-    headers={'Authorization': 'Bearer YOUR_API_TOKEN'}  # Use static credentials
+  'GET',
+  'https://api.service.com/customer/${global_data.customer_id}/orders',
+  headers: { 'Authorization' => 'Bearer YOUR_API_TOKEN' }  # Use static credentials
 )
 ```
 
-##### `body(data: Dict[str, Any]) -> DataMap`
+##### `body(data) -> DataMap`
 Set the JSON body for POST/PUT requests.
 
 **Parameters:**
-- `data` (Dict[str, Any]): JSON body data (supports `${variable}` substitution)
+- `data` (Hash): JSON body data (supports `${variable}` substitution)
 
 **Usage:**
-```python
+```ruby
 # Static body with parameter substitution
 data_map.body({
-    'query': '${args.search_term}',
-    'limit': 5,
-    'filters': {
-        'category': '${args.category}',
-        'active': True
-    }
+  'query' => '${args.search_term}',
+  'limit' => 5,
+  'filters' => {
+    'category' => '${args.category}',
+    'active' => true
+  }
 })
 
 # Body with call-related data (NOT sensitive info)
 data_map.body({
-    'customer_id': '${global_data.customer_id}',
-    'request_id': '${meta_data.call_id}',
-    'search': '${args.query}'
+  'customer_id' => '${global_data.customer_id}',
+  'request_id' => '${meta_data.call_id}',
+  'search' => '${args.query}'
 })
 ```
 
-##### `params(data: Dict[str, Any]) -> DataMap`
+##### `params(data) -> DataMap`
 Set URL query parameters.
 
 **Parameters:**
-- `data` (Dict[str, Any]): Query parameters (supports `${variable}` substitution)
+- `data` (Hash): Query parameters (supports `${variable}` substitution)
 
 **Usage:**
-```python
+```ruby
 # URL parameters with substitution
 data_map.params({
-    'api_key': 'YOUR_API_KEY',
-    'q': '${args.location}',
-    'units': '${args.units}',
-    'lang': 'en'
+  'api_key' => 'YOUR_API_KEY',
+  'q' => '${args.location}',
+  'units' => '${args.units}',
+  'lang' => 'en'
 })
 ```
 
@@ -2387,34 +2420,30 @@ data_map.params({
 
 DataMap supports multiple webhook configurations for fallback scenarios:
 
-```python
+```ruby
 # Primary API with fallback
-data_map = (DataMap('search_with_fallback')
-    .purpose('Search with multiple API fallbacks')
-    .parameter('query', 'string', 'Search query', required=True)
-    
-    # Primary API
-    .webhook('GET', 'https://api.primary.com/search?q=${args.query}')
-    .output(SwaigFunctionResult('Primary result: ${response.title}'))
-    
-    # Fallback API
-    .webhook('GET', 'https://api.fallback.com/search?q=${args.query}')
-    .output(SwaigFunctionResult('Fallback result: ${response.title}'))
-    
-    # Final fallback if all APIs fail
-    .fallback_output(SwaigFunctionResult('Sorry, all search services are currently unavailable'))
-)
+data_map = SignalWire::DataMap.new('search_with_fallback')
+  .purpose('Search with multiple API fallbacks')
+  .parameter('query', 'string', 'Search query', required: true)
+  # Primary API
+  .webhook('GET', 'https://api.primary.com/search?q=${args.query}')
+  .output(SignalWire::Swaig::FunctionResult.new('Primary result: ${response.title}'))
+  # Fallback API
+  .webhook('GET', 'https://api.fallback.com/search?q=${args.query}')
+  .output(SignalWire::Swaig::FunctionResult.new('Fallback result: ${response.title}'))
+  # Final fallback if all APIs fail
+  .fallback_output(SignalWire::Swaig::FunctionResult.new('Sorry, all search services are currently unavailable'))
 ```
 
 ### Response Processing
 
 #### Basic Output
 
-##### `output(result: SwaigFunctionResult) -> DataMap`
+##### `output(result) -> DataMap`
 Set the response template for successful API calls.
 
 **Parameters:**
-- `result` (SwaigFunctionResult): Response template with variable substitution
+- `result` (FunctionResult): Response template with variable substitution
 
 **Variable Substitution in Outputs:**
 - `${response.field}`: API response fields
@@ -2424,65 +2453,64 @@ Set the response template for successful API calls.
 - `${global_data.key}`: Call-wide data store (user info, call state)
 
 **Usage:**
-```python
+```ruby
 # Simple response template
-data_map.output(SwaigFunctionResult('Weather in ${args.location}: ${response.current.condition.text}, ${response.current.temp_f}°F'))
+data_map.output(SignalWire::Swaig::FunctionResult.new('Weather in ${args.location}: ${response.current.condition.text}, ${response.current.temp_f}°F'))
 
 # Response with actions
 data_map.output(
-    SwaigFunctionResult('Found ${response.total_results} results')
-    .update_global_data({'last_search': '${args.query}'})
+  SignalWire::Swaig::FunctionResult.new('Found ${response.total_results} results')
+    .update_global_data({ 'last_search' => '${args.query}' })
     .add_action('play', 'search_complete.mp3')
 )
 
 # Complex response with nested data
 data_map.output(
-    SwaigFunctionResult('Order ${response.order.id} status: ${response.order.status}. Estimated delivery: ${response.order.delivery.estimated_date}')
+  SignalWire::Swaig::FunctionResult.new('Order ${response.order.id} status: ${response.order.status}. Estimated delivery: ${response.order.delivery.estimated_date}')
 )
 ```
 
-##### `fallback_output(result: SwaigFunctionResult) -> DataMap`
+##### `fallback_output(result) -> DataMap`
 Set the response when all webhooks fail.
 
 **Parameters:**
-- `result` (SwaigFunctionResult): Fallback response
+- `result` (FunctionResult): Fallback response
 
 **Usage:**
-```python
+```ruby
 data_map.fallback_output(
-    SwaigFunctionResult('Sorry, the service is temporarily unavailable. Please try again later.')
+  SignalWire::Swaig::FunctionResult.new('Sorry, the service is temporarily unavailable. Please try again later.')
     .add_action('play', 'service_unavailable.mp3')
 )
 ```
 
 #### Array Processing
 
-##### `foreach(foreach_config: Union[str, Dict[str, Any]]) -> DataMap`
+##### `foreach(foreach_config) -> DataMap`
 Process array responses by iterating over elements.
 
 **Parameters:**
-- `foreach_config` (Union[str, Dict]): Array path or configuration object
+- `foreach_config` (String or Hash): Array path or configuration object
 
 **Simple Array Processing:**
-```python
+```ruby
 # Process array of search results
-data_map = (DataMap('search_docs')
-    .webhook('GET', 'https://api.docs.com/search?q=${args.query}')
-    .foreach('${response.results}')  # Iterate over results array
-    .output(SwaigFunctionResult('Found: ${foreach.title} - ${foreach.summary}'))
-)
+data_map = SignalWire::DataMap.new('search_docs')
+  .webhook('GET', 'https://api.docs.com/search?q=${args.query}')
+  .foreach('${response.results}')  # Iterate over results array
+  .output(SignalWire::Swaig::FunctionResult.new('Found: ${foreach.title} - ${foreach.summary}'))
 ```
 
 **Advanced Array Processing:**
-```python
+```ruby
 # Complex foreach configuration
 data_map.foreach({
-    'array': '${response.items}',
-    'limit': 3,  # Process only first 3 items
-    'filter': {
-        'field': 'status',
-        'value': 'active'
-    }
+  'array' => '${response.items}',
+  'limit' => 3,  # Process only first 3 items
+  'filter' => {
+    'field' => 'status',
+    'value' => 'active'
+  }
 })
 ```
 
@@ -2496,47 +2524,43 @@ data_map.foreach({
 
 #### Expression Matching
 
-##### `expression(test_value: str, pattern: Union[str, Pattern], output: SwaigFunctionResult, nomatch_output: Optional[SwaigFunctionResult] = None) -> DataMap`
+##### `expression(test_value, pattern, output, nomatch_output: nil) -> DataMap`
 Add pattern-based responses without API calls.
 
 **Parameters:**
-- `test_value` (str): Template string to test against pattern
-- `pattern` (Union[str, Pattern]): Regex pattern or compiled Pattern object
-- `output` (SwaigFunctionResult): Response when pattern matches
-- `nomatch_output` (Optional[SwaigFunctionResult]): Response when pattern doesn't match
+- `test_value` (String): Template string to test against pattern
+- `pattern` (String or Regexp): Regex pattern or compiled Regexp object
+- `output` (FunctionResult): Response when pattern matches
+- `nomatch_output` (FunctionResult, optional): Response when pattern doesn't match
 
 **Usage:**
-```python
+```ruby
 # Command-based responses
-control_map = (DataMap('file_control')
-    .purpose('Control file playback')
-    .parameter('command', 'string', 'Playback command', required=True)
-    .parameter('filename', 'string', 'File to control')
-    
-    # Start commands
-    .expression(
-        '${args.command}', 
-        r'start|play|begin',
-        SwaigFunctionResult('Starting playback')
-        .add_action('start_playback', {'file': '${args.filename}'})
-    )
-    
-    # Stop commands
-    .expression(
-        '${args.command}',
-        r'stop|pause|halt',
-        SwaigFunctionResult('Stopping playback')
-        .add_action('stop_playback', True)
-    )
-    
-    # Volume commands
-    .expression(
-        '${args.command}',
-        r'volume (\d+)',
-        SwaigFunctionResult('Setting volume to ${match.1}')
-        .add_action('set_volume', '${match.1}')
-    )
-)
+control_map = SignalWire::DataMap.new('file_control')
+  .purpose('Control file playback')
+  .parameter('command', 'string', 'Playback command', required: true)
+  .parameter('filename', 'string', 'File to control')
+  # Start commands
+  .expression(
+    '${args.command}',
+    /start|play|begin/,
+    SignalWire::Swaig::FunctionResult.new('Starting playback')
+      .add_action('start_playback', { 'file' => '${args.filename}' })
+  )
+  # Stop commands
+  .expression(
+    '${args.command}',
+    /stop|pause|halt/,
+    SignalWire::Swaig::FunctionResult.new('Stopping playback')
+      .add_action('stop_playback', true)
+  )
+  # Volume commands
+  .expression(
+    '${args.command}',
+    /volume (\d+)/,
+    SignalWire::Swaig::FunctionResult.new('Setting volume to ${match.1}')
+      .add_action('set_volume', '${match.1}')
+  )
 ```
 
 **Pattern Matching Variables:**
@@ -2546,59 +2570,59 @@ control_map = (DataMap('file_control')
 
 ### Error Handling
 
-##### `error_keys(keys: List[str]) -> DataMap`
+##### `error_keys(keys) -> DataMap`
 Specify response fields that indicate errors.
 
 **Parameters:**
-- `keys` (List[str]): List of field names that indicate API errors
+- `keys` (Array<String>): List of field names that indicate API errors
 
 **Usage:**
-```python
+```ruby
 # Treat these response fields as errors
 data_map.error_keys(['error', 'error_message', 'status_code'])
 
-# If API returns {"error": "Not found"}, DataMap will treat this as an error
+# If API returns {"error" => "Not found"}, DataMap will treat this as an error
 ```
 
-##### `global_error_keys(keys: List[str]) -> DataMap`
+##### `global_error_keys(keys) -> DataMap`
 Set global error keys for all webhooks in this DataMap.
 
 **Parameters:**
-- `keys` (List[str]): Global error field names
+- `keys` (Array<String>): Global error field names
 
 **Usage:**
-```python
+```ruby
 data_map.global_error_keys(['error', 'message', 'code'])
 ```
 
 ### Advanced Configuration
 
-##### `webhook_expressions(expressions: List[Dict[str, Any]]) -> DataMap`
+##### `webhook_expressions(expressions) -> DataMap`
 Add expression-based webhook selection.
 
 **Parameters:**
-- `expressions` (List[Dict[str, Any]]): List of expression configurations
+- `expressions` (Array<Hash>): List of expression configurations
 
 **Usage:**
-```python
+```ruby
 # Different APIs based on input
 data_map.webhook_expressions([
-    {
-        'test': '${args.type}',
-        'pattern': 'weather',
-        'webhook': {
-            'method': 'GET',
-            'url': 'https://weather-api.com/current?q=${args.location}'
-        }
-    },
-    {
-        'test': '${args.type}',
-        'pattern': 'news',
-        'webhook': {
-            'method': 'GET', 
-            'url': 'https://news-api.com/search?q=${args.query}'
-        }
+  {
+    'test' => '${args.type}',
+    'pattern' => 'weather',
+    'webhook' => {
+      'method' => 'GET',
+      'url' => 'https://weather-api.com/current?q=${args.location}'
     }
+  },
+  {
+    'test' => '${args.type}',
+    'pattern' => 'news',
+    'webhook' => {
+      'method' => 'GET',
+      'url' => 'https://news-api.com/search?q=${args.query}'
+    }
+  }
 ])
 ```
 
@@ -2606,180 +2630,169 @@ data_map.webhook_expressions([
 
 #### Simple Weather API
 
-```python
-weather_tool = (DataMap('get_weather')
-    .purpose('Get current weather information')
-    .parameter('location', 'string', 'City name or ZIP code', required=True)
-    .parameter('units', 'string', 'Temperature units', enum=['celsius', 'fahrenheit'])
-    .webhook('GET', 'https://api.weather.com/v1/current?key=API_KEY&q=${args.location}&units=${args.units}')
-    .output(SwaigFunctionResult('Weather in ${args.location}: ${response.current.condition.text}, ${response.current.temp_f}°F'))
-    .error_keys(['error'])
-)
+```ruby
+weather_tool = SignalWire::DataMap.new('get_weather')
+  .purpose('Get current weather information')
+  .parameter('location', 'string', 'City name or ZIP code', required: true)
+  .parameter('units', 'string', 'Temperature units', enum: ['celsius', 'fahrenheit'])
+  .webhook('GET', 'https://api.weather.com/v1/current?key=API_KEY&q=${args.location}&units=${args.units}')
+  .output(SignalWire::Swaig::FunctionResult.new('Weather in ${args.location}: ${response.current.condition.text}, ${response.current.temp_f}°F'))
+  .error_keys(['error'])
 
 # Register with agent
-agent.register_swaig_function(weather_tool.to_swaig_function())
+agent.register_swaig_function(weather_tool.to_swaig_function)
 ```
 
 #### Search with Array Processing
 
-```python
-search_tool = (DataMap('search_knowledge')
-    .purpose('Search company knowledge base')
-    .parameter('query', 'string', 'Search query', required=True)
-    .parameter('category', 'string', 'Search category', enum=['docs', 'faq', 'policies'])
-    .webhook(
-        'POST', 
-        'https://api.company.com/search',
-        headers={'Authorization': 'Bearer TOKEN'}
-    )
-    .body({
-        'query': '${args.query}',
-        'category': '${args.category}',
-        'limit': 5
-    })
-    .foreach('${response.results}')
-    .output(SwaigFunctionResult('Found: ${foreach.title} - ${foreach.summary}'))
-    .fallback_output(SwaigFunctionResult('Search service is temporarily unavailable'))
-)
+```ruby
+search_tool = SignalWire::DataMap.new('search_knowledge')
+  .purpose('Search company knowledge base')
+  .parameter('query', 'string', 'Search query', required: true)
+  .parameter('category', 'string', 'Search category', enum: ['docs', 'faq', 'policies'])
+  .webhook(
+    'POST',
+    'https://api.company.com/search',
+    headers: { 'Authorization' => 'Bearer TOKEN' }
+  )
+  .body({
+    'query' => '${args.query}',
+    'category' => '${args.category}',
+    'limit' => 5
+  })
+  .foreach('${response.results}')
+  .output(SignalWire::Swaig::FunctionResult.new('Found: ${foreach.title} - ${foreach.summary}'))
+  .fallback_output(SignalWire::Swaig::FunctionResult.new('Search service is temporarily unavailable'))
 ```
 
 #### Command Processing (No API)
 
-```python
-control_tool = (DataMap('system_control')
-    .purpose('Control system functions')
-    .parameter('action', 'string', 'Action to perform', required=True)
-    .parameter('target', 'string', 'Target for the action')
-    
-    # Restart commands
-    .expression(
-        '${args.action}',
-        r'restart|reboot',
-        SwaigFunctionResult('Restarting ${args.target}')
-        .add_action('restart_service', {'service': '${args.target}'})
-    )
-    
-    # Status commands
-    .expression(
-        '${args.action}',
-        r'status|check',
-        SwaigFunctionResult('Checking status of ${args.target}')
-        .add_action('check_status', {'service': '${args.target}'})
-    )
-    
-    # Default for unrecognized commands
-    .expression(
-        '${args.action}',
-        r'.*',
-        SwaigFunctionResult('Unknown command: ${args.action}'),
-        nomatch_output=SwaigFunctionResult('Please specify a valid action')
-    )
-)
+```ruby
+control_tool = SignalWire::DataMap.new('system_control')
+  .purpose('Control system functions')
+  .parameter('action', 'string', 'Action to perform', required: true)
+  .parameter('target', 'string', 'Target for the action')
+  # Restart commands
+  .expression(
+    '${args.action}',
+    /restart|reboot/,
+    SignalWire::Swaig::FunctionResult.new('Restarting ${args.target}')
+      .add_action('restart_service', { 'service' => '${args.target}' })
+  )
+  # Status commands
+  .expression(
+    '${args.action}',
+    /status|check/,
+    SignalWire::Swaig::FunctionResult.new('Checking status of ${args.target}')
+      .add_action('check_status', { 'service' => '${args.target}' })
+  )
+  # Default for unrecognized commands
+  .expression(
+    '${args.action}',
+    /.*/,
+    SignalWire::Swaig::FunctionResult.new('Unknown command: ${args.action}'),
+    nomatch_output: SignalWire::Swaig::FunctionResult.new('Please specify a valid action')
+  )
 ```
 
 ### Conversion and Registration
 
-##### `to_swaig_function() -> Dict[str, Any]`
-Convert the DataMap to a SWAIG function dictionary for registration.
+##### `to_swaig_function -> Hash`
+Convert the DataMap to a SWAIG function hash for registration.
 
 **Returns:**
-- Dict[str, Any]: Complete SWAIG function definition
+- Hash: Complete SWAIG function definition
 
 **Usage:**
-```python
+```ruby
 # Build DataMap
-weather_map = DataMap('get_weather').purpose('Get weather').parameter('location', 'string', 'City', required=True)
+weather_map = SignalWire::DataMap.new('get_weather').purpose('Get weather').parameter('location', 'string', 'City', required: true)
 
 # Convert to SWAIG function and register
-swaig_function = weather_map.to_swaig_function()
+swaig_function = weather_map.to_swaig_function
 agent.register_swaig_function(swaig_function)
 ```
 
 ### Convenience Functions
 
-The SDK provides helper functions for common DataMap patterns:
+The SDK provides helper class methods for common DataMap patterns:
 
-##### `create_simple_api_tool(name: str, url: str, response_template: str, parameters: Optional[Dict[str, Dict]] = None, method: str = "GET", headers: Optional[Dict[str, str]] = None, body: Optional[Dict[str, Any]] = None, error_keys: Optional[List[str]] = None) -> DataMap`
+##### `DataMap.create_simple_api_tool(name:, url:, response_template:, parameters: nil, method: "GET", headers: nil, body: nil, error_keys: nil) -> DataMap`
 
 Create a simple API integration tool.
 
 **Parameters:**
-- `name` (str): Function name
-- `url` (str): API endpoint URL
-- `response_template` (str): Response template string
-- `parameters` (Optional[Dict[str, Dict]]): Parameter definitions
-- `method` (str): HTTP method (default: "GET")
-- `headers` (Optional[Dict[str, str]]): HTTP headers
-- `body` (Optional[Dict[str, Any]]): Request body
-- `error_keys` (Optional[List[str]]): Error field names
+- `name` (String): Function name
+- `url` (String): API endpoint URL
+- `response_template` (String): Response template string
+- `parameters` (Hash, optional): Parameter definitions
+- `method` (String): HTTP method (default: "GET")
+- `headers` (Hash, optional): HTTP headers
+- `body` (Hash, optional): Request body
+- `error_keys` (Array<String>, optional): Error field names
 
 **Usage:**
-```python
-from signalwire.core.data_map import create_simple_api_tool
-
-weather = create_simple_api_tool(
-    name='get_weather',
-    url='https://api.weather.com/v1/current?key=API_KEY&q=${location}',
-    response_template='Weather in ${location}: ${response.current.condition.text}',
-    parameters={
-        'location': {
-            'type': 'string', 
-            'description': 'City name', 
-            'required': True
-        }
+```ruby
+weather = SignalWire::DataMap.create_simple_api_tool(
+  name: 'get_weather',
+  url: 'https://api.weather.com/v1/current?key=API_KEY&q=${location}',
+  response_template: 'Weather in ${location}: ${response.current.condition.text}',
+  parameters: {
+    'location' => {
+      'type' => 'string',
+      'description' => 'City name',
+      'required' => true
     }
+  }
 )
 
-agent.register_swaig_function(weather.to_swaig_function())
+agent.register_swaig_function(weather.to_swaig_function)
 ```
 
-##### `create_expression_tool(name: str, patterns: Dict[str, Tuple[str, SwaigFunctionResult]], parameters: Optional[Dict[str, Dict]] = None) -> DataMap`
+##### `DataMap.create_expression_tool(name:, patterns:, parameters: nil) -> DataMap`
 
 Create a pattern-based tool without API calls.
 
 **Parameters:**
-- `name` (str): Function name
-- `patterns` (Dict[str, Tuple[str, SwaigFunctionResult]]): Pattern mappings
-- `parameters` (Optional[Dict[str, Dict]]): Parameter definitions
+- `name` (String): Function name
+- `patterns` (Hash): Pattern mappings
+- `parameters` (Hash, optional): Parameter definitions
 
 **Usage:**
-```python
-from signalwire.core.data_map import create_expression_tool
-
-file_control = create_expression_tool(
-    name='file_control',
-    patterns={
-        r'start.*': ('${args.command}', SwaigFunctionResult().add_action('start_playback', True)),
-        r'stop.*': ('${args.command}', SwaigFunctionResult().add_action('stop_playback', True))
-    },
-    parameters={
-        'command': {
-            'type': 'string',
-            'description': 'Playback command',
-            'required': True
-        }
+```ruby
+file_control = SignalWire::DataMap.create_expression_tool(
+  name: 'file_control',
+  patterns: {
+    /start.*/ => ['${args.command}', SignalWire::Swaig::FunctionResult.new.add_action('start_playback', true)],
+    /stop.*/  => ['${args.command}', SignalWire::Swaig::FunctionResult.new.add_action('stop_playback', true)]
+  },
+  parameters: {
+    'command' => {
+      'type' => 'string',
+      'description' => 'Playback command',
+      'required' => true
     }
+  }
 )
 
-agent.register_swaig_function(file_control.to_swaig_function())
+agent.register_swaig_function(file_control.to_swaig_function)
 ```
 
 ### Method Chaining
 
 All DataMap methods return `self`, enabling fluent method chaining:
 
-```python
-complete_tool = (DataMap('comprehensive_search')
-    .purpose('Comprehensive search with fallbacks')
-    .parameter('query', 'string', 'Search query', required=True)
-    .parameter('category', 'string', 'Search category', enum=['all', 'docs', 'faq'])
-    .webhook('GET', 'https://primary-api.com/search?q=${args.query}&cat=${args.category}')
-    .output(SwaigFunctionResult('Primary: ${response.title}'))
-    .webhook('GET', 'https://backup-api.com/search?q=${args.query}')
-    .output(SwaigFunctionResult('Backup: ${response.title}'))
-    .fallback_output(SwaigFunctionResult('All search services unavailable'))
-    .error_keys(['error', 'message'])
-)
+```ruby
+complete_tool = SignalWire::DataMap.new('comprehensive_search')
+  .purpose('Comprehensive search with fallbacks')
+  .parameter('query', 'string', 'Search query', required: true)
+  .parameter('category', 'string', 'Search category', enum: ['all', 'docs', 'faq'])
+  .webhook('GET', 'https://primary-api.com/search?q=${args.query}&cat=${args.category}')
+  .output(SignalWire::Swaig::FunctionResult.new('Primary: ${response.title}'))
+  .webhook('GET', 'https://backup-api.com/search?q=${args.query}')
+  .output(SignalWire::Swaig::FunctionResult.new('Backup: ${response.title}'))
+  .fallback_output(SignalWire::Swaig::FunctionResult.new('All search services unavailable'))
+  .error_keys(['error', 'message'])
 ```
 
 This concludes Part 3 of the API reference covering the DataMap class. The document will continue with Context System and other components in subsequent parts. 
@@ -2792,33 +2805,33 @@ The Context System enhances traditional prompt-based agents by adding structured
 
 ### ContextBuilder Class
 
-The `ContextBuilder` is accessed via `agent.define_contexts()` and provides the main interface for creating structured workflows.
+The `ContextBuilder` is accessed via `agent.define_contexts` and provides the main interface for creating structured workflows.
 
 #### Getting Started
 
-```python
+```ruby
 # Access the context builder
-contexts = agent.define_contexts()
+contexts = agent.define_contexts
 
 # Create contexts and steps
-contexts.add_context("greeting") \
-    .add_step("welcome") \
-    .set_text("Welcome! How can I help you today?") \
-    .set_step_criteria("User has stated their need") \
-    .set_valid_steps(["next"])
+contexts.add_context("greeting")
+        .add_step("welcome")
+        .set_text("Welcome! How can I help you today?")
+        .set_step_criteria("User has stated their need")
+        .set_valid_steps(["next"])
 ```
 
-##### `add_context(name: str) -> Context`
+##### `add_context(name) -> Context`
 Create a new context in the workflow.
 
 **Parameters:**
-- `name` (str): Unique context name
+- `name` (String): Unique context name
 
 **Returns:**
 - Context: Context object for method chaining
 
 **Usage:**
-```python
+```ruby
 # Create multiple contexts
 greeting_context = contexts.add_context("greeting")
 main_menu_context = contexts.add_context("main_menu")
@@ -2840,39 +2853,42 @@ form for standalone config; the chainable `set_*` form (returns `self`) is what
 the fluent builder examples chain with. (`add_step` / `add_section` /
 `add_bullets` are builders, not single-value setters, so they keep their names.)
 
-```python
-class Context:
-    def add_step(self, name: str) -> Step
-        """Create a new step in this context"""
-    
-    def set_valid_contexts(self, contexts: List[str]) -> Context
-        """Set which contexts can be accessed from this context"""
-        
-    # Context entry parameters (for context switching behavior)
-    def set_post_prompt(self, post_prompt: str) -> Context
-        """Override agent's post prompt when this context is active"""
-    
-    def set_system_prompt(self, system_prompt: str) -> Context
-        """Trigger context switch with new system instructions (makes this a Context Switch Context)"""
-        
-    def set_consolidate(self, consolidate: bool) -> Context
-        """Whether to consolidate conversation history when entering this context"""
-        
-    def set_full_reset(self, full_reset: bool) -> Context
-        """Whether to do complete system prompt replacement vs injection"""
-        
-    def set_user_prompt(self, user_prompt: str) -> Context
-        """User message to inject when entering this context for AI context"""
-    
-    # Context prompts (guidance for all steps in context)
-    def set_prompt(self, prompt: str) -> Context
-        """Set simple string prompt that applies to all steps in this context"""
-        
-    def add_section(self, title: str, body: str) -> Context
-        """Add POM-style section to context prompt"""
-        
-    def add_bullets(self, title: str, bullets: List[str]) -> Context
-        """Add POM-style bullet section to context prompt"""
+```ruby
+class Context
+  # Create a new step in this context
+  def add_step(name); end
+
+  # Set which contexts can be accessed from this context
+  def set_valid_contexts(contexts); end
+
+  # Context entry parameters (for context switching behavior)
+
+  # Override agent's post prompt when this context is active
+  def set_post_prompt(post_prompt); end
+
+  # Trigger context switch with new system instructions (makes this a Context Switch Context)
+  def set_system_prompt(system_prompt); end
+
+  # Whether to consolidate conversation history when entering this context
+  def set_consolidate(consolidate); end
+
+  # Whether to do complete system prompt replacement vs injection
+  def set_full_reset(full_reset); end
+
+  # User message to inject when entering this context for AI context
+  def set_user_prompt(user_prompt); end
+
+  # Context prompts (guidance for all steps in context)
+
+  # Set simple string prompt that applies to all steps in this context
+  def set_prompt(prompt); end
+
+  # Add POM-style section to context prompt
+  def add_section(title, body); end
+
+  # Add POM-style bullet section to context prompt
+  def add_bullets(title, bullets); end
+end
 ```
 
 **Context Types:**
@@ -2884,24 +2900,24 @@ class Context:
 
 #### Usage Examples
 
-```python
+```ruby
 # Workflow container context (just organizes steps)
 main_context = contexts.add_context("main")
 main_context.set_prompt("Follow standard customer service protocols")
 
-# Context switch context (changes AI behavior)  
+# Context switch context (changes AI behavior)
 billing_context = contexts.add_context("billing")
-billing_context.set_system_prompt("You are now a billing specialist") \
-    .set_consolidate(True) \
-    .set_user_prompt("Customer needs billing assistance") \
-    .add_section("Department", "Billing Department") \
-    .add_bullets("Services", ["Account inquiries", "Payments", "Refunds"])
+billing_context.set_system_prompt("You are now a billing specialist")
+               .set_consolidate(true)
+               .set_user_prompt("Customer needs billing assistance")
+               .add_section("Department", "Billing Department")
+               .add_bullets("Services", ["Account inquiries", "Payments", "Refunds"])
 
 # Full reset context (complete conversation reset)
-manager_context = contexts.add_context("manager") 
-manager_context.set_system_prompt("You are a senior manager") \
-    .set_full_reset(True) \
-    .set_consolidate(True)
+manager_context = contexts.add_context("manager")
+manager_context.set_system_prompt("You are a senior manager")
+               .set_full_reset(true)
+               .set_consolidate(true)
 ```
 
 ---
@@ -2916,21 +2932,21 @@ The Skills System provides modular, reusable capabilities that can be easily add
 Provides current date and time information.
 
 **Parameters:**
-- `timezone` (Optional[str]): Timezone for date/time (default: system timezone)
-- `format` (Optional[str]): Custom date/time format string
+- `timezone` (String, optional): Timezone for date/time (default: system timezone)
+- `format` (String, optional): Custom date/time format string
 
 **Usage:**
-```python
+```ruby
 # Basic datetime skill
 agent.add_skill("datetime")
 
 # With timezone
-agent.add_skill("datetime", {"timezone": "America/New_York"})
+agent.add_skill("datetime", { "timezone" => "America/New_York" })
 
 # With custom format
 agent.add_skill("datetime", {
-    "timezone": "UTC",
-    "format": "%Y-%m-%d %H:%M:%S %Z"
+  "timezone" => "UTC",
+  "format" => "%Y-%m-%d %H:%M:%S %Z"
 })
 ```
 
@@ -2938,51 +2954,51 @@ agent.add_skill("datetime", {
 Safe mathematical expression evaluation.
 
 **Parameters:**
-- `precision` (Optional[int]): Decimal precision for results (default: 2)
-- `max_expression_length` (Optional[int]): Maximum expression length (default: 100)
+- `precision` (Integer, optional): Decimal precision for results (default: 2)
+- `max_expression_length` (Integer, optional): Maximum expression length (default: 100)
 
 **Usage:**
-```python
+```ruby
 # Basic math skill
 agent.add_skill("math")
 
 # With custom precision
-agent.add_skill("math", {"precision": 4})
+agent.add_skill("math", { "precision" => 4 })
 ```
 
 #### `web_search` Skill
 Google Custom Search API integration with web scraping.
 
 **Parameters:**
-- `api_key` (str): Google Custom Search API key (required)
-- `search_engine_id` (str): Google Custom Search Engine ID (required)
-- `num_results` (Optional[int]): Number of results to return (default: 3)
-- `tool_name` (Optional[str]): Custom tool name for multiple instances
-- `delay` (Optional[float]): Delay between requests in seconds
-- `no_results_message` (Optional[str]): Custom message when no results found
+- `api_key` (String): Google Custom Search API key (required)
+- `search_engine_id` (String): Google Custom Search Engine ID (required)
+- `num_results` (Integer, optional): Number of results to return (default: 3)
+- `tool_name` (String, optional): Custom tool name for multiple instances
+- `delay` (Float, optional): Delay between requests in seconds
+- `no_results_message` (String, optional): Custom message when no results found
 
 **Usage:**
-```python
+```ruby
 # Basic web search
 agent.add_skill("web_search", {
-    "api_key": "your-google-api-key",
-    "search_engine_id": "your-search-engine-id"
+  "api_key" => "your-google-api-key",
+  "search_engine_id" => "your-search-engine-id"
 })
 
 # Multiple search instances
 agent.add_skill("web_search", {
-    "api_key": "your-api-key",
-    "search_engine_id": "general-engine-id",
-    "tool_name": "search_general",
-    "num_results": 5
+  "api_key" => "your-api-key",
+  "search_engine_id" => "general-engine-id",
+  "tool_name" => "search_general",
+  "num_results" => 5
 })
 
 agent.add_skill("web_search", {
-    "api_key": "your-api-key",
-    "search_engine_id": "news-engine-id",
-    "tool_name": "search_news",
-    "num_results": 3,
-    "delay": 0.5
+  "api_key" => "your-api-key",
+  "search_engine_id" => "news-engine-id",
+  "tool_name" => "search_news",
+  "num_results" => 3,
+  "delay" => 0.5
 })
 ```
 
@@ -2990,39 +3006,39 @@ agent.add_skill("web_search", {
 SignalWire DataSphere knowledge search integration.
 
 **Parameters:**
-- `space_name` (str): DataSphere space name (required)
-- `project_id` (str): DataSphere project ID (required)
-- `token` (str): DataSphere access token (required)
-- `document_id` (Optional[str]): Specific document to search
-- `tool_name` (Optional[str]): Custom tool name for multiple instances
-- `count` (Optional[int]): Number of results to return (default: 3)
-- `tags` (Optional[List[str]]): Filter by document tags
+- `space_name` (String): DataSphere space name (required)
+- `project_id` (String): DataSphere project ID (required)
+- `token` (String): DataSphere access token (required)
+- `document_id` (String, optional): Specific document to search
+- `tool_name` (String, optional): Custom tool name for multiple instances
+- `count` (Integer, optional): Number of results to return (default: 3)
+- `tags` (Array<String>, optional): Filter by document tags
 
 **Usage:**
-```python
+```ruby
 # Basic DataSphere search
 agent.add_skill("datasphere", {
-    "space_name": "my-space",
-    "project_id": "my-project",
-    "token": "my-token"
+  "space_name" => "my-space",
+  "project_id" => "my-project",
+  "token" => "my-token"
 })
 
 # Multiple DataSphere instances
 agent.add_skill("datasphere", {
-    "space_name": "my-space",
-    "project_id": "my-project",
-    "token": "my-token",
-    "document_id": "drinks-menu",
-    "tool_name": "search_drinks",
-    "count": 5
+  "space_name" => "my-space",
+  "project_id" => "my-project",
+  "token" => "my-token",
+  "document_id" => "drinks-menu",
+  "tool_name" => "search_drinks",
+  "count" => 5
 })
 
 agent.add_skill("datasphere", {
-    "space_name": "my-space",
-    "project_id": "my-project", 
-    "token": "my-token",
-    "tool_name": "search_policies",
-    "tags": ["HR", "Policies"]
+  "space_name" => "my-space",
+  "project_id" => "my-project",
+  "token" => "my-token",
+  "tool_name" => "search_policies",
+  "tags" => ["HR", "Policies"]
 })
 ```
 
@@ -3063,64 +3079,58 @@ agent.add_skill('native_vector_search', {
 
 Create a new skill by extending `SkillBase`:
 
-```python
-from signalwire.core.skill_base import SkillBase
-from signalwire.core.data_map import DataMap
-from signalwire.core.function_result import SwaigFunctionResult
+```ruby
+require 'signalwire'
 
-class CustomSkill(SkillBase):
-    SKILL_NAME = "custom_skill"
-    SKILL_DESCRIPTION = "Description of what this skill does"
-    SKILL_VERSION = "1.0.0"
-    REQUIRED_PACKAGES = ["requests"]  # Python packages needed
-    REQUIRED_ENV_VARS = ["API_KEY"]   # Environment variables needed
-    
-    def setup(self) -> bool:
-        """Validate and store configuration"""
-        if not self.params.get("api_key"):
-            self.logger.error("api_key parameter is required")
-            return False
-        
-        self.api_key = self.params["api_key"]
-        return True
-    
-    def register_tools(self) -> None:
-        """Register skill functions"""
-        # DataMap-based tool
-        tool = (DataMap("custom_function")
-            .description("Custom API integration")
-            .parameter("query", "string", "Search query", required=True)
-            .webhook("GET", f"https://api.example.com/search?key={self.api_key}&q=${{args.query}}")
-            .output(SwaigFunctionResult("Found: ${{response.title}}"))
-        )
-        
-        self.agent.register_swaig_function(tool.to_swaig_function())
-    
-    def get_hints(self) -> List[str]:
-        """Speech recognition hints"""
-        return ["custom search", "find information"]
-    
-    def get_global_data(self) -> Dict[str, Any]:
-        """Global data for DataMap"""
-        return {"skill_version": self.SKILL_VERSION}
-    
-    def get_prompt_sections(self) -> List[Dict[str, Any]]:
-        """Prompt sections to add"""
-        return [{
-            "title": "Custom Search Capability",
-            "body": "You can search our custom database for information.",
-            "bullets": ["Use the custom_function to search", "Results are real-time"]
-        }]
+class CustomSkill < SignalWire::Skills::SkillBase
+  def name = "custom_skill"
+  def description = "Description of what this skill does"
+  def version = "1.0.0"
+  def required_env_vars = ["API_KEY"]  # Environment variables needed
+
+  # Validate and store configuration. Return true if the skill is ready.
+  def setup
+    unless @params["api_key"]
+      @logger.error("api_key parameter is required")
+      return false
+    end
+
+    @api_key = @params["api_key"]
+    true
+  end
+
+  # Register skill functions
+  def register_tools
+    # DataMap-based tool
+    tool = SignalWire::DataMap.new("custom_function")
+      .description("Custom API integration")
+      .parameter("query", "string", "Search query", required: true)
+      .webhook("GET", "https://api.example.com/search?key=#{@api_key}&q=${args.query}")
+      .output(SignalWire::Swaig::FunctionResult.new("Found: ${response.title}"))
+
+    @agent.register_swaig_function(tool.to_swaig_function)
+  end
+
+  # Speech recognition hints
+  def get_hints = ["custom search", "find information"]
+
+  # Global data for DataMap
+  def get_global_data = { "skill_version" => version }
+
+  # Prompt sections to add
+  def get_prompt_sections
+    [{
+      "title" => "Custom Search Capability",
+      "body" => "You can search our custom database for information.",
+      "bullets" => ["Use the custom_function to search", "Results are real-time"]
+    }]
+  end
+end
 ```
 
 #### Skill Registration
 
-Skills are automatically discovered from the `signalwire/skills/` directory. To register a custom skill:
-
-1. Create directory: `signalwire/skills/your_skill/`
-2. Add `__init__.py`, `skill.py`, and `README.md`
-3. Implement your skill class in `skill.py`
-4. The skill will be automatically available
+Built-in skills are automatically discovered from the `lib/signalwire/skills/builtin/` directory. To register a custom skill, subclass `SignalWire::Skills::SkillBase` and register it with the skill registry, then load it on the agent via `add_skill`.
 
 ---
 
@@ -3155,10 +3165,10 @@ Base class providing SWML document generation and HTTP service capabilities. `Ag
 
 #### Key Methods
 
-##### `get_swml_document() -> Dict[str, Any]`
+##### `get_swml_document -> Hash`
 Generate the complete SWML document for the service.
 
-##### `handle_request(request_data: Dict[str, Any]) -> Dict[str, Any]`
+##### `handle_request(request_data) -> Hash`
 Handle incoming HTTP requests and generate appropriate responses.
 
 ### Dynamic Configuration
@@ -3166,21 +3176,25 @@ Handle incoming HTTP requests and generate appropriate responses.
 The dynamic configuration callback receives the agent instance directly, allowing you to configure it based on request data.
 
 **Usage:**
-```python
-def dynamic_config(query_params, body_params, headers, agent):
-    # Configure based on request
-    if query_params.get("lang") == "es":
-        agent.add_language("Spanish", "es-ES", "nova.luna")
-    
-    # Customer-specific configuration
-    customer_id = headers.get("X-Customer-ID")
-    if customer_id:
-        agent.set_global_data({"customer_id": customer_id})
-        agent.prompt_add_section("Customer Context", f"You are helping customer {customer_id}")
-    
-    # Add skills dynamically
-    if query_params.get("enable_search") == "true":
-        agent.add_skill("web_search", {"provider": "google"})
+```ruby
+dynamic_config = lambda do |query_params, body_params, headers, agent|
+  # Configure based on request
+  if query_params["lang"] == "es"
+    agent.add_language("Spanish", "es-ES", "nova.luna")
+  end
+
+  # Customer-specific configuration
+  customer_id = headers["X-Customer-ID"]
+  if customer_id
+    agent.set_global_data({ "customer_id" => customer_id })
+    agent.prompt_add_section("Customer Context", "You are helping customer #{customer_id}")
+  end
+
+  # Add skills dynamically
+  if query_params["enable_search"] == "true"
+    agent.add_skill("web_search", { "provider" => "google" })
+  end
+end
 
 agent.set_dynamic_config_callback(dynamic_config)
 ```
@@ -3213,19 +3227,17 @@ The SDK supports various environment variables for configuration:
 
 ### Usage
 
-```python
-import os
-
+```ruby
 # Set environment variables
-os.environ["SWML_BASIC_AUTH_USER"] = "admin"
-os.environ["SWML_BASIC_AUTH_PASSWORD"] = "secret"
-os.environ["GOOGLE_SEARCH_API_KEY"] = "your-api-key"
+ENV["SWML_BASIC_AUTH_USER"] = "admin"
+ENV["SWML_BASIC_AUTH_PASSWORD"] = "secret"
+ENV["GOOGLE_SEARCH_API_KEY"] = "your-api-key"
 
 # Agent will automatically use these
-agent = AgentBase("My Agent")
+agent = MyAgent.new
 agent.add_skill("web_search", {
-    "search_engine_id": "your-engine-id"
-    # api_key will be read from environment
+  "search_engine_id" => "your-engine-id"
+  # api_key will be read from environment
 })
 ```
 
@@ -3235,136 +3247,140 @@ agent.add_skill("web_search", {
 
 Here's a comprehensive example using multiple SDK components:
 
-```python
-from signalwire import AgentBase, SwaigFunctionResult, DataMap
+```ruby
+require 'signalwire'
 
-class ComprehensiveAgent(AgentBase):
-    def __init__(self):
-        super().__init__(
-            name="Comprehensive Agent",
-            auto_answer=True,
-            record_call=True
-        )
-        
-        # Configure voice and language
-        self.add_language("English", "en-US", "rime.spore",
-                         speech_fillers=["Let me check...", "One moment..."])
-        
-        # Add speech recognition hints
-        self.add_hints(["SignalWire", "customer service", "technical support"])
-        
-        # Configure AI parameters
-        self.set_params({
-            "ai_model": "gpt-4.1-nano",
-            "end_of_speech_timeout": 800,
-            "temperature": 0.7
-        })
-        
-        # Add skills
-        self.add_skill("datetime")
-        self.add_skill("math")
-        self.add_skill("web_search", {
-            "api_key": "your-google-api-key",
-            "search_engine_id": "your-engine-id",
-            "num_results": 3
-        })
-        
-        # Set up structured workflow
-        self._setup_contexts()
-        
-        # Add custom tools
-        self._register_custom_tools()
-        
-        # Set global data
-        self.set_global_data({
-            "company_name": "Acme Corp",
-            "support_hours": "9 AM - 5 PM EST",
-            "version": "2.0"
-        })
-    
-    def _setup_contexts(self):
-        """Set up structured workflow contexts"""
-        contexts = self.define_contexts()
-        
-        # Greeting context
-        greeting = contexts.add_context("greeting")
-        greeting.add_step("welcome") \
-            .set_text("Hello! Welcome to Acme Corp support. How can I help you today?") \
-            .set_step_criteria("Customer has explained their issue") \
-            .set_valid_steps(["next"])
-        
-        greeting.add_step("categorize") \
-            .add_section("Current Task", "Categorize the customer's request") \
-            .add_bullets("Categories", [
-                "Technical issue - use diagnostic tools",
-                "Billing question - transfer to billing",
-                "General inquiry - handle directly"
-            ]) \
-            .set_functions(["transfer_to_billing", "run_diagnostics"]) \
-            .set_step_criteria("Request categorized and action taken")
-        
-        # Technical support context
-        tech = contexts.add_context("technical_support")
-        tech.add_step("diagnose") \
-            .set_text("Let me run some diagnostics to identify the issue.") \
-            .set_functions(["run_diagnostics", "check_system_status"]) \
-            .set_step_criteria("Diagnostics completed") \
-            .set_valid_steps(["resolve"])
-        
-        tech.add_step("resolve") \
-            .set_text("Based on the diagnostics, here's how we'll fix this.") \
-            .set_functions(["apply_fix", "schedule_technician"]) \
-            .set_step_criteria("Issue resolved or escalated")
-    
-    def _register_custom_tools(self):
-        """Register custom DataMap tools"""
-        
-        # Customer lookup tool
-        lookup_tool = (DataMap("lookup_customer")
-            .description("Look up customer information")
-            .parameter("customer_id", "string", "Customer ID", required=True)
-            .webhook("GET", "https://api.company.com/customers/${args.customer_id}",
-                    headers={"Authorization": "Bearer YOUR_TOKEN"})
-            .output(SwaigFunctionResult("Customer: ${response.name}, Status: ${response.status}"))
-            .error_keys(["error"])
-        )
-        
-        self.register_swaig_function(lookup_tool.to_swaig_function())
-        
-        # System control tool
-        control_tool = (DataMap("system_control")
-            .description("Control system functions")
-            .parameter("action", "string", "Action to perform", required=True)
-            .parameter("target", "string", "Target system")
-            .expression("${args.action}", r"restart|reboot",
-                       SwaigFunctionResult("Restarting ${args.target}")
-                       .add_action("restart_system", {"target": "${args.target}"}))
-            .expression("${args.action}", r"status|check",
-                       SwaigFunctionResult("Checking ${args.target} status")
-                       .add_action("check_status", {"target": "${args.target}"}))
-        )
-        
-        self.register_swaig_function(control_tool.to_swaig_function())
-    
-    @AgentBase.tool(
-        description="Transfer call to billing department",
-        parameters={"type": "object", "properties": {}}
+class ComprehensiveAgent < SignalWire::AgentBase
+  def initialize
+    super(
+      name: "Comprehensive Agent",
+      auto_answer: true,
+      record_call: true
     )
-    def transfer_to_billing(self, args, raw_data):
-        """Transfer to billing with state tracking"""
-        return (SwaigFunctionResult("Transferring you to our billing department")
-                .update_global_data({"last_action": "transfer_to_billing"})
-                .connect("billing@company.com", final=False))
-    
-    def on_summary(self, summary, raw_data):
-        """Handle conversation summaries"""
-        print(f"Conversation completed: {summary}")
-        # Could save to database, send notifications, etc.
+
+    # Configure voice and language
+    add_language("English", "en-US", "rime.spore",
+                 speech_fillers: ["Let me check...", "One moment..."])
+
+    # Add speech recognition hints
+    add_hints(["SignalWire", "customer service", "technical support"])
+
+    # Configure AI parameters
+    set_params({
+      "ai_model" => "gpt-4.1-nano",
+      "end_of_speech_timeout" => 800,
+      "temperature" => 0.7
+    })
+
+    # Add skills
+    add_skill("datetime")
+    add_skill("math")
+    add_skill("web_search", {
+      "api_key" => "your-google-api-key",
+      "search_engine_id" => "your-engine-id",
+      "num_results" => 3
+    })
+
+    # Set up structured workflow
+    setup_contexts
+
+    # Add custom tools
+    register_custom_tools
+
+    # Set global data
+    set_global_data({
+      "company_name" => "Acme Corp",
+      "support_hours" => "9 AM - 5 PM EST",
+      "version" => "2.0"
+    })
+  end
+
+  # Set up structured workflow contexts
+  def setup_contexts
+    contexts = define_contexts
+
+    # Greeting context
+    greeting = contexts.add_context("greeting")
+    greeting.add_step("welcome")
+            .set_text("Hello! Welcome to Acme Corp support. How can I help you today?")
+            .set_step_criteria("Customer has explained their issue")
+            .set_valid_steps(["next"])
+
+    greeting.add_step("categorize")
+            .add_section("Current Task", "Categorize the customer's request")
+            .add_bullets("Categories", [
+              "Technical issue - use diagnostic tools",
+              "Billing question - transfer to billing",
+              "General inquiry - handle directly"
+            ])
+            .set_functions(["transfer_to_billing", "run_diagnostics"])
+            .set_step_criteria("Request categorized and action taken")
+
+    # Technical support context
+    tech = contexts.add_context("technical_support")
+    tech.add_step("diagnose")
+        .set_text("Let me run some diagnostics to identify the issue.")
+        .set_functions(["run_diagnostics", "check_system_status"])
+        .set_step_criteria("Diagnostics completed")
+        .set_valid_steps(["resolve"])
+
+    tech.add_step("resolve")
+        .set_text("Based on the diagnostics, here's how we'll fix this.")
+        .set_functions(["apply_fix", "schedule_technician"])
+        .set_step_criteria("Issue resolved or escalated")
+  end
+
+  # Register custom DataMap tools
+  def register_custom_tools
+    # Customer lookup tool
+    lookup_tool = SignalWire::DataMap.new("lookup_customer")
+      .description("Look up customer information")
+      .parameter("customer_id", "string", "Customer ID", required: true)
+      .webhook("GET", "https://api.company.com/customers/${args.customer_id}",
+               headers: { "Authorization" => "Bearer YOUR_TOKEN" })
+      .output(SignalWire::Swaig::FunctionResult.new("Customer: ${response.name}, Status: ${response.status}"))
+      .error_keys(["error"])
+
+    register_swaig_function(lookup_tool.to_swaig_function)
+
+    # System control tool
+    control_tool = SignalWire::DataMap.new("system_control")
+      .description("Control system functions")
+      .parameter("action", "string", "Action to perform", required: true)
+      .parameter("target", "string", "Target system")
+      .expression("${args.action}", /restart|reboot/,
+                  SignalWire::Swaig::FunctionResult.new("Restarting ${args.target}")
+                    .add_action("restart_system", { "target" => "${args.target}" }))
+      .expression("${args.action}", /status|check/,
+                  SignalWire::Swaig::FunctionResult.new("Checking ${args.target} status")
+                    .add_action("check_status", { "target" => "${args.target}" }))
+
+    register_swaig_function(control_tool.to_swaig_function)
+
+    # Transfer-to-billing tool
+    define_tool(
+      name: "transfer_to_billing",
+      description: "Transfer call to billing department",
+      parameters: { "type" => "object", "properties" => {} }
+    ) do |args, raw_data|
+      SignalWire::Swaig::FunctionResult.new("Transferring you to our billing department")
+        .update_global_data({ "last_action" => "transfer_to_billing" })
+        .connect("billing@company.com", final: false)
+    end
+  end
+
+  # Handle conversation summaries
+  def on_summary(summary = nil, raw_data = nil)
+    puts "Conversation completed: #{summary}"
+    # Could save to database, send notifications, etc.
+  end
+end
 
 # Run the agent
-if __name__ == "__main__":
-    agent = ComprehensiveAgent()
-    agent.run()
+if __FILE__ == $PROGRAM_NAME
+  agent = ComprehensiveAgent.new
+  agent.run
+end
 ```
 
 This concludes the complete API reference for the SignalWire AI Agents SDK. The SDK provides a comprehensive framework for building sophisticated AI agents with modular capabilities, structured workflows, persistent state, and deployment across multiple environments.

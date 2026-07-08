@@ -73,8 +73,7 @@ module SignalWire
         Swaig::FunctionResult.new(@conclusion)
       end
 
-      # Tool: validate_response — Python parity
-      # (signalwire.prefabs.survey.SurveyAgent#validate_response).
+      # Tool: validate_response.
       #
       # Validates a user's answer against the constraints of the identified
       # question (rating range, multiple-choice options, yes/no, required
@@ -95,8 +94,7 @@ module SignalWire
         Swaig::FunctionResult.new(message)
       end
 
-      # Tool: log_response — Python parity
-      # (signalwire.prefabs.survey.SurveyAgent#log_response).
+      # Tool: log_response.
       #
       # Acknowledges that a validated response has been recorded, naming the
       # question by its text. A real implementation would persist the answer.
@@ -111,8 +109,7 @@ module SignalWire
         Swaig::FunctionResult.new("Response to '#{question_text}' has been recorded.")
       end
 
-      # Lifecycle hook: on_summary — Python parity
-      # (signalwire.prefabs.survey.SurveyAgent#on_summary).
+      # Lifecycle hook: on_summary.
       #
       # Logs the completed survey results; structured (Hash) summaries are
       # emitted as pretty JSON. Subclasses override to store responses or

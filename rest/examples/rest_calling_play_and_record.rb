@@ -104,7 +104,7 @@ end
 # 8. End the call
 puts "\nEnding call..."
 begin
-  client.calling.end_call(call_id, reason: 'hangup')
+  client.calling.end(call_id, reason: 'hangup')
   puts '  Call ended'
 rescue SignalWire::REST::SignalWireRestError => e
   puts "  End call failed (expected in demo): #{e.status_code}"

@@ -48,7 +48,7 @@ module SignalWire
       end
       alias eql? ==
 
-      # Hash parity with {#==} so equal messages share a bucket.
+      # Hash key consistent with {#==} so equal messages share a bucket.
       def hash
         [self.class, to_h].hash
       end

@@ -2,14 +2,14 @@
 
 ## Constructor
 
-```python
-RelayClient(
-    project: str = None,          # SIGNALWIRE_PROJECT_ID
-    token: str = None,            # SIGNALWIRE_API_TOKEN
-    jwt_token: str = None,        # SIGNALWIRE_JWT_TOKEN
-    host: str = None,             # SIGNALWIRE_SPACE (default: relay.signalwire.com)
-    contexts: list[str] = None,   # Topics to subscribe to
-    max_active_calls: int = None, # RELAY_MAX_ACTIVE_CALLS (default: 1000)
+```ruby
+SignalWire::Relay::Client.new(
+  project:          nil,        # SIGNALWIRE_PROJECT_ID
+  token:            nil,        # SIGNALWIRE_API_TOKEN
+  jwt_token:        nil,        # SIGNALWIRE_JWT_TOKEN
+  host:             nil,        # SIGNALWIRE_SPACE (default: relay.signalwire.com)
+  contexts:         ['default'], # Topics to subscribe to
+  max_active_calls: nil         # RELAY_MAX_ACTIVE_CALLS (default: 1000)
 )
 ```
 
@@ -21,73 +21,80 @@ Authentication requires either `project` + `token` (legacy) or `jwt_token` (fast
 
 Blocking entry point. Connects, authenticates, and runs the event loop with auto-reconnect until interrupted.
 
-```python
-client.run()
+```ruby
+client.run
 ```
 
-### `connect()` / `disconnect()`
+### `connect` / `stop`
 
-Manual lifecycle control for use in async code.
+Manual lifecycle control. `connect` brings the WebSocket up and returns without
+entering the blocking reconnect loop; `stop` (also exposed as `disconnect`) tears
+the connection down gracefully. Use `run` instead when you want the blocking,
+auto-reconnecting event loop.
 
-```python
-await client.connect()
+```ruby
+client.connect
 # ... use client ...
-await client.disconnect()
+client.stop
 ```
 
-Also supports async context manager:
+Wrap the teardown in an `ensure` block so the connection is always closed:
 
-```python
-async with RelayClient(contexts=["default"]) as client:
-    ...
+```ruby
+client = SignalWire::Relay::Client.new(contexts: ['default'])
+client.connect
+begin
+  # ... use client ...
+ensure
+  client.stop
+end
 ```
 
 ### `on_call(handler)`
 
-Decorator to register the inbound call handler. The handler receives a `Call` object.
+Register the inbound call handler by passing a block. The block receives a `Call` object.
 
-```python
-@client.on_call
-async def handle(call):
-    await call.answer()
+```ruby
+client.on_call do |call|
+  call.answer
+end
 ```
 
-### `dial(devices, *, tag=None, max_duration=None, dial_timeout=None) -> Call`
+### `dial(devices, timeout: 120, tag: nil) -> Call`
 
 Place an outbound call. Returns a `Call` once the remote party answers.
 
 - `devices` -- nested list of device objects (serial/parallel dial)
 - `tag` -- optional correlation tag (auto-generated if omitted)
-- `max_duration` -- max call duration in minutes
-- `dial_timeout` -- seconds to wait before raising `TimeoutError` (default: 120)
+- `timeout` -- seconds to wait before raising `RelayError` (default: 120)
 
-```python
-call = await client.dial([
-    [{"type": "phone", "params": {"to_number": "+15551234567", "from_number": "+15559876543"}}]
+```ruby
+call = client.dial([
+  [{ 'type' => 'phone', 'params' => { 'to_number' => '+15551234567', 'from_number' => '+15559876543' } }]
 ])
 ```
 
 ### `on_message(handler)`
 
-Decorator to register the inbound message handler. The handler receives a `Message` object.
+Register the inbound message handler by passing a block. The block receives a `Message` object.
 
-```python
-@client.on_message
-async def handle(message):
-    print(f"SMS from {message.from_number}: {message.body}")
+```ruby
+client.on_message do |message|
+  puts "SMS from #{message.from_number}: #{message.body}"
+end
 ```
 
 ### `send_message(*, to_number, from_number, body=None, media=None, ...) -> Message`
 
 Send an outbound SMS/MMS. Returns a `Message` that tracks delivery state.
 
-```python
-message = await client.send_message(
-    to_number="+15552222222",
-    from_number="+15551111111",
-    body="Hello!",
+```ruby
+message = client.send_message(
+  to_number: '+15552222222',
+  from_number: '+15551111111',
+  body: 'Hello!'
 )
-event = await message.wait()  # block until delivered/failed
+event = message.wait # block until delivered/failed
 ```
 
 See [Messaging](messaging.md) for full details.
@@ -100,9 +107,9 @@ Send a raw JSON-RPC request. Used internally by Call methods, but available for 
 
 Dynamically subscribe to or unsubscribe from contexts after connecting.
 
-```python
-await client.receive(["new-context"])
-await client.unreceive(["old-context"])
+```ruby
+client.receive(['new-context'])
+client.unreceive(['old-context'])
 ```
 
 ## Properties
@@ -130,13 +137,14 @@ For multiple WebSocket connections in one process, set `RELAY_MAX_CONNECTIONS` (
 
 ## Error Handling
 
-```python
-from signalwire.relay import RelayError
+```ruby
+require 'signalwire'
 
-try:
-    await call.play([...])
-except RelayError as e:
-    print(f"Error {e.code}: {e.message}")
+begin
+  call.play([{ 'type' => 'tts', 'params' => { 'text' => 'Hello' } }])
+rescue SignalWire::Relay::RelayError => e
+  puts "Error #{e.code}: #{e.error_message}"
+end
 ```
 
 `RelayError` is raised when the server returns a non-2xx response code. Errors 404 and 410 (call gone) are silently swallowed by Call methods since the call no longer exists.

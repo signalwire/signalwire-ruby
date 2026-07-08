@@ -62,6 +62,16 @@ class SWMLServiceSwaigTest < SWMLServiceSwaigTestBase
 
     assert_equal %w[first second], @svc.list_tool_names
   end
+
+  # as_router is the "embed my routes in a host app" mountable-handler capability
+  # (Python's HostAppRouter). Ruby's idiom is a Rack app -- an object responding
+  # to #call(env) -- and it is the service's own rack_app (the mountable unit).
+  def test_as_router_returns_mountable_rack_app
+    router = @svc.as_router
+
+    assert_respond_to router, :call, 'as_router must return a Rack app (responds to #call)'
+    assert_same @svc.rack_app, router
+  end
 end
 
 # ----- /swaig endpoint behavior -------------------------------------

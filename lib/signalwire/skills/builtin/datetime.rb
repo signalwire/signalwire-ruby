@@ -23,10 +23,8 @@ module SignalWire
         def name = 'datetime'
         def description = 'Get current date, time, and timezone information'
 
-        # Python parity: ``DateTimeSkill.setup`` -> ``self.validate_packages()``.
-        # Python validates that ``pytz`` is importable before the skill is
-        # usable. Ruby resolves timezones through the stdlib ``time``/``date``
-        # libraries (no third-party dependency), so setup here verifies those
+        # Timezones are resolved through the stdlib ``time``/``date``
+        # libraries (no third-party dependency), so setup verifies those
         # are loadable and returns whether the skill is ready.
         def setup
           require 'time'
@@ -37,11 +35,10 @@ module SignalWire
           false
         end
 
-        # Python parity: ``DateTimeSkill.get_parameter_schema`` returns only the
-        # base-class schema (the datetime skill adds no custom parameters). The
-        # explicit super-only override is REQUIRED — the cross-port audit checks
-        # public_instance_methods(false) includes it, so it must be defined here
-        # directly, not merely inherited. rubocop:disable for that reason.
+        # Returns only the base-class schema (the datetime skill adds no
+        # custom parameters). The explicit super-only override is defined
+        # here directly so it appears on public_instance_methods(false);
+        # the cop is disabled on the def line for that reason.
         def get_parameter_schema # rubocop:disable Lint/UselessMethodDefinition
           super
         end
@@ -49,6 +46,10 @@ module SignalWire
         def register_tools
           [get_current_time_tool, get_current_date_tool]
         end
+
+        # Returns [] — this skill ships no example hints. Defined directly
+        # on the class so it appears on public_instance_methods(false).
+        def get_hints = []
 
         def get_prompt_sections
           PROMPT_SECTIONS.map(&:dup)

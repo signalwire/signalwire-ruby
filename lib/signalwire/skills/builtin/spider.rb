@@ -14,11 +14,30 @@ module SignalWire
         def description = 'Fast web scraping and crawling capabilities'
         def supports_multiple_instances? = true
 
+        # Default user-agent.
+        DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+
+        # Extracts the performance / crawling / content-processing
+        # configuration off ``params`` and allocates the per-instance
+        # response cache at construction time so the ivars (and the cache
+        # #cleanup tears down) exist immediately. {#setup} re-reads them and
+        # returns +true+. A fresh Net::HTTP is opened per request, so there
+        # is no persistent session ivar.
+        def initialize(agent = nil, params = nil)
+          super
+          @max_text_length = get_param('max_text_length', default: 10_000).to_i
+          @timeout         = get_param('timeout', default: 5).to_i
+          @user_agent      = get_param('user_agent', default: DEFAULT_USER_AGENT)
+          @tool_prefix     = get_param('tool_name', default: '')
+          @tool_prefix     = "#{@tool_prefix}_" unless @tool_prefix.empty?
+          @cache_enabled   = get_param('cache_enabled', default: true) != false
+          @cache = @cache_enabled ? {} : nil
+        end
+
         def setup
           @max_text_length = get_param('max_text_length', default: 10_000).to_i
           @timeout         = get_param('timeout', default: 5).to_i
-          @user_agent      = get_param('user_agent',
-                                       default: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+          @user_agent      = get_param('user_agent', default: DEFAULT_USER_AGENT)
           @tool_prefix     = get_param('tool_name', default: '')
           @tool_prefix     = "#{@tool_prefix}_" unless @tool_prefix.empty?
           @cache_enabled   = get_param('cache_enabled', default: true) != false
@@ -28,11 +47,10 @@ module SignalWire
           true
         end
 
-        # Python parity: ``SpiderSkill.cleanup`` closes the HTTP session, clears
-        # the response cache, and logs. Ruby opens a fresh Net::HTTP connection
-        # per request (no persistent session to close), so teardown here drops
-        # the response cache and logs that the skill was cleaned up. Safe to
-        # call more than once.
+        # Tears down the skill: clears the response cache and logs. A fresh
+        # Net::HTTP connection is opened per request (no persistent session
+        # to close), so teardown here drops the response cache and logs that
+        # the skill was cleaned up. Safe to call more than once.
         def cleanup
           @cache&.clear
           @cache = nil

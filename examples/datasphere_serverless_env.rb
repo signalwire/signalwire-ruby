@@ -20,7 +20,7 @@ distance    = (ENV['DATASPHERE_DISTANCE'] || '4.0').to_f
 
 agent = SignalWire::AgentBase.new(name: 'datasphere-serverless-env', route: '/datasphere-env')
 
-agent.add_language('name' => 'English', 'code' => 'en-US', 'voice' => 'elevenlabs.rachel')
+agent.add_language('English', 'en-US', 'elevenlabs.rachel')
 
 agent.prompt_add_section(
   'Role',

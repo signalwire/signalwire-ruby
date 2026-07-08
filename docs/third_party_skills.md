@@ -8,103 +8,101 @@ Third-party skills can be integrated using four different methods:
 
 1. **Direct Registration** - Register skill classes programmatically
 2. **Directory Registration** - Add directories containing skill collections
-3. **Python Entry Points** - Install skills as Python packages
+3. **Distribute as a Gem** - Package and install skills as a Ruby gem
 4. **Environment Variables** - Configure skill paths via environment
 
-All third-party skills are discovered and indexed the same way as built-in skills, appearing in `list_skills_with_params()` output with their parameter schemas.
+All third-party skills are discovered and indexed the same way as built-in skills, appearing in `list_skills_with_params` output with their parameter schemas.
 
 ## Creating a Third-Party Skill
 
 Third-party skills follow the same structure as built-in skills. Here's a minimal example:
 
-```python
-# my_weather_skill/skill.py
-from signalwire.core.skill_base import SkillBase
-from signalwire.core.function_result import SwaigFunctionResult
-from typing import Dict, Any, List
+```ruby
+# my_weather_skill/skill.rb
+require 'signalwire'
 
-class WeatherSkill(SkillBase):
-    """Custom weather information skill"""
-    
-    SKILL_NAME = "weather"
-    SKILL_DESCRIPTION = "Get weather information for any location"
-    SKILL_VERSION = "1.0.0"
-    REQUIRED_PACKAGES = ["requests"]
-    REQUIRED_ENV_VARS = []
-    
-    @classmethod
-    def get_parameter_schema(cls) -> Dict[str, Dict[str, Any]]:
-        """Define configuration parameters"""
-        schema = super().get_parameter_schema()
-        
-        schema.update({
-            "api_key": {
-                "type": "string",
-                "description": "Weather API key",
-                "required": True,
-                "hidden": True,
-                "env_var": "WEATHER_API_KEY"
-            },
-            "units": {
-                "type": "string",
-                "description": "Temperature units",
-                "default": "celsius",
-                "required": False,
-                "enum": ["celsius", "fahrenheit", "kelvin"]
-            },
-            "cache_timeout": {
-                "type": "integer",
-                "description": "Cache timeout in seconds",
-                "default": 300,
-                "required": False,
-                "min": 0,
-                "max": 3600
-            }
-        })
-        
-        return schema
-    
-    def setup(self) -> bool:
-        """Initialize the skill"""
-        if not self.validate_packages():
-            return False
-            
-        self.api_key = self.params.get('api_key')
-        if not self.api_key:
-            self.logger.error("Weather API key is required")
-            return False
-            
-        self.units = self.params.get('units', 'celsius')
-        self.cache_timeout = self.params.get('cache_timeout', 300)
-        
-        return True
-    
-    def register_tools(self) -> None:
-        """Register weather tools with the agent"""
-        self.define_tool(
-            name="get_weather",
-            description="Get current weather for a location",
-            parameters={
-                "location": {
-                    "type": "string",
-                    "description": "City name or coordinates"
-                }
-            },
-            handler=self._get_weather_handler
-        )
-    
-    def _get_weather_handler(self, args, raw_data):
-        """Handle weather requests"""
-        location = args.get('location', '').strip()
-        
-        if not location:
-            return SwaigFunctionResult("Please provide a location")
-        
-        # Implementation would call weather API here
-        # This is just an example
-        return SwaigFunctionResult(
-            f"The weather in {location} is sunny and 22°{self.units[0].upper()}"
-        )
+# Custom weather information skill.
+class WeatherSkill < SignalWire::Skills::SkillBase
+  def name = 'weather'
+  def description = 'Get weather information for any location'
+  def version = '1.0.0'
+  def required_packages = ['httparty']
+
+  # Define configuration parameters.
+  def get_parameter_schema
+    schema = super
+
+    schema.merge(
+      'api_key' => {
+        'type' => 'string',
+        'description' => 'Weather API key',
+        'required' => true,
+        'hidden' => true,
+        'env_var' => 'WEATHER_API_KEY'
+      },
+      'units' => {
+        'type' => 'string',
+        'description' => 'Temperature units',
+        'default' => 'celsius',
+        'required' => false,
+        'enum' => ['celsius', 'fahrenheit', 'kelvin']
+      },
+      'cache_timeout' => {
+        'type' => 'integer',
+        'description' => 'Cache timeout in seconds',
+        'default' => 300,
+        'required' => false,
+        'min' => 0,
+        'max' => 3600
+      }
+    )
+  end
+
+  # Initialize the skill.
+  def setup
+    return false unless validate_packages
+
+    @api_key = get_param('api_key', env_var: 'WEATHER_API_KEY')
+    unless @api_key
+      logger.error('Weather API key is required')
+      return false
+    end
+
+    @units = get_param('units', default: 'celsius')
+    @cache_timeout = get_param('cache_timeout', default: 300)
+
+    true
+  end
+
+  # Register weather tools with the agent.
+  def register_tools
+    define_tool(
+      name: 'get_weather',
+      description: 'Get current weather for a location',
+      parameters: {
+        'location' => {
+          'type' => 'string',
+          'description' => 'City name or coordinates'
+        }
+      }
+    ) do |args, raw_data|
+      handle_get_weather(args, raw_data)
+    end
+  end
+
+  # Handle weather requests.
+  def handle_get_weather(args, _raw_data)
+    location = (args['location'] || '').strip
+
+    return SignalWire::Swaig::FunctionResult.new('Please provide a location') if location.empty?
+
+    # Implementation would call weather API here.
+    # This is just an example.
+    SignalWire::Swaig::FunctionResult.new(
+      "The weather in #{location} is sunny and 22°#{@units[0].upcase}"
+    )
+  end
+end
 ```
 
 ## Integration Methods
@@ -113,89 +111,103 @@ class WeatherSkill(SkillBase):
 
 Register individual skill classes programmatically:
 
-```python
-from signalwire import AgentBase, register_skill
-from my_weather_skill import WeatherSkill
+```ruby
+require 'signalwire'
+require_relative 'my_weather_skill/skill'
 
 # Register the skill globally
-register_skill(WeatherSkill)
+SignalWire.register_skill(WeatherSkill)
 
 # Now use it in any agent
-class MyAgent(AgentBase):
-    def __init__(self):
-        super().__init__(name="my-agent")
-        
-        # Add the registered skill
-        self.add_skill("weather", {
-            "api_key": "your-api-key",
-            "units": "fahrenheit"
-        })
+class MyAgent < SignalWire::AgentBase
+  def initialize
+    super(name: 'my-agent')
+
+    # Add the registered skill
+    add_skill('weather', {
+      'api_key' => 'your-api-key',
+      'units' => 'fahrenheit'
+    })
+  end
+end
 ```
 
 ### Method 2: Directory Registration
 
 Register directories containing multiple skills:
 
-```python
-from signalwire import add_skill_directory
+```ruby
+require 'signalwire'
 
 # Add a directory of custom skills
-add_skill_directory('/opt/custom_skills')
+SignalWire.add_skill_directory('/opt/custom_skills')
 
 # Directory structure should be:
 # /opt/custom_skills/
 #   weather/
-#     skill.py      # Contains WeatherSkill class
+#     skill.rb      # Contains WeatherSkill class
 #   stock_market/
-#     skill.py      # Contains StockMarketSkill class
+#     skill.rb      # Contains StockMarketSkill class
 #   translation/
-#     skill.py      # Contains TranslationSkill class
+#     skill.rb      # Contains TranslationSkill class
 
 # Now use any skill from the directory
-agent.add_skill("weather", {"api_key": "..."})
-agent.add_skill("stock_market", {"api_key": "..."})
+agent.add_skill('weather', { 'api_key' => '...' })
+agent.add_skill('stock_market', { 'api_key' => '...' })
 ```
 
-### Method 3: Python Entry Points
+### Method 3: Distribute as a Gem
 
-Create installable skill packages using setuptools entry points:
+Package your skills as a gem. Each skill file calls
+`SignalWire::Skills::SkillRegistry.register` when it is `require`d, so
+requiring the gem registers every skill it ships:
 
-```python
-# setup.py for your skill package
-from setuptools import setup, find_packages
+```ruby
+# my_signalwire_skills.gemspec
+Gem::Specification.new do |spec|
+  spec.name    = 'my-signalwire-skills'
+  spec.version = '1.0.0'
+  spec.files   = Dir['lib/**/*.rb']
 
-setup(
-    name="my-signalwire-skills",
-    version="1.0.0",
-    packages=find_packages(),
-    install_requires=[
-        "signalwire-agents",
-        "requests",
-    ],
-    entry_points={
-        'signalwire.skills': [
-            'weather = my_skills.weather:WeatherSkill',
-            'stock = my_skills.stock:StockMarketSkill',
-            'translate = my_skills.translate:TranslationSkill',
-        ]
-    }
-)
+  spec.add_dependency 'signalwire-sdk'
+  spec.add_dependency 'httparty'
+end
 ```
 
-After installation, skills are automatically available:
+Each skill file registers itself on load:
+
+```ruby
+# lib/my_signalwire_skills/weather.rb
+require 'signalwire'
+
+class WeatherSkill < SignalWire::Skills::SkillBase
+  def name = 'weather'
+  # ... rest of the skill ...
+end
+
+SignalWire::Skills::SkillRegistry.register('weather') do |params|
+  WeatherSkill.new(params)
+end
+```
+
+After installing the gem, require it and the skills are available:
 
 ```bash
-pip install my-signalwire-skills
+gem install my-signalwire-skills
 ```
 
-```python
-# Skills are automatically discovered
-agent.add_skill("weather", {"api_key": "..."})
+```ruby
+# Requiring the gem registers its skills
+require 'my_signalwire_skills'
+
+agent.add_skill('weather', { 'api_key' => '...' })
 ```
 
 ### Method 4: Environment Variable
 
-Set the `SIGNALWIRE_SKILL_PATHS` environment variable:
+Read a skill-paths environment variable and register each directory with
+`add_skill_directory` (the Ruby port does not auto-consume the variable, so
+wire it up at startup):
 
 ```bash
 # Single directory
@@ -205,11 +217,15 @@ export SIGNALWIRE_SKILL_PATHS=/opt/my_skills
 export SIGNALWIRE_SKILL_PATHS=/opt/my_skills:/home/user/custom_skills
 ```
 
-Skills in these directories are automatically discovered:
+```ruby
+require 'signalwire'
 
-```python
-# No registration needed - skills are found automatically
-agent.add_skill("weather", {"api_key": "..."})
+# Register every directory listed in the env var
+ENV.fetch('SIGNALWIRE_SKILL_PATHS', '').split(':').reject(&:empty?).each do |path|
+  SignalWire.add_skill_directory(path)
+end
+
+agent.add_skill('weather', { 'api_key' => '...' })
 ```
 
 ## Directory Structure
@@ -218,55 +234,54 @@ Skills loaded from directories must follow this structure:
 
 ```
 my_skills_directory/
-├── weather/                 # Skill directory (matches SKILL_NAME)
-│   ├── skill.py            # Required: Contains skill class
-│   ├── __init__.py         # Optional: Makes it a package
+├── weather/                 # Skill directory (matches the skill name)
+│   ├── skill.rb            # Required: Contains skill class
 │   └── README.md           # Optional: Documentation
 ├── translation/
-│   ├── skill.py
+│   ├── skill.rb
 │   └── resources/          # Optional: Additional files
 │       └── languages.json
 └── stock_market/
-    └── skill.py
+    └── skill.rb
 ```
 
 ## Skill Discovery and Schema
 
 Third-party skills are fully integrated with the SDK's discovery system:
 
-```python
-from signalwire import list_skills_with_params
+```ruby
+require 'signalwire'
 
 # Get all skills including third-party ones
-all_skills = list_skills_with_params()
+all_skills = SignalWire.list_skills_with_params
 
 # Third-party skills include source information
-print(all_skills['weather'])
+puts all_skills['weather']
 # Output:
 {
-    "name": "weather",
-    "description": "Get weather information for any location",
-    "version": "1.0.0",
-    "supports_multiple_instances": False,
-    "required_packages": ["requests"],
-    "required_env_vars": [],
-    "parameters": {
-        "api_key": {
-            "type": "string",
-            "description": "Weather API key",
-            "required": True,
-            "hidden": True,
-            "env_var": "WEATHER_API_KEY"
-        },
-        "units": {
-            "type": "string",
-            "description": "Temperature units",
-            "default": "celsius",
-            "required": False,
-            "enum": ["celsius", "fahrenheit", "kelvin"]
-        }
+  'name' => 'weather',
+  'description' => 'Get weather information for any location',
+  'version' => '1.0.0',
+  'supports_multiple_instances' => false,
+  'required_packages' => ['httparty'],
+  'required_env_vars' => [],
+  'parameters' => {
+    'api_key' => {
+      'type' => 'string',
+      'description' => 'Weather API key',
+      'required' => true,
+      'hidden' => true,
+      'env_var' => 'WEATHER_API_KEY'
     },
-    "source": "external"  # Shows it's a third-party skill
+    'units' => {
+      'type' => 'string',
+      'description' => 'Temperature units',
+      'default' => 'celsius',
+      'required' => false,
+      'enum' => ['celsius', 'fahrenheit', 'kelvin']
+    }
+  },
+  'source' => 'external'  # Shows it's a third-party skill
 }
 ```
 
@@ -276,37 +291,39 @@ print(all_skills['weather'])
 
 - Use lowercase, underscore-separated names
 - Choose unique names to avoid conflicts with built-in skills
-- Match directory name to `SKILL_NAME` for directory-based loading
+- Match directory name to the skill's `name` for directory-based loading
 
 ### 2. Parameter Design
 
-- Always implement `get_parameter_schema()` for GUI compatibility
+- Always implement `get_parameter_schema` for GUI compatibility
 - Mark sensitive parameters as `hidden`
 - Provide sensible defaults
 - Use `env_var` for parameters that can come from environment
 
 ### 3. Error Handling
 
-```python
-def setup(self) -> bool:
-    """Proper setup with error handling"""
-    # Validate packages
-    if not self.validate_packages():
-        return False
-    
-    # Validate required parameters
-    if not self.params.get('api_key'):
-        self.logger.error("API key is required")
-        return False
-    
-    # Test connectivity
-    try:
-        self._test_api_connection()
-    except Exception as e:
-        self.logger.error(f"Failed to connect to API: {e}")
-        return False
-    
-    return True
+```ruby
+# Proper setup with error handling.
+def setup
+  # Validate packages
+  return false unless validate_packages
+
+  # Validate required parameters
+  unless params['api_key']
+    logger.error('API key is required')
+    return false
+  end
+
+  # Test connectivity
+  begin
+    test_api_connection
+  rescue StandardError => e
+    logger.error("Failed to connect to API: #{e}")
+    return false
+  end
+
+  true
+end
 ```
 
 ### 4. Documentation
@@ -326,10 +343,10 @@ Provides weather information for any location.
 
 ## Usage
 
-```python
-agent.add_skill("weather", {
-    "api_key": "your-api-key",
-    "units": "fahrenheit"
+```ruby
+agent.add_skill('weather', {
+  'api_key' => 'your-api-key',
+  'units' => 'fahrenheit'
 })
 ```
 ```
@@ -340,31 +357,33 @@ agent.add_skill("weather", {
 
 Support multiple instances of your skill:
 
-```python
-class WeatherSkill(SkillBase):
-    SKILL_NAME = "weather"
-    SUPPORTS_MULTIPLE_INSTANCES = True  # Enable multiple instances
-    
-    def get_instance_key(self) -> str:
-        """Create unique key for this instance"""
-        service = self.params.get('service', 'default')
-        return f"{self.SKILL_NAME}_{service}"
+```ruby
+class WeatherSkill < SignalWire::Skills::SkillBase
+  def name = 'weather'
+  def supports_multiple_instances? = true # Enable multiple instances
+
+  # Create a unique key for this instance.
+  def instance_key
+    service = get_param('service', default: 'default')
+    "#{name}_#{service}"
+  end
+end
 ```
 
 Usage:
 
-```python
+```ruby
 # Add multiple weather services
-agent.add_skill("weather", {
-    "tool_name": "openweather",
-    "service": "openweathermap",
-    "api_key": "key1"
+agent.add_skill('weather', {
+  'tool_name' => 'openweather',
+  'service' => 'openweathermap',
+  'api_key' => 'key1'
 })
 
-agent.add_skill("weather", {
-    "tool_name": "weatherapi", 
-    "service": "weatherapi",
-    "api_key": "key2"
+agent.add_skill('weather', {
+  'tool_name' => 'weatherapi',
+  'service' => 'weatherapi',
+  'api_key' => 'key2'
 })
 ```
 
@@ -372,16 +391,19 @@ agent.add_skill("weather", {
 
 Customize tool names for better agent prompts:
 
-```python
-def register_tools(self) -> None:
-    tool_name = self.params.get('tool_name', 'get_weather')
-    
-    self.define_tool(
-        name=tool_name,
-        description=f"Get weather using {self.params.get('service', 'default')}",
-        parameters={...},
-        handler=self._weather_handler
-    )
+```ruby
+def register_tools
+  tool_name = get_param('tool_name', default: 'get_weather')
+  service   = get_param('service', default: 'default')
+
+  define_tool(
+    name: tool_name,
+    description: "Get weather using #{service}",
+    parameters: { } # ...
+  ) do |args, raw_data|
+    handle_get_weather(args, raw_data)
+  end
+end
 ```
 
 ### Skill Dependencies
@@ -404,32 +426,33 @@ end
 
 Test your skills before distribution:
 
-```python
-# test_my_skill.py
-import unittest
-from signalwire import AgentBase
-from my_weather_skill import WeatherSkill
+```ruby
+# test_weather_skill.rb
+require 'minitest/autorun'
+require 'signalwire'
+require_relative 'my_weather_skill/skill'
 
-class TestWeatherSkill(unittest.TestCase):
-    def setUp(self):
-        self.agent = AgentBase(name="test-agent")
-        
-    def test_skill_registration(self):
-        # Test direct registration
-        from signalwire import register_skill
-        register_skill(WeatherSkill)
-        
-        # Test adding skill
-        success, error = self.agent.add_skill("weather", {
-            "api_key": "test-key"
-        })
-        self.assertTrue(success)
-        
-    def test_parameter_schema(self):
-        schema = WeatherSkill.get_parameter_schema()
-        self.assertIn("api_key", schema)
-        self.assertTrue(schema["api_key"]["required"])
-        self.assertTrue(schema["api_key"]["hidden"])
+class TestWeatherSkill < Minitest::Test
+  def setup
+    @agent = SignalWire::AgentBase.new(name: 'test-agent')
+  end
+
+  def test_skill_registration
+    # Test direct registration
+    SignalWire.register_skill(WeatherSkill)
+
+    # add_skill returns the agent (raises ArgumentError on an unknown skill)
+    assert_equal @agent, @agent.add_skill('weather', { 'api_key' => 'test-key' })
+    assert @agent.has_skill?('weather')
+  end
+
+  def test_parameter_schema
+    schema = WeatherSkill.new({}).get_parameter_schema
+    assert schema.key?('api_key')
+    assert schema['api_key']['required']
+    assert schema['api_key']['hidden']
+  end
+end
 ```
 
 ## Troubleshooting
@@ -439,36 +462,40 @@ class TestWeatherSkill(unittest.TestCase):
 If your skill isn't being discovered:
 
 1. Check the skill directory structure
-2. Verify `SKILL_NAME` matches the directory name
-3. Ensure `skill.py` exists and contains a valid skill class
+2. Verify the skill's `name` matches the directory name
+3. Ensure `skill.rb` exists and contains a valid skill class
 4. Check logs for loading errors
 
-### Import Errors
+### Require Errors
 
-For skills with relative imports:
+For skills that pull in helper files, require them relative to the skill file:
 
-```python
-# Use absolute imports in skill.py
-from my_skills.weather.utils import parse_temperature
+```ruby
+# Require helpers relative to skill.rb
+require_relative 'utils'
 
-# Or handle import errors gracefully
-try:
-    from .utils import parse_temperature
-except ImportError:
-    from utils import parse_temperature
+# Or handle load errors gracefully
+begin
+  require_relative 'utils'
+rescue LoadError
+  require 'utils'
+end
+
+parse_temperature(raw)
 ```
 
 ### Environment Variables
 
 Debug environment variable loading:
 
-```python
-import os
-print(f"Skill paths: {os.environ.get('SIGNALWIRE_SKILL_PATHS', 'Not set')}")
+```ruby
+require 'signalwire'
 
-from signalwire.skills.registry import skill_registry
-sources = skill_registry.list_all_skill_sources()
-print(f"External skills: {sources['external_paths']}")
+puts "Skill paths: #{ENV.fetch('SIGNALWIRE_SKILL_PATHS', 'Not set')}"
+
+registry = SignalWire::Skills::SkillRegistry.new
+sources = registry.list_all_skill_sources
+puts "External skills: #{sources['external_paths']}"
 ```
 
 ## Example: Complete Third-Party Skill Package
@@ -477,59 +504,59 @@ Here's a complete example of a distributable skill package:
 
 ```
 my-signalwire-skills/
-├── setup.py
+├── my-signalwire-skills.gemspec
 ├── README.md
-├── requirements.txt
-├── my_signalwire_skills/
-│   ├── __init__.py
-│   ├── weather/
-│   │   ├── __init__.py
-│   │   ├── skill.py
-│   │   └── utils.py
-│   └── translation/
-│       ├── __init__.py
-│       └── skill.py
-└── tests/
-    ├── __init__.py
-    ├── test_weather.py
-    └── test_translation.py
+├── Gemfile
+├── lib/
+│   ├── my_signalwire_skills.rb
+│   └── my_signalwire_skills/
+│       ├── weather/
+│       │   ├── skill.rb
+│       │   └── utils.rb
+│       └── translation/
+│           └── skill.rb
+└── test/
+    ├── test_weather.rb
+    └── test_translation.rb
 ```
 
-```python
-# setup.py
-from setuptools import setup, find_packages
+```ruby
+# my-signalwire-skills.gemspec
+Gem::Specification.new do |spec|
+  spec.name        = 'my-signalwire-skills'
+  spec.version     = '1.0.0'
+  spec.author      = 'Your Name'
+  spec.summary     = 'Custom skills for SignalWire AI Agents'
+  spec.files       = Dir['lib/**/*.rb']
 
-setup(
-    name="my-signalwire-skills",
-    version="1.0.0",
-    author="Your Name",
-    description="Custom skills for SignalWire AI Agents",
-    packages=find_packages(),
-    install_requires=[
-        "signalwire-agents>=1.0.12",
-        "requests>=2.25.0",
-    ],
-    entry_points={
-        'signalwire.skills': [
-            'weather = my_signalwire_skills.weather.skill:WeatherSkill',
-            'translate = my_signalwire_skills.translation.skill:TranslationSkill',
-        ]
-    },
-    python_requires='>=3.7',
-)
+  spec.add_dependency 'signalwire-sdk', '>= 1.0.12'
+  spec.add_dependency 'httparty', '>= 0.21'
+  spec.required_ruby_version = '>= 3.0'
+end
+```
+
+The top-level `lib/my_signalwire_skills.rb` requires each skill file, and
+each skill file calls `SkillRegistry.register` on load:
+
+```ruby
+# lib/my_signalwire_skills.rb
+require 'my_signalwire_skills/weather/skill'
+require 'my_signalwire_skills/translation/skill'
 ```
 
 Install and use:
 
 ```bash
-pip install git+https://github.com/yourname/my-signalwire-skills.git
+gem install specific_install
+gem specific_install https://github.com/yourname/my-signalwire-skills.git
 ```
 
-```python
-from signalwire import AgentBase
+```ruby
+require 'signalwire'
+require 'my_signalwire_skills'
 
-agent = AgentBase(name="my-agent")
-agent.add_skill("weather", {"api_key": "..."})
-agent.add_skill("translate", {"api_key": "..."})
-agent.run()
+agent = SignalWire::AgentBase.new(name: 'my-agent')
+agent.add_skill('weather', { 'api_key' => '...' })
+agent.add_skill('translate', { 'api_key' => '...' })
+agent.run
 ```

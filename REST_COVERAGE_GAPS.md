@@ -27,6 +27,3 @@ relay-rest.delete_domain_application: sdk-gap — see above.
 ## video — no logs accessor
 video.list_logs: sdk-gap — no client.video.logs accessor (as python).
 video.get_log: sdk-gap — no video logs accessor.
-
-## compatibility — bare per-country node
-compatibility.list_available_phone_number_resources_by_country: sdk-gap — only /Local + /TollFree searches exist, not the bare /AvailablePhoneNumbers/{IsoCountry} node (as python).

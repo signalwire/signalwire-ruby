@@ -77,8 +77,7 @@ module SignalWire
         end
       end
 
-      # Tool: check_availability — Python parity
-      # (signalwire.prefabs.concierge.ConciergeAgent#check_availability).
+      # Tool: check_availability.
       #
       # Simulated booking lookup: confirms availability when the requested
       # service is one of the venue's offered services, otherwise lists the
@@ -98,8 +97,7 @@ module SignalWire
         )
       end
 
-      # Tool: get_directions — Python parity
-      # (signalwire.prefabs.concierge.ConciergeAgent#get_directions).
+      # Tool: get_directions.
       #
       # Returns directions to an amenity when that amenity declares a
       # "location" detail, otherwise points the caller at the front desk.
@@ -118,8 +116,7 @@ module SignalWire
         )
       end
 
-      # Lifecycle hook: on_summary — Python parity
-      # (signalwire.prefabs.concierge.ConciergeAgent#on_summary).
+      # Lifecycle hook: on_summary.
       #
       # Processes the post-prompt interaction summary. Structured (Hash)
       # summaries are logged as pretty JSON; anything else is logged as-is.

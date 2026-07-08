@@ -6,6 +6,7 @@
 # and service lookups, hours of operation, and custom welcome message.
 
 require 'signalwire'
+require 'signalwire/prefabs/concierge'  # opt-in subsystem (Python: from signalwire.prefabs import ...)
 
 # Build the concierge prefab
 concierge = SignalWire::Prefabs::Concierge.new(
