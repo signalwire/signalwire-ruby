@@ -20,11 +20,11 @@ agent = client.fabric.ai_agents.create(
 )
 
 # Search for a phone number
-results = client.phone_numbers.search(area_code: '512')
+results = client.phone_numbers.search(areacode: '512')
 
 # Place a call via REST
 client.calling.dial(
-  from_: '+15559876543',
+  from: '+15559876543',
   to:    '+15551234567',
   url:   'https://example.com/call-handler'
 )
@@ -54,7 +54,7 @@ client.fabric.ai_agents.delete(agent['id'])
 ### Calling -- Play and Record
 
 ```ruby
-call = client.calling.dial(from_: '+15559876543', to: '+15551234567', url: 'https://example.com/handler')
+call = client.calling.dial(from: '+15559876543', to: '+15551234567', url: 'https://example.com/handler')
 call_id = call['id']
 
 client.calling.play(call_id, play: [{ 'type' => 'tts', 'text' => 'Hello!' }])
@@ -65,7 +65,7 @@ client.calling.end_call(call_id, reason: 'hangup')
 ### Phone Numbers
 
 ```ruby
-available = client.phone_numbers.search(area_code: '512', max_results: 3)
+available = client.phone_numbers.search(areacode: '512', max_results: 3)
 number = client.phone_numbers.create(number: '+15125551234')
 client.phone_numbers.update(number['id'], name: 'Main Line')
 client.phone_numbers.delete(number['id'])
@@ -90,7 +90,7 @@ client.video.rooms.delete(room['id'])
 ### MFA
 
 ```ruby
-result = client.mfa.sms(to: '+15551234567', from_: '+15559876543', message: 'Code: {{code}}', token_length: 6)
+result = client.mfa.sms(to: '+15551234567', from: '+15559876543', message: 'Code: {{code}}', token_length: 6)
 client.mfa.verify(result['id'], token: '123456')
 ```
 

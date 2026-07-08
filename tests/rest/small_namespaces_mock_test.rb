@@ -211,7 +211,7 @@ class SmallNamespacesMockTestPartTwo < Minitest::Test
   def test_mfa_call
     body = @client.mfa.call(
       to: '+15551234567',
-      from_: '+15559876543',
+      from: '+15559876543',
       message: 'Your code is {code}'
     )
 
@@ -219,7 +219,7 @@ class SmallNamespacesMockTestPartTwo < Minitest::Test
     # The mfa response has 'id', 'success', 'channel', 'to'.
     assert body.key?('id')
     last = assert_request('POST', "#{RELAY_BASE}/mfa/call")
-    assert_sent_body(last, 'to' => '+15551234567', 'from_' => '+15559876543',
+    assert_sent_body(last, 'to' => '+15551234567', 'from' => '+15559876543',
                            'message' => 'Your code is {code}')
   end
 

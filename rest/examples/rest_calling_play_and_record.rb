@@ -19,7 +19,7 @@ client = SignalWire::REST::RestClient.new
 puts 'Dialing outbound call...'
 begin
   call = client.calling.dial(
-    from_: '+15559876543',
+    from: '+15559876543',
     to:    '+15551234567',
     url:   'https://example.com/call-handler'
   )
