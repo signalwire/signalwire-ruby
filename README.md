@@ -84,7 +84,7 @@ swaig-test my_agent.rb --exec get_time
 - **Call flow control** -- pre-answer, post-answer, and post-AI verb insertion
 - **Prefab agents** -- ready-to-use archetypes (InfoGatherer, Survey, FAQ, Receptionist, Concierge)
 - **Multi-agent hosting** -- serve multiple agents on a single server with `AgentServer`
-- **Local search** -- offline document search via the `native_vector_search` skill
+- **Document search** -- vector/keyword search over a remote index via the `native_vector_search` skill (remote HTTP mode; the Ruby port does not ship the offline/embedded backend)
 - **SIP routing** -- route SIP calls to agents based on usernames
 - **Session state** -- persistent conversation state with global data and post-prompt summaries
 - **Security** -- auto-generated basic auth, function-specific HMAC tokens, SSL support
