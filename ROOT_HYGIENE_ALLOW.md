@@ -32,6 +32,7 @@ pipeline (which this port cannot edit).
 - ROOT_HYGIENE_ALLOW.md — this allowlist file itself, read by the root_hygiene gate at repo root (orchestrator, 2026-07-06)
 - ARTIFACT_DENY_ALLOW.md — allowlist read by the artifact_deny gate at repo root (orchestrator, 2026-07-06)
 - EXAMPLES_RUN_ALLOW.md — allowlist read by the examples_run (EXAMPLES-RUN) gate at repo root (approver: user, 2026-07-07)
+- SNIPPET_RUN_ALLOW.md — allowlist read by the snippet_run (SNIPPET-RUN) gate at repo root (approver: user, 2026-07-09)
 
 ## Gem build/publish manifest
 
