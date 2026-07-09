@@ -332,6 +332,32 @@ sched_gate GEN-IDIOM res=dayone desc="generated code is not lint-excluded (idiom
 sched_gate RELEASE-FRESH res=dayone desc="publish workflow runs the gates before publishing (gated release path)" \
     -- python3 "$PORTING_SDK_DIR/scripts/release_fresh.py" --port ruby --repo .
 
+# ---- §C1 doc/example execution gates -----------------------------------------
+# SNIPPET-COMPILE (compile-only) + DOC-CLI (parse-only probe) are cheap → cheap
+# wave, blocking. SNIPPET-RUN + EXAMPLES-RUN execute code (mock-backed) and are
+# minutes-long → defer=1 heavy wave. Mirrors python's run-ci wiring.
+sched_gate SNIPPET-COMPILE desc="documented code snippets compile" \
+    -- python3 "$PORTING_SDK_DIR/scripts/snippet_compile.py" --port ruby --repo "$PORT_ROOT"
+
+sched_gate DOC-CLI desc="documented swaig-test invocations parse against the real CLI" \
+    -- python3 "$PORTING_SDK_DIR/scripts/doc_cli.py" --port ruby --repo "$PORT_ROOT"
+
+# SNIPPET-RUN lands REPORT-ONLY: ruby has a large doc-fragment backlog (560/614
+# — mostly live-network REST/RELAY snippets the mock-less snippet harness cannot
+# reach, plus page-scoped fragments). Burn the backlog, then drop --report-only.
+sched_gate SNIPPET-RUN defer=1 desc="dynamic-port doc snippets run to a zero exit against the mock (report-only: burning fragment backlog)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/snippet_run.py" --port ruby --repo "$PORT_ROOT" --report-only
+
+sched_gate EXAMPLES-RUN defer=1 desc="shipped examples load/start against the mock (modulo EXAMPLES_RUN_ALLOW.md)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/examples_run.py" --port ruby --repo "$PORT_ROOT"
+
+# ---- §G anti-laundering ledger + §D1 packaging -------------------------------
+sched_gate SUPPRESSION-LEDGER res=dayone desc="no un-ledgered analyzer suppressions (rubocop:disable) outside the ledger" \
+    -- python3 "$PORTING_SDK_DIR/scripts/suppression_ledger.py" --port ruby --repo .
+
+sched_gate PACKAGE-SMOKE defer=1 desc="build+install the real gem, then require/construct from the installed artifact" \
+    -- python3 "$PORTING_SDK_DIR/scripts/package_smoke.py" --port ruby --repo .
+
 sched_run
 rc=$?
 if [ "$rc" -eq 0 ]; then
