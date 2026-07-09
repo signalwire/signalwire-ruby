@@ -121,15 +121,15 @@ client.imported_numbers.create(number: '+15559999999', carrier: 'external')
 # Request a verification code via SMS
 result = client.mfa.sms(
   to:      '+15551234567',
-  from_:   '+15559876543',
+  from:    '+15559876543',
   message: 'Your code is {code}'
 )
 request_id = result['id']
 
 # Or via phone call
 result = client.mfa.call(
-  to:    '+15551234567',
-  from_: '+15559876543'
+  to:   '+15551234567',
+  from: '+15559876543'
 )
 
 # Verify the code
