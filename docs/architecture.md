@@ -1,5 +1,12 @@
 # SignalWire AI Agents SDK Architecture
 
+<!-- snippet-setup: every ruby example on this page assumes the SDK is required; supply demo Google creds so the web_search skill's presence check passes -->
+```ruby
+require 'signalwire'
+ENV['GOOGLE_SEARCH_API_KEY']   ||= 'demo-key'
+ENV['GOOGLE_SEARCH_ENGINE_ID'] ||= 'demo-engine-id'
+```
+
 ## Overview
 
 The SignalWire AI Agents SDK provides a Python framework for building, deploying, and managing AI agents as microservices. These agents are self-contained web applications that expose HTTP endpoints to interact with the SignalWire platform. The SDK simplifies the creation of custom AI agents by handling common functionality like HTTP routing, prompt management, and tool execution.
@@ -349,6 +356,7 @@ The SDK is designed to be highly extensible:
    ```
 
 2. **Tool Registration**: Add new tools with `define_tool` and a block handler
+<!-- snippet: no-run illustrative fragment: AgentBase instance methods (define_tool/prompt_add_section/set_dynamic_config_callback) shown outside an agent class -->
    ```ruby
    define_tool(
      name: 'tool_name',
@@ -388,6 +396,7 @@ The SDK is designed to be highly extensible:
    ```
 
 7. **Dynamic Configuration**: Per-request agent configuration for flexible behavior
+<!-- snippet: no-run illustrative fragment: AgentBase instance methods (define_tool/prompt_add_section/set_dynamic_config_callback) shown outside an agent class -->
    ```ruby
    def configure_agent_dynamically(query_params, body_params, headers, agent)
      # Configure agent differently based on request data
@@ -705,6 +714,7 @@ Key steps for creating custom prefabs:
    ```
 
 2. **Configure defaults**:
+<!-- snippet: no-run illustrative fragment: AgentBase instance methods (define_tool/prompt_add_section/set_dynamic_config_callback) shown outside an agent class -->
    ```ruby
    # Set standard prompt sections
    prompt_add_section('Personality', 'I am a specialized agent for...')
@@ -714,6 +724,7 @@ Key steps for creating custom prefabs:
    ```
 
 3. **Add specialized tools**:
+<!-- snippet: no-run illustrative fragment: AgentBase instance methods (define_tool/prompt_add_section/set_dynamic_config_callback) shown outside an agent class -->
    ```ruby
    define_tool(
      name: 'specialized_function',
@@ -1004,6 +1015,7 @@ Functions are defined with:
 - Security settings
 
 Example:
+<!-- snippet: no-run illustrative fragment: AgentBase instance methods (define_tool/prompt_add_section/set_dynamic_config_callback) shown outside an agent class -->
 ```ruby
 define_tool(
   name: 'get_weather',

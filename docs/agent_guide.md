@@ -1,5 +1,12 @@
 # SignalWire AI Agent Guide
 
+<!-- snippet-setup: every ruby example on this page assumes the SDK is required; supply demo Google creds so the web_search skill's presence check passes -->
+```ruby
+require 'signalwire'
+ENV['GOOGLE_SEARCH_API_KEY']   ||= 'demo-key'
+ENV['GOOGLE_SEARCH_ENGINE_ID'] ||= 'demo-engine-id'
+```
+
 ## Table of Contents
 - [Introduction](#introduction)
 - [Architecture Overview](#architecture-overview)
@@ -98,6 +105,7 @@ The SignalWire AI Agent SDK provides a `run()` method that automatically detects
 
 ### Deployment with `run()`
 
+<!-- snippet: no-run ends by starting a blocking server (agent.run/serve) -->
 ```ruby
 agent = SignalWire::AgentBase.new(name: 'my-agent', route: '/agent')
 
@@ -117,6 +125,7 @@ The `run()` method automatically detects and configures for:
 #### HTTP Server Mode
 When run directly (e.g., `ruby my_agent.rb`), the agent starts an HTTP server:
 
+<!-- snippet: no-run ends by starting a blocking server (agent.run/serve) -->
 ```ruby
 # Automatically starts HTTP server when run directly
 agent.run
@@ -125,6 +134,7 @@ agent.run
 #### CGI Mode  
 When CGI environment variables are present, operates in CGI mode with clean HTTP output:
 
+<!-- snippet: no-run ends by starting a blocking server (agent.run/serve) -->
 ```ruby
 # Same code - automatically detects CGI environment
 agent.run
@@ -133,6 +143,7 @@ agent.run
 #### AWS Lambda Mode
 When AWS Lambda environment is detected, configures for serverless execution:
 
+<!-- snippet: no-run ends by starting a blocking server (agent.run/serve) -->
 ```ruby
 # Same code - automatically detects Lambda environment  
 agent.run
@@ -606,6 +617,7 @@ The Skills System allows you to extend your agents with reusable capabilities vi
 
 ### Quick Start
 
+<!-- snippet: no-run illustrative fragment: references a class/agent/flag established in an earlier block, or adds the same skill twice (instance-key collision) -->
 ```ruby
 require 'signalwire'
 
@@ -976,6 +988,7 @@ end
 ```
 
 **Using the custom skill:**
+<!-- snippet: no-run illustrative fragment: references a class/agent/flag established in an earlier block, or adds the same skill twice (instance-key collision) -->
 ```ruby
 # Register the skill class once, then add it to your agent by name:
 SignalWire.register_skill(WeatherSkill)
@@ -1629,6 +1642,7 @@ You can support both static and dynamic patterns during migration. Build a
 configuration method you can call either eagerly (static) or from the dynamic
 callback:
 
+<!-- snippet: no-run illustrative fragment: references a class/agent/flag established in an earlier block, or adds the same skill twice (instance-key collision) -->
 ```ruby
 def configure(target)
   # Original/shared configuration
@@ -1798,6 +1812,7 @@ The debug events system provides real-time visibility into what the AI module is
 
 #### Basic Setup
 
+<!-- snippet: no-run ends by starting a blocking server (agent.run/serve) -->
 ```ruby
 agent = SignalWire::AgentBase.new(name: 'my_agent')
 agent.enable_debug_events # That's it — events are auto-logged
@@ -1813,6 +1828,7 @@ With just `enable_debug_events`, every debug event is logged through the agent's
 
 To act on specific events (alerting, metrics, custom logging), register a handler:
 
+<!-- snippet: no-run ends by starting a blocking server (agent.run/serve) -->
 ```ruby
 agent = SignalWire::AgentBase.new(name: 'my_agent')
 agent.enable_debug_events
@@ -2004,6 +2020,7 @@ When `auto_map=True`, the agent automatically registers SIP usernames based on:
 
 For multi-agent setups, centralized routing is more efficient:
 
+<!-- snippet: no-run illustrative fragment: references a class/agent/flag established in an earlier block, or adds the same skill twice (instance-key collision) -->
 ```ruby
 # Create an AgentServer
 server = SignalWire::AgentServer.new(host: '0.0.0.0', port: 3000)
@@ -2211,6 +2228,7 @@ Collects structured information from users. The Ruby prefab takes `questions:`
 (each a Hash with `key_name`/`question_text` and an optional `confirm`), rather
 than Python's `fields=`/`confirmation_template=`:
 
+<!-- snippet: no-run ends by starting a blocking server (agent.run/serve) -->
 ```ruby
 require 'signalwire'
 
@@ -2252,6 +2270,7 @@ Answers questions from a knowledge base. The Ruby prefab takes an in-memory
 `faqs:` array (each entry a Hash with `question`/`answer`) and a `persona:`,
 rather than Python's `knowledge_base_path=`/`citation_style=`:
 
+<!-- snippet: no-run ends by starting a blocking server (agent.run/serve) -->
 ```ruby
 require 'signalwire'
 
@@ -2293,6 +2312,7 @@ agent.serve(host: '0.0.0.0', port: 8000)
 
 Acts as a virtual concierge for a venue, answering amenity and service questions:
 
+<!-- snippet: no-run ends by starting a blocking server (agent.run/serve) -->
 ```ruby
 require 'signalwire'
 
@@ -2338,6 +2358,7 @@ agent.serve(host: '0.0.0.0', port: 8000)
 Conducts structured surveys with different question types (the Ruby `Survey`
 prefab takes `survey_name:`, `questions:`, `introduction:`, and `conclusion:`):
 
+<!-- snippet: no-run ends by starting a blocking server (agent.run/serve) -->
 ```ruby
 require 'signalwire'
 
@@ -2386,6 +2407,7 @@ Handles call routing and department transfers. The Ruby `Receptionist` prefab
 takes `departments:` (each a Hash with `name`/`description`/`number`) and a
 `greeting:` (set the voice on the wrapping agent, not the prefab):
 
+<!-- snippet: no-run ends by starting a blocking server (agent.run/serve) -->
 ```ruby
 require 'signalwire'
 
@@ -2496,6 +2518,7 @@ end
 
 #### Using the Custom Factory
 
+<!-- snippet: no-run illustrative fragment: uses the build_customer_support_agent factory defined earlier on the page, then starts a blocking server -->
 ```ruby
 # Build a configured agent from the factory
 support_agent = build_customer_support_agent(
@@ -2729,6 +2752,7 @@ For the full mode/flag reference and worked examples, see the
 
 ### Simple Question-Answering Agent
 
+<!-- snippet: no-run ends by starting a blocking server (agent.run/serve) -->
 ```ruby
 require 'signalwire'
 
@@ -2763,6 +2787,7 @@ agent.run
 
 ### Multi-Language Customer Service Agent
 
+<!-- snippet: no-run ends by starting a blocking server (agent.run/serve) -->
 ```ruby
 require 'signalwire'
 

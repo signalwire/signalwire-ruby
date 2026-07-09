@@ -2,6 +2,11 @@
 
 SWAIG (SignalWire AI Gateway) is the platform's AI tool-calling system -- it connects the AI's decisions to actions like call transfers, SMS, recordings, and API calls, with native access to the media stack. This document provides a complete reference for all methods available in the `SwaigFunctionResult` class. These methods provide convenient abstractions for SWAIG actions, eliminating the need to manually construct action JSON objects.
 
+<!-- snippet-setup: every ruby example on this page assumes the SDK is required -->
+```ruby
+require 'signalwire'
+```
+
 ## Core Methods
 
 ### Basic Construction & Control

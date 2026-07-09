@@ -4,6 +4,7 @@ Real-time call control and messaging over WebSocket using Ruby threads. The RELA
 
 ## Quick Start
 
+<!-- snippet: no-run connects to a live RELAY WebSocket via client.run; unreachable from the standalone snippet harness -->
 ```ruby
 require 'signalwire'
 

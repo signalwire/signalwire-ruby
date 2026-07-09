@@ -70,6 +70,7 @@ export SWML_BASIC_AUTH_PASSWORD=mysecurepassword
 
 SWML-based services automatically use the unified security configuration:
 
+<!-- snippet: no-run starts a blocking WEBrick server via agent.run -->
 ```ruby
 require 'signalwire'
 

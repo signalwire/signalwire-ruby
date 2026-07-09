@@ -342,11 +342,12 @@ sched_gate SNIPPET-COMPILE desc="documented code snippets compile" \
 sched_gate DOC-CLI desc="documented swaig-test invocations parse against the real CLI" \
     -- python3 "$PORTING_SDK_DIR/scripts/doc_cli.py" --port ruby --repo "$PORT_ROOT"
 
-# SNIPPET-RUN lands REPORT-ONLY: ruby has a large doc-fragment backlog (560/614
-# — mostly live-network REST/RELAY snippets the mock-less snippet harness cannot
-# reach, plus page-scoped fragments). Burn the backlog, then drop --report-only.
-sched_gate SNIPPET-RUN defer=1 desc="dynamic-port doc snippets run to a zero exit against the mock (report-only: burning fragment backlog)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/snippet_run.py" --port ruby --repo "$PORT_ROOT" --report-only
+# SNIPPET-RUN is BLOCKING: every runnable ruby doc snippet must execute to a zero
+# exit against the mock. Non-runnable blocks carry a `<!-- snippet: no-run … -->`
+# (or no-compile) marker; credential/live-network cases are ledgered in
+# SNIPPET_RUN_ALLOW.md. Backlog burned to 0.
+sched_gate SNIPPET-RUN defer=1 desc="dynamic-port doc snippets run to a zero exit against the mock" \
+    -- python3 "$PORTING_SDK_DIR/scripts/snippet_run.py" --port ruby --repo "$PORT_ROOT"
 
 sched_gate EXAMPLES-RUN defer=1 desc="shipped examples load/start against the mock (modulo EXAMPLES_RUN_ALLOW.md)" \
     -- python3 "$PORTING_SDK_DIR/scripts/examples_run.py" --port ruby --repo "$PORT_ROOT"

@@ -1,5 +1,10 @@
 # SignalWire AI Agents SDK - Complete API Reference
 
+<!-- snippet-setup: every ruby example on this page assumes the SDK is required -->
+```ruby
+require 'signalwire'
+```
+
 This document provides a comprehensive reference for all public APIs in the SignalWire AI Agents SDK.
 
 ## Table of Contents
@@ -20,6 +25,7 @@ The `AgentBase` class is the foundation for creating AI agents. It extends `SWML
 
 ### Constructor
 
+<!-- snippet: no-run constructor/config signature illustration referencing assumed placeholder locals (name/function_name/contexts/MyAgent) -->
 ```ruby
 SignalWire::AgentBase.new(
   name:,                          # String
@@ -80,6 +86,7 @@ Auto-detects deployment environment and runs the agent appropriately.
 - `port` (Optional[int]): Override port number
 
 **Usage:**
+<!-- snippet: no-run ends by starting a blocking server (agent.run/serve) -->
 ```ruby
 # Auto-detect environment
 agent.run
@@ -101,6 +108,7 @@ Explicitly run as HTTP server using FastAPI/Uvicorn.
 - `port` (Optional[int]): Port number to listen on
 
 **Usage:**
+<!-- snippet: no-run ends by starting a blocking server (agent.run/serve) -->
 ```ruby
 agent.serve                          # Use constructor defaults
 agent.serve(host: "0.0.0.0", port: 3000)
@@ -1131,6 +1139,7 @@ agent.add_pre_answer_verb("set", { "source" => "ai_agent" })
 
 ##### `set_dynamic_config_callback`
 
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
 # Pass a block (canonical) or a callable via the positional arg.
 # The callback receives (query_params, body, headers, config).
@@ -1189,6 +1198,7 @@ agent.register_sip_username("sales")
 
 ##### `register_routing_callback`
 
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
 # The routing logic is supplied as a block returning the agent route
 # (or nil) based on the request; path is the routing endpoint.
@@ -1242,6 +1252,7 @@ end.to_app
 
 ##### `on_summary`
 
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
 # Register a handler with a block, or override this method in a subclass.
 def on_summary(summary = nil, raw_data = nil, &block) # => self / nil
@@ -1294,6 +1305,7 @@ end
 
 ##### `on_debug_event`
 
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
 # Register a handler by passing a block; the block receives
 # |event_type, data|. Requires enable_debug_events first.
@@ -1439,6 +1451,7 @@ end
 
 ##### `get_basic_auth_credentials`
 
+<!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
 # Returns [username, password], or [username, password, source]
 # when include_source is true.
@@ -2252,6 +2265,7 @@ The `DataMap` class provides a declarative approach to creating SWAIG tools that
 
 ### Constructor
 
+<!-- snippet: no-run constructor/config signature illustration referencing assumed placeholder locals (name/function_name/contexts/MyAgent) -->
 ```ruby
 SignalWire::DataMap.new(function_name)
 ```
@@ -2497,20 +2511,22 @@ Process array responses by iterating over elements.
 # Process array of search results
 data_map = SignalWire::DataMap.new('search_docs')
   .webhook('GET', 'https://api.docs.com/search?q=${args.query}')
-  .foreach('${response.results}')  # Iterate over results array
-  .output(SignalWire::Swaig::FunctionResult.new('Found: ${foreach.title} - ${foreach.summary}'))
+  .foreach(
+    'input_key'  => 'results',            # array key in the webhook response
+    'output_key' => 'formatted_results',  # variable holding the built string
+    'append'     => 'Found: ${this.title} - ${this.summary}\n'
+  )
+  .output(SignalWire::Swaig::FunctionResult.new('${formatted_results}'))
 ```
 
 **Advanced Array Processing:**
 ```ruby
 # Complex foreach configuration
 data_map.foreach({
-  'array' => '${response.items}',
-  'limit' => 3,  # Process only first 3 items
-  'filter' => {
-    'field' => 'status',
-    'value' => 'active'
-  }
+  'input_key'  => 'items',                    # array key in the webhook response
+  'output_key' => 'formatted_items',          # variable holding the built string
+  'max'        => 3,                          # process only the first 3 items
+  'append'     => 'Item: ${this.name} (${this.status})\n'
 })
 ```
 
@@ -2660,8 +2676,12 @@ search_tool = SignalWire::DataMap.new('search_knowledge')
     'category' => '${args.category}',
     'limit' => 5
   })
-  .foreach('${response.results}')
-  .output(SignalWire::Swaig::FunctionResult.new('Found: ${foreach.title} - ${foreach.summary}'))
+  .foreach(
+    'input_key'  => 'results',
+    'output_key' => 'formatted_results',
+    'append'     => 'Found: ${this.title} - ${this.summary}\n'
+  )
+  .output(SignalWire::Swaig::FunctionResult.new('${formatted_results}'))
   .fallback_output(SignalWire::Swaig::FunctionResult.new('Search service is temporarily unavailable'))
 ```
 
@@ -2831,6 +2851,7 @@ Create a new context in the workflow.
 - Context: Context object for method chaining
 
 **Usage:**
+<!-- snippet: no-run constructor/config signature illustration referencing assumed placeholder locals (name/function_name/contexts/MyAgent) -->
 ```ruby
 # Create multiple contexts
 greeting_context = contexts.add_context("greeting")
@@ -2900,6 +2921,7 @@ end
 
 #### Usage Examples
 
+<!-- snippet: no-run constructor/config signature illustration referencing assumed placeholder locals (name/function_name/contexts/MyAgent) -->
 ```ruby
 # Workflow container context (just organizes steps)
 main_context = contexts.add_context("main")
@@ -3227,6 +3249,7 @@ The SDK supports various environment variables for configuration:
 
 ### Usage
 
+<!-- snippet: no-run constructor/config signature illustration referencing assumed placeholder locals (name/function_name/contexts/MyAgent) -->
 ```ruby
 # Set environment variables
 ENV["SWML_BASIC_AUTH_USER"] = "admin"
@@ -3247,6 +3270,7 @@ agent.add_skill("web_search", {
 
 Here's a comprehensive example using multiple SDK components:
 
+<!-- snippet: no-run ends by starting a blocking server (agent.run/serve) -->
 ```ruby
 require 'signalwire'
 

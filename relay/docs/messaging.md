@@ -79,6 +79,7 @@ message = client.send_message(
 
 Register a handler with `@client.on_message` to receive inbound SMS/MMS.
 
+<!-- snippet: no-run connects to a live RELAY WebSocket via client.run; unreachable from the standalone snippet harness -->
 ```ruby
 require 'signalwire'
 
@@ -164,6 +165,7 @@ require 'signalwire'
 
 The same `RelayClient` handles both calls and messages:
 
+<!-- snippet: no-run connects to a live RELAY WebSocket via client.run; unreachable from the standalone snippet harness -->
 ```ruby
 client = SignalWire::Relay::Client.new(project: '...', token: '...', contexts: ['default'])
 

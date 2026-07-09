@@ -54,6 +54,7 @@ originals satisfy the audit; the aliases are port-only symbols recorded in
 The prototype (live in `lib/signalwire/agent/agent_base.rb`, tests in
 `tests/agent_test.rb` → `AgentBaseIdiomaticAccessorsTest`):
 
+<!-- snippet: no-run illustrative fragment: alias_method/def accessor pair shown as a class-body excerpt, not a runnable program -->
 ```ruby
 # Reader-only alias over a computed getter:
 alias_method :prompt, :get_prompt
