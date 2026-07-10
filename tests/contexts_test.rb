@@ -896,3 +896,77 @@ class ContextsIdiomaticAccessorsTest < Minitest::Test
     assert_equal 'be terse', @ctx.to_h['system_prompt']
   end
 end
+
+# set_history on Step and Context (parity with signalwire-python):
+# fluent, 3-mode validation, and emits the "history" wire key only when set.
+class ContextsSetHistoryTest < Minitest::Test
+  def setup
+    @ctx  = CTX.new('default')
+    @step = @ctx.add_step('s1')
+    @step.text = 'base' # to_h requires a step to have text/POM
+  end
+
+  # --- Step ---
+
+  def test_step_set_history_returns_self
+    assert_same @step, @step.set_history('keep')
+  end
+
+  def test_step_set_history_emits_each_mode
+    %w[keep default hide].each do |mode|
+      step = CTX.new('default').add_step('s')
+      step.text = 'base'
+      step.set_history(mode)
+
+      assert_equal mode, step.to_h['history']
+    end
+  end
+
+  def test_step_history_omitted_when_unset
+    refute_includes @step.to_h.keys, 'history'
+  end
+
+  def test_step_set_history_invalid_raises
+    err = assert_raises(ArgumentError) { @step.set_history('bogus') }
+    assert_includes err.message, 'history must be one of'
+  end
+
+  # Idiomatic writer form: `step.history = mode` mirrors set_history.
+  def test_step_history_writer
+    @step.history = 'hide'
+
+    assert_equal 'hide', @step.to_h['history']
+  end
+
+  # --- Context ---
+
+  def test_context_set_history_returns_self
+    assert_same @ctx, @ctx.set_history('default')
+  end
+
+  def test_context_set_history_emits_each_mode
+    %w[keep default hide].each do |mode|
+      ctx  = CTX.new('default')
+      step = ctx.add_step('s')
+      step.text = 'base'
+      ctx.set_history(mode)
+
+      assert_equal mode, ctx.to_h['history']
+    end
+  end
+
+  def test_context_history_omitted_when_unset
+    refute_includes @ctx.to_h.keys, 'history'
+  end
+
+  def test_context_set_history_invalid_raises
+    err = assert_raises(ArgumentError) { @ctx.set_history('nope') }
+    assert_includes err.message, 'history must be one of'
+  end
+
+  def test_context_history_writer
+    @ctx.history = 'keep'
+
+    assert_equal 'keep', @ctx.to_h['history']
+  end
+end
