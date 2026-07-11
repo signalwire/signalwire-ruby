@@ -334,7 +334,7 @@ def rb_str(s: str) -> str:
 BASE_PROVIDES = {
     "CrudResource": {"list", "create", "get", "update", "delete"},
     "FabricResource": {"list", "create", "get", "update", "delete", "list_addresses"},
-    "ReadResource": {"list", "get"},
+    "ReadResource": {"list", "paginate", "get"},
     "BaseResource": set(),
 }
 
@@ -848,6 +848,17 @@ def emit_read_list_get(spec: Spec, anchor: str, markup: dict, indent: str) -> li
     lines: list[str] = []
     lines.append(f"{indent}def list(**params)")
     lines.append(f"{indent}  @http.get(@base_path, params.empty? ? nil : params)")
+    lines.append(f"{indent}end")
+    lines.append("")
+    # paginate: the ReadResource base's page-walking iterator (oracle records
+    # `paginate` on every ReadResource subclass). Returns an Enumerable
+    # PaginatedIterator wired to this resource's collection path — the Ruby
+    # idiom for Python's returned iterator; follows resp["links"]["next"].
+    lines.append(f"{indent}def paginate(**params)")
+    lines.append(
+        f"{indent}  SignalWire::REST::PaginatedIterator.new("
+        "@http, @base_path, params.empty? ? nil : params, 'data')"
+    )
     lines.append(f"{indent}end")
     lines.append("")
     lines.append(f"{indent}def get(resource_id)")

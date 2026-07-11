@@ -161,6 +161,22 @@ module SignalWire
         @http.get(@base_path, params.empty? ? nil : params)
       end
 
+      # Iterate every item across all pages of this resource's list endpoint.
+      #
+      # +list+ returns a single raw page (the server's first response). For
+      # endpoints that paginate on the wire (a +links.next+ / +page_token+ in
+      # the response), +paginate+ follows those links and yields each item:
+      #
+      #   client.fabric.addresses.paginate.each { |address| ... }
+      #
+      # Wires the resource layer to the tested +PaginatedIterator+ (which walks
+      # +resp["data"]+ and follows +resp["links"]["next"]+), so callers no
+      # longer hand-construct the path + token loop. Returns an Enumerable
+      # +PaginatedIterator+ — the Ruby idiom for Python's returned iterator.
+      def paginate(**params)
+        PaginatedIterator.new(@http, @base_path, params.empty? ? nil : params, 'data')
+      end
+
       def get(resource_id)
         @http.get(_path(resource_id))
       end

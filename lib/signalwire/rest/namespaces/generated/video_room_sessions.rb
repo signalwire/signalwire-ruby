@@ -25,6 +25,10 @@ module SignalWire
             @http.get(@base_path, params.empty? ? nil : params)
           end
 
+          def paginate(**params)
+            SignalWire::REST::PaginatedIterator.new(@http, @base_path, params.empty? ? nil : params, 'data')
+          end
+
           def get(resource_id)
             @http.get(_path(resource_id))
           end

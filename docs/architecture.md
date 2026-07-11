@@ -1135,7 +1135,8 @@ Key environment variables:
 - `SWML_SSL_CERT_PATH`: Path to SSL certificate
 - `SWML_SSL_KEY_PATH`: Path to SSL key
 - `SWML_DOMAIN`: Domain name for the service
-- `SWML_SCHEMA_PATH`: Optional path to override the schema.json location
+- `SWML_SKIP_SCHEMA_VALIDATION`: When set to `1`/`true`/`yes`, disables SWML schema validation (a security/strictness knob — off by default; leave unset in production)
+- `SWML_ALLOW_PRIVATE_URLS`: When set to `1`/`true`/`yes`, allows the URL validator to accept private / loopback / link-local hosts (a security knob — off by default; leave unset unless you intentionally target internal hosts)
 
 ## Request Flow
 

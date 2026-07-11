@@ -25908,6 +25908,22 @@
                 }
               ],
               "returns": "any"
+            },
+            "paginate": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "params",
+                  "type": "any",
+                  "kind": "var_keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
             }
           }
         },
@@ -29757,6 +29773,22 @@
                 }
               ],
               "returns": "any"
+            },
+            "paginate": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "params",
+                  "type": "any",
+                  "kind": "var_keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
             }
           }
         },
@@ -31483,6 +31515,22 @@
                 }
               ],
               "returns": "any"
+            },
+            "paginate": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "params",
+                  "type": "any",
+                  "kind": "var_keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
             }
           }
         }
@@ -31559,6 +31607,22 @@
               "returns": "any"
             },
             "list": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "params",
+                  "type": "any",
+                  "kind": "var_keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "paginate": {
               "params": [
                 {
                   "name": "self",
@@ -34718,6 +34782,22 @@
                 }
               ],
               "returns": "any"
+            },
+            "paginate": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "params",
+                  "type": "any",
+                  "kind": "var_keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
             }
           }
         },
@@ -35373,6 +35453,22 @@
                   "name": "params",
                   "required": false,
                   "type": "any"
+                }
+              ],
+              "returns": "any"
+            },
+            "paginate": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "params",
+                  "type": "any",
+                  "kind": "var_keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"

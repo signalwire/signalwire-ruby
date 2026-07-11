@@ -71,7 +71,7 @@ class RecordingHttp < SignalWire::REST::HttpClient
 end
 
 # Enumerate the REST routes the Ruby SDK implements (Set B for SPEC-PARITY).
-module RouteRegistry
+module RouteRegistry # rubocop:disable Metrics/ModuleLength
   # Sentinel for any path parameter -- one segment, no slash; normalized to {id}.
   SENTINEL = '__ID__'
 
@@ -87,6 +87,11 @@ module RouteRegistry
   # (mirrors python + typescript). The old raising-create scaffold that needed a
   # skip entry here is gone with the generated adoption, so no skips remain.
   REGISTRY_SKIP = {}.freeze
+
+  # Client-side helper method names on any resource (no HTTP request; not wire
+  # routes). `paginate` follows the cursor via the covered `list` route. Mirrors
+  # python's SKIP_METHODS in porting-sdk/scripts/python_route_registry.py.
+  SKIP_METHODS = { 'paginate' => 'client-side pagination helper over the covered list route (no HTTP itself)' }.freeze
 
   module_function
 
@@ -173,7 +178,9 @@ module RouteRegistry
   # A route's REGISTRY_SKIP reason: exact "<ns>.<res>.<method>" or the
   # "<ns>.<res>.*" wildcard; nil if the method is not skip-listed.
   def skip_reason(key)
-    REGISTRY_SKIP[key] || REGISTRY_SKIP["#{key.rpartition('.').first}.*"]
+    REGISTRY_SKIP[key] ||
+      REGISTRY_SKIP["#{key.rpartition('.').first}.*"] ||
+      SKIP_METHODS[key.rpartition('.').last]
   end
 
   def build

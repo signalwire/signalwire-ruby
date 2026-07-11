@@ -195,6 +195,86 @@ class SkillRegistryDirectoryTest < Minitest::Test
   end
 end
 
+# ── SIGNALWIRE_SKILL_PATHS auto-consumption parity ──────────────────────
+# Mirrors the Python reference, which reads
+# os.environ.get("SIGNALWIRE_SKILL_PATHS", "").split(os.pathsep) and folds
+# those directories into the skill search path (registry.py:59 and :387).
+# The Ruby port must auto-consume the same var — NOT require the user to
+# wire it manually.
+class SkillEnvPathsTest < Minitest::Test
+  def with_skill_paths(value)
+    saved = ENV.delete('SIGNALWIRE_SKILL_PATHS')
+    ENV['SIGNALWIRE_SKILL_PATHS'] = value
+    yield
+  ensure
+    ENV.delete('SIGNALWIRE_SKILL_PATHS')
+    ENV['SIGNALWIRE_SKILL_PATHS'] = saved if saved
+  end
+
+  def test_env_skill_paths_folded_into_external_paths
+    Dir.mktmpdir do |dir_a|
+      Dir.mktmpdir do |dir_b|
+        with_skill_paths([dir_a, dir_b].join(File::PATH_SEPARATOR)) do
+          paths = SignalWire::Skills::SkillRegistry.new.external_paths
+
+          assert_includes paths, dir_a, 'env-var skill dir A should be on the search path'
+          assert_includes paths, dir_b, 'env-var skill dir B should be on the search path'
+        end
+      end
+    end
+  end
+
+  def test_env_skill_paths_empty_entries_dropped
+    with_skill_paths(['', File::PATH_SEPARATOR, ''].join) do
+      registry = SignalWire::Skills::SkillRegistry.new
+
+      refute_includes registry.external_paths, '', 'empty env-var entries must be dropped'
+    end
+  end
+
+  def test_env_skill_paths_read_fresh_after_construction
+    registry = SignalWire::Skills::SkillRegistry.new
+    Dir.mktmpdir do |late_dir|
+      with_skill_paths(late_dir) do
+        # Var set AFTER the registry was built; Python reads it at search time,
+        # so the Ruby port must too.
+        assert_includes registry.external_paths, late_dir
+      end
+    end
+  end
+
+  def test_env_skill_paths_deduped_with_registered
+    Dir.mktmpdir do |shared|
+      with_skill_paths(shared) do
+        registry = SignalWire::Skills::SkillRegistry.new
+        registry.add_skill_directory(shared)
+
+        assert_equal 1, registry.external_paths.count(shared),
+                     'a dir both registered and in the env var appears once'
+      end
+    end
+  end
+
+  # A skill subdir so _skill_dirs_under has something to report.
+  def write_demo_skill(dir)
+    skill_dir = File.join(dir, 'demo_skill')
+    Dir.mkdir(skill_dir)
+    File.write(File.join(skill_dir, 'skill.rb'), "# demo\n")
+  end
+
+  def test_env_skill_paths_appear_in_list_all_skill_sources
+    Dir.mktmpdir do |dir|
+      write_demo_skill(dir)
+      with_skill_paths(dir) do
+        sources = SignalWire::Skills::SkillRegistry.new.list_all_skill_sources
+
+        assert_includes sources['external_paths'], 'demo_skill',
+                        'env-var skill dir contents should surface in list_all_skill_sources'
+      end
+    end
+  end
+end
+
 class SkillManagerTest < Minitest::Test
   def setup
     @manager = SignalWire::Skills::SkillManager.new

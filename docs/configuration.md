@@ -170,6 +170,22 @@ All services share the same security configuration options:
 }
 ```
 
+## RELAY Client Environment Variables
+
+The RELAY WebSocket client reads a few environment variables that tune the
+transport endpoint and its TLS trust. They are consumed automatically at
+connect time — no code changes required.
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `SIGNALWIRE_RELAY_HOST` | Override the RELAY endpoint host the client connects to. Used to point the client at a non-production endpoint (e.g. a loopback audit fixture) without touching credential resolution. | derived from the space/host |
+| `SIGNALWIRE_RELAY_SCHEME` | URL scheme for the RELAY WebSocket connection. Set to `ws` to connect over plain (non-TLS) WebSocket — e.g. for a loopback test/audit fixture — instead of the production `wss`. Any other value is used verbatim as the scheme. | `wss` |
+| `SIGNALWIRE_RELAY_SSL_CA_FILE` | Path to an additional PEM CA-bundle file to trust when verifying the RELAY server certificate on a `wss://` connection. The named file is added to the certificate store alongside the OpenSSL default paths (which themselves honor `SSL_CERT_FILE` / `SSL_CERT_DIR`). Use it to trust a private/custom CA. Ignored for non-`wss` schemes. | _unset_ (system trust store only) |
+
+Both are read at connection time, so setting them before `RelayClient#connect`
+is sufficient. `SIGNALWIRE_RELAY_SCHEME=ws` disables TLS entirely, so use it
+only against trusted loopback endpoints.
+
 ## Migration Guide
 
 ### From Environment Variables Only
@@ -260,7 +276,7 @@ require 'signalwire'
 
 ENV['SWML_BASIC_AUTH_USER']     = 'admin'
 ENV['SWML_BASIC_AUTH_PASSWORD'] = 'secret'
-ENV['SWML_SERVER_PORT']         = '3000'
+ENV['PORT']                     = '3000'
 
 class MyAgent < SignalWire::AgentBase
   def initialize
