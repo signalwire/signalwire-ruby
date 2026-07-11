@@ -282,7 +282,7 @@ For standalone mode, the SDK provides:
 - SSL/TLS support via the `serve(ssl_enabled:, ssl_cert:, ssl_key:)` keyword arguments
 - Debug events endpoint (`/debug_events`) for inspection
 
-(The Python reference additionally exposes SSL via `SWML_SSL_*` env vars and a CORS configuration option; the Ruby port has neither -- configure SSL through `serve` keyword arguments instead.)
+(SSL can also be configured through the `SWML_SSL_ENABLED`, `SWML_SSL_CERT_PATH`, and `SWML_SSL_KEY_PATH` env vars, which `serve` reads when the matching keyword arguments are not passed. The Python reference additionally exposes a CORS configuration option the Ruby port does not.)
 
 ---
 

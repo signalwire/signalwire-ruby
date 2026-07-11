@@ -260,7 +260,7 @@ require 'signalwire'
 
 ENV['SWML_BASIC_AUTH_USER']     = 'admin'
 ENV['SWML_BASIC_AUTH_PASSWORD'] = 'secret'
-ENV['SWML_SERVER_PORT']         = '3000'
+ENV['PORT']                     = '3000'
 
 class MyAgent < SignalWire::AgentBase
   def initialize
