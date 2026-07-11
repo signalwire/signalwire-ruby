@@ -93,9 +93,24 @@ module SignalWire
       # Per-instance logger; the class-level API uses the same name.
       attr_reader :logger
 
-      # External skill directories registered via #add_skill_directory.
-      # Mirrors Python's `_external_paths` accessor surface.
-      attr_reader :external_paths
+      # Effective external skill directories: the ones registered via
+      # {#add_skill_directory} PLUS any supplied through the
+      # `SIGNALWIRE_SKILL_PATHS` environment variable (colon-separated,
+      # deduped, registered paths first).
+      #
+      # Mirrors the Python reference `SkillRegistry`, which appends
+      # `os.environ["SIGNALWIRE_SKILL_PATHS"]` (split on `os.pathsep`) to its
+      # registered `_external_paths` when resolving/discovering skills
+      # (`registry.py` `_load_skill_on_demand` + `get_all_skills_schema`). The
+      # env var is read on every call so a value set after construction still
+      # takes effect, matching Python's search-time read.
+      #
+      # @return [Array<String>]
+      def external_paths
+        paths = @inst_mutex.synchronize { @external_paths.dup }
+        self.class._env_skill_paths.each { |p| paths << p unless paths.include?(p) }
+        paths
+      end
 
       # Add a directory to search for skills.
       #
@@ -155,7 +170,7 @@ module SignalWire
       # form folds in any directories registered via {#add_skill_directory}.
       #
       # @return [Hash{String => Array<String>}]
-      def list_all_skill_sources = self.class.list_all_skill_sources(external_paths: @external_paths)
+      def list_all_skill_sources = self.class.list_all_skill_sources(external_paths: external_paths)
 
       # Register a skill class or factory (instance form).
       #
@@ -252,6 +267,20 @@ module SignalWire
 
         # Clear all registrations (primarily for testing).
         def reset! = @mutex.synchronize { @factories.clear }
+
+        # Directories named by the `SIGNALWIRE_SKILL_PATHS` environment variable
+        # (path-separator-delimited, empty entries dropped).
+        #
+        # Mirrors the Python reference, which reads
+        # `os.environ.get("SIGNALWIRE_SKILL_PATHS", "").split(os.pathsep)` and
+        # folds those directories into the skill search path (`registry.py:59`
+        # and `:387`). Read fresh on every call so a var set after startup still
+        # takes effect, matching Python's search-time read.
+        #
+        # @return [Array<String>]
+        def _env_skill_paths
+          ENV.fetch('SIGNALWIRE_SKILL_PATHS', '').split(File::PATH_SEPARATOR).reject(&:empty?)
+        end
 
         # Register all built-in skills. Called at load time. Each builtin file
         # calls SkillRegistry.register on require, so we just require them all.

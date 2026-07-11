@@ -208,28 +208,31 @@ agent.add_skill('weather', { 'api_key' => '...' })
 
 ### Method 4: Environment Variable
 
-Read a skill-paths environment variable and register each directory with
-`add_skill_directory` (the Ruby port does not auto-consume the variable, so
-wire it up at startup):
+The SDK auto-consumes the `SIGNALWIRE_SKILL_PATHS` environment variable: every
+directory it names is folded into the skill registry's external search path
+automatically — no startup wiring required. This mirrors the Python reference,
+which reads the same variable and adds those directories to skill discovery.
 
 ```bash
 # Single directory
 export SIGNALWIRE_SKILL_PATHS=/opt/my_skills
 
-# Multiple directories (colon-separated)
+# Multiple directories (path-separator-delimited, ":" on Unix)
 export SIGNALWIRE_SKILL_PATHS=/opt/my_skills:/home/user/custom_skills
 ```
 
 ```ruby
 require 'signalwire'
 
-# Register every directory listed in the env var
-ENV.fetch('SIGNALWIRE_SKILL_PATHS', '').split(':').reject(&:empty?).each do |path|
-  SignalWire.add_skill_directory(path)
-end
-
+# No wiring needed — directories in SIGNALWIRE_SKILL_PATHS are already on the
+# registry's external search path, so the skill resolves.
 agent.add_skill('weather', { 'api_key' => '...' })
 ```
+
+The variable is read at skill-search time, so it takes effect even if set after
+the process starts. Directories registered explicitly via `add_skill_directory`
+take precedence (they appear first in the search order); env-var directories are
+appended and deduplicated.
 
 ## Directory Structure
 
