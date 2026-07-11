@@ -122,4 +122,32 @@ class PaginationMockTest < Minitest::Test
     # Exhausted.
     assert_equal :__stop__, iter.next_item
   end
+
+  # ReadResource#paginate parity (Python ReadResource.paginate -> PaginatedIterator).
+  # The resource-level accessor must build a PaginatedIterator wired to the
+  # resource's own collection path, deferring all HTTP until iterated, and walk
+  # every page following links.next — so callers page a list endpoint without
+  # hand-building the token loop.
+  def test_resource_paginate_returns_lazy_iterator
+    iter = @client.fabric.addresses.paginate(page_size: 2)
+
+    # It is the real page-walking iterator, wired to this resource's path,
+    # and has fetched nothing yet (lazy, like Python's returned iterator).
+    assert_kind_of SignalWire::REST::PaginatedIterator, iter
+    assert_equal FABRIC_ADDRESSES_PATH, iter.path
+    assert_equal({ page_size: 2 }, iter.params)
+    assert_equal 'data', iter.data_key
+    assert_equal [], @mock.journal
+  end
+
+  def test_resource_paginate_walks_all_pages_following_cursor
+    stage_two_page_scenario
+
+    # Page through the list endpoint via the resource accessor — two pages,
+    # cursor followed from page 1's links.next into page 2's request.
+    collected = @client.fabric.addresses.paginate.to_a
+
+    assert_equal(%w[addr-1 addr-2 addr-3], collected.map { |x| x['id'] })
+    assert_two_paginated_gets
+  end
 end

@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ fca6d0d0834b1e52e758593be3727acc0327d4ee",
+  "generated_from": "signalwire-ruby @ b280ed2613a69a7e454cb6438a94d14974fd4a80",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -1733,7 +1733,8 @@
         ],
         "ReadResource": [
           "get",
-          "list"
+          "list",
+          "paginate"
         ],
         "SignalWireRestError": [
           "__init__",
@@ -2167,7 +2168,8 @@
         "FabricAddresses": [
           "__init__",
           "get",
-          "list"
+          "list",
+          "paginate"
         ],
         "FabricTokens": [
           "__init__",
@@ -2575,7 +2577,8 @@
         "FaxLogs": [
           "__init__",
           "get",
-          "list"
+          "list",
+          "paginate"
         ]
       },
       "functions": []
@@ -2626,7 +2629,8 @@
         "MessageLogs": [
           "__init__",
           "get",
-          "list"
+          "list",
+          "paginate"
         ]
       },
       "functions": []
@@ -2941,7 +2945,8 @@
           "list",
           "list_events",
           "list_members",
-          "list_recordings"
+          "list_recordings",
+          "paginate"
         ],
         "VideoRoomTokens": [
           "__init__",
@@ -3015,7 +3020,8 @@
           "__init__",
           "get",
           "list",
-          "list_events"
+          "list_events",
+          "paginate"
         ]
       },
       "functions": []
