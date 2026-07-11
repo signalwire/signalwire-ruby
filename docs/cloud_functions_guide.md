@@ -1,5 +1,10 @@
 # SignalWire AI Agents - Cloud Functions Deployment Guide
 
+<!-- snippet-setup: every ruby example on this page assumes the SDK is required -->
+```ruby
+require 'signalwire'
+```
+
 This guide covers deploying SignalWire AI Agents for Ruby to serverless
 platforms. The Ruby port ships a first-class adapter for AWS Lambda via
 `SignalWire::Serverless::LambdaHandler`; deployment to Google Cloud Functions
@@ -33,7 +38,7 @@ require "signalwire"
 
 AGENT = SignalWire::AgentBase.new(name: "my-agent", route: "/")
 
-AGENT.add_language("name" => "English", "code" => "en-US", "voice" => "elevenlabs.rachel")
+AGENT.add_language("English", "en-US", "elevenlabs.rachel")
 
 AGENT.prompt_add_section(
   "Role",
@@ -135,6 +140,7 @@ The Ruby port does not ship a CLI analogue to Python's `swaig-test`. Tests
 target the agent's Rack app directly with `Rack::Test` or with raw HTTP
 requests:
 
+<!-- snippet: no-run illustrative fragment: references the AGENT/HANDLER globals defined in the entrypoint block earlier on the page -->
 ```ruby
 require "rack/test"
 include Rack::Test::Methods
@@ -151,6 +157,7 @@ puts last_response.body
 Exercise the Lambda adapter by building a Lambda event hash and calling
 `HANDLER.call(event, nil)` directly:
 
+<!-- snippet: no-run illustrative fragment: references the AGENT/HANDLER globals defined in the entrypoint block earlier on the page -->
 ```ruby
 event = {
   "version"        => "2.0",

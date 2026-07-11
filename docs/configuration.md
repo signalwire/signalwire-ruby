@@ -9,6 +9,7 @@ All SignalWire services (SWML-based agents, Search, MCP Gateway) now support opt
 ## Quick Start
 
 ### Zero Configuration (Default)
+<!-- snippet: no-run starts a blocking server (agent.run) and uses the placeholder MyAgent class -->
 ```ruby
 # Works exactly as before - no config needed
 agent = MyAgent.new
@@ -16,6 +17,7 @@ agent.run
 ```
 
 ### With Environment-Driven Configuration
+<!-- snippet: no-run illustrative fragment: uses the reader's own placeholder MyAgent subclass -->
 ```ruby
 # The Ruby port is configured from environment variables (no ConfigLoader).
 # Set the relevant SWML_* vars, then instantiate as usual.
@@ -252,6 +254,7 @@ driven entirely from environment variables (see
 [PORT_OMISSIONS.md](../PORT_OMISSIONS.md)). Set the relevant `SWML_*` and
 agent-specific environment variables before instantiating your agent:
 
+<!-- snippet: no-run starts a blocking server via MyAgent.new.serve -->
 ```ruby
 require 'signalwire'
 

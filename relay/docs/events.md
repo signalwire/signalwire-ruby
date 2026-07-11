@@ -60,6 +60,7 @@ All event type constants are importable from `signalwire.relay`:
 
 Raw events are always `RelayEvent` with a `params` dict. For convenience, typed event classes provide named properties:
 
+<!-- snippet: no-run illustrative fragment: parses an assumed raw_payload with the RELAY event classes -->
 ```ruby
 require 'signalwire'
 

@@ -111,6 +111,7 @@ end
 
 Register individual skill classes programmatically:
 
+<!-- snippet: no-run references user-supplied external skill files/directories not present in the SDK repo -->
 ```ruby
 require 'signalwire'
 require_relative 'my_weather_skill/skill'
@@ -136,6 +137,7 @@ end
 
 Register directories containing multiple skills:
 
+<!-- snippet: no-run references user-supplied external skill files/directories not present in the SDK repo -->
 ```ruby
 require 'signalwire'
 
@@ -196,6 +198,7 @@ After installing the gem, require it and the skills are available:
 gem install my-signalwire-skills
 ```
 
+<!-- snippet: no-run references user-supplied external skill files/directories not present in the SDK repo -->
 ```ruby
 # Requiring the gem registers its skills
 require 'my_signalwire_skills'
@@ -426,6 +429,7 @@ end
 
 Test your skills before distribution:
 
+<!-- snippet: no-run references user-supplied external skill files/directories not present in the SDK repo -->
 ```ruby
 # test_weather_skill.rb
 require 'minitest/autorun'
@@ -470,6 +474,7 @@ If your skill isn't being discovered:
 
 For skills that pull in helper files, require them relative to the skill file:
 
+<!-- snippet: no-run references user-supplied external skill files/directories not present in the SDK repo -->
 ```ruby
 # Require helpers relative to skill.rb
 require_relative 'utils'
@@ -538,6 +543,7 @@ end
 The top-level `lib/my_signalwire_skills.rb` requires each skill file, and
 each skill file calls `SkillRegistry.register` on load:
 
+<!-- snippet: no-run references user-supplied external skill files/directories not present in the SDK repo -->
 ```ruby
 # lib/my_signalwire_skills.rb
 require 'my_signalwire_skills/weather/skill'
@@ -551,6 +557,7 @@ gem install specific_install
 gem specific_install https://github.com/yourname/my-signalwire-skills.git
 ```
 
+<!-- snippet: no-run references user-supplied external skill files/directories not present in the SDK repo -->
 ```ruby
 require 'signalwire'
 require 'my_signalwire_skills'

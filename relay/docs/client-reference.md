@@ -1,5 +1,11 @@
 # RelayClient Reference
 
+<!-- snippet-setup: every ruby example on this page assumes the RELAY client is required -->
+```ruby
+require 'signalwire'
+require 'signalwire/relay/client'
+```
+
 ## Constructor
 
 ```ruby
@@ -40,6 +46,7 @@ client.stop
 
 Wrap the teardown in an `ensure` block so the connection is always closed:
 
+<!-- snippet: no-run calls client.connect, which opens a live RELAY WebSocket unreachable from the standalone snippet harness -->
 ```ruby
 client = SignalWire::Relay::Client.new(contexts: ['default'])
 client.connect

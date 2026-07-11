@@ -140,6 +140,7 @@ Function Call → Template Expansion → HTTP Request → Response Processing �
 | **Development Speed** | Slower (code + deploy) | Faster (configuration only) |
 
 **Traditional Webhook Example:**
+<!-- snippet: no-run illustrative fragment: define_tool is an AgentBase instance method shown outside an agent class -->
 ```ruby
 define_tool(
   name: 'search_knowledge',

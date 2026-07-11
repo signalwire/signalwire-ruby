@@ -241,6 +241,7 @@ module SignalWire
         # available.
         # @api private
         def _list_skills_full
+          register_builtins! # parity: Python auto-discovers builtins (idempotent)
           @mutex.synchronize { @factories.keys.sort.map { |skill_name| _skill_summary(skill_name) } }
         end
 
@@ -317,6 +318,7 @@ module SignalWire
         #
         # @return [Hash{String => Hash}]
         def get_all_skills_schema
+          register_builtins! # parity: Python auto-discovers builtins here (idempotent)
           @mutex.synchronize do
             @factories.keys.sort.to_h { |name| [name, _skill_schema_entry(name)] }
           end

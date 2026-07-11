@@ -1,11 +1,19 @@
 # SignalWire Agents Skills System
 
+<!-- snippet-setup: every ruby example on this page assumes the SDK is required; the web_search skill's setup requires Google Custom Search credentials to be present -->
+```ruby
+require 'signalwire'
+ENV['GOOGLE_SEARCH_API_KEY']   ||= 'demo-key'
+ENV['GOOGLE_SEARCH_ENGINE_ID'] ||= 'demo-engine-id'
+```
+
 The SignalWire Agents SDK now includes a modular skills system that lets you add capabilities to your agents with simple one-liner calls and configurable parameters.
 
 ## What's New
 
 Instead of manually implementing every agent capability, you can now:
 
+<!-- snippet: no-run overview fragment: illustrates the default AND custom-parameter forms of the same skill together; adding web_search twice collides on its instance key at runtime -->
 ```ruby
 require 'signalwire'
 
@@ -213,6 +221,7 @@ agent.add_skill('swml_transfer', {
 ## Usage Examples
 
 ### Basic Usage
+<!-- snippet: no-run ends with agent.run, which starts a blocking WEBrick server -->
 ```ruby
 require 'signalwire'
 
@@ -227,6 +236,7 @@ agent.run
 ```
 
 ### Skills with Custom Parameters
+<!-- snippet: no-run ends with agent.run, which starts a blocking WEBrick server -->
 ```ruby
 require 'signalwire'
 
@@ -435,7 +445,7 @@ puts 'Skills system with parameters working!'
 **Before (manual implementation):**
 ```ruby
 # Had to manually implement every capability
-class WebSearchAgent < Signalwire::Agent::AgentBase
+class WebSearchAgent < SignalWire::AgentBase
   def initialize
     super(name: "WebSearchAgent")
     # ... application-specific search setup ...
@@ -449,7 +459,7 @@ end
 **After (skills system with parameters):**
 ```ruby
 # Simple one-liner with custom configuration
-agent = Signalwire::Agent::AgentBase.new(name: "WebSearchAgent")
+agent = SignalWire::AgentBase.new(name: "WebSearchAgent")
 agent.add_skill("web_search", {
   "num_results" => 3,    # Get more results
   "delay"       => 0.5   # Be respectful to servers

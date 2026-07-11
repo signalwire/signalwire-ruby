@@ -4,6 +4,7 @@ Real-time call control and messaging over WebSocket using Ruby threads. The RELA
 
 ## Quick Start
 
+<!-- snippet: no-run connects to a live RELAY WebSocket via client.run; unreachable from the standalone snippet harness -->
 ```ruby
 require 'signalwire'
 
@@ -64,8 +65,8 @@ call.hangup
 client.on_call do |call|
   call.answer
   action = call.play_and_collect(
-    media: [{ 'type' => 'tts', 'params' => { 'text' => 'Press 1 for sales, 2 for support.' } }],
-    collect: { 'digits' => { 'max' => 1, 'digit_timeout' => 5.0 }, 'initial_timeout' => 10.0 }
+    [{ 'type' => 'tts', 'params' => { 'text' => 'Press 1 for sales, 2 for support.' } }],
+    { 'digits' => { 'max' => 1, 'digit_timeout' => 5.0 }, 'initial_timeout' => 10.0 }
   )
   result = action.wait
   digits = result.params.dig('result', 'params', 'digits')
@@ -78,9 +79,9 @@ end
 
 ```ruby
 msg = client.send_message(
-  to:   '+15551234567',
-  from: '+15559876543',
-  body: 'Hello from SignalWire!'
+  to_number:   '+15551234567',
+  from_number: '+15559876543',
+  body:        'Hello from SignalWire!'
 )
 puts "Message queued: #{msg.message_id}"
 ```

@@ -38,6 +38,7 @@ Alternatively, you can authenticate with a JWT token:
 
 ## Minimal Example
 
+<!-- snippet: no-run connects to a live RELAY WebSocket via client.run; unreachable from the standalone snippet harness -->
 ```ruby
 require 'signalwire'
 
@@ -66,6 +67,7 @@ export SIGNALWIRE_API_TOKEN=your-api-token
 export SIGNALWIRE_SPACE=example.signalwire.com
 ```
 
+<!-- snippet: no-run connects to a live RELAY WebSocket via client.run; unreachable from the standalone snippet harness -->
 ```ruby
 require 'signalwire'
 
@@ -84,6 +86,7 @@ client.run
 Contexts are topics your client subscribes to for receiving inbound calls. When a
 call arrives on a context you're subscribed to, your `on_call` handler is invoked.
 
+<!-- snippet: no-run illustrative fragment: calls client.receive/unreceive on a client that never connected to a live RELAY server -->
 ```ruby
 # Subscribe at connect time
 client = SignalWire::Relay::Client.new(contexts: %w[sales support])

@@ -3,6 +3,7 @@
 ## Gem Rename
 
 Update your `Gemfile`:
+<!-- snippet: no-run Gemfile directives, not a runnable program (and shows the deprecated gem name) -->
 ```ruby
 # Before
 gem 'signalwire_agents'
@@ -18,6 +19,7 @@ bundle install
 
 ## Require and Module Changes
 
+<!-- snippet: no-run before/after migration example; the "before" half intentionally references the removed signalwire_agents gem -->
 ```ruby
 # Before
 require 'signalwire_agents'
@@ -35,7 +37,7 @@ require 'signalwire'
 class MyAgent < SignalWire::AgentBase
   def initialize
     super
-    client = SignalWire::Rest::RestClient.new(project_id, token, space_url)
+    client = SignalWire::REST::RestClient.new(project_id, token, space_url)
   end
 end
 ```
@@ -45,7 +47,7 @@ end
 | Before | After |
 |--------|-------|
 | `SignalWireAgents::AgentBase` | `SignalWire::AgentBase` |
-| `SignalWireAgents::Rest::SignalWireClient` | `SignalWire::Rest::RestClient` |
+| `SignalWireAgents::Rest::SignalWireClient` | `SignalWire::REST::RestClient` |
 | `SignalWireAgents::` (all modules) | `SignalWire::` |
 
 ## Quick Migration

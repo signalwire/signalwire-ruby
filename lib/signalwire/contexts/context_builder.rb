@@ -10,6 +10,27 @@ module SignalWire
     MAX_CONTEXTS = 50
     MAX_STEPS_PER_CONTEXT = 100
 
+    # Valid values for a step's or context's +history+ visibility mode,
+    # controlling what the model still sees when a step is entered:
+    #
+    #   - "keep"     nothing is cleared — every prior step's instructions
+    #                *and* dialogue stay in the model's context.
+    #   - "default"  prior step instructions are hidden; the dialogue is kept.
+    #   - "hide"     prior instructions hidden **and** the prior dialogue
+    #                pulled out of the model's context. The only way back in
+    #                is an explicit ${step_history.*} reference in the new
+    #                prompt.
+    HISTORY_MODES = %w[keep default hide].freeze
+
+    # Validate a history mode against HISTORY_MODES, raising ArgumentError
+    # (Ruby's idiomatic validation error, like the other validated setters)
+    # when it is not one of the three. Returns the mode on success.
+    def self._validate_history(mode)
+      return mode if HISTORY_MODES.include?(mode)
+
+      raise ArgumentError, "history must be one of #{HISTORY_MODES.inspect}, got #{mode.inspect}"
+    end
+
     # Reserved tool names auto-injected by the runtime when contexts/steps
     # are present. User-defined SWAIG tools must not collide with these
     # names.
@@ -117,8 +138,10 @@ module SignalWire
         @functions = nil # nil | "none" | Array<String>
         @sections = []
 
-        # Behavior flags
+        # Behavior flags, plus history visibility mode ("keep" | "default" |
+        # "hide"; nil = unset).
         @end = @skip_user_turn = @skip_to_next_step = false
+        @history = nil
 
         # Reset object for context-switching from steps
         @reset_system_prompt = @reset_user_prompt = nil
@@ -227,6 +250,25 @@ module SignalWire
         self
       end
 
+      # Control what the model still sees when this step is entered.
+      #
+      # +history+ is one of:
+      #   - "keep":    clear nothing. Every prior step's instructions and
+      #                dialogue stay visible to the model.
+      #   - "default": hide the prior step *instructions*, keep the
+      #                user/assistant dialogue. This is the effective
+      #                behavior when unset.
+      #   - "hide":    hide the prior instructions AND pull the prior
+      #                dialogue out of the model's context.
+      #
+      # A step's own +set_history+ overrides the enclosing context's default.
+      # Returns +self+ for chaining. Raises ArgumentError if +history+ is not
+      # one of the three modes.
+      def set_history(history)
+        @history = Contexts._validate_history(history)
+        self
+      end
+
       # Enable info gathering for this step. Returns +self+.
       # After calling this, use +add_gather_question+ to define questions.
       def set_gather_info(output_key: nil, completion_action: nil, prompt: nil)
@@ -318,6 +360,7 @@ module SignalWire
         step_h['functions']      = @functions     unless @functions.nil?
         step_h['valid_steps']    = @valid_steps    if @valid_steps
         step_h['valid_contexts'] = @valid_contexts if @valid_contexts
+        step_h['history']        = @history        if @history
         _add_step_flags(step_h)
       end
       private :_add_step_fields
@@ -350,8 +393,8 @@ module SignalWire
       # delegates to its chainable `set_*` original but returns the RHS (Ruby
       # `=` semantics). Generated so the list stays a single source of truth.
       %i[text step_criteria functions valid_steps valid_contexts skip_user_turn
-         skip_to_next_step reset_system_prompt reset_user_prompt reset_consolidate
-         reset_full_reset].each do |attr|
+         skip_to_next_step history reset_system_prompt reset_user_prompt
+         reset_consolidate reset_full_reset].each do |attr|
         define_method("#{attr}=") { |value| send("set_#{attr}", value) }
       end
 
@@ -370,6 +413,9 @@ module SignalWire
     class Context
       attr_reader :name
 
+      # rubocop:disable Metrics/AbcSize -- a flat field-initialization list for
+      # one Python class (Context): every line is a distinct default assignment,
+      # not branching logic. Splitting it would only hide the data shape.
       def initialize(name)
         @name = name
         @steps = {} # name => Step
@@ -387,9 +433,12 @@ module SignalWire
         @prompt_text = nil
         @prompt_sections = []
 
-        # Fillers
-        @enter_fillers = @exit_fillers = nil
+        # Fillers, plus the history visibility mode ("keep" | "default" |
+        # "hide"; nil = unset). Context history sets the default for every
+        # step in the context; a step's own set_history overrides it.
+        @enter_fillers = @exit_fillers = @history = nil
       end
+      # rubocop:enable Metrics/AbcSize
 
       # Add a new step. Returns the new Step object (not self).
       #
@@ -511,6 +560,18 @@ module SignalWire
         self
       end
 
+      # Set the default history visibility mode for every step in this
+      # context. A step's own +set_history+ overrides this default. See
+      # Step#set_history for the meaning of each mode.
+      #
+      # +history+ is one of "keep", "default", or "hide". Returns +self+
+      # for chaining. Raises ArgumentError if +history+ is not one of the
+      # three modes.
+      def set_history(history)
+        @history = Contexts._validate_history(history)
+        self
+      end
+
       # Mark this context as isolated — entering it wipes conversation
       # history.
       #
@@ -607,6 +668,7 @@ module SignalWire
         _add_prompt(ctx)
         ctx['enter_fillers'] = @enter_fillers if @enter_fillers
         ctx['exit_fillers']  = @exit_fillers  if @exit_fillers
+        ctx['history']       = @history       if @history
         ctx
       end
 
@@ -621,7 +683,8 @@ module SignalWire
       # original but returns the RHS (Ruby `=` semantics). Generated so the
       # attribute list stays a single source of truth.
       %i[initial_step valid_contexts valid_steps post_prompt system_prompt prompt
-         consolidate full_reset user_prompt isolated enter_fillers exit_fillers].each do |attr|
+         consolidate full_reset user_prompt isolated enter_fillers exit_fillers
+         history].each do |attr|
         define_method("#{attr}=") { |value| send("set_#{attr}", value) }
       end
 

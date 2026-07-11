@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 771d626f486b8db65a7454d4411b5dcecf39f37e",
+  "generated_from": "signalwire-ruby @ fca6d0d0834b1e52e758593be3727acc0327d4ee",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -202,6 +202,7 @@
           "set_enter_fillers",
           "set_exit_fillers",
           "set_full_reset",
+          "set_history",
           "set_initial_step",
           "set_isolated",
           "set_post_prompt",
@@ -250,6 +251,7 @@
           "set_end",
           "set_functions",
           "set_gather_info",
+          "set_history",
           "set_reset_consolidate",
           "set_reset_full_reset",
           "set_reset_system_prompt",

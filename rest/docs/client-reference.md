@@ -2,6 +2,7 @@
 
 ## Constructor
 
+<!-- snippet: no-run constructor signature illustration: passing nil for project/token/host raises ArgumentError (missing credentials) at runtime -->
 ```ruby
 SignalWire::REST::RestClient.new(
   project: nil,   # SIGNALWIRE_PROJECT_ID

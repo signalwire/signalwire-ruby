@@ -8,6 +8,7 @@ loopback REST endpoint; it does NOT provide third-party API keys, real dataspher
 document IDs, or the audit-driver fixture env (`REST_OPERATION` / `SKILL_NAME` /
 `SIGNALWIRE_RELAY_HOST` + a loopback fixture port), which these examples require.
 
+- examples/quickstart_rest.rb — issues a real fabric.ai_agents.create() REST call on load; needs real SignalWire project creds (401 against mock), mirrors python quickstart_rest allow (approver: mike, 2026-07-08)
 - examples/joke_agent.rb — needs real API_NINJAS_KEY creds, not mockable (approver: user, 2026-07-07)
 - examples/joke_skill_demo.rb — needs real API_NINJAS_KEY creds, not mockable (approver: user, 2026-07-07)
 - examples/skills_demo.rb — add_skill('joke') needs real API_NINJAS_KEY creds, not mockable (approver: user, 2026-07-07)

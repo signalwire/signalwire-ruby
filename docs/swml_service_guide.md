@@ -1,5 +1,10 @@
 # SignalWire SWML Service Guide
 
+<!-- snippet-setup: every ruby example on this page assumes the SDK is required -->
+```ruby
+require 'signalwire'
+```
+
 ## Table of Contents
 - [Introduction](#introduction)
 - [Installation](#installation)
@@ -37,10 +42,11 @@ gem install signalwire-sdk
 
 Here's a simple example of creating an SWML service:
 
+<!-- snippet: no-run starts a blocking WEBrick server via service.serve -->
 ```ruby
-require "signalwire/swml"
+require "signalwire"
 
-class SimpleVoiceService < Signalwire::SWML::Service
+class SimpleVoiceService < SignalWire::SWML::Service
   def initialize(host: "0.0.0.0", port: 3000)
     super(name: "voice-service", route: "/voice", host: host, port: port)
 
@@ -69,17 +75,18 @@ service.serve
 ## Centralized Logging System
 
 The SignalWire Ruby SDK ships its own lightweight logger
-(`Signalwire::Logging::Logger`) that every `SWMLService` and agent uses
+(`SignalWire::Logging::Logger`) that every `SWMLService` and agent uses
 automatically. Each logger is tagged with the service name so messages are easy
 to trace.
 
 ### Using the Logger
 
-Inside a `Signalwire::SWML::Service` or `Signalwire::Agent::AgentBase`
-subclass, grab a logger via the `Signalwire::Logging.logger` factory:
+Inside a `SignalWire::SWML::Service` or `SignalWire::AgentBase`
+subclass, grab a logger via the `SignalWire::Logging.logger` factory:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `document` object established by the surrounding SWMLService subclass -->
 ```ruby
-log = Signalwire::Logging.logger("SWML::Service[my-service]")
+log = SignalWire::Logging.logger("SWML::Service[my-service]")
 
 # Basic logging
 log.info("service_started")
@@ -118,7 +125,7 @@ export SIGNALWIRE_LOG_MODE=off     # suppress everything
 At runtime:
 
 ```ruby
-Signalwire::Logging.global_level = :warn
+SignalWire::Logging.global_level = :warn
 ```
 
 ## SWML Document Creation
@@ -146,7 +153,7 @@ SWML documents have the following basic structure:
 
 ### Document Methods
 
-On `Signalwire::SWML::Document`:
+On `SignalWire::SWML::Document`:
 
 - `add_section(name)`: Add a new named section
 - `add_verb(verb_name, config)`: Add a verb to the `main` section
@@ -154,7 +161,7 @@ On `Signalwire::SWML::Document`:
 - `to_h`: Get the current document as a hash
 - `to_json`: Get the current document as a JSON string
 
-On `Signalwire::SWML::Service`:
+On `SignalWire::SWML::Service`:
 
 - `document`: The underlying `Document` instance — use `service.document.add_verb(...)`
 - `render`: Render the document as JSON (compact)
@@ -168,6 +175,7 @@ The `SWMLService` class provides validation for SWML verbs using the SignalWire 
 
 When adding a verb, the service validates it against the schema to ensure it has the correct structure and parameters.
 
+<!-- snippet: no-run illustrative fragment: references the assumed `document` object established by the surrounding SWMLService subclass -->
 ```ruby
 # Validated against the bundled SWML schema
 document.add_verb("play", {
@@ -175,15 +183,15 @@ document.add_verb("play", {
   "volume" => 5
 })
 
-# This raises Signalwire::SWML::Schema::ValidationError at document render time
+# This raises SignalWire::Utils::SchemaValidationError at document render time
 document.add_verb("play", { "invalid_param" => "value" })
 ```
 
 ### Custom Verb Handlers
 
 In the Ruby port, verb validation is handled uniformly by
-`Signalwire::SWML::Schema`. Per-verb custom handlers are not exposed — if you
-need custom behavior for a specific verb, subclass `Signalwire::SWML::Service`
+`SignalWire::SWML::Schema`. Per-verb custom handlers are not exposed — if you
+need custom behavior for a specific verb, subclass `SignalWire::SWML::Service`
 and override `execute_verb` (or call `add_verb`/`add_verb_to_section` directly
 with a pre-built hash that bypasses the schema check).
 
@@ -207,7 +215,7 @@ Where `route` is the route path specified when creating the service.
 Basic authentication is automatically set up for all endpoints. Credentials are generated if not provided, or can be specified:
 
 ```ruby
-service = Signalwire::SWML::Service.new(
+service = SignalWire::SWML::Service.new(
   name:       "my-service",
   basic_auth: ["username", "password"]
 )
@@ -245,6 +253,7 @@ The `SWMLService` class allows you to register custom routing callbacks that can
 
 You can use the `register_routing_callback` method to register a function that will be called to process requests to a specific path:
 
+<!-- snippet: no-run illustrative fragment: references the assumed `service` object established earlier on the page -->
 ```ruby
 # Example: Route based on a field in the request body. If the block returns a
 # string, the request is redirected to that URL with HTTP 307. Returning nil
@@ -299,9 +308,9 @@ end
 Here's an example of a service that uses routing callbacks to handle different types of requests:
 
 ```ruby
-require "signalwire/swml"
+require "signalwire"
 
-class MultiSectionService < Signalwire::SWML::Service
+class MultiSectionService < SignalWire::SWML::Service
   def initialize
     super(name: "multi-section", route: "/main")
 
@@ -361,9 +370,9 @@ application:
 
 ```ruby
 require "rack/builder"
-require "signalwire/swml"
+require "signalwire"
 
-service = Signalwire::SWML::Service.new(name: "my-service")
+service = SignalWire::SWML::Service.new(name: "my-service")
 
 app = Rack::Builder.new do
   map "/voice" do
@@ -377,7 +386,7 @@ end.to_app
 You can specify a custom path to the schema file:
 
 ```ruby
-service = Signalwire::SWML::Service.new(
+service = SignalWire::SWML::Service.new(
   name: "my-service",
   schema_path: "/path/to/schema.json"
 )
@@ -422,9 +431,9 @@ service = Signalwire::SWML::Service.new(
 ### Basic Voicemail Service
 
 ```ruby
-require "signalwire/swml"
+require "signalwire"
 
-class VoicemailService < Signalwire::SWML::Service
+class VoicemailService < SignalWire::SWML::Service
   def initialize(host: "0.0.0.0", port: 3000)
     super(name: "voicemail", route: "/voicemail", host: host, port: port)
 
@@ -465,7 +474,7 @@ end
 ### Dynamic Call Routing Service
 
 ```ruby
-class CallRouterService < Signalwire::SWML::Service
+class CallRouterService < SignalWire::SWML::Service
   def on_swml_request(request_data = nil)
     # If there's no request data, use the default document.
     return nil unless request_data

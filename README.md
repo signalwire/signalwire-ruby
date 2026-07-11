@@ -68,9 +68,9 @@ agent.run
 Test locally without running a server:
 
 ```bash
-swaig-test my_agent.rb --list-tools
-swaig-test my_agent.rb --dump-swml
-swaig-test my_agent.rb --exec get_time
+swaig-test my_agent.rb --simulate-serverless lambda --list-tools
+swaig-test my_agent.rb --simulate-serverless lambda --dump-swml
+swaig-test my_agent.rb --simulate-serverless lambda --exec get_time
 ```
 
 ### Agent Features

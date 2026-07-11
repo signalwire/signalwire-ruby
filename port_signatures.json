@@ -2420,6 +2420,20 @@
               ],
               "returns": "any"
             },
+            "set_history": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "history",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
             "set_initial_step": {
               "params": [
                 {
@@ -3029,6 +3043,20 @@
                   "kind": "keyword",
                   "required": false,
                   "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "set_history": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "history",
+                  "type": "string",
+                  "required": true
                 }
               ],
               "returns": "any"

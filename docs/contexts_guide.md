@@ -1,5 +1,10 @@
 # Contexts and Steps Guide
 
+<!-- snippet-setup: every ruby example on this page assumes the SDK is required -->
+```ruby
+require 'signalwire'
+```
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -73,6 +78,7 @@ When entering a context, these parameters control conversation behavior:
 
 Contexts can have their own prompts (separate from entry parameters):
 
+<!-- snippet: no-run illustrative fragment: leading-dot method-chain continuation or assumed context/contexts object established earlier on the page -->
 ```ruby
 # Simple string prompt
 context.prompt = 'Context-specific guidance'
@@ -106,6 +112,7 @@ The system provides fine-grained control over conversation flow:
 
 ### Basic Single-Context Workflow
 
+<!-- snippet: no-run ends by starting a blocking server (agent.run/serve) -->
 ```ruby
 require 'signalwire'
 
@@ -145,6 +152,7 @@ agent.run
 
 ### Multi-Context Workflow
 
+<!-- snippet: no-run ends by starting a blocking server (agent.run/serve) -->
 ```ruby
 agent = SignalWire::AgentBase.new(name: 'Customer Service', route: '/service')
 
@@ -419,6 +427,7 @@ step.valid_contexts = []
 
 Context-level navigation settings are inherited by steps:
 
+<!-- snippet: no-run illustrative fragment: leading-dot method-chain continuation or assumed context/contexts object established earlier on the page -->
 ```ruby
 # Set at context level
 context.valid_contexts = %w[main help]
@@ -636,6 +645,7 @@ Without a gather `prompt`, the AI jumps straight into asking the first question 
 
 Each question has a `type` that controls the JSON schema of the `answer` parameter in `gather_submit`:
 
+<!-- snippet: no-run illustrative fragment: leading-dot method-chain continuation or assumed context/contexts object established earlier on the page -->
 ```ruby
 # String (default) - free text
 .add_gather_question(key: 'name', question: 'What is your name?', type: 'string')
@@ -694,6 +704,7 @@ The `resolve_airport` function must already be registered on the agent. The `fun
 
 Answers are stored in `global_data`, which is available in prompt variable expansion via `${key}`:
 
+<!-- snippet: no-run illustrative fragment: leading-dot method-chain continuation or assumed context/contexts object established earlier on the page -->
 ```ruby
 # Store under a namespace
 .set_gather_info(output_key: 'profile')
@@ -806,6 +817,7 @@ Flow:
 
 ### Example 1: Technical Support Troubleshooting
 
+<!-- snippet: no-run ends by starting a blocking server (agent.run/serve) -->
 ```ruby
 agent = SignalWire::AgentBase.new(name: 'Tech Support', route: '/tech-support')
 
@@ -885,6 +897,7 @@ agent.run
 
 ### Example 2: Multi-Step Application Process
 
+<!-- snippet: no-run ends by starting a blocking server (agent.run/serve) -->
 ```ruby
 agent = SignalWire::AgentBase.new(name: 'Loan Application', route: '/loan-app')
 
@@ -956,6 +969,7 @@ agent.run
 
 ### Example 3: E-commerce Customer Service
 
+<!-- snippet: no-run ends by starting a blocking server (agent.run/serve) -->
 ```ruby
 agent = SignalWire::AgentBase.new(name: 'E-commerce Support', route: '/ecommerce')
 
@@ -1027,6 +1041,7 @@ agent.run
 
 Use descriptive step names that indicate purpose:
 
+<!-- snippet: no-run illustrative fragment: leading-dot method-chain continuation or assumed context/contexts object established earlier on the page -->
 ```ruby
 # Good
 .add_step('collect_shipping_address')
@@ -1043,6 +1058,7 @@ Use descriptive step names that indicate purpose:
 
 Define clear, testable completion criteria:
 
+<!-- snippet: no-run illustrative fragment: leading-dot method-chain continuation or assumed context/contexts object established earlier on the page -->
 ```ruby
 # Good - specific and measurable
 .set_step_criteria('User has provided valid email address and confirmed subscription preferences')
@@ -1057,6 +1073,7 @@ Define clear, testable completion criteria:
 
 Design intuitive navigation that matches user expectations:
 
+<!-- snippet: no-run illustrative fragment: leading-dot method-chain continuation or assumed context/contexts object established earlier on the page -->
 ```ruby
 # Allow users to go back and review
 .set_valid_steps(%w[review_info edit_details confirm_submission])
@@ -1072,6 +1089,7 @@ Design intuitive navigation that matches user expectations:
 
 Restrict functions based on security and context needs:
 
+<!-- snippet: no-run illustrative fragment: leading-dot method-chain continuation or assumed context/contexts object established earlier on the page -->
 ```ruby
 # Public areas - limited functions
 public_step.functions = %w[datetime web_search]
@@ -1102,6 +1120,7 @@ contexts = %w[public authenticated admin]
 
 Provide recovery paths for common issues:
 
+<!-- snippet: no-run illustrative fragment: leading-dot method-chain continuation or assumed context/contexts object established earlier on the page -->
 ```ruby
 # Allow users to retry failed steps
 .set_valid_steps(%w[retry_payment choose_different_method contact_support])
@@ -1138,6 +1157,7 @@ step.add_section('Role', 'You are a technical specialist')
 
 **Error**: When using a single context with a name other than "default"
 
+<!-- snippet: no-run illustrative fragment: leading-dot method-chain continuation or assumed context/contexts object established earlier on the page -->
 ```ruby
 # Wrong
 context = contexts.add_context('main') # Error!
@@ -1208,6 +1228,7 @@ end
 
 Check that all referenced steps/contexts exist:
 
+<!-- snippet: no-run illustrative fragment: leading-dot method-chain continuation or assumed context/contexts object established earlier on the page -->
 ```ruby
 # Ensure referenced steps exist
 .set_valid_steps(%w[review edit]) # Both "review" and "edit" steps must exist

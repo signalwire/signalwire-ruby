@@ -28,8 +28,10 @@ You need three things to connect:
 
 ## Minimal Example
 
+<!-- snippet: no-run makes a live REST call (client.fabric.ai_agents.list); the SDK derives its base URL from the space host and has no env override to reach the plain-HTTP loopback mock -->
 ```ruby
 require 'signalwire'
+require 'signalwire/rest/rest_client'
 
 client = SignalWire::REST::RestClient.new(
   project: 'your-project-id',
@@ -50,8 +52,10 @@ export SIGNALWIRE_API_TOKEN=your-api-token
 export SIGNALWIRE_SPACE=example.signalwire.com
 ```
 
+<!-- snippet: no-run makes a live REST call (client.fabric.ai_agents.list); the SDK derives its base URL from the space host and has no env override to reach the plain-HTTP loopback mock -->
 ```ruby
 require 'signalwire'
+require 'signalwire/rest/rest_client'
 
 client = SignalWire::REST::RestClient.new
 agents = client.fabric.ai_agents.list
@@ -91,8 +95,10 @@ Calls return plain Ruby Hashes (parsed JSON) -- there are no wrapper objects.
 A non-2xx response raises `SignalWire::REST::SignalWireRestError`, which exposes
 `status_code` and `body`:
 
+<!-- snippet: no-run makes a live REST call (client.fabric.ai_agents.get); the SDK derives its base URL from the space host and has no env override to reach the plain-HTTP loopback mock -->
 ```ruby
 require 'signalwire'
+require 'signalwire/rest/rest_client'
 
 client = SignalWire::REST::RestClient.new
 

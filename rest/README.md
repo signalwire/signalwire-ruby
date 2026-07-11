@@ -4,8 +4,10 @@ Synchronous REST client for managing SignalWire resources, controlling live call
 
 ## Quick Start
 
+<!-- snippet: no-run makes live REST calls (client.fabric.ai_agents.create, etc.); the SDK derives its base URL from the space host and has no env override to reach the plain-HTTP loopback mock -->
 ```ruby
 require 'signalwire'
+require 'signalwire/rest/rest_client'
 
 client = SignalWire::REST::RestClient.new(
   project: 'your-project-id',

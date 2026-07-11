@@ -106,6 +106,8 @@ Skills are self-contained modules in `lib/signalwire/skills/builtin/`. Each skil
 #### DataMap Tools
 Server-side tools that execute on SignalWire servers:
 ```ruby
+require 'signalwire'
+
 dm = SignalWire::DataMap.new('get_weather')
      .purpose('Get weather')
      .parameter('city', 'string', 'City name', required: true)

@@ -1,5 +1,14 @@
 # SignalWire AI Agents SDK: Why the SDK, Not Raw SWML
 
+<!-- snippet-setup: every ruby example on this page assumes the SDK (and, for the prefab examples, the prefab classes) is required; supply demo Google creds so the web_search skill's presence check passes -->
+```ruby
+require 'signalwire'
+require 'signalwire/prefabs/info_gatherer'
+require 'signalwire/prefabs/receptionist'
+ENV['GOOGLE_SEARCH_API_KEY']   ||= 'demo-key'
+ENV['GOOGLE_SEARCH_ENGINE_ID'] ||= 'demo-engine-id'
+```
+
 ## The Problem with Raw SWML
 
 SWML (SignalWire Markup Language) is a JSON document format that defines how an agent behaves during a call -- 30+ verbs, an AI verb with dozens of parameters, SWAIG (SignalWire AI Gateway) function definitions with JSON Schema, post-prompt URLs, webhook authentication, language arrays, pronunciation rules, hints, global data, contexts, steps, gather configs. Writing it by hand means constructing deeply nested JSON, manually building authenticated webhook URLs, hand-coding parameter schemas, and deploying separate webhook servers for your tools. Every agent becomes a bespoke JSON engineering project.
@@ -26,6 +35,7 @@ Call ends → SignalWire POSTs analytics to agent's /post_prompt/ endpoint
 
 The agent auto-detects its own public URL -- including behind ngrok, load balancers, API Gateway, or any reverse proxy (via `X-Forwarded-Host`, `Forwarded` header, or `SWML_PROXY_URL_BASE` env var). It embeds Basic Auth credentials directly into the webhook URLs. It generates per-call security tokens for each function. The developer writes none of this:
 
+<!-- snippet: no-run ends by starting a blocking server (agent.run / server.run) -->
 ```ruby
 require 'signalwire'
 
@@ -246,6 +256,7 @@ The SDK's contexts/steps/function restrictions are the primitives that make PGI 
 
 ## Deployment: One `run()` Call
 
+<!-- snippet: no-run ends by starting a blocking server (agent.run / server.run) -->
 ```ruby
 agent = SignalWire::AgentBase.new(name: 'my_agent', route: '/')
 # ... configure prompt, tools, skills ...
@@ -277,6 +288,7 @@ For standalone mode, the SDK provides:
 
 ## Multi-Agent Hosting
 
+<!-- snippet: no-run ends by starting a blocking server (agent.run / server.run) -->
 ```ruby
 require 'signalwire'
 

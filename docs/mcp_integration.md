@@ -39,6 +39,7 @@ end
 
 MCP servers can expose read-only data as resources. When enabled, resources are fetched at session start and merged into `global_data`:
 
+<!-- snippet: no-run illustrative fragment: add_mcp_server/enable_mcp_server are AgentBase instance methods shown outside an agent class -->
 ```ruby
 add_mcp_server(
   'https://mcp.example.com/crm',
@@ -52,6 +53,7 @@ Resource data is available in prompts via `${global_data.key}` and included in e
 
 ### Multiple Servers
 
+<!-- snippet: no-run illustrative fragment: add_mcp_server/enable_mcp_server are AgentBase instance methods shown outside an agent class -->
 ```ruby
 add_mcp_server('https://mcp-search.example.com/tools',
   headers: { 'Authorization' => 'Bearer search-key' })
@@ -150,6 +152,7 @@ In this setup:
 
 If you want your agent's voice calls to also discover tools via MCP instead of webhooks:
 
+<!-- snippet: no-run illustrative fragment: add_mcp_server/enable_mcp_server are AgentBase instance methods shown outside an agent class -->
 ```ruby
 enable_mcp_server
 add_mcp_server('https://your-server.com/agent/mcp')
