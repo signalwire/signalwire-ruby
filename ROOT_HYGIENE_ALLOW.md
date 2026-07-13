@@ -21,6 +21,7 @@ pipeline (which this port cannot edit).
 ## Generated audit artifacts consumed at repo root by the audit/enumerate scripts
 
 - port_signatures.json — generated signature surface read at ./port_signatures.json by porting-sdk diff_port_signatures.py + this port's enumerators (orchestrator, 2026-07-06)
+- port_signatures.baseline.json — load-bearing SEMVER-DIFF release-floor file read at ./port_signatures.baseline.json by porting-sdk semver_diff.py; mirrors port_signatures.json; must be at root, must not ship (orchestrator, 2026-07-13)
 - port_surface.json — generated public surface read at ./port_surface.json by porting-sdk audit scripts + ignore_ledger_verify (orchestrator, 2026-07-06)
 - rest_signatures.json — generated REST typed-param sidecar read at ./rest_signatures.json by this port's enumerators (orchestrator, 2026-07-06)
 - generated_surface_map.json — generated module/class projection map read at ./generated_surface_map.json by this port's enumerators (orchestrator, 2026-07-06)

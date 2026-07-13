@@ -44,9 +44,11 @@ jobs:
           pip install -e porting-sdk/test_harness/mock_relay
           pip install -e porting-sdk/test_harness/mock_signalwire
 
-      - name: Run tests
+      - name: Run CI gate script (full run-ci.sh — the same gate set as PR CI)
         working-directory: signalwire-ruby
-        run: bundle exec rake test
+        env:
+          PORTING_SDK: ${{ github.workspace }}/porting-sdk
+        run: bash scripts/run-ci.sh
 
       - name: Build and push gem
         working-directory: signalwire-ruby

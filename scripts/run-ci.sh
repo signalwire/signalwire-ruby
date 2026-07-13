@@ -302,8 +302,8 @@ sched_gate README-INCLUDE res=dayone desc="doc code blocks are byte-identical to
 sched_gate ROOT-HYGIENE res=dayone desc="no audit/scratch clutter tracked at repo root (allowlist ROOT_HYGIENE_ALLOW.md)" \
     -- python3 "$PORTING_SDK_DIR/scripts/root_hygiene.py" --port ruby --repo .
 
-sched_gate IGNORE-LEDGER-VERIFY res=dayone desc="no laundered false-absence entries in DOC_AUDIT_IGNORE.md" \
-    -- python3 "$PORTING_SDK_DIR/scripts/ignore_ledger_verify.py" --port ruby --repo .
+sched_gate IGNORE-LEDGER-VERIFY res=dayone desc="no laundered false-absence entries in DOC_AUDIT_IGNORE.md (strict: reason/approver/date required)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/ignore_ledger_verify.py" --port ruby --repo . --require-fields
 
 sched_gate META-CONSISTENT res=dayone desc="package metadata consistency" \
     -- python3 "$PORTING_SDK_DIR/scripts/meta_consistent.py" --port ruby --repo .
@@ -331,6 +331,9 @@ sched_gate GEN-IDIOM res=dayone desc="generated code is not lint-excluded (idiom
 
 sched_gate RELEASE-FRESH res=dayone desc="publish workflow runs the gates before publishing (gated release path)" \
     -- python3 "$PORTING_SDK_DIR/scripts/release_fresh.py" --port ruby --repo .
+
+sched_gate SEMVER-DIFF res=dayone desc="version bump matches the API surface change vs the release baseline (port_signatures.baseline.json)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/semver_diff.py" --port ruby --repo "$PORT_ROOT"
 
 # ---- §C1 doc/example execution gates -----------------------------------------
 # SNIPPET-COMPILE (compile-only) + DOC-CLI (parse-only probe) are cheap → cheap

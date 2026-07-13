@@ -30,6 +30,7 @@ The entries below silence only the PROXY for these tracked-but-excluded files.
 - audit_coverage.json — generated audit artifact; tracked in-repo, excluded from gem via s.files (orchestrator, 2026-07-06)
 - audit_coverage_baseline.json — generated audit artifact; tracked in-repo, excluded from gem via s.files (orchestrator, 2026-07-06)
 - port_signatures.json — generated signature surface; tracked in-repo, excluded from gem via s.files (orchestrator, 2026-07-06)
+- port_signatures.baseline.json — load-bearing SEMVER-DIFF release-floor file; mirrors port_signatures.json; must be at root, must not ship (excluded from gem via s.files) (orchestrator, 2026-07-13)
 - port_surface.json — generated public surface; tracked in-repo, excluded from gem via s.files (orchestrator, 2026-07-06)
 - bin/emit-corpus — porting audit-corpus tool; tracked in-repo, excluded from gem (s.files ships only bin/swaig-test) (orchestrator, 2026-07-06)
 - bin/emit-skills — porting audit-corpus tool; tracked in-repo, excluded from gem (s.files ships only bin/swaig-test) (orchestrator, 2026-07-06)

@@ -722,7 +722,7 @@ Add a modular skill to the agent.
 - `math`: Mathematical calculations
 - `web_search`: Google Custom Search integration
 - `datasphere`: SignalWire DataSphere search
-- `native_vector_search`: Local document search
+- `native_vector_search`: Document search over a remote search server (the Ruby port does not ship the offline/embedded backend)
 
 **Usage:**
 ```ruby
