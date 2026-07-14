@@ -72,6 +72,39 @@ class AIConfigLanguagesTest < Minitest::Test
 
     assert_equal 2, ai['languages'].length
   end
+
+  # #34 regression (RED on the pre-fix code, which raised ArgumentError
+  # "wrong number of arguments (given 0)"). A braceless string-keyed hash —
+  # `add_language('name' => …, 'code' => …, 'voice' => …)` — is routed by Ruby
+  # toward keywords; it must be accepted as the hash config form.
+  def test_add_language_braceless_string_keyed_hash
+    @agent.add_language('name' => 'English', 'code' => 'en-US', 'voice' => 'rachel')
+    langs = @agent.instance_variable_get(:@languages)
+
+    assert_equal 1, langs.length
+    assert_equal 'English', langs[0]['name']
+    assert_equal 'en-US', langs[0]['code']
+    assert_equal 'rachel', langs[0]['voice']
+  end
+
+  # The braceless symbol-keyed shape must also work, with keys stringified to
+  # match SWML's string-keyed language config.
+  def test_add_language_braceless_symbol_keyed_hash
+    @agent.add_language(name: 'French', code: 'fr-FR', voice: 'amelie')
+    langs = @agent.instance_variable_get(:@languages)
+
+    assert_equal 'French', langs[0]['name']
+    assert_equal 'fr-FR', langs[0]['code']
+  end
+
+  # The positional form remains supported (no regression).
+  def test_add_language_positional_form
+    @agent.add_language('Spanish', 'es-ES', 'es-ES-Neural2-A')
+    langs = @agent.instance_variable_get(:@languages)
+
+    assert_equal 'Spanish', langs[0]['name']
+    assert_equal 'es-ES-Neural2-A', langs[0]['voice']
+  end
 end
 
 # Ports Python 029ca6f: per-language params via add_language(params:),
