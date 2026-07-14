@@ -745,6 +745,36 @@ class SkillBaseTest < Minitest::Test
     ENV.delete('TEST_SKILL_KEY')
   end
 
+  # resolved_base_url is a private internal helper (kept off the enumerated
+  # public surface), so exercise it via send.
+  def test_resolved_base_url_uses_default_when_env_unset
+    ENV.delete('TEST_BASE_URL')
+    skill = SignalWire::Skills::SkillBase.new({})
+
+    assert_equal 'https://api.example.com',
+                 skill.send(:resolved_base_url, 'TEST_BASE_URL', 'https://api.example.com/')
+  end
+
+  def test_resolved_base_url_uses_default_when_env_blank
+    ENV['TEST_BASE_URL'] = ''
+    skill = SignalWire::Skills::SkillBase.new({})
+
+    assert_equal 'https://api.example.com',
+                 skill.send(:resolved_base_url, 'TEST_BASE_URL', 'https://api.example.com')
+  ensure
+    ENV.delete('TEST_BASE_URL')
+  end
+
+  def test_resolved_base_url_override_wins_and_strips_trailing_slash
+    ENV['TEST_BASE_URL'] = 'http://localhost:9000/'
+    skill = SignalWire::Skills::SkillBase.new({})
+
+    assert_equal 'http://localhost:9000',
+                 skill.send(:resolved_base_url, 'TEST_BASE_URL', 'https://api.example.com')
+  ensure
+    ENV.delete('TEST_BASE_URL')
+  end
+
   def test_abstract_methods_raise
     skill = SignalWire::Skills::SkillBase.new({})
     assert_raises(NotImplementedError) { skill.name }

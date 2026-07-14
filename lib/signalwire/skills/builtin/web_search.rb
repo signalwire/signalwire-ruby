@@ -240,9 +240,8 @@ module SignalWire
         # is the *host*, the `/customsearch/v1` path is appended so the audit
         # can match on `customsearch` in req.path).
         def google_search_uri(query, num)
-          base = ENV.fetch('WEB_SEARCH_BASE_URL', nil)
-          base = 'https://www.googleapis.com' if base.nil? || base.empty?
-          uri = URI("#{base.sub(%r{/$}, '')}/customsearch/v1")
+          base = resolved_base_url('WEB_SEARCH_BASE_URL', 'https://www.googleapis.com')
+          uri = URI("#{base}/customsearch/v1")
           uri.query = URI.encode_www_form(
             key: @api_key, cx: @search_engine_id, q: query, num: [num, 10].min
           )

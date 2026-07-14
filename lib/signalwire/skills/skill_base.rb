@@ -156,6 +156,22 @@ module SignalWire
 
       private
 
+      # Resolve a skill's base URL: the +env_var+ override when set and
+      # non-empty, otherwise +default+, with any trailing slash stripped so
+      # callers can append a path segment cleanly. Centralizes the
+      # `ENV.fetch(...) → default → sub(%r{/$}, '')` pattern the HTTP skills
+      # each hand-rolled. Private: an internal helper for subclasses, not part
+      # of the enumerated public skill surface.
+      #
+      # @param env_var [String] the override env var name (e.g. "WEATHER_API_BASE_URL")
+      # @param default [String] the production host used when the override is absent
+      # @return [String] the resolved base URL, without a trailing slash
+      def resolved_base_url(env_var, default)
+        base = ENV.fetch(env_var, nil)
+        base = default if base.nil? || base.empty?
+        base.sub(%r{/$}, '')
+      end
+
       # Logger namespace segment: the skill +name+, or the class name when
       # +name+ is still the abstract NotImplementedError raiser.
       def logger_name_segment

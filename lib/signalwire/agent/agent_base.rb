@@ -2645,6 +2645,7 @@ module SignalWire
     # methods span multiple public/private regions above.
     private :add_context_step, :add_pom_section, :append_section_bullets, :apply_compound_voice
     private :apply_dynamic_config, :apply_language_fillers, :apply_language_voice, :attach_context_builder
+    private :braceless_config, :require_language_args!
     private :basic_auth_source, :build_context_builder_from_hash, :build_pattern_hint, :build_section
     private :build_subsection, :build_subsections, :build_tool_definition, :build_tool_param_schema
     private :coerce_function_result, :compound_voice?, :define_skill_tool, :find_or_create_section

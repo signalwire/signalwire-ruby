@@ -83,9 +83,7 @@ module SignalWire
         # `/w/api.php` path is appended so audit_skills_dispatch can match
         # on `api.php` in req.path.
         def api_endpoint
-          base = ENV.fetch('WIKIPEDIA_BASE_URL', nil)
-          base = 'https://en.wikipedia.org' if base.nil? || base.empty?
-          "#{base.sub(%r{/$}, '')}/w/api.php"
+          "#{resolved_base_url('WIKIPEDIA_BASE_URL', 'https://en.wikipedia.org')}/w/api.php"
         end
 
         # Step 1: Search. Returns the list of result hashes, or nil if the
