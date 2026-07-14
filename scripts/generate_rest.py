@@ -128,14 +128,15 @@ def overlay_deprecated(field: str, schema_name: "str | None", psdk: Path) -> boo
 #
 #   * RESOURCE namespace  — a spec whose openapi.yaml carries x-sdk-resource
 #     markup on at least one path (or a top-level x-sdk-namespace). These are the
-#     namespaces that get a generated resource layer + client tree. (12 specs;
-#     `projects` and `swml-webhooks` have no such markup and are excluded.)
+#     namespaces that get a generated resource layer + client tree. (13 specs;
+#     `swml-webhooks` has no such markup and is excluded. `projects` — the new
+#     `/api/projects` full-CRUD project-management surface, DISTINCT from the
+#     singular `project` token namespace — now carries x-sdk-resource markup and
+#     IS a resource namespace: `client.projects`.)
 #   * TYPE namespace      — a spec with a components/schemas section that is
 #     EITHER a resource namespace OR a types-only payload spec (one with NO
 #     `servers` block, i.e. not an addressable REST surface — this admits
-#     `swml-webhooks`, a pure webhook-payload schema doc, while excluding
-#     `projects`, a staged REST surface with a servers block that is not yet in
-#     the canonical set — see mock_signalwire/specs.py SPEC_NAMES). (13 specs.)
+#     `swml-webhooks`, a pure webhook-payload schema doc). (14 specs.)
 #
 # Ordering is load-bearing for byte-identical output (container/tree accessor
 # order follows spec iteration order), and the historical hand-order is not
@@ -145,8 +146,8 @@ def overlay_deprecated(field: str, schema_name: "str | None", psdk: Path) -> boo
 # relay-rest via namespace: registry).
 _NS_ORDER = [
     "relay-rest", "fabric", "calling", "video", "datasphere",
-    "logs", "message", "voice", "fax", "project", "chat", "pubsub",
-    "swml-webhooks",
+    "logs", "message", "voice", "fax", "project", "projects", "chat",
+    "pubsub", "swml-webhooks",
 ]
 
 # Module-segment casing overrides — where mechanical PascalCase of the dir name
