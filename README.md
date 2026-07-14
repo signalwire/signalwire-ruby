@@ -76,6 +76,15 @@ swaig-test quickstart_agent.rb --simulate-serverless lambda --dump-swml
 swaig-test quickstart_agent.rb --simulate-serverless lambda --exec get_time
 ```
 
+`--exec NAME` runs a tool. Pass each argument as its own `--param KEY=VALUE`
+(values are parsed as JSON — numbers, `true`/`false`, and `null` are typed;
+anything else is a string). For a tool `get_weather(location)`:
+
+```bash
+swaig-test my_agent.rb --simulate-serverless lambda \
+  --exec get_weather --param location="San Francisco" --param units=metric
+```
+
 ### Agent Features
 
 - **Prompt Object Model (POM)** -- structured prompt composition via `prompt_add_section`
