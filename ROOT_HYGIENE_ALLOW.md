@@ -38,3 +38,7 @@ pipeline (which this port cannot edit).
 ## Gem build/publish manifest
 
 - signalwire-sdk.gemspec — gem build/publish manifest; the built-in allowlist covers Gemfile/Rakefile but not the per-port .gemspec (name varies), analogous to how .csproj/.sln are regex-allowed for dotnet (orchestrator, 2026-07-06)
+
+## Standard developer-config templates
+
+- .env.example — dotenv template documenting every env var the SDK reads (issue #36); a copy-to-`.env` file that must live at the repo root by the dotenv convention to serve its purpose, alongside the built-in .gitignore/.editorconfig config files (fix-ruby, 2026-07-14)
