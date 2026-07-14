@@ -49,12 +49,12 @@ Each agent is a self-contained microservice that generates [SWML](docs/swml_serv
 ```ruby
 require 'signalwire'
 
-agent = SignalWire::AgentBase.new(name: 'my-agent', route: '/')
+AGENT = SignalWire::AgentBase.new(name: 'my-agent', route: '/')
 
-agent.add_language('English', 'en-US', 'elevenlabs.rachel')
-agent.prompt_add_section('Role', 'You are a helpful assistant.')
+AGENT.add_language('English', 'en-US', 'elevenlabs.rachel')
+AGENT.prompt_add_section('Role', 'You are a helpful assistant.')
 
-agent.define_tool(
+AGENT.define_tool(
   name:        'get_time',
   description: 'Get the current time',
   parameters:  {}
@@ -62,15 +62,18 @@ agent.define_tool(
   SignalWire::Swaig::FunctionResult.new("The time is #{Time.now.strftime('%H:%M:%S')}")
 end
 
-agent.run
+AGENT.run if __FILE__ == $PROGRAM_NAME
 ```
+
+Exposing the agent as the `AGENT` constant lets `swaig-test` discover it, and
+guarding `AGENT.run` keeps loading the file for a test from starting a server.
 
 Test locally without running a server:
 
 ```bash
-swaig-test my_agent.rb --simulate-serverless lambda --list-tools
-swaig-test my_agent.rb --simulate-serverless lambda --dump-swml
-swaig-test my_agent.rb --simulate-serverless lambda --exec get_time
+swaig-test quickstart_agent.rb --simulate-serverless lambda --list-tools
+swaig-test quickstart_agent.rb --simulate-serverless lambda --dump-swml
+swaig-test quickstart_agent.rb --simulate-serverless lambda --exec get_time
 ```
 
 ### Agent Features

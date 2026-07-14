@@ -157,7 +157,16 @@ module SwaigTest
       Object.constants.each do |c|
         next if c == :AGENT
 
-        value = Object.const_get(c)
+        # Some constants are autoload stubs that RAISE on resolution — most
+        # notably SortedSet on Ruby 3.2+ ("has been extracted from the `set`
+        # library"). A raising const_get must skip that constant, not abort the
+        # whole scan; otherwise discovery crashes for any agent not bound to an
+        # AGENT constant (the README quickstart style).
+        begin
+          value = Object.const_get(c)
+        rescue StandardError
+          next
+        end
         return value if value.is_a?(SignalWire::AgentBase)
       end
       nil
