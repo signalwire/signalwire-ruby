@@ -246,14 +246,26 @@ Guides are also available in the [`docs/`](docs/) directory:
 | `SIGNALWIRE_PROJECT_ID` | RELAY, REST | Project identifier |
 | `SIGNALWIRE_API_TOKEN` | RELAY, REST | API token |
 | `SIGNALWIRE_SPACE` | RELAY, REST | Space hostname (e.g. `example.signalwire.com`) |
+| `SIGNALWIRE_SIGNING_KEY` | Agents | HMAC key for inbound webhook signature validation (validation is off until set) |
 | `SWML_BASIC_AUTH_USER` | Agents | Basic auth username (default: auto-generated) |
 | `SWML_BASIC_AUTH_PASSWORD` | Agents | Basic auth password (default: auto-generated) |
 | `SWML_PROXY_URL_BASE` | Agents | Base URL when behind a reverse proxy |
+| `SWML_DOMAIN` | Agents | External domain used to build absolute webhook/SSL URLs |
 | `SWML_SSL_ENABLED` | Agents | Enable HTTPS (`true`, `1`, `yes`) |
 | `SWML_SSL_CERT_PATH` | Agents | Path to SSL certificate |
 | `SWML_SSL_KEY_PATH` | Agents | Path to SSL private key |
+| `SWML_ALLOW_PRIVATE_URLS` | Agents | Allow webhook/tool URLs pointing at private/loopback IPs (`1`/`true`/`yes`); off by default (SSRF guard) |
+| `SWML_SKIP_SCHEMA_VALIDATION` | Agents | Skip SWML schema validation (`1`/`true`/`yes`) |
+| `SIGNALWIRE_SKILL_PATHS` | Skills | Extra skill search directories (colon-separated) |
+| `SIGNALWIRE_RELAY_HOST` | RELAY | Override the RELAY WebSocket host (testing / self-hosted) |
+| `SIGNALWIRE_RELAY_SCHEME` | RELAY | Override the RELAY WebSocket scheme (`ws`/`wss`) |
+| `SIGNALWIRE_RELAY_SSL_CA_FILE` | RELAY | Custom CA bundle for the RELAY TLS connection |
 | `SIGNALWIRE_LOG_LEVEL` | All | Logging level (`debug`, `info`, `warn`, `error`) |
 | `SIGNALWIRE_LOG_MODE` | All | Set to `off` to suppress all logging |
+
+A ready-to-copy [`.env.example`](.env.example) at the repo root lists every
+environment variable the SDK reads, including the skill `*_BASE_URL` overrides
+used for testing.
 
 ## Testing
 
