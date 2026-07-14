@@ -105,7 +105,7 @@ swaig-test my_agent.rb --simulate-serverless lambda \
 
 ### Agent Examples
 
-The [`examples/`](examples/) directory contains 54 working examples:
+The [`examples/`](examples/) directory contains 56 working examples:
 
 | Example | What it demonstrates |
 |---------|---------------------|
