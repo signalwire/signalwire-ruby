@@ -49,12 +49,12 @@ Each agent is a self-contained microservice that generates [SWML](docs/swml_serv
 ```ruby
 require 'signalwire'
 
-agent = SignalWire::AgentBase.new(name: 'my-agent', route: '/')
+AGENT = SignalWire::AgentBase.new(name: 'my-agent', route: '/')
 
-agent.add_language('English', 'en-US', 'elevenlabs.rachel')
-agent.prompt_add_section('Role', 'You are a helpful assistant.')
+AGENT.add_language('English', 'en-US', 'elevenlabs.rachel')
+AGENT.prompt_add_section('Role', 'You are a helpful assistant.')
 
-agent.define_tool(
+AGENT.define_tool(
   name:        'get_time',
   description: 'Get the current time',
   parameters:  {}
@@ -62,15 +62,27 @@ agent.define_tool(
   SignalWire::Swaig::FunctionResult.new("The time is #{Time.now.strftime('%H:%M:%S')}")
 end
 
-agent.run
+AGENT.run if __FILE__ == $PROGRAM_NAME
 ```
+
+Exposing the agent as the `AGENT` constant lets `swaig-test` discover it, and
+guarding `AGENT.run` keeps loading the file for a test from starting a server.
 
 Test locally without running a server:
 
 ```bash
-swaig-test my_agent.rb --simulate-serverless lambda --list-tools
-swaig-test my_agent.rb --simulate-serverless lambda --dump-swml
-swaig-test my_agent.rb --simulate-serverless lambda --exec get_time
+swaig-test quickstart_agent.rb --simulate-serverless lambda --list-tools
+swaig-test quickstart_agent.rb --simulate-serverless lambda --dump-swml
+swaig-test quickstart_agent.rb --simulate-serverless lambda --exec get_time
+```
+
+`--exec NAME` runs a tool. Pass each argument as its own `--param KEY=VALUE`
+(values are parsed as JSON — numbers, `true`/`false`, and `null` are typed;
+anything else is a string). For a tool `get_weather(location)`:
+
+```bash
+swaig-test my_agent.rb --simulate-serverless lambda \
+  --exec get_weather --param location="San Francisco" --param units=metric
 ```
 
 ### Agent Features
@@ -93,7 +105,7 @@ swaig-test my_agent.rb --simulate-serverless lambda --exec get_time
 
 ### Agent Examples
 
-The [`examples/`](examples/) directory contains 54 working examples:
+The [`examples/`](examples/) directory contains 56 working examples:
 
 | Example | What it demonstrates |
 |---------|---------------------|
@@ -234,14 +246,26 @@ Guides are also available in the [`docs/`](docs/) directory:
 | `SIGNALWIRE_PROJECT_ID` | RELAY, REST | Project identifier |
 | `SIGNALWIRE_API_TOKEN` | RELAY, REST | API token |
 | `SIGNALWIRE_SPACE` | RELAY, REST | Space hostname (e.g. `example.signalwire.com`) |
+| `SIGNALWIRE_SIGNING_KEY` | Agents | HMAC key for inbound webhook signature validation (validation is off until set) |
 | `SWML_BASIC_AUTH_USER` | Agents | Basic auth username (default: auto-generated) |
 | `SWML_BASIC_AUTH_PASSWORD` | Agents | Basic auth password (default: auto-generated) |
 | `SWML_PROXY_URL_BASE` | Agents | Base URL when behind a reverse proxy |
+| `SWML_DOMAIN` | Agents | External domain used to build absolute webhook/SSL URLs |
 | `SWML_SSL_ENABLED` | Agents | Enable HTTPS (`true`, `1`, `yes`) |
 | `SWML_SSL_CERT_PATH` | Agents | Path to SSL certificate |
 | `SWML_SSL_KEY_PATH` | Agents | Path to SSL private key |
+| `SWML_ALLOW_PRIVATE_URLS` | Agents | Allow webhook/tool URLs pointing at private/loopback IPs (`1`/`true`/`yes`); off by default (SSRF guard) |
+| `SWML_SKIP_SCHEMA_VALIDATION` | Agents | Skip SWML schema validation (`1`/`true`/`yes`) |
+| `SIGNALWIRE_SKILL_PATHS` | Skills | Extra skill search directories (colon-separated) |
+| `SIGNALWIRE_RELAY_HOST` | RELAY | Override the RELAY WebSocket host (testing / self-hosted) |
+| `SIGNALWIRE_RELAY_SCHEME` | RELAY | Override the RELAY WebSocket scheme (`ws`/`wss`) |
+| `SIGNALWIRE_RELAY_SSL_CA_FILE` | RELAY | Custom CA bundle for the RELAY TLS connection |
 | `SIGNALWIRE_LOG_LEVEL` | All | Logging level (`debug`, `info`, `warn`, `error`) |
 | `SIGNALWIRE_LOG_MODE` | All | Set to `off` to suppress all logging |
+
+A ready-to-copy [`.env.example`](.env.example) at the repo root lists every
+environment variable the SDK reads, including the skill `*_BASE_URL` overrides
+used for testing.
 
 ## Testing
 

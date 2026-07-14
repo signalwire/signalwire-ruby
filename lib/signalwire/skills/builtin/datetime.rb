@@ -23,12 +23,14 @@ module SignalWire
         def name = 'datetime'
         def description = 'Get current date, time, and timezone information'
 
-        # Timezones are resolved through the stdlib ``time``/``date``
-        # libraries (no third-party dependency), so setup verifies those
-        # are loadable and returns whether the skill is ready.
+        # Timezones are resolved through the ``tzinfo`` gem — a thread-safe,
+        # OS-tzdata-independent lookup that needs no process-global ENV['TZ']
+        # mutation. Setup verifies the libraries are loadable and returns
+        # whether the skill is ready.
         def setup
           require 'time'
           require 'date'
+          require 'tzinfo'
           true
         rescue LoadError => e
           logger.error("datetime skill setup failed: #{e.message}")
@@ -103,17 +105,18 @@ module SignalWire
           return Time.now.utc if tz_name.upcase == 'UTC'
 
           time_in_zone(tz_name)
-        rescue StandardError
-          nil
         end
 
-        # ENV-based TZ resolution (works on most systems). If TZ is invalid,
-        # Ruby silently falls back to UTC on some platforms.
+        # Thread-safe timezone resolution via tzinfo — no process-global
+        # ENV['TZ'] mutation, so concurrent calls with different timezones
+        # never clobber each other, and the result is independent of the host
+        # OS tzdata layout. An unknown timezone returns nil so the caller
+        # emits the "unknown timezone" error result.
         def time_in_zone(tz_name)
-          ENV['TZ'] = tz_name
-          Time.now
-        ensure
-          ENV.delete('TZ')
+          require 'tzinfo'
+          TZInfo::Timezone.get(tz_name).now
+        rescue TZInfo::InvalidTimezoneIdentifier
+          nil
         end
       end
     end

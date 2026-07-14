@@ -396,3 +396,61 @@ class SwaigTestCLIFileModeTest < Minitest::Test
     end
   end
 end
+
+# #45 regression: the agent-discovery scan (AgentFileLoader.discovered_agent)
+# iterates Object.constants + Object.const_get. On Ruby 3.2+, resolving the
+# SortedSet autoload stub RAISES (RuntimeError "has been extracted from the
+# `set` library"). Before the fix a raising const_get aborted the whole scan,
+# so `swaig-test my_agent.rb` crashed for any agent NOT bound to an AGENT
+# constant (the README quickstart style). These tests define a raising
+# autoload stub and assert the scan survives it and still finds the agent.
+class SwaigTestDiscoveryScanTest < Minitest::Test
+  def teardown
+    %i[BrokenAutoloadFixture QuickstartAgentFixture].each do |c|
+      Object.send(:remove_const, c) if Object.const_defined?(c, false)
+    end
+  end
+
+  # A top-level constant whose const_get raises StandardError — the same shape
+  # as the SortedSet autoload stub that crashed the scan.
+  def install_raising_constant
+    Object.autoload(:BrokenAutoloadFixture, '/nonexistent/raises_on_resolve_xyz')
+    # Redefine const_get so resolving the fixture raises RuntimeError (matching
+    # SortedSet), not the LoadError a bare autoload-miss would give — proving the
+    # `rescue StandardError` guard, which is what the real bug needs.
+    def Object.const_get(name, *args)
+      raise 'BrokenAutoloadFixture raises on resolve' if name == :BrokenAutoloadFixture
+
+      super
+    end
+  end
+
+  def uninstall_raising_constant
+    class << Object
+      remove_method(:const_get)
+    end
+  end
+
+  def test_scan_survives_a_raising_autoload_and_finds_the_agent
+    agent = SignalWire::AgentBase.new(name: 'quickstart')
+    Object.const_set(:QuickstartAgentFixture, agent)
+    install_raising_constant
+
+    found = SwaigTest::AgentFileLoader.discovered_agent
+
+    assert_same agent, found,
+                'scan must skip the raising constant and still find the agent'
+  ensure
+    uninstall_raising_constant
+  end
+
+  def test_scan_does_not_raise_when_a_constant_resolution_raises
+    install_raising_constant
+
+    # No agent defined: the scan should return nil (not crash) when it walks
+    # past the raising constant.
+    assert_nil SwaigTest::AgentFileLoader.discovered_agent
+  ensure
+    uninstall_raising_constant
+  end
+end

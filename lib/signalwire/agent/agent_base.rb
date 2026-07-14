@@ -889,13 +889,23 @@ module SignalWire
     #     specific tuning, voice settings, etc.). Emitted as the language
     #     object's ``params`` key in SWML; the key is only emitted when
     #     non-empty so existing entries stay byte-identical.
-    def add_language(name_or_config, code = nil, voice = nil,
+    #   @param opts [Hash] a braceless hash passed as the whole config —
+    #     ``add_language('name' => 'English', 'code' => 'en-US',
+    #     'voice' => '…')``. Ruby routes a trailing braceless hash toward
+    #     keywords, so this shape arrives here (not as +name_or_config+); it is
+    #     unfolded back into the hash config form.
+    def add_language(name_or_config = nil, code = nil, voice = nil,
                      speech_fillers: nil, function_fillers: nil,
-                     engine: nil, model: nil, params: nil)
+                     engine: nil, model: nil, params: nil, **opts)
+      # Braceless hash form: `add_language('name' => …, 'code' => …)` — Ruby
+      # collects the trailing pairs into **opts, leaving no positional. Re-route
+      # to the hash config form so the documented one-liner call just works.
+      name_or_config = braceless_config(name_or_config, opts)
+
       # Hash form (legacy / direct config)
       return (@languages << name_or_config) && self if hash_language_form?(name_or_config, code, voice)
 
-      raise ArgumentError, 'add_language: name, code, voice are required (or pass a Hash)' if code.nil? || voice.nil?
+      require_language_args!(name_or_config, code, voice)
 
       lang = { 'name' => name_or_config, 'code' => code }
       apply_language_voice(lang, voice, engine, model)
@@ -904,6 +914,21 @@ module SignalWire
       lang['params'] = params if params.is_a?(Hash) && !params.empty?
       @languages << lang
       self
+    end
+
+    # When no positional name was given but keyword-style pairs arrived (a
+    # braceless hash routed to **opts), fold them back into a string-keyed
+    # config hash; otherwise pass the positional name through unchanged.
+    def braceless_config(name_or_config, opts)
+      return name_or_config unless name_or_config.nil? && !opts.empty?
+
+      opts.transform_keys(&:to_s)
+    end
+
+    def require_language_args!(name, code, voice)
+      return unless name.nil? || code.nil? || voice.nil?
+
+      raise ArgumentError, 'add_language: name, code, voice are required (or pass a Hash)'
     end
 
     def hash_language_form?(name_or_config, code, voice)
@@ -2620,6 +2645,7 @@ module SignalWire
     # methods span multiple public/private regions above.
     private :add_context_step, :add_pom_section, :append_section_bullets, :apply_compound_voice
     private :apply_dynamic_config, :apply_language_fillers, :apply_language_voice, :attach_context_builder
+    private :braceless_config, :require_language_args!
     private :basic_auth_source, :build_context_builder_from_hash, :build_pattern_hint, :build_section
     private :build_subsection, :build_subsections, :build_tool_definition, :build_tool_param_schema
     private :coerce_function_result, :compound_voice?, :define_skill_tool, :find_or_create_section

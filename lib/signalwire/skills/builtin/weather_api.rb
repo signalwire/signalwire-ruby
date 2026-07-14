@@ -100,9 +100,7 @@ module SignalWire
         # overrides for tests and the audit fixture. The `/v1/current.json`
         # path is preserved so the audit can match on `current.json`.
         def base_url
-          base = ENV.fetch('WEATHER_API_BASE_URL', nil)
-          base = 'https://api.weatherapi.com' if base.nil? || base.empty?
-          base.sub(%r{/$}, '')
+          resolved_base_url('WEATHER_API_BASE_URL', 'https://api.weatherapi.com')
         end
 
         def fallback_message

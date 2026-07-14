@@ -47,10 +47,7 @@ module SignalWire
         # the host (the `/api/datasphere/...` path is preserved so the audit
         # can match on `datasphere` in req.path).
         def datasphere_host_url
-          override = ENV.fetch('DATASPHERE_BASE_URL', nil)
-          return override.sub(%r{/$}, '') unless override.nil? || override.empty?
-
-          "https://#{@space_name}.signalwire.com"
+          resolved_base_url('DATASPHERE_BASE_URL', "https://#{@space_name}.signalwire.com")
         end
 
         def handle_search(args, _raw_data)

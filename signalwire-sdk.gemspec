@@ -30,6 +30,9 @@ Gem::Specification.new do |s|
   # Runtime dependencies — keep minimal
   s.add_dependency 'rack', '>= 2.0'
   s.add_dependency 'rackup', '>= 1.0'
+  # tzinfo powers thread-safe, OS-tzdata-independent timezone resolution in the
+  # datetime skill (no process-global ENV['TZ'] mutation).
+  s.add_dependency 'tzinfo', '>= 2.0'
   s.add_dependency 'webrick', '>= 1.7'
   s.add_dependency 'websocket-client-simple', '>= 0.8'
 

@@ -56,7 +56,9 @@ gem build signalwire-sdk.gemspec && gem install signalwire-sdk-*.gem
 ```bash
 # Test SWAIG functions locally (from bin/)
 ruby bin/swaig-test examples/simple_agent.rb --list-tools
-ruby bin/swaig-test examples/simple_agent.rb --exec tool_name --param value
+# --exec runs a tool; pass each argument as a separate --param KEY=VALUE
+# (values are parsed as JSON: numbers/true/false/null typed, else string):
+ruby bin/swaig-test examples/simple_agent.rb --exec get_weather --param location="San Francisco"
 
 # Build search indexes
 ruby bin/sw-search ./docs --output knowledge.swsearch

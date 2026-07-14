@@ -5025,7 +5025,8 @@
                 {
                   "name": "name_or_config",
                   "type": "any",
-                  "required": true
+                  "required": false,
+                  "default": null
                 },
                 {
                   "name": "code",
@@ -5071,6 +5072,13 @@
                   "name": "params",
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "opts",
+                  "type": "any",
+                  "kind": "var_keyword",
                   "required": false,
                   "default": null
                 }
