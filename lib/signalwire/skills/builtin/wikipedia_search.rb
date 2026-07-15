@@ -41,7 +41,7 @@ module SignalWire
 
         def get_prompt_sections
           body = 'You can search Wikipedia for factual information using search_wiki. ' \
-                 "This will return up to #{@num_results || 1} Wikipedia article summaries."
+                 "This will return up to #{num_results} Wikipedia article summaries."
           bullets = [
             'Use search_wiki for factual, encyclopedic information',
             'Great for answering questions about people, places, concepts, and history',
@@ -61,22 +61,32 @@ module SignalWire
         # (search, then per-title extract) and returns the formatted article
         # text (or the no-results message). Public so callers/tests can invoke
         # the lookup directly; the tool handler delegates to this method.
-        # ``@num_results``/``@no_results_msg`` are populated by #setup; fall
-        # back to defaults if called before setup.
+        # #num_results / #no_results_msg fall back to defaults if read before
+        # #setup populates their ivars.
         def search_wiki(query)
-          @num_results    ||= 1
-          @no_results_msg ||= DEFAULT_NO_RESULTS_MSG
-
           results = wiki_search_results(query)
-          return @no_results_msg if results.nil? || results.empty?
+          return no_results_msg if results.nil? || results.empty?
 
-          articles = results.first(@num_results).filter_map { |r| article_for(r) }
-          return @no_results_msg if articles.empty?
+          articles = results.first(num_results).filter_map { |r| article_for(r) }
+          return no_results_msg if articles.empty?
 
           articles.join("\n\n#{'=' * 50}\n\n")
         end
 
         private
+
+        # Populated by #setup; fall back to defaults if read before setup.
+        def num_results
+          return @num_results if defined?(@num_results) && @num_results
+
+          @num_results = 1
+        end
+
+        def no_results_msg
+          return @no_results_msg if defined?(@no_results_msg) && @no_results_msg
+
+          @no_results_msg = DEFAULT_NO_RESULTS_MSG
+        end
 
         # Default to en.wikipedia.org host; WIKIPEDIA_BASE_URL overrides
         # for tests and the audit fixture. The env var is the *host*; the
@@ -91,7 +101,7 @@ module SignalWire
         def wiki_search_results(query)
           search_uri = URI(
             "#{api_endpoint}?action=query&list=search&format=json" \
-            "&srsearch=#{URI.encode_www_form_component(query)}&srlimit=#{@num_results}"
+            "&srsearch=#{URI.encode_www_form_component(query)}&srlimit=#{num_results}"
           )
           search_resp = Net::HTTP.get_response(search_uri)
           return nil unless search_resp.is_a?(Net::HTTPSuccess)
