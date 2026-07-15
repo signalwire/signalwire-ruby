@@ -63,7 +63,9 @@ module SignalWire
 
     # Module-level singleton so the schema is loaded at most once.
     def self.schema
-      @schema ||= Schema.new
+      return @schema if defined?(@schema)
+
+      @schema = Schema.new
     end
 
     # Allow resetting for tests

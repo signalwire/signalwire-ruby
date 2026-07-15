@@ -17,7 +17,7 @@ module SignalWire
     module SkillIntrospection
       # { 'name', ('description'), ('version') } for one skill; name-only when
       # the factory needs constructor args.
-      def _skill_summary(skill_name)
+      def skill_summary(skill_name)
         entry = { 'name' => skill_name }
         factory = @factories[skill_name]
         return entry unless factory.respond_to?(:call)
@@ -34,7 +34,7 @@ module SignalWire
 
       # Names of skill subdirectories (containing skill.rb) directly under
       # +path+, sorted; [] when +path+ isn't a directory.
-      def _skill_dirs_under(path)
+      def skill_dirs_under(path)
         return [] unless File.directory?(path)
 
         Dir.children(path).sort.select do |entry|
@@ -46,13 +46,13 @@ module SignalWire
 
       # { 'name', 'parameters', ('description'), ('version') } for one skill;
       # minimal entry when it can't be instantiated bare.
-      def _skill_schema_entry(name)
+      def skill_schema_entry(name)
         entry = { 'name' => name, 'parameters' => {} }
         factory = @factories[name]
         return entry unless factory.respond_to?(:call)
 
         begin
-          _enrich_schema_entry(entry, factory.call({}))
+          enrich_schema_entry(entry, factory.call({}))
         rescue StandardError
           # Can't instantiate without params; fall back to the minimal entry.
         end
@@ -61,7 +61,7 @@ module SignalWire
 
       # Fold parameter_schema / description / version off a bare skill instance
       # into +entry+ (only when the instance exposes them).
-      def _enrich_schema_entry(entry, instance)
+      def enrich_schema_entry(entry, instance)
         entry['parameters'] = instance.parameter_schema || {} if instance.respond_to?(:parameter_schema)
         entry['description'] = instance.class.skill_description if instance.class.respond_to?(:skill_description)
         entry['version'] = instance.class.skill_version if instance.class.respond_to?(:skill_version)
@@ -108,7 +108,7 @@ module SignalWire
       # @return [Array<String>]
       def external_paths
         paths = @inst_mutex.synchronize { @external_paths.dup }
-        self.class._env_skill_paths.each { |p| paths << p unless paths.include?(p) }
+        self.class.send(:env_skill_paths).each { |p| paths << p unless paths.include?(p) }
         paths
       end
 
@@ -152,7 +152,7 @@ module SignalWire
       # without arguments.
       #
       # @return [Array<Hash>]
-      def list_skills = self.class.send(:_list_skills_full)
+      def list_skills = self.class.send(:list_skills_full)
 
       # Ensure built-in skills are discovered/registered (instance form).
       #
@@ -190,7 +190,7 @@ module SignalWire
         end
 
         skill_class = skill_class_or_name
-        name = _require_skill_name(skill_class)
+        name = require_skill_name(skill_class)
         self.class.register_skill(name, ->(params = {}) { skill_class.new(params) })
         @inst_mutex.synchronize { @last_registered = name }
         self
@@ -198,24 +198,24 @@ module SignalWire
 
       # Resolve and validate the registrable name for +skill_class+ (raising
       # ArgumentError when the class can't be constructed or named).
-      def _require_skill_name(skill_class)
+      def require_skill_name(skill_class)
         unless skill_class.respond_to?(:new)
           raise ArgumentError, 'register_skill expects a class with .new or a (name, factory) pair'
         end
 
-        name = _resolve_skill_name(skill_class)
+        name = resolve_skill_name(skill_class)
         raise ArgumentError, "Cannot determine skill name for #{skill_class}" if name.nil?
 
         name.to_s
       end
-      private :_require_skill_name
+      private :require_skill_name
 
       # The most recently registered skill name (instance form).
       attr_reader :last_registered
 
       # Pull the skill name from a class-level method, a SKILL_NAME constant,
       # or (Ruby idiom) a no-arg instance's #name. Returns nil if none apply.
-      def _resolve_skill_name(skill_class)
+      def resolve_skill_name(skill_class)
         return skill_class.skill_name if skill_class.respond_to?(:skill_name)
         return skill_class.const_get(:SKILL_NAME) if skill_class.const_defined?(:SKILL_NAME)
 
@@ -225,7 +225,7 @@ module SignalWire
           nil
         end
       end
-      private :_resolve_skill_name
+      private :resolve_skill_name
 
       class << self
         # Register a skill factory.
@@ -255,9 +255,9 @@ module SignalWire
         # Returns one dict per skill with name + description + version when
         # available.
         # @api private
-        def _list_skills_full
+        def list_skills_full
           register_builtins! # parity: Python auto-discovers builtins (idempotent)
-          @mutex.synchronize { @factories.keys.sort.map { |skill_name| _skill_summary(skill_name) } }
+          @mutex.synchronize { @factories.keys.sort.map { |skill_name| skill_summary(skill_name) } }
         end
 
         # Check if a skill is registered.
@@ -278,7 +278,7 @@ module SignalWire
         # takes effect, matching Python's search-time read.
         #
         # @return [Array<String>]
-        def _env_skill_paths
+        def env_skill_paths
           ENV.fetch('SIGNALWIRE_SKILL_PATHS', '').split(File::PATH_SEPARATOR).reject(&:empty?)
         end
 
@@ -300,7 +300,7 @@ module SignalWire
         def builtin_skill_names = SkillName::ALL.dup
         # Internal helper — not part of the Python surface; reached via
         # discover_skills / list_all_skill_sources.
-        private :builtin_skill_names
+        private :builtin_skill_names, :list_skills_full, :env_skill_paths
 
         # Ensure built-in skills are registered and return their names.
         #
@@ -329,7 +329,7 @@ module SignalWire
           builtins = builtin_skill_names
           {
             'built-in' => builtins,
-            'external_paths' => external_paths.flat_map { |path| _skill_dirs_under(path) },
+            'external_paths' => external_paths.flat_map { |path| skill_dirs_under(path) },
             'entry_points' => [],
             'registered' => list_skills.reject { |name| builtins.include?(name) }
           }
@@ -349,7 +349,7 @@ module SignalWire
         def get_all_skills_schema
           register_builtins! # parity: Python auto-discovers builtins here (idempotent)
           @mutex.synchronize do
-            @factories.keys.sort.to_h { |name| [name, _skill_schema_entry(name)] }
+            @factories.keys.sort.to_h { |name| [name, skill_schema_entry(name)] }
           end
         end
       end

@@ -35,7 +35,7 @@ module SignalWire
         def get_tools
           [
             {
-              'function' => @tool_name,
+              'function' => tool_name,
               'description' => 'Get current weather information for any location',
               'parameters' => tool_parameters,
               'data_map' => tool_data_map
@@ -48,6 +48,8 @@ module SignalWire
         end
 
         private
+
+        attr_reader :api_key, :tool_name, :temp_unit
 
         def tool_parameters
           {
@@ -70,14 +72,14 @@ module SignalWire
 
         def weather_webhook
           {
-            'url' => "#{base_url}/v1/current.json?key=#{@api_key}&q=${lc:enc:args.location}&aqi=no",
+            'url' => "#{base_url}/v1/current.json?key=#{api_key}&q=${lc:enc:args.location}&aqi=no",
             'method' => 'GET',
             'output' => Swaig::FunctionResult.new(response_template).to_h
           }
         end
 
         def temperature_fields
-          if @temp_unit == 'celsius'
+          if temp_unit == 'celsius'
             { temp: 'temp_c', feels: 'feelslike_c', unit: 'Celsius' }
           else
             { temp: 'temp_f', feels: 'feelslike_f', unit: 'Fahrenheit' }

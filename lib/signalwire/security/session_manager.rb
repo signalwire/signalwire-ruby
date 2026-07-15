@@ -164,30 +164,30 @@ module SignalWire
         return { 'error' => 'debug mode not enabled' } unless @debug_mode
 
         parts = Base64.urlsafe_decode64(token).split('.')
-        return _malformed_debug(token, parts) unless parts.length == 5
+        return malformed_debug(token, parts) unless parts.length == 5
 
-        _decoded_debug(token, parts)
+        decoded_debug(token, parts)
       rescue ArgumentError, TypeError => e
         { 'valid_format' => false, 'error' => e.message, 'token_length' => token ? token.length : 0 }
       end
 
       private
 
-      def _malformed_debug(token, parts)
+      def malformed_debug(token, parts)
         { 'valid_format' => false, 'parts_count' => parts.length,
           'token_length' => token ? token.length : 0 }
       end
 
-      def _decoded_debug(_token, parts)
-        status = _expiry_status(parts[2], Time.now.to_i)
+      def decoded_debug(_token, parts)
+        status = expiry_status(parts[2], Time.now.to_i)
         {
           'valid_format' => true,
-          'components' => _debug_components(parts, status.delete('expiry_date')),
+          'components' => debug_components(parts, status.delete('expiry_date')),
           'status' => status
         }
       end
 
-      def _debug_components(parts, expiry_date)
+      def debug_components(parts, expiry_date)
         {
           'call_id' => truncate(parts[0]), 'function' => parts[1],
           'expiry' => parts[2], 'expiry_date' => expiry_date,
@@ -197,7 +197,7 @@ module SignalWire
 
       # Build the wire-shaped status sub-hash (current_time/is_expired/
       # expires_in_seconds) plus a transient 'expiry_date' the caller extracts.
-      def _expiry_status(token_expiry, current_time)
+      def expiry_status(token_expiry, current_time)
         expiry     = Integer(token_expiry)
         is_expired = expiry < current_time
         { 'current_time' => current_time, 'is_expired' => is_expired,

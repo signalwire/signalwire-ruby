@@ -347,7 +347,7 @@ module SignalWire
 
       def to_h
         step_h = { 'name' => @name, 'text' => render_text }
-        _add_step_fields(step_h)
+        add_step_fields(step_h)
 
         reset = reset_hash
         step_h['reset'] = reset if reset.any?
@@ -355,22 +355,22 @@ module SignalWire
         step_h
       end
 
-      def _add_step_fields(step_h)
+      def add_step_fields(step_h)
         step_h['step_criteria']  = @step_criteria if @step_criteria
         step_h['functions']      = @functions     unless @functions.nil?
         step_h['valid_steps']    = @valid_steps    if @valid_steps
         step_h['valid_contexts'] = @valid_contexts if @valid_contexts
         step_h['history']        = @history        if @history
-        _add_step_flags(step_h)
+        add_step_flags(step_h)
       end
-      private :_add_step_fields
+      private :add_step_fields
 
-      def _add_step_flags(step_h)
+      def add_step_flags(step_h)
         step_h['end']               = true if @end
         step_h['skip_user_turn']    = true if @skip_user_turn
         step_h['skip_to_next_step'] = true if @skip_to_next_step
       end
-      private :_add_step_flags
+      private :add_step_flags
 
       def reset_hash
         reset = {}
@@ -465,19 +465,19 @@ module SignalWire
         step = Step.new(name)
         @steps[name] = step
         @step_order << name
-        _apply_step_shortcuts(step, task, bullets, criteria, functions, valid_steps)
+        apply_step_shortcuts(step, task, bullets, criteria, functions, valid_steps)
         step
       end
 
       # @api private — apply add_step's optional one-call configuration.
-      def _apply_step_shortcuts(step, task, bullets, criteria, functions, valid_steps)
+      def apply_step_shortcuts(step, task, bullets, criteria, functions, valid_steps)
         step.add_section('Task', task)        unless task.nil?
         step.add_bullets('Process', bullets)  unless bullets.nil?
         step.set_step_criteria(criteria)      unless criteria.nil?
         step.set_functions(functions)         unless functions.nil?
         step.set_valid_steps(valid_steps)     unless valid_steps.nil?
       end
-      private :_apply_step_shortcuts
+      private :apply_step_shortcuts
 
       # Get an existing step by name. Returns Step or nil.
       def get_step(name)
@@ -645,7 +645,7 @@ module SignalWire
 
       def add_enter_filler(lang_code, fillers)
         if lang_code && fillers.is_a?(Array) && fillers.any?
-          @enter_fillers ||= {}
+          @enter_fillers = {} unless defined?(@enter_fillers) && @enter_fillers
           @enter_fillers[lang_code] = fillers
         end
         self
@@ -653,7 +653,7 @@ module SignalWire
 
       def add_exit_filler(lang_code, fillers)
         if lang_code && fillers.is_a?(Array) && fillers.any?
-          @exit_fillers ||= {}
+          @exit_fillers = {} unless defined?(@exit_fillers) && @exit_fillers
           @exit_fillers[lang_code] = fillers
         end
         self
@@ -663,9 +663,9 @@ module SignalWire
         raise ArgumentError, "Context '#{@name}' has no steps defined" if @steps.empty?
 
         ctx = { 'steps' => @step_order.map { |n| @steps[n].to_h } }
-        _add_navigation(ctx)
-        _add_reset_flags(ctx)
-        _add_prompt(ctx)
+        add_navigation(ctx)
+        add_reset_flags(ctx)
+        add_prompt(ctx)
         ctx['enter_fillers'] = @enter_fillers if @enter_fillers
         ctx['exit_fillers']  = @exit_fillers  if @exit_fillers
         ctx['history']       = @history       if @history
@@ -703,7 +703,7 @@ module SignalWire
         Contexts._render_pom_sections(@system_prompt_sections)
       end
 
-      def _add_navigation(ctx)
+      def add_navigation(ctx)
         ctx['valid_contexts'] = @valid_contexts if @valid_contexts
         ctx['valid_steps']    = @valid_steps    if @valid_steps
         ctx['initial_step']   = @initial_step   if @initial_step
@@ -712,14 +712,14 @@ module SignalWire
         ctx['system_prompt'] = sys if sys
       end
 
-      def _add_reset_flags(ctx)
+      def add_reset_flags(ctx)
         ctx['consolidate']  = @consolidate  if @consolidate
         ctx['full_reset']   = @full_reset   if @full_reset
         ctx['user_prompt']  = @user_prompt  if @user_prompt
         ctx['isolated']     = @isolated     if @isolated
       end
 
-      def _add_prompt(ctx)
+      def add_prompt(ctx)
         if @prompt_sections.any?
           ctx['pom'] = @prompt_sections
         elsif @prompt_text
@@ -813,14 +813,14 @@ module SignalWire
       def validate!
         raise ArgumentError, 'At least one context must be defined' if @contexts.empty?
 
-        _validate_single_context_name
-        _validate_steps_present
-        _validate_initial_steps
-        _validate_valid_steps_refs
-        _validate_context_level_refs
-        _validate_step_level_context_refs
-        _validate_gather_infos
-        _validate_reserved_tool_names
+        validate_single_context_name
+        validate_steps_present
+        validate_initial_steps
+        validate_valid_steps_refs
+        validate_context_level_refs
+        validate_step_level_context_refs
+        validate_gather_infos
+        validate_reserved_tool_names
         true
       end
 
@@ -841,7 +841,7 @@ module SignalWire
       private
 
       # Single context must be named "default".
-      def _validate_single_context_name
+      def validate_single_context_name
         return unless @contexts.size == 1
 
         ctx_name = @contexts.keys.first
@@ -850,14 +850,14 @@ module SignalWire
         raise ArgumentError, "When using a single context, it must be named 'default'"
       end
 
-      def _validate_steps_present
+      def validate_steps_present
         @contexts.each do |ctx_name, ctx|
           raise ArgumentError, "Context '#{ctx_name}' must have at least one step" if ctx._steps.empty?
         end
       end
 
       # initial_step (when set) must reference a real step in the context.
-      def _validate_initial_steps
+      def validate_initial_steps
         @contexts.each do |ctx_name, ctx|
           is = ctx._initial_step
           next unless is && !ctx._steps.key?(is)
@@ -869,25 +869,25 @@ module SignalWire
         end
       end
 
-      def _validate_valid_steps_refs
+      def validate_valid_steps_refs
         @contexts.each do |ctx_name, ctx|
           ctx._steps.each do |step_name, step|
             valid = step.to_h['valid_steps']
             next unless valid
 
-            valid.each { |ref| _check_step_ref(ctx, ctx_name, step_name, ref) }
+            valid.each { |ref| check_step_ref(ctx, ctx_name, step_name, ref) }
           end
         end
       end
 
-      def _check_step_ref(ctx, ctx_name, step_name, ref)
+      def check_step_ref(ctx, ctx_name, step_name, ref)
         return if ref == 'next' || ctx._steps.key?(ref)
 
         raise ArgumentError,
               "Step '#{step_name}' in context '#{ctx_name}' references unknown step '#{ref}'"
       end
 
-      def _validate_context_level_refs
+      def validate_context_level_refs
         @contexts.each do |ctx_name, ctx|
           valid = ctx.to_h['valid_contexts']
           next unless valid
@@ -900,18 +900,18 @@ module SignalWire
         end
       end
 
-      def _validate_step_level_context_refs
+      def validate_step_level_context_refs
         @contexts.each do |ctx_name, ctx|
           ctx._steps.each do |step_name, step|
             valid = step.to_h['valid_contexts']
             next unless valid
 
-            valid.each { |ref| _check_context_ref(ctx_name, step_name, ref) }
+            valid.each { |ref| check_context_ref(ctx_name, step_name, ref) }
           end
         end
       end
 
-      def _check_context_ref(ctx_name, step_name, ref)
+      def check_context_ref(ctx_name, step_name, ref)
         return if @contexts.key?(ref)
 
         raise ArgumentError,
@@ -924,29 +924,29 @@ module SignalWire
     module GatherInfoValidation
       private
 
-      def _validate_gather_infos
+      def validate_gather_infos
         @contexts.each do |ctx_name, ctx|
           ctx._steps.each do |step_name, step|
             gather = step.to_h['gather_info']
             next unless gather
 
-            _validate_gather_questions(gather, ctx_name, step_name)
-            _validate_gather_completion(gather, ctx, ctx_name, step_name)
+            validate_gather_questions(gather, ctx_name, step_name)
+            validate_gather_completion(gather, ctx, ctx_name, step_name)
           end
         end
       end
 
-      def _validate_gather_questions(gather, ctx_name, step_name)
+      def validate_gather_questions(gather, ctx_name, step_name)
         questions = gather['questions'] || []
         if questions.empty?
           raise ArgumentError,
                 "Step '#{step_name}' in context '#{ctx_name}' has gather_info with no questions"
         end
 
-        _check_duplicate_keys(questions, ctx_name, step_name)
+        check_duplicate_keys(questions, ctx_name, step_name)
       end
 
-      def _check_duplicate_keys(questions, ctx_name, step_name)
+      def check_duplicate_keys(questions, ctx_name, step_name)
         keys_seen = Set.new
         questions.each do |q|
           if keys_seen.include?(q['key'])
@@ -958,18 +958,18 @@ module SignalWire
         end
       end
 
-      def _validate_gather_completion(gather, ctx, ctx_name, step_name)
+      def validate_gather_completion(gather, ctx, ctx_name, step_name)
         action = gather['completion_action']
         return unless action
 
         if action == 'next_step'
-          _validate_next_step_action(ctx, ctx_name, step_name)
+          validate_next_step_action(ctx, ctx_name, step_name)
         elsif !ctx._steps.key?(action)
-          _raise_unknown_completion_action(ctx, ctx_name, step_name, action)
+          raise_unknown_completion_action(ctx, ctx_name, step_name, action)
         end
       end
 
-      def _validate_next_step_action(ctx, ctx_name, step_name)
+      def validate_next_step_action(ctx, ctx_name, step_name)
         idx = ctx._step_order.index(step_name)
         return if idx < ctx._step_order.size - 1
 
@@ -982,7 +982,7 @@ module SignalWire
               "(default) to stay in '#{step_name}' after gathering completes."
       end
 
-      def _raise_unknown_completion_action(ctx, ctx_name, step_name, action)
+      def raise_unknown_completion_action(ctx, ctx_name, step_name, action)
         available = ctx._steps.keys.sort
         raise ArgumentError,
               "Step '#{step_name}' in context '#{ctx_name}' has gather_info " \
@@ -995,7 +995,7 @@ module SignalWire
       # User-defined tools must not collide with reserved native tool names
       # (next_step / change_context / gather_submit auto-injected by the
       # runtime when contexts/steps are present).
-      def _validate_reserved_tool_names
+      def validate_reserved_tool_names
         return unless @agent.respond_to?(:list_tool_names)
 
         registered = @agent.list_tool_names.to_a

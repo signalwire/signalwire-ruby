@@ -50,46 +50,46 @@ module SignalWire
       end
 
       def get(path, params = nil)
-        _request('GET', path, params: params)
+        request('GET', path, params: params)
       end
 
       def post(path, body = nil, params: nil)
-        _request('POST', path, body: body, params: params)
+        request('POST', path, body: body, params: params)
       end
 
       def put(path, body = nil)
-        _request('PUT', path, body: body)
+        request('PUT', path, body: body)
       end
 
       def patch(path, body = nil)
-        _request('PATCH', path, body: body)
+        request('PATCH', path, body: body)
       end
 
       def delete(path)
-        _request('DELETE', path)
+        request('DELETE', path)
       end
 
       private
 
-      def _request(method, path, body: nil, params: nil)
-        uri = _build_uri(path, params)
-        req = _build_request(method, uri)
-        _apply_headers(req)
+      def request(method, path, body: nil, params: nil)
+        uri = build_uri(path, params)
+        req = build_request(method, uri)
+        apply_headers(req)
         req.body = JSON.generate(body) if body && %w[POST PUT PATCH].include?(method)
 
         http = Net::HTTP.new(uri.host, uri.port)
-        _configure_ssl(http) if uri.scheme == 'https'
+        configure_ssl(http) if uri.scheme == 'https'
 
-        _handle_response(http.request(req), path, method)
+        handle_response(http.request(req), path, method)
       end
 
-      def _build_uri(path, params)
+      def build_uri(path, params)
         uri = URI("#{@base_url}#{path}")
         uri.query = URI.encode_www_form(params) if params && !params.empty?
         uri
       end
 
-      def _build_request(method, uri)
+      def build_request(method, uri)
         klass = {
           'GET' => Net::HTTP::Get, 'POST' => Net::HTTP::Post, 'PUT' => Net::HTTP::Put,
           'PATCH' => Net::HTTP::Patch, 'DELETE' => Net::HTTP::Delete
@@ -99,14 +99,14 @@ module SignalWire
         klass.new(uri)
       end
 
-      def _apply_headers(req)
+      def apply_headers(req)
         req['Authorization'] = @auth_header
         req['Content-Type']  = 'application/json'
         req['Accept']        = 'application/json'
         req['User-Agent']    = 'signalwire-agents-ruby-rest/1.0'
       end
 
-      def _configure_ssl(http)
+      def configure_ssl(http)
         http.use_ssl = true
         # Always verify the server certificate. When an explicit CA bundle
         # was supplied, trust it in addition to the OpenSSL defaults (which
@@ -122,9 +122,9 @@ module SignalWire
         http.cert_store = store
       end
 
-      def _handle_response(response, path, method)
+      def handle_response(response, path, method)
         unless response.is_a?(Net::HTTPSuccess)
-          raise SignalWireRestError.new(response.code.to_i, _parse_error_body(response), path, method)
+          raise SignalWireRestError.new(response.code.to_i, parse_error_body(response), path, method)
         end
 
         return {} if response.code.to_i == 204 || response.body.nil? || response.body.empty?
@@ -132,7 +132,7 @@ module SignalWire
         JSON.parse(response.body)
       end
 
-      def _parse_error_body(response)
+      def parse_error_body(response)
         JSON.parse(response.body)
       rescue StandardError
         response.body

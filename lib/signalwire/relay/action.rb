@@ -55,7 +55,7 @@ module SignalWire
           @completed = true
           @condition.broadcast
         end
-        _fire_on_completed(event)
+        fire_on_completed(event)
       end
 
       # Wait for the action to complete. Returns the terminal event.
@@ -65,7 +65,7 @@ module SignalWire
           return @result if @completed
 
           if timeout
-            _wait_with_timeout(timeout)
+            wait_with_timeout(timeout)
           else
             @condition.wait(@mutex) until @completed
           end
@@ -82,7 +82,7 @@ module SignalWire
       private
 
       # Fire the on_completed callback outside the mutex, swallowing errors.
-      def _fire_on_completed(event)
+      def fire_on_completed(event)
         return unless @on_completed
 
         begin
@@ -93,7 +93,7 @@ module SignalWire
       end
 
       # Block on the condition variable until completed or the deadline passes.
-      def _wait_with_timeout(timeout)
+      def wait_with_timeout(timeout)
         deadline = Time.now + timeout
         until @completed
           remaining = deadline - Time.now

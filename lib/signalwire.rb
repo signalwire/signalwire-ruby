@@ -149,7 +149,9 @@ module SignalWire
   # Singleton SkillRegistry instance used by the top-level helpers.
   # Internal — exposed only so the helpers can share state across calls.
   def _signalwire_singleton_registry
-    @_signalwire_singleton_registry ||= Skills::SkillRegistry.new
+    return @_signalwire_singleton_registry if defined?(@_signalwire_singleton_registry)
+
+    @_signalwire_singleton_registry = Skills::SkillRegistry.new
   end
   private_class_method :_signalwire_singleton_registry
 end

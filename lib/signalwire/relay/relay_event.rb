@@ -25,7 +25,7 @@ module SignalWire
     #     Set members and Hash keys.
     #
     # Subclasses contribute their typed fields by overriding the private
-    # +#_event_fields+ hook (underscore-prefixed, so it stays off the
+    # +#event_fields+ hook (underscore-prefixed, so it stays off the
     # public surface); they never redefine +#to_h+/+#==+/etc. themselves.
     class RelayEvent
       attr_reader :event_type, :params, :call_id, :timestamp
@@ -84,7 +84,7 @@ module SignalWire
           event_type: @event_type,
           call_id: @call_id,
           timestamp: @timestamp
-        }.merge(_event_fields)
+        }.merge(event_fields)
       end
 
       # @return [String] JSON serialization of {#to_h}.
@@ -136,7 +136,7 @@ module SignalWire
       # @api private — set @<key> = value for each kwarg, so wide-field
       # subclasses keep their full +initialize+ signature without a long
       # assignment body. Keys must match the subclass's +attr_reader+ names.
-      def _assign_fields(**fields)
+      def assign_fields(**fields)
         fields.each { |key, value| instance_variable_set("@#{key}", value) }
       end
 
@@ -144,7 +144,7 @@ module SignalWire
       # The base event has none beyond the shared envelope.
       #
       # @return [Hash{Symbol => Object}]
-      def _event_fields
+      def event_fields
         {}
       end
     end
@@ -184,7 +184,7 @@ module SignalWire
 
       private
 
-      def _event_fields
+      def event_fields
         { call_state: @call_state, end_reason: @end_reason,
           direction: @direction, device: @device }
       end
@@ -222,7 +222,7 @@ module SignalWire
 
       private
 
-      def _event_fields
+      def event_fields
         { call_state: @call_state, direction: @direction, device: @device,
           node_id: @node_id, project_id: @project_id, context: @context,
           segment_id: @segment_id, tag: @tag }
@@ -251,7 +251,7 @@ module SignalWire
 
       private
 
-      def _event_fields
+      def event_fields
         { control_id: @control_id, state: @state }
       end
     end
@@ -285,7 +285,7 @@ module SignalWire
 
       private
 
-      def _event_fields
+      def event_fields
         { control_id: @control_id, state: @state, url: @url,
           duration: @duration, size: @size, record: @record }
       end
@@ -318,7 +318,7 @@ module SignalWire
 
       private
 
-      def _event_fields
+      def event_fields
         { control_id: @control_id, state: @state,
           result: @result, final: @final }
       end
@@ -346,7 +346,7 @@ module SignalWire
 
       private
 
-      def _event_fields
+      def event_fields
         { connect_state: @connect_state, peer: @peer }
       end
     end
@@ -373,7 +373,7 @@ module SignalWire
 
       private
 
-      def _event_fields
+      def event_fields
         { control_id: @control_id, detect: @detect }
       end
     end
@@ -400,7 +400,7 @@ module SignalWire
 
       private
 
-      def _event_fields
+      def event_fields
         { control_id: @control_id, fax: @fax }
       end
     end
@@ -431,7 +431,7 @@ module SignalWire
 
       private
 
-      def _event_fields
+      def event_fields
         { control_id: @control_id, state: @state, tap: @tap, device: @device }
       end
     end
@@ -462,7 +462,7 @@ module SignalWire
 
       private
 
-      def _event_fields
+      def event_fields
         { control_id: @control_id, state: @state, url: @url, name: @name }
       end
     end
@@ -489,7 +489,7 @@ module SignalWire
 
       private
 
-      def _event_fields
+      def event_fields
         { control_id: @control_id, state: @state }
       end
     end
@@ -537,7 +537,7 @@ module SignalWire
 
       private
 
-      def _event_fields
+      def event_fields
         { tag: @tag, dial_state: @dial_state, call_data: @call_data }
       end
     end
@@ -570,7 +570,7 @@ module SignalWire
 
       private
 
-      def _event_fields
+      def event_fields
         { state: @state, sip_refer_to: @sip_refer_to,
           sip_refer_response_code: @sip_refer_response_code,
           sip_notify_response_code: @sip_notify_response_code }
@@ -597,7 +597,7 @@ module SignalWire
 
       private
 
-      def _event_fields
+      def event_fields
         { denoised: @denoised }
       end
     end
@@ -624,7 +624,7 @@ module SignalWire
 
       private
 
-      def _event_fields
+      def event_fields
         { control_id: @control_id, state: @state }
       end
     end
@@ -657,7 +657,7 @@ module SignalWire
 
       private
 
-      def _event_fields
+      def event_fields
         { control_id: @control_id, status: @status, queue_id: @queue_id,
           queue_name: @queue_name, position: @position, size: @size }
       end
@@ -683,7 +683,7 @@ module SignalWire
 
       private
 
-      def _event_fields
+      def event_fields
         { state: @state }
       end
     end
@@ -714,7 +714,7 @@ module SignalWire
 
       private
 
-      def _event_fields
+      def event_fields
         { control_id: @control_id, state: @state, url: @url,
           recording_id: @recording_id, duration: @duration, size: @size }
       end
@@ -740,7 +740,7 @@ module SignalWire
 
       private
 
-      def _event_fields
+      def event_fields
         { state: @state }
       end
     end
@@ -769,7 +769,7 @@ module SignalWire
 
       private
 
-      def _event_fields
+      def event_fields
         { conference_id: @conference_id, name: @name, status: @status }
       end
     end
@@ -796,7 +796,7 @@ module SignalWire
 
       private
 
-      def _event_fields
+      def event_fields
         { code: @code, message: @message }
       end
     end
@@ -820,14 +820,14 @@ module SignalWire
                      to_number: '', body: '', media: [], segments: 0,
                      message_state: '', tags: [], **base)
         super(**base)
-        _assign_fields(message_id: message_id, context: context, direction: direction,
-                       from_number: from_number, to_number: to_number, body: body,
-                       media: media, segments: segments, message_state: message_state, tags: tags)
+        assign_fields(message_id: message_id, context: context, direction: direction,
+                      from_number: from_number, to_number: to_number, body: body,
+                      media: media, segments: segments, message_state: message_state, tags: tags)
       end
 
       private
 
-      def _event_fields
+      def event_fields
         { message_id: @message_id, context: @context, direction: @direction,
           from_number: @from_number, to_number: @to_number, body: @body,
           media: @media, segments: @segments, message_state: @message_state,
@@ -854,10 +854,10 @@ module SignalWire
                      to_number: '', body: '', media: [], segments: 0,
                      message_state: '', reason: '', tags: [], **base)
         super(**base)
-        _assign_fields(message_id: message_id, context: context, direction: direction,
-                       from_number: from_number, to_number: to_number, body: body,
-                       media: media, segments: segments, message_state: message_state,
-                       reason: reason, tags: tags)
+        assign_fields(message_id: message_id, context: context, direction: direction,
+                      from_number: from_number, to_number: to_number, body: body,
+                      media: media, segments: segments, message_state: message_state,
+                      reason: reason, tags: tags)
       end
 
       # Typed predicate over {#message_state}, alongside the bare string.
@@ -871,7 +871,7 @@ module SignalWire
 
       private
 
-      def _event_fields
+      def event_fields
         { message_id: @message_id, context: @context, direction: @direction,
           from_number: @from_number, to_number: @to_number, body: @body,
           media: @media, segments: @segments, message_state: @message_state,

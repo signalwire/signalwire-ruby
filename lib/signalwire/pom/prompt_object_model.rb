@@ -160,7 +160,7 @@ module SignalWire
       # Mirrors Python's
       # ``PromptObjectModel.add_pom_as_subsection(target, pom_to_add)``.
       def add_pom_as_subsection(target, pom_to_add)
-        target_section = _resolve_target_section(target)
+        target_section = resolve_target_section(target)
         pom_to_add.sections.each do |section|
           target_section.subsections << section
         end
@@ -168,7 +168,7 @@ module SignalWire
 
       private
 
-      def _resolve_target_section(target)
+      def resolve_target_section(target)
         case target
         when String
           section = find_section(target)

@@ -36,7 +36,7 @@ module SignalWire
 
         def prompt_section_bullets
           [
-            "Use the #{@tool_name} tool when users ask for information that might be in the knowledge base",
+            "Use the #{tool_name} tool when users ask for information that might be in the knowledge base",
             'Search for relevant information using clear, specific queries',
             'Summarize search results in a clear, helpful way',
             'If no results are found, suggest the user try rephrasing their question'
@@ -47,7 +47,7 @@ module SignalWire
         # the host (the `/api/datasphere/...` path is preserved so the audit
         # can match on `datasphere` in req.path).
         def datasphere_host_url
-          resolved_base_url('DATASPHERE_BASE_URL', "https://#{@space_name}.signalwire.com")
+          resolved_base_url('DATASPHERE_BASE_URL', "https://#{space_name}.signalwire.com")
         end
 
         def handle_search(args, _raw_data)
@@ -66,12 +66,12 @@ module SignalWire
 
         def post_search(query)
           payload = {
-            'document_id' => @document_id, 'query_string' => query,
-            'distance' => @distance, 'count' => @count
+            'document_id' => document_id, 'query_string' => query,
+            'distance' => distance, 'count' => count
           }
-          payload['tags'] = @tags if @tags
+          payload['tags'] = tags if tags
 
-          uri = URI(@api_url)
+          uri = URI(api_url)
           http_for(uri).request(build_search_request(uri, payload))
         end
 
@@ -85,7 +85,7 @@ module SignalWire
           req = Net::HTTP::Post.new(uri.path)
           req['Content-Type'] = 'application/json'
           req['Accept']       = 'application/json'
-          req.basic_auth(@project_id, @token)
+          req.basic_auth(project_id, token)
           req.body = payload.to_json
           req
         end
@@ -94,7 +94,7 @@ module SignalWire
           # Real DataSphere uses `chunks`; audit fixtures also serve `results`
           # (real-shape upstream-response variation). Accept both shapes.
           chunks = data['chunks'] || data['results'] || []
-          return Swaig::FunctionResult.new(@no_results_msg) if chunks.empty?
+          return Swaig::FunctionResult.new(no_results_msg) if chunks.empty?
 
           Swaig::FunctionResult.new(
             "I found #{chunks.size} result(s) for '#{query}':\n\n#{format_chunks(chunks)}"
@@ -130,7 +130,7 @@ module SignalWire
           true
         end
 
-        def instance_key = "datasphere_#{@tool_name}"
+        def instance_key = "datasphere_#{tool_name}"
 
         # Tears down the skill. A fresh Net::HTTP connection is opened per
         # request (no persistent session to close), so teardown drops the
@@ -145,7 +145,7 @@ module SignalWire
         def register_tools
           [
             {
-              name: @tool_name,
+              name: tool_name,
               description: TOOL_DESCRIPTION,
               parameters: {
                 'query' => { 'type' => 'string', 'description' => 'The search query' }
@@ -161,7 +161,7 @@ module SignalWire
         def get_global_data
           {
             'datasphere_enabled' => true,
-            'document_id' => @document_id,
+            'document_id' => document_id,
             'knowledge_provider' => 'SignalWire DataSphere'
           }
         end
@@ -170,7 +170,7 @@ module SignalWire
           [
             {
               'title' => 'Knowledge Search Capability',
-              'body' => "You can search a knowledge base for information using the #{@tool_name} tool.",
+              'body' => "You can search a knowledge base for information using the #{tool_name} tool.",
               'bullets' => prompt_section_bullets
             }
           ]
@@ -187,6 +187,11 @@ module SignalWire
             'distance' => { 'type' => 'number', 'default' => 3.0 }
           }
         end
+
+        private
+
+        attr_reader :space_name, :project_id, :token, :document_id, :count,
+                    :distance, :tool_name, :tags, :no_results_msg, :api_url
       end
     end
   end

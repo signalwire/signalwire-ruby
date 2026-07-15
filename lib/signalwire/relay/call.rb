@@ -20,12 +20,12 @@ module SignalWire
       def initialize(client, call_id:, node_id:, project_id: '', context: '',
                      tag: '', direction: '', device: {}, state: '', segment_id: '')
         @client = client
-        _init_identity(call_id, node_id, project_id, context, tag, direction, device, state, segment_id)
-        _init_event_state
+        init_identity(call_id, node_id, project_id, context, tag, direction, device, state, segment_id)
+        init_event_state
       end
 
       # Assign the descriptive call attributes (the public attr_readers).
-      def _init_identity(call_id, node_id, project_id, context, tag, direction, device, state, segment_id)
+      def init_identity(call_id, node_id, project_id, context, tag, direction, device, state, segment_id)
         @call_id    = call_id
         @node_id    = node_id
         @project_id = project_id
@@ -39,7 +39,7 @@ module SignalWire
 
       # Initialize the per-call event/action bookkeeping and synchronization
       # primitives (listeners, active actions, ended-state condition).
-      def _init_event_state
+      def init_event_state
         # Event listeners: event_type -> list of handlers
         @listeners = {}
         # Active actions indexed by control_id
@@ -58,22 +58,22 @@ module SignalWire
       # Send a calling.<method> JSON-RPC request for this call.
       def _execute(method, extra_params = nil)
         params = {
-          'node_id' => @node_id,
-          'call_id' => @call_id
+          'node_id' => node_id,
+          'call_id' => call_id
         }
         params.merge!(extra_params) if extra_params
-        @client.execute("calling.#{method}", params)
+        client.execute("calling.#{method}", params)
       rescue RelayError => e
         # A gone (404/410) call returns {} instead of raising; everything else
         # propagates.
-        raise unless _call_gone_error?(e)
+        raise unless call_gone_error?(e)
 
-        warn "[RELAY] Call #{@call_id} gone during #{method} (code=#{e.code})"
+        warn "[RELAY] Call #{call_id} gone during #{method} (code=#{e.code})"
         {}
       end
 
       # True when a RelayError carries a 404/410 "call gone" code.
-      def _call_gone_error?(error)
+      def call_gone_error?(error)
         code = error.code
         code && [404, 410, '404', '410'].include?(code)
       end
@@ -92,14 +92,14 @@ module SignalWire
       # Called by RelayClient when an event arrives for this call.
       def _dispatch_event(payload)
         event = Relay.parse_event(payload)
-        _apply_state_event(event) if event.event_type == EVENT_CALL_STATE
-        _route_to_action(event)
-        _notify_listeners(event)
+        apply_state_event(event) if event.event_type == EVENT_CALL_STATE
+        route_to_action(event)
+        notify_listeners(event)
       end
 
       # Update @state from a call.state event and, on ENDED, mark the call
       # ended and resolve any still-pending actions.
-      def _apply_state_event(event)
+      def apply_state_event(event)
         @state = event.params['call_state'] || @state
         return unless @state == CALL_STATE_ENDED
 
@@ -114,7 +114,7 @@ module SignalWire
 
       # Route an event to the active action matching its control_id, dropping
       # the action once completed.
-      def _route_to_action(event)
+      def route_to_action(event)
         control_id = event.params['control_id'] || ''
         return if control_id.empty? || !@actions.key?(control_id)
 
@@ -125,7 +125,7 @@ module SignalWire
 
       # Fire registered listeners for the event's type, swallowing handler
       # errors so one bad handler can't break dispatch.
-      def _notify_listeners(event)
+      def notify_listeners(event)
         event_type = event.event_type
         handlers = @mutex.synchronize { (@listeners[event_type] || []).dup }
         handlers.each do |handler|
@@ -140,14 +140,14 @@ module SignalWire
         @mutex.synchronize do
           return @end_event if @ended
 
-          _block_until(@ended_cv, @mutex, timeout) { @ended }
+          block_until(@ended_cv, @mutex, timeout) { @ended }
           @end_event
         end
       end
 
       # Block on +condition+ (holding +mutex+) until the block returns truthy,
       # or +timeout+ seconds elapse. Caller must already hold +mutex+.
-      def _block_until(condition, mutex, timeout)
+      def block_until(condition, mutex, timeout)
         if timeout
           deadline = Time.now + timeout
           until yield
@@ -172,7 +172,7 @@ module SignalWire
       # already at/past the target resolves with a synthetic state event
       # (matching the legacy SDK's short-circuit).
       def _wait_for_state(target, timeout)
-        return _synthetic_state_event if _state_rank(@state) >= _state_rank(target)
+        return synthetic_state_event if state_rank(@state) >= state_rank(target)
 
         wait_for(
           EVENT_CALL_STATE,
@@ -183,13 +183,13 @@ module SignalWire
 
       # Short-circuit event carrying the current @state, used when the call is
       # already at or past the requested wait target.
-      def _synthetic_state_event
+      def synthetic_state_event
         RelayEvent.new(event_type: EVENT_CALL_STATE, params: { 'call_state' => @state })
       end
 
       # Ordinal of a call state in CALL_STATES (created < ringing < answered <
       # ending < ended); unknown states rank -1.
-      def _state_rank(state)
+      def state_rank(state)
         idx = CALL_STATES.index(state)
         idx.nil? ? -1 : idx
       end
@@ -231,25 +231,25 @@ module SignalWire
         mutex   = Mutex.new
         cv      = ConditionVariable.new
         state   = { result: nil, satisfied: false }
-        handler = _one_shot_handler(mutex, cv, state, predicate)
+        handler = one_shot_handler(mutex, cv, state, predicate)
 
         on(event_type, &handler)
-        _with_one_shot_listener(event_type, handler) do
-          mutex.synchronize { _block_until(cv, mutex, timeout) { state[:satisfied] } }
+        with_one_shot_listener(event_type, handler) do
+          mutex.synchronize { block_until(cv, mutex, timeout) { state[:satisfied] } }
           state[:result]
         end
       end
 
       # Run the block, guaranteeing the one-shot listener is removed afterward.
-      def _with_one_shot_listener(event_type, handler)
+      def with_one_shot_listener(event_type, handler)
         yield
       ensure
-        _remove_listener(event_type, handler)
+        remove_listener(event_type, handler)
       end
 
       # Build a one-shot event handler that, under +mutex+, records the first
       # event satisfying +predicate+ into +state+ and signals +cv+.
-      def _one_shot_handler(mutex, condition, state, predicate)
+      def one_shot_handler(mutex, condition, state, predicate)
         lambda do |event|
           mutex.synchronize do
             next if state[:satisfied]
@@ -263,7 +263,7 @@ module SignalWire
       end
 
       # Remove a one-shot listener so it doesn't fire for later events.
-      def _remove_listener(event_type, handler)
+      def remove_listener(event_type, handler)
         @mutex.synchronize do
           listeners = @listeners[event_type]
           listeners&.delete(handler)
@@ -274,37 +274,37 @@ module SignalWire
       # Action helper
       # ------------------------------------------------------------------
 
-      def _start_action(action, method, params, on_completed: nil)
+      def start_action(action, method, params, on_completed: nil)
         if @state == CALL_STATE_ENDED
-          warn "[RELAY] Call #{@call_id} already ended, skipping #{method}"
-          action._resolve(_gone_event)
+          warn "[RELAY] Call #{call_id} already ended, skipping #{method}"
+          action._resolve(gone_event)
           return action
         end
         action._set_on_completed(on_completed) if on_completed
         @actions[action.control_id] = action
-        result = _execute_action(action, method, params)
+        result = execute_action(action, method, params)
         # _execute returns {} when the call is gone (404/410)
-        _resolve_gone(action) if result.nil? || result.empty?
+        resolve_gone(action) if result.nil? || result.empty?
         action
       end
 
       # Run the action's RPC; on error drop it, resolve it gone, and re-raise.
-      def _execute_action(action, method, params)
+      def execute_action(action, method, params)
         _execute(method, params)
       rescue StandardError
         @actions.delete(action.control_id)
-        action._resolve(_gone_event)
+        action._resolve(gone_event)
         raise
       end
 
       # Drop a pending action and resolve it with a synthetic gone event.
-      def _resolve_gone(action)
+      def resolve_gone(action)
         @actions.delete(action.control_id)
-        action._resolve(_gone_event) unless action.done?
+        action._resolve(gone_event) unless action.done?
       end
 
       # Synthetic "call gone" terminal event.
-      def _gone_event
+      def gone_event
         RelayEvent.new(event_type: '', params: {})
       end
 
@@ -521,7 +521,7 @@ module SignalWire
         params['loop']      = loop_count if loop_count
         kwargs.each { |k, v| params[k.to_s] = v }
         action = PlayAction.new(self, cid)
-        _start_action(action, 'play', params, on_completed: on_completed)
+        start_action(action, 'play', params, on_completed: on_completed)
       end
 
       # Play text-to-speech. Typed convenience over #play.
@@ -585,7 +585,7 @@ module SignalWire
         params = { 'control_id' => cid, 'record' => record_obj }
         kwargs.each { |k, v| params[k.to_s] = v }
         action = RecordAction.new(self, cid)
-        _start_action(action, 'record', params, on_completed: on_completed)
+        start_action(action, 'record', params, on_completed: on_completed)
       end
 
       # ------------------------------------------------------------------
@@ -599,7 +599,7 @@ module SignalWire
         params['volume'] = volume if volume
         kwargs.each { |k, v| params[k.to_s] = v }
         action = CollectAction.new(self, cid)
-        _start_action(action, 'play_and_collect', params, on_completed: on_completed)
+        start_action(action, 'play_and_collect', params, on_completed: on_completed)
       end
 
       def collect(collect_opts, control_id: nil, on_completed: nil, **kwargs)
@@ -608,7 +608,7 @@ module SignalWire
         params.merge!(collect_opts.transform_keys(&:to_s)) if collect_opts.is_a?(Hash)
         kwargs.each { |k, v| params[k.to_s] = v }
         action = StandaloneCollectAction.new(self, cid)
-        _start_action(action, 'collect', params, on_completed: on_completed)
+        start_action(action, 'collect', params, on_completed: on_completed)
       end
 
       # Play TTS then collect input. Typed media over #play_and_collect.
@@ -651,7 +651,7 @@ module SignalWire
         params['timeout'] = timeout if timeout
         kwargs.each { |k, v| params[k.to_s] = v }
         action = DetectAction.new(self, cid)
-        _start_action(action, 'detect', params, on_completed: on_completed)
+        start_action(action, 'detect', params, on_completed: on_completed)
       end
 
       # Detect DTMF digits. Typed convenience over #detect.
@@ -713,7 +713,7 @@ module SignalWire
         params = { 'control_id' => cid, 'document' => document }
         kwargs.each { |k, v| params[k.to_s] = v }
         action = FaxAction.new(self, cid, 'send_fax')
-        _start_action(action, 'send_fax', params, on_completed: on_completed)
+        start_action(action, 'send_fax', params, on_completed: on_completed)
       end
 
       def receive_fax(control_id: nil, on_completed: nil, **kwargs)
@@ -721,7 +721,7 @@ module SignalWire
         params = { 'control_id' => cid }
         kwargs.each { |k, v| params[k.to_s] = v }
         action = FaxAction.new(self, cid, 'receive_fax')
-        _start_action(action, 'receive_fax', params, on_completed: on_completed)
+        start_action(action, 'receive_fax', params, on_completed: on_completed)
       end
 
       # ------------------------------------------------------------------
@@ -733,7 +733,7 @@ module SignalWire
         params = { 'control_id' => cid, 'tap' => tap_opts, 'device' => device }
         kwargs.each { |k, v| params[k.to_s] = v }
         action = TapAction.new(self, cid)
-        _start_action(action, 'tap', params, on_completed: on_completed)
+        start_action(action, 'tap', params, on_completed: on_completed)
       end
 
       # ------------------------------------------------------------------
@@ -745,7 +745,7 @@ module SignalWire
         params = { 'control_id' => cid, 'url' => url }
         kwargs.each { |k, v| params[k.to_s] = v }
         action = StreamAction.new(self, cid)
-        _start_action(action, 'stream', params, on_completed: on_completed)
+        start_action(action, 'stream', params, on_completed: on_completed)
       end
 
       # ------------------------------------------------------------------
@@ -757,7 +757,7 @@ module SignalWire
         params = { 'control_id' => cid }
         kwargs.each { |k, v| params[k.to_s] = v }
         action = TranscribeAction.new(self, cid)
-        _start_action(action, 'transcribe', params, on_completed: on_completed)
+        start_action(action, 'transcribe', params, on_completed: on_completed)
       end
 
       # ------------------------------------------------------------------
@@ -769,7 +769,7 @@ module SignalWire
         params = { 'control_id' => cid, 'payment_connector_url' => payment_connector_url }
         kwargs.each { |k, v| params[k.to_s] = v }
         action = PayAction.new(self, cid)
-        _start_action(action, 'pay', params, on_completed: on_completed)
+        start_action(action, 'pay', params, on_completed: on_completed)
       end
 
       # ------------------------------------------------------------------
@@ -781,16 +781,31 @@ module SignalWire
         params = { 'control_id' => cid }
         kwargs.each { |k, v| params[k.to_s] = v }
         action = AIAction.new(self, cid)
-        _start_action(action, 'ai', params, on_completed: on_completed)
+        start_action(action, 'ai', params, on_completed: on_completed)
       end
 
       def to_s
-        "Call(id=#{@call_id}, state=#{@state}, direction=#{@direction})"
+        "Call(id=#{call_id}, state=#{@state}, direction=#{direction})"
       end
 
       def inspect
         to_s
       end
+
+      # Owning RelayClient — set once at construction, read-only thereafter.
+      attr_reader :client
+
+      # Internal helpers (formerly leading-underscore by convention). Not part of
+      # the public/Python surface — declared private so the cross-port surface
+      # enumerator continues to exclude them. _execute / _dispatch_event /
+      # _wait_for_state stay public+underscored: they are invoked cross-instance
+      # (Action, RelayClient, and the test suite call them with an explicit
+      # receiver), which private/protected would break.
+      private :client, :init_identity, :init_event_state, :call_gone_error?,
+              :apply_state_event, :route_to_action, :notify_listeners, :block_until,
+              :synthetic_state_event, :state_rank, :with_one_shot_listener,
+              :one_shot_handler, :remove_listener, :start_action, :execute_action,
+              :resolve_gone, :gone_event
     end
   end
 end

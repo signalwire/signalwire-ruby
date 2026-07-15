@@ -54,7 +54,7 @@ module SignalWire
       def handle_transfer(args, _raw_data)
         dept_name = args['department']
         dept = @departments.find { |d| d['name'] == dept_name }
-        return _department_not_found_result unless dept
+        return department_not_found_result unless dept
 
         result = Swaig::FunctionResult.new("Transferring you to #{dept_name} now.")
         result.connect(dept['number'])
@@ -90,7 +90,7 @@ module SignalWire
         end
       end
 
-      def _department_not_found_result
+      def department_not_found_result
         names = @departments.map { |d| d['name'] }.join(', ')
         Swaig::FunctionResult.new(
           "I couldn't find that department. Available departments: #{names}"
