@@ -18,85 +18,16 @@
 # reached via the skills' own SPIDER_BASE_URL / WIKIPEDIA_BASE_URL overrides —
 # so the actual fetch/parse code path runs, not a stand-in.
 
-require 'minitest/autorun'
-require 'webrick'
+require_relative 'test_helper'
 require 'json'
-require 'socket'
 
-require_relative '../lib/signalwire/swaig/function_result'
-require_relative '../lib/signalwire/skills/skill_base'
-require_relative '../lib/signalwire/skills/skill_registry'
 require_relative '../lib/signalwire/skills/builtin/datetime'
 require_relative '../lib/signalwire/skills/builtin/math'
 require_relative '../lib/signalwire/skills/builtin/spider'
 require_relative '../lib/signalwire/skills/builtin/wikipedia_search'
 
-# ---------------------------------------------------------------------------
-# Tiny local HTTP fixture. A block decides each response based on the request;
-# returns [content_type, body] (or nil for 404). Bound to an ephemeral port on
-# loopback so tests never touch the network or the shared mock server.
-# ---------------------------------------------------------------------------
-class LocalHTTPFixture
-  attr_reader :port
-
-  def initialize(&handler)
-    @handler = handler
-    @port = pick_free_port
-    @server = build_server(@port)
-    @server.mount_proc('/') { |req, res| render_response(req, res) }
-    @thread = Thread.new { @server.start }
-    wait_until_ready
-  end
-
-  def base_url
-    "http://127.0.0.1:#{@port}"
-  end
-
-  def shutdown
-    @server&.shutdown
-    @thread&.join(5)
-  end
-
-  private
-
-  def build_server(port)
-    WEBrick::HTTPServer.new(
-      BindAddress: '127.0.0.1',
-      Port: port,
-      Logger: WEBrick::Log.new(File.open(File::NULL, 'w'), WEBrick::Log::FATAL),
-      AccessLog: []
-    )
-  end
-
-  def render_response(req, res)
-    result = @handler.call(req)
-    if result.nil?
-      res.status = 404
-      res.body = 'not found'
-    else
-      content_type, body = result
-      res.status = 200
-      res['Content-Type'] = content_type
-      res.body = body
-    end
-  end
-
-  def pick_free_port
-    s = TCPServer.new('127.0.0.1', 0)
-    port = s.addr[1]
-    s.close
-    port
-  end
-
-  def wait_until_ready
-    20.times do
-      TCPSocket.new('127.0.0.1', @port).close
-      return
-    rescue Errno::ECONNREFUSED
-      sleep 0.05
-    end
-  end
-end
+# The ephemeral-port WEBrick fixture now lives in the shared helper.
+LocalHTTPFixture = TestHelper::LocalHTTPFixture
 
 # ---------------------------------------------------------------------------
 # DateTimeSkill / MathSkill: setup + get_parameter_schema overrides

@@ -1,38 +1,65 @@
 # frozen_string_literal: true
 
-require 'minitest/autorun'
-require_relative '../../lib/signalwire/swaig/function_result'
-require_relative '../../lib/signalwire/datamap/data_map'
-require_relative '../../lib/signalwire/skills/skill_base'
-require_relative '../../lib/signalwire/skills/skill_registry'
+require_relative '../test_helper'
 require_relative '../../lib/signalwire/skills/builtin/weather_api'
 
 class WeatherApiSkillDetailedTest < Minitest::Test
-  def test_setup_requires_api_key
-    saved = ENV.delete('WEATHER_API_KEY')
-    begin
-      factory = SignalWire::Skills::SkillRegistry.get_factory('weather_api')
-      skill = factory.call({})
+  include TestHelper::Helpers
 
-      refute skill.setup
+  # Each input path of the old test_setup_requires_api_key is now its own
+  # method so a failure pinpoints which path broke.
+  def test_setup_fails_without_api_key
+    without_env_vars('WEATHER_API_KEY') do
+      skill = build_skill('weather_api')
 
-      skill_with_key = factory.call({ 'api_key' => 'test_key' })
-
-      assert skill_with_key.setup
-    ensure
-      ENV['WEATHER_API_KEY'] = saved if saved
+      refute skill.setup, 'weather_api must fail setup without an API key'
     end
   end
 
+  def test_setup_succeeds_with_api_key
+    without_env_vars('WEATHER_API_KEY') do
+      skill = build_skill('weather_api', 'api_key' => 'test_key')
+
+      assert skill.setup, 'weather_api must set up once an API key is provided'
+    end
+  end
+
+  # The exact parameters schema the weather_api datamap advertises.
+  EXPECTED_PARAMETERS = {
+    'type' => 'object',
+    'properties' => {
+      'location' => { 'type' => 'string',
+                      'description' => 'The city, state, country, or location to get weather for' }
+    },
+    'required' => ['location']
+  }.freeze
+
   def test_register_tools_returns_datamap
-    factory = SignalWire::Skills::SkillRegistry.get_factory('weather_api')
-    skill = factory.call({ 'api_key' => 'test_key' })
+    skill = build_skill('weather_api', 'api_key' => 'test_key')
     skill.setup
     tools = skill.register_tools
 
     assert_equal 1, tools.size
-    assert tools[0].key?(:datamap)
-    assert_equal 'get_weather', tools[0][:datamap]['function']
+    # Exact shape of the returned datamap tool (was: presence-only key check).
+    assert_weather_datamap(tools[0][:datamap])
+  end
+
+  # Assert the full shape of the weather datamap tool.
+  def assert_weather_datamap(datamap)
+    assert_kind_of Hash, datamap
+    assert_equal 'get_weather', datamap['function']
+    assert_equal 'Get current weather information for any location', datamap['description']
+    assert_equal EXPECTED_PARAMETERS, datamap['parameters']
+    assert_equal ['error'], datamap['data_map']['error_keys']
+    assert_weather_webhook(datamap['data_map']['webhooks'][0])
+  end
+
+  # Assert the shape of the weather datamap's single webhook.
+  def assert_weather_webhook(webhook)
+    assert_equal 'GET', webhook['method']
+    assert_includes webhook['url'], 'api.weatherapi.com/v1/current.json'
+    assert_includes webhook['url'], 'key=test_key'
+    assert_includes webhook['output']['response'], 'Fahrenheit'
   end
 
   def test_custom_tool_name

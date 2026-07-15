@@ -1,20 +1,9 @@
 # frozen_string_literal: true
 
-require 'minitest/autorun'
-require_relative '../../lib/signalwire/swaig/function_result'
-require_relative '../../lib/signalwire/datamap/data_map'
-require_relative '../../lib/signalwire/skills/skill_base'
-require_relative '../../lib/signalwire/skills/skill_manager'
-require_relative '../../lib/signalwire/skills/skill_registry'
-
-SignalWire::Skills::SkillRegistry.register_builtins!
+require_relative '../test_helper'
 
 class RegistryDetailedTest < Minitest::Test
-  EXPECTED_SKILLS = %w[
-    api_ninjas_trivia claude_skills custom_skills datasphere datasphere_serverless
-    datetime google_maps info_gatherer joke math native_vector_search
-    play_background_file spider swml_transfer weather_api web_search wikipedia_search
-  ].freeze
+  EXPECTED_SKILLS = TestHelper::BUILTIN_SKILL_NAMES
 
   def test_has_all_builtin_skills
     registered = SignalWire::Skills::SkillRegistry.list_skills.sort

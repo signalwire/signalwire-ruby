@@ -11,13 +11,13 @@ class RelayMessageDetailedTest < Minitest::Test
     msg = SignalWire::Relay::Message.new(
       message_id: 'msg-1', context: 'default', direction: 'outbound',
       from_number: '+15551111111', to_number: '+15552222222',
-      body: 'Hello', state: 'queued'
+      body: 'Hello', state: SignalWire::Relay::MessageState::QUEUED
     )
 
     assert_equal 'msg-1', msg.message_id
     assert_equal 'outbound', msg.direction
     assert_equal 'Hello', msg.body
-    assert_equal 'queued', msg.state
+    assert_equal SignalWire::Relay::MessageState::QUEUED, msg.state
     refute_predicate msg, :done?
   end
 
@@ -27,25 +27,28 @@ class RelayMessageDetailedTest < Minitest::Test
   end
 
   def test_message_state_dispatch
-    msg = SignalWire::Relay::Message.new(message_id: 'msg-2', state: 'queued')
+    msg = SignalWire::Relay::Message.new(message_id: 'msg-2',
+                                         state: SignalWire::Relay::MessageState::QUEUED)
 
-    msg._dispatch_event(state_event('msg-2', 'sent'))
+    msg._dispatch_event(state_event('msg-2', SignalWire::Relay::MessageState::SENT))
 
-    assert_equal 'sent', msg.state
+    assert_equal SignalWire::Relay::MessageState::SENT, msg.state
     refute_predicate msg, :done?
 
-    msg._dispatch_event(state_event('msg-2', 'delivered'))
+    msg._dispatch_event(state_event('msg-2', SignalWire::Relay::MessageState::DELIVERED))
 
-    assert_equal 'delivered', msg.state
+    assert_equal SignalWire::Relay::MessageState::DELIVERED, msg.state
     assert_predicate msg, :done?
   end
 
   def test_message_on_completed
-    msg = SignalWire::Relay::Message.new(message_id: 'msg-4', state: 'queued')
+    msg = SignalWire::Relay::Message.new(message_id: 'msg-4',
+                                         state: SignalWire::Relay::MessageState::QUEUED)
     callback_fired = false
     msg.on_completed { callback_fired = true }
 
-    msg._dispatch_event(state_event('msg-4', 'failed', 'reason' => 'carrier error'))
+    msg._dispatch_event(state_event('msg-4', SignalWire::Relay::MessageState::FAILED,
+                                    'reason' => 'carrier error'))
 
     assert callback_fired
     assert_equal 'carrier error', msg.reason
@@ -53,7 +56,7 @@ class RelayMessageDetailedTest < Minitest::Test
 
   def test_message_to_s
     msg = SignalWire::Relay::Message.new(
-      message_id: 'msg-6', direction: 'outbound', state: 'queued',
+      message_id: 'msg-6', direction: 'outbound', state: SignalWire::Relay::MessageState::QUEUED,
       from_number: '+15551111111', to_number: '+15552222222'
     )
     str = msg.to_s
@@ -63,10 +66,11 @@ class RelayMessageDetailedTest < Minitest::Test
   end
 
   def test_message_wait_with_timeout
-    msg = SignalWire::Relay::Message.new(message_id: 'msg-3', state: 'queued')
+    msg = SignalWire::Relay::Message.new(message_id: 'msg-3',
+                                         state: SignalWire::Relay::MessageState::QUEUED)
     Thread.new do
       sleep 0.05
-      msg._dispatch_event(state_event('msg-3', 'delivered'))
+      msg._dispatch_event(state_event('msg-3', SignalWire::Relay::MessageState::DELIVERED))
     end
     result = msg.wait(timeout: 2)
 
@@ -77,7 +81,7 @@ end
 
 # Tier-2 idiom layer: pattern matching / to_h / value equality.
 class RelayMessageIdiomTest < Minitest::Test
-  def sample_message(message_id: 'msg-9', state: 'queued')
+  def sample_message(message_id: 'msg-9', state: SignalWire::Relay::MessageState::QUEUED)
     SignalWire::Relay::Message.new(
       message_id: message_id, context: 'default', direction: 'outbound',
       from_number: '+15551111111', to_number: '+15552222222',
@@ -103,18 +107,18 @@ class RelayMessageIdiomTest < Minitest::Test
   def test_message_deconstruct_keys_subset
     subset = sample_message.deconstruct_keys(%i[message_id state])
 
-    assert_equal({ message_id: 'msg-9', state: 'queued' }, subset)
+    assert_equal({ message_id: 'msg-9', state: SignalWire::Relay::MessageState::QUEUED }, subset)
     refute subset.key?(:body), 'subset must not include unrequested keys'
   end
 
   def test_message_array_pattern_match
     destructured =
-      case sample_message(message_id: 'msg-arr', state: 'sent')
+      case sample_message(message_id: 'msg-arr', state: SignalWire::Relay::MessageState::SENT)
       in [id, direction, state]
         [id, direction, state]
       end
 
-    assert_equal %w[msg-arr outbound sent], destructured
+    assert_equal ['msg-arr', 'outbound', SignalWire::Relay::MessageState::SENT], destructured
   end
 
   def test_message_to_h_excludes_completion_machinery

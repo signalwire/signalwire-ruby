@@ -23,7 +23,8 @@ class RelayCallDetailedTest < Minitest::Test
     @call = SignalWire::Relay::Call.new(
       @stub_client,
       call_id: 'call-1', node_id: 'node-1', project_id: 'proj-1',
-      context: 'default', tag: 'tag-1', direction: 'inbound', state: 'answered'
+      context: 'default', tag: 'tag-1', direction: 'inbound',
+      state: SignalWire::Relay::CallState::ANSWERED
     )
   end
 
@@ -34,14 +35,14 @@ class RelayCallDetailedTest < Minitest::Test
     assert_equal 'default', @call.context
     assert_equal 'tag-1', @call.tag
     assert_equal 'inbound', @call.direction
-    assert_equal 'answered', @call.state
+    assert_equal SignalWire::Relay::CallState::ANSWERED, @call.state
   end
 
   def test_call_to_s
     str = @call.to_s
 
     assert_match(/call-1/, str)
-    assert_match(/answered/, str)
+    assert_match(/#{SignalWire::Relay::CallState::ANSWERED}/o, str)
   end
 
   def test_call_answer
@@ -118,11 +119,12 @@ class RelayCallDetailedTest < Minitest::Test
   def test_state_update_on_event
     payload = {
       'event_type' => 'calling.call.state',
-      'params' => { 'call_id' => 'call-1', 'call_state' => 'ended', 'end_reason' => 'hangup' }
+      'params' => { 'call_id' => 'call-1', 'call_state' => SignalWire::Relay::CallState::ENDED,
+                    'end_reason' => 'hangup' }
     }
     @call._dispatch_event(payload)
 
-    assert_equal 'ended', @call.state
+    assert_equal SignalWire::Relay::CallState::ENDED, @call.state
     assert_predicate @call, :ended?
   end
 
@@ -132,7 +134,7 @@ class RelayCallDetailedTest < Minitest::Test
     refute_predicate action, :done?
     payload = {
       'event_type' => 'calling.call.state',
-      'params' => { 'call_id' => 'call-1', 'call_state' => 'ended' }
+      'params' => { 'call_id' => 'call-1', 'call_state' => SignalWire::Relay::CallState::ENDED }
     }
     @call._dispatch_event(payload)
 

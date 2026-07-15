@@ -1,10 +1,9 @@
 # frozen_string_literal: true
 
-require 'minitest/autorun'
+require_relative 'test_helper'
 require 'json'
 require 'net/http'
 require 'uri'
-require 'socket'
 require 'stringio'
 
 # Suppress logging during tests
@@ -189,6 +188,8 @@ end
 
 # Integration tests that start a real WEBrick server and test the CLI against it
 class SwaigTestCLIIntegrationTest < Minitest::Test
+  include TestHelper::Helpers
+
   def setup
     @port = find_available_port
     @agent = build_test_agent(@port)
@@ -270,25 +271,6 @@ class SwaigTestCLIIntegrationTest < Minitest::Test
   end
 
   private
-
-  def find_available_port
-    server = TCPServer.new('127.0.0.1', 0)
-    port = server.addr[1]
-    server.close
-    port
-  end
-
-  def wait_for_server(host, port, timeout: 5)
-    deadline = Time.now + timeout
-    loop do
-      TCPSocket.new(host, port).close
-      return
-    rescue Errno::ECONNREFUSED, Errno::ECONNRESET
-      raise "Server did not start within #{timeout}s" if Time.now > deadline
-
-      sleep 0.05
-    end
-  end
 
   def capture_stdout
     old_stdout = $stdout
