@@ -22,17 +22,17 @@ module SignalWire
         # webhook responses around 55s; once it fires, in-flight scrapes are
         # abandoned and we fall back to CSE snippets. THIS IS THE CONTRACT.
         def run_search(query)
-          deadline_at = monotonic_now + @overall_deadline
-          results = google_search(query, @num_results)
-          return @no_results_msg if results.empty?
+          deadline_at = monotonic_now + overall_deadline
+          results = google_search(query, num_results)
+          return no_results_msg if results.empty?
 
           # snippets_only fast path: skip page scraping entirely. Sub-second.
-          return format_snippet_results(query, results, @num_results) if @snippets_only
+          return format_snippet_results(query, results, num_results) if snippets_only
 
           processed = scrape_candidates(query, results, deadline_at)
           # Time ran out or every page was below quality threshold: fall back to
           # snippet-only results so we return SOMETHING useful (Python parity).
-          return format_snippet_results(query, results, @num_results) if processed.empty?
+          return format_snippet_results(query, results, num_results) if processed.empty?
 
           wrap_response(format_scraped_results(query, processed))
         end
@@ -40,7 +40,7 @@ module SignalWire
         # Sort by quality score descending, keep the best num_results, render.
         def format_scraped_results(query, processed)
           processed.sort_by! { |p| -p['quality_score'] }
-          formatted = processed.first(@num_results).map.with_index(1) do |r, i|
+          formatted = processed.first(num_results).map.with_index(1) do |r, i|
             "=== RESULT #{i} ===\nTitle: #{r['title']}\nURL: #{r['url']}\n" \
               "Snippet: #{r['snippet']}\nContent: #{r['content']}\n#{'=' * 50}"
           end.join("\n\n")
@@ -52,7 +52,7 @@ module SignalWire
         # met the quality threshold. The overall_deadline is enforced in both
         # parallel and sequential modes.
         def scrape_candidates(query, results, deadline_at)
-          if @parallel_scrape
+          if parallel_scrape
             scrape_parallel(query, results, deadline_at)
           else
             scrape_sequential(query, results, deadline_at)
@@ -67,7 +67,7 @@ module SignalWire
 
             item = scrape_one(query, r, deadline_at)
             processed << item if item
-            sleep(@default_delay) if @default_delay.positive?
+            sleep(default_delay) if default_delay.positive?
           end
           processed
         end
@@ -106,7 +106,7 @@ module SignalWire
           return nil if text.nil? || text.empty?
 
           metrics = calculate_content_quality(text, result['url'], query)
-          return nil if metrics['quality_score'] < @min_quality_score
+          return nil if metrics['quality_score'] < min_quality_score
 
           { 'title' => result['title'], 'url' => result['url'], 'snippet' => result['snippet'],
             'content' => text, 'quality_score' => metrics['quality_score'],
@@ -143,8 +143,8 @@ module SignalWire
         def fetch_page(uri)
           http = Net::HTTP.new(uri.host, uri.port)
           http.use_ssl = (uri.scheme == 'https')
-          http.open_timeout = @per_page_timeout
-          http.read_timeout = @per_page_timeout
+          http.open_timeout = per_page_timeout
+          http.read_timeout = per_page_timeout
 
           req = Net::HTTP::Get.new(uri)
           req['User-Agent'] = 'SignalWire-WebSearch/2.0'
@@ -194,7 +194,7 @@ module SignalWire
         # CSE returned anything at all, so the kernel never sees a webhook
         # timeout. Mirrors Python's _format_snippet_results.
         def format_snippet_results(query, results, num_results)
-          return @no_results_msg if results.empty?
+          return no_results_msg if results.empty?
 
           top = results.first([num_results, 1].max)
           lines = ["Snippet-only results for '#{query}' (page content not scraped):\n"]
@@ -214,8 +214,8 @@ module SignalWire
         # non-empty result body. Shared by the scraped-result and snippet-
         # fallback paths; the error and no-results branches stay unwrapped.
         def wrap_response(response)
-          response = "#{@response_prefix}\n\n#{response}"  unless @response_prefix.nil?  || @response_prefix.empty?
-          response = "#{response}\n\n#{@response_postfix}" unless @response_postfix.nil? || @response_postfix.empty?
+          response = "#{response_prefix}\n\n#{response}"  unless response_prefix.nil?  || response_prefix.empty?
+          response = "#{response}\n\n#{response_postfix}" unless response_postfix.nil? || response_postfix.empty?
           response
         end
 
@@ -243,7 +243,7 @@ module SignalWire
           base = resolved_base_url('WEB_SEARCH_BASE_URL', 'https://www.googleapis.com')
           uri = URI("#{base}/customsearch/v1")
           uri.query = URI.encode_www_form(
-            key: @api_key, cx: @search_engine_id, q: query, num: [num, 10].min
+            key: api_key, cx: search_engine_id, q: query, num: [num, 10].min
           )
           uri
         end
@@ -270,9 +270,15 @@ module SignalWire
 
         private
 
+        # Config ivars populated by #read_core_params / #read_latency_params.
+        attr_reader :api_key, :search_engine_id, :num_results, :tool_name,
+                    :min_quality_score, :default_delay, :no_results_msg,
+                    :response_prefix, :response_postfix, :per_page_timeout,
+                    :overall_deadline, :parallel_scrape, :snippets_only
+
         def prompt_section_bullets
           [
-            "Use the #{@tool_name} tool when users ask for information you need to look up",
+            "Use the #{tool_name} tool when users ask for information you need to look up",
             'The search automatically filters out low-quality results like empty pages',
             'Results are ranked by content quality, relevance, and domain reputation',
             'Summarize the high-quality results in a clear, helpful way'
@@ -352,7 +358,7 @@ module SignalWire
         # get_param's `||` chain can't be used for booleans because a literal
         # +false+ would fall through to the default.
         def bool_param(key, default)
-          raw = @params[key.to_s]
+          raw = params[key.to_s]
           return default if raw.nil?
 
           case raw
@@ -382,18 +388,18 @@ module SignalWire
           read_core_params
           read_latency_params
 
-          return false unless @api_key && !@api_key.empty?
-          return false unless @search_engine_id && !@search_engine_id.empty?
+          return false unless api_key && !api_key.empty?
+          return false unless search_engine_id && !search_engine_id.empty?
 
           true
         end
 
-        def instance_key = "web_search_#{@tool_name}"
+        def instance_key = "web_search_#{tool_name}"
 
         def register_tools
           [
             {
-              name: @tool_name,
+              name: tool_name,
               description: TOOL_DESCRIPTION,
               parameters: { 'query' => { 'type' => 'string', 'description' => QUERY_PARAM_DESC } },
               handler: method(:handle_search)
@@ -412,7 +418,7 @@ module SignalWire
           [
             {
               'title' => 'Web Search Capability (Quality Enhanced)',
-              'body' => "You can search the internet for high-quality information using the #{@tool_name} tool.",
+              'body' => "You can search the internet for high-quality information using the #{tool_name} tool.",
               'bullets' => prompt_section_bullets
             }
           ]
