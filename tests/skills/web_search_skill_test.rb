@@ -1,30 +1,34 @@
 # frozen_string_literal: true
 
-require 'minitest/autorun'
+require_relative '../test_helper'
 require 'net/http'
-require_relative '../../lib/signalwire/swaig/function_result'
-require_relative '../../lib/signalwire/skills/skill_base'
-require_relative '../../lib/signalwire/skills/skill_registry'
 require_relative '../../lib/signalwire/skills/builtin/web_search'
 
 class WebSearchSkillDetailedTest < Minitest::Test
+  include TestHelper::Helpers
+
   SEARCH_ENV_VARS = %w[GOOGLE_SEARCH_API_KEY GOOGLE_SEARCH_ENGINE_ID].freeze
 
-  # Clear the Google-search env vars for the block, restoring them afterward.
-  def without_search_env
-    saved = SEARCH_ENV_VARS.to_h { |k| [k, ENV.delete(k)] }
-    yield
-  ensure
-    saved.each { |k, v| ENV[k] = v if v }
+  # Each input path of the old test_setup_requires_api_key_and_engine_id is
+  # now its own method so a failure pinpoints which path broke.
+  def test_setup_fails_without_any_params
+    without_env_vars(SEARCH_ENV_VARS) do
+      refute build_skill('web_search').setup,
+             'web_search must fail setup with neither api_key nor engine id'
+    end
   end
 
-  def test_setup_requires_api_key_and_engine_id
-    without_search_env do
-      factory = SignalWire::Skills::SkillRegistry.get_factory('web_search')
+  def test_setup_fails_with_api_key_but_no_engine_id
+    without_env_vars(SEARCH_ENV_VARS) do
+      refute build_skill('web_search', 'api_key' => 'key').setup,
+             'web_search must fail setup without a search_engine_id'
+    end
+  end
 
-      refute factory.call({}).setup
-      refute factory.call({ 'api_key' => 'key' }).setup
-      assert factory.call({ 'api_key' => 'key', 'search_engine_id' => 'cx' }).setup
+  def test_setup_succeeds_with_api_key_and_engine_id
+    without_env_vars(SEARCH_ENV_VARS) do
+      assert build_skill('web_search', 'api_key' => 'key', 'search_engine_id' => 'cx').setup,
+             'web_search must set up with both api_key and search_engine_id'
     end
   end
 

@@ -47,6 +47,28 @@ module SmallNamespacesHelpers
 
     expected.each { |k, v| assert_equal(v, sent[k], "body[#{k.inspect}]") }
   end
+
+  # The mock's queue-member example uses one id for both queue_id and call_id.
+  QUEUE_MEMBER_ID = '596e2dea-a269-4765-a0b4-01b82d11c120'
+
+  # Assert the SIP-profile resource shape returned by the mock.
+  def assert_sip_profile_shape(body)
+    assert_equal 'your-space-example.sip.signalwire.com', body['domain']
+    assert_equal 'example', body['domain_identifier']
+    assert_equal 'optional', body['default_encryption']
+    %w[default_codecs default_ciphers].each do |field|
+      assert_kind_of Array, body[field], "sip_profile.#{field} must be an array"
+    end
+  end
+
+  # Assert the queue-member resource shape returned by the mock.
+  def assert_queue_member_shape(body)
+    assert_equal QUEUE_MEMBER_ID, body['queue_id']
+    assert_equal QUEUE_MEMBER_ID, body['call_id']
+    assert_equal 'd421473b-d696-449a-a1a1-4ddd83d2d0e5', body['project_id']
+    assert_equal 2, body['position']
+    assert_equal "#{RELAY_BASE}/queues/#{QUEUE_MEMBER_ID}/members/#{QUEUE_MEMBER_ID}", body['uri']
+  end
 end
 
 class SmallNamespacesMockTest < Minitest::Test
@@ -232,8 +254,9 @@ class SmallNamespacesMockTestPartTwo < Minitest::Test
     )
 
     assert_kind_of Hash, body
-    # The SIP profile resource has a 'domain' field.
-    assert(body.key?('domain') || body.key?('default_codecs'))
+    # Exact SIP-profile resource shape returned by the mock (was: presence-only
+    # disjunctive key check).
+    assert_sip_profile_shape(body)
     last = assert_request('PUT', "#{RELAY_BASE}/sip_profile")
     assert_sent_body(last, 'domain' => 'myco.sip.signalwire.com', 'default_codecs' => %w[PCMU PCMA])
   end
@@ -313,8 +336,9 @@ class SmallNamespacesMockTestPartTwo < Minitest::Test
     body = @client.queues.get_member('q-1', 'mem-7')
 
     assert_kind_of Hash, body
-    # A queue member has 'queue_id' and 'call_id' per the spec example.
-    assert(body.key?('queue_id') || body.key?('call_id'))
+    # Exact queue-member shape returned by the mock (was: presence-only
+    # disjunctive key check).
+    assert_queue_member_shape(body)
     last = @mock.last
 
     assert_equal 'GET', last.method

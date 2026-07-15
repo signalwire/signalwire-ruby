@@ -1,52 +1,13 @@
 # frozen_string_literal: true
 
-require 'minitest/autorun'
+require_relative 'test_helper'
 require 'tempfile'
 require 'tmpdir'
 
-# Load core dependencies
-require_relative '../lib/signalwire/swaig/function_result'
-require_relative '../lib/signalwire/datamap/data_map'
-require_relative '../lib/signalwire/skills/skill_base'
-require_relative '../lib/signalwire/skills/skill_manager'
-require_relative '../lib/signalwire/skills/skill_registry'
-
-# Load all built-in skills
-SignalWire::Skills::SkillRegistry.register_builtins!
-
-# Shared env-var save/restore helper for the skills tests.
-module SkillsTestHelpers
-  # Clear +names+ for the duration of the block, restoring prior values after.
-  def without_env_vars(*names)
-    saved = names.flatten.to_h { |k| [k, ENV.delete(k)] }
-    yield
-  ensure
-    saved.each { |k, v| ENV[k] = v if v }
-  end
-end
-
 class SkillRegistryTest < Minitest::Test
-  include SkillsTestHelpers
+  include TestHelper::Helpers
 
-  EXPECTED_SKILLS = %w[
-    api_ninjas_trivia
-    claude_skills
-    custom_skills
-    datasphere
-    datasphere_serverless
-    datetime
-    google_maps
-    info_gatherer
-    joke
-    math
-    native_vector_search
-    play_background_file
-    spider
-    swml_transfer
-    weather_api
-    web_search
-    wikipedia_search
-  ].freeze
+  EXPECTED_SKILLS = TestHelper::BUILTIN_SKILL_NAMES
 
   def test_registry_has_all_builtin_skills
     registered = SignalWire::Skills::SkillRegistry.list_skills.sort
@@ -107,7 +68,7 @@ end
 # Registry directory-scanning + instance-API coverage (split from
 # SkillRegistryTest to keep each class under the size limit).
 class SkillRegistryDirectoryTest < Minitest::Test
-  include SkillsTestHelpers
+  include TestHelper::Helpers
 
   # ── add_skill_directory parity ────────────────────────────────────────
   # Mirrors Python's signalwire.skills.registry.SkillRegistry.add_skill_directory
@@ -179,8 +140,7 @@ class SkillRegistryDirectoryTest < Minitest::Test
 
     # Clean up only the entry we added so other tests still see the
     # built-ins.
-    factories_var = SignalWire::Skills::SkillRegistry.instance_variable_get(:@factories)
-    factories_var.delete('test_register_skill_class_form')
+    deregister_skill('test_register_skill_class_form')
   end
 
   def test_add_skill_directory_dedup
