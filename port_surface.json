@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ b280ed2613a69a7e454cb6438a94d14974fd4a80",
+  "generated_from": "signalwire-ruby @ 42c392e0d392751d22d0ad88016a13c9be9b1060",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -2673,6 +2673,31 @@
         "Types_StatusCodes_StatusCode404": [],
         "Types_StatusCodes_StatusCode500": [],
         "UpdateTokenRequest": []
+      },
+      "functions": []
+    },
+    "signalwire.rest.namespaces.projects_resources_generated": {
+      "classes": {
+        "Projects": [
+          "__init__",
+          "create",
+          "delete",
+          "rotate_signing_key",
+          "update"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.rest.namespaces.projects_types_generated": {
+      "classes": {
+        "Project": [],
+        "ProjectCreate": [],
+        "ProjectList": [],
+        "ProjectStatusCode422": [],
+        "Types_StatusCodes_RestApiErrorItem": [],
+        "Types_StatusCodes_StatusCode401": [],
+        "Types_StatusCodes_StatusCode403": [],
+        "Types_StatusCodes_StatusCode404": []
       },
       "functions": []
     },

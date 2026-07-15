@@ -99,6 +99,7 @@ GENERATED_TYPES_NS = {
   'Voice' => 'voice',
   'Fax' => 'fax',
   'Project' => 'project',
+  'Projects' => 'projects',
   'Chat' => 'chat',
   'PubSub' => 'pubsub',
   'SwmlWebhooks' => 'swml_webhooks'

@@ -68,6 +68,10 @@ module SignalWire
             @calling ||= Calling.new(generated_http_client)
           end
 
+          def projects
+            @projects ||= Projects.new(generated_http_client)
+          end
+
           def chat
             @chat ||= Chat.new(generated_http_client)
           end

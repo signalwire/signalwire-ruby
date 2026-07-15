@@ -2671,6 +2671,14 @@
         "type": "any"
       }
     ],
+    "Projects::rotate_signing_key": [
+      {
+        "kind": "positional",
+        "name": "id",
+        "required": true,
+        "type": "string"
+      }
+    ],
     "PubSub::create_token": [
       {
         "kind": "keyword",

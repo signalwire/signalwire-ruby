@@ -120,12 +120,95 @@ def overlay_deprecated(field: str, schema_name: "str | None", psdk: Path) -> boo
     return _overlay_match(_load_overlay(psdk)["deprecated"], field, schema_name)
 
 
-# The 12 real REST spec directories (registry has no own dir — its resources
-# live inside relay-rest via namespace: registry; swml-webhooks is types-only).
-SPEC_DIRS = [
+# Namespace discovery (was: two hardcoded lists SPEC_DIRS + TYPE_NS). The set of
+# REST namespaces is DERIVED by scanning porting-sdk/rest-apis/*/openapi.yaml —
+# the same spec-driven discovery the Python reference generator uses — so a new
+# spec is picked up automatically instead of requiring a hand-edit of a list (the
+# old lists carried no information not already in the specs). TWO discovery rules:
+#
+#   * RESOURCE namespace  — a spec whose openapi.yaml carries x-sdk-resource
+#     markup on at least one path (or a top-level x-sdk-namespace). These are the
+#     namespaces that get a generated resource layer + client tree. (13 specs;
+#     `swml-webhooks` has no such markup and is excluded. `projects` — the new
+#     `/api/projects` full-CRUD project-management surface, DISTINCT from the
+#     singular `project` token namespace — now carries x-sdk-resource markup and
+#     IS a resource namespace: `client.projects`.)
+#   * TYPE namespace      — a spec with a components/schemas section that is
+#     EITHER a resource namespace OR a types-only payload spec (one with NO
+#     `servers` block, i.e. not an addressable REST surface — this admits
+#     `swml-webhooks`, a pure webhook-payload schema doc). (14 specs.)
+#
+# Ordering is load-bearing for byte-identical output (container/tree accessor
+# order follows spec iteration order), and the historical hand-order is not
+# alphabetical, so _NS_ORDER pins the canonical position of each known spec; a
+# newly-discovered spec not in _NS_ORDER sorts to the end (deterministic) — it is
+# never silently dropped. registry has no own dir (its resources live inside
+# relay-rest via namespace: registry).
+_NS_ORDER = [
     "relay-rest", "fabric", "calling", "video", "datasphere",
-    "logs", "message", "voice", "fax", "project", "chat", "pubsub",
+    "logs", "message", "voice", "fax", "project", "projects", "chat",
+    "pubsub", "swml-webhooks",
 ]
+
+# Module-segment casing overrides — where mechanical PascalCase of the dir name
+# does not match the canonical Ruby module constant. `pubsub` -> `PubSub` (the
+# canonical camel spelling; a bare PascalCase would give `Pubsub`). Everything
+# else derives mechanically (dash-split PascalCase: `relay-rest` -> `RelayRest`).
+_NS_MOD_OVERRIDE = {"pubsub": "PubSub"}
+
+
+def _ns_order_key(dir_name: str) -> tuple[int, str]:
+    """Sort key that reproduces the historical hand-order for known specs and
+    puts any newly-discovered spec deterministically at the end (alphabetically)."""
+    try:
+        return (_NS_ORDER.index(dir_name), "")
+    except ValueError:
+        return (len(_NS_ORDER), dir_name)
+
+
+def _ns_module(dir_name: str) -> str:
+    """PascalCase Ruby module segment for a spec dir (`relay-rest` -> `RelayRest`),
+    with the _NS_MOD_OVERRIDE casing exceptions applied (`pubsub` -> `PubSub`)."""
+    if dir_name in _NS_MOD_OVERRIDE:
+        return _NS_MOD_OVERRIDE[dir_name]
+    return "".join(p[:1].upper() + p[1:] for p in dir_name.split("-"))
+
+
+def _scan_namespaces(psdk: Path) -> tuple[list[str], list[tuple[str, str, str]]]:
+    """Scan rest-apis/*/openapi.yaml and return (resource_dirs, type_ns) applying
+    the two discovery rules documented above.
+
+      * resource_dirs — spec dirs with x-sdk-resource / x-sdk-namespace markup,
+        in canonical order (replaces the old SPEC_DIRS list).
+      * type_ns       — [(spec_dir, ModuleSegment, ns_key)] for every spec with a
+        components/schemas section that is a resource namespace OR a servers-less
+        types-only spec, in canonical order (replaces the old TYPE_NS list).
+        ns_key = dir with `-` folded to `_` (`relay-rest` -> `relay_rest`).
+    """
+    rest_apis = psdk / "rest-apis"
+    dirs = sorted(
+        (d.name for d in rest_apis.iterdir() if (d / "openapi.yaml").is_file()),
+        key=_ns_order_key,
+    )
+    resource_dirs: list[str] = []
+    type_ns: list[tuple[str, str, str]] = []
+    for name in dirs:
+        doc = yaml.safe_load((rest_apis / name / "openapi.yaml").read_text()) or {}
+        has_resource = bool(doc.get("x-sdk-namespace")) or any(
+            isinstance(item, dict) and item.get("x-sdk-resource")
+            for item in (doc.get("paths") or {}).values()
+        )
+        has_schemas = bool(((doc.get("components") or {}).get("schemas")))
+        has_servers = bool(doc.get("servers"))
+        if has_resource:
+            resource_dirs.append(name)
+        # Type namespace: schema-bearing AND (a resource ns OR a servers-less
+        # types-only payload spec). Excludes a staged REST surface (servers +
+        # schemas but no x-sdk-resource, e.g. `projects`).
+        if has_schemas and (has_resource or not has_servers):
+            type_ns.append((name, _ns_module(name), name.replace("-", "_")))
+    return resource_dirs, type_ns
+
 
 # Ruby reserved words. A wire field colliding with one becomes a safe param
 # (`end` -> `end_`) mapped back to the wire key in the body (§5). Method / class
@@ -1293,25 +1376,6 @@ def emit_resource_tree(placed) -> str:
 # gen-type.<Leaf> symbol on BOTH sides, so the duplicates compare equal.
 # ---------------------------------------------------------------------------
 
-# Spec-dir -> (Ruby module segment, oracle <ns>_types_generated leaf, subdir).
-# The swml-webhooks spec is types-only (no x-sdk-resource, no resource module)
-# but DOES have components/schemas — emit its types. relay-rest folds registry.
-TYPE_NS = [
-    ("relay-rest", "RelayRest", "relay_rest"),
-    ("fabric", "Fabric", "fabric"),
-    ("calling", "Calling", "calling"),
-    ("video", "Video", "video"),
-    ("datasphere", "Datasphere", "datasphere"),
-    ("logs", "Logs", "logs"),
-    ("message", "Message", "message"),
-    ("voice", "Voice", "voice"),
-    ("fax", "Fax", "fax"),
-    ("project", "Project", "project"),
-    ("chat", "Chat", "chat"),
-    ("pubsub", "PubSub", "pubsub"),
-    ("swml-webhooks", "SwmlWebhooks", "swml_webhooks"),
-]
-
 TYPES_HEADER = """# frozen_string_literal: true
 
 # Code generated by scripts/generate_rest.py; DO NOT EDIT.
@@ -1594,11 +1658,11 @@ def _load_types_schemas(psdk: Path, spec_dir: str) -> dict:
     return ((doc.get("components") or {}).get("schemas")) or {}
 
 
-def emit_types(psdk: Path, outs: dict) -> None:
+def emit_types(psdk: Path, outs: dict, type_ns: list[tuple[str, str, str]]) -> None:
     """Emit every <ns>_types_generated Ruby data class / closed-set into
     ``types/<ns>/<snake_name>.rb`` keys of ``outs`` (relative to the Generated
-    dir)."""
-    for spec_dir, ns_mod, ns_key in TYPE_NS:
+    dir). ``type_ns`` is the scanned [(spec_dir, ModuleSegment, ns_key)] list."""
+    for spec_dir, ns_mod, ns_key in type_ns:
         schemas = _load_types_schemas(psdk, spec_dir)
         for raw_name, node in schemas.items():
             if not isinstance(node, dict):
@@ -1649,7 +1713,8 @@ def build_surface_map(psdk: Path) -> dict[str, str]:
     (enumerate_signatures.py / enumerate_surface.rb) read via the committed
     ``generated_surface_map.json`` sidecar, so the class->module projection is
     generated once here and never hand-maintained (SESSION_CHANGESET §B)."""
-    specs = [load_spec(psdk, ns) for ns in SPEC_DIRS]
+    resource_dirs, _type_ns = _scan_namespaces(psdk)
+    specs = [load_spec(psdk, ns) for ns in resource_dirs]
     mapping: dict[str, str] = {}
     for spec in specs:
         for _anchor, markup in spec.resources():
@@ -1685,7 +1750,8 @@ def build_rest_signatures_sidecar() -> dict:
 
 def build_outputs(psdk: Path) -> dict[str, str]:
     load_bases(psdk)  # validate x-sdk-bases (fail loud)
-    specs = [load_spec(psdk, ns) for ns in SPEC_DIRS]
+    resource_dirs, type_ns = _scan_namespaces(psdk)
+    specs = [load_spec(psdk, ns) for ns in resource_dirs]
     outs: dict[str, str] = {}
 
     # Generated Fabric bases (once).
@@ -1716,7 +1782,7 @@ def build_outputs(psdk: Path) -> dict[str, str]:
 
     # Wire types (item A/H): one method-less Ruby data class / closed-set per
     # components/schemas object across all 13 REST namespaces, under types/<ns>/.
-    emit_types(psdk, outs)
+    emit_types(psdk, outs, type_ns)
     return outs
 
 

@@ -3,6 +3,15 @@
 All notable changes to the SignalWire AI Agents SDK for Ruby (`signalwire-sdk`)
 are documented here. This project adheres to [Semantic Versioning](https://semver.org).
 
+## 3.1.0
+
+### Added
+- `client.projects` — the new `/api/projects` full-CRUD project-management REST
+  resource (list / create / get / update / delete subprojects, plus
+  `rotate_signing_key`). Distinct from the singular `client.project` token
+  namespace. Generated from the canonical `projects` REST spec with full
+  success + error wire-test coverage.
+
 ## 3.0.2
 
 Parity release aligning the Ruby SDK with the Python reference SDK across the

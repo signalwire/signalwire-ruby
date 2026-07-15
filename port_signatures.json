@@ -31772,6 +31772,176 @@
         }
       }
     },
+    "signalwire.rest.namespaces.projects_resources_generated": {
+      "classes": {
+        "Projects": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "http",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "void"
+            },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "kind": "keyword",
+                  "required": true
+                },
+                {
+                  "name": "protect_recordings",
+                  "type": "optional<bool>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "protect_message_media",
+                  "type": "optional<bool>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "protect_fax_media",
+                  "type": "optional<bool>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "force_https_requests",
+                  "type": "optional<bool>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "extras",
+                  "type": "optional<dict<string,any>>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "kwargs",
+                  "type": "any",
+                  "kind": "var_keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "delete": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "resource_id",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "rotate_signing_key": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "kind": "positional",
+                  "name": "id",
+                  "required": true,
+                  "type": "string"
+                }
+              ],
+              "returns": "any"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "resource_id",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "name",
+                  "type": "optional<string>",
+                  "kind": "keyword",
+                  "required": true
+                },
+                {
+                  "name": "protect_recordings",
+                  "type": "optional<bool>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "protect_message_media",
+                  "type": "optional<bool>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "protect_fax_media",
+                  "type": "optional<bool>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "force_https_requests",
+                  "type": "optional<bool>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "extras",
+                  "type": "optional<dict<string,any>>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "kwargs",
+                  "type": "any",
+                  "kind": "var_keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        }
+      }
+    },
     "signalwire.rest.namespaces.pubsub_resources_generated": {
       "classes": {
         "PubSub": {
