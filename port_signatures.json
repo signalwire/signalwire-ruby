@@ -31650,6 +31650,133 @@
         }
       }
     },
+    "signalwire.rest.namespaces.messages_resources_generated": {
+      "classes": {
+        "Messages": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "http",
+                  "type": "any",
+                  "required": true
+                }
+              ],
+              "returns": "void"
+            },
+            "create": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "kind": "keyword",
+                  "name": "to",
+                  "required": true,
+                  "type": "string"
+                },
+                {
+                  "kind": "keyword",
+                  "name": "from_",
+                  "required": true,
+                  "type": "string"
+                },
+                {
+                  "default": null,
+                  "kind": "keyword",
+                  "name": "body",
+                  "required": false,
+                  "type": "optional<any>"
+                },
+                {
+                  "default": null,
+                  "kind": "keyword",
+                  "name": "media",
+                  "required": false,
+                  "type": "optional<any>"
+                },
+                {
+                  "default": null,
+                  "kind": "keyword",
+                  "name": "send_as_mms",
+                  "required": false,
+                  "type": "optional<any>"
+                },
+                {
+                  "default": null,
+                  "kind": "keyword",
+                  "name": "status_callback",
+                  "required": false,
+                  "type": "optional<any>"
+                },
+                {
+                  "default": null,
+                  "kind": "keyword",
+                  "name": "custom_variables",
+                  "required": false,
+                  "type": "optional<any>"
+                },
+                {
+                  "default": null,
+                  "kind": "keyword",
+                  "name": "extras",
+                  "required": false,
+                  "type": "optional<dict<string,any>>"
+                },
+                {
+                  "default": {},
+                  "kind": "var_keyword",
+                  "name": "kwargs",
+                  "required": false,
+                  "type": "any"
+                }
+              ],
+              "returns": "any"
+            },
+            "update": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "kind": "positional",
+                  "name": "message_id",
+                  "required": true,
+                  "type": "string"
+                },
+                {
+                  "kind": "keyword",
+                  "name": "body",
+                  "required": true,
+                  "type": "string"
+                },
+                {
+                  "default": null,
+                  "kind": "keyword",
+                  "name": "extras",
+                  "required": false,
+                  "type": "optional<dict<string,any>>"
+                },
+                {
+                  "default": {},
+                  "kind": "var_keyword",
+                  "name": "kwargs",
+                  "required": false,
+                  "type": "any"
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        }
+      }
+    },
     "signalwire.rest.namespaces.project_resources_generated": {
       "classes": {
         "ProjectTokens": {
