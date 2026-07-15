@@ -103,25 +103,25 @@ module SignalWire
       # @param format [String, nil] JSON-Schema +format+ hint
       # @return [self]
       def string(name, description = nil, required: false, default: nil, enum: nil, format: nil)
-        _add(name, STRING, description, required: required, default: default, enum: enum, format: format)
+        add(name, STRING, description, required: required, default: default, enum: enum, format: format)
       end
 
       # Add a +number+ (floating-point) property. Same options as {#string}.
       # @return [self]
       def number(name, description = nil, required: false, default: nil, enum: nil, format: nil)
-        _add(name, NUMBER, description, required: required, default: default, enum: enum, format: format)
+        add(name, NUMBER, description, required: required, default: default, enum: enum, format: format)
       end
 
       # Add an +integer+ property. Same options as {#string}.
       # @return [self]
       def integer(name, description = nil, required: false, default: nil, enum: nil, format: nil)
-        _add(name, INTEGER, description, required: required, default: default, enum: enum, format: format)
+        add(name, INTEGER, description, required: required, default: default, enum: enum, format: format)
       end
 
       # Add a +boolean+ property. Same options as {#string}.
       # @return [self]
       def boolean(name, description = nil, required: false, default: nil)
-        _add(name, BOOLEAN, description, required: required, default: default)
+        add(name, BOOLEAN, description, required: required, default: default)
       end
 
       # Add a closed-set property (a +string+-typed schema carrying an
@@ -144,7 +144,7 @@ module SignalWire
       def enum(name, values, description = nil, required: false, default: nil, type: STRING)
         # Copy the closed set so a frozen constant ALL array is never aliased
         # into (and thus mutable through) the produced schema.
-        _add(name, type, description, required: required, default: default, enum: Array(values).dup)
+        add(name, type, description, required: required, default: default, enum: Array(values).dup)
       end
 
       # Add an +array+ property. The element kind is given by +of:+ (a JSON
@@ -171,7 +171,7 @@ module SignalWire
       def array(name, description = nil, of: nil, required: false, default: nil, enum: nil, &)
         extra = {}
         extra['items'] = build_array_items(of.to_s, enum, &) if of
-        _add(name, ARRAY, description, required: required, default: default, extra: extra)
+        add(name, ARRAY, description, required: required, default: default, extra: extra)
       end
 
       # Add a nested +object+ property whose sub-properties are defined in
@@ -202,7 +202,7 @@ module SignalWire
         else
           extra['properties'] = {}
         end
-        _add(name, OBJECT, description, required: required, extra: extra)
+        add(name, OBJECT, description, required: required, extra: extra)
       end
 
       # Mark one or more already-declared (or to-be-declared) properties as
@@ -280,9 +280,9 @@ module SignalWire
       # (+type+, +description+, then +enum+ / +format+ / +default+ / +items+
       # / +properties+) and register the name. When +required:+ is truthy the
       # name folds into the top-level required list.
-      def _add(name, type, description, required: false, default: nil, enum: nil, format: nil, extra: {})
+      def add(name, type, description, required: false, default: nil, enum: nil, format: nil, extra: {})
         key = name.to_s
-        @properties[key] = _build_prop(type, description, default: default, enum: enum, format: format, extra: extra)
+        @properties[key] = build_prop(type, description, default: default, enum: enum, format: format, extra: extra)
         required(key) if required
         self
       end
@@ -292,7 +292,7 @@ module SignalWire
       # +properties+), and +default+ last. +default+ is emitted whenever the
       # caller passed one (including +false+), so the nil-guard ordering above
       # can't shadow an explicit nil-able default.
-      def _build_prop(type, description, default:, enum:, format:, extra:)
+      def build_prop(type, description, default:, enum:, format:, extra:)
         prop = { 'type' => type }
         prop['description'] = description unless description.nil?
         prop['enum']   = enum   unless enum.nil?

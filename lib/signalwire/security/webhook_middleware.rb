@@ -133,15 +133,15 @@ module SignalWire
         return @app.call(env) unless _applies?(env)
 
         # Capture raw body BEFORE any other middleware reads the stream.
-        raw_body = _read_raw_body(env)
+        raw_body = read_raw_body(env)
         env[RAW_BODY_ENV_KEY] = raw_body
 
-        url = _reconstruct_url(env)
+        url = reconstruct_url(env)
         # Delegate the pass/reject decision to the framework-free decomposed
         # core (the cross-port contract). It returns nil to pass or a Rack
         # [status, headers, body] triple to reject.
         rejection = self.class.validate(
-          env['REQUEST_METHOD'].to_s, url, _rack_signature_headers(env), raw_body,
+          env['REQUEST_METHOD'].to_s, url, rack_signature_headers(env), raw_body,
           signing_key: @signing_key
         )
         return rejection if rejection
@@ -154,7 +154,7 @@ module SignalWire
       # @api private — surface the signature header(s) from the Rack env as a
       # plain header Hash the decomposed #validate can read (both the canonical
       # and the legacy-compat header name, un-CGI-mangled).
-      def _rack_signature_headers(env)
+      def rack_signature_headers(env)
         {
           'X-SignalWire-Signature' => env[SIGNALWIRE_SIGNATURE_HEADER],
           'X-Twilio-Signature' => env[TWILIO_COMPAT_SIGNATURE_HEADER]
@@ -176,7 +176,7 @@ module SignalWire
       end
 
       # @api private
-      def _read_raw_body(env)
+      def read_raw_body(env)
         input = env['rack.input']
         return '' if input.nil?
 
@@ -198,20 +198,20 @@ module SignalWire
       # 2. ``X-Forwarded-Proto`` / ``X-Forwarded-Host`` headers, when
       #    ``trust_proxy`` is true and X-Forwarded-Host is present.
       # 3. ``scheme://host[:port]/path?query`` derived from the rack env.
-      def _reconstruct_url(env)
+      def reconstruct_url(env)
         path = env['PATH_INFO'].to_s
         path = '/' if path.empty?
         query = env['QUERY_STRING'].to_s
         path_and_query = query.empty? ? path : "#{path}?#{query}"
 
-        _proxy_base_url(path_and_query) ||
-          _forwarded_url(env, path_and_query) ||
-          _rack_derived_url(env, path_and_query)
+        proxy_base_url(path_and_query) ||
+          forwarded_url(env, path_and_query) ||
+          rack_derived_url(env, path_and_query)
       end
 
       # @api private
       # Strategy 1: explicit SWML_PROXY_URL_BASE env var (highest priority).
-      def _proxy_base_url(path_and_query)
+      def proxy_base_url(path_and_query)
         proxy_base = ENV.fetch('SWML_PROXY_URL_BASE', nil)
         return unless proxy_base && !proxy_base.empty?
 
@@ -220,7 +220,7 @@ module SignalWire
 
       # @api private
       # Strategy 2: X-Forwarded-Proto / X-Forwarded-Host (when trust_proxy).
-      def _forwarded_url(env, path_and_query)
+      def forwarded_url(env, path_and_query)
         return unless @trust_proxy
 
         fwd_host = env['HTTP_X_FORWARDED_HOST']
@@ -232,10 +232,10 @@ module SignalWire
 
       # @api private
       # Strategy 3: scheme://host[:port]/path?query derived from the rack env.
-      def _rack_derived_url(env, path_and_query)
+      def rack_derived_url(env, path_and_query)
         scheme = env['rack.url_scheme'] || 'http'
         host = env['HTTP_HOST'] || env['SERVER_NAME']
-        host_with_port = _host_with_port(scheme, host, env['SERVER_PORT'])
+        host_with_port = host_with_port(scheme, host, env['SERVER_PORT'])
         "#{scheme}://#{host_with_port}#{path_and_query}"
       end
 
@@ -243,7 +243,7 @@ module SignalWire
       # Only include the port if it's non-standard AND not already in HTTP_HOST.
       # The "already has a port" and "no port needed" cases both yield host but
       # are distinct conditions; keeping them separate reads clearer than merging.
-      def _host_with_port(scheme, host, port)
+      def host_with_port(scheme, host, port)
         return host if host&.include?(':')
         return "#{host}:#{port}" if port && _nonstandard_port?(scheme, port)
 
