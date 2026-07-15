@@ -3,6 +3,15 @@
 All notable changes to the SignalWire AI Agents SDK for Ruby (`signalwire-sdk`)
 are documented here. This project adheres to [Semantic Versioning](https://semver.org).
 
+## 3.2.0
+
+### Added
+- `client.messages` — the new `/api/messaging/messages` send/redact REST
+  resource (`create` to send an SMS/MMS message, `update` to redact a message
+  body). Distinct from the `client.logs.messages` message-log namespace.
+  Generated from the canonical `messages` REST spec with full success + error
+  wire-test coverage.
+
 ## 3.1.0
 
 ### Added

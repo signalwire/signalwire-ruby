@@ -128,15 +128,17 @@ def overlay_deprecated(field: str, schema_name: "str | None", psdk: Path) -> boo
 #
 #   * RESOURCE namespace  — a spec whose openapi.yaml carries x-sdk-resource
 #     markup on at least one path (or a top-level x-sdk-namespace). These are the
-#     namespaces that get a generated resource layer + client tree. (13 specs;
+#     namespaces that get a generated resource layer + client tree. (14 specs;
 #     `swml-webhooks` has no such markup and is excluded. `projects` — the new
 #     `/api/projects` full-CRUD project-management surface, DISTINCT from the
 #     singular `project` token namespace — now carries x-sdk-resource markup and
-#     IS a resource namespace: `client.projects`.)
+#     IS a resource namespace: `client.projects`. `messages` — the new
+#     `/api/messaging/messages` send/redact surface, DISTINCT from the `message`
+#     log namespace — carries x-sdk-resource markup: `client.messages`.)
 #   * TYPE namespace      — a spec with a components/schemas section that is
 #     EITHER a resource namespace OR a types-only payload spec (one with NO
 #     `servers` block, i.e. not an addressable REST surface — this admits
-#     `swml-webhooks`, a pure webhook-payload schema doc). (14 specs.)
+#     `swml-webhooks`, a pure webhook-payload schema doc). (15 specs.)
 #
 # Ordering is load-bearing for byte-identical output (container/tree accessor
 # order follows spec iteration order), and the historical hand-order is not
@@ -146,8 +148,8 @@ def overlay_deprecated(field: str, schema_name: "str | None", psdk: Path) -> boo
 # relay-rest via namespace: registry).
 _NS_ORDER = [
     "relay-rest", "fabric", "calling", "video", "datasphere",
-    "logs", "message", "voice", "fax", "project", "projects", "chat",
-    "pubsub", "swml-webhooks",
+    "logs", "message", "messages", "voice", "fax", "project", "projects",
+    "chat", "pubsub", "swml-webhooks",
 ]
 
 # Module-segment casing overrides — where mechanical PascalCase of the dir name
@@ -652,7 +654,7 @@ def schema_fields(spec: Spec, schema: dict, seen=None) -> set[str]:
 # ---------------------------------------------------------------------------
 
 def kwarg_params_and_body(spec, fields, indent="        ", body_var="body"):
-    """Build (kwarg_param_list, body_build_lines, sidecar_records) for a set of
+    """Build (kwarg_param_list, body_build_lines, sidecar_records, body_var) for a set of
     object-body / command-params fields, in the Ruby kwargs idiom + the two doors
     (§B):
       * required field  -> `name:`         (required keyword arg)
@@ -669,6 +671,16 @@ def kwarg_params_and_body(spec, fields, indent="        ", body_var="body"):
     followed by the ``extras`` (keyword optional dict) + ``kwargs`` (var_keyword)
     forward-compat doors — the enumerator unfolds them onto the reflected method
     (§B / L10)."""
+    # Collision-free accumulator name: if a wire field's param ident equals the
+    # requested body_var (the messages spec has a field literally named `body`),
+    # the `body = {}` accumulator would shadow the `body:` keyword arg, silently
+    # breaking `body['body'] = body`. Prefix `req_` (and keep prefixing) until the
+    # name no field ident can collide with — a plain identifier rubocop accepts
+    # (an underscore prefix trips Lint/UnderscorePrefixedVariableName since the
+    # accumulator IS used).
+    idents = {escape_param(wire_name) for wire_name, _s, _r in fields}
+    while body_var in idents:
+        body_var = "req_" + body_var
     params: list[str] = []
     build: list[str] = [f"{indent}{body_var} = {{}}"]
     records: list[dict] = []
@@ -695,7 +707,7 @@ def kwarg_params_and_body(spec, fields, indent="        ", body_var="body"):
         "name": "kwargs", "kind": "var_keyword", "type": "any",
         "required": False, "default": {},
     })
-    return params, build, records
+    return params, build, records, body_var
 
 
 def method_call_path(spec: Spec, anchor: str, markup: dict, op_path: str):
@@ -776,11 +788,11 @@ def emit_method(spec: Spec, anchor: str, markup: dict, base: str,
         body_schema = spec.op_body.get(op_id) or {}
         if is_object_body(spec, body_schema):
             fields = object_body_fields(spec, body_schema)
-            kw, build, records = kwarg_params_and_body(spec, fields, indent=indent + "  ")
+            kw, build, records, bvar = kwarg_params_and_body(spec, fields, indent=indent + "  ")
             sig = ", ".join(id_args + kw)
             lines.append(f"{indent}def {name}({sig})")
             lines.extend(build)
-            lines.append(f"{indent}  @http.{verb_fn}({path_expr}, body)")
+            lines.append(f"{indent}  @http.{verb_fn}({path_expr}, {bvar})")
             lines.append(f"{indent}end")
             _register_sidecar(cls, name, id_records + records)
         else:
@@ -859,10 +871,10 @@ def emit_crud_create_update(spec: Spec, anchor: str, markup: dict, base: str, in
         _, _, cbody = create_op
         fields = object_body_fields(spec, cbody) if is_object_body(spec, cbody) else None
         if fields is not None:
-            kw, build, _records = kwarg_params_and_body(spec, fields, indent=indent + "  ")
+            kw, build, _records, bvar = kwarg_params_and_body(spec, fields, indent=indent + "  ")
             lines.append(f"{indent}def create({', '.join(kw)})")
             lines.extend(build)
-            lines.append(f"{indent}  @http.post(@base_path, body)")
+            lines.append(f"{indent}  @http.post(@base_path, {bvar})")
             lines.append(f"{indent}end")
         else:
             lines.append(f"{indent}def create(body)")
@@ -874,11 +886,11 @@ def emit_crud_create_update(spec: Spec, anchor: str, markup: dict, base: str, in
         fields = object_body_fields(spec, ubody) if is_object_body(spec, ubody) else None
         verb_fn = uverb
         if fields is not None:
-            kw, build, _records = kwarg_params_and_body(spec, fields, indent=indent + "  ")
+            kw, build, _records, bvar = kwarg_params_and_body(spec, fields, indent=indent + "  ")
             lines.append("")
             lines.append(f"{indent}def update(resource_id, {', '.join(kw)})")
             lines.extend(build)
-            lines.append(f"{indent}  @http.{verb_fn}(_path(resource_id), body)")
+            lines.append(f"{indent}  @http.{verb_fn}(_path(resource_id), {bvar})")
             lines.append(f"{indent}end")
         else:
             lines.append("")
@@ -1059,7 +1071,7 @@ def emit_command_dispatch(spec: Spec, anchor: str, markup: dict) -> str:
         cmd_leaf = cmd_ref.rsplit("/", 1)[-1] if cmd_ref else ""
         cmd_schema = spec.schemas.get(cmd_leaf, {})
         fields, with_id = command_param_fields(spec, cmd_schema)
-        kw, build, records = kwarg_params_and_body(spec, fields, indent="            ", body_var="params")
+        kw, build, records, bvar = kwarg_params_and_body(spec, fields, indent="            ", body_var="params")
         id_params = ["call_id"] if with_id else []
         sig = ", ".join(id_params + kw)
         id_records = ([{"name": "call_id", "kind": "positional", "type": "string",
@@ -1068,7 +1080,7 @@ def emit_command_dispatch(spec: Spec, anchor: str, markup: dict) -> str:
         lines.append("")
         lines.append(f"          def {mname}({sig})")
         lines.extend(build)
-        lines.append(f"            body = {{ 'command' => {rb_str(cmd)}, 'params' => params }}")
+        lines.append(f"            body = {{ 'command' => {rb_str(cmd)}, 'params' => {bvar} }}")
         if with_id:
             lines.append("            body['id'] = call_id if call_id")
         lines.append("            @http.post(@base_path, body)")

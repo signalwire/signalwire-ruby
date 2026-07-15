@@ -96,6 +96,7 @@ GENERATED_TYPES_NS = {
   'Datasphere' => 'datasphere',
   'Logs' => 'logs',
   'Message' => 'message',
+  'Messages' => 'messages',
   'Voice' => 'voice',
   'Fax' => 'fax',
   'Project' => 'project',
