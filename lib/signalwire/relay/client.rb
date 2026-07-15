@@ -51,10 +51,10 @@ module SignalWire
       }.freeze
       # Event types whose handler takes the outer params hash.
       OUTER_PARAM_EVENT_HANDLERS = {
-        EVENT_CALL_RECEIVE => :_handle_inbound_call,
-        EVENT_CALL_DIAL => :_handle_dial_event,
-        EVENT_MESSAGING_RECEIVE => :_handle_inbound_message,
-        EVENT_MESSAGING_STATE => :_handle_message_state
+        EVENT_CALL_RECEIVE => :handle_inbound_call,
+        EVENT_CALL_DIAL => :handle_dial_event,
+        EVENT_MESSAGING_RECEIVE => :handle_inbound_message,
+        EVENT_MESSAGING_STATE => :handle_message_state
       }.freeze
 
       # Construct a RelayClient. An earlier release accepted ``space:``
@@ -78,32 +78,35 @@ module SignalWire
                      space: nil)
         @jwt_token  = jwt_token
         @contexts   = contexts
-        @max_active_calls = _resolve_max_active_calls(max_active_calls)
-        _resolve_credentials(project, token, host, space)
+        @max_active_calls = resolve_max_active_calls(max_active_calls)
+        resolve_credentials(project, token, host, space)
 
-        _validate_credentials
+        validate_credentials
         @host = @space.include?('.') ? @space : "#{@space}.signalwire.com"
 
-        _init_correlation_state
-        _init_session_state
+        init_correlation_state
+        init_session_state
       end
 
       private
 
-      def _resolve_credentials(project, token, host, space)
-        @project_id = _value_or_env(project, 'SIGNALWIRE_PROJECT_ID')
-        @token      = _value_or_env(token, 'SIGNALWIRE_API_TOKEN')
+      # Read-only connection config, set once during initialize.
+      attr_reader :space, :token, :jwt_token, :contexts
+
+      def resolve_credentials(project, token, host, space)
+        @project_id = value_or_env(project, 'SIGNALWIRE_PROJECT_ID')
+        @token      = value_or_env(token, 'SIGNALWIRE_API_TOKEN')
         # Accept either `host:` (Python parity) or legacy `space:`.
-        @space      = _value_or_env(host || space, 'SIGNALWIRE_SPACE')
+        @space      = value_or_env(host || space, 'SIGNALWIRE_SPACE')
       end
 
-      def _value_or_env(explicit, env_key)
+      def value_or_env(explicit, env_key)
         explicit || ENV[env_key] || ''
       end
 
       # Resolve max_active_calls: the explicit arg, else the
       # RELAY_MAX_ACTIVE_CALLS env var.
-      def _resolve_max_active_calls(max_active_calls)
+      def resolve_max_active_calls(max_active_calls)
         if max_active_calls.nil?
           env_val = ENV.fetch('RELAY_MAX_ACTIVE_CALLS', nil)
           env_val && !env_val.empty? ? Integer(env_val) : nil
@@ -112,13 +115,13 @@ module SignalWire
         end
       end
 
-      def _validate_credentials
-        raise ArgumentError, 'project is required' if @project_id.empty?
-        raise ArgumentError, 'token or jwt_token is required' if @token.empty? && @jwt_token.nil?
-        raise ArgumentError, 'host is required' if @space.empty?
+      def validate_credentials
+        raise ArgumentError, 'project is required' if project_id.empty?
+        raise ArgumentError, 'token or jwt_token is required' if token.empty? && jwt_token.nil?
+        raise ArgumentError, 'host is required' if space.empty?
       end
 
-      def _init_correlation_state
+      def init_correlation_state
         # Correlation mechanisms
         @pending       = {} # id -> { mutex:, cv:, result:, error: }
         @pending_mutex = Mutex.new
@@ -130,7 +133,7 @@ module SignalWire
         @messages_mutex = Mutex.new
       end
 
-      def _init_session_state
+      def init_session_state
         # Session state
         @protocol            = nil
         @authorization_state = nil
@@ -151,10 +154,10 @@ module SignalWire
         # Reconnection backoff
         @reconnect_delay = RECONNECT_MIN_DELAY
         @should_restart  = false
-        _init_handlers
+        init_handlers
       end
 
-      def _init_handlers
+      def init_handlers
         @on_call_handler    = nil
         @on_message_handler = nil
         @on_event_handler   = nil
@@ -231,11 +234,11 @@ module SignalWire
       def run
         @running = true
         while @running
-          _connect_and_run_guarded
+          connect_and_run_guarded
           break unless @running
 
-          _reject_all_pending('Disconnected')
-          _backoff_reconnect
+          reject_all_pending('Disconnected')
+          backoff_reconnect
         end
       end
 
@@ -245,7 +248,7 @@ module SignalWire
       # disconnect()/stop() to tear down.
       def connect
         @running = true
-        _connect_and_run_guarded
+        connect_and_run_guarded
         self
       end
 
@@ -255,14 +258,14 @@ module SignalWire
         @running = false
         # Snapshot under the mutex, close outside it. The websocket-client
         # gem fires the `:close` callback synchronously inside `close`,
-        # which re-enters _on_ws_close → tries to take @ws_mutex and
+        # which re-enters on_ws_close → tries to take @ws_mutex and
         # deadlocks if we're still holding it.
         ws_to_close = nil
         @ws_mutex.synchronize do
           ws_to_close = @ws if @connected
         end
         ws_to_close&.close
-        _reject_all_pending('Client stopped')
+        reject_all_pending('Client stopped')
       end
 
       # ------------------------------------------------------------------
@@ -277,8 +280,8 @@ module SignalWire
         entry = { mutex: Mutex.new, cv: ConditionVariable.new, call: nil, error: nil }
         @dials_mutex.synchronize { @pending_dials[dial_tag] = entry }
 
-        _send_dial_rpc(dial_tag, devices, kwargs)
-        _await_dial(dial_tag, entry, timeout)
+        send_dial_rpc(dial_tag, devices, kwargs)
+        await_dial(dial_tag, entry, timeout)
         @dials_mutex.synchronize { @pending_dials.delete(dial_tag) }
         raise RelayError.new(-1, entry[:error]) if entry[:error]
 
@@ -295,14 +298,14 @@ module SignalWire
       # exactly. At least one of body: or media: is required.
       def send_message(to_number:, from_number:, context: nil, body: nil,
                        media: nil, tags: nil, region: nil, on_completed: nil)
-        _validate_message_payload(body, media)
-        msg_context = context || @contexts.first || 'default'
-        params = _build_message_params(msg_context, to_number, from_number, body: body, media: media,
-                                                                            tags: tags, region: region)
+        validate_message_payload(body, media)
+        msg_context = context || contexts.first || 'default'
+        params = build_message_params(msg_context, to_number, from_number, body: body, media: media,
+                                                                           tags: tags, region: region)
         message_id = execute('messaging.send', params)['message_id'] || ''
 
-        msg = _build_outbound_message(message_id, msg_context, to_number, from_number,
-                                      body: body, media: media, tags: tags)
+        msg = build_outbound_message(message_id, msg_context, to_number, from_number,
+                                     body: body, media: media, tags: tags)
         msg._set_on_completed(on_completed) if on_completed
         @messages_mutex.synchronize { @messages[message_id] = msg } unless message_id.empty?
         msg
@@ -332,37 +335,37 @@ module SignalWire
         @pending_mutex.synchronize { @pending[id] = entry }
 
         # Python parity: params are sent VERBATIM. The protocol is only carried
-        # on the signalwire.connect handshake (see _apply_session_restore), NOT
+        # on the signalwire.connect handshake (see apply_session_restore), NOT
         # injected into every calling.*/messaging.* frame.
         _send_json('jsonrpc' => '2.0', 'id' => id, 'method' => method,
                    'params' => params)
-        _await_response(id, entry, method)
+        await_response(id, entry, method)
 
         @pending_mutex.synchronize { @pending.delete(id) }
         raise entry[:error] if entry[:error]
 
-        _check_result_code(method, entry[:result])
+        check_result_code(method, entry[:result])
         entry[:result]
       end
 
       private
 
-      def _connect_and_run_guarded
-        _connect_and_run
+      def connect_and_run_guarded
+        connect_and_run
       rescue StandardError => e
         warn "[RELAY] Connection error: #{e.message}"
       end
 
       # Exponential backoff between reconnect attempts.
-      def _backoff_reconnect
+      def backoff_reconnect
         warn "[RELAY] Reconnecting in #{@reconnect_delay}s..."
         sleep(@reconnect_delay)
         @reconnect_delay = [@reconnect_delay * RECONNECT_BACKOFF_FACTOR, RECONNECT_MAX_DELAY].min
       end
 
       # Wait for the calling.call.dial event (or error/timeout) for a dial.
-      def _await_dial(dial_tag, entry, timeout)
-        _wait_on_entry(entry, timeout, -> { entry[:call].nil? && entry[:error].nil? }) do
+      def await_dial(dial_tag, entry, timeout)
+        wait_on_entry(entry, timeout, -> { entry[:call].nil? && entry[:error].nil? }) do
           @dials_mutex.synchronize { @pending_dials.delete(dial_tag) }
           raise ActionTimeoutError, "Dial timed out after #{timeout}s"
         end
@@ -370,7 +373,7 @@ module SignalWire
 
       # Block on entry[:cv] under entry[:mutex] until +pending+ returns false or
       # the timeout elapses; on timeout, run the +on_timeout+ block.
-      def _wait_on_entry(entry, timeout, pending)
+      def wait_on_entry(entry, timeout, pending)
         entry[:mutex].synchronize do
           deadline = Time.now + timeout
           while pending.call
@@ -381,13 +384,13 @@ module SignalWire
         end
       end
 
-      def _validate_message_payload(body, media)
+      def validate_message_payload(body, media)
         return unless (body.nil? || body.empty?) && (media.nil? || media.empty?)
 
         raise ArgumentError, 'body or media is required'
       end
 
-      def _send_dial_rpc(dial_tag, devices, kwargs)
+      def send_dial_rpc(dial_tag, devices, kwargs)
         params = { 'tag' => dial_tag, 'devices' => devices }
         kwargs.each { |k, v| params[k.to_s] = v }
         execute('calling.dial', params)
@@ -396,7 +399,7 @@ module SignalWire
         raise
       end
 
-      def _build_message_params(msg_context, to_number, from_number, body:, media:, tags:, region:)
+      def build_message_params(msg_context, to_number, from_number, body:, media:, tags:, region:)
         params = { 'context' => msg_context, 'to_number' => to_number, 'from_number' => from_number }
         params['body']   = body   if body
         params['media']  = media  if media
@@ -405,7 +408,7 @@ module SignalWire
         params
       end
 
-      def _build_outbound_message(message_id, msg_context, to_number, from_number, body:, media:, tags:)
+      def build_outbound_message(message_id, msg_context, to_number, from_number, body:, media:, tags:)
         Message.new(
           message_id: message_id, context: msg_context, direction: 'outbound',
           from_number: from_number, to_number: to_number,
@@ -414,14 +417,14 @@ module SignalWire
       end
 
       # Wait for a JSON-RPC response (10s timeout to detect half-open connections).
-      def _await_response(id, entry, method)
-        _wait_on_entry(entry, 10, -> { entry[:result].nil? && entry[:error].nil? }) do
+      def await_response(id, entry, method)
+        wait_on_entry(entry, 10, -> { entry[:result].nil? && entry[:error].nil? }) do
           @pending_mutex.synchronize { @pending.delete(id) }
           raise RelayError.new(-1, "Request #{method} timed out")
         end
       end
 
-      def _check_result_code(method, result)
+      def check_result_code(method, result)
         return if method == METHOD_SIGNALWIRE_CONNECT
 
         code = result['code']
@@ -432,25 +435,25 @@ module SignalWire
       # WebSocket connection lifecycle
       # ------------------------------------------------------------------
 
-      def _connect_and_run
-        scheme = _relay_scheme
-        url = "#{scheme}://#{_relay_endpoint_host}"
+      def connect_and_run
+        scheme = relay_scheme
+        url = "#{scheme}://#{relay_endpoint_host}"
         # Secure-by-default WSS verification options (empty for plain ws://).
-        _open_websocket(url, _wss_tls_options(scheme))
+        open_websocket(url, wss_tls_options(scheme))
 
         @ws_mutex.synchronize { @connected = true }
         @reconnect_delay = RECONNECT_MIN_DELAY
-        _authenticate
+        authenticate
 
         # Keep reading until disconnected
         sleep 1 while @running && @connected
       end
 
       # Open the WebSocket and block until it reports open, raising on error.
-      def _open_websocket(url, ws_options)
+      def open_websocket(url, ws_options)
         # Shared open/error signalling between the connect callbacks and here.
         ready = { mutex: Mutex.new, cv: ConditionVariable.new, flag: false, error: nil }
-        @ws = WebSocket::Client::Simple.connect(url, ws_options) { |ws| _wire_ws_callbacks(ws, ready) }
+        @ws = WebSocket::Client::Simple.connect(url, ws_options) { |ws| wire_ws_callbacks(ws, ready) }
         ready[:mutex].synchronize { ready[:cv].wait(ready[:mutex], 15) until ready[:flag] }
         raise ready[:error] if ready[:error]
       end
@@ -459,35 +462,35 @@ module SignalWire
       # ephemeral port on 127.0.0.1 and serves plain ws://; SIGNALWIRE_RELAY_HOST
       # and SIGNALWIRE_RELAY_SCHEME let the audit harness redirect the client
       # there without touching production credential resolution.
-      def _relay_scheme
+      def relay_scheme
         scheme = ENV.fetch('SIGNALWIRE_RELAY_SCHEME', nil)
         scheme.nil? || scheme.empty? ? 'wss' : scheme
       end
 
-      def _relay_endpoint_host
+      def relay_endpoint_host
         host_override = ENV.fetch('SIGNALWIRE_RELAY_HOST', nil)
-        host_override.nil? || host_override.empty? ? @host : host_override
+        host_override.nil? || host_override.empty? ? host : host_override
       end
 
       # Wire the open/message/error/close callbacks onto the websocket. +ready+
-      # is the shared signalling hash (see _connect_and_run).
-      def _wire_ws_callbacks(socket, ready)
+      # is the shared signalling hash (see connect_and_run).
+      def wire_ws_callbacks(socket, ready)
         client_ref = self
-        socket.on(:message) { |msg| client_ref.send(:_on_ws_message, msg.data) }
-        socket.on(:open)  { client_ref.send(:_on_ws_lifecycle, :_on_ws_open, ready) }
-        socket.on(:close) { client_ref.send(:_on_ws_lifecycle, :_on_ws_close, ready) }
+        socket.on(:message) { |msg| client_ref.send(:on_ws_message, msg.data) }
+        socket.on(:open)  { client_ref.send(:on_ws_lifecycle, :on_ws_open, ready) }
+        socket.on(:close) { client_ref.send(:on_ws_lifecycle, :on_ws_close, ready) }
         socket.on(:error) do |err|
           ready[:error] = err
-          client_ref.send(:_signal_ready, ready)
+          client_ref.send(:signal_ready, ready)
         end
       end
 
-      def _on_ws_lifecycle(hook, ready)
+      def on_ws_lifecycle(hook, ready)
         send(hook)
-        _signal_ready(ready)
+        signal_ready(ready)
       end
 
-      def _signal_ready(ready)
+      def signal_ready(ready)
         ready[:mutex].synchronize do
           ready[:flag] = true
           ready[:cv].signal
@@ -507,7 +510,7 @@ module SignalWire
       # @param scheme [String] the URL scheme ("wss" or "ws")
       # @return [Hash] connect options ({} for plain ws://)
       # @api private
-      def _wss_tls_options(scheme)
+      def wss_tls_options(scheme)
         return {} unless scheme == 'wss'
 
         require 'openssl'
@@ -519,11 +522,11 @@ module SignalWire
         { verify_mode: OpenSSL::SSL::VERIFY_PEER, cert_store: store }
       end
 
-      def _on_ws_open
+      def on_ws_open
         # Connection opened
       end
 
-      def _on_ws_message(data)
+      def on_ws_message(data)
         return if data.nil? || data.empty?
 
         begin
@@ -533,10 +536,10 @@ module SignalWire
           return
         end
 
-        _handle_message(msg)
+        handle_message(msg)
       end
 
-      def _on_ws_close
+      def on_ws_close
         @ws_mutex.synchronize { @connected = false }
       end
 
@@ -552,12 +555,12 @@ module SignalWire
       # Authentication
       # ------------------------------------------------------------------
 
-      def _authenticate
+      def authenticate
         params = { 'version' => PROTOCOL_VERSION, 'agent' => AGENT_STRING, 'event_acks' => true }
-        _apply_auth_credentials(params)
-        params['contexts'] = @contexts unless @contexts.empty?
-        _apply_session_restore(params)
-        _clear_restart_state if @should_restart
+        apply_auth_credentials(params)
+        params['contexts'] = contexts unless contexts.empty?
+        apply_session_restore(params)
+        clear_restart_state if @should_restart
 
         result = execute(METHOD_SIGNALWIRE_CONNECT, params)
         @protocol = result['protocol'] if result['protocol']
@@ -568,28 +571,28 @@ module SignalWire
         @session_id = result['sessionid'] if result['sessionid']
       end
 
-      def _apply_session_restore(params)
+      def apply_session_restore(params)
         return if @should_restart
 
         params['protocol'] = @protocol if @protocol
         params['authorization_state'] = @authorization_state if @authorization_state
       end
 
-      def _apply_auth_credentials(params)
-        if @jwt_token
-          params['authentication'] = { 'jwt_token' => @jwt_token }
+      def apply_auth_credentials(params)
+        if jwt_token
+          params['authentication'] = { 'jwt_token' => jwt_token }
           return
         end
 
-        params['authentication'] = { 'project' => @project_id, 'token' => @token }
+        params['authentication'] = { 'project' => project_id, 'token' => token }
         # Audit fixtures and Blade-aware servers also accept the credentials at
         # the top level. Python's RELAY emits them in `authentication`; the audit
         # harness watches the top level. Emit both to satisfy both consumers.
-        params['project'] = @project_id
-        params['token']   = @token
+        params['project'] = project_id
+        params['token']   = token
       end
 
-      def _clear_restart_state
+      def clear_restart_state
         @protocol = nil
         @authorization_state = nil
         @should_restart = false
@@ -599,26 +602,26 @@ module SignalWire
       # Message dispatch
       # ------------------------------------------------------------------
 
-      def _handle_message(msg)
+      def handle_message(msg)
         # A frame with no method is a response to a pending request.
-        return _handle_response(msg) if msg['method'].nil?
+        return handle_response(msg) if msg['method'].nil?
 
-        _dispatch_method(msg)
+        dispatch_method(msg)
       end
 
-      def _dispatch_method(msg)
+      def dispatch_method(msg)
         id = msg['id']
         case msg['method']
         when METHOD_SIGNALWIRE_EVENT      then _handle_event(msg)
         when METHOD_SIGNALWIRE_PING       then _send_json({ 'jsonrpc' => '2.0', 'id' => id, 'result' => {} })
-        when METHOD_SIGNALWIRE_DISCONNECT then _handle_disconnect(msg)
+        when METHOD_SIGNALWIRE_DISCONNECT then handle_disconnect(msg)
         else
           # Unknown method, send empty result
           _send_json({ 'jsonrpc' => '2.0', 'id' => id, 'result' => {} }) if id
         end
       end
 
-      def _handle_response(msg)
+      def handle_response(msg)
         id = msg['id']
         return unless id
 
@@ -627,13 +630,13 @@ module SignalWire
 
         if msg['error']
           err = msg['error']
-          _settle_pending(entry, error: RelayError.new(err['code'], err['message'] || 'Unknown error'))
+          settle_pending(entry, error: RelayError.new(err['code'], err['message'] || 'Unknown error'))
         else
-          _settle_pending(entry, result: msg['result'] || {})
+          settle_pending(entry, result: msg['result'] || {})
         end
       end
 
-      def _settle_pending(entry, result: nil, error: nil, call: nil)
+      def settle_pending(entry, result: nil, error: nil, call: nil)
         entry[:mutex].synchronize do
           entry[:result] = result unless result.nil?
           entry[:error]  = error unless error.nil?
@@ -651,15 +654,15 @@ module SignalWire
         event_params = outer_params['params'] || {}
         call_id      = event_params['call_id'] || ''
 
-        _invoke_event_hook(event_type, event_params, outer_params)
-        return if _dispatch_typed_event(event_type, event_params, outer_params, call_id)
+        invoke_event_hook(event_type, event_params, outer_params)
+        return if dispatch_typed_event(event_type, event_params, outer_params, call_id)
 
-        _route_event_to_call(call_id, outer_params)
+        route_event_to_call(call_id, outer_params)
       end
 
       # Generic event hook (audit harnesses, integration tests). Runs BEFORE
       # type-specific dispatch so a probe can observe every event the SDK saw.
-      def _invoke_event_hook(event_type, event_params, outer_params)
+      def invoke_event_hook(event_type, event_params, outer_params)
         return unless @on_event_handler
 
         @on_event_handler.call(event_type, event_params, outer_params)
@@ -671,20 +674,20 @@ module SignalWire
       # when the event was fully handled (caller should stop), false otherwise.
       # EVENT_CALL_STATE pre-registers a dial leg then returns false so the
       # caller falls through to normal call routing.
-      def _dispatch_typed_event(event_type, event_params, outer_params, call_id)
+      def dispatch_typed_event(event_type, event_params, outer_params, call_id)
         case event_type
         when EVENT_AUTHORIZATION_STATE
           @authorization_state = event_params['authorization_state']
           true
         when EVENT_CALL_STATE
-          _maybe_register_dial_leg(event_params, call_id)
+          maybe_register_dial_leg(event_params, call_id)
           false
         else
-          _dispatch_outer_param_event(event_type, outer_params)
+          dispatch_outer_param_event(event_type, outer_params)
         end
       end
 
-      def _dispatch_outer_param_event(event_type, outer_params)
+      def dispatch_outer_param_event(event_type, outer_params)
         handler = OUTER_PARAM_EVENT_HANDLERS[event_type]
         return false unless handler
 
@@ -692,17 +695,17 @@ module SignalWire
         true
       end
 
-      def _maybe_register_dial_leg(event_params, call_id)
+      def maybe_register_dial_leg(event_params, call_id)
         tag = event_params['tag'] || ''
         return if tag.empty?
         return unless @dials_mutex.synchronize { @pending_dials.key?(tag) }
 
         has_call = @calls_mutex.synchronize { @calls.key?(call_id) }
-        _register_dial_leg(tag, event_params) unless has_call || call_id.empty?
+        register_dial_leg(tag, event_params) unless has_call || call_id.empty?
       end
 
       # Normal routing by call_id.
-      def _route_event_to_call(call_id, outer_params)
+      def route_event_to_call(call_id, outer_params)
         return if call_id.empty?
 
         call = @calls_mutex.synchronize { @calls[call_id] }
@@ -714,7 +717,7 @@ module SignalWire
         @calls_mutex.synchronize { @calls.delete(call_id) }
       end
 
-      def _handle_disconnect(msg)
+      def handle_disconnect(msg)
         id = msg['id']
         params = msg['params'] || {}
 
@@ -728,9 +731,9 @@ module SignalWire
         @ws_mutex.synchronize { @connected = false }
       end
 
-      def _handle_inbound_call(payload)
+      def handle_inbound_call(payload)
         event_params = payload['params'] || {}
-        call = _build_inbound_call(event_params)
+        call = build_inbound_call(event_params)
         @calls_mutex.synchronize { @calls[call.call_id] = call }
 
         return unless @on_call_handler
@@ -742,47 +745,47 @@ module SignalWire
         end
       end
 
-      def _build_inbound_call(event_params)
-        kwargs = _extract_fields(event_params, INBOUND_CALL_FIELDS)
+      def build_inbound_call(event_params)
+        kwargs = extract_fields(event_params, INBOUND_CALL_FIELDS)
         kwargs[:context] = event_params['context'] || event_params['protocol'] || ''
         Call.new(self, **kwargs)
       end
 
       # Pull mapped keys out of +params+, applying defaults. Centralizes the
       # nil-coalescing so the per-builder methods stay simple.
-      def _extract_fields(params, field_map)
+      def extract_fields(params, field_map)
         field_map.transform_values { |key, default| params[key] || default }
       end
 
-      def _handle_dial_event(payload)
+      def handle_dial_event(payload)
         event_params = payload['params'] || {}
         tag = event_params['tag'] || ''
         entry = @dials_mutex.synchronize { @pending_dials[tag] }
         return unless entry
 
         case event_params['dial_state']
-        when 'answered' then _dial_answered(entry, tag, event_params['call'] || {})
-        when 'failed'   then _settle_pending(entry, error: 'Dial failed')
+        when 'answered' then dial_answered(entry, tag, event_params['call'] || {})
+        when 'failed'   then settle_pending(entry, error: 'Dial failed')
         end
       end
 
-      def _dial_answered(entry, tag, call_info)
+      def dial_answered(entry, tag, call_info)
         call_id = call_info['call_id'] || ''
         call = @calls_mutex.synchronize { @calls[call_id] }
         unless call
-          call = _build_dialed_call(call_id, tag, call_info)
+          call = build_dialed_call(call_id, tag, call_info)
           @calls_mutex.synchronize { @calls[call_id] = call }
         end
         call.state = CALL_STATE_ANSWERED
-        _settle_pending(entry, call: call)
+        settle_pending(entry, call: call)
       end
 
-      def _build_dialed_call(call_id, tag, call_info)
+      def build_dialed_call(call_id, tag, call_info)
         Call.new(
           self,
           call_id: call_id,
           node_id: call_info['node_id'] || '',
-          project_id: @project_id,
+          project_id: project_id,
           tag: call_info['tag'] || tag,
           direction: 'outbound',
           device: call_info['device'] || {},
@@ -790,20 +793,20 @@ module SignalWire
         )
       end
 
-      def _register_dial_leg(tag, event_params)
+      def register_dial_leg(tag, event_params)
         call_id = event_params['call_id'] || ''
         return if call_id.empty?
 
         call = Call.new(
-          self, call_id: call_id, project_id: @project_id, tag: tag, direction: 'outbound',
+          self, call_id: call_id, project_id: project_id, tag: tag, direction: 'outbound',
                 node_id: event_params['node_id'] || '', device: event_params['device'] || {},
                 state: event_params['call_state'] || ''
         )
         @calls_mutex.synchronize { @calls[call_id] = call }
       end
 
-      def _handle_inbound_message(payload)
-        msg = _build_inbound_message(payload['params'] || {})
+      def handle_inbound_message(payload)
+        msg = build_inbound_message(payload['params'] || {})
 
         return unless @on_message_handler
 
@@ -814,11 +817,11 @@ module SignalWire
         end
       end
 
-      def _build_inbound_message(event_params)
-        Message.new(direction: 'inbound', **_extract_fields(event_params, INBOUND_MESSAGE_FIELDS))
+      def build_inbound_message(event_params)
+        Message.new(direction: 'inbound', **extract_fields(event_params, INBOUND_MESSAGE_FIELDS))
       end
 
-      def _handle_message_state(payload)
+      def handle_message_state(payload)
         event_params = payload['params'] || {}
         message_id = event_params['message_id'] || ''
 
@@ -833,24 +836,44 @@ module SignalWire
         @messages_mutex.synchronize { @messages.delete(message_id) }
       end
 
-      def _reject_all_pending(reason)
+      def reject_all_pending(reason)
         @pending_mutex.synchronize do
-          @pending.each_value { |entry| _reject_entry(entry, RelayError.new(-1, reason)) }
+          @pending.each_value { |entry| reject_entry(entry, RelayError.new(-1, reason)) }
           @pending.clear
         end
 
         @dials_mutex.synchronize do
-          @pending_dials.each_value { |entry| _reject_entry(entry, reason) }
+          @pending_dials.each_value { |entry| reject_entry(entry, reason) }
           @pending_dials.clear
         end
       end
 
-      def _reject_entry(entry, error)
+      def reject_entry(entry, error)
         entry[:mutex].synchronize do
           entry[:error] ||= error
           entry[:cv].signal
         end
       end
+
+      # Internal helpers (formerly leading-underscore by convention). Not part
+      # of the public/Python surface -- declared private so the cross-port
+      # surface enumerator continues to exclude them. _send_json / _connected? /
+      # _calls_snapshot / _set_protocol / _authorization_state / _session_id stay
+      # public+underscored (invoked cross-instance by tests / the send_json wrapper).
+      private :apply_auth_credentials, :apply_session_restore, :authenticate, :await_dial,
+              :await_response, :backoff_reconnect, :build_dialed_call, :build_inbound_call,
+              :build_inbound_message, :build_message_params, :build_outbound_message, :check_result_code,
+              :clear_restart_state, :connect_and_run, :connect_and_run_guarded, :dial_answered,
+              :dispatch_method, :dispatch_outer_param_event, :dispatch_typed_event, :extract_fields,
+              :handle_dial_event, :handle_disconnect, :handle_inbound_call,
+              :handle_inbound_message, :handle_message, :handle_message_state, :handle_response,
+              :init_correlation_state, :init_handlers, :init_session_state, :invoke_event_hook,
+              :maybe_register_dial_leg, :on_ws_close, :on_ws_lifecycle, :on_ws_message,
+              :on_ws_open, :open_websocket, :register_dial_leg, :reject_all_pending,
+              :reject_entry, :relay_endpoint_host, :relay_scheme, :resolve_credentials,
+              :resolve_max_active_calls, :route_event_to_call, :send_dial_rpc, :settle_pending,
+              :signal_ready, :validate_credentials, :validate_message_payload, :value_or_env,
+              :wait_on_entry, :wire_ws_callbacks, :wss_tls_options
     end
   end
 end
