@@ -53,14 +53,14 @@ module SignalWire
     # Maximum request body size (1 MB)
     MAX_BODY_SIZE = 1_048_576
 
-    # _create_ephemeral_copy: ivars whose value is an array of dup-able
+    # create_ephemeral_copy: ivars whose value is an array of dup-able
     # elements (deep-copied via map(&:dup)).
     EPHEMERAL_ARRAY_OF_DUPS = %i[
       @pom_sections @languages @pronounce @function_includes
       @pre_answer_verbs @post_answer_verbs @post_ai_verbs @mcp_servers
     ].freeze
 
-    # _create_ephemeral_copy: ivars deep-copied with a shallow #dup.
+    # create_ephemeral_copy: ivars deep-copied with a shallow #dup.
     EPHEMERAL_SHALLOW_DUPS = %i[
       @hints @params @global_data @native_functions @prompt_llm_params
       @post_prompt_llm_params @answer_config @swaig_query_params @loaded_skills
@@ -102,6 +102,13 @@ module SignalWire
     end
 
     private
+
+    # Read-only agent configuration, set during construction / one-time config
+    # calls (enable_sip_routing, enable_debug_events, etc.) and only read after.
+    attr_reader :auto_answer, :record_call, :record_format, :record_stereo,
+                :suppress_logs, :trust_proxy_for_signature, :proxy_url_base,
+                :sip_routing_enabled, :sip_path, :sip_auto_map, :debug_events_level,
+                :debug_events_enabled, :debug_routes_enabled, :mcp_server_enabled
 
     # Resolve basic auth. Returns [auth_pair, password_auto_generated?].
     # Resolution: explicit arg → SWML_BASIC_AUTH_* env → random UUIDs.
@@ -146,7 +153,7 @@ module SignalWire
       @session_manager = Security::SessionManager.new(token_expiry_secs: opts[:token_expiry_secs])
       init_signing_key(opts[:signing_key], opts[:trust_proxy_for_signature])
       init_default_state
-      @logger.info "Agent '#{@name}' initialised (route=#{@route}, port=#{@port})"
+      @logger.info "Agent '#{name}' initialised (route=#{route}, port=#{port})"
     end
 
     def init_call_settings(auto_answer:, record_call:, record_format:, record_stereo:)
@@ -171,13 +178,13 @@ module SignalWire
 
     # Webhook signature validation (per the SignalWire webhook signing spec).
     # Resolution:
-    # explicit arg → SIGNALWIRE_SIGNING_KEY env. When set, _build_rack_app
+    # explicit arg → SIGNALWIRE_SIGNING_KEY env. When set, build_rack_app
     # mounts WebhookMiddleware on the signed routes; when unset, warn so
     # production users notice unsigned traffic is being accepted.
     def init_signing_key(signing_key, trust_proxy_for_signature)
       @signing_key = signing_key || ENV.fetch('SIGNALWIRE_SIGNING_KEY', nil)
       @trust_proxy_for_signature = trust_proxy_for_signature
-      log_signing_key_status unless @suppress_logs
+      log_signing_key_status unless suppress_logs
     end
 
     def log_signing_key_status
@@ -274,7 +281,7 @@ module SignalWire
     #
     # @return [String] the agent name
     def get_name
-      @name
+      name
     end
 
     # Build the full URL for this agent.
@@ -684,7 +691,7 @@ module SignalWire
     # Normalise parameters into JSON-Schema form and inject the caller's
     # `required:` list onto an object schema.
     def build_tool_param_schema(parameters, required)
-      param_schema = _normalise_parameters(parameters)
+      param_schema = normalise_parameters(parameters)
       if required.is_a?(Array) && !required.empty? && param_schema.is_a?(Hash) && param_schema['type'] == 'object'
         existing = param_schema['required'] || []
         param_schema['required'] = (existing + required).uniq
@@ -1484,7 +1491,7 @@ module SignalWire
       # SIP username from the request body and returns nil (matched → this agent
       # handles the call so dispatch renders SWML; unmatched → routing
       # continues) — exactly Python's sip_routing_callback.
-      register_routing_callback(path) { |body, _headers| _sip_routing_callback(body) }
+      register_routing_callback(path) { |body, _headers| sip_routing_callback(body) }
 
       auto_map_sip_usernames if auto_map
       self
@@ -1495,7 +1502,7 @@ module SignalWire
     # whether it matched a registered username. Always returns nil: a matched
     # username is handled by this agent (dispatch renders SWML), an unmatched
     # one lets routing continue.
-    def _sip_routing_callback(body)
+    def sip_routing_callback(body)
       username = self.class.extract_sip_username_from_request(body)
       return nil if username.nil?
 
@@ -1527,10 +1534,10 @@ module SignalWire
         register_sip_username(candidate) unless candidate.empty? || @sip_usernames.include?(candidate)
       end
 
-      clean_name = sanitize_sip_username(@name)
+      clean_name = sanitize_sip_username(name)
       register.call(clean_name) unless clean_name.empty?
 
-      clean_route = sanitize_sip_username(@route)
+      clean_route = sanitize_sip_username(route)
       register.call(clean_route) if !clean_route.empty? && clean_route != clean_name
 
       register_no_vowels_variation(clean_name, register)
@@ -1646,59 +1653,59 @@ module SignalWire
       req_id  = body['id']
       params  = body['params'] || {}
 
-      return _mcp_error(req_id, -32_600, 'Invalid JSON-RPC version') unless body['jsonrpc'] == '2.0'
+      return mcp_error(req_id, -32_600, 'Invalid JSON-RPC version') unless body['jsonrpc'] == '2.0'
 
       # Each branch is a distinct JSON-RPC method; the no-op ack arms
       # (notifications/initialized, ping) share an empty-result body but stay
-      # documented by name in _mcp_empty_result_method?.
+      # documented by name in mcp_empty_result_method?.
       case method
-      when 'initialize'   then _mcp_initialize_response(req_id)
-      when 'tools/list'   then _mcp_result(req_id, { 'tools' => _build_mcp_tool_list })
-      when 'tools/call'   then _mcp_tools_call(req_id, params)
-      else _mcp_default_response(method, req_id)
+      when 'initialize'   then mcp_initialize_response(req_id)
+      when 'tools/list'   then mcp_result(req_id, { 'tools' => _build_mcp_tool_list })
+      when 'tools/call'   then mcp_tools_call(req_id, params)
+      else mcp_default_response(method, req_id)
       end
     end
 
-    def _mcp_default_response(method, req_id)
-      return _mcp_result(req_id, {}) if _mcp_empty_result_method?(method)
+    def mcp_default_response(method, req_id)
+      return mcp_result(req_id, {}) if mcp_empty_result_method?(method)
 
-      _mcp_error(req_id, -32_601, "Method not found: #{method}")
+      mcp_error(req_id, -32_601, "Method not found: #{method}")
     end
 
-    def _mcp_empty_result_method?(method)
+    def mcp_empty_result_method?(method)
       %w[notifications/initialized ping].include?(method)
     end
 
-    def _mcp_result(req_id, result)
+    def mcp_result(req_id, result)
       { 'jsonrpc' => '2.0', 'id' => req_id, 'result' => result }
     end
 
-    def _mcp_initialize_response(req_id)
+    def mcp_initialize_response(req_id)
       {
         'jsonrpc' => '2.0', 'id' => req_id,
         'result' => {
           'protocolVersion' => '2025-06-18',
           'capabilities' => { 'tools' => {} },
-          'serverInfo' => { 'name' => @name, 'version' => '1.0.0' }
+          'serverInfo' => { 'name' => name, 'version' => '1.0.0' }
         }
       }
     end
 
-    def _mcp_tools_call(req_id, params)
+    def mcp_tools_call(req_id, params)
       tool_name = params['name'] || ''
       arguments = params['arguments'] || {}
       tool = @tools[tool_name]
-      return _mcp_error(req_id, -32_602, "Unknown tool: #{tool_name}") unless tool
+      return mcp_error(req_id, -32_602, "Unknown tool: #{tool_name}") unless tool
 
       raw_data = { 'function' => tool_name, 'argument' => { 'parsed' => [arguments] } }
       result = tool[:handler].call(arguments, raw_data)
-      _mcp_tool_result(req_id, _mcp_response_text(result), is_error: false)
+      mcp_tool_result(req_id, mcp_response_text(result), is_error: false)
     rescue StandardError => e
       @logger.error "MCP tool call error: #{tool_name}: #{e.message}"
-      _mcp_tool_result(req_id, "Error: #{e.message}", is_error: true)
+      mcp_tool_result(req_id, "Error: #{e.message}", is_error: true)
     end
 
-    def _mcp_response_text(result)
+    def mcp_response_text(result)
       return result.to_h['response'] || '' if result.respond_to?(:to_h)
       return result['response'] || result.to_s if result.is_a?(Hash)
       return result if result.is_a?(String)
@@ -1706,7 +1713,7 @@ module SignalWire
       ''
     end
 
-    def _mcp_tool_result(req_id, text, is_error:)
+    def mcp_tool_result(req_id, text, is_error:)
       {
         'jsonrpc' => '2.0', 'id' => req_id,
         'result' => {
@@ -1717,7 +1724,7 @@ module SignalWire
     end
 
     # @api private
-    def _mcp_error(req_id, code, message)
+    def mcp_error(req_id, code, message)
       {
         'jsonrpc' => '2.0',
         'id' => req_id,
@@ -1816,7 +1823,7 @@ module SignalWire
     # idiom) or a Rack-request-like object, translate it into a Rack env,
     # and return a +{ 'status', 'headers', 'body' }+ response.
     def _run_gcf(request)
-      _run_http_serverless(request)
+      run_http_serverless(request)
     end
 
     # @api private
@@ -1824,18 +1831,18 @@ module SignalWire
     # object/dict (method / url / headers / body); translate to a Rack env and
     # return a +{ 'status', 'headers', 'body' }+ response.
     def _run_azure(request)
-      _run_http_serverless(request)
+      run_http_serverless(request)
     end
 
     # @api private
     # Shared GCF/Azure request pump: normalise the HTTP-request-shaped input
     # into a Rack env, invoke the app, and return a +{status,headers,body}+
     # response hash.
-    def _run_http_serverless(request)
+    def run_http_serverless(request)
       require 'stringio'
-      method, path, query, body, headers = _extract_http_request(request)
+      method, path, query, body, headers = extract_http_request(request)
       env = rack_env(path: path, method: method, query: query, body: body)
-      _apply_env_headers(env, headers)
+      apply_env_headers(env, headers)
       status, resp_headers, resp_body = rack_app.call(env)
       { 'status' => Integer(status), 'headers' => resp_headers, 'body' => join_rack_body(resp_body) }
     end
@@ -1844,25 +1851,25 @@ module SignalWire
     # Normalise a serverless HTTP request (Hash with string/symbol keys, or a
     # Rack-request-like object) into +[method, path, query, body, headers]+.
     # For Azure, a full +url+ is split into path + query string.
-    def _extract_http_request(request)
+    def extract_http_request(request)
       req = request || {}
-      method = (_req_field(req, :method, :request_method, :httpMethod) || 'GET').to_s.upcase
-      path, query = _extract_path_and_query(req)
-      [method, path, query, (_req_field(req, :body) || '').to_s, _req_field(req, :headers) || {}]
+      method = (req_field(req, :method, :request_method, :httpMethod) || 'GET').to_s.upcase
+      path, query = extract_path_and_query(req)
+      [method, path, query, (req_field(req, :body) || '').to_s, req_field(req, :headers) || {}]
     end
 
     # Resolve [path, query] from a request: the target may be a bare path or a
     # full URL (Azure); the query may come from a dedicated field or the URL.
-    def _extract_path_and_query(req)
-      path, url_query = _split_url_path((_req_field(req, :path, :url, :rawPath, :request_uri) || '/').to_s)
-      query = (_req_field(req, :query, :query_string, :rawQueryString) || url_query || '').to_s
+    def extract_path_and_query(req)
+      path, url_query = split_url_path((req_field(req, :path, :url, :rawPath, :request_uri) || '/').to_s)
+      query = (req_field(req, :query, :query_string, :rawQueryString) || url_query || '').to_s
       [path, query]
     end
 
     # Split a request target into [path, query]. Accepts a bare path
     # ("/health?x=1") or a full URL ("https://host/health?x=1", as Azure sends)
     # and returns just the path component + query string.
-    def _split_url_path(raw)
+    def split_url_path(raw)
       if raw.include?('://')
         require 'uri'
         parsed = URI.parse(raw)
@@ -1876,7 +1883,7 @@ module SignalWire
 
     # Look up the first present key (string or symbol) from a Hash, or call the
     # first matching reader on a request-like object.
-    def _req_field(req, *names)
+    def req_field(req, *names)
       if req.is_a?(Hash)
         names.each do |n|
           return req[n.to_s] if req.key?(n.to_s)
@@ -1895,7 +1902,7 @@ module SignalWire
 
     # Merge request headers (a Hash) into a Rack env as HTTP_* keys, pulling out
     # CONTENT_TYPE / CONTENT_LENGTH which Rack expects unprefixed.
-    def _apply_env_headers(env, headers)
+    def apply_env_headers(env, headers)
       return unless headers.is_a?(Hash)
 
       headers.each do |name, value|
@@ -1988,7 +1995,7 @@ module SignalWire
 
     # Return a Rack-compatible application for mounting.
     def rack_app
-      @rack_app ||= _build_rack_app
+      @rack_app ||= build_rack_app
     end
 
     alias as_rack_app rack_app
@@ -2010,7 +2017,7 @@ module SignalWire
 
     # Framework-free request-dispatch core for AgentBase — overrides
     # {SWMLService#handle_request} so the primitive dispatch surface renders SWML
-    # via the agent's {#render_swml} (mirroring the Rack +_handle_main_request+
+    # via the agent's {#render_swml} (mirroring the Rack +handle_main_request+
     # path) instead of the base +render_document+. Performs proxy detection,
     # basic-auth, the routing-callback check, and the +on_swml_request+
     # modification hook over plain primitives, returning a
@@ -2038,13 +2045,13 @@ module SignalWire
       redirect = routing_redirect(method, body, headers, callback_path)
       return redirect if redirect
 
-      _agent_render_triple(body, callback_path, request:)
+      agent_render_triple(body, callback_path, request:)
     end
 
     # 200 triple rendering agent SWML with any on_swml_request modifications
     # shallow-merged in. Split out of {#handle_request} for clarity.
-    def _agent_render_triple(body, callback_path, request: nil)
-      modifications = _agent_on_swml_request(body, callback_path, request)
+    def agent_render_triple(body, callback_path, request: nil)
+      modifications = agent_on_swml_request(body, callback_path, request)
       swml = render_swml(body, request:)
       swml = swml.merge(modifications) if modifications.is_a?(Hash)
       [200, {}, JSON.generate(swml)]
@@ -2053,7 +2060,7 @@ module SignalWire
     # Call +on_swml_request+ (a raising modifier does not 500 the
     # request), returning its modifications or nil. +request+ is the live Rack
     # request on the served path, or nil for the framework-free primitive path.
-    def _agent_on_swml_request(body, callback_path, request = nil)
+    def agent_on_swml_request(body, callback_path, request = nil)
       on_swml_request(body, callback_path, request:)
     rescue StandardError => e
       @log&.error("error_in_request_modifier: #{e.message}")
@@ -2061,10 +2068,10 @@ module SignalWire
     end
 
     def apply_dynamic_config(request_data, request)
-      agent = _create_ephemeral_copy
-      query_params = request ? _parse_query_string(request) : {}
+      agent = create_ephemeral_copy
+      query_params = request ? parse_query_string(request) : {}
       body_params  = request_data || {}
-      headers      = request ? _extract_headers(request) : {}
+      headers      = request ? extract_headers(request) : {}
       @dynamic_config_callback.call(query_params, body_params, headers, agent)
       agent
     rescue StandardError => e
@@ -2075,12 +2082,12 @@ module SignalWire
     # @api private
     def _render_swml_internal
       sections_main = []
-      sections_main.concat(verb_entries(@pre_answer_verbs))   # PHASE 1: pre-answer verbs
-      sections_main << answer_entry if @auto_answer           # PHASE 2: answer verb
-      sections_main << record_call_entry if @record_call      # PHASE 3a: record_call
-      sections_main.concat(verb_entries(@post_answer_verbs))  # PHASE 3b: post-answer verbs
-      sections_main << { 'ai' => _build_ai_config }           # PHASE 4: AI verb
-      sections_main.concat(verb_entries(@post_ai_verbs))      # PHASE 5: post-AI verbs
+      sections_main.concat(verb_entries(@pre_answer_verbs)) # PHASE 1: pre-answer verbs
+      sections_main << answer_entry if auto_answer           # PHASE 2: answer verb
+      sections_main << record_call_entry if record_call      # PHASE 3a: record_call
+      sections_main.concat(verb_entries(@post_answer_verbs)) # PHASE 3b: post-answer verbs
+      sections_main << { 'ai' => build_ai_config } # PHASE 4: AI verb
+      sections_main.concat(verb_entries(@post_ai_verbs)) # PHASE 5: post-AI verbs
 
       { 'version' => '1.0.0', 'sections' => { 'main' => sections_main } }
     end
@@ -2095,7 +2102,7 @@ module SignalWire
     end
 
     def record_call_entry
-      { 'record_call' => { 'format' => @record_format, 'stereo' => @record_stereo } }
+      { 'record_call' => { 'format' => record_format, 'stereo' => record_stereo } }
     end
 
     # Get the configured basic-auth credentials.
@@ -2131,7 +2138,7 @@ module SignalWire
     private
 
     # Build the AI verb configuration hash.
-    def _build_ai_config
+    def build_ai_config
       ai = {}
       add_ai_prompt(ai)
       add_ai_post_prompt(ai)
@@ -2148,7 +2155,7 @@ module SignalWire
       prompt = get_prompt
       if prompt.nil? || (prompt.respond_to?(:empty?) && prompt.empty?)
         # Match TS: emit the default fallback prompt rather than omitting it.
-        prompt = "You are #{@name}, a helpful AI assistant."
+        prompt = "You are #{name}, a helpful AI assistant."
       end
       key = prompt.is_a?(Array) ? 'pom' : 'text'
 
@@ -2163,11 +2170,11 @@ module SignalWire
       pp_obj = { 'text' => @post_prompt_text }
       pp_obj.merge!(@post_prompt_llm_params) unless @post_prompt_llm_params.empty?
       config['post_prompt'] = pp_obj
-      config['post_prompt_url'] = (@post_prompt_url_override || _build_webhook_url('post_prompt'))
+      config['post_prompt_url'] = (@post_prompt_url_override || build_webhook_url('post_prompt'))
     end
 
     def add_ai_swaig(config)
-      functions = _build_functions_array
+      functions = build_functions_array
       swaig = { 'defaults' => { 'web_hook_url' => swaig_default_url } }
       swaig['functions']        = functions          unless functions.empty?
       swaig['native_functions'] = @native_functions  unless @native_functions.empty?
@@ -2178,7 +2185,7 @@ module SignalWire
 
     def swaig_default_url
       @web_hook_url_override ||
-        _build_webhook_url('swaig', @swaig_query_params.empty? ? nil : @swaig_query_params)
+        build_webhook_url('swaig', @swaig_query_params.empty? ? nil : @swaig_query_params)
     end
 
     def add_ai_collections(config)
@@ -2193,9 +2200,9 @@ module SignalWire
 
     def add_ai_params(config)
       merged_params = @params.dup
-      if @debug_events_enabled
-        merged_params['debug_webhook_url']   = _build_webhook_url('debug_events')
-        merged_params['debug_webhook_level'] = @debug_events_level
+      if debug_events_enabled
+        merged_params['debug_webhook_url']   = build_webhook_url('debug_events')
+        merged_params['debug_webhook_level'] = debug_events_level
       end
       config['params'] = merged_params unless merged_params.empty?
     end
@@ -2209,7 +2216,7 @@ module SignalWire
     end
 
     # Build the functions array for the SWAIG section.
-    def _build_functions_array
+    def build_functions_array
       functions = @tools.values.map { |tool| tool_function_entry(tool) }
       @swaig_functions.each_value { |func_def| functions << func_def.dup }
       functions
@@ -2222,15 +2229,15 @@ module SignalWire
       # render — so the default webhook URL handles their dispatch here.)
       if tool[:secure] || !@swaig_query_params.empty?
         qp = @swaig_query_params.dup
-        func_entry['web_hook_url'] = _build_webhook_url('swaig', qp) unless qp.empty?
+        func_entry['web_hook_url'] = build_webhook_url('swaig', qp) unless qp.empty?
       end
       func_entry
     end
 
     # Build a webhook URL with optional query params.
-    def _build_webhook_url(endpoint, query_params = nil)
-      base = _base_url
-      path = @route == '/' ? "/#{endpoint}" : "#{@route}/#{endpoint}"
+    def build_webhook_url(endpoint, query_params = nil)
+      base = base_url
+      path = route == '/' ? "/#{endpoint}" : "#{route}/#{endpoint}"
 
       url = "#{base}#{path}"
 
@@ -2253,29 +2260,29 @@ module SignalWire
     #   3. +http://user:pass@host:port+ for local server mode
     #
     # This method intentionally returns only the *base* — the agent's
-    # +@route+ is appended by {#_build_webhook_url}. Never bake the
+    # +@route+ is appended by {#build_webhook_url}. Never bake the
     # route into the base here, or a non-root agent deployed behind a
     # proxy will have its mount point silently dropped from webhook
     # URLs.
-    def _base_url
-      return @proxy_url_base.chomp('/') if @proxy_url_base && !@proxy_url_base.empty?
+    def base_url
+      return proxy_url_base.chomp('/') if proxy_url_base && !proxy_url_base.empty?
 
       if Runtime.lambda?
         lambda_base = Runtime.lambda_base_url
         if lambda_base
           user, pass = @basic_auth
-          return _embed_auth(lambda_base, user, pass)
+          return embed_auth(lambda_base, user, pass)
         end
       end
 
       user, pass = @basic_auth
-      "http://#{user}:#{pass}@#{@host}:#{@port}"
+      "http://#{user}:#{pass}@#{host}:#{port}"
     end
 
     # Embed basic-auth credentials into +base+ immediately after the
     # scheme. Returns +base+ untouched when either credential is blank
     # or the URL already contains an @-delimited userinfo component.
-    def _embed_auth(base, user, pass)
+    def embed_auth(base, user, pass)
       return base if blank?(user) || blank?(pass)
 
       uri = URI.parse(base)
@@ -2292,7 +2299,7 @@ module SignalWire
     end
 
     # Normalise tool parameters into JSON-Schema form.
-    def _normalise_parameters(params)
+    def normalise_parameters(params)
       return params if object_schema?(params)
       return { 'type' => 'object', 'properties' => {} } if params.nil? || params.empty?
 
@@ -2307,13 +2314,13 @@ module SignalWire
     end
 
     # Create an ephemeral deep copy for dynamic config.
-    def _create_ephemeral_copy
+    def create_ephemeral_copy
       copy = dup
       ephemeral_copy_values.each { |ivar, value| copy.instance_variable_set(ivar, value) }
       copy
     end
 
-    # The deep-copied ivar => value pairs for {#_create_ephemeral_copy}. The
+    # The deep-copied ivar => value pairs for {#create_ephemeral_copy}. The
     # dynamic-config callback is intentionally nil'd to prevent infinite
     # recursion; @mcp_server_enabled is a scalar so it's copied as-is.
     def ephemeral_copy_values
@@ -2328,21 +2335,21 @@ module SignalWire
       {
         :@tools => @tools.transform_values(&:dup),
         :@swaig_functions => @swaig_functions.transform_values(&:dup),
-        :@internal_fillers => _deep_dup_hash(@internal_fillers),
+        :@internal_fillers => deep_dup_hash(@internal_fillers),
         :@mcp_server_enabled => @mcp_server_enabled,
         :@dynamic_config_callback => nil
       }
     end
 
     # Deep-dup a hash of hashes
-    def _deep_dup_hash(hash)
+    def deep_dup_hash(hash)
       hash.each_with_object({}) do |(k, v), result|
         result[k] = v.is_a?(Hash) ? v.dup : v
       end
     end
 
     # Parse query string from Rack request
-    def _parse_query_string(request)
+    def parse_query_string(request)
       return {} unless request.respond_to?(:env)
 
       qs = request.env['QUERY_STRING'] || ''
@@ -2352,7 +2359,7 @@ module SignalWire
     end
 
     # Extract headers from Rack request
-    def _extract_headers(request)
+    def extract_headers(request)
       return {} unless request.respond_to?(:env)
 
       request.env.select { |k, _| k.start_with?('HTTP_') }
@@ -2365,22 +2372,22 @@ module SignalWire
     # Rack app
     # ==================================================================
 
-    def _build_rack_app
+    def build_rack_app
       agent = self
-      main_route = @route
-      authenticated = _build_authenticated_app
+      main_route = route
+      authenticated = build_authenticated_app
       Rack::Builder.new do
         # --- public endpoints (no auth) --------------------------------
-        map('/health') { run ->(_env) { agent.send(:_static_status_response, 'healthy') } }
-        map('/ready')  { run ->(_env) { agent.send(:_static_status_response, 'ready') } }
+        map('/health') { run ->(_env) { agent.send(:static_status_response, 'healthy') } }
+        map('/ready')  { run ->(_env) { agent.send(:static_status_response, 'ready') } }
         # --- authenticated endpoints -----------------------------------
         map(main_route) { run authenticated }
       end
     end
 
     # The middleware stack + handler for the authenticated main route, as its
-    # own Rack app so _build_rack_app stays a thin router.
-    def _build_authenticated_app
+    # own Rack app so build_rack_app stays a thin router.
+    def build_authenticated_app
       agent = self
       # Webhook signature validation runs BEFORE basic auth so a spoofed but
       # unsigned request is rejected with 403 (the spec) rather than 401 (which
@@ -2393,7 +2400,7 @@ module SignalWire
         use AgentBodyLimitMiddleware, AgentBase::MAX_BODY_SIZE
         use(SignalWire::Security::WebhookMiddleware, **webhook_args) if webhook_args
         use AgentTimingSafeBasicAuth, agent
-        run ->(env) { agent.send(:_handle_main_request, env) }
+        run ->(env) { agent.send(:handle_main_request, env) }
       end
     end
 
@@ -2401,17 +2408,17 @@ module SignalWire
     def webhook_middleware_args
       return nil if @signing_key.nil? || @signing_key.empty?
 
-      { signing_key: @signing_key, trust_proxy: @trust_proxy_for_signature,
+      { signing_key: @signing_key, trust_proxy: trust_proxy_for_signature,
         paths: ['/', '/swaig', '/post_prompt'], methods: ['POST'] }
     end
 
-    def _static_status_response(status)
+    def static_status_response(status)
       [200, { 'content-type' => 'application/json' }, [JSON.generate({ status: status })]]
     end
 
     # The authenticated main-route Rack handler: parse the body, then dispatch
     # to /swaig, the extra routes (/post_prompt, /debug_events, /mcp), or SWML.
-    def _handle_main_request(env)
+    def handle_main_request(env)
       request  = Rack::Request.new(env)
       sub_path = env['PATH_INFO'] || '/'
       sub_path = '/' if sub_path.empty?
@@ -2429,16 +2436,16 @@ module SignalWire
       # unconditionally rendering SWML. Basic auth already ran in the Rack
       # middleware, so skip the redundant re-check; the request is threaded
       # through for dynamic config's query/header access.
-      _dispatch_via_handle_request(request, env, sub_path, request_data)
+      dispatch_via_handle_request(request, env, sub_path, request_data)
     end
 
     # Marshal the served Rack request into the (method, url, headers, body)
     # primitives, call {#handle_request}, and turn its
     # +[status, headers, body_string]+ triple back into a Rack response array.
-    def _dispatch_via_handle_request(request, env, sub_path, request_data)
+    def dispatch_via_handle_request(request, env, sub_path, request_data)
       method  = env['REQUEST_METHOD'] || 'GET'
-      url     = _served_request_url(env, sub_path)
-      headers = _extract_headers(request)
+      url     = served_request_url(env, sub_path)
+      headers = extract_headers(request)
       status, headers_out, body = handle_request(
         method, url, headers, request_data, request:, skip_auth: true
       )
@@ -2448,7 +2455,7 @@ module SignalWire
 
     # Build the request URL (path + query string) that handle_request's
     # callback-path matcher and proxy detection consume.
-    def _served_request_url(env, sub_path)
+    def served_request_url(env, sub_path)
       qs = env['QUERY_STRING']
       qs && !qs.empty? ? "#{sub_path}?#{qs}" : sub_path
     end
@@ -2482,9 +2489,9 @@ module SignalWire
 
     def handle_additional_route(sub_path, request_data, env)
       case sub_path
-      when '/post_prompt'  then _handle_post_prompt(request_data, env)
-      when '/debug_events' then _handle_debug_events(request_data, env)
-      when '/mcp'          then _handle_mcp_endpoint(request_data, env)
+      when '/post_prompt'  then handle_post_prompt(request_data, env)
+      when '/debug_events' then handle_debug_events(request_data, env)
+      when '/mcp'          then handle_mcp_endpoint(request_data, env)
       end
     end
 
@@ -2497,7 +2504,7 @@ module SignalWire
 
     # Handle post_prompt callback.
     # @api private
-    def _handle_post_prompt(request_data, _env)
+    def handle_post_prompt(request_data, _env)
       invoke_summary_callback(request_data) if @summary_callback && request_data
       json_response(200, { 'status' => 'ok' })
     end
@@ -2540,7 +2547,7 @@ module SignalWire
 
     # Handle debug events.
     # @api private
-    def _handle_debug_events(request_data, _env)
+    def handle_debug_events(request_data, _env)
       invoke_debug_event_callback(request_data) if @debug_event_callback && request_data
       json_response(200, { 'status' => 'ok' })
     end
@@ -2554,9 +2561,9 @@ module SignalWire
 
     # Handle MCP JSON-RPC 2.0 endpoint.
     # @api private
-    def _handle_mcp_endpoint(request_data, _env)
-      return json_response(404, { 'error' => 'MCP server not enabled' }) unless @mcp_server_enabled
-      return json_response(400, _mcp_error(nil, -32_700, 'Parse error')) unless request_data
+    def handle_mcp_endpoint(request_data, _env)
+      return json_response(404, { 'error' => 'MCP server not enabled' }) unless mcp_server_enabled
+      return json_response(400, mcp_error(nil, -32_700, 'Parse error')) unless request_data
 
       json_response(200, _handle_mcp_request(request_data))
     end
@@ -2577,10 +2584,14 @@ module SignalWire
       end
 
       def call(env)
-        status, headers, body = @app.call(env)
+        status, headers, body = app.call(env)
         HEADERS.each { |k, v| headers[k] = v }
         [status, headers, body]
       end
+
+      private
+
+      attr_reader :app
     end
 
     class AgentBodyLimitMiddleware
@@ -2590,12 +2601,16 @@ module SignalWire
       end
 
       def call(env)
-        if env['CONTENT_LENGTH'] && env['CONTENT_LENGTH'].to_i > @max_size
+        if env['CONTENT_LENGTH'] && env['CONTENT_LENGTH'].to_i > max_size
           body = JSON.generate({ 'error' => 'Request body too large' })
           return [413, { 'content-type' => 'application/json' }, [body]]
         end
-        @app.call(env)
+        app.call(env)
       end
+
+      private
+
+      attr_reader :app, :max_size
     end
 
     class AgentTimingSafeBasicAuth
@@ -2606,9 +2621,9 @@ module SignalWire
 
       def call(env)
         auth = Rack::Auth::Basic::Request.new(env)
-        return _unauthorized unless auth.provided? && auth.basic?
+        return unauthorized unless auth.provided? && auth.basic?
 
-        credentials_valid?(auth.credentials) ? @app.call(env) : _unauthorized
+        credentials_valid?(auth.credentials) ? @app.call(env) : unauthorized
       end
 
       private
@@ -2622,7 +2637,7 @@ module SignalWire
         user_ok && pass_ok
       end
 
-      def _unauthorized
+      def unauthorized
         # Python parity (AuthMixin._send_lambda_auth_challenge / the CGI + server
         # challenges): a JSON {"error":"Unauthorized"} body with a JSON
         # content-type, not a plain-text "Unauthorized".
@@ -2659,5 +2674,14 @@ module SignalWire
     private :answer_entry, :record_call_entry, :webrick_handler
     private :valid_function_include?, :warn_dropped_function_include, :find_summary_in_post_data
     private :summary_from_post_prompt_data
+    # Formerly leading-underscore-by-convention internals; underscore dropped in
+    # the idiom pass. Declared private so the cross-port surface enumerator keeps
+    # excluding them (unchanged public surface).
+    private :agent_on_swml_request, :agent_render_triple, :apply_env_headers,
+            :extract_http_request, :extract_path_and_query, :handle_debug_events,
+            :handle_mcp_endpoint, :handle_post_prompt, :mcp_default_response,
+            :mcp_empty_result_method?, :mcp_error, :mcp_initialize_response,
+            :mcp_response_text, :mcp_result, :mcp_tool_result, :mcp_tools_call,
+            :req_field, :run_http_serverless, :sip_routing_callback, :split_url_path
   end
 end
