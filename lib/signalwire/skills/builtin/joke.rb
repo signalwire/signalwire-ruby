@@ -23,11 +23,11 @@ module SignalWire
         end
 
         def register_tools
-          dm = DataMap.new(@tool_name)
+          dm = DataMap.new(tool_name)
                       .description('Get a random joke from API Ninjas')
                       .parameter('type', 'string', 'Type of joke to get', required: true, enum: %w[jokes dadjokes])
                       .webhook('GET', 'https://api.api-ninjas.com/v1/${args.type}',
-                               headers: { 'X-Api-Key' => @api_key })
+                               headers: { 'X-Api-Key' => api_key })
                       .output(Swaig::FunctionResult.new("Here's a joke: ${array[0].joke}"))
                       .error_keys(%w[error])
                       .fallback_output(Swaig::FunctionResult.new(FALLBACK_MESSAGE))
@@ -54,12 +54,15 @@ module SignalWire
 
         def joke_telling_bullets
           [
-            "Use #{@tool_name || 'get_joke'} to tell jokes when users ask for humor",
+            "Use #{tool_name || 'get_joke'} to tell jokes when users ask for humor",
             'You can tell regular jokes or dad jokes',
             'Be enthusiastic and fun when sharing jokes'
           ]
         end
         private :joke_telling_bullets
+
+        attr_reader :api_key, :tool_name
+        private :api_key, :tool_name
 
         def get_parameter_schema
           {
