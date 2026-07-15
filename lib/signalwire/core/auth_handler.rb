@@ -193,7 +193,9 @@ module SignalWire
       end
 
       def logger
-        @logger ||= SignalWire::Logging.logger('auth_handler')
+        return @logger if defined?(@logger)
+
+        @logger = SignalWire::Logging.logger('auth_handler')
       end
 
       def basic_auth_info

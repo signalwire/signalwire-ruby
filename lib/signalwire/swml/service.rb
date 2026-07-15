@@ -571,7 +571,9 @@ module SignalWire
 
       # The lazily-built verb-handler registry bound to this service.
       def verb_registry
-        @verb_registry ||= ::SignalWire::SWML::VerbHandlerRegistry.new
+        return @verb_registry if defined?(@verb_registry)
+
+        @verb_registry = ::SignalWire::SWML::VerbHandlerRegistry.new
       end
 
       # Whether full JSON-schema validation is active for this service.
@@ -615,10 +617,10 @@ module SignalWire
       # self.schema_utils public instance attribute on SWMLService.
       # Built lazily on first access.
       def schema_utils
-        @schema_utils ||= begin
-          require_relative '../utils/schema_utils'
-          ::SignalWire::Utils::SchemaUtils.new
-        end
+        return @schema_utils if defined?(@schema_utils)
+
+        require_relative '../utils/schema_utils'
+        @schema_utils = ::SignalWire::Utils::SchemaUtils.new
       end
 
       # ------------------------------------------------------------------
@@ -627,7 +629,9 @@ module SignalWire
 
       # Returns a Rack-compatible application.
       def rack_app
-        @rack_app ||= build_rack_app
+        return @rack_app if defined?(@rack_app)
+
+        @rack_app = build_rack_app
       end
 
       # Start serving (blocking).

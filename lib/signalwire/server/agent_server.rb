@@ -23,7 +23,9 @@ module SignalWire
     # can mount it on their own server or pass it to Rack-compatible test
     # harnesses.
     def app
-      @app ||= rack_app
+      return @app if defined?(@app)
+
+      @app = rack_app
     end
 
     # MIME types for static file serving.

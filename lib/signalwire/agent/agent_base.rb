@@ -1995,7 +1995,9 @@ module SignalWire
 
     # Return a Rack-compatible application for mounting.
     def rack_app
-      @rack_app ||= build_rack_app
+      return @rack_app if defined?(@rack_app)
+
+      @rack_app = build_rack_app
     end
 
     alias as_rack_app rack_app

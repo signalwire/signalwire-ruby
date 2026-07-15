@@ -160,7 +160,9 @@ module SignalWire
       private
 
       def logger
-        @logger ||= SignalWire::Logging.logger('security_config')
+        return @logger if defined?(@logger)
+
+        @logger = SignalWire::Logging.logger('security_config')
       end
 
       def config_summary

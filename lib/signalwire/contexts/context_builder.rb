@@ -645,7 +645,7 @@ module SignalWire
 
       def add_enter_filler(lang_code, fillers)
         if lang_code && fillers.is_a?(Array) && fillers.any?
-          @enter_fillers ||= {}
+          @enter_fillers = {} unless defined?(@enter_fillers) && @enter_fillers
           @enter_fillers[lang_code] = fillers
         end
         self
@@ -653,7 +653,7 @@ module SignalWire
 
       def add_exit_filler(lang_code, fillers)
         if lang_code && fillers.is_a?(Array) && fillers.any?
-          @exit_fillers ||= {}
+          @exit_fillers = {} unless defined?(@exit_fillers) && @exit_fillers
           @exit_fillers[lang_code] = fillers
         end
         self
