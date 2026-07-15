@@ -31,7 +31,7 @@ _Build AI voice agents, control live calls over WebSocket, and manage every Sign
 |-----------|-------------|------------|
 | **AI Agents** | Build voice agents that handle calls autonomously -- the platform runs the AI pipeline, your code defines the persona, tools, and call flow | [Agent Guide](#ai-agents) |
 | **RELAY Client** | Control live calls and SMS/MMS in real time over WebSocket -- answer, play, record, collect DTMF, conference, transfer, and more | [RELAY docs](relay/README.md) |
-| **REST Client** | Manage SignalWire resources over HTTP -- phone numbers, SIP endpoints, Fabric AI agents, video rooms, messaging, and 20 API namespaces | [REST docs](rest/README.md) |
+| **REST Client** | Manage SignalWire resources over HTTP -- phone numbers, SIP endpoints, Fabric AI agents, video rooms, messaging, and the full set of API namespaces | [REST docs](rest/README.md) |
 
 ```bash
 gem install signalwire-sdk
@@ -174,12 +174,12 @@ client = SignalWire::REST::RestClient.new(
 )
 
 client.fabric.ai_agents.create(name: 'Support Bot', prompt: { 'text' => 'You are helpful.' })
-client.calling.play(call_id, play: [{ 'type' => 'tts', 'text' => 'Hello!' }])
+client.calling.play(call_id, play: [{ 'type' => 'tts', 'params' => { 'text' => 'Hello!' } }])
 client.phone_numbers.search(areacode: '512')
 client.datasphere.documents.search(query_string: 'billing policy')
 ```
 
-- 20 namespaced API surfaces: Fabric (13 resource types), Calling (37 commands), Video, Datasphere, Phone Numbers, SIP, Queues, Recordings, and more
+- Full namespaced API surface: Fabric (13 resource types), Calling (37 commands), Video, Datasphere, Phone Numbers, SIP, Queues, Recordings, and more
 - Hash returns -- raw JSON, no wrapper objects to learn
 - Single `RestClient` with namespaced sub-objects for every API
 

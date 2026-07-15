@@ -33,7 +33,7 @@ end
 # 2. Play TTS audio
 puts "\nPlaying TTS on call..."
 begin
-  client.calling.play(call_id, play: [{ 'type' => 'tts', 'text' => 'Welcome to SignalWire.' }])
+  client.calling.play(call_id, play: [{ 'type' => 'tts', 'params' => { 'text' => 'Welcome to SignalWire.' } }])
   puts '  Play started'
 rescue SignalWire::REST::SignalWireRestError => e
   puts "  Play failed (expected in demo): #{e.status_code}"
@@ -58,7 +58,7 @@ end
 # 4. Record the call
 puts "\nRecording call..."
 begin
-  client.calling.record(call_id, beep: true, format: 'mp3')
+  client.calling.record(call_id, audio: { 'format' => 'mp3', 'beep' => true })
   puts '  Recording started'
 rescue SignalWire::REST::SignalWireRestError => e
   puts "  Record failed (expected in demo): #{e.status_code}"

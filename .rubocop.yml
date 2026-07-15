@@ -39,6 +39,12 @@ AllCops:
     - 'bin/state-dump'
     - 'bin/http-dump'
     - 'bin/wire-relay-dump'
+    - 'bin/wait-liveness-dump'
+    # Cross-port gate fixture-replay tooling, same category as the bin/*-dump
+    # programs above: doc_wire_runner.rb only DRIVES the documented REST calls
+    # against the DOC-WIRE flag-mode mock so it journals the wire shape. Not
+    # audited library surface.
+    - 'scripts/doc_wire_runner.rb'
     # NOTE: the machine-generated trees (REST resource layer, READ-SIDE typed
     # payload trees, and the full-mock REST wire-test suite) are DELIBERATELY NOT
     # excluded here — generated code is linted like hand-written code so a

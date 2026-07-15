@@ -307,7 +307,6 @@ signalwire.relay.client.RelayClient.__del__: impossible: Python finalizer dunder
 signalwire.relay.client.RelayClient.relay_protocol: impossible: Python property exposing the internal relay-protocol object; Ruby keeps the protocol object private (no public accessor) — internal plumbing, not public surface (TS/PHP omit identically)
 signalwire.relay.message.Message.__repr__: impossible: Python object-repr dunder; Ruby provides the equivalent via the shared MessageSerialization module's inspect/to_s, but the __repr__ NAME itself has no standalone Ruby form (mirrors Call.__repr__; TS/PHP omit identically)
 signalwire.rest.call_handler.PhoneCallHandler: Ruby SignalWire::REST::PhoneCallHandler is an empty marker (matches Python - no methods on either)
-signalwire.rest.namespaces.calling.CallingNamespace.end: Ruby uses SignalWire::REST::Namespaces::CallingNamespace#end_call - end is a Ruby keyword
 signalwire.search.document_processor.DocumentProcessor: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
 signalwire.search.document_processor.DocumentProcessor.__init__: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
 signalwire.search.document_processor.DocumentProcessor.create_chunks: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)

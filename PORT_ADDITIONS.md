@@ -41,9 +41,10 @@ spot drift from the Python reference.
   `SWMLService` split into three cohesive classes under
   `SignalWire::SWML::*`. The Python counterparts are omitted.
 - **Ruby-keyword workarounds**: `Call.pass_call` (Python `Call.pass_`),
-  `Call.tap_audio` (Python `Call.tap`), `CallingNamespace.end_call`
-  (Python `CallingNamespace.end`), `Message.on_event`/`on_completed`
+  `Call.tap_audio` (Python `Call.tap`), `Message.on_event`/`on_completed`
   (Python `Message.on`), `Action.is_done?`/`done?` (Python `is_done`).
+  (The REST `CallingNamespace.end` needs no workaround — `def end` is a valid
+  Ruby method definition, so the port exposes `end` at exact parity with Python.)
 - **Module-level helpers**: `SignalWire::Logging`, `SignalWire::SWML`,
   `SignalWire::Contexts`, `SignalWire::Runtime` module functions. These
   mirror behaviour Python keeps inside classes or separate files.

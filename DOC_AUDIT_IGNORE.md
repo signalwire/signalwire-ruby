@@ -36,6 +36,7 @@ sub: `String#sub` — Ruby stdlib (by orchestrator, 2026-07-06)
 transform_keys: `Hash#transform_keys` — Ruby stdlib, Ruby 2.5+ (by orchestrator, 2026-07-06)
 clamp: `Comparable#clamp` / `Integer#clamp` — Ruby stdlib, constrain a number to a range (by orchestrator, 2026-07-06)
 HTTP: `Net::HTTP` stdlib constant named in an examples/skills_audit_harness.rb prose comment ("issues real HTTP through Net::HTTP"), not a method call (by orchestrator, 2026-07-08)
+contains: appears only in CHECKLIST.md prose as an illustrative BANNED anti-pattern (`assert err.contains("not available")` — the rule forbidding stub-asserting tests); not a SignalWire API reference (by orchestrator, 2026-07-15)
 
 ## Python syntax retained verbatim in contrast/migration example blocks
 
