@@ -2030,12 +2030,12 @@ module SignalWire
     # @return [Array(Integer, Hash{String=>String}, String)]
     def handle_request(method, url, headers, body = nil, request: nil, skip_auth: false)
       body ||= {}
-      callback_path = _callback_path_for_url(url)
+      callback_path = callback_path_for_url(url)
 
-      _detect_proxy_from_primitives(url, headers)
-      return _unauthorized_triple unless skip_auth || _check_basic_auth_headers(headers)
+      detect_proxy_from_primitives(url, headers)
+      return unauthorized_triple unless skip_auth || check_basic_auth_headers(headers)
 
-      redirect = _routing_redirect(method, body, headers, callback_path)
+      redirect = routing_redirect(method, body, headers, callback_path)
       return redirect if redirect
 
       _agent_render_triple(body, callback_path, request:)
@@ -2419,7 +2419,7 @@ module SignalWire
 
       # /swaig — handled by Service; dispatch uses on_function_call (which
       # AgentBase overrides for token validation).
-      return _handle_swaig_endpoint(request, request_data, env) if sub_path == '/swaig'
+      return handle_swaig_endpoint(request, request_data, env) if sub_path == '/swaig'
 
       extra = handle_additional_route(sub_path, request_data, env)
       return extra if extra
@@ -2490,7 +2490,7 @@ module SignalWire
 
     # These methods must be accessible from the Rack lambda
 
-    # _handle_swaig is now provided by Service (lifted as _handle_swaig_endpoint).
+    # _handle_swaig is now provided by Service (lifted as handle_swaig_endpoint).
     # AgentBase still hooks the dispatch path via the on_function_call override
     # below, which adds session-token validation on top of Service's plain
     # registry lookup.
