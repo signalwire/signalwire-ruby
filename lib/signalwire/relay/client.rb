@@ -65,6 +65,7 @@ module SignalWire
       # @param project [String, nil] project ID (env: SIGNALWIRE_PROJECT_ID)
       # @param token [String, nil] API token (env: SIGNALWIRE_API_TOKEN)
       # @param jwt_token [String, nil] JWT token alternative
+      #   (env: SIGNALWIRE_JWT_TOKEN)
       # @param host [String, nil] RELAY host (env: SIGNALWIRE_SPACE).
       #   Either a bare space subdomain (``myspace``) or full hostname
       #   (``myspace.signalwire.com``).
@@ -76,7 +77,7 @@ module SignalWire
       def initialize(project: nil, token: nil, jwt_token: nil, host: nil,
                      contexts: ['default'], max_active_calls: nil,
                      space: nil)
-        @jwt_token  = jwt_token
+        @jwt_token  = value_or_env(jwt_token, 'SIGNALWIRE_JWT_TOKEN')
         @contexts   = contexts
         @max_active_calls = resolve_max_active_calls(max_active_calls)
         resolve_credentials(project, token, host, space)
@@ -116,8 +117,17 @@ module SignalWire
       end
 
       def validate_credentials
+        # JWT auth (env: SIGNALWIRE_JWT_TOKEN or the jwt_token: kwarg) is a
+        # self-contained alternative to project/token — the project id lives
+        # inside the token, so only the host is still required. Mirrors the
+        # Python reference's truthiness check (an empty jwt_token is no token).
+        unless jwt_token.empty?
+          raise ArgumentError, 'host is required' if space.empty?
+
+          return
+        end
         raise ArgumentError, 'project is required' if project_id.empty?
-        raise ArgumentError, 'token or jwt_token is required' if token.empty? && jwt_token.nil?
+        raise ArgumentError, 'token or jwt_token is required' if token.empty?
         raise ArgumentError, 'host is required' if space.empty?
       end
 
@@ -579,7 +589,10 @@ module SignalWire
       end
 
       def apply_auth_credentials(params)
-        if jwt_token
+        # An unset jwt_token is the empty string (env fallback), not nil — and
+        # in Ruby '' is truthy, so guard on emptiness to match Python's
+        # truthiness check (`if self.jwt_token:`).
+        unless jwt_token.empty?
           params['authentication'] = { 'jwt_token' => jwt_token }
           return
         end

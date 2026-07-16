@@ -13,7 +13,9 @@ class RelayClientDialTest < Minitest::Test
     assert defined?(SignalWire::Relay::Client)
   end
 
-  CREDENTIAL_ENV_VARS = %w[SIGNALWIRE_PROJECT_ID SIGNALWIRE_API_TOKEN SIGNALWIRE_SPACE].freeze
+  CREDENTIAL_ENV_VARS = %w[
+    SIGNALWIRE_PROJECT_ID SIGNALWIRE_API_TOKEN SIGNALWIRE_SPACE SIGNALWIRE_JWT_TOKEN
+  ].freeze
 
   def test_client_requires_credentials
     without_credential_env do
@@ -22,13 +24,49 @@ class RelayClientDialTest < Minitest::Test
     end
   end
 
-  # Clear the credential env vars for the duration of the block, restoring
-  # any previously-set values afterward.
+  # SIGNALWIRE_JWT_TOKEN is a documented auth knob (relay/README.md, the
+  # client reference, getting-started): jwt_token falls back to it, and JWT
+  # auth is a self-contained alternative to project+token. Mirrors the Python
+  # reference (`self.jwt_token = jwt_token or os.environ["SIGNALWIRE_JWT_TOKEN"]`).
+  # without_credential_env clears SIGNALWIRE_JWT_TOKEN too, so a value set
+  # inside the block is restored (deleted) on exit — no inline teardown needed.
+  def test_jwt_token_env_var_fallback_satisfies_credentials
+    without_credential_env do
+      ENV['SIGNALWIRE_JWT_TOKEN'] = 'env-jwt-eyJ.aaa.bbb'
+      # No project/token needed: the JWT env var alone satisfies validation.
+      client = SignalWire::Relay::Client.new(space: 'example.signalwire.com')
+      params = auth_params(client)
+
+      assert_equal({ 'jwt_token' => 'env-jwt-eyJ.aaa.bbb' }, params['authentication'])
+    end
+  end
+
+  # An explicit jwt_token: kwarg wins over the env var.
+  def test_jwt_token_kwarg_overrides_env
+    without_credential_env do
+      ENV['SIGNALWIRE_JWT_TOKEN'] = 'env-jwt'
+      client = SignalWire::Relay::Client.new(
+        jwt_token: 'explicit-jwt', space: 'example.signalwire.com'
+      )
+
+      assert_equal({ 'jwt_token' => 'explicit-jwt' }, auth_params(client)['authentication'])
+    end
+  end
+
+  # Drive the private auth-frame builder to read the resolved credentials.
+  def auth_params(client)
+    {}.tap { |params| client.send(:apply_auth_credentials, params) }
+  end
+
+  # Clear the credential env vars for the duration of the block, then fully
+  # restore the prior state afterward. Full restore matters because a block may
+  # SET one of these vars (e.g. the JWT-fallback tests): a var that was absent
+  # before the block must be deleted again, not left leaking into later tests.
   def without_credential_env
     saved = CREDENTIAL_ENV_VARS.to_h { |k| [k, ENV.delete(k)] }
     yield
   ensure
-    saved.each { |k, v| ENV[k] = v if v }
+    saved.each { |k, v| v.nil? ? ENV.delete(k) : ENV.store(k, v) }
   end
 
   def test_client_creation_with_options
