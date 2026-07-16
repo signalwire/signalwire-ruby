@@ -121,4 +121,4 @@ API_NINJAS_KEY=your-key ruby examples/joke_agent.rb
 Additional examples for the RELAY and REST clients are in their respective directories:
 
 - [relay/examples/](../relay/examples/) -- RELAY WebSocket examples (answer, dial, IVR)
-- [rest/examples/](../rest/examples/) -- REST API examples (all 12 namespaces)
+- [rest/examples/](../rest/examples/) -- REST API examples across the client namespaces

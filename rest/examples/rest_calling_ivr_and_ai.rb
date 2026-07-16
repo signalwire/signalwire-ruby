@@ -32,7 +32,7 @@ safe('Collect') do
   client.calling.collect(
     CALL_ID,
     digits: { 'max' => 4, 'terminators' => '#' },
-    play:   [{ 'type' => 'tts', 'text' => 'Enter your PIN followed by pound.' }]
+    play:   [{ 'type' => 'tts', 'params' => { 'text' => 'Enter your PIN followed by pound.' } }]
   )
 end
 safe('Start input timers') { client.calling.collect_start_input_timers(CALL_ID) }

@@ -58,7 +58,13 @@ source "$PORTING_SDK_DIR/scripts/gate_scheduler.sh"
 
 cd "$PORT_ROOT"
 
+# Gate-enforcement plan (Part D): ruby's red list is burned, so its widened
+# (wave-A) gate findings BLOCK rather than report-only. Default OFF here; a
+# caller may still set SW_WAVE_A_REPORT_ONLY=1 to inspect the report-only view.
+export SW_WAVE_A_REPORT_ONLY="${SW_WAVE_A_REPORT_ONLY:-0}"
+
 echo "==> running CI gates for $PORT_NAME (porting-sdk at $PORTING_SDK_DIR)"
+echo "==> wave-A gate findings are ${SW_WAVE_A_REPORT_ONLY:+BLOCKING (SW_WAVE_A_REPORT_ONLY=$SW_WAVE_A_REPORT_ONLY)}"
 
 pick_free_port() {
     python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()'
@@ -361,15 +367,52 @@ sched_gate COUNT-CLAIM desc="numeric doc claims (skills/namespaces) match realit
 sched_gate ACCESSOR-TRUTH desc="documented backtick method() refs exist in source" \
     -- python3 "$PORTING_SDK_DIR/scripts/accessor_truth.py" --port ruby --repo "$PORT_ROOT"
 
+# DOC-WIRE (§A1) — the documented REST doc fixtures are wire-clean against the
+# spec (strict-flag mock journals wire_violations; the runner replays the exact
+# doc calls). Cheap → per-PR tier. The runner drives the wire-bearing REST doc
+# fixtures (README/rest quickstart + rest/docs + rest/examples) so a doc lie like
+# area_code (spec areacode), a flat {type:tts,text} play item, or flat record
+# beep/format shows up as a journaled violation and fails the gate.
+sched_gate DOC-WIRE desc="documented REST doc fixtures put the spec wire shape on the wire (areacode/params:{text}/audio:{})" \
+    -- python3 "$PORTING_SDK_DIR/scripts/doc_wire.py" --port ruby --repo "$PORT_ROOT" \
+        --runner "ruby $PORT_ROOT/scripts/doc_wire_runner.rb"
+
+# STATUS-CLAIM (§C2) — no false capability/status claims in docs (e.g. "not
+# implemented" / "transport pending" for surface that exists). Cheap → per-PR.
+sched_gate STATUS-CLAIM desc="doc status/capability claims match the shipped surface" \
+    -- python3 "$PORTING_SDK_DIR/scripts/status_claim.py" --port ruby --repo "$PORT_ROOT" \
+        --surface "$PORTING_SDK_DIR/python_surface.json"
+
+# NOTE: §1.11b (GATE-INVENTORY freshness) is intentionally NOT wired here.
+# gen_gate_inventory.py resolves its reference port as a SIBLING checkout
+# (DEFAULT_REFERENCE=signalwire-typescript), which does not exist in a port's CI
+# layout (porting-sdk is a subdir of the port workspace, so ../signalwire-
+# typescript is absent → exit 2). The check is inherently porting-sdk-side and
+# already runs in porting-sdk's own CI (.github/workflows/test.yml). Wiring it
+# per-port would require each port to also check out the TS reference — not worth it.
+
 # SNIPPET-RUN is BLOCKING: every runnable ruby doc snippet must execute to a zero
 # exit against the mock. Non-runnable blocks carry a `<!-- snippet: no-run … -->`
 # (or no-compile) marker; credential/live-network cases are ledgered in
-# SNIPPET_RUN_ALLOW.md. Backlog burned to 0.
-sched_gate SNIPPET-RUN tier=nightly defer=1 desc="dynamic-port doc snippets run to a zero exit against the mock" \
-    -- python3 "$PORTING_SDK_DIR/scripts/snippet_run.py" --port ruby --repo "$PORT_ROOT"
+# SNIPPET_RUN_ALLOW.md. Backlog burned to 0. STRICT-MOCKS (§2.x): MOCK_RELAY_STRICT=1
+# makes the mock reject unknown wire keys/frames so a snippet that puts a bad shape
+# on the wire fails here (nightly, where the heavy mock-backed execution runs).
+sched_gate SNIPPET-RUN tier=nightly defer=1 desc="dynamic-port doc snippets run to a zero exit against the mock (STRICT-MOCKS: MOCK_RELAY_STRICT=1)" \
+    -- env MOCK_RELAY_STRICT=1 python3 "$PORTING_SDK_DIR/scripts/snippet_run.py" --port ruby --repo "$PORT_ROOT"
 
-sched_gate EXAMPLES-RUN tier=nightly defer=1 desc="shipped examples load/start against the mock (modulo EXAMPLES_RUN_ALLOW.md)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/examples_run.py" --port ruby --repo "$PORT_ROOT"
+sched_gate EXAMPLES-RUN tier=nightly defer=1 desc="shipped examples load/start against the mock (modulo EXAMPLES_RUN_ALLOW.md; STRICT-MOCKS: MOCK_RELAY_STRICT=1)" \
+    -- env MOCK_RELAY_STRICT=1 python3 "$PORTING_SDK_DIR/scripts/examples_run.py" --port ruby --repo "$PORT_ROOT"
+
+# WAIT-LIVENESS (§2.4) — the RELAY Action#wait() liveness contract: wait() BLOCKS
+# until the deferred completing event arrives, then returns with the finished
+# state (never a no-op that returns at t~=0, never a hang). bin/wait-liveness-dump
+# drives the corpus against a real mock_relay with the completing event armed as a
+# delay_ms scenario, prints the classification per case; the differ builds the
+# python golden and compares. Nightly (spawns a mock + the dump; needs the
+# signalwire-python oracle, present in nightly).
+sched_gate WAIT-LIVENESS tier=nightly defer=1 desc="RELAY Action#wait() blocks-until-event liveness matches the python golden" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_wait_liveness.py" --port ruby \
+        --dump-cmd "bundle exec ruby $PORT_ROOT/bin/wait-liveness-dump"
 
 # ---- §G anti-laundering ledger + §D1 packaging -------------------------------
 sched_gate SUPPRESSION-LEDGER res=dayone desc="no un-ledgered analyzer suppressions (rubocop:disable) outside the ledger" \

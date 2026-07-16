@@ -1,0 +1,184 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Copyright (c) 2025 SignalWire
+#
+# Licensed under the MIT License.
+# See LICENSE file in the project root for full license information.
+
+#
+# wait-liveness-dump — the Ruby port's WAIT-LIVENESS dump program for the
+# cross-port behavioral differ (porting-sdk/scripts/diff_port_wait_liveness.py).
+#
+# The differ runs the wait_liveness_corpus against signalwire-python to build the
+# golden LIVENESS classification, then runs THIS program (which embeds the same
+# corpus) and structurally compares our per-case classification. The artifact is a
+# CLASSIFICATION (not raw ms), so the golden is deterministic while the timing
+# that produces it is real and unfakeable: a wait() that is a no-op returns at
+# t~=0 (blocked_until_event=false → RED); a wait() that hangs blows the deadline
+# (timed_out=true → RED); a correct wait() blocks until the deferred completing
+# event arrives, then returns with the finished state (the golden → GREEN).
+#
+# Unlike wire-relay-dump (which RECORDS the send-side frame with no socket), this
+# gate MUST exercise real liveness — so we drive the SDK against a real mock_relay
+# server and arm the completing event as a DEFERRED (delay_ms) scenario. That
+# delivers the event through the SAME socket-read → event-dispatch path the real
+# server drives; a wait() that never pumps the loop cannot observe it. This is the
+# exact mechanism tests/relay/actions_mock_test.rb#test_play_resolves_on_finished_event
+# uses.
+#
+# Protocol: stdout = ONE JSON object mapping case_id → classification. Only stdout
+# carries JSON. The corpus cases are embedded here (mirroring
+# porting-sdk/scripts/wait_liveness_corpus.py) exactly as bin/wire-relay-dump
+# embeds the wire_relay corpus — the differ does not feed the corpus in; it keys
+# our output by case-id against the python oracle.
+#
+# Run from the signalwire-ruby repo root (with a mock_relay reachable via
+# MOCK_RELAY_PORT / MOCK_RELAY_HTTP_PORT, or auto-spawned by the harness):
+#
+#   ruby bin/wait-liveness-dump
+
+require 'json'
+
+# Keep stdout PURE JSON: the differ does json.loads(proc.stdout). Save the real
+# stdout, point $stdout at stderr for all setup/logging, restore only to emit.
+REAL_STDOUT = $stdout.dup
+$stdout.reopen($stderr)
+
+require_relative '../tests/relay/mock_test'
+
+# Classification tolerances — must match porting-sdk/scripts/diff_port_wait_liveness.py.
+DEADLINE_S   = 5.0
+BLOCK_TOL_MS = 40
+
+# The deferred-event delay — must match wait_liveness_corpus.DELAY_MS.
+DELAY_MS = 150
+CID = 'ctl-live-1'
+
+# The corpus, mirroring porting-sdk/scripts/wait_liveness_corpus.py CORPUS. Two
+# distinct action types (play, record) so a port can't hardcode one surface.
+CORPUS = [
+  {
+    'id' => 'live_play_wait',
+    'verb' => 'play',
+    'kwargs' => {
+      'media' => [{ 'type' => 'audio', 'params' => { 'url' => 'https://x/a.mp3' } }],
+      'control_id' => CID
+    },
+    'delay_ms' => DELAY_MS,
+    'terminal' => { 'event_type' => 'calling.call.play', 'state' => 'finished' }
+  },
+  {
+    'id' => 'live_record_wait',
+    'verb' => 'record',
+    'kwargs' => { 'audio' => { 'format' => 'mp3' }, 'control_id' => CID },
+    'delay_ms' => DELAY_MS,
+    'terminal' => { 'event_type' => 'calling.call.record', 'state' => 'finished' }
+  }
+].freeze
+
+# Map a corpus verb to the RELAY method whose scenario carries its terminal event.
+VERB_METHOD = {
+  'play' => 'calling.play',
+  'record' => 'calling.record'
+}.freeze
+
+# Derive the deterministic liveness classification from the measured instants.
+# Mirrors classify_liveness() in the differ byte-for-byte.
+def classify(delay_ms, t_wait_start, t_return, completed_state, timed_out)
+  if timed_out || t_return.nil?
+    return {
+      'blocked_until_event' => false,
+      'returned_after_event' => false,
+      'completed_state' => '',
+      'timed_out' => true
+    }
+  end
+  elapsed_ms = (t_return - t_wait_start) * 1000.0
+  blocked = elapsed_ms >= (delay_ms - BLOCK_TOL_MS)
+  {
+    'blocked_until_event' => blocked,
+    'returned_after_event' => true,
+    'completed_state' => completed_state,
+    'timed_out' => false
+  }
+end
+
+# Start the Action-returning verb for a case against an answered call.
+def start_action(call, verb, kwargs)
+  control_id = kwargs['control_id']
+  case verb
+  when 'play'
+    call.play(kwargs['media'], control_id: control_id)
+  when 'record'
+    call.record(audio: kwargs['audio'], control_id: control_id)
+  else
+    raise "wait-liveness-dump: unsupported verb #{verb.inspect}"
+  end
+end
+
+# Drive ONE liveness case against the real mock and return its classification.
+def run_case(handle, kase)
+  client = handle[:client]
+  mock   = handle[:mock]
+  delay_ms = kase['delay_ms'].to_i
+  terminal = kase['terminal']
+  verb     = kase['verb']
+  method   = VERB_METHOD.fetch(verb)
+
+  # Establish an answered inbound call (mirrors RelayActionsTestBase helper).
+  captured = Queue.new
+  done = Queue.new
+  client.on_call do |call|
+    captured.push(call)
+    call.answer
+    done.push(true)
+  end
+  mock.inbound_call(call_id: "live-#{verb}", auto_states: ['created'])
+  Timeout.timeout(DEADLINE_S) { done.pop }
+  call = Timeout.timeout(DEADLINE_S) { captured.pop }
+  call.state = 'answered'
+
+  # Arm the DEFERRED completing event: the mock emits {state: terminal.state}
+  # for this method after delay_ms, delivered through the SDK's real socket-read
+  # event-dispatch path. A no-op / non-pumping wait() cannot observe it.
+  mock.arm_method(method, [{ 'emit' => { 'state' => terminal['state'] }, 'delay_ms' => delay_ms }])
+
+  action = start_action(call, verb, kase['kwargs'] || {})
+
+  t_wait_start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+  timed_out = false
+  t_return = nil
+  completed_state = ''
+  event = nil
+  begin
+    event = action.wait(timeout: DEADLINE_S)
+    t_return = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    completed_state = (event && event.params ? event.params['state'].to_s : '')
+  rescue SignalWire::Relay::ActionTimeoutError, Timeout::Error
+    timed_out = true
+  end
+  # A wait() that returns nil (no event) within the deadline is a no-op / hung
+  # equivalent: treat a nil return as timed_out so the classification is honest.
+  timed_out = true if t_return && event.nil?
+
+  classify(delay_ms, t_wait_start, t_return, completed_state, timed_out)
+end
+
+def main
+  out = {}
+  # A fresh client/session per case so a scoped scenario/journal never crosses
+  # between cases (mirrors the per-test client isolation in actions_mock_test.rb).
+  CORPUS.each do |kase|
+    handle = RelayMockTest.client
+    begin
+      out[kase['id']] = run_case(handle, kase)
+    ensure
+      RelayMockTest.shutdown_client(handle) if handle
+    end
+  end
+  REAL_STDOUT.puts(JSON.generate(out))
+  0
+end
+
+exit(main) if $PROGRAM_NAME == __FILE__
