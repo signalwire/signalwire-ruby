@@ -1,6 +1,7 @@
 {
   "version": "2",
   "generated_from": "signalwire-ruby via Method#parameters reflection",
+  "generated_from_commit": "f7f8601651e01388b1a55793cfe945226a963379",
   "modules": {
     "signalwire": {
       "functions": {
