@@ -73,6 +73,65 @@ class RestSignalWireRestErrorTest < Minitest::Test
   end
 end
 
+# Plan 1.3b — a TRANSPORT failure (the request never reaches a response:
+# connection refused / DNS / reset / TLS) surfaces as the TYPED
+# SignalWireRestTransportError, a member of the SignalWireRestError family with
+# status_code == nil, NOT a bare Errno::ECONNREFUSED / SocketError.
+class RestTransportErrorTest < Minitest::Test
+  # A free port we bind then immediately release, so nothing is listening: the
+  # next connect to it is refused (ECONNREFUSED) without waiting on a timeout.
+  def dead_port
+    require 'socket'
+    s = TCPServer.new('127.0.0.1', 0)
+    port = s.addr[1]
+    s.close
+    port
+  end
+
+  def test_transport_error_is_a_signalwire_rest_error
+    err = SignalWire::REST::SignalWireRestTransportError.new('Connection refused', '/api/test', 'GET')
+
+    assert_kind_of SignalWire::REST::SignalWireRestError, err
+    assert_nil err.status_code
+    assert_equal 'Connection refused', err.body
+    assert_equal '/api/test', err.url
+    assert_equal 'GET', err.method_name
+    assert_match(/failed to reach the server/, err.message)
+  end
+
+  def test_connection_refused_raises_typed_transport_error
+    client = SignalWire::REST::HttpClient.new(
+      'proj', 'tok', 'ignored', base_url: "http://127.0.0.1:#{dead_port}"
+    )
+
+    err = assert_raises(SignalWire::REST::SignalWireRestTransportError) do
+      client.get('/api/fabric/addresses')
+    end
+    # It is a member of the SignalWireRestError family (one rescue catches all
+    # REST failures), status_code is nil (no HTTP response was ever received),
+    # and it is NOT the bare Errno the transport layer raised.
+    assert_kind_of SignalWire::REST::SignalWireRestError, err
+    assert_nil err.status_code
+    assert_equal '/api/fabric/addresses', err.url
+  end
+
+  def test_connection_refused_caught_as_rest_error_family
+    client = SignalWire::REST::HttpClient.new(
+      'proj', 'tok', 'ignored', base_url: "http://127.0.0.1:#{dead_port}"
+    )
+
+    # A caller catching the base family handles the transport failure too.
+    raised = false
+    begin
+      client.get('/api/fabric/addresses')
+    rescue SignalWire::REST::SignalWireRestError
+      raised = true
+    end
+
+    assert raised, 'a transport failure must be catchable as SignalWireRestError'
+  end
+end
+
 class RestBaseResourceTest < Minitest::Test
   def test_base_resource_path_construction
     http = SignalWire::REST::HttpClient.new('proj', 'tok', 'test.signalwire.com')

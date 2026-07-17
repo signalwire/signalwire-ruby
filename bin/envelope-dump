@@ -1,0 +1,200 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Copyright (c) 2025 SignalWire
+#
+# Licensed under the MIT License.
+# See LICENSE file in the project root for full license information.
+
+#
+# envelope-dump — the Ruby port's REST error-ENVELOPE dump program for the
+# cross-port behavioral differ (porting-sdk/scripts/diff_port_envelope.py,
+# Layer D).
+#
+# For each envelope_corpus case it boots a live mock_signalwire server, arms the
+# case's scenario (status / response body / headers / delay_ms) session-scoped to
+# this client's auth header, runs the REAL Ruby REST client against the mock, and
+# reduces the raised typed error (or the success) to the shared cross-port
+# artifact:
+#
+#   { "raised": bool, "error_kind": "typed"|"bare:<Class>"|null,
+#     "status_code": int|null, "body_error_code": str|null, "request_count": int }
+#
+# It prints ONE JSON object mapping case-id -> artifact to stdout. The differ
+# canonicalizes both sides and byte-compares against the Python oracle.
+#
+# The transport case (envelope_transport_refused) points the client at a DEAD
+# port — a free port we bind then release, so nothing is listening — exercising
+# the connection-refused path. A correct client raises the TYPED
+# SignalWireRestTransportError (SignalWireRestError family, status_code=nil);
+# request_count is 0 (nothing reaches a server). This mirrors the differ's
+# transport branch (scripts/diff_port_envelope.py). Plan 1.3b.
+#
+# Run from the signalwire-ruby repo root:
+#
+#   bin/envelope-dump      (or:  ruby bin/envelope-dump)
+
+require 'json'
+
+# Keep stdout PURE JSON: the differ does json.loads(proc.stdout), so any stray
+# byte written to stdout during require / mock spawn (a gem notice, a banner, a
+# logger that lands on stdout) corrupts the parse. Save the real stdout, point
+# $stdout at stderr for all setup, and restore only to emit the final JSON.
+REAL_STDOUT = $stdout.dup
+$stdout.reopen($stderr)
+
+require 'base64'
+require 'socket'
+require_relative '../lib/signalwire/rest/rest_client'
+# Reuse the test harness's mock lifecycle (free-port pick, spawn, health probe,
+# journal, scenario arming) — the same code the REST mock tests drive.
+require_relative '../tests/rest/mock_test'
+
+# The endpoint every case targets: a list route present in every port's REST
+# client (fabric.list_fabric_addresses -> GET /api/fabric/addresses). Mirrors
+# porting-sdk/scripts/envelope_corpus.py ENDPOINT / CALL.
+ENDPOINT = 'fabric.list_fabric_addresses'
+CALL_PATH = '/api/fabric/addresses'
+
+# The corpus, mirroring porting-sdk/scripts/envelope_corpus.py CORPUS. Each entry
+# is [id, scenario_or_nil, transport?]. scenario is the armed override
+# {status:, response:, headers?, delay_ms?}; nil means no scenario (the 200
+# baseline synthesizes a normal body, and the transport case points at a dead
+# port instead of arming the mock).
+CORPUS = [
+  ['envelope_200_success', nil, false],
+  ['envelope_404_typed',
+   { 'status' => 404,
+     'response' => { 'errors' => [{ 'code' => 'NOT_FOUND', 'message' => 'no such address' }] } },
+   false],
+  ['envelope_429_retry_after',
+   { 'status' => 429,
+     'response' => { 'errors' => [{ 'code' => 'RATE_LIMITED', 'message' => 'slow down' }] },
+     'headers' => { 'Retry-After' => '2' } },
+   false],
+  ['envelope_503_unavailable',
+   { 'status' => 503,
+     'response' => { 'errors' => [{ 'code' => 'UNAVAILABLE', 'message' => 'maintenance' }] } },
+   false],
+  ['envelope_500_malformed_body',
+   { 'status' => 500, 'response' => 'not-json-at-all <garbage' },
+   false],
+  ['envelope_200_with_error_body',
+   { 'status' => 200,
+     'response' => { 'errors' => [{ 'code' => 'SOFT_FAIL', 'message' => 'ignored on 2xx' }] } },
+   false],
+  ['envelope_503_delayed',
+   { 'status' => 503,
+     'response' => { 'errors' => [{ 'code' => 'UNAVAILABLE', 'message' => 'slow-fail' }] },
+     'delay_ms' => 200 },
+   false],
+  ['envelope_transport_refused', nil, true]
+].freeze
+
+# Pull the envelope's error code out of a decoded body, or nil — the Ruby mirror
+# of diff_port_envelope._decode_body_error_code. The Ruby REST client already
+# json-parses a JSON body (Hash) and leaves a non-JSON body a String, so parse a
+# String body if it is JSON, then read errors[0].code.
+def decode_body_error_code(body)
+  if body.is_a?(String)
+    begin
+      body = JSON.parse(body)
+    rescue JSON::ParserError, TypeError
+      return nil
+    end
+  end
+  return nil unless body.is_a?(Hash)
+
+  errs = body['errors']
+  return nil unless errs.is_a?(Array) && errs.first.is_a?(Hash)
+
+  code = errs.first['code']
+  code.is_a?(String) ? code : nil
+end
+
+# A free port we bind then immediately release, so nothing is listening: the next
+# connect to it is refused (ECONNREFUSED) without waiting on a timeout.
+def dead_port
+  s = TCPServer.new('127.0.0.1', 0)
+  port = s.addr[1]
+  s.close
+  port
+end
+
+def mock_post(url, path, body = nil)
+  uri = URI("#{url}#{path}")
+  Net::HTTP.start(uri.hostname, uri.port) do |http|
+    req = Net::HTTP::Post.new(uri.request_uri)
+    req['Content-Type'] = 'application/json'
+    req.body = body if body
+    http.request(req)
+  end
+end
+
+# Arm a scenario (status / response / headers? / delay_ms?) session-scoped to
+# this client's auth header, so cases don't cross-contaminate. Mirrors the
+# oracle's POST /__mock__/scenarios/<endpoint>?session_id=<auth>.
+def arm_scenario(url, session_id, scenario)
+  payload = { 'status' => scenario['status'], 'response' => scenario['response'] }
+  payload['headers'] = scenario['headers'] if scenario['headers']
+  payload['delay_ms'] = scenario['delay_ms'] if scenario['delay_ms']
+  q = "?session_id=#{URI.encode_www_form_component(session_id)}"
+  mock_post(url, "/__mock__/scenarios/#{ENDPOINT}#{q}", JSON.generate(payload))
+end
+
+harness = MockTest.client
+base_client = harness[:client]
+mock = harness[:mock]
+mock_url = mock.url
+
+out = {}
+
+CORPUS.each do |cid, scenario, transport|
+  artifact = {
+    'raised' => false,
+    'error_kind' => nil,
+    'status_code' => nil,
+    'body_error_code' => nil,
+    'request_count' => 0
+  }
+
+  # Fresh journal + scenarios per case so request_count is exact (mirrors the
+  # oracle, which resets both before every case). Safe here: the dump runs as a
+  # single standalone process, so a global reset races nothing.
+  mock_post(mock_url, '/__mock__/journal/reset')
+  mock_post(mock_url, '/__mock__/scenarios/reset')
+
+  if transport
+    # Point a fresh client at a DEAD port: connection refused. Nothing reaches a
+    # server, so request_count stays 0 and the mock is never armed/journalled.
+    client = SignalWire::REST::RestClient.new(
+      project: harness[:project], token: MockTest::REST_TOKEN,
+      base_url: "http://127.0.0.1:#{dead_port}"
+    )
+  else
+    client = base_client
+    arm_scenario(mock_url, mock.auth_header, scenario) if scenario
+  end
+
+  begin
+    client.fabric.addresses.list
+  rescue SignalWire::REST::SignalWireRestError => e
+    artifact['raised'] = true
+    artifact['error_kind'] = 'typed'
+    artifact['status_code'] = e.status_code
+    artifact['body_error_code'] = decode_body_error_code(e.body)
+  rescue StandardError => e
+    # A BARE error -> the wrong-type contract violation (records the class name).
+    artifact['raised'] = true
+    artifact['error_kind'] = "bare:#{e.class.name}"
+    artifact['status_code'] = (e.respond_to?(:status_code) ? e.status_code : nil)
+  end
+
+  unless transport
+    journal = JSON.parse(Net::HTTP.get(URI("#{mock_url}/__mock__/journal")))
+    artifact['request_count'] = journal.count { |j| j['path'] == CALL_PATH }
+  end
+  out[cid] = artifact
+end
+
+REAL_STDOUT.puts(JSON.generate(out))

@@ -38,6 +38,7 @@ AllCops:
     - 'bin/swml-dump'
     - 'bin/state-dump'
     - 'bin/http-dump'
+    - 'bin/envelope-dump'
     - 'bin/wire-relay-dump'
     - 'bin/wait-liveness-dump'
     # Cross-port gate fixture-replay tooling, same category as the bin/*-dump
