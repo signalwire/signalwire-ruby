@@ -6,7 +6,7 @@ require_relative '../../lib/signalwire/skills/builtin/datasphere'
 class DatasphereSkillDetailedTest < Minitest::Test
   include TestHelper::Helpers
 
-  DATASPHERE_ENV = %w[SIGNALWIRE_PROJECT_ID SIGNALWIRE_TOKEN].freeze
+  DATASPHERE_ENV = %w[SIGNALWIRE_PROJECT_ID SIGNALWIRE_API_TOKEN].freeze
 
   # Each input path of the old test_setup_requires_all_params is now its own
   # method so a failure pinpoints which path broke.

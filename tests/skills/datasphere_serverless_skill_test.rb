@@ -9,7 +9,7 @@ require_relative '../../lib/signalwire/skills/builtin/datasphere_serverless'
 
 class DatasphereServerlessSkillDetailedTest < Minitest::Test
   def test_setup_requires_all_params
-    saved = %w[SIGNALWIRE_PROJECT_ID SIGNALWIRE_TOKEN].to_h { |k| [k, ENV.delete(k)] }
+    saved = %w[SIGNALWIRE_PROJECT_ID SIGNALWIRE_API_TOKEN].to_h { |k| [k, ENV.delete(k)] }
     factory = SignalWire::Skills::SkillRegistry.get_factory('datasphere_serverless')
 
     refute factory.call({}).setup

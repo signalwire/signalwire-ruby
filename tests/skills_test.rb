@@ -49,7 +49,7 @@ class SkillRegistryTest < Minitest::Test
   PARAM_SKILL_ENV = %w[
     API_NINJAS_KEY WEATHER_API_KEY GOOGLE_SEARCH_API_KEY
     GOOGLE_SEARCH_ENGINE_ID GOOGLE_MAPS_API_KEY
-    SIGNALWIRE_PROJECT_ID SIGNALWIRE_TOKEN
+    SIGNALWIRE_PROJECT_ID SIGNALWIRE_API_TOKEN
   ].freeze
   PARAM_SKILLS = %w[joke weather_api web_search datasphere datasphere_serverless
                     google_maps native_vector_search].freeze

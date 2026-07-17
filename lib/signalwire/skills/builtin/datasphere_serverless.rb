@@ -76,7 +76,7 @@ module SignalWire
         def load_params
           @space_name  = get_param('space_name')
           @project_id  = get_param('project_id', env_var: 'SIGNALWIRE_PROJECT_ID')
-          @token       = get_param('token', env_var: 'SIGNALWIRE_TOKEN')
+          @token       = get_param('token', env_var: 'SIGNALWIRE_API_TOKEN')
           @document_id = get_param('document_id')
           @count       = get_param('count', default: 1).to_i
           @distance    = get_param('distance', default: 3.0).to_f
