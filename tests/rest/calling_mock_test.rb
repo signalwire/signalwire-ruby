@@ -312,20 +312,29 @@ class CallingMockMediaTest < Minitest::Test
   # -------------------------------------------------------------------
 
   def test_live_transcribe
-    body = @client.calling.live_transcribe('call-1', action: 'start')
+    body = @client.calling.live_transcribe('call-1', action: { 'start' => { 'lang' => 'en-US' } })
 
     assert_call_command(body, command: 'calling.live_transcribe', id: 'call-1',
-                              params: { 'action' => 'start' })
+                              params: { 'action' => { 'start' => { 'lang' => 'en-US' } } })
   end
 
   def test_live_translate
     body = @client.calling.live_translate(
-      'call-1', action: 'start', status_url: 'https://example.com/status'
+      'call-1',
+      action: { 'start' => { 'from_lang' => 'en-US', 'to_lang' => 'es-ES' } },
+      status_url: 'https://example.com/status'
     )
 
     assert_call_command(body, command: 'calling.live_translate', id: 'call-1',
-                              params: { 'action' => 'start', 'status_url' => 'https://example.com/status' })
+                              params: { 'action' => { 'start' => { 'from_lang' => 'en-US', 'to_lang' => 'es-ES' } },
+                                        'status_url' => 'https://example.com/status' })
   end
+end
+
+# Fax, SIP refer, and custom user_event -- split out of CallingMockMediaTest to
+# keep each class under RuboCop's Metrics/ClassLength.
+class CallingMockAdvancedTest < Minitest::Test
+  include CallingMockHelpers
 
   # -------------------------------------------------------------------
   # Fax commands

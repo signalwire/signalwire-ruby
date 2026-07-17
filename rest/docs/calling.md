@@ -74,7 +74,7 @@ Play audio, TTS, silence, or ringtone.
 
 ```ruby
 client.calling.play(call_id,
-  play: [{ 'type' => 'tts', 'text' => 'Hello!' }],
+  play: [{ 'type' => 'tts', 'params' => { 'text' => 'Hello!' } }],
   volume: 5.0
 )
 ```
@@ -212,8 +212,8 @@ client.calling.ai_stop(call_id, control_id: 'ai-1')
 ## Live Transcribe & Translate
 
 ```ruby
-client.calling.live_transcribe(call_id, action: 'start', lang: 'en')
-client.calling.live_translate(call_id, action: 'start', from_lang: 'en', to_lang: 'es')
+client.calling.live_transcribe(call_id, action: { 'start' => { 'lang' => 'en' } })
+client.calling.live_translate(call_id, action: { 'start' => { 'from_lang' => 'en', 'to_lang' => 'es' } })
 ```
 
 ## Fax
