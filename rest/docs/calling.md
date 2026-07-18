@@ -212,8 +212,8 @@ client.calling.ai_stop(call_id, control_id: 'ai-1')
 ## Live Transcribe & Translate
 
 ```ruby
-client.calling.live_transcribe(call_id, action: { 'start' => { 'lang' => 'en-US' } })
-client.calling.live_translate(call_id, action: { 'start' => { 'from_lang' => 'en-US', 'to_lang' => 'es-ES' } })
+client.calling.live_transcribe(call_id, action: { 'start' => { 'lang' => 'en' } })
+client.calling.live_translate(call_id, action: { 'start' => { 'from_lang' => 'en', 'to_lang' => 'es' } })
 ```
 
 ## Fax

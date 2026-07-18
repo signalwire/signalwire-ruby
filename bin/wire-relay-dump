@@ -152,6 +152,17 @@ c = new_call
 c.send_fax(document: 'https://x/doc.pdf', identity: '+15550001111', header_info: 'Hdr', control_id: CID)
 out['relay_send_fax'] = c.frames.last
 
+# relay_live_transcribe (action MUST be wrapped as params.action)
+c = new_call
+c.live_transcribe(action: { 'start' => { 'lang' => 'en' } })
+out['relay_live_transcribe'] = c.frames.last
+
+# relay_live_translate (action MUST be wrapped as params.action; status_url sibling)
+c = new_call
+c.live_translate(action: { 'start' => { 'from_lang' => 'en', 'to_lang' => 'es' } },
+                  status_url: 'https://x/cb')
+out['relay_live_translate'] = c.frames.last
+
 # ---- control-ops (Action methods) ----
 # relay_play_stop
 c = new_call

@@ -216,16 +216,16 @@ class SmallNamespacesMockTestPartTwo < Minitest::Test
 
   def test_imported_numbers_create
     body = @client.imported_numbers.create(
-      number: '+15551234567', number_type: 'sip',
-      sip_username: 'alice', sip_password: 'secret', sip_proxy: 'sip.example.com'
+      number: '+15551234567', number_type: 'longcode',
+      capabilities: %w[sms voice]
     )
 
     assert_kind_of Hash, body
     # The imported-number response has an 'id'.
     assert body.key?('id')
     last = assert_request('POST', "#{RELAY_BASE}/imported_phone_numbers")
-    assert_sent_body(last, 'number' => '+15551234567', 'sip_username' => 'alice',
-                           'sip_proxy' => 'sip.example.com')
+    assert_sent_body(last, 'number' => '+15551234567', 'number_type' => 'longcode',
+                           'capabilities' => %w[sms voice])
   end
 
   # ---- MFA — voice channel --------------------------------------------
@@ -249,7 +249,7 @@ class SmallNamespacesMockTestPartTwo < Minitest::Test
 
   def test_sip_profile_update
     body = @client.sip_profile.update(
-      domain: 'myco.sip.signalwire.com',
+      domain_identifier: 'myco',
       default_codecs: %w[PCMU PCMA]
     )
 
@@ -258,7 +258,7 @@ class SmallNamespacesMockTestPartTwo < Minitest::Test
     # disjunctive key check).
     assert_sip_profile_shape(body)
     last = assert_request('PUT', "#{RELAY_BASE}/sip_profile")
-    assert_sent_body(last, 'domain' => 'myco.sip.signalwire.com', 'default_codecs' => %w[PCMU PCMA])
+    assert_sent_body(last, 'domain_identifier' => 'myco', 'default_codecs' => %w[PCMU PCMA])
   end
 
   # ---- Number Groups — membership operations --------------------------

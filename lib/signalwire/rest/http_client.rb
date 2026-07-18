@@ -9,6 +9,12 @@ require 'openssl'
 module SignalWire
   module REST
     # Raised when the SignalWire REST API returns a non-2xx response.
+    #
+    # +status_code+ is the HTTP status. For a TRANSPORT failure (the request
+    # never reached a response — connection refused, DNS failure, connection
+    # reset, TLS error) it is +nil+ and the raised type is the subclass
+    # {SignalWireRestTransportError}. Callers catch this one family for every
+    # REST failure, HTTP or transport.
     class SignalWireRestError < StandardError
       attr_reader :status_code, :body, :url, :method_name
 
@@ -17,13 +23,49 @@ module SignalWire
         @body        = body
         @url         = url
         @method_name = method_name
-        super("#{method_name} #{url} returned #{status_code}: #{body}")
+        message = if status_code.nil?
+                    "#{method_name} #{url} failed to reach the server: #{body}"
+                  else
+                    "#{method_name} #{url} returned #{status_code}: #{body}"
+                  end
+        super(message)
+      end
+    end
+
+    # Raised when a REST request never reached a response — a transport-level
+    # failure (connection refused, DNS failure, connection reset, TLS error).
+    #
+    # A member of the {SignalWireRestError} family (+status_code+ is +nil+,
+    # +body+ is the underlying transport error message) so a caller catching
+    # +SignalWireRestError+ handles both HTTP-error and transport-error cases
+    # with one +rescue+, instead of a bare +Errno::ECONNREFUSED+ / +SocketError+
+    # / +Net::OpenTimeout+ leaking out of the REST client.
+    class SignalWireRestTransportError < SignalWireRestError
+      def initialize(body, url, method_name = 'GET')
+        super(nil, body, url, method_name)
       end
     end
 
     # Thin wrapper around Net::HTTP with Basic Auth and JSON handling.
     class HttpClient
       attr_reader :base_url, :project_id
+
+      # Transport-level failures Net::HTTP raises when the request never reaches
+      # a response: connection refused / DNS failure (SocketError) / connection
+      # reset / open+read timeouts / TLS handshake error / an unexpected EOF. All
+      # wrap into the typed {SignalWireRestTransportError} — a member of the
+      # SignalWireRestError family — so a caller catching SignalWireRestError
+      # handles them too, instead of a bare exception leaking out. (SystemCallError
+      # is the Errno base: ECONNREFUSED / ECONNRESET / EHOSTUNREACH / ETIMEDOUT …)
+      TRANSPORT_ERRORS = [
+        SocketError,
+        SystemCallError,
+        Net::OpenTimeout,
+        Net::ReadTimeout,
+        OpenSSL::SSL::SSLError,
+        EOFError,
+        IOError
+      ].freeze
 
       # +base_url+ overrides the derived +https://{space}+ value when set,
       # which is how the audit fixture and tests point the client at a
@@ -80,7 +122,18 @@ module SignalWire
         http = Net::HTTP.new(uri.host, uri.port)
         configure_ssl(http) if uri.scheme == 'https'
 
-        handle_response(http.request(req), path, method)
+        handle_response(send_request(http, req, path, method), path, method)
+      end
+
+      # Issue the request, wrapping any transport-level failure (the request
+      # never produced a response: connection refused / DNS / reset / TLS /
+      # timeout) in the typed {SignalWireRestTransportError} so a caller catching
+      # SignalWireRestError handles it too, instead of a bare
+      # Errno::ECONNREFUSED / SocketError leaking out.
+      def send_request(http, req, path, method)
+        http.request(req)
+      rescue *TRANSPORT_ERRORS => e
+        raise SignalWireRestTransportError.new(e.message, path, method)
       end
 
       def build_uri(path, params)

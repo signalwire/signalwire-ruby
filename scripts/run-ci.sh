@@ -66,204 +66,85 @@ export SW_WAVE_A_REPORT_ONLY="${SW_WAVE_A_REPORT_ONLY:-0}"
 echo "==> running CI gates for $PORT_NAME (porting-sdk at $PORTING_SDK_DIR)"
 echo "==> wave-A gate findings are ${SW_WAVE_A_REPORT_ONLY:+BLOCKING (SW_WAVE_A_REPORT_ONLY=$SW_WAVE_A_REPORT_ONLY)}"
 
-pick_free_port() {
-    python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()'
-}
-
-# SURFACE-FRESH — Layer B does NOT ride on DRIFT (Layer A), so port_surface.json can
-# silently rot. Regenerate it in place via Ruby's surface enumerator, compare modulo
-# the volatile generated_from git-sha, then restore the committed copy.
-surface_fresh_gate() {
-    git show HEAD:port_surface.json > "$PORT_ROOT/.sw-tmp/committed_surface.json" 2>/dev/null \
-        || cp "$PORT_ROOT/port_surface.json" "$PORT_ROOT/.sw-tmp/committed_surface.json"
-    bundle exec ruby scripts/enumerate_surface.rb --output "$PORT_ROOT/port_surface.json"
-    local regen_rc=$?
-    if [ "$regen_rc" -ne 0 ]; then
-        git checkout -- port_surface.json 2>/dev/null
-        return $regen_rc
-    fi
-    python3 "$PORTING_SDK_DIR/scripts/check_surface_freshness.py" \
-        --committed "$PORT_ROOT/.sw-tmp/committed_surface.json" \
-        --fresh "$PORT_ROOT/port_surface.json"
-    local check_rc=$?
-    git checkout -- port_surface.json 2>/dev/null
-    return $check_rc
-}
-
-# REST-COVERAGE — every implemented REST route covered success+error. Self-
-# contained: spins its own mock, runs the rest tests serially, replays the journal.
-rest_coverage_gate() {
-    local port
-    port="$(pick_free_port)" || { echo "could not allocate a free port" >&2; return 1; }
-    local mock_pkg_parent="$PORTING_SDK_DIR/test_harness/mock_signalwire"
-    export PYTHONPATH="$mock_pkg_parent${PYTHONPATH:+:$PYTHONPATH}"
-    python3 -m mock_signalwire --host 127.0.0.1 --port "$port" --log-level error \
-        >"$PORT_ROOT/.sw-tmp/rest_cov_mock_ruby.$$.log" 2>&1 &
-    local mock_pid=$!
-    # shellcheck disable=SC2064
-    trap "kill $mock_pid 2>/dev/null" RETURN
-    local i ready=0
-    for i in $(seq 1 60); do
-        if ! kill -0 "$mock_pid" 2>/dev/null; then
-            echo "mock_signalwire died on port $port — log:" >&2
-            cat "$PORT_ROOT/.sw-tmp/rest_cov_mock_ruby.$$.log" >&2
-            return 1
-        fi
-        if python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:$port/__mock__/health',timeout=1)" 2>/dev/null; then
-            ready=1
-            break
-        fi
-        sleep 0.5
-    done
-    if [ "$ready" -ne 1 ]; then
-        echo "mock_signalwire on port $port not healthy within 30s" >&2
-        return 1
-    fi
-    python3 -c "import urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:$port/__mock__/journal/reset',method='POST'),timeout=5).read()"
-    # Route through run-tests.sh (the canonical test entry point); the exported
-    # MOCK_SIGNALWIRE_PORT flows through unchanged so the per-test harness hits
-    # this gate's pre-spawned mock.
-    MOCK_SIGNALWIRE_PORT="$port" bash scripts/run-tests.sh || return 1
-    python3 -m mock_signalwire.rest_coverage \
-        --mock-url "http://127.0.0.1:$port" \
-        --spec-root "$PORTING_SDK_DIR/rest-apis" \
-        --allowlist "$PORTING_SDK_DIR/REST_COVERAGE_BASELINE.md" \
-        --allowlist "$PORT_ROOT/REST_COVERAGE_GAPS.md" \
-        --gap-baseline "$PORTING_SDK_DIR/REST_COVERAGE_GAP_BASELINE.md"
-}
-
-# SPEC-PARITY — implemented routes == canonical spec. route_registry.rb drives the
-# live RestClient through a recording HttpClient and captures every dispatched route.
-spec_parity_gate() {
-    local mock_pkg_parent="$PORTING_SDK_DIR/test_harness/mock_signalwire"
-    export PYTHONPATH="$mock_pkg_parent${PYTHONPATH:+:$PYTHONPATH}"
-    local registry
-    registry="$(mktemp)"
-    ruby -Ilib scripts/route_registry.rb >"$registry" 2>/dev/null || {
-        rm -f "$registry"; return 1
-    }
-    python3 "$PORTING_SDK_DIR/scripts/diff_spec_implementation.py" \
-        --registry-json "$registry" \
-        --gaps "$PORTING_SDK_DIR/SPEC_IMPLEMENTATION_GAPS.md"
-    local rc=$?
-    rm -f "$registry"
-    return $rc
-}
-
-# SURFACE-DIFF — diff the port's public surface against the Python reference.
-# Regenerate in place, diff, restore unconditionally.
-surface_diff_gate() {
-    git show HEAD:port_surface.json > "$PORT_ROOT/.sw-tmp/committed_surface_diff.json" 2>/dev/null \
-        || cp "$PORT_ROOT/port_surface.json" "$PORT_ROOT/.sw-tmp/committed_surface_diff.json"
-    bundle exec ruby scripts/enumerate_surface.rb --output "$PORT_ROOT/port_surface.json"
-    local regen_rc=$?
-    if [ "$regen_rc" -ne 0 ]; then
-        git checkout -- port_surface.json 2>/dev/null
-        return $regen_rc
-    fi
-    python3 "$PORTING_SDK_DIR/scripts/diff_port_surface.py" \
-        --reference "$PORTING_SDK_DIR/python_surface.json" \
-        --port-surface "$PORT_ROOT/port_surface.json" \
-        --omissions "$PORT_ROOT/PORT_OMISSIONS.md" \
-        --additions "$PORT_ROOT/PORT_ADDITIONS.md"
-    local check_rc=$?
-    git checkout -- port_surface.json 2>/dev/null
-    return $check_rc
-}
-
-# ARTIFACT-DENY — no porting artifact may ship inside the PUBLISHED gem. The
-# git-ls-files proxy over-reports in-repo-but-unpublished files; feed the REAL
-# gem's file listing to --listing instead. A .gem is a tar wrapping data.tar.gz
-# (the actual shipped files), so build the gem into repo-local scratch and unpack
-# data.tar.gz's listing.
-dayone_artifact_deny() {
-    local gem="$PORT_ROOT/.sw-tmp/artifact_deny.gem"
-    gem build "$PORT_ROOT"/*.gemspec -o "$gem" >/dev/null 2>&1 || {
-        echo "gem build failed" >&2; return 1
-    }
-    tar xOf "$gem" data.tar.gz | tar tzf - 2>/dev/null \
-        | python3 "$PORTING_SDK_DIR/scripts/artifact_deny.py" --port ruby --repo . --listing -
-    local rc=$?
-    rm -f "$gem"
-    return $rc
-}
+# NOTE: the former per-gate `--fn` helpers (surface_fresh_gate, surface_diff_gate,
+# rest_coverage_gate, spec_parity_gate, dayone_artifact_deny) and pick_free_port are
+# DEAD here — their bodies are reproduced INSIDE the Part-5 suites (SURFACE / BEHAVIORAL
+# / PACKAGE), which schedule those rules now. Kept out of this file to avoid drift.
 
 # ---- register gates ----------------------------------------------------------
 sched_init "$@"
 
+# HEAVY (deferred behind the cheap wave for S1 fail-fast).
 sched_gate TEST defer=1 desc="run-tests.sh (bundle exec rake test)" \
     -- bash scripts/run-tests.sh
 
-sched_gate GEN-FRESH desc="generated REST layer matches canonical specs" \
-    -- python3 scripts/generate_rest.py --check
+# ---- Part 5 gate SUITES ------------------------------------------------------
+# The former per-gate SIGNATURES/DRIFT/SURFACE-*/GEN-FRESH*/BEHAVIORAL-*/EMISSION/
+# ERROR-ENVELOPE/PAGINATION-WIRED/WAIT-LIVENESS/DOC-WIRE/REST-COVERAGE/SPEC-PARITY/
+# SKILL-CONTRACT/SWAIG-*/DOC-*/COUNT-CLAIM/ACCESSOR-TRUTH/STATUS-CLAIM/README-INCLUDE/
+# SEMVER-DIFF/GEN-TYPE-DEGENERACY/GEN-IDIOM/PACKAGE-*/META-CONSISTENT/ARTIFACT-DENY/
+# RELEASE-FRESH/*-LEDGER gates now run under 6 SUITE engines. Each suite emits every
+# original gate NAME as a `[SUITE:RULE] ... PASS/FAIL` rule ID (failure identity is
+# preserved; allowlists + finding output unchanged). A suite exits nonzero iff any of
+# its rules fails. Byte-identity vs the old per-gate path is proven by
+# porting-sdk/tests/test_suite_parity*.py. See porting-sdk PART5 plan.
+#
+# The `--fn` helpers the old gates used (surface_fresh_gate, surface_diff_gate,
+# rest_coverage_gate, spec_parity_gate, dayone_artifact_deny) are reproduced INSIDE
+# the suites, so they are no longer defined here.
+#
+# The former single-gate scheduler features are preserved by the suites internally:
+#   * SIGNATURES→DRIFT ordering + the SURFACE-FRESH/SURFACE-DIFF surface mutex live
+#     inside the SURFACE suite (it regenerates + git-restores in order). ruby's
+#     SURFACE-DIFF is itself a `--fn` that RE-ENUMERATES the surface — reproduced.
+#   * mixed tiers are split with --rules: PACKAGE + BEHAVIORAL each schedule a per-PR
+#     line and a nightly line (their nightly members are broken out below).
 
-sched_gate GEN-FRESH-TESTS desc="generated REST wire-test suite matches route-registry × spec oracle" \
-    -- python3 scripts/generate_rest_tests.py --check
+# SURFACE (parity spine): SIGNATURES→DRIFT ordered, SURFACE-FRESH/DIFF (ruby re-
+# enumerates both), SEMVER-DIFF, GEN-TYPE-DEGENERACY, GEN-IDIOM — all read the one
+# enumeration. Not deferred: it writes port_signatures.json that nothing else depends
+# on cross-suite, and it is the parity spine (run it in the cheap wave). No ROUTE-
+# COLLISION (ruby does not wire it — see the ROUTE-COLLISION note below).
+sched_gate SURFACE desc="surface parity suite (SIGNATURES/DRIFT/SURFACE-FRESH/SURFACE-DIFF/SEMVER-DIFF/GEN-TYPE-DEGENERACY/GEN-IDIOM)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/suites/surface.py" --port ruby --repo "$PORT_ROOT"
 
-sched_gate GEN-FRESH-SWML desc="generated SWML-verbs config tree matches schema.json (\$defs)" \
-    -- python3 scripts/generate_swml_verbs.py --check
+# GEN (regen-from-specs family): the 5 GEN-FRESH rules.
+sched_gate GEN defer=1 desc="generated-code freshness suite (GEN-FRESH/-TESTS/-RELAY/-SWAIG/-SWML)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/suites/gen.py" --port ruby --repo "$PORT_ROOT"
 
-sched_gate GEN-FRESH-RELAY desc="generated RELAY-protocol tree matches relay-protocol/*.json" \
-    -- python3 scripts/generate_relay_protocol.py --check
+# BEHAVIORAL (one Layer-D pass per rule): the per-PR rules. WAIT-LIVENESS (nightly)
+# is the separate line below.
+sched_gate BEHAVIORAL defer=1 desc="behavioral suite (BEHAVIORAL-*/EMISSION/ERROR-ENVELOPE/PAGINATION-WIRED/DOC-WIRE/REST-COVERAGE/SPEC-PARITY/SKILL-CONTRACT/SWAIG-COVERAGE/SWAIG-CLI)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/suites/behavioral.py" --port ruby --repo "$PORT_ROOT" \
+        --rules BEHAVIORAL-WIRE,BEHAVIORAL-SWML,BEHAVIORAL-STATE,BEHAVIORAL-HTTP,BEHAVIORAL-WIRE-RELAY,EMISSION,ERROR-ENVELOPE,PAGINATION-WIRED,DOC-WIRE,REST-COVERAGE,SPEC-PARITY,SKILL-CONTRACT,SWAIG-COVERAGE,SWAIG-CLI
 
-sched_gate GEN-FRESH-SWAIG desc="generated SWAIG payload tree matches swaig-specs/" \
-    -- python3 scripts/generate_swaig_payloads.py --check
+sched_gate BEHAVIORAL-NIGHTLY tier=nightly defer=1 desc="behavioral suite, nightly rules (WAIT-LIVENESS)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/suites/behavioral.py" --port ruby --repo "$PORT_ROOT" \
+        --rules WAIT-LIVENESS
 
-sched_gate SWAIG-COVERAGE desc="every engine SWAIG action emittable (modulo allowlist)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/swaig_coverage.py" --check \
-        --emission "$PORT_ROOT/lib/signalwire/swaig/function_result.rb"
+# DOC-TRUTH (one markdown walk): DOC-AUDIT/DOC-LINKS/DOC-LANG-PURITY/DOC-ENV/COUNT-CLAIM/
+# ACCESSOR-TRUTH/STATUS-CLAIM/README-INCLUDE. res=surface: DOC-AUDIT reads port_surface.json
+# that the SURFACE suite regenerates+restores.
+sched_gate DOC-TRUTH res=surface desc="doc-truth suite (DOC-AUDIT/DOC-LINKS/DOC-LANG-PURITY/DOC-ENV/COUNT-CLAIM/ACCESSOR-TRUTH/STATUS-CLAIM/README-INCLUDE)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/suites/doc_truth.py" --port ruby --repo "$PORT_ROOT"
 
-sched_gate SIGNATURES desc="regenerate port_signatures.json" \
-    -- python3 scripts/enumerate_signatures.py
+# LEDGER: SUPPRESSION-LEDGER + IGNORE-LEDGER-VERIFY.
+sched_gate LEDGER res=dayone desc="ledger governance suite (SUPPRESSION-LEDGER/IGNORE-LEDGER-VERIFY)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/suites/ledger.py" --port ruby --repo "$PORT_ROOT"
 
-sched_gate DRIFT deps=SIGNATURES desc="diff_port_signatures vs python reference" \
-    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_signatures.py" \
-        --reference "$PORTING_SDK_DIR/python_signatures.json" \
-        --port-signatures "$PORT_ROOT/port_signatures.json" \
-        --surface-omissions "$PORT_ROOT/PORT_OMISSIONS.md" \
-        --surface-additions "$PORT_ROOT/PORT_ADDITIONS.md" \
-        --omissions "$PORT_ROOT/PORT_SIGNATURE_OMISSIONS.md"
+# PACKAGE: per-PR rules (ARTIFACT-DENY/RELEASE-FRESH); nightly rules (PACKAGE-SMOKE/
+# META-CONSISTENT) on the separate line below.
+sched_gate PACKAGE res=dayone desc="package suite, per-PR rules (ARTIFACT-DENY/RELEASE-FRESH)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/suites/package.py" --port ruby --repo "$PORT_ROOT" \
+        --rules ARTIFACT-DENY,RELEASE-FRESH
 
-sched_gate SURFACE-FRESH res=surface desc="check_surface_freshness vs committed surface" \
-    --fn surface_fresh_gate
+sched_gate PACKAGE-NIGHTLY tier=nightly defer=1 desc="package suite, nightly rules (PACKAGE-SMOKE/META-CONSISTENT)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/suites/package.py" --port ruby --repo "$PORT_ROOT" \
+        --rules PACKAGE-SMOKE,META-CONSISTENT
 
+# ---- gates that stay standalone (native toolchains + singletons) -------------
 sched_gate NO-CHEAT desc="audit_no_cheat_tests" \
     -- python3 "$PORTING_SDK_DIR/scripts/audit_no_cheat_tests.py" --root "$PORT_ROOT"
-
-sched_gate REST-COVERAGE defer=1 desc="every implemented REST route covered success+error (parity + allowlist)" \
-    --fn rest_coverage_gate
-
-sched_gate SPEC-PARITY defer=1 desc="implemented routes == canonical spec (modulo SPEC_IMPLEMENTATION_GAPS.md)" \
-    --fn spec_parity_gate
-
-sched_gate EMISSION desc="diff_port_emission vs python oracle" \
-    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_emission.py" \
-        --dump-cmd "bundle exec ruby bin/emit-corpus"
-
-sched_gate BEHAVIORAL-WIRE desc="diff_port_wire vs python oracle (Layer D)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_wire.py" \
-        --port ruby \
-        --dump-cmd "bundle exec ruby bin/wire-dump"
-
-sched_gate BEHAVIORAL-SWML desc="diff_port_swml vs python oracle (Layer D)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_swml.py" \
-        --port ruby \
-        --dump-cmd "bundle exec ruby bin/swml-dump"
-
-sched_gate BEHAVIORAL-STATE desc="diff_port_state vs python oracle (Layer D)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_state.py" \
-        --port ruby \
-        --dump-cmd "bundle exec ruby bin/state-dump"
-
-sched_gate BEHAVIORAL-HTTP desc="diff_port_http vs python oracle (Layer D)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_http.py" \
-        --port ruby \
-        --dump-cmd "bundle exec ruby bin/http-dump"
-
-sched_gate BEHAVIORAL-WIRE-RELAY desc="diff_port_wire_relay vs python oracle (Layer D)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_wire_relay.py" \
-        --port ruby \
-        --dump-cmd "bundle exec ruby bin/wire-relay-dump"
 
 sched_gate FMT defer=1 desc="run-format.sh (local: apply; CI: --check)" \
     -- bash scripts/run-format.sh ${CI:+--check}
@@ -271,125 +152,34 @@ sched_gate FMT defer=1 desc="run-format.sh (local: apply; CI: --check)" \
 sched_gate LINT defer=1 desc="run-lint.sh (rubocop zero offenses)" \
     -- bash scripts/run-lint.sh
 
-sched_gate DOC-AUDIT res=surface desc="audit_docs vs port_surface.json" \
-    -- python3 "$PORTING_SDK_DIR/scripts/audit_docs.py" \
-        --root "$PORT_ROOT" \
-        --surface "$PORT_ROOT/port_surface.json" \
-        --ignore "$PORT_ROOT/DOC_AUDIT_IGNORE.md"
-
-sched_gate SURFACE-DIFF res=surface desc="diff_port_surface vs python reference" \
-    --fn surface_diff_gate
-
-sched_gate SKILL-CONTRACT desc="diff_skill_contracts vs python reference" \
-    -- python3 "$PORTING_SDK_DIR/scripts/diff_skill_contracts.py" \
-        --dump-cmd "bundle exec ruby bin/emit-skills" \
-        --port-repo "$PORT_ROOT"
-
-sched_gate SWAIG-CLI desc="swaig-test shared mini-contract (verbs/serverless-reject/default-action)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/audit_swaig_cli_contract.py" \
-        --port ruby \
-        --cmd "ruby -I$PORT_ROOT/lib $PORT_ROOT/bin/swaig-test" \
-        --require-url-model \
-        --default-action-argv='--url|http://user:pass@127.0.0.1:1/' \
-        --has-serverless \
-        --serverless-argv='AGENT_FILE_PLACEHOLDER|--simulate-serverless|bogus-platform-xyz|--dump-swml' \
-        --agent-file-suffix '.rb' \
-        --agent-file-content "require 'signalwire'; AGENT = SignalWire::AgentBase.new(name: 'p', route: '/'); AGENT.set_prompt_text('hi')"
-
-sched_gate DOC-LANG-PURITY res=dayone desc="no python-verbatim docs in a non-python port" \
-    -- python3 "$PORTING_SDK_DIR/scripts/doc_lang_purity.py" --port ruby --repo .
-
-sched_gate DOC-LINKS res=dayone desc="every relative markdown link resolves to a tracked file" \
-    -- python3 "$PORTING_SDK_DIR/scripts/doc_links.py" --port ruby --repo .
-
-sched_gate README-INCLUDE res=dayone desc="doc code blocks are byte-identical to their gate-compiled fixture regions" \
-    -- python3 "$PORTING_SDK_DIR/scripts/readme_include.py" --port ruby --repo .
-
-sched_gate ROOT-HYGIENE res=dayone desc="no audit/scratch clutter tracked at repo root (allowlist ROOT_HYGIENE_ALLOW.md)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/root_hygiene.py" --port ruby --repo .
-
-sched_gate IGNORE-LEDGER-VERIFY res=dayone desc="no laundered false-absence entries in DOC_AUDIT_IGNORE.md (strict: reason/approver/date required)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/ignore_ledger_verify.py" --port ruby --repo . --require-fields
-
-sched_gate META-CONSISTENT tier=nightly res=dayone desc="package metadata consistency" \
-    -- python3 "$PORTING_SDK_DIR/scripts/meta_consistent.py" --port ruby --repo .
-
-sched_gate ARTIFACT-DENY res=dayone desc="no porting artifacts in the PUBLISHED package (authoritative listing)" \
-    --fn dayone_artifact_deny
-
-# --- Expansion gates (GATE_EXPANSION_PLAN) — enforcing (backlog burned to zero) ---
-# ROUTE-COLLISION is intentionally NOT wired here: with ruby's route_registry.rb it
-# fails on a SPEC-FAITHFUL route-split — the fabric spec declares SINGULAR sibling
-# paths /resources/call_flow/{id}/addresses + /resources/conference_room/{id}/addresses
-# (operationIds list_call_flow_addresses / list_conference_room_addresses) while the
-# class collection base is plural. Ruby's generated code matches the spec exactly, so
-# this is a proven exception that needs a human-approved ROUTE_COLLISION_ALLOW.md entry
-# before the gate can be wired enforcing — not added autonomously. Follow-up.
-
-sched_gate GEN-TYPE-DEGENERACY res=dayone desc="no degenerate generated-typed aliases (no consumers / collapse to a base)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/gen_type_degeneracy.py" --port ruby --repo .
+# ROUTE-COLLISION is intentionally NOT wired (kept out of the SURFACE suite for ruby):
+# with ruby's route_registry.rb it fails on a SPEC-FAITHFUL route-split — the fabric
+# spec declares SINGULAR sibling paths /resources/call_flow/{id}/addresses +
+# /resources/conference_room/{id}/addresses (operationIds list_call_flow_addresses /
+# list_conference_room_addresses) while the class collection base is plural. Ruby's
+# generated code matches the spec exactly, so this is a proven exception that needs a
+# human-approved ROUTE_COLLISION_ALLOW.md entry before it can be wired enforcing — not
+# added autonomously. Follow-up.
 
 sched_gate PUBLIC-JARGON res=dayone desc="no porting-internal jargon leaks into the public/published surface" \
     -- python3 "$PORTING_SDK_DIR/scripts/public_jargon.py" --port ruby --repo .
 
-sched_gate GEN-IDIOM res=dayone desc="generated code is not lint-excluded (idiom parity with hand code)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/gen_idiom.py" --port ruby --repo .
-
-sched_gate RELEASE-FRESH res=dayone desc="publish workflow runs the gates before publishing (gated release path)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/release_fresh.py" --port ruby --repo .
-
-sched_gate SEMVER-DIFF res=dayone desc="version bump matches the API surface change vs the release baseline (port_signatures.baseline.json)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/semver_diff.py" --port ruby --repo "$PORT_ROOT"
+sched_gate ROOT-HYGIENE res=dayone desc="no audit/scratch clutter tracked at repo root (allowlist ROOT_HYGIENE_ALLOW.md)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/root_hygiene.py" --port ruby --repo .
 
 # ---- §C1 doc/example execution gates -----------------------------------------
-# SNIPPET-COMPILE (compile-only) + DOC-CLI (parse-only probe) are cheap → cheap
-# wave, blocking. SNIPPET-RUN + EXAMPLES-RUN execute code (mock-backed) and are
-# minutes-long → defer=1 heavy wave. Mirrors python's run-ci wiring.
+# SNIPPET-COMPILE (compile-only) + DOC-CLI (parse-only probe) mirror python's wiring;
+# DEAD-PUBLIC-ERROR is source analysis of exported error types (not a doc-truth/
+# behavioral rule) → stays standalone. SNIPPET-RUN + EXAMPLES-RUN execute code
+# (mock-backed) and are minutes-long → defer=1 heavy nightly wave.
 sched_gate SNIPPET-COMPILE tier=nightly desc="documented code snippets compile" \
     -- python3 "$PORTING_SDK_DIR/scripts/snippet_compile.py" --port ruby --repo "$PORT_ROOT"
 
 sched_gate DOC-CLI desc="documented swaig-test invocations parse against the real CLI" \
     -- python3 "$PORTING_SDK_DIR/scripts/doc_cli.py" --port ruby --repo "$PORT_ROOT"
 
-# Wave-3 doc/API-truth gates — deterministic source/doc analysis (no build, no
-# mock, ~1.3s for all six). Per-PR tier: cheap enough to catch doc/API drift at
-# PR time rather than a day later in nightly.
-sched_gate ERROR-ENVELOPE desc="REST error carries the full (status,body,url,method) envelope + raised on >=400" \
-    -- python3 "$PORTING_SDK_DIR/scripts/error_envelope.py" --port ruby --repo "$PORT_ROOT"
 sched_gate DEAD-PUBLIC-ERROR desc="exported error types are raised/caught/user-signalled (no dead error surface)" \
     -- python3 "$PORTING_SDK_DIR/scripts/dead_public_error.py" --port ruby --repo "$PORT_ROOT"
-sched_gate PAGINATION-WIRED desc="shipped iterator-protocol paginator is wired into list()" \
-    -- python3 "$PORTING_SDK_DIR/scripts/pagination_wired.py" --port ruby --repo "$PORT_ROOT"
-sched_gate DOC-ENV desc="documented SIGNALWIRE_*/SWML_* env vars <=> code-read vars agree" \
-    -- python3 "$PORTING_SDK_DIR/scripts/doc_env.py" --port ruby --repo "$PORT_ROOT"
-sched_gate COUNT-CLAIM desc="numeric doc claims (skills/namespaces) match reality" \
-    -- python3 "$PORTING_SDK_DIR/scripts/count_claim.py" --port ruby --repo "$PORT_ROOT"
-sched_gate ACCESSOR-TRUTH desc="documented backtick method() refs exist in source" \
-    -- python3 "$PORTING_SDK_DIR/scripts/accessor_truth.py" --port ruby --repo "$PORT_ROOT"
-
-# DOC-WIRE (§A1) — the documented REST doc fixtures are wire-clean against the
-# spec (strict-flag mock journals wire_violations; the runner replays the exact
-# doc calls). Cheap → per-PR tier. The runner drives the wire-bearing REST doc
-# fixtures (README/rest quickstart + rest/docs + rest/examples) so a doc lie like
-# area_code (spec areacode), a flat {type:tts,text} play item, or flat record
-# beep/format shows up as a journaled violation and fails the gate.
-sched_gate DOC-WIRE desc="documented REST doc fixtures put the spec wire shape on the wire (areacode/params:{text}/audio:{})" \
-    -- python3 "$PORTING_SDK_DIR/scripts/doc_wire.py" --port ruby --repo "$PORT_ROOT" \
-        --runner "ruby $PORT_ROOT/scripts/doc_wire_runner.rb"
-
-# STATUS-CLAIM (§C2) — no false capability/status claims in docs (e.g. "not
-# implemented" / "transport pending" for surface that exists). Cheap → per-PR.
-sched_gate STATUS-CLAIM desc="doc status/capability claims match the shipped surface" \
-    -- python3 "$PORTING_SDK_DIR/scripts/status_claim.py" --port ruby --repo "$PORT_ROOT" \
-        --surface "$PORTING_SDK_DIR/python_surface.json"
-
-# NOTE: §1.11b (GATE-INVENTORY freshness) is intentionally NOT wired here.
-# gen_gate_inventory.py resolves its reference port as a SIBLING checkout
-# (DEFAULT_REFERENCE=signalwire-typescript), which does not exist in a port's CI
-# layout (porting-sdk is a subdir of the port workspace, so ../signalwire-
-# typescript is absent → exit 2). The check is inherently porting-sdk-side and
-# already runs in porting-sdk's own CI (.github/workflows/test.yml). Wiring it
-# per-port would require each port to also check out the TS reference — not worth it.
 
 # SNIPPET-RUN is BLOCKING: every runnable ruby doc snippet must execute to a zero
 # exit against the mock. Non-runnable blocks carry a `<!-- snippet: no-run … -->`
@@ -403,23 +193,13 @@ sched_gate SNIPPET-RUN tier=nightly defer=1 desc="dynamic-port doc snippets run 
 sched_gate EXAMPLES-RUN tier=nightly defer=1 desc="shipped examples load/start against the mock (modulo EXAMPLES_RUN_ALLOW.md; STRICT-MOCKS: MOCK_RELAY_STRICT=1)" \
     -- env MOCK_RELAY_STRICT=1 python3 "$PORTING_SDK_DIR/scripts/examples_run.py" --port ruby --repo "$PORT_ROOT"
 
-# WAIT-LIVENESS (§2.4) — the RELAY Action#wait() liveness contract: wait() BLOCKS
-# until the deferred completing event arrives, then returns with the finished
-# state (never a no-op that returns at t~=0, never a hang). bin/wait-liveness-dump
-# drives the corpus against a real mock_relay with the completing event armed as a
-# delay_ms scenario, prints the classification per case; the differ builds the
-# python golden and compares. Nightly (spawns a mock + the dump; needs the
-# signalwire-python oracle, present in nightly).
-sched_gate WAIT-LIVENESS tier=nightly defer=1 desc="RELAY Action#wait() blocks-until-event liveness matches the python golden" \
-    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_wait_liveness.py" --port ruby \
-        --dump-cmd "bundle exec ruby $PORT_ROOT/bin/wait-liveness-dump"
-
-# ---- §G anti-laundering ledger + §D1 packaging -------------------------------
-sched_gate SUPPRESSION-LEDGER res=dayone desc="no un-ledgered analyzer suppressions (rubocop:disable) outside the ledger" \
-    -- python3 "$PORTING_SDK_DIR/scripts/suppression_ledger.py" --port ruby --repo .
-
-sched_gate PACKAGE-SMOKE tier=nightly defer=1 desc="build+install the real gem, then require/construct from the installed artifact" \
-    -- python3 "$PORTING_SDK_DIR/scripts/package_smoke.py" --port ruby --repo .
+# NOTE: §1.11b (GATE-INVENTORY freshness) is intentionally NOT wired here.
+# gen_gate_inventory.py resolves its reference port as a SIBLING checkout
+# (DEFAULT_REFERENCE=signalwire-typescript), which does not exist in a port's CI
+# layout (porting-sdk is a subdir of the port workspace, so ../signalwire-
+# typescript is absent → exit 2). The check is inherently porting-sdk-side and
+# already runs in porting-sdk's own CI (.github/workflows/test.yml). Wiring it
+# per-port would require each port to also check out the TS reference — not worth it.
 
 sched_run
 rc=$?

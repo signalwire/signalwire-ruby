@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 9bb765b983508be936bf1cbd64685569c059bf79",
+  "generated_from": "signalwire-ruby @ 04f679219c888b55d55b2cb96322184b3b02e3c7",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -1742,6 +1742,9 @@
           "method_name",
           "status_code",
           "url"
+        ],
+        "SignalWireRestTransportError": [
+          "__init__"
         ]
       },
       "functions": []
