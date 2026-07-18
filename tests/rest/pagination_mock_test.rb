@@ -82,11 +82,15 @@ class PaginationMockTest < Minitest::Test
     summary = gets.map { |e| [e.method, e.path, e.query_params] }
 
     assert_equal 2, gets.length, "expected 2 paginated GETs, got #{gets.length}: #{summary}"
-    # The second fetch carries the cursor=page2 param parsed from the
-    # first response's links.next.
+    # The second fetch carries the page_token param parsed from the first
+    # response's links.next - the real wire token the server round-trips
+    # (a cursor token starting with PA/PB), not a fictional cursor param
+    # (no SignalWire REST endpoint accepts cursor - see
+    # rest-apis/fabric/openapi.yaml ListFabricAddressesQuery).
     second_params = gets[1].query_params
 
-    assert_equal ['page2'], second_params['cursor'], "second fetch missing cursor=page2: #{second_params}"
+    assert_equal ['PA_page2'], second_params['page_token'],
+                 "second fetch missing page_token=PA_page2: #{second_params}"
   end
 
   # Stage one page on the addresses endpoint with the given data + links.
@@ -106,7 +110,7 @@ class PaginationMockTest < Minitest::Test
   # Page 1 has a next cursor; page 2 is terminal (no links.next).
   def stage_two_page_scenario
     page1 = [{ 'id' => 'addr-1', 'name' => 'first' }, { 'id' => 'addr-2', 'name' => 'second' }]
-    push_page(page1, { 'next' => 'http://example.com/api/fabric/addresses?cursor=page2' })
+    push_page(page1, { 'next' => 'http://example.com/api/fabric/addresses?page_token=PA_page2' })
     push_page([{ 'id' => 'addr-3', 'name' => 'third' }], {})
   end
 
