@@ -42,3 +42,4 @@ pipeline (which this port cannot edit).
 ## Standard developer-config templates
 
 - .env.example — dotenv template documenting every env var the SDK reads (issue #36); a copy-to-`.env` file that must live at the repo root by the dotenv convention to serve its purpose, alongside the built-in .gitignore/.editorconfig config files (fix-ruby, 2026-07-14)
+- WIRE_VIOLATIONS_ALLOW.md — STRICT-MOCKS signed-exception ledger read by porting-sdk assert_no_wire_violations.py / examples_run.py / snippet_run.py at repo root (mike@signalwire.com, 2026-07-18)
