@@ -204,6 +204,7 @@ HAND_PARAM_RENAMES: dict[tuple, dict[str, str]] = {
     ("signalwire.relay.call", "Call", "play"): {"loop_count": "loop"},
     ("signalwire.rest._base", "HttpClient", "__init__"): {"project_id": "project", "space": "host"},
     ("signalwire.rest._base", "SignalWireRestError", "__init__"): {"method_name": "method"},
+    ("signalwire.rest._base", "SignalWireRestTransportError", "__init__"): {"method_name": "method"},
     ("signalwire.skills.registry", "SkillRegistry", "register_skill"): {"skill_class_or_name": "skill_class"},
     # SkillManager get/unload take a Ruby ``key`` positional == the reference's
     # ``skill_identifier`` (method names reconciled via SIG_METHOD_ALIASES above).
@@ -528,6 +529,7 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
     # Ruby gives HttpClient its own file but that's a layout-only difference.
     "SignalWire::REST::HttpClient": "signalwire.rest._base",
     "SignalWire::REST::SignalWireRestError": "signalwire.rest._base",
+    "SignalWire::REST::SignalWireRestTransportError": "signalwire.rest._base",
     "SignalWire::REST::BaseResource": "signalwire.rest._base",
     "SignalWire::REST::ReadResource": "signalwire.rest._base",
     "SignalWire::REST::CrudResource": "signalwire.rest._base",

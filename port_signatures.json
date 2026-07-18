@@ -25945,7 +25945,7 @@
                 },
                 {
                   "name": "status_code",
-                  "type": "int",
+                  "type": "optional<int>",
                   "required": true
                 },
                 {
@@ -26002,6 +26002,35 @@
                 }
               ],
               "returns": "any"
+            }
+          }
+        },
+        "SignalWireRestTransportError": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "body",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "url",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "method",
+                  "type": "string",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "void"
             }
           }
         }
