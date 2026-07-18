@@ -60,8 +60,8 @@ call = client.calling.dial(from: '+15559876543', to: '+15551234567', url: 'https
 call_id = call['id']
 
 client.calling.play(call_id, play: [{ 'type' => 'tts', 'params' => { 'text' => 'Hello!' } }])
-client.calling.record(call_id, audio: { 'format' => 'mp3', 'beep' => true })
-client.calling.end(call_id, reason: 'hangup')
+client.calling.record(call_id, beep: true, format: 'mp3')
+client.calling.end_call(call_id, reason: 'hangup')
 ```
 
 ### Phone Numbers

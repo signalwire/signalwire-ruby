@@ -63,7 +63,7 @@ class RegistryMockTest < Minitest::Test
 
   def test_brands_create_campaign_posts_to_brand_subpath
     body = @client.registry.brands.create_campaign(
-      'brand-2', usecase: 'LOW_VOLUME', description: 'MFA'
+      'brand-2', sms_use_case: 'LOW_VOLUME', description: 'MFA'
     )
 
     assert_kind_of Hash, body
@@ -73,7 +73,7 @@ class RegistryMockTest < Minitest::Test
     assert_equal 'POST', last.method
     assert_equal "#{REG_BASE}/brands/brand-2/campaigns", last.path
     assert_kind_of Hash, last.body
-    assert_request_body(last, 'usecase' => 'LOW_VOLUME', 'description' => 'MFA')
+    assert_request_body(last, 'sms_use_case' => 'LOW_VOLUME', 'description' => 'MFA')
   end
 
   # Assert each expected key/value pair is present in the journaled request body.
@@ -97,7 +97,7 @@ class RegistryMockTest < Minitest::Test
   def test_campaigns_update_uses_put
     # RegistryCampaigns.update calls @http.put(...) — distinct from the
     # generic CrudResource which uses PATCH.
-    body = @client.registry.campaigns.update('camp-2', description: 'Updated')
+    body = @client.registry.campaigns.update('camp-2', name: 'Updated')
 
     assert_kind_of Hash, body
 
@@ -106,7 +106,7 @@ class RegistryMockTest < Minitest::Test
     assert_equal 'PUT', last.method
     assert_equal "#{REG_BASE}/campaigns/camp-2", last.path
     assert_kind_of Hash, last.body
-    assert_equal 'Updated', last.body['description']
+    assert_equal 'Updated', last.body['name']
   end
 
   def test_campaigns_list_numbers_uses_numbers_subpath
@@ -123,7 +123,7 @@ class RegistryMockTest < Minitest::Test
 
   def test_campaigns_create_order_posts_to_orders_subpath
     body = @client.registry.campaigns.create_order(
-      'camp-4', numbers: %w[pn-1 pn-2]
+      'camp-4', phone_numbers: %w[+15551234567 +15557654321]
     )
 
     assert_kind_of Hash, body
@@ -133,7 +133,7 @@ class RegistryMockTest < Minitest::Test
     assert_equal 'POST', last.method
     assert_equal "#{REG_BASE}/campaigns/camp-4/orders", last.path
     assert_kind_of Hash, last.body
-    assert_equal %w[pn-1 pn-2], last.body['numbers']
+    assert_equal %w[+15551234567 +15557654321], last.body['phone_numbers']
   end
 
   # ---- Orders ---------------------------------------------------------
