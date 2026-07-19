@@ -43,7 +43,7 @@ end
 # 3. Search for phone numbers
 puts "\nSearching phone numbers..."
 begin
-  available = client.phone_numbers.search(area_code: '512', max_results: 3)
+  available = client.phone_numbers.search(areacode: '512', max_results: 3)
   (available['data'] || []).each do |num|
     puts "  - #{num.fetch('e164', num.fetch('number', 'unknown'))}"
   end

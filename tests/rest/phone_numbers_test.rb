@@ -65,11 +65,11 @@ class RestPhoneNumbersBindingTest < Minitest::Test
   end
 
   def test_search_builds_query_path
-    @phone_numbers.search(area_code: '512')
+    @phone_numbers.search(areacode: '512')
 
     assert_equal 'GET', @http.last[:method]
     assert_equal "#{BASE}/search", @http.last[:path]
-    assert_equal({ area_code: '512' }, @http.last[:params])
+    assert_equal({ areacode: '512' }, @http.last[:params])
   end
 
   # --- PhoneCallHandler enum contract ----------------------------------
