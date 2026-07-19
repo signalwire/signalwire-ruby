@@ -6,6 +6,7 @@
 # See LICENSE file in the project root for full license information.
 
 require 'json'
+require_relative '../error'
 
 module SignalWire
   module Utils
@@ -13,7 +14,7 @@ module SignalWire
     # signalwire.utils.schema_utils.SchemaValidationError.
     #
     # Raised when SWML schema validation of a verb config fails.
-    class SchemaValidationError < StandardError
+    class SchemaValidationError < SignalWire::Error
       attr_reader :verb_name, :errors
 
       # Construct a SchemaValidationError. Mirrors Python's

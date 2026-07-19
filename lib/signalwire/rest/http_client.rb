@@ -7,6 +7,7 @@ require 'base64'
 require 'openssl'
 require_relative 'request_options'
 require_relative '../version'
+require_relative '../error'
 
 module SignalWire
   module REST
@@ -17,7 +18,7 @@ module SignalWire
     # reset, TLS error) it is +nil+ and the raised type is the subclass
     # {SignalWireRestTransportError}. Callers catch this one family for every
     # REST failure, HTTP or transport.
-    class SignalWireRestError < StandardError
+    class SignalWireRestError < SignalWire::Error
       attr_reader :status_code, :body, :url, :method_name
 
       def initialize(status_code, body, url, method_name = 'GET')

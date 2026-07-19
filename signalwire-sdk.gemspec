@@ -40,4 +40,13 @@ Gem::Specification.new do |s|
   # RuboCop's Gemspec/DevelopmentDependencies: keeping them out of the gemspec
   # avoids imposing the test/lint toolchain on consumers who install the gem.
   s.metadata['rubygems_mfa_required'] = 'true'
+
+  # Metadata URIs surfaced on the RubyGems gem page (source / changelog / docs /
+  # bug tracker) — the standard discoverability links an A-grade gem ships so
+  # `gem info` and rubygems.org link straight to the right places. homepage_uri
+  # is already carried by s.homepage; duplicating it here just shadows itself.
+  s.metadata['source_code_uri']   = 'https://github.com/signalwire/signalwire-ruby'
+  s.metadata['changelog_uri']     = 'https://github.com/signalwire/signalwire-ruby/blob/main/CHANGELOG.md'
+  s.metadata['documentation_uri'] = 'https://github.com/signalwire/signalwire-ruby/tree/main/docs'
+  s.metadata['bug_tracker_uri']   = 'https://github.com/signalwire/signalwire-ruby/issues'
 end

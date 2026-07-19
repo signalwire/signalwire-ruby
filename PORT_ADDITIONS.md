@@ -109,6 +109,7 @@ signalwire.agent_server.AgentServer.port: port-only: Ruby attr_reader exposing c
 signalwire.agent_server.AgentServer.rack_app: port-only: Ruby attr_reader exposing constructor state (idiomatic Ruby; Python uses property decorators or public fields)
 signalwire.contexts.Contexts: port-only: SignalWire::Contexts module with create_simple_context helper
 signalwire.contexts.Contexts.create_simple_context: port-only: Ruby counterpart of Python signalwire.core.contexts.create_simple_context (omitted)
+signalwire.error.Error: port-only: SignalWire::Error root of the SDK exception hierarchy (Stripe `StripeError` idiom); a common ancestor under StandardError that the 5 error families reparent onto. Python subclasses Exception directly with no shared root, so this is a Ruby-idiom addition, non-breaking (rescue StandardError still catches).
 signalwire.core.agent_base.AgentBase.add_function_include: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
 signalwire.core.agent_base.AgentBase.agent_id: port-only: Ruby attr_reader for the auto-generated/explicit agent UUID (Python keeps it as `self.agent_id` instance attribute)
 signalwire.core.agent_base.AgentBase.default_webhook_url: port-only: Ruby attr_reader for the constructor `default_webhook_url:` arg (Python: `self._default_webhook_url`)

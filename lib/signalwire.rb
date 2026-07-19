@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'signalwire/version'
+require_relative 'signalwire/error'
 require_relative 'signalwire/logging'
 require_relative 'signalwire/core/logging_config'
 require_relative 'signalwire/core/config_loader'

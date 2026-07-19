@@ -1,11 +1,12 @@
 # frozen_string_literal: true
 
 require 'securerandom'
+require_relative '../error'
 
 module SignalWire
   module Relay
     # Raised when an action times out waiting for completion.
-    class ActionTimeoutError < StandardError; end
+    class ActionTimeoutError < SignalWire::Error; end
 
     # Base class for async action handles (play, record, detect, etc.).
     #

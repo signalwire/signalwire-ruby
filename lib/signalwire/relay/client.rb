@@ -11,11 +11,12 @@ require_relative 'collect_config'
 require_relative 'action'
 require_relative 'call'
 require_relative 'message'
+require_relative '../error'
 
 module SignalWire
   module Relay
     # Raised for RELAY JSON-RPC errors.
-    class RelayError < StandardError
+    class RelayError < SignalWire::Error
       attr_reader :code, :error_message
 
       def initialize(code, message)

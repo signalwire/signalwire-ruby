@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 6867ae23c2aaedc78591c64b952d119276419a9f",
+  "generated_from": "signalwire-ruby @ b86b1c8869495a4ce51e7869d7b50ef9d0d5d277",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -963,6 +963,12 @@
         "UserInputAction": [],
         "UserSWAIGFunction": [],
         "Webhook": []
+      },
+      "functions": []
+    },
+    "signalwire.error": {
+      "classes": {
+        "Error": []
       },
       "functions": []
     },
