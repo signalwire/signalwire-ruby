@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'http_client'
+require_relative 'request_options'
 require_relative 'pagination'
 require_relative 'phone_call_handler'
 require_relative 'namespaces/generated'
@@ -19,6 +20,13 @@ module SignalWire
     #   # Or use environment variables:
     #   #   SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN, SIGNALWIRE_SPACE
     #   client = SignalWire::REST::RestClient.new
+    #
+    #   # Opt into retries/timeout for every request (per-request override also
+    #   # supported on each verb via request_options:):
+    #   client = SignalWire::REST::RestClient.new(
+    #     project: '...', token: '...', host: '...',
+    #     request_options: SignalWire::REST::RequestOptions.new(retries: 2, timeout: 10)
+    #   )
     #
     #   # Use namespaced resources
     #   client.fabric.ai_agents.list
@@ -40,14 +48,21 @@ module SignalWire
       # +ca_file+ (optional) names a PEM CA bundle to trust for HTTPS in
       # addition to the system store — for private-CA deployments; forwarded
       # to the underlying HttpClient.
-      def initialize(project: nil, token: nil, host: nil, base_url: nil, ca_file: nil)
+      # +request_options+ (optional) is the client-default {RequestOptions}
+      # envelope (timeout / retries / backoff / abort_signal) applied to every
+      # request; forwarded to the underlying HttpClient and shallow-overridden
+      # by any per-request +request_options:+.
+      def initialize(project: nil, token: nil, host: nil, base_url: nil, ca_file: nil,
+                     request_options: nil)
         project_id = project || ENV['SIGNALWIRE_PROJECT_ID'] || ''
         api_token  = token || ENV['SIGNALWIRE_API_TOKEN'] || ''
         space      = host || ENV['SIGNALWIRE_SPACE'] || ''
         validate_credentials!(project_id, api_token, space, base_url)
 
         @project_id = project_id
-        @http = HttpClient.new(project_id, api_token, space, base_url: base_url, ca_file: ca_file)
+        @http = HttpClient.new(project_id, api_token, space,
+                               base_url: base_url, ca_file: ca_file,
+                               request_options: request_options)
         materialize_namespaces!
       end
 

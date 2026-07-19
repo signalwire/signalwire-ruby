@@ -301,6 +301,12 @@ SIG_FREE_FUNCTION_PROJECTIONS: dict[tuple, tuple] = {
     # project_reference_param_types (runs after this).
     ("signalwire.core.security.webhook_middleware", "WebhookMiddleware"): (
         "signalwire.core.security.webhook_middleware", ["validate"]),
+    # RequestOptions envelope: the reference exposes resolve + status_is_retryable
+    # as MODULE-level functions; Ruby ships them as `def self.` methods on
+    # RequestOptions. Project both to the module functions[] (mirrors
+    # FREE_FUNCTION_PROJECTIONS in enumerate_surface.rb).
+    ("signalwire.rest._request_options", "RequestOptions"): (
+        "signalwire.rest._request_options", ["resolve", "status_is_retryable"]),
 }
 
 
@@ -360,6 +366,47 @@ def apply_hand_param_renames(out_modules: dict) -> None:
                 apply((mod, cls, meth), sig)
         for fn, sig in me.get("functions", {}).items():
             apply((mod, None, fn), sig)
+
+
+# RequestOptions-envelope param-KIND reconciliation (Rule 2 — reconcile pure
+# idiom in the enumerator, not via an omission). The reference exposes the
+# request-options envelope through positional-or-keyword params (a Python
+# dataclass / ``request_options=None`` argument, recorded with no explicit kind
+# => canonical "positional"). Ruby's idiom for a same-typed optional argument is
+# a keyword arg (``request_options:`` on the verbs; the 5 named optional fields
+# on ``RequestOptions.new``) — Method#parameters reports these as ``:key`` =>
+# canonical "keyword". Functionally identical (the caller supplies the same
+# argument in the same slot); the kind label is the only difference. Normalize
+# the named params on exactly these compared methods from "keyword" to
+# positional so the two compare EQUAL. Narrowly scoped by (module, class,
+# method) -> {param names}; an unrelated keyword param is never touched.
+REQUEST_OPTIONS_KEYWORD_AS_POSITIONAL = {
+    ("signalwire.rest._base", "HttpClient", "__init__"): {"request_options"},
+    ("signalwire.rest._base", "HttpClient", "get"): {"request_options"},
+    ("signalwire.rest._base", "HttpClient", "post"): {"request_options"},
+    ("signalwire.rest._base", "HttpClient", "put"): {"request_options"},
+    ("signalwire.rest._base", "HttpClient", "patch"): {"request_options"},
+    ("signalwire.rest._base", "HttpClient", "delete"): {"request_options"},
+    ("signalwire.rest.client", "RestClient", "__init__"): {"request_options"},
+    ("signalwire.rest._request_options", "RequestOptions", "__init__"): {
+        "timeout", "retries", "retry_on_status", "retry_backoff", "abort_signal",
+    },
+}
+
+
+def normalize_request_options_param_kind(out_modules: dict) -> None:
+    """Relabel the request-options envelope's keyword params as positional so the
+    Ruby keyword idiom compares EQUAL to the reference's positional-or-keyword
+    params (see REQUEST_OPTIONS_KEYWORD_AS_POSITIONAL). In place."""
+    for (mod, cls, meth), names in REQUEST_OPTIONS_KEYWORD_AS_POSITIONAL.items():
+        sig = out_modules.get(mod, {}).get("classes", {}).get(cls, {}).get("methods", {}).get(meth)
+        if not sig:
+            continue
+        for prm in sig.get("params", []):
+            if prm.get("name") in names and prm.get("kind") == "keyword":
+                # positional is the implicit default: drop the explicit kind key
+                # (mirrors build_signature, which omits kind for positional).
+                del prm["kind"]
 
 
 def project_reference_param_types(out_modules: dict) -> None:
@@ -521,6 +568,11 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
     "SignalWire::Relay::AIEvent": "signalwire.relay.event",
     "SignalWire::Relay::RelayEvent": "signalwire.relay.event",
     "SignalWire::Relay::Message": "signalwire.relay.message",
+    # RequestOptions envelope (plan 4.2): route the value type to the
+    # reference module signalwire.rest._request_options. Its helper classes
+    # (EffectiveOptions/AbortSignal) mirror that module's PRIVATE
+    # _EffectiveOptions/_AbortSignal and are excluded (EXCLUDED_RUBY_CLASSES).
+    "SignalWire::REST::RequestOptions": "signalwire.rest._request_options",
     # REST resource & namespace classes — Python groups them by domain.
     # Ruby's ``SignalWire::REST::RestClient`` -> Python's
     # ``signalwire.rest.client.RestClient``.
@@ -738,6 +790,13 @@ EXCLUDED_RUBY_CLASSES = {
     "SignalWire::POM::SectionBuilder",
     "SignalWire::Skills::SkillIntrospection",
     "SignalWire::Relay::MessageSerialization",
+    # RequestOptions helpers mirroring the reference's PRIVATE
+    # signalwire.rest._request_options._EffectiveOptions / _AbortSignal.
+    "SignalWire::REST::EffectiveOptions",
+    "SignalWire::REST::AbortSignal",
+    # Internal REST retry-loop outcome value object (DONE/RETRY); no Python
+    # counterpart (the reference inlines the loop in HttpClient._request).
+    "SignalWire::REST::Attempt",
 }
 
 
@@ -994,6 +1053,7 @@ def collect(raw: dict) -> dict:
     apply_sig_free_function_projections(out_modules)
     apply_hand_param_renames(out_modules)
     project_reference_param_types(out_modules)
+    normalize_request_options_param_kind(out_modules)
 
     sorted_modules = {}
     for k in sorted(out_modules):

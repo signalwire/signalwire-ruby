@@ -5,6 +5,7 @@ require 'json'
 require 'uri'
 require 'base64'
 require 'openssl'
+require_relative 'request_options'
 
 module SignalWire
   module REST
@@ -46,6 +47,31 @@ module SignalWire
       end
     end
 
+    # Outcome of one attempt in the REST retry loop: either DONE (carrying the
+    # decoded success body) or RETRY (the loop should try again — backoff has
+    # already been slept). A terminal typed error is raised directly, never
+    # wrapped in an Attempt.
+    class Attempt
+      attr_reader :value
+
+      def self.done(value)
+        new(true, value)
+      end
+
+      def self.retry
+        new(false, nil)
+      end
+
+      def initialize(done, value)
+        @done  = done
+        @value = value
+      end
+
+      def done?
+        @done
+      end
+    end
+
     # Thin wrapper around Net::HTTP with Basic Auth and JSON handling.
     class HttpClient
       attr_reader :base_url, :project_id
@@ -78,62 +104,167 @@ module SignalWire
       # honor SSL_CERT_FILE) plus that bundle. When unset, Net::HTTP's default
       # verification (system store, VERIFY_PEER) applies unchanged. HTTPS is
       # always verified either way — there is no VERIFY_NONE path.
-      def initialize(project_id, token, space, base_url: nil, ca_file: nil)
-        if base_url && !base_url.empty?
-          @base_url = base_url.sub(%r{/$}, '')
-        else
-          host       = space.include?('.') ? space : "#{space}.signalwire.com"
-          @base_url  = "https://#{host}"
-        end
-        @project_id  = project_id
-        @token       = token
-        @ca_file     = (ca_file if ca_file && !ca_file.empty?)
-        @auth_header = "Basic #{Base64.strict_encode64("#{project_id}:#{token}")}"
+      #
+      # +request_options+ (optional) is the client-default {RequestOptions}
+      # envelope (timeout / retries / backoff / abort_signal) applied to every
+      # request, shallow-overridden by any per-request +request_options:+.
+      def initialize(project_id, token, space, request_options: nil, base_url: nil, ca_file: nil)
+        @base_url        = derive_base_url(space, base_url)
+        @project_id      = project_id
+        @token           = token
+        @ca_file         = (ca_file if ca_file && !ca_file.empty?)
+        @auth_header     = "Basic #{Base64.strict_encode64("#{project_id}:#{token}")}"
+        @request_options = request_options
       end
 
-      def get(path, params = nil)
-        request('GET', path, params: params)
+      def get(path, params = nil, request_options: nil)
+        request('GET', path, params: params, request_options: request_options)
       end
 
-      def post(path, body = nil, params: nil)
-        request('POST', path, body: body, params: params)
+      def post(path, body = nil, params: nil, request_options: nil)
+        request('POST', path, body: body, params: params, request_options: request_options)
       end
 
-      def put(path, body = nil)
-        request('PUT', path, body: body)
+      def put(path, body = nil, request_options: nil)
+        request('PUT', path, body: body, request_options: request_options)
       end
 
-      def patch(path, body = nil)
-        request('PATCH', path, body: body)
+      def patch(path, body = nil, request_options: nil)
+        request('PATCH', path, body: body, request_options: request_options)
       end
 
-      def delete(path)
-        request('DELETE', path)
+      def delete(path, request_options: nil)
+        request('DELETE', path, request_options: request_options)
       end
 
       private
 
-      def request(method, path, body: nil, params: nil)
-        uri = build_uri(path, params)
+      # An explicit +base_url+ wins (trailing slash stripped); otherwise derive
+      # +https://{host}+ from +space+ ("acme" -> acme.signalwire.com; a value
+      # already containing a dot is treated as a full host).
+      def derive_base_url(space, base_url)
+        return base_url.sub(%r{/$}, '') if base_url && !base_url.empty?
+
+        host = space.include?('.') ? space : "#{space}.signalwire.com"
+        "https://#{host}"
+      end
+
+      def request(method, path, body: nil, params: nil, request_options: nil)
+        uri  = build_uri(path, params)
+        opts = RequestOptions.resolve(@request_options, request_options)
+
+        # total attempts = retries + 1; retry on a retryable status (idempotency-
+        # aware) or a transport error, honoring Retry-After then exponential
+        # backoff. abort_signal is checked cooperatively before every attempt.
+        attempt = 0
+        loop do
+          attempt += 1
+          check_abort!(opts, path, method)
+          result = attempt_request(method, path, uri, body, opts, attempt)
+          return result.value if result.done?
+          # else: a retry was scheduled (backoff already slept) — loop again.
+        end
+      end
+
+      # One attempt of the retry loop. Returns an {Attempt}: +done?+ true carries
+      # the final +value+ (success body) or has already raised the terminal typed
+      # error; +done?+ false means "retry scheduled, loop again". Keeps +request+
+      # a thin driver so the retry policy reads linearly.
+      def attempt_request(method, path, uri, body, opts, attempt)
+        response = perform(method, uri, body, opts.timeout)
+        handle_http_response(response, path, method, opts, attempt)
+      rescue *TRANSPORT_ERRORS => e
+        # Transport failure (connection refused / DNS / reset / TLS / timeout):
+        # the request never produced a response. Retry if attempts remain, else
+        # wrap in the typed error family.
+        return Attempt.retry if retry_transport?(opts, attempt)
+
+        raise SignalWireRestTransportError.new(e.message, path, method)
+      end
+
+      # abort_signal is checked cooperatively BEFORE each attempt: a set signal
+      # surfaces as the transport-error family (no response was produced), not a
+      # bare exception.
+      def check_abort!(opts, path, method)
+        return unless opts.abort_signal&.set?
+
+        raise SignalWireRestTransportError.new('request cancelled by abort_signal', path, method)
+      end
+
+      def retry_transport?(opts, attempt)
+        return false unless attempt <= opts.retries
+
+        sleep_backoff(opts.retry_backoff * (2**(attempt - 1)))
+        true
+      end
+
+      # Reduce a completed HTTP response to an {Attempt}: schedule a retry for a
+      # retryable non-2xx (idempotency-aware) with attempts remaining, raise the
+      # terminal typed error for a non-retryable/exhausted non-2xx, else return
+      # the decoded success body.
+      def handle_http_response(response, path, method, opts, attempt)
+        return handle_error_response(response, path, method, opts, attempt) unless response.is_a?(Net::HTTPSuccess)
+
+        return Attempt.done({}) if response.code.to_i == 204 || response.body.nil? || response.body.empty?
+
+        Attempt.done(JSON.parse(response.body))
+      end
+
+      # A non-2xx response: retry if it's a retryable status with attempts left
+      # (idempotency-aware), else raise the terminal typed error.
+      def handle_error_response(response, path, method, opts, attempt)
+        status = response.code.to_i
+        if attempt <= opts.retries && opts.status_retryable?(method, status)
+          delay = retry_after_seconds(response) || (opts.retry_backoff * (2**(attempt - 1)))
+          sleep_backoff(delay)
+          return Attempt.retry
+        end
+        raise SignalWireRestError.new(status, parse_error_body(response), path, method)
+      end
+
+      # Issue one HTTP attempt. Net::HTTP's +read_timeout+/+open_timeout+ bound
+      # the per-attempt wall clock; on exceed it raises Net::ReadTimeout/
+      # Net::OpenTimeout (in TRANSPORT_ERRORS), which the request loop wraps.
+      def perform(method, uri, body, timeout)
         req = build_request(method, uri)
         apply_headers(req)
         req.body = JSON.generate(body) if body && %w[POST PUT PATCH].include?(method)
-
-        http = Net::HTTP.new(uri.host, uri.port)
-        configure_ssl(http) if uri.scheme == 'https'
-
-        handle_response(send_request(http, req, path, method), path, method)
+        build_http(uri, timeout).request(req)
       end
 
-      # Issue the request, wrapping any transport-level failure (the request
-      # never produced a response: connection refused / DNS / reset / TLS /
-      # timeout) in the typed {SignalWireRestTransportError} so a caller catching
-      # SignalWireRestError handles it too, instead of a bare
-      # Errno::ECONNREFUSED / SocketError leaking out.
-      def send_request(http, req, path, method)
-        http.request(req)
-      rescue *TRANSPORT_ERRORS => e
-        raise SignalWireRestTransportError.new(e.message, path, method)
+      # Build the Net::HTTP transport for one attempt: TLS when https, the
+      # per-attempt timeout, and max_retries=0 (Net::HTTP silently retries an
+      # idempotent request once by default on a timeout/reset — that would both
+      # double-count attempts against our own retry loop and swallow a timeout by
+      # succeeding on the hidden retry; this client's request loop is the sole
+      # retry authority).
+      def build_http(uri, timeout)
+        http = Net::HTTP.new(uri.host, uri.port)
+        configure_ssl(http) if uri.scheme == 'https'
+        if timeout
+          http.open_timeout = timeout
+          http.read_timeout = timeout
+        end
+        http.max_retries = 0
+        http
+      end
+
+      # Backoff sleep between retries. A tiny seam kept separate so the intent is
+      # explicit; a zero/negative delay (the tests pass retry_backoff 0) is a
+      # no-op so the suite never waits on wall-clock.
+      def sleep_backoff(seconds)
+        sleep(seconds) if seconds&.positive?
+      end
+
+      # Parse a +Retry-After+ header (delta-seconds form) if present; nil for an
+      # HTTP-date form or when absent (the caller falls back to computed backoff).
+      def retry_after_seconds(response)
+        value = response['Retry-After']
+        return nil if value.nil?
+
+        Float(value)
+      rescue ArgumentError, TypeError
+        nil
       end
 
       def build_uri(path, params)
@@ -173,16 +304,6 @@ module SignalWire
         store.set_default_paths
         store.add_file(@ca_file) if File.file?(@ca_file)
         http.cert_store = store
-      end
-
-      def handle_response(response, path, method)
-        unless response.is_a?(Net::HTTPSuccess)
-          raise SignalWireRestError.new(response.code.to_i, parse_error_body(response), path, method)
-        end
-
-        return {} if response.code.to_i == 204 || response.body.nil? || response.body.empty?
-
-        JSON.parse(response.body)
       end
 
       def parse_error_body(response)

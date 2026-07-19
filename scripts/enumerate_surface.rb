@@ -256,7 +256,15 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
   'SignalWire::Relay::StreamAction' => 'signalwire.relay.call',
   'SignalWire::Relay::TapAction' => 'signalwire.relay.call',
   'SignalWire::Relay::TranscribeAction' => 'signalwire.relay.call',
-  'SignalWire::Relay::Message' => 'signalwire.relay.message'
+  'SignalWire::Relay::Message' => 'signalwire.relay.message',
+  # RequestOptions envelope (plan 4.2): the reference collapses the value
+  # type + its two private helpers into one module signalwire.rest._request_options.
+  # Ruby splits them into sibling classes; route all three to that module.
+  # EffectiveOptions/AbortSignal mirror the reference's PRIVATE _EffectiveOptions/
+  # _AbortSignal (see RUBY_TO_PYTHON_CLASS_ALIASES + RUBY_EXCLUDED_CLASSES).
+  'SignalWire::REST::RequestOptions' => 'signalwire.rest._request_options',
+  'SignalWire::REST::EffectiveOptions' => 'signalwire.rest._request_options',
+  'SignalWire::REST::AbortSignal' => 'signalwire.rest._request_options'
 }.freeze
 
 # Ruby module -> Python module mapping for module-level functions.
@@ -289,7 +297,11 @@ RUBY_TO_PYTHON_CLASS_ALIASES = {
   # Ruby Relay::Client maps to Python RelayClient.
   'SignalWire::Relay::Client' => 'RelayClient',
   # Ruby SWML::Service maps to Python SWMLService (in signalwire.core.swml_service).
-  'SignalWire::SWML::Service' => 'SWMLService'
+  'SignalWire::SWML::Service' => 'SWMLService',
+  # The RequestOptions helpers mirror the reference's PRIVATE classes
+  # (signalwire.rest._request_options._EffectiveOptions / _AbortSignal).
+  'SignalWire::REST::EffectiveOptions' => '_EffectiveOptions',
+  'SignalWire::REST::AbortSignal' => '_AbortSignal'
 }.freeze
 
 # Ruby SWML classes (Document/Schema/Service) are consolidated wrappers that
@@ -334,6 +346,9 @@ RUBY_EXCLUDED_CLASSES = %w[
   SignalWire::REST::Namespaces::Generated::ResourceTree
   SignalWire::Core::AuthHandler::BasicCredentials
   SignalWire::Core::AuthHandler::BearerCredentials
+  SignalWire::REST::EffectiveOptions
+  SignalWire::REST::AbortSignal
+  SignalWire::REST::Attempt
 ].freeze
 
 # Mixin projections: Ruby collapses Python's mixin classes into
@@ -476,7 +491,13 @@ FREE_FUNCTION_PROJECTIONS = {
   # the class's method list onto the module's functions[] so the two compare
   # EQUAL (mirrors SIG_FREE_FUNCTION_PROJECTIONS in enumerate_signatures.py).
   'SignalWire::Security::WebhookMiddleware' =>
-    ['signalwire.core.security.webhook_middleware', %w[validate]]
+    ['signalwire.core.security.webhook_middleware', %w[validate]],
+  # RequestOptions envelope: the reference exposes resolve + status_is_retryable
+  # as MODULE-level functions of signalwire.rest._request_options; Ruby ships
+  # them as `def self.` factory/predicate methods on RequestOptions. Project
+  # both onto the module's functions[] so the surface compares EQUAL.
+  'SignalWire::REST::RequestOptions' =>
+    ['signalwire.rest._request_options', %w[resolve status_is_retryable]]
 }.freeze
 
 # -----------------------------------------------------------------------------
