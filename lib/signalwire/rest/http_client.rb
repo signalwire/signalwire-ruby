@@ -166,11 +166,16 @@ module SignalWire
         # total attempts = retries + 1; retry on a retryable status (idempotency-
         # aware) or a transport error, honoring Retry-After then exponential
         # backoff. abort_signal is checked cooperatively before every attempt.
+        # D1: the error's +url+ is the FULL request URL (scheme+host+path+query),
+        # the exact string that went on the wire — not the bare path. +uri+ is
+        # already the composed absolute URL, so thread +uri.to_s+ to every error
+        # site.
+        url = uri.to_s
         attempt = 0
         loop do
           attempt += 1
-          check_abort!(opts, path, method)
-          result = attempt_request(method, path, uri, body, opts, attempt)
+          check_abort!(opts, url, method)
+          result = attempt_request(method, url, uri, body, opts, attempt)
           return result.value if result.done?
           # else: a retry was scheduled (backoff already slept) — loop again.
         end
@@ -179,26 +184,27 @@ module SignalWire
       # One attempt of the retry loop. Returns an {Attempt}: +done?+ true carries
       # the final +value+ (success body) or has already raised the terminal typed
       # error; +done?+ false means "retry scheduled, loop again". Keeps +request+
-      # a thin driver so the retry policy reads linearly.
-      def attempt_request(method, path, uri, body, opts, attempt)
+      # a thin driver so the retry policy reads linearly. +url+ is the full
+      # request URL stored in any raised error (D1).
+      def attempt_request(method, url, uri, body, opts, attempt)
         response = perform(method, uri, body, opts.timeout)
-        handle_http_response(response, path, method, opts, attempt)
+        handle_http_response(response, url, method, opts, attempt)
       rescue *TRANSPORT_ERRORS => e
         # Transport failure (connection refused / DNS / reset / TLS / timeout):
         # the request never produced a response. Retry if attempts remain, else
         # wrap in the typed error family.
         return Attempt.retry if retry_transport?(opts, attempt)
 
-        raise SignalWireRestTransportError.new(e.message, path, method)
+        raise SignalWireRestTransportError.new(e.message, url, method)
       end
 
       # abort_signal is checked cooperatively BEFORE each attempt: a set signal
       # surfaces as the transport-error family (no response was produced), not a
       # bare exception.
-      def check_abort!(opts, path, method)
+      def check_abort!(opts, url, method)
         return unless opts.abort_signal&.set?
 
-        raise SignalWireRestTransportError.new('request cancelled by abort_signal', path, method)
+        raise SignalWireRestTransportError.new('request cancelled by abort_signal', url, method)
       end
 
       def retry_transport?(opts, attempt)
@@ -212,8 +218,8 @@ module SignalWire
       # retryable non-2xx (idempotency-aware) with attempts remaining, raise the
       # terminal typed error for a non-retryable/exhausted non-2xx, else return
       # the decoded success body.
-      def handle_http_response(response, path, method, opts, attempt)
-        return handle_error_response(response, path, method, opts, attempt) unless response.is_a?(Net::HTTPSuccess)
+      def handle_http_response(response, url, method, opts, attempt)
+        return handle_error_response(response, url, method, opts, attempt) unless response.is_a?(Net::HTTPSuccess)
 
         return Attempt.done({}) if response.code.to_i == 204 || response.body.nil? || response.body.empty?
 
@@ -221,15 +227,16 @@ module SignalWire
       end
 
       # A non-2xx response: retry if it's a retryable status with attempts left
-      # (idempotency-aware), else raise the terminal typed error.
-      def handle_error_response(response, path, method, opts, attempt)
+      # (idempotency-aware), else raise the terminal typed error. +url+ is the
+      # full request URL stored in the error (D1).
+      def handle_error_response(response, url, method, opts, attempt)
         status = response.code.to_i
         if attempt <= opts.retries && opts.status_retryable?(method, status)
           delay = retry_after_seconds(response) || (opts.retry_backoff * (2**(attempt - 1)))
           sleep_backoff(delay)
           return Attempt.retry
         end
-        raise SignalWireRestError.new(status, parse_error_body(response), path, method)
+        raise SignalWireRestError.new(status, parse_error_body(response), url, method)
       end
 
       # Issue one HTTP attempt. Net::HTTP's +read_timeout+/+open_timeout+ bound
