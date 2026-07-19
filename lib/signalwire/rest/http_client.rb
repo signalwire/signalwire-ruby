@@ -6,6 +6,7 @@ require 'uri'
 require 'base64'
 require 'openssl'
 require_relative 'request_options'
+require_relative '../version'
 
 module SignalWire
   module REST
@@ -75,6 +76,14 @@ module SignalWire
     # Thin wrapper around Net::HTTP with Basic Auth and JSON handling.
     class HttpClient
       attr_reader :base_url, :project_id
+
+      # REST client User-Agent. The product token stays stable at
+      # `signalwire-ruby`; the version segment is the real SDK version so it can
+      # never drift from a hardcoded literal. Mirrors the Python reference fix
+      # (rest/_base.py `_user_agent`) — SDK_BUG_LEDGER P1: the old
+      # `signalwire-agents-ruby-rest/1.0` was both the wrong product token and a
+      # stale `/1.0` while the package was at 3.x.
+      USER_AGENT = "signalwire-ruby/#{SignalWire::VERSION}".freeze
 
       # Transport-level failures Net::HTTP raises when the request never reaches
       # a response: connection refused / DNS failure (SocketError) / connection
@@ -287,7 +296,7 @@ module SignalWire
         req['Authorization'] = @auth_header
         req['Content-Type']  = 'application/json'
         req['Accept']        = 'application/json'
-        req['User-Agent']    = 'signalwire-agents-ruby-rest/1.0'
+        req['User-Agent']    = USER_AGENT
       end
 
       def configure_ssl(http)

@@ -52,20 +52,19 @@ port surface; the diff tool will fail the build on unexcused drift.
 - **Python async-context-manager / dunder methods** on RelayClient and
   Message (`__aenter__`, `__aexit__`, `__del__`, `__repr__`): Ruby uses
   block-style constructors and `inspect`/`to_s` idioms.
-- **Ruby-keyword conflicts** (`Call.pass_`, `Call.tap`,
-  `CallingNamespace.end`, `Message.on`, `Action.is_done`,
-  `Message.is_done`, various `to_dict`/`validate` methods): Ruby provides
-  equivalents under different names (see matching PORT_ADDITIONS.md
-  entries).
-- **Renamed symbols on SessionManager, SkillManager, SkillRegistry,
-  RelayClient**: Ruby uses shortened idiomatic names (see PORT_ADDITIONS
-  entries for the Ruby counterparts).
-- **Per-skill `get_hints`/`get_parameter_schema`/`setup`/`cleanup` hooks**
-  (~20 symbols): not yet implemented on individual Ruby skills; Ruby
-  built-ins register tools inline via `register_tools`.
 
-Everything explicitly marked `not_yet_implemented:` is a deliberate
-deferral — track those for future work.
+> **Renames are NOT omissions — they live in the adapter, not here.**
+> Ruby-keyword collisions and idiomatic shortenings
+> (`pass_call`↔`pass_`, `tap_audio`↔`tap`, `on_event`↔`on`, `done?`↔`is_done`
+> on `Call`/`Message`; the shortened `SessionManager`/`SkillManager`/
+> `SkillRegistry`/`RelayClient` names) are reconciled by the enumerator's
+> `MEMBER_RENAMES` / rename tables in `scripts/enumerate_surface.rb`
+> (`:410-441`) so the canonical Python symbol stays PRESENT and keeps being
+> compared. They are therefore recorded in `PORT_ADDITIONS.md` (the Ruby
+> spelling) and mapped in the adapter — never listed as omitted symbols
+> below. Per `RULES.md`, an omission excuses a symbol from comparison (a
+> permanent blind spot); a rename re-establishes identity and keeps
+> comparing, so a future shape change still surfaces as drift.
 
 # Omitted symbols
 

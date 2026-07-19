@@ -103,6 +103,6 @@ end
 
 - Requests use `Net::HTTP` from the Ruby standard library.
 - Content-Type is always `application/json`.
-- User-Agent is `signalwire-agents-ruby-rest/1.0`.
+- User-Agent is `signalwire-ruby/<version>` (the stable product token plus the real SDK version).
 - DELETE requests returning 204 return an empty Hash.
 - Responses are plain Ruby Hashes (parsed JSON) -- there are no wrapper objects.
