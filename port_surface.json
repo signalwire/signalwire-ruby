@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 56379aca1d3586a55e0d976c1415bfed70ef1e83",
+  "generated_from": "signalwire-ruby @ bb99959440d1e77ba785815e6e30538533e32b88",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -1749,7 +1749,9 @@
         "SignalWireRestError": [
           "__init__",
           "body",
+          "headers",
           "method_name",
+          "request_id",
           "status_code",
           "url"
         ],

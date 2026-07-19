@@ -515,6 +515,8 @@ signalwire.relay.message.Message.terminal?: port-only: typed predicate over `Mes
 signalwire.rest._base.CrudResource.update_method: port-only: per-resource override hook for PATCH vs PUT (default update verb)
 signalwire.rest._base.HttpClient.base_url: port-only: attr_reader for base_url
 signalwire.rest._base.SignalWireRestError.body: port-only: attr_reader for error body
+signalwire.rest._base.SignalWireRestError.headers: port-only: attr_reader for the response headers (§6.6; Python holds it as a plain instance attribute)
+signalwire.rest._base.SignalWireRestError.request_id: port-only: attr_reader for the platform request id extracted from the response headers (§6.6; Python holds it as a plain instance attribute)
 signalwire.rest._base.SignalWireRestError.method_name: port-only: attr_reader for originating HTTP method
 signalwire.rest._base.SignalWireRestError.status_code: port-only: attr_reader for HTTP status
 signalwire.rest._base.SignalWireRestError.url: port-only: attr_reader for failed URL

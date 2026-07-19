@@ -26054,6 +26054,13 @@
                   "type": "string",
                   "required": false,
                   "default": null
+                },
+                {
+                  "name": "headers",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "void"
@@ -26067,7 +26074,25 @@
               ],
               "returns": "any"
             },
+            "headers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "method_name": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "request_id": {
               "params": [
                 {
                   "name": "self",

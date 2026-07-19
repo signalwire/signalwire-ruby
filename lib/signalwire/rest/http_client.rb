@@ -19,19 +19,47 @@ module SignalWire
     # {SignalWireRestTransportError}. Callers catch this one family for every
     # REST failure, HTTP or transport.
     class SignalWireRestError < SignalWire::Error
-      attr_reader :status_code, :body, :url, :method_name
+      attr_reader :status_code, :body, :url, :method_name, :headers, :request_id
 
-      def initialize(status_code, body, url, method_name = 'GET')
+      # §6.6 error-observability: +headers+ is the response header map (or +nil+
+      # for a transport error that produced no response) and +request_id+ is the
+      # platform request id pulled from those headers — client-side observability
+      # with NO wire-contract change. Appended to the message when present.
+      # Response-id header names, in preference order, matched case-insensitively.
+      REQUEST_ID_HEADERS = %w[
+        x-request-id x-signalwire-request-id request-id x-amzn-requestid
+      ].freeze
+
+      def initialize(status_code, body, url, method_name = 'GET', headers: nil)
         @status_code = status_code
         @body        = body
         @url         = url
         @method_name = method_name
-        message = if status_code.nil?
-                    "#{method_name} #{url} failed to reach the server: #{body}"
-                  else
-                    "#{method_name} #{url} returned #{status_code}: #{body}"
-                  end
-        super(message)
+        @headers     = headers
+        @request_id  = extract_request_id(headers)
+        super(build_message)
+      end
+
+      private
+
+      def build_message
+        base = if @status_code.nil?
+                 "#{@method_name} #{@url} failed to reach the server: #{@body}"
+               else
+                 "#{@method_name} #{@url} returned #{@status_code}: #{@body}"
+               end
+        @request_id ? "#{base} (request-id: #{@request_id})" : base
+      end
+
+      # Pull the platform request id from a response header map (case-insensitive),
+      # preferring the SignalWire/proxy header order. Returns nil when absent.
+      # Private (internal plumbing, not public API surface).
+      def extract_request_id(headers)
+        return nil if headers.nil? || headers.empty?
+
+        lowered = headers.each_with_object({}) { |(k, v), h| h[k.to_s.downcase] = v }
+        REQUEST_ID_HEADERS.each { |name| return lowered[name] if lowered.key?(name) }
+        nil
       end
     end
 
@@ -236,7 +264,16 @@ module SignalWire
           sleep_backoff(delay)
           return Attempt.retry
         end
-        raise SignalWireRestError.new(status, parse_error_body(response), url, method)
+        raise SignalWireRestError.new(status, parse_error_body(response), url, method,
+                                      headers: response_headers(response))
+      end
+
+      # Flatten a Net::HTTPResponse's headers into a plain {name => value} hash
+      # (§6.6) so the raised error can expose them + the platform request id.
+      def response_headers(response)
+        headers = {}
+        response.each_header { |name, value| headers[name] = value }
+        headers
       end
 
       # Issue one HTTP attempt. Net::HTTP's +read_timeout+/+open_timeout+ bound
