@@ -39,7 +39,6 @@ client.calling.dial(
 - Full Fabric API: 13 resource types with CRUD + addresses, tokens, and generic resources
 - Datasphere: document management and semantic search
 - Video: rooms, sessions, recordings, conferences, tokens, streams
-- Compatibility API: full Twilio-compatible LAML surface
 - Phone number management, 10DLC registry, MFA, logs, and more
 - Hash returns -- raw JSON, no wrapper objects to learn
 
@@ -123,14 +122,21 @@ client.mfa.verify(result['id'], token: '123456')
 
 ```
 lib/signalwire/rest/
-    signalwire_client.rb  # RestClient -- namespace wiring, env var resolution
-    http_client.rb        # HttpClient -- net/http wrapper with auth
+    rest_client.rb          # RestClient -- namespace wiring, env var resolution
+    http_client.rb          # HttpClient -- net/http wrapper with auth
+    request_options.rb      # RequestOptions -- per-request timeout/retries/abort
+    pagination.rb           # Page auto-iteration over list responses
+    phone_call_handler.rb   # PhoneCallHandler enum (call-handler wire values)
     namespaces/
-        fabric.rb         # 13 resource types + generic resources + addresses + tokens
-        calling.rb        # 37 command dispatch methods
-        phone_numbers.rb  # Search, purchase, update, release
-        compat.rb         # Twilio-compatible LAML API
-        video.rb          # Rooms, sessions, recordings, conferences
-        datasphere.rb     # Documents, search, chunks
-        ... and 15 more
+        generated.rb        # loads the generated resource tree
+        generated/          # per-resource classes emitted from the REST specs
+            resource_tree.rb  # namespace accessors (calling/fabric/video/… )
+            phone_numbers.rb  # search, purchase, update, release
+            ...               # one file per REST resource
 ```
+
+Namespace accessors on the client: `calling`, `chat`, `datasphere`,
+`fabric`, `logs`, `project`, `pubsub`, `video`, plus flat resources
+(`phone_numbers`, `messages`, `recordings`, `queues`, `short_codes`,
+`addresses`, `mfa`, `lookup`, `verified_callers`, `imported_numbers`,
+`number_groups`, `registry`, `sip_profile`, …).

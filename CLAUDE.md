@@ -54,11 +54,16 @@ gem build signalwire-sdk.gemspec && gem install signalwire-sdk-*.gem
 
 ### CLI Tools
 ```bash
-# Test SWAIG functions locally (from bin/)
-ruby bin/swaig-test examples/simple_agent.rb --list-tools
-# --exec runs a tool; pass each argument as a separate --param KEY=VALUE
-# (values are parsed as JSON: numbers/true/false/null typed, else string):
-ruby bin/swaig-test examples/simple_agent.rb --exec get_weather --param location="San Francisco"
+# Test SWAIG functions locally (from bin/). A bare positional agent file only
+# works with --simulate-serverless; to list/exec you pick a mode:
+#   --file PATH  in-process (loads the Service subclass, reads its tool registry)
+#   --url URL    against a running agent (auth embedded in the URL)
+#   AGENT --simulate-serverless PLATFORM  local serverless simulation
+ruby bin/swaig-test --file examples/simple_agent.rb --list-tools
+# --exec runs a tool (URL or simulate mode); pass each argument as a separate
+# --param KEY=VALUE (values parsed as JSON: numbers/true/false/null typed, else string):
+ruby bin/swaig-test examples/simple_agent.rb --simulate-serverless lambda \
+  --exec get_weather --param location="San Francisco"
 
 # Build search indexes
 ruby bin/sw-search ./docs --output knowledge.swsearch
@@ -159,7 +164,7 @@ lib/signalwire/
 - Synchronous HTTP client with `net/http`
 - Namespaced sub-objects: `client.fabric`, `client.calling`, `client.video`, etc.
 - Returns plain Hashes (parsed JSON), no wrapper objects
-- Covers all SignalWire APIs: Fabric, Calling, Video, Datasphere, Compat, etc.
+- Covers the SignalWire REST APIs: Fabric, Calling, Video, Datasphere, Messaging, Logs, etc.
 
 ## Important Implementation Notes
 
