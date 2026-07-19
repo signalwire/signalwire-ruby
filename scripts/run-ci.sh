@@ -201,6 +201,12 @@ sched_gate SNIPPET-RUN tier=nightly defer=1 desc="dynamic-port doc snippets run 
 sched_gate EXAMPLES-RUN tier=nightly defer=1 desc="shipped examples load/start against the mock (modulo EXAMPLES_RUN_ALLOW.md; STRICT-MOCKS: MOCK_RELAY_STRICT=1)" \
     -- env MOCK_RELAY_STRICT=1 python3 "$PORTING_SDK_DIR/scripts/examples_run.py" --port ruby --repo "$PORT_ROOT"
 
+# DOC-SURFACE (§6.3): public doc-comment (YARD `#`) coverage floor. Report-only
+# for now (--report-only never fails the run); the floor in .doc_surface_floor
+# ratchets up as coverage improves and never regresses.
+sched_gate DOC-SURFACE desc="public YARD doc-comment coverage holds the .doc_surface_floor ratchet (report-only)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/doc_surface.py" --port ruby --repo "$PORT_ROOT" --report-only
+
 # WIRED-MODES (Part 1.6 / D7): guard that this run-ci still exports the
 # load-bearing strict-mode lines declared in WIRED_MODES.md (MOCK_RELAY_STRICT +
 # MOCK_SIGNALWIRE_STRICT). The strict-mocks × Part-5 merge race silently dropped
