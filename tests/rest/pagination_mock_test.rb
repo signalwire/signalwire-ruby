@@ -114,6 +114,23 @@ class PaginationMockTest < Minitest::Test
     push_page([{ 'id' => 'addr-3', 'name' => 'third' }], {})
   end
 
+  # A page may legitimately carry a links.next (more pages exist) while
+  # returning ZERO items on THIS page — e.g. a filtered page that matched
+  # nothing here. Termination is driven ONLY by the absence of a next link,
+  # never by an empty data array. The old `next_url && !data.empty?` stopped on
+  # such a page and silently dropped every subsequent page. Mirrors the Python
+  # reference fix (_pagination.py, #58).
+  def test_continues_past_empty_page_with_next_link
+    # Page 1: empty data but a next cursor. Page 2: the real items, terminal.
+    push_page([], { 'next' => 'http://example.com/api/fabric/addresses?page_token=PA_page2' })
+    push_page([{ 'id' => 'addr-late', 'name' => 'arrived' }], {})
+
+    collected = build_iterator.to_a
+
+    assert_equal(%w[addr-late], collected.map { |x| x['id'] })
+    assert_two_paginated_gets
+  end
+
   def test_next_returns_stop_when_done
     # After exhausting items and seeing no next cursor, next_item returns
     # the sentinel :__stop__ (Ruby's equivalent of StopIteration).

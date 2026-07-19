@@ -86,8 +86,17 @@ module SignalWire
         data = resp[@data_key] || []
         @items.concat(data)
 
+        # Termination is driven ONLY by the absence of a next link, NOT by an
+        # empty +data+ array on this page. A page can legitimately carry a
+        # +links.next+ (more pages exist) while returning zero items on THIS
+        # page — e.g. a filtered page that matches nothing here. The old
+        # +next_url && !data.empty?+ condition stopped on such a page and
+        # silently dropped every subsequent page. Mirrors the Python reference
+        # fix (_pagination.py, #58). (A cycle guard against a self-repeating
+        # +next+ URL is pending in the Python reference; mirror it here once it
+        # lands there.)
         next_url = (resp['links'] || {})['next']
-        if next_url && !data.empty?
+        if next_url
           @params = params_from_next_url(next_url)
         else
           @done = true
