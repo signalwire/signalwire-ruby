@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 04f679219c888b55d55b2cb96322184b3b02e3c7",
+  "generated_from": "signalwire-ruby @ 7b07ee1f7c383e4da420bad25e57ae04b4f1c677",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -1767,6 +1767,23 @@
         ]
       },
       "functions": []
+    },
+    "signalwire.rest._request_options": {
+      "classes": {
+        "RequestOptions": [
+          "__init__",
+          "abort_signal",
+          "merge",
+          "retries",
+          "retry_backoff",
+          "retry_on_status",
+          "timeout"
+        ]
+      },
+      "functions": [
+        "resolve",
+        "status_is_retryable"
+      ]
     },
     "signalwire.rest.client": {
       "classes": {

@@ -517,6 +517,12 @@ signalwire.rest._base.SignalWireRestError.body: port-only: attr_reader for error
 signalwire.rest._base.SignalWireRestError.method_name: port-only: attr_reader for originating HTTP method
 signalwire.rest._base.SignalWireRestError.status_code: port-only: attr_reader for HTTP status
 signalwire.rest._base.SignalWireRestError.url: port-only: attr_reader for failed URL
+signalwire.rest._request_options.RequestOptions.__init__: port-only: Ruby explicit initialize; the reference's RequestOptions is a @dataclass whose generated __init__ griffe records as field-init (not a surface method), so the reference surface omits it
+signalwire.rest._request_options.RequestOptions.timeout: port-only: Ruby attr_reader mirroring the reference dataclass field `timeout` (Python exposes the same data as a dataclass field, not a surface method)
+signalwire.rest._request_options.RequestOptions.retries: port-only: Ruby attr_reader mirroring the reference dataclass field `retries`
+signalwire.rest._request_options.RequestOptions.retry_on_status: port-only: Ruby attr_reader mirroring the reference dataclass field `retry_on_status`
+signalwire.rest._request_options.RequestOptions.retry_backoff: port-only: Ruby attr_reader mirroring the reference dataclass field `retry_backoff`
+signalwire.rest._request_options.RequestOptions.abort_signal: port-only: Ruby attr_reader mirroring the reference dataclass field `abort_signal`
 signalwire.rest.client.RestClient.generated_http_client: port-only: the HttpClient the generated ResourceTree accessors build resources off of (§8 composition seam; Python has no equivalent public accessor)
 signalwire.rest.namespaces._client_tree_generated.FabricNamespace.addresses: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
 signalwire.rest.namespaces._client_tree_generated.FabricNamespace.ai_agents: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)

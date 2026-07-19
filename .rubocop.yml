@@ -124,6 +124,13 @@ Metrics/ParameterLists:
 # Per-file exclusion until/unless a coupled adapter extraction is designed.
 Metrics/ClassLength:
   Exclude:
+    # REST _base parity unit: HttpClient + the ReadResource/CrudResource/
+    # CrudWithAddresses hierarchy + the RequestOptions retry loop all map 1:1
+    # to signalwire.rest._base + _request_options, whose public method surface
+    # IS the cross-port parity contract. Splitting via module extraction would
+    # drop those methods from the enumerated surface and break DRIFT (same
+    # rationale as the classes below).
+    - 'lib/signalwire/rest/http_client.rb'
     # 1:1 parity classes ported from the Python core.* modules whose public
     # method surface IS the cross-port parity contract (config_loader.py 266
     # lines / security_config.py 390 lines). Same surface-bearing-unit

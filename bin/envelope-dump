@@ -23,6 +23,12 @@
 # It prints ONE JSON object mapping case-id -> artifact to stdout. The differ
 # canonicalizes both sides and byte-compares against the Python oracle.
 #
+# The RequestOptions envelope (plan 4.2) adds retry-armed cases: a case may carry
+# a +request_options+ ({retries, retry_backoff, timeout}) the dump passes to the
+# real client, and a +scenario_repeat+ count that arms the SAME override N times
+# (FIFO) so a retry-armed case sees the failure on every attempt. POST cases
+# (+method+ POST + +body+) drive the create route.
+#
 # The transport case (envelope_transport_refused) points the client at a DEAD
 # port — a free port we bind then release, so nothing is listening — exercising
 # the connection-refused path. A correct client raises the TYPED
@@ -50,45 +56,71 @@ require_relative '../lib/signalwire/rest/rest_client'
 # journal, scenario arming) — the same code the REST mock tests drive.
 require_relative '../tests/rest/mock_test'
 
-# The endpoint every case targets: a list route present in every port's REST
-# client (fabric.list_fabric_addresses -> GET /api/fabric/addresses). Mirrors
-# porting-sdk/scripts/envelope_corpus.py ENDPOINT / CALL.
+# The GET list endpoint every non-POST case targets: a list route present in
+# every port's REST client (fabric.list_fabric_addresses -> GET
+# /api/fabric/addresses). Mirrors porting-sdk/scripts/envelope_corpus.py
+# ENDPOINT / CALL.
 ENDPOINT = 'fabric.list_fabric_addresses'
 CALL_PATH = '/api/fabric/addresses'
+# The POST create route the idempotency-asymmetry cases target
+# (relay-rest.create_address -> POST /api/relay/rest/addresses).
+CREATE_ENDPOINT = 'relay-rest.create_address'
+CREATE_PATH = '/api/relay/rest/addresses'
+CREATE_BODY = { 'label' => 'x' }.freeze
 
 # The corpus, mirroring porting-sdk/scripts/envelope_corpus.py CORPUS. Each entry
-# is [id, scenario_or_nil, transport?]. scenario is the armed override
-# {status:, response:, headers?, delay_ms?}; nil means no scenario (the 200
-# baseline synthesizes a normal body, and the transport case points at a dead
-# port instead of arming the mock).
+# is a Hash:
+#   id               : stable case id
+#   scenario         : the armed override {status:, response:, headers?, delay_ms?}
+#                      or nil (200 baseline / transport case arm nothing)
+#   transport        : point the client at a dead port (connection refused)
+#   request_options  : {retries?, retry_backoff?, timeout?} passed as RequestOptions
+#   scenario_repeat  : arm the SAME scenario N times (FIFO) — default 1
+#   method           : 'GET' (default) or 'POST' (the create route)
 CORPUS = [
-  ['envelope_200_success', nil, false],
-  ['envelope_404_typed',
-   { 'status' => 404,
-     'response' => { 'errors' => [{ 'code' => 'NOT_FOUND', 'message' => 'no such address' }] } },
-   false],
-  ['envelope_429_retry_after',
-   { 'status' => 429,
-     'response' => { 'errors' => [{ 'code' => 'RATE_LIMITED', 'message' => 'slow down' }] },
-     'headers' => { 'Retry-After' => '2' } },
-   false],
-  ['envelope_503_unavailable',
-   { 'status' => 503,
-     'response' => { 'errors' => [{ 'code' => 'UNAVAILABLE', 'message' => 'maintenance' }] } },
-   false],
-  ['envelope_500_malformed_body',
-   { 'status' => 500, 'response' => 'not-json-at-all <garbage' },
-   false],
-  ['envelope_200_with_error_body',
-   { 'status' => 200,
-     'response' => { 'errors' => [{ 'code' => 'SOFT_FAIL', 'message' => 'ignored on 2xx' }] } },
-   false],
-  ['envelope_503_delayed',
-   { 'status' => 503,
-     'response' => { 'errors' => [{ 'code' => 'UNAVAILABLE', 'message' => 'slow-fail' }] },
-     'delay_ms' => 200 },
-   false],
-  ['envelope_transport_refused', nil, true]
+  { id: 'envelope_200_success', scenario: nil },
+  { id: 'envelope_404_typed',
+    scenario: { 'status' => 404,
+                'response' => { 'errors' => [{ 'code' => 'NOT_FOUND', 'message' => 'no such address' }] } } },
+  { id: 'envelope_429_retry_after',
+    scenario: { 'status' => 429,
+                'response' => { 'errors' => [{ 'code' => 'RATE_LIMITED', 'message' => 'slow down' }] },
+                'headers' => { 'Retry-After' => '2' } } },
+  { id: 'envelope_503_unavailable',
+    scenario: { 'status' => 503,
+                'response' => { 'errors' => [{ 'code' => 'UNAVAILABLE', 'message' => 'maintenance' }] } } },
+  { id: 'envelope_500_malformed_body',
+    scenario: { 'status' => 500, 'response' => 'not-json-at-all <garbage' } },
+  { id: 'envelope_200_with_error_body',
+    scenario: { 'status' => 200,
+                'response' => { 'errors' => [{ 'code' => 'SOFT_FAIL', 'message' => 'ignored on 2xx' }] } } },
+  { id: 'envelope_503_delayed',
+    scenario: { 'status' => 503,
+                'response' => { 'errors' => [{ 'code' => 'UNAVAILABLE', 'message' => 'slow-fail' }] },
+                'delay_ms' => 200 } },
+  { id: 'envelope_transport_refused', scenario: nil, transport: true },
+
+  # ---- RequestOptions envelope — opt-in retry (plan 4.2). retry_backoff=0 so
+  # the differ never waits on wall-clock; the observable is the attempt COUNT.
+  { id: 'envelope_get_retry_once_succeeds',
+    scenario: { 'status' => 503,
+                'response' => { 'errors' => [{ 'code' => 'UNAVAILABLE', 'message' => 'transient' }] } },
+    request_options: { 'retries' => 1, 'retry_backoff' => 0 } },
+  { id: 'envelope_get_retry_exhausted',
+    scenario: { 'status' => 503,
+                'response' => { 'errors' => [{ 'code' => 'UNAVAILABLE', 'message' => 'down' }] } },
+    request_options: { 'retries' => 1, 'retry_backoff' => 0 },
+    scenario_repeat: 2 },
+  { id: 'envelope_post_500_not_retried',
+    scenario: { 'status' => 500,
+                'response' => { 'errors' => [{ 'code' => 'SERVER_ERROR', 'message' => 'boom' }] } },
+    request_options: { 'retries' => 2, 'retry_backoff' => 0 },
+    method: 'POST' },
+  { id: 'envelope_post_503_retried',
+    scenario: { 'status' => 503,
+                'response' => { 'errors' => [{ 'code' => 'UNAVAILABLE', 'message' => 'throttled' }] } },
+    request_options: { 'retries' => 1, 'retry_backoff' => 0 },
+    method: 'POST' }
 ].freeze
 
 # Pull the envelope's error code out of a decoded body, or nil — the Ruby mirror
@@ -134,12 +166,24 @@ end
 # Arm a scenario (status / response / headers? / delay_ms?) session-scoped to
 # this client's auth header, so cases don't cross-contaminate. Mirrors the
 # oracle's POST /__mock__/scenarios/<endpoint>?session_id=<auth>.
-def arm_scenario(url, session_id, scenario)
+def arm_scenario(url, session_id, endpoint, scenario)
   payload = { 'status' => scenario['status'], 'response' => scenario['response'] }
   payload['headers'] = scenario['headers'] if scenario['headers']
   payload['delay_ms'] = scenario['delay_ms'] if scenario['delay_ms']
   q = "?session_id=#{URI.encode_www_form_component(session_id)}"
-  mock_post(url, "/__mock__/scenarios/#{ENDPOINT}#{q}", JSON.generate(payload))
+  mock_post(url, "/__mock__/scenarios/#{endpoint}#{q}", JSON.generate(payload))
+end
+
+# Build the RequestOptions for a case, or nil when the case arms none. Mirrors
+# the oracle: only retries / retry_backoff / timeout flow through the corpus.
+def build_request_options(spec)
+  return nil if spec.nil?
+
+  SignalWire::REST::RequestOptions.new(
+    retries: spec['retries'],
+    retry_backoff: spec['retry_backoff'],
+    timeout: spec['timeout']
+  )
 end
 
 harness = MockTest.client
@@ -149,7 +193,16 @@ mock_url = mock.url
 
 out = {}
 
-CORPUS.each do |cid, scenario, transport|
+CORPUS.each do |case_spec|
+  cid = case_spec[:id]
+  scenario = case_spec[:scenario]
+  transport = case_spec[:transport] || false
+  request_options = build_request_options(case_spec[:request_options])
+  scenario_repeat = case_spec[:scenario_repeat] || 1
+  post = case_spec[:method] == 'POST'
+  call_path = post ? CREATE_PATH : CALL_PATH
+  endpoint = post ? CREATE_ENDPOINT : ENDPOINT
+
   artifact = {
     'raised' => false,
     'error_kind' => nil,
@@ -173,11 +226,19 @@ CORPUS.each do |cid, scenario, transport|
     )
   else
     client = base_client
-    arm_scenario(mock_url, mock.auth_header, scenario) if scenario
+    if scenario
+      # scenario_repeat arms the SAME override N times (FIFO) so a retry-armed
+      # case sees the failure on every attempt.
+      scenario_repeat.times { arm_scenario(mock_url, mock.auth_header, endpoint, scenario) }
+    end
   end
 
   begin
-    client.fabric.addresses.list
+    if post
+      client.http.post(call_path, CREATE_BODY, request_options: request_options)
+    else
+      client.http.get(call_path, nil, request_options: request_options)
+    end
   rescue SignalWire::REST::SignalWireRestError => e
     artifact['raised'] = true
     artifact['error_kind'] = 'typed'
@@ -192,7 +253,7 @@ CORPUS.each do |cid, scenario, transport|
 
   unless transport
     journal = JSON.parse(Net::HTTP.get(URI("#{mock_url}/__mock__/journal")))
-    artifact['request_count'] = journal.count { |j| j['path'] == CALL_PATH }
+    artifact['request_count'] = journal.count { |j| j['path'] == call_path }
   end
   out[cid] = artifact
 end
