@@ -391,6 +391,11 @@ REQUEST_OPTIONS_KEYWORD_AS_POSITIONAL = {
     ("signalwire.rest._request_options", "RequestOptions", "__init__"): {
         "timeout", "retries", "retry_on_status", "retry_backoff", "abort_signal",
     },
+    # 6.6 error-observability: the reference's trailing optional ``headers=None``
+    # ctor param (positional-or-keyword => canonical positional). Ruby spells a
+    # trailing optional map as a keyword arg (``headers: nil``) — same slot, same
+    # argument; kind label is the only difference.
+    ("signalwire.rest._base", "SignalWireRestError", "__init__"): {"headers"},
 }
 
 
