@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ b86b1c8869495a4ce51e7869d7b50ef9d0d5d277",
+  "generated_from": "signalwire-ruby @ 56379aca1d3586a55e0d976c1415bfed70ef1e83",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -102,8 +102,10 @@
           "add_pre_answer_verb",
           "add_swaig_query_params",
           "agent_id",
+          "app",
           "as_rack_app",
           "auto_map_sip_usernames",
+          "basic_auth_credentials",
           "clear_post_ai_verbs",
           "clear_post_answer_verbs",
           "clear_pre_answer_verbs",
@@ -113,6 +115,7 @@
           "enable_sip_routing",
           "extract_sip_username",
           "extract_sip_username_from_request",
+          "full_url",
           "get_contexts",
           "get_full_url",
           "get_name",
@@ -134,6 +137,7 @@
           "set_post_prompt_url",
           "set_web_hook_url",
           "signing_key",
+          "skill?",
           "skill_manager",
           "use_pom"
         ]
