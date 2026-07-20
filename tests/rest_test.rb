@@ -11,28 +11,31 @@ class RecordingHttpClient
     @requests = []
   end
 
-  def get(path, params = nil)
-    @requests << { method: 'GET', path: path, body: nil, params: params }
+  # Mirror the real HttpClient verb signatures, including the trailing keyword-only
+  # +request_options:+ (§PY-7) every generated resource verb forwards. Recorded so
+  # tests can assert per-call options reach the transport.
+  def get(path, params = nil, request_options: nil)
+    @requests << { method: 'GET', path: path, body: nil, params: params, request_options: request_options }
     {}
   end
 
-  def post(path, body = nil, params: nil)
-    @requests << { method: 'POST', path: path, body: body, params: params }
+  def post(path, body = nil, params: nil, request_options: nil)
+    @requests << { method: 'POST', path: path, body: body, params: params, request_options: request_options }
     {}
   end
 
-  def put(path, body = nil)
-    @requests << { method: 'PUT', path: path, body: body, params: nil }
+  def put(path, body = nil, request_options: nil)
+    @requests << { method: 'PUT', path: path, body: body, params: nil, request_options: request_options }
     {}
   end
 
-  def patch(path, body = nil)
-    @requests << { method: 'PATCH', path: path, body: body, params: nil }
+  def patch(path, body = nil, request_options: nil)
+    @requests << { method: 'PATCH', path: path, body: body, params: nil, request_options: request_options }
     {}
   end
 
-  def delete(path)
-    @requests << { method: 'DELETE', path: path, body: nil, params: nil }
+  def delete(path, request_options: nil)
+    @requests << { method: 'DELETE', path: path, body: nil, params: nil, request_options: request_options }
     {}
   end
 

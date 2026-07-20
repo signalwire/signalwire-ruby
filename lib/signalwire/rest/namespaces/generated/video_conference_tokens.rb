@@ -21,12 +21,12 @@ module SignalWire
             super(http, '/api/video/conference_tokens')
           end
 
-          def get(id, **params)
-            @http.get(_path(id), params.empty? ? nil : params)
+          def get(id, request_options: nil, **params)
+            @http.get(_path(id), params.empty? ? nil : params, request_options: request_options)
           end
 
-          def reset(id)
-            @http.post(_path(id, 'reset'), {})
+          def reset(id, request_options: nil)
+            @http.post(_path(id, 'reset'), {}, request_options: request_options)
           end
         end
       end

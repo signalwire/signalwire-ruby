@@ -22,7 +22,7 @@ module SignalWire
             super(http, '/api/fabric')
           end
 
-          def create_subscriber_token(reference:, expire_at: nil, application_id: nil, password: nil, first_name: nil, last_name: nil, display_name: nil, job_title: nil, time_zone: nil, country: nil, region: nil, company_name: nil, extras: {}, **kwargs)
+          def create_subscriber_token(reference:, expire_at: nil, application_id: nil, password: nil, first_name: nil, last_name: nil, display_name: nil, job_title: nil, time_zone: nil, country: nil, region: nil, company_name: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['reference'] = reference
             body['expire_at'] = expire_at unless expire_at.nil?
@@ -37,37 +37,37 @@ module SignalWire
             body['region'] = region unless region.nil?
             body['company_name'] = company_name unless company_name.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.post('/api/fabric/subscribers/tokens', body)
+            @http.post('/api/fabric/subscribers/tokens', body, request_options: request_options)
           end
 
-          def refresh_subscriber_token(refresh_token:, extras: {}, **kwargs)
+          def refresh_subscriber_token(refresh_token:, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['refresh_token'] = refresh_token
             body = body.merge(extras).merge(kwargs)
-            @http.post('/api/fabric/subscribers/tokens/refresh', body)
+            @http.post('/api/fabric/subscribers/tokens/refresh', body, request_options: request_options)
           end
 
-          def create_invite_token(address_id:, expires_at: nil, extras: {}, **kwargs)
+          def create_invite_token(address_id:, expires_at: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['address_id'] = address_id
             body['expires_at'] = expires_at unless expires_at.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.post('/api/fabric/subscriber/invites', body)
+            @http.post('/api/fabric/subscriber/invites', body, request_options: request_options)
           end
 
-          def create_guest_token(allowed_addresses:, expire_at: nil, extras: {}, **kwargs)
+          def create_guest_token(allowed_addresses:, expire_at: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['allowed_addresses'] = allowed_addresses
             body['expire_at'] = expire_at unless expire_at.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.post('/api/fabric/guests/tokens', body)
+            @http.post('/api/fabric/guests/tokens', body, request_options: request_options)
           end
 
-          def create_embed_token(token:, extras: {}, **kwargs)
+          def create_embed_token(token:, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['token'] = token
             body = body.merge(extras).merge(kwargs)
-            @http.post('/api/fabric/embeds/tokens', body)
+            @http.post('/api/fabric/embeds/tokens', body, request_options: request_options)
           end
         end
       end

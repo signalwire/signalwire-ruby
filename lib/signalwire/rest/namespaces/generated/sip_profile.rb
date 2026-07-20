@@ -22,11 +22,11 @@ module SignalWire
             super(http, '/api/relay/rest/sip_profile')
           end
 
-          def get(**params)
-            @http.get(@base_path, params.empty? ? nil : params)
+          def get(request_options: nil, **params)
+            @http.get(@base_path, params.empty? ? nil : params, request_options: request_options)
           end
 
-          def update(domain_identifier: nil, default_codecs: nil, default_ciphers: nil, default_encryption: nil, default_send_as: nil, extras: {}, **kwargs)
+          def update(domain_identifier: nil, default_codecs: nil, default_ciphers: nil, default_encryption: nil, default_send_as: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['domain_identifier'] = domain_identifier unless domain_identifier.nil?
             body['default_codecs'] = default_codecs unless default_codecs.nil?
@@ -34,7 +34,7 @@ module SignalWire
             body['default_encryption'] = default_encryption unless default_encryption.nil?
             body['default_send_as'] = default_send_as unless default_send_as.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.put(@base_path, body)
+            @http.put(@base_path, body, request_options: request_options)
           end
         end
       end

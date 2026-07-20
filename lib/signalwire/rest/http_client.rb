@@ -30,7 +30,7 @@ module SignalWire
         x-request-id x-signalwire-request-id request-id x-amzn-requestid
       ].freeze
 
-      def initialize(status_code, body, url, method_name = 'GET', headers: nil)
+      def initialize(status_code, body, url, method_name = 'GET', headers = nil)
         @status_code = status_code
         @body        = body
         @url         = url
@@ -279,7 +279,7 @@ module SignalWire
           return Attempt.retry
         end
         raise SignalWireRestError.new(status, parse_error_body(response), url, method,
-                                      headers: response_headers(response))
+                                      response_headers(response))
       end
 
       # Flatten a Net::HTTPResponse's headers into a plain {name => value} hash
@@ -399,8 +399,8 @@ module SignalWire
     # +signalwire.rest._base.ReadResource+: the read half of the CRUD surface,
     # extended by CrudResource with create/update/delete.
     class ReadResource < BaseResource
-      def list(**params)
-        @http.get(@base_path, params.empty? ? nil : params)
+      def list(request_options: nil, **params)
+        @http.get(@base_path, params.empty? ? nil : params, request_options: request_options)
       end
 
       # Iterate every item across all pages of this resource's list endpoint.
@@ -415,12 +415,13 @@ module SignalWire
       # +resp["data"]+ and follows +resp["links"]["next"]+), so callers no
       # longer hand-construct the path + token loop. Returns an Enumerable
       # +PaginatedIterator+ — the Ruby idiom for Python's returned iterator.
-      def paginate(**params)
-        PaginatedIterator.new(@http, @base_path, params.empty? ? nil : params, 'data')
+      def paginate(request_options: nil, **params)
+        PaginatedIterator.new(@http, @base_path, params.empty? ? nil : params, 'data',
+                              request_options)
       end
 
-      def get(resource_id)
-        @http.get(_path(resource_id))
+      def get(resource_id, request_options: nil)
+        @http.get(_path(resource_id), request_options: request_options)
       end
     end
 
@@ -447,17 +448,17 @@ module SignalWire
         attr_writer :update_method
       end
 
-      def create(**kwargs)
-        @http.post(@base_path, kwargs)
+      def create(request_options: nil, **kwargs)
+        @http.post(@base_path, kwargs, request_options: request_options)
       end
 
-      def update(resource_id, **kwargs)
+      def update(resource_id, request_options: nil, **kwargs)
         m = self.class.update_method.downcase
-        @http.send(m, _path(resource_id), kwargs)
+        @http.send(m, _path(resource_id), kwargs, request_options: request_options)
       end
 
-      def delete(resource_id)
-        @http.delete(_path(resource_id))
+      def delete(resource_id, request_options: nil)
+        @http.delete(_path(resource_id), request_options: request_options)
       end
     end
 
@@ -467,8 +468,9 @@ module SignalWire
     # list/create/get/update/delete surface, issuing
     # +GET {base_path}/{resource_id}/addresses+.
     class CrudWithAddresses < CrudResource
-      def list_addresses(resource_id, **params)
-        @http.get(_path(resource_id, 'addresses'), params.empty? ? nil : params)
+      def list_addresses(resource_id, request_options: nil, **params)
+        @http.get(_path(resource_id, 'addresses'), params.empty? ? nil : params,
+                  request_options: request_options)
       end
     end
   end

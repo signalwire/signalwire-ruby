@@ -34,13 +34,13 @@ class RecordingHttp
     @response = response
   end
 
-  def get(path, params = nil)
-    @calls << { method: 'GET', path: path, params: params }
+  def get(path, params = nil, request_options: nil)
+    @calls << { method: 'GET', path: path, params: params, request_options: request_options }
     @response
   end
 
-  def post(path, body = nil, params: nil)
-    @calls << { method: 'POST', path: path, body: body, params: params }
+  def post(path, body = nil, params: nil, request_options: nil)
+    @calls << { method: 'POST', path: path, body: body, params: params, request_options: request_options }
     @response
   end
 
@@ -111,7 +111,7 @@ class PaginatedIteratorProtocolParityTest < Minitest::Test
       @page = 0
     end
 
-    def get(_path, _params = nil)
+    def get(_path, _params = nil, request_options: nil) # rubocop:disable Lint/UnusedMethodArgument
       @page += 1
       case @page
       when 1

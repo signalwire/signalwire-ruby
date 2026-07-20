@@ -22,7 +22,7 @@ module SignalWire
             super(http, '/api/video/rooms')
           end
 
-          def create(name:, display_name: nil, description: nil, max_members: nil, quality: nil, join_from: nil, join_until: nil, remove_at: nil, remove_after_seconds_elapsed: nil, layout: nil, record_on_start: nil, enable_room_previews: nil, meta: nil, sync_audio_video: nil, extras: {}, **kwargs)
+          def create(name:, display_name: nil, description: nil, max_members: nil, quality: nil, join_from: nil, join_until: nil, remove_at: nil, remove_after_seconds_elapsed: nil, layout: nil, record_on_start: nil, enable_room_previews: nil, meta: nil, sync_audio_video: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['name'] = name
             body['display_name'] = display_name unless display_name.nil?
@@ -39,10 +39,10 @@ module SignalWire
             body['meta'] = meta unless meta.nil?
             body['sync_audio_video'] = sync_audio_video unless sync_audio_video.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(resource_id, display_name: nil, description: nil, max_members: nil, quality: nil, join_from: nil, join_until: nil, remove_at: nil, remove_after_seconds_elapsed: nil, layout: nil, record_on_start: nil, enable_room_previews: nil, meta: nil, sync_audio_video: nil, extras: {}, **kwargs)
+          def update(resource_id, display_name: nil, description: nil, max_members: nil, quality: nil, join_from: nil, join_until: nil, remove_at: nil, remove_after_seconds_elapsed: nil, layout: nil, record_on_start: nil, enable_room_previews: nil, meta: nil, sync_audio_video: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['display_name'] = display_name unless display_name.nil?
             body['description'] = description unless description.nil?
@@ -58,22 +58,22 @@ module SignalWire
             body['meta'] = meta unless meta.nil?
             body['sync_audio_video'] = sync_audio_video unless sync_audio_video.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.put(_path(resource_id), body)
+            @http.put(_path(resource_id), body, request_options: request_options)
           end
 
-          def delete(resource_id)
-            @http.delete(_path(resource_id))
+          def delete(resource_id, request_options: nil)
+            @http.delete(_path(resource_id), request_options: request_options)
           end
 
-          def list_streams(id, **params)
-            @http.get(_path(id, 'streams'), params.empty? ? nil : params)
+          def list_streams(id, request_options: nil, **params)
+            @http.get(_path(id, 'streams'), params.empty? ? nil : params, request_options: request_options)
           end
 
-          def create_stream(id, url:, extras: {}, **kwargs)
+          def create_stream(id, url:, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['url'] = url
             body = body.merge(extras).merge(kwargs)
-            @http.post(_path(id, 'streams'), body)
+            @http.post(_path(id, 'streams'), body, request_options: request_options)
           end
         end
       end

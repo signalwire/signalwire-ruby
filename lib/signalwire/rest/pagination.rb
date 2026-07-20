@@ -20,12 +20,16 @@ module SignalWire
 
       attr_reader :http, :path, :params, :data_key, :index, :items, :done
 
-      def initialize(http, path, params = nil, data_key = 'data')
+      def initialize(http, path, params = nil, data_key = 'data', request_options = nil)
         @http     = http
         @path     = path
         # Dup so callers can't mutate iterator state via the original Hash.
         @params   = params ? params.dup : {}
         @data_key = data_key
+        # Per-request options (timeout / connect_timeout / headers) forwarded to
+        # every page fetch, so pagination honors the same request contract as a
+        # single call. Mirrors Python _pagination.py's +request_options+ thread.
+        @request_options = request_options
         @items    = []
         @index    = 0
         @done     = false
@@ -88,7 +92,7 @@ module SignalWire
 
       def fetch_next
         params_for_request = @params.empty? ? nil : @params
-        resp = @http.get(@path, params_for_request)
+        resp = @http.get(@path, params_for_request, request_options: @request_options)
         data = resp[@data_key] || []
         @items.concat(data)
 

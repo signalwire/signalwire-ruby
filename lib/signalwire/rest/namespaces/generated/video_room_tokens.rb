@@ -22,7 +22,7 @@ module SignalWire
             super(http, '/api/video/room_tokens')
           end
 
-          def create(room_name:, user_name: nil, permissions: nil, join_from: nil, join_until: nil, remove_at: nil, remove_after_seconds_elapsed: nil, join_audio_muted: nil, join_video_muted: nil, auto_create_room: nil, enable_room_previews: nil, room_display_name: nil, end_room_session_on_leave: nil, join_as: nil, media_allowed: nil, room_meta: nil, meta: nil, sync_audio_video: nil, extras: {}, **kwargs)
+          def create(room_name:, user_name: nil, permissions: nil, join_from: nil, join_until: nil, remove_at: nil, remove_after_seconds_elapsed: nil, join_audio_muted: nil, join_video_muted: nil, auto_create_room: nil, enable_room_previews: nil, room_display_name: nil, end_room_session_on_leave: nil, join_as: nil, media_allowed: nil, room_meta: nil, meta: nil, sync_audio_video: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['room_name'] = room_name
             body['user_name'] = user_name unless user_name.nil?
@@ -43,7 +43,7 @@ module SignalWire
             body['meta'] = meta unless meta.nil?
             body['sync_audio_video'] = sync_audio_video unless sync_audio_video.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
         end
       end

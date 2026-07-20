@@ -21,35 +21,35 @@ module SignalWire
             super(http, '/api/fabric/resources')
           end
 
-          def list(**params)
-            @http.get(@base_path, params.empty? ? nil : params)
+          def list(request_options: nil, **params)
+            @http.get(@base_path, params.empty? ? nil : params, request_options: request_options)
           end
 
-          def get(id, **params)
-            @http.get(_path(id), params.empty? ? nil : params)
+          def get(id, request_options: nil, **params)
+            @http.get(_path(id), params.empty? ? nil : params, request_options: request_options)
           end
 
-          def delete(id)
-            @http.delete(_path(id))
+          def delete(id, request_options: nil)
+            @http.delete(_path(id), request_options: request_options)
           end
 
-          def list_addresses(id, **params)
-            @http.get(_path(id, 'addresses'), params.empty? ? nil : params)
+          def list_addresses(id, request_options: nil, **params)
+            @http.get(_path(id, 'addresses'), params.empty? ? nil : params, request_options: request_options)
           end
 
-          def assign_phone_route(id, phone_route_id:, handler:, extras: {}, **kwargs)
+          def assign_phone_route(id, phone_route_id:, handler:, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['phone_route_id'] = phone_route_id
             body['handler'] = handler
             body = body.merge(extras).merge(kwargs)
-            @http.post(_path(id, 'phone_routes'), body)
+            @http.post(_path(id, 'phone_routes'), body, request_options: request_options)
           end
 
-          def assign_domain_application(id, domain_application_id:, extras: {}, **kwargs)
+          def assign_domain_application(id, domain_application_id:, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['domain_application_id'] = domain_application_id
             body = body.merge(extras).merge(kwargs)
-            @http.post(_path(id, 'domain_applications'), body)
+            @http.post(_path(id, 'domain_applications'), body, request_options: request_options)
           end
         end
       end

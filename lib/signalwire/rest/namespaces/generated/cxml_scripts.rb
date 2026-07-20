@@ -22,24 +22,24 @@ module SignalWire
             super(http, '/api/fabric/resources/cxml_scripts')
           end
 
-          def create(display_name:, contents:, status_callback_url: nil, status_callback_method: nil, extras: {}, **kwargs)
+          def create(display_name:, contents:, status_callback_url: nil, status_callback_method: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['display_name'] = display_name
             body['contents'] = contents
             body['status_callback_url'] = status_callback_url unless status_callback_url.nil?
             body['status_callback_method'] = status_callback_method unless status_callback_method.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(resource_id, display_name: nil, contents: nil, status_callback_url: nil, status_callback_method: nil, extras: {}, **kwargs)
+          def update(resource_id, display_name: nil, contents: nil, status_callback_url: nil, status_callback_method: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['display_name'] = display_name unless display_name.nil?
             body['contents'] = contents unless contents.nil?
             body['status_callback_url'] = status_callback_url unless status_callback_url.nil?
             body['status_callback_method'] = status_callback_method unless status_callback_method.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.put(_path(resource_id), body)
+            @http.put(_path(resource_id), body, request_options: request_options)
           end
         end
       end

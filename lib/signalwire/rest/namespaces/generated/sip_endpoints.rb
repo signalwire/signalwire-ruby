@@ -22,7 +22,7 @@ module SignalWire
             super(http, '/api/fabric/resources/sip_endpoints')
           end
 
-          def create(username:, caller_id:, send_as:, ciphers:, codecs:, encryption:, call_handler:, calling_handler_resource_id:, id: nil, extras: {}, **kwargs)
+          def create(username:, caller_id:, send_as:, ciphers:, codecs:, encryption:, call_handler:, calling_handler_resource_id:, id: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['username'] = username
             body['caller_id'] = caller_id
@@ -34,10 +34,10 @@ module SignalWire
             body['calling_handler_resource_id'] = calling_handler_resource_id
             body['id'] = id unless id.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(resource_id, calling_handler_resource_id:, username: nil, caller_id: nil, send_as: nil, ciphers: nil, codecs: nil, encryption: nil, call_handler: nil, extras: {}, **kwargs)
+          def update(resource_id, calling_handler_resource_id:, username: nil, caller_id: nil, send_as: nil, ciphers: nil, codecs: nil, encryption: nil, call_handler: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['calling_handler_resource_id'] = calling_handler_resource_id
             body['username'] = username unless username.nil?
@@ -48,7 +48,7 @@ module SignalWire
             body['encryption'] = encryption unless encryption.nil?
             body['call_handler'] = call_handler unless call_handler.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.put(_path(resource_id), body)
+            @http.put(_path(resource_id), body, request_options: request_options)
           end
         end
       end

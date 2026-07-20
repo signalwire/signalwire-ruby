@@ -22,7 +22,7 @@ module SignalWire
             super(http, '/api/relay/rest/mfa')
           end
 
-          def sms(to:, from: nil, message: nil, token_length: nil, valid_for: nil, max_attempts: nil, allow_alphas: nil, extras: {}, **kwargs)
+          def sms(to:, from: nil, message: nil, token_length: nil, valid_for: nil, max_attempts: nil, allow_alphas: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['to'] = to
             body['from'] = from unless from.nil?
@@ -32,10 +32,10 @@ module SignalWire
             body['max_attempts'] = max_attempts unless max_attempts.nil?
             body['allow_alphas'] = allow_alphas unless allow_alphas.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.post(_path('sms'), body)
+            @http.post(_path('sms'), body, request_options: request_options)
           end
 
-          def call(to:, from: nil, message: nil, token_length: nil, valid_for: nil, max_attempts: nil, allow_alphas: nil, extras: {}, **kwargs)
+          def call(to:, from: nil, message: nil, token_length: nil, valid_for: nil, max_attempts: nil, allow_alphas: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['to'] = to
             body['from'] = from unless from.nil?
@@ -45,14 +45,14 @@ module SignalWire
             body['max_attempts'] = max_attempts unless max_attempts.nil?
             body['allow_alphas'] = allow_alphas unless allow_alphas.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.post(_path('call'), body)
+            @http.post(_path('call'), body, request_options: request_options)
           end
 
-          def verify(request_id, token:, extras: {}, **kwargs)
+          def verify(request_id, token:, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['token'] = token
             body = body.merge(extras).merge(kwargs)
-            @http.post(_path(request_id, 'verify'), body)
+            @http.post(_path(request_id, 'verify'), body, request_options: request_options)
           end
         end
       end

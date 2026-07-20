@@ -21,8 +21,8 @@ module SignalWire
             super(http, '/api/logs/conferences')
           end
 
-          def list(**params)
-            @http.get(@base_path, params.empty? ? nil : params)
+          def list(request_options: nil, **params)
+            @http.get(@base_path, params.empty? ? nil : params, request_options: request_options)
           end
         end
       end

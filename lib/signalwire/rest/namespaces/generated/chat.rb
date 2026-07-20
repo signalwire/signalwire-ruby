@@ -21,14 +21,14 @@ module SignalWire
             super(http, '/api/chat/tokens')
           end
 
-          def create_token(ttl:, channels:, member_id: nil, state: nil, extras: {}, **kwargs)
+          def create_token(ttl:, channels:, member_id: nil, state: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['ttl'] = ttl
             body['channels'] = channels
             body['member_id'] = member_id unless member_id.nil?
             body['state'] = state unless state.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
         end
       end

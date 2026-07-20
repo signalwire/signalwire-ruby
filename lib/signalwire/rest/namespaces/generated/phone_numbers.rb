@@ -22,14 +22,14 @@ module SignalWire
             super(http, '/api/relay/rest/phone_numbers')
           end
 
-          def create(number:, extras: {}, **kwargs)
+          def create(number:, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['number'] = number
             body = body.merge(extras).merge(kwargs)
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(resource_id, name: nil, call_handler: nil, call_receive_mode: nil, call_request_url: nil, call_request_method: nil, call_fallback_url: nil, call_fallback_method: nil, call_status_callback_url: nil, call_status_callback_method: nil, call_laml_application_id: nil, call_dialogflow_agent_id: nil, call_relay_topic: nil, call_relay_topic_status_callback_url: nil, call_relay_script_url: nil, call_relay_context: nil, call_relay_context_status_callback_url: nil, call_relay_application: nil, call_relay_connector_id: nil, call_sip_endpoint_id: nil, call_verto_resource: nil, call_video_room_id: nil, call_ai_agent_id: nil, call_flow_id: nil, call_flow_version: nil, message_handler: nil, message_request_url: nil, message_request_method: nil, message_fallback_url: nil, message_fallback_method: nil, message_laml_application_id: nil, message_relay_topic: nil, message_relay_context: nil, message_relay_application: nil, extras: {}, **kwargs)
+          def update(resource_id, name: nil, call_handler: nil, call_receive_mode: nil, call_request_url: nil, call_request_method: nil, call_fallback_url: nil, call_fallback_method: nil, call_status_callback_url: nil, call_status_callback_method: nil, call_laml_application_id: nil, call_dialogflow_agent_id: nil, call_relay_topic: nil, call_relay_topic_status_callback_url: nil, call_relay_script_url: nil, call_relay_context: nil, call_relay_context_status_callback_url: nil, call_relay_application: nil, call_relay_connector_id: nil, call_sip_endpoint_id: nil, call_verto_resource: nil, call_video_room_id: nil, call_ai_agent_id: nil, call_flow_id: nil, call_flow_version: nil, message_handler: nil, message_request_url: nil, message_request_method: nil, message_fallback_url: nil, message_fallback_method: nil, message_laml_application_id: nil, message_relay_topic: nil, message_relay_context: nil, message_relay_application: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['name'] = name unless name.nil?
             body['call_handler'] = call_handler unless call_handler.nil?
@@ -65,61 +65,61 @@ module SignalWire
             body['message_relay_context'] = message_relay_context unless message_relay_context.nil?
             body['message_relay_application'] = message_relay_application unless message_relay_application.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.put(_path(resource_id), body)
+            @http.put(_path(resource_id), body, request_options: request_options)
           end
 
-          def delete(resource_id)
-            @http.delete(_path(resource_id))
+          def delete(resource_id, request_options: nil)
+            @http.delete(_path(resource_id), request_options: request_options)
           end
 
-          def search(**params)
-            @http.get(_path('search'), params.empty? ? nil : params)
+          def search(request_options: nil, **params)
+            @http.get(_path('search'), params.empty? ? nil : params, request_options: request_options)
           end
 
-          def set_swml_webhook(resource_id, url:, extra: {}, **)
+          def set_swml_webhook(resource_id, url:, extra: {}, request_options: nil, **)
             body = { 'call_handler' => 'relay_script' }
             body['call_relay_script_url'] = url
-            update(resource_id, **body.transform_keys(&:to_sym), **extra, **)
+            update(resource_id, request_options: request_options, **body.transform_keys(&:to_sym), **extra, **)
           end
 
-          def set_cxml_webhook(resource_id, url:, fallback_url: nil, status_callback_url: nil, extra: {}, **)
+          def set_cxml_webhook(resource_id, url:, fallback_url: nil, status_callback_url: nil, extra: {}, request_options: nil, **)
             body = { 'call_handler' => 'laml_webhooks' }
             body['call_request_url'] = url
             body['call_fallback_url'] = fallback_url unless fallback_url.nil?
             body['call_status_callback_url'] = status_callback_url unless status_callback_url.nil?
-            update(resource_id, **body.transform_keys(&:to_sym), **extra, **)
+            update(resource_id, request_options: request_options, **body.transform_keys(&:to_sym), **extra, **)
           end
 
-          def set_cxml_application(resource_id, application_id:, extra: {}, **)
+          def set_cxml_application(resource_id, application_id:, extra: {}, request_options: nil, **)
             body = { 'call_handler' => 'laml_application' }
             body['call_laml_application_id'] = application_id
-            update(resource_id, **body.transform_keys(&:to_sym), **extra, **)
+            update(resource_id, request_options: request_options, **body.transform_keys(&:to_sym), **extra, **)
           end
 
-          def set_ai_agent(resource_id, agent_id:, extra: {}, **)
+          def set_ai_agent(resource_id, agent_id:, extra: {}, request_options: nil, **)
             body = { 'call_handler' => 'ai_agent' }
             body['call_ai_agent_id'] = agent_id
-            update(resource_id, **body.transform_keys(&:to_sym), **extra, **)
+            update(resource_id, request_options: request_options, **body.transform_keys(&:to_sym), **extra, **)
           end
 
-          def set_call_flow(resource_id, flow_id:, version: nil, extra: {}, **)
+          def set_call_flow(resource_id, flow_id:, version: nil, extra: {}, request_options: nil, **)
             body = { 'call_handler' => 'call_flow' }
             body['call_flow_id'] = flow_id
             body['call_flow_version'] = version unless version.nil?
-            update(resource_id, **body.transform_keys(&:to_sym), **extra, **)
+            update(resource_id, request_options: request_options, **body.transform_keys(&:to_sym), **extra, **)
           end
 
-          def set_relay_application(resource_id, name:, extra: {}, **)
+          def set_relay_application(resource_id, name:, extra: {}, request_options: nil, **)
             body = { 'call_handler' => 'relay_application' }
             body['call_relay_application'] = name
-            update(resource_id, **body.transform_keys(&:to_sym), **extra, **)
+            update(resource_id, request_options: request_options, **body.transform_keys(&:to_sym), **extra, **)
           end
 
-          def set_relay_topic(resource_id, topic:, status_callback_url: nil, extra: {}, **)
+          def set_relay_topic(resource_id, topic:, status_callback_url: nil, extra: {}, request_options: nil, **)
             body = { 'call_handler' => 'relay_topic' }
             body['call_relay_topic'] = topic
             body['call_relay_topic_status_callback_url'] = status_callback_url unless status_callback_url.nil?
-            update(resource_id, **body.transform_keys(&:to_sym), **extra, **)
+            update(resource_id, request_options: request_options, **body.transform_keys(&:to_sym), **extra, **)
           end
         end
       end

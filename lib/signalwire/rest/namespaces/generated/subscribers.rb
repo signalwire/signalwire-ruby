@@ -22,7 +22,7 @@ module SignalWire
             super(http, '/api/fabric/resources/subscribers')
           end
 
-          def create(email:, password: nil, first_name: nil, last_name: nil, display_name: nil, job_title: nil, timezone: nil, country: nil, region: nil, company_name: nil, extras: {}, **kwargs)
+          def create(email:, password: nil, first_name: nil, last_name: nil, display_name: nil, job_title: nil, timezone: nil, country: nil, region: nil, company_name: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['email'] = email
             body['password'] = password unless password.nil?
@@ -35,10 +35,10 @@ module SignalWire
             body['region'] = region unless region.nil?
             body['company_name'] = company_name unless company_name.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(resource_id, email:, password: nil, first_name: nil, last_name: nil, display_name: nil, job_title: nil, timezone: nil, country: nil, region: nil, company_name: nil, extras: {}, **kwargs)
+          def update(resource_id, email:, password: nil, first_name: nil, last_name: nil, display_name: nil, job_title: nil, timezone: nil, country: nil, region: nil, company_name: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['email'] = email
             body['password'] = password unless password.nil?
@@ -51,14 +51,14 @@ module SignalWire
             body['region'] = region unless region.nil?
             body['company_name'] = company_name unless company_name.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.put(_path(resource_id), body)
+            @http.put(_path(resource_id), body, request_options: request_options)
           end
 
-          def list_sip_endpoints(subscriber_id, **params)
-            @http.get(_path(subscriber_id, 'sip_endpoints'), params.empty? ? nil : params)
+          def list_sip_endpoints(subscriber_id, request_options: nil, **params)
+            @http.get(_path(subscriber_id, 'sip_endpoints'), params.empty? ? nil : params, request_options: request_options)
           end
 
-          def create_sip_endpoint(subscriber_id, username:, password:, caller_id: nil, send_as: nil, ciphers: nil, codecs: nil, encryption: nil, extras: {}, **kwargs)
+          def create_sip_endpoint(subscriber_id, username:, password:, caller_id: nil, send_as: nil, ciphers: nil, codecs: nil, encryption: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['username'] = username
             body['password'] = password
@@ -68,14 +68,14 @@ module SignalWire
             body['codecs'] = codecs unless codecs.nil?
             body['encryption'] = encryption unless encryption.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.post(_path(subscriber_id, 'sip_endpoints'), body)
+            @http.post(_path(subscriber_id, 'sip_endpoints'), body, request_options: request_options)
           end
 
-          def get_sip_endpoint(subscriber_id, id, **params)
-            @http.get(_path(subscriber_id, 'sip_endpoints', id), params.empty? ? nil : params)
+          def get_sip_endpoint(subscriber_id, id, request_options: nil, **params)
+            @http.get(_path(subscriber_id, 'sip_endpoints', id), params.empty? ? nil : params, request_options: request_options)
           end
 
-          def update_sip_endpoint(subscriber_id, id, username: nil, password: nil, caller_id: nil, send_as: nil, ciphers: nil, codecs: nil, encryption: nil, extras: {}, **kwargs)
+          def update_sip_endpoint(subscriber_id, id, username: nil, password: nil, caller_id: nil, send_as: nil, ciphers: nil, codecs: nil, encryption: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['username'] = username unless username.nil?
             body['password'] = password unless password.nil?
@@ -85,11 +85,11 @@ module SignalWire
             body['codecs'] = codecs unless codecs.nil?
             body['encryption'] = encryption unless encryption.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.patch(_path(subscriber_id, 'sip_endpoints', id), body)
+            @http.patch(_path(subscriber_id, 'sip_endpoints', id), body, request_options: request_options)
           end
 
-          def delete_sip_endpoint(subscriber_id, id)
-            @http.delete(_path(subscriber_id, 'sip_endpoints', id))
+          def delete_sip_endpoint(subscriber_id, id, request_options: nil)
+            @http.delete(_path(subscriber_id, 'sip_endpoints', id), request_options: request_options)
           end
         end
       end

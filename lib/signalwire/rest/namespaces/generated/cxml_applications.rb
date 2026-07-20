@@ -22,15 +22,15 @@ module SignalWire
             super(http, '/api/fabric/resources/cxml_applications')
           end
 
-          def list(**params)
-            @http.get(@base_path, params.empty? ? nil : params)
+          def list(request_options: nil, **params)
+            @http.get(@base_path, params.empty? ? nil : params, request_options: request_options)
           end
 
-          def get(id, **params)
-            @http.get(_path(id), params.empty? ? nil : params)
+          def get(id, request_options: nil, **params)
+            @http.get(_path(id), params.empty? ? nil : params, request_options: request_options)
           end
 
-          def update(id, display_name: nil, account_sid: nil, voice_url: nil, voice_method: nil, voice_fallback_url: nil, voice_fallback_method: nil, status_callback: nil, status_callback_method: nil, sms_url: nil, sms_method: nil, sms_fallback_url: nil, sms_fallback_method: nil, sms_status_callback: nil, sms_status_callback_method: nil, extras: {}, **kwargs)
+          def update(id, display_name: nil, account_sid: nil, voice_url: nil, voice_method: nil, voice_fallback_url: nil, voice_fallback_method: nil, status_callback: nil, status_callback_method: nil, sms_url: nil, sms_method: nil, sms_fallback_url: nil, sms_fallback_method: nil, sms_status_callback: nil, sms_status_callback_method: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['display_name'] = display_name unless display_name.nil?
             body['account_sid'] = account_sid unless account_sid.nil?
@@ -47,15 +47,15 @@ module SignalWire
             body['sms_status_callback'] = sms_status_callback unless sms_status_callback.nil?
             body['sms_status_callback_method'] = sms_status_callback_method unless sms_status_callback_method.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.put(_path(id), body)
+            @http.put(_path(id), body, request_options: request_options)
           end
 
-          def delete(id)
-            @http.delete(_path(id))
+          def delete(id, request_options: nil)
+            @http.delete(_path(id), request_options: request_options)
           end
 
-          def list_addresses(id, **params)
-            @http.get(_path(id, 'addresses'), params.empty? ? nil : params)
+          def list_addresses(id, request_options: nil, **params)
+            @http.get(_path(id, 'addresses'), params.empty? ? nil : params, request_options: request_options)
           end
         end
       end
