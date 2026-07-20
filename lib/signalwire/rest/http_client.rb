@@ -159,6 +159,16 @@ module SignalWire
         @request_options = request_options
       end
 
+      # Redacted inspect: NEVER print the raw API token or the derived Basic-auth
+      # header (which embeds the token). Enterprise credential-hygiene (A6 /
+      # SECRET-SCRUB) — the default #inspect dumps every ivar, leaking the token
+      # into logs / crash dumps / a REPL session.
+      def inspect
+        "#<#{self.class.name} base_url=#{@base_url.inspect} " \
+          "project_id=#{@project_id.inspect} token=[REDACTED]>"
+      end
+      alias to_s inspect
+
       def get(path, params = nil, request_options: nil)
         request('GET', path, params: params, request_options: request_options)
       end

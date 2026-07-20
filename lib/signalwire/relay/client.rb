@@ -176,6 +176,18 @@ module SignalWire
 
       public
 
+      # Redacted inspect: NEVER print the raw API token, JWT, or the server's
+      # authorization_state re-auth blob — the default #inspect dumps every ivar,
+      # leaking every credential into logs / crash dumps / a REPL session.
+      # Enterprise credential-hygiene (A6 / SECRET-SCRUB): show only the
+      # non-secret identity + connection state.
+      def inspect
+        "#<#{self.class.name} project_id=#{@project_id.inspect} " \
+          "host=#{@host.inspect} connected=#{@connected} " \
+          'token=[REDACTED] jwt_token=[REDACTED] authorization_state=[REDACTED]>'
+      end
+      alias to_s inspect
+
       # Register inbound call handler.
       def on_call(&block)
         @on_call_handler = block
