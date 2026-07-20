@@ -32,7 +32,7 @@ jobs:
           # check_wired_modes.py) that live on porting-sdk's plan branch, not yet
           # on main. REVERT to main (drop this ref:) when plan/a-bar-2026-07-18
           # merges to porting-sdk main.
-          ref: plan/a-bar-2026-07-18
+          ref: main
           token: ${{ secrets.PORTING_SDK_TOKEN }}
 
       # The EMISSION gate compares this port's to_dict() output against the
