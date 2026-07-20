@@ -41,6 +41,10 @@ AllCops:
     - 'bin/envelope-dump'
     - 'bin/wire-relay-dump'
     - 'bin/wait-liveness-dump'
+    - 'bin/secure-default-dump'
+    - 'bin/relay-liveness-dump'
+    - 'bin/pagination-dump'
+    - 'bin/secret-scrub-dump'
     # Cross-port gate fixture-replay tooling, same category as the bin/*-dump
     # programs above: doc_wire_runner.rb only DRIVES the documented REST calls
     # against the DOC-WIRE flag-mode mock so it journals the wire shape. Not

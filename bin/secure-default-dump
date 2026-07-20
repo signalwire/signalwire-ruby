@@ -1,0 +1,106 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Copyright (c) 2025 SignalWire
+#
+# Licensed under the MIT License.
+# See LICENSE file in the project root for full license information.
+
+#
+# secure-default-dump — the Ruby port's SECURE-DEFAULT dump program for the
+# cross-port behavioral differ (porting-sdk/scripts/diff_port_secure_default.py).
+#
+# The A1 secure-default parity contract: AgentBase#define_tool defaults
+# secure=true fleet-wide, and a SECURE tool rendered with an active call_id
+# carries a per-tool __token on its SWAIG web_hook_url (the wire manifestation of
+# secure). A secure=false tool carries NO __token.
+#
+# This program defines two tools — one default (no explicit secure:) and one
+# secure:false — renders the SWML with the fixed corpus CALL_ID, and for each
+# emits {secure_default_true, wire_reflects_secure}:
+#
+#   secure_default_true   the SDK-recorded secure flag for the default tool
+#                         (true for the default case, false for the explicit case).
+#   wire_reflects_secure  a __token is present on the rendered webhook IFF the
+#                         tool is secure (secure -> token present; insecure ->
+#                         token absent).
+#
+# The token VALUE is an HMAC and is NOT compared — only its PRESENCE. Protocol:
+# stdout = ONE JSON object mapping corpus fixture-id -> classification map.
+#
+# Run from the signalwire-ruby repo root:
+#
+#   bundle exec ruby bin/secure-default-dump
+
+require 'json'
+
+# Keep stdout PURE JSON (the differ does json.loads(proc.stdout)); route all
+# setup/logging noise to stderr, restore stdout only to emit the final JSON.
+REAL_STDOUT = $stdout.dup
+$stdout.reopen($stderr)
+require_relative '../lib/signalwire'
+
+# Must match porting-sdk/scripts/secure_default_corpus.py CALL_ID + tool names.
+CALL_ID = 'call-secure-default-fixture'
+
+CORPUS = [
+  { 'id' => 'define_tool_default_is_secure', 'kind' => 'secure_default',
+    'tool_name' => 'sd_default_secure', 'expect_secure' => true },
+  { 'id' => 'define_tool_explicit_insecure', 'kind' => 'secure_explicit_false',
+    'tool_name' => 'sd_explicit_insecure', 'expect_secure' => false }
+].freeze
+
+# Locate one SWAIG function entry (by name) in a rendered SWML document.
+def swaig_functions(doc)
+  sections = doc['sections']
+  main = sections.is_a?(Hash) ? sections['main'] : nil
+  return [] unless main.is_a?(Array)
+
+  ai = main.find { |sec| sec.is_a?(Hash) && sec.key?('ai') }
+  return [] unless ai
+
+  fns = ai.dig('ai', 'SWAIG', 'functions')
+  fns.is_a?(Array) ? fns : []
+end
+
+# True iff a rendered SWAIG function entry's webhook carries a per-tool __token.
+def webhook_has_token?(entry)
+  url = (entry && entry['web_hook_url']) || ''
+  url.include?('__token=')
+end
+
+def main
+  agent = SignalWire::AgentBase.new(name: 'secure-default-fixture', route: '/sd')
+
+  # A default tool (no explicit secure:) + a secure:false tool.
+  agent.define_tool(name: 'sd_default_secure', description: 'secure-default fixture tool',
+                    parameters: {}) { |_a, _r| nil }
+  agent.define_tool(name: 'sd_explicit_insecure', description: 'secure-default fixture tool',
+                    parameters: {}, secure: false) { |_a, _r| nil }
+
+  # Read back the SDK-recorded secure flag per tool.
+  recorded = agent.instance_variable_get(:@tools).transform_values { |t| t[:secure] ? true : false }
+
+  # Render the SWML WITH the fixed call_id so secure tools emit their __token.
+  doc = agent._render_swml_internal(call_id: CALL_ID)
+  by_name = {}
+  swaig_functions(doc).each { |f| by_name[f['function']] = f if f.is_a?(Hash) }
+
+  out = {}
+  CORPUS.each do |kase|
+    name = kase['tool_name']
+    expect_secure = kase['expect_secure']
+    is_secure = recorded.fetch(name, false)
+    token_present = webhook_has_token?(by_name[name])
+    out[kase['id']] = {
+      'secure_default_true' => (is_secure ? true : false),
+      'wire_reflects_secure' => (token_present == expect_secure)
+    }
+  end
+
+  REAL_STDOUT.puts(JSON.generate(out))
+  REAL_STDOUT.flush
+  0
+end
+
+exit(main) if $PROGRAM_NAME == __FILE__

@@ -514,7 +514,7 @@ module SignalWire
       # enforce real certificate verification (VERIFY_PEER) against a store
       # seeded from the OpenSSL default paths (which honor the SSL_CERT_FILE /
       # SSL_CERT_DIR env vars) plus, when set, the explicit CA bundle named by
-      # SIGNALWIRE_RELAY_SSL_CA_FILE. For any non-wss scheme (plain ws:// used
+      # the fleet-standard SIGNALWIRE_RELAY_CA_FILE. For any non-wss scheme (plain ws:// used
       # by the loopback audit fixtures) it returns an empty hash so the
       # transport stays untouched.
       #
@@ -527,7 +527,7 @@ module SignalWire
         require 'openssl'
         store = OpenSSL::X509::Store.new
         store.set_default_paths
-        ca_file = ENV.fetch('SIGNALWIRE_RELAY_SSL_CA_FILE', nil)
+        ca_file = ENV.fetch('SIGNALWIRE_RELAY_CA_FILE', nil)
         store.add_file(ca_file) if ca_file && !ca_file.empty? && File.file?(ca_file)
 
         { verify_mode: OpenSSL::SSL::VERIFY_PEER, cert_store: store }

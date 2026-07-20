@@ -50,6 +50,26 @@ class TlsHttpsRestTest < Minitest::Test
     _assert_addresses_get_journaled
   end
 
+  # Positive (fleet CA var): the REST client picks up the custom CA from the
+  # fleet-standard SIGNALWIRE_REST_CA_FILE env var when no explicit +ca_file:+
+  # is passed, and completes the same verified-HTTPS GET (A5 hard-cut name).
+  def test_rest_client_reads_signalwire_rest_ca_file_env
+    prev = ENV.fetch('SIGNALWIRE_REST_CA_FILE', nil)
+    ENV['SIGNALWIRE_REST_CA_FILE'] = @ca
+    body = _env_ca_client.addresses.list(page_size: 5)
+
+    assert_kind_of Hash, body
+    assert body.key?('data'), "env-CA response missing 'data'; got #{body.keys.inspect}"
+    assert_kind_of Array, body['data']
+  ensure
+    prev.nil? ? ENV.delete('SIGNALWIRE_REST_CA_FILE') : ENV['SIGNALWIRE_REST_CA_FILE'] = prev
+  end
+
+  # A REST client with NO explicit ca_file: (so it must read the env var).
+  def _env_ca_client
+    SignalWire::REST::RestClient.new(project: 'test_proj', token: 'test_tok', base_url: @base)
+  end
+
   def _assert_addresses_get_journaled
     last = TlsHarness.signalwire_last_journal(@base, TlsHarness.trusting_store)
 

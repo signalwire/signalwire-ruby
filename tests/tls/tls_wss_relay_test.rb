@@ -10,7 +10,7 @@
 # drives the full connect + authenticate handshake.
 #
 # CA trust is wired idiomatically: SSL_CERT_FILE → ca.crt (Ruby's OpenSSL
-# default store honors it) AND the explicit SIGNALWIRE_RELAY_SSL_CA_FILE hook
+# default store honors it) AND the explicit SIGNALWIRE_RELAY_CA_FILE hook
 # the SDK reads when building its WSS trust store. The SDK now forces
 # VERIFY_PEER for wss:// (websocket-client-simple otherwise leaves a fresh
 # SSLContext at VERIFY_NONE, silently accepting any cert) — so the
@@ -35,13 +35,13 @@ class TlsWssRelayTest < Minitest::Test
     @handle = nil
     # Snapshot env we mutate so the rest of the suite is unaffected.
     @saved = ENV.to_h.slice('SSL_CERT_FILE', 'SIGNALWIRE_RELAY_SCHEME',
-                            'SIGNALWIRE_RELAY_HOST', 'SIGNALWIRE_RELAY_SSL_CA_FILE')
+                            'SIGNALWIRE_RELAY_HOST', 'SIGNALWIRE_RELAY_CA_FILE')
   end
 
   def teardown
     _stop_handle(@handle) if @handle
     %w[SSL_CERT_FILE SIGNALWIRE_RELAY_SCHEME SIGNALWIRE_RELAY_HOST
-       SIGNALWIRE_RELAY_SSL_CA_FILE].each { |k| ENV.delete(k) }
+       SIGNALWIRE_RELAY_CA_FILE].each { |k| ENV.delete(k) }
     @saved&.each { |k, v| ENV[k] = v }
   end
 
@@ -61,10 +61,10 @@ class TlsWssRelayTest < Minitest::Test
   def _set_relay_env(ca_file)
     if ca_file
       ENV['SSL_CERT_FILE'] = ca_file
-      ENV['SIGNALWIRE_RELAY_SSL_CA_FILE'] = ca_file
+      ENV['SIGNALWIRE_RELAY_CA_FILE'] = ca_file
     else
       ENV['SSL_CERT_FILE'] = File::NULL # empty default store
-      ENV.delete('SIGNALWIRE_RELAY_SSL_CA_FILE')
+      ENV.delete('SIGNALWIRE_RELAY_CA_FILE')
     end
     ENV['SIGNALWIRE_RELAY_SCHEME'] = 'wss'
     ENV['SIGNALWIRE_RELAY_HOST']   = "127.0.0.1:#{@mock[:ws_port]}"

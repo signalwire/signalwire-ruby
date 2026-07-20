@@ -139,7 +139,9 @@ module SignalWire
       # +ca_file+ (optional) names a PEM CA bundle to trust for HTTPS, for
       # private-CA / pinned-CA deployments. When set, requests verify the peer
       # (VERIFY_PEER) against a store seeded from the OpenSSL defaults (which
-      # honor SSL_CERT_FILE) plus that bundle. When unset, Net::HTTP's default
+      # honor SSL_CERT_FILE) plus that bundle. When unset, it falls back to the
+      # fleet-standard +SIGNALWIRE_REST_CA_FILE+ env var (the REST transport's
+      # custom-CA trust bundle). When neither is set, Net::HTTP's default
       # verification (system store, VERIFY_PEER) applies unchanged. HTTPS is
       # always verified either way — there is no VERIFY_NONE path.
       #
@@ -150,7 +152,9 @@ module SignalWire
         @base_url        = derive_base_url(space, base_url)
         @project_id      = project_id
         @token           = token
-        @ca_file         = (ca_file if ca_file && !ca_file.empty?)
+        effective_ca    = ca_file
+        effective_ca    = ENV.fetch('SIGNALWIRE_REST_CA_FILE', nil) if effective_ca.nil? || effective_ca.empty?
+        @ca_file         = (effective_ca if effective_ca && !effective_ca.empty?)
         @auth_header     = "Basic #{Base64.strict_encode64("#{project_id}:#{token}")}"
         @request_options = request_options
       end
