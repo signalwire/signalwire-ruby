@@ -29,6 +29,12 @@ module SignalWire
         @items    = []
         @index    = 0
         @done     = false
+        # Cycle guard: +links.next+ cursors already followed. A server that keeps
+        # returning the SAME +next+ would otherwise loop forever (the empty-page
+        # fix terminates only on an ABSENT next link, so a repeating next became
+        # an infinite loop). Seeing a repeat terminates iteration. Mirrors the
+        # python reference (_pagination.py _seen_next).
+        @seen_next = {}
       end
 
       def each
@@ -92,11 +98,16 @@ module SignalWire
         # page — e.g. a filtered page that matches nothing here. The old
         # +next_url && !data.empty?+ condition stopped on such a page and
         # silently dropped every subsequent page. Mirrors the Python reference
-        # fix (_pagination.py, #58). (A cycle guard against a self-repeating
-        # +next+ URL is pending in the Python reference; mirror it here once it
-        # lands there.)
-        next_url = (resp['links'] || {})['next']
-        if next_url
+        # fix (_pagination.py, #58).
+        advance_or_finish((resp['links'] || {})['next'])
+      end
+
+      # Advance to the next page, or terminate. A +next+ we have already followed
+      # (repeating cursor) or an absent +next+ both terminate — the cycle guard
+      # prevents an infinite re-fetch loop. Mirrors python _pagination.py _seen_next.
+      def advance_or_finish(next_url)
+        if next_url && !@seen_next.key?(next_url)
+          @seen_next[next_url] = true
           @params = params_from_next_url(next_url)
         else
           @done = true

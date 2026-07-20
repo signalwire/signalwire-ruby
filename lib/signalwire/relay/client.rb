@@ -123,13 +123,16 @@ module SignalWire
         # inside the token, so only the host is still required. Mirrors the
         # Python reference's truthiness check (an empty jwt_token is no token).
         unless jwt_token.empty?
-          raise ArgumentError, 'host is required' if space.empty?
+          raise ArgumentError, 'host is required (set SIGNALWIRE_SPACE)' if space.empty?
 
           return
         end
-        raise ArgumentError, 'project is required' if project_id.empty?
-        raise ArgumentError, 'token or jwt_token is required' if token.empty?
-        raise ArgumentError, 'host is required' if space.empty?
+        # Per-variable actionable pre-connect errors (A6): each names the missing
+        # credential AND its env var so a failure is self-diagnosing. Mirrors the
+        # python reference (client.py project-is-required / token-is-required).
+        raise ArgumentError, 'project is required (set SIGNALWIRE_PROJECT_ID)' if project_id.empty?
+        raise ArgumentError, 'token or jwt_token is required (set SIGNALWIRE_API_TOKEN)' if token.empty?
+        raise ArgumentError, 'host is required (set SIGNALWIRE_SPACE)' if space.empty?
       end
 
       def init_correlation_state
@@ -759,6 +762,8 @@ module SignalWire
 
       def handle_inbound_call(payload)
         event_params = payload['params'] || {}
+        return if max_active_calls_reached?
+
         call = build_inbound_call(event_params)
         @calls_mutex.synchronize { @calls[call.call_id] = call }
 
@@ -769,6 +774,18 @@ module SignalWire
         rescue StandardError => e
           warn "[RELAY] Error in on_call handler: #{e.message}"
         end
+      end
+
+      # True when the configured max_active_calls cap is reached, so the N+1th
+      # inbound call is DROPPED (not silently accepted). nil cap = unlimited.
+      # Mirrors python client.py _handle_inbound_call (len(_calls) >= cap).
+      def max_active_calls_reached?
+        cap = @max_active_calls
+        return false if cap.nil?
+
+        reached = @calls_mutex.synchronize { @calls.size >= cap }
+        warn "[RELAY] Max active calls (#{cap}) reached, dropping inbound call" if reached
+        reached
       end
 
       def build_inbound_call(event_params)
