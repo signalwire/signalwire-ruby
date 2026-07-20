@@ -1281,6 +1281,15 @@
               ],
               "returns": "any"
             },
+            "app": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "as_rack_app": {
               "params": [
                 {
@@ -1295,6 +1304,22 @@
                 {
                   "name": "self",
                   "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "basic_auth_credentials": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "include_source",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -1426,6 +1451,22 @@
                   "name": "request_data",
                   "type": "any",
                   "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "full_url": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "include_auth",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -1708,6 +1749,20 @@
                 {
                   "name": "self",
                   "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "skill": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "skill_name",
+                  "type": "any",
+                  "required": true
                 }
               ],
               "returns": "any"
@@ -25999,6 +26054,13 @@
                   "type": "string",
                   "required": false,
                   "default": null
+                },
+                {
+                  "name": "headers",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "void"
@@ -26012,7 +26074,25 @@
               ],
               "returns": "any"
             },
+            "headers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "method_name": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "request_id": {
               "params": [
                 {
                   "name": "self",

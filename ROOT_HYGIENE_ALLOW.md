@@ -35,6 +35,8 @@ pipeline (which this port cannot edit).
 - SEMVER_DIFF_ALLOW.md — allowlist read by porting-sdk semver_diff.py (SEMVER-DIFF) at ./SEMVER_DIFF_ALLOW.md; excuses provable non-breaking signature diffs (mirrors the TS port) (ro-ruby, 2026-07-18)
 - EXAMPLES_RUN_ALLOW.md — allowlist read by the examples_run (EXAMPLES-RUN) gate at repo root (approver: user, 2026-07-07)
 - SNIPPET_RUN_ALLOW.md — allowlist read by the snippet_run (SNIPPET-RUN) gate at repo root (approver: user, 2026-07-09)
+- WIRED_MODES.md — load-bearing manifest of run-ci strict-mode lines, read at ./WIRED_MODES.md by porting-sdk check_wired_modes.py (WIRED-MODES gate, plan 1.6/D7); must be at root (lane-ruby, 2026-07-19)
+- .doc_surface_floor — DOC-SURFACE coverage-ratchet floor read at ./.doc_surface_floor by porting-sdk doc_surface.py (plan 6.3); must be at root, must ratchet in-repo (lane-ruby, 2026-07-19)
 
 ## Gem build/publish manifest
 

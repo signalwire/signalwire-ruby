@@ -112,7 +112,8 @@ class RestTransportErrorTest < Minitest::Test
     # and it is NOT the bare Errno the transport layer raised.
     assert_kind_of SignalWire::REST::SignalWireRestError, err
     assert_nil err.status_code
-    assert_equal '/api/fabric/addresses', err.url
+    # D1: url is the FULL request URL (scheme+host+path), not the bare path.
+    assert_match(%r{\Ahttp://127\.0\.0\.1:\d+/api/fabric/addresses\z}, err.url)
   end
 
   def test_connection_refused_caught_as_rest_error_family

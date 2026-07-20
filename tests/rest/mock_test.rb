@@ -118,8 +118,10 @@ module MockTest
     # endpoint_id. Scoped to THIS client's auth header (REST's session key) so a
     # concurrent test can't consume it and a stale one can't bleed across tests;
     # an unscoped harness stages it shared.
-    def push_scenario(endpoint_id, status:, response:)
-      payload = JSON.generate('status' => status, 'response' => response)
+    def push_scenario(endpoint_id, status:, response:, headers: nil)
+      body = { 'status' => status, 'response' => response }
+      body['headers'] = headers if headers
+      payload = JSON.generate(body)
       q = if @auth_header.nil? || @auth_header.empty?
             ''
           else

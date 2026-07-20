@@ -422,17 +422,20 @@ Each of these would require understanding and manually constructing the correct 
 
 Test without deploying:
 
+A bare positional agent file is only accepted with `--simulate-serverless`; to
+list tools in-process use `--file`, and `--exec`/`--dump-swml` run in
+`--simulate-serverless` or `--url` mode.
+
 ```bash
-# List available tools
-swaig-test my_agent.rb --list-tools
+# List available tools in-process (loads the Service and reads its registry)
+swaig-test --file my_agent.rb --list-tools
 
-# Execute a specific tool (function arguments are passed as --param key=value)
-swaig-test my_agent.rb --exec get_weather --param city="San Francisco"
+# Execute a specific tool via serverless simulation
+# (function arguments are passed as --param key=value)
+swaig-test my_agent.rb --simulate-serverless lambda \
+  --exec get_weather --param city="San Francisco"
 
-# Dump generated SWML for inspection
-swaig-test my_agent.rb --dump-swml
-
-# Test with serverless environment simulation
+# Dump generated SWML for inspection (serverless simulation)
 swaig-test my_agent.rb --simulate-serverless lambda --dump-swml
 
 # Multi-agent: run the server, then target a specific agent's route by URL

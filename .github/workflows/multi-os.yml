@@ -1,0 +1,98 @@
+name: Multi-OS (nightly)
+
+# 6.4 multi-OS lane: an A-grade cross-platform SDK must be certified on more than
+# ubuntu. This runs the two OS-sensitive suites — TEST (rake test against the
+# shared mock) and PACKAGE-SMOKE (build the real gem, install it into a clean
+# env, require + construct + one mock call) — on macOS and Windows on the NIGHTLY
+# tier (runner cost). A skip-if-unchanged guard avoids re-running when nothing
+# code/packaging-relevant changed.
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+on:
+  schedule:
+    # Nightly at 07:15 UTC.
+    - cron: '15 7 * * *'
+  workflow_dispatch:
+
+jobs:
+  # Skip the OS matrix on a scheduled run when the last day had no code/packaging
+  # change (docs-only nights don't need the expensive macOS/Windows runners).
+  changed:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.guard.outputs.run }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: guard
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          # Any commit in the last 24h touching source / gemspec / test / scripts?
+          since=$(date -u -d '24 hours ago' '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date -u -v-24H '+%Y-%m-%dT%H:%M:%SZ')
+          if git log --since="$since" --name-only --pretty=format: \
+               | grep -qE '^(lib/|tests/|scripts/|.*\.gemspec|Gemfile)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false (docs-only night; skipping OS matrix)"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  os-matrix:
+    needs: changed
+    if: needs.changed.outputs.run == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout signalwire-ruby
+        uses: actions/checkout@v7
+        with:
+          path: signalwire-ruby
+
+      - name: Checkout porting-sdk alongside
+        uses: actions/checkout@v7
+        with:
+          repository: signalwire/porting-sdk
+          path: porting-sdk
+          # Plan window: depends on porting-sdk plan-branch gate engines. REVERT
+          # to main (drop this ref:) when plan/a-bar-2026-07-18 merges.
+          ref: plan/a-bar-2026-07-18
+          token: ${{ secrets.PORTING_SDK_TOKEN }}
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4.9'
+          bundler-cache: true
+          working-directory: signalwire-ruby
+
+      - name: Set up Python (mock harnesses + package_smoke)
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Install Python test harnesses (mock_signalwire + mock_relay)
+        run: |
+          pip install -e porting-sdk/test_harness/mock_relay
+          pip install -e porting-sdk/test_harness/mock_signalwire
+
+      # TEST — the full rake suite drives the real net/http + WEBrick paths, the
+      # OS-sensitive halves (sockets, TLS, temp files, WEBrick).
+      - name: TEST (rake test against the shared mock)
+        working-directory: signalwire-ruby
+        shell: bash
+        run: bash scripts/run-tests.sh
+
+      # PACKAGE-SMOKE — build + install the real gem in a clean env, then
+      # require + construct a client (OS-sensitive: gem build/install paths).
+      - name: PACKAGE-SMOKE (build/install the gem, require + construct)
+        working-directory: signalwire-ruby
+        shell: bash
+        run: python3 ../porting-sdk/scripts/package_smoke.py --port ruby --repo .

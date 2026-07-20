@@ -6,6 +6,8 @@ require 'uri'
 require 'base64'
 require 'openssl'
 require_relative 'request_options'
+require_relative '../version'
+require_relative '../error'
 
 module SignalWire
   module REST
@@ -16,20 +18,48 @@ module SignalWire
     # reset, TLS error) it is +nil+ and the raised type is the subclass
     # {SignalWireRestTransportError}. Callers catch this one family for every
     # REST failure, HTTP or transport.
-    class SignalWireRestError < StandardError
-      attr_reader :status_code, :body, :url, :method_name
+    class SignalWireRestError < SignalWire::Error
+      attr_reader :status_code, :body, :url, :method_name, :headers, :request_id
 
-      def initialize(status_code, body, url, method_name = 'GET')
+      # §6.6 error-observability: +headers+ is the response header map (or +nil+
+      # for a transport error that produced no response) and +request_id+ is the
+      # platform request id pulled from those headers — client-side observability
+      # with NO wire-contract change. Appended to the message when present.
+      # Response-id header names, in preference order, matched case-insensitively.
+      REQUEST_ID_HEADERS = %w[
+        x-request-id x-signalwire-request-id request-id x-amzn-requestid
+      ].freeze
+
+      def initialize(status_code, body, url, method_name = 'GET', headers: nil)
         @status_code = status_code
         @body        = body
         @url         = url
         @method_name = method_name
-        message = if status_code.nil?
-                    "#{method_name} #{url} failed to reach the server: #{body}"
-                  else
-                    "#{method_name} #{url} returned #{status_code}: #{body}"
-                  end
-        super(message)
+        @headers     = headers
+        @request_id  = extract_request_id(headers)
+        super(build_message)
+      end
+
+      private
+
+      def build_message
+        base = if @status_code.nil?
+                 "#{@method_name} #{@url} failed to reach the server: #{@body}"
+               else
+                 "#{@method_name} #{@url} returned #{@status_code}: #{@body}"
+               end
+        @request_id ? "#{base} (request-id: #{@request_id})" : base
+      end
+
+      # Pull the platform request id from a response header map (case-insensitive),
+      # preferring the SignalWire/proxy header order. Returns nil when absent.
+      # Private (internal plumbing, not public API surface).
+      def extract_request_id(headers)
+        return nil if headers.nil? || headers.empty?
+
+        lowered = headers.each_with_object({}) { |(k, v), h| h[k.to_s.downcase] = v }
+        REQUEST_ID_HEADERS.each { |name| return lowered[name] if lowered.key?(name) }
+        nil
       end
     end
 
@@ -75,6 +105,14 @@ module SignalWire
     # Thin wrapper around Net::HTTP with Basic Auth and JSON handling.
     class HttpClient
       attr_reader :base_url, :project_id
+
+      # REST client User-Agent. The product token stays stable at
+      # `signalwire-ruby`; the version segment is the real SDK version so it can
+      # never drift from a hardcoded literal. Mirrors the Python reference fix
+      # (rest/_base.py `_user_agent`) — SDK_BUG_LEDGER P1: the old
+      # `signalwire-agents-ruby-rest/1.0` was both the wrong product token and a
+      # stale `/1.0` while the package was at 3.x.
+      USER_AGENT = "signalwire-ruby/#{SignalWire::VERSION}".freeze
 
       # Transport-level failures Net::HTTP raises when the request never reaches
       # a response: connection refused / DNS failure (SocketError) / connection
@@ -156,11 +194,16 @@ module SignalWire
         # total attempts = retries + 1; retry on a retryable status (idempotency-
         # aware) or a transport error, honoring Retry-After then exponential
         # backoff. abort_signal is checked cooperatively before every attempt.
+        # D1: the error's +url+ is the FULL request URL (scheme+host+path+query),
+        # the exact string that went on the wire — not the bare path. +uri+ is
+        # already the composed absolute URL, so thread +uri.to_s+ to every error
+        # site.
+        url = uri.to_s
         attempt = 0
         loop do
           attempt += 1
-          check_abort!(opts, path, method)
-          result = attempt_request(method, path, uri, body, opts, attempt)
+          check_abort!(opts, url, method)
+          result = attempt_request(method, url, uri, body, opts, attempt)
           return result.value if result.done?
           # else: a retry was scheduled (backoff already slept) — loop again.
         end
@@ -169,26 +212,27 @@ module SignalWire
       # One attempt of the retry loop. Returns an {Attempt}: +done?+ true carries
       # the final +value+ (success body) or has already raised the terminal typed
       # error; +done?+ false means "retry scheduled, loop again". Keeps +request+
-      # a thin driver so the retry policy reads linearly.
-      def attempt_request(method, path, uri, body, opts, attempt)
+      # a thin driver so the retry policy reads linearly. +url+ is the full
+      # request URL stored in any raised error (D1).
+      def attempt_request(method, url, uri, body, opts, attempt)
         response = perform(method, uri, body, opts.timeout)
-        handle_http_response(response, path, method, opts, attempt)
+        handle_http_response(response, url, method, opts, attempt)
       rescue *TRANSPORT_ERRORS => e
         # Transport failure (connection refused / DNS / reset / TLS / timeout):
         # the request never produced a response. Retry if attempts remain, else
         # wrap in the typed error family.
         return Attempt.retry if retry_transport?(opts, attempt)
 
-        raise SignalWireRestTransportError.new(e.message, path, method)
+        raise SignalWireRestTransportError.new(e.message, url, method)
       end
 
       # abort_signal is checked cooperatively BEFORE each attempt: a set signal
       # surfaces as the transport-error family (no response was produced), not a
       # bare exception.
-      def check_abort!(opts, path, method)
+      def check_abort!(opts, url, method)
         return unless opts.abort_signal&.set?
 
-        raise SignalWireRestTransportError.new('request cancelled by abort_signal', path, method)
+        raise SignalWireRestTransportError.new('request cancelled by abort_signal', url, method)
       end
 
       def retry_transport?(opts, attempt)
@@ -202,8 +246,8 @@ module SignalWire
       # retryable non-2xx (idempotency-aware) with attempts remaining, raise the
       # terminal typed error for a non-retryable/exhausted non-2xx, else return
       # the decoded success body.
-      def handle_http_response(response, path, method, opts, attempt)
-        return handle_error_response(response, path, method, opts, attempt) unless response.is_a?(Net::HTTPSuccess)
+      def handle_http_response(response, url, method, opts, attempt)
+        return handle_error_response(response, url, method, opts, attempt) unless response.is_a?(Net::HTTPSuccess)
 
         return Attempt.done({}) if response.code.to_i == 204 || response.body.nil? || response.body.empty?
 
@@ -211,15 +255,25 @@ module SignalWire
       end
 
       # A non-2xx response: retry if it's a retryable status with attempts left
-      # (idempotency-aware), else raise the terminal typed error.
-      def handle_error_response(response, path, method, opts, attempt)
+      # (idempotency-aware), else raise the terminal typed error. +url+ is the
+      # full request URL stored in the error (D1).
+      def handle_error_response(response, url, method, opts, attempt)
         status = response.code.to_i
         if attempt <= opts.retries && opts.status_retryable?(method, status)
           delay = retry_after_seconds(response) || (opts.retry_backoff * (2**(attempt - 1)))
           sleep_backoff(delay)
           return Attempt.retry
         end
-        raise SignalWireRestError.new(status, parse_error_body(response), path, method)
+        raise SignalWireRestError.new(status, parse_error_body(response), url, method,
+                                      headers: response_headers(response))
+      end
+
+      # Flatten a Net::HTTPResponse's headers into a plain {name => value} hash
+      # (§6.6) so the raised error can expose them + the platform request id.
+      def response_headers(response)
+        headers = {}
+        response.each_header { |name, value| headers[name] = value }
+        headers
       end
 
       # Issue one HTTP attempt. Net::HTTP's +read_timeout+/+open_timeout+ bound
@@ -287,7 +341,7 @@ module SignalWire
         req['Authorization'] = @auth_header
         req['Content-Type']  = 'application/json'
         req['Accept']        = 'application/json'
-        req['User-Agent']    = 'signalwire-agents-ruby-rest/1.0'
+        req['User-Agent']    = USER_AGENT
       end
 
       def configure_ssl(http)

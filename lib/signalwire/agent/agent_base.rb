@@ -571,6 +571,39 @@ module SignalWire
       set_web_hook_url(url)
     end
 
+    # D9: additional bare-noun readers over the zero-/default-arg `get_<name>`
+    # accessors (the get_ names stay as the deprecating aliases). Multi-arg
+    # readers (#get_language_params(code)) are NOT aliased — a bare noun can't
+    # carry an argument idiomatically. Defined as method wrappers (not `alias`)
+    # because some targets (#get_app) are declared later in the class body and
+    # `alias` binds at definition time.
+    # (`name` is already a bare-noun reader inherited from SWML::Service's
+    # attr_reader — get_name delegates to it — so it is NOT re-wrapped here.)
+    def app
+      get_app
+    end
+
+    # Single-value `set_<name>` config setter → `X=` writer.
+    def multilingual=(config)
+      set_multilingual(config)
+    end
+
+    # Predicate form of #has_skill? (idiomatic Ruby `?`-reader; takes the skill
+    # name like the original).
+    def skill?(skill_name)
+      has_skill?(skill_name)
+    end
+
+    # Bare-noun readers over the kwarg-defaulted getters (the default path is
+    # the common case; the get_ form remains for the explicit-flag call).
+    def full_url(include_auth: false)
+      get_full_url(include_auth: include_auth)
+    end
+
+    def basic_auth_credentials(include_source: false)
+      get_basic_auth_credentials(include_source: include_source)
+    end
+
     # Returns the contexts dictionary as a serialised hash, or nil when
     # no contexts have been defined yet.
     # @!visibility private  (idiomatic alias: #contexts; the original

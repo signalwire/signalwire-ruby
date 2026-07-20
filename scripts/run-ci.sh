@@ -63,6 +63,14 @@ cd "$PORT_ROOT"
 # caller may still set SW_WAVE_A_REPORT_ONLY=1 to inspect the report-only view.
 export SW_WAVE_A_REPORT_ONLY="${SW_WAVE_A_REPORT_ONLY:-0}"
 
+# STRICT-MOCKS D3 (400-default, fleet-wide): the REST mock returns a 400 on any
+# wire-truth violation (unknown/wrong key) instead of only journaling it, so a
+# test that puts a bad shape on the REST wire FAILS here rather than passing
+# vacuously. Exported (not per-gate) so it reaches the mock subprocess the TEST
+# harness spawns. Declared in WIRED_MODES.md; the WIRED-MODES gate guards it
+# against a merge silently dropping the line.
+export MOCK_SIGNALWIRE_STRICT=1
+
 echo "==> running CI gates for $PORT_NAME (porting-sdk at $PORTING_SDK_DIR)"
 echo "==> wave-A gate findings are ${SW_WAVE_A_REPORT_ONLY:+BLOCKING (SW_WAVE_A_REPORT_ONLY=$SW_WAVE_A_REPORT_ONLY)}"
 
@@ -193,13 +201,28 @@ sched_gate SNIPPET-RUN tier=nightly defer=1 desc="dynamic-port doc snippets run 
 sched_gate EXAMPLES-RUN tier=nightly defer=1 desc="shipped examples load/start against the mock (modulo EXAMPLES_RUN_ALLOW.md; STRICT-MOCKS: MOCK_RELAY_STRICT=1)" \
     -- env MOCK_RELAY_STRICT=1 python3 "$PORTING_SDK_DIR/scripts/examples_run.py" --port ruby --repo "$PORT_ROOT"
 
-# NOTE: §1.11b (GATE-INVENTORY freshness) is intentionally NOT wired here.
-# gen_gate_inventory.py resolves its reference port as a SIBLING checkout
-# (DEFAULT_REFERENCE=signalwire-typescript), which does not exist in a port's CI
-# layout (porting-sdk is a subdir of the port workspace, so ../signalwire-
-# typescript is absent → exit 2). The check is inherently porting-sdk-side and
-# already runs in porting-sdk's own CI (.github/workflows/test.yml). Wiring it
-# per-port would require each port to also check out the TS reference — not worth it.
+# DOC-SURFACE (§6.3): public doc-comment (YARD `#`) coverage floor. Report-only
+# for now (--report-only never fails the run); the floor in .doc_surface_floor
+# ratchets up as coverage improves and never regresses.
+sched_gate DOC-SURFACE desc="public YARD doc-comment coverage holds the .doc_surface_floor ratchet (report-only)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/doc_surface.py" --port ruby --repo "$PORT_ROOT" --report-only
+
+# WIRED-MODES (Part 1.6 / D7): guard that this run-ci still exports the
+# load-bearing strict-mode lines declared in WIRED_MODES.md (MOCK_RELAY_STRICT +
+# MOCK_SIGNALWIRE_STRICT). The strict-mocks × Part-5 merge race silently dropped
+# such lines from several ports, shipping green-and-vacuous gates; this fails
+# loud if a future merge drops one here.
+sched_gate WIRED-MODES desc="run-ci exports every load-bearing strict-mode line declared in WIRED_MODES.md" \
+    -- python3 "$PORTING_SDK_DIR/scripts/check_wired_modes.py" --port ruby --repo "$PORT_ROOT"
+
+# GATE-INVENTORY NOTE (§2.16): §1.11b (GATE-INVENTORY freshness) is intentionally
+# NOT wired here. gen_gate_inventory.py resolves its reference port as a SIBLING
+# checkout (DEFAULT_REFERENCE=signalwire-typescript), which does not exist in a
+# port's CI layout (porting-sdk is a subdir of the port workspace, so
+# ../signalwire-typescript is absent → exit 2). The check is inherently
+# porting-sdk-side and already runs in porting-sdk's own CI
+# (.github/workflows/test.yml). Wiring it per-port would require each port to also
+# check out the TS reference — not worth it.
 
 sched_run
 rc=$?

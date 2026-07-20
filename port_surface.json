@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 7b07ee1f7c383e4da420bad25e57ae04b4f1c677",
+  "generated_from": "signalwire-ruby @ bb99959440d1e77ba785815e6e30538533e32b88",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -102,8 +102,10 @@
           "add_pre_answer_verb",
           "add_swaig_query_params",
           "agent_id",
+          "app",
           "as_rack_app",
           "auto_map_sip_usernames",
+          "basic_auth_credentials",
           "clear_post_ai_verbs",
           "clear_post_answer_verbs",
           "clear_pre_answer_verbs",
@@ -113,6 +115,7 @@
           "enable_sip_routing",
           "extract_sip_username",
           "extract_sip_username_from_request",
+          "full_url",
           "get_contexts",
           "get_full_url",
           "get_name",
@@ -134,6 +137,7 @@
           "set_post_prompt_url",
           "set_web_hook_url",
           "signing_key",
+          "skill?",
           "skill_manager",
           "use_pom"
         ]
@@ -966,6 +970,12 @@
       },
       "functions": []
     },
+    "signalwire.error": {
+      "classes": {
+        "Error": []
+      },
+      "functions": []
+    },
     "signalwire.logging": {
       "classes": {
         "Logging": [
@@ -1739,7 +1749,9 @@
         "SignalWireRestError": [
           "__init__",
           "body",
+          "headers",
           "method_name",
+          "request_id",
           "status_code",
           "url"
         ],

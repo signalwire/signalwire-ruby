@@ -11,6 +11,7 @@ require 'base64'
 require 'rack'
 
 require_relative '../logging'
+require_relative '../error'
 
 module SignalWire
   module Core
@@ -214,7 +215,7 @@ module SignalWire
 
     # Raised by the {AuthHandler#rack_dependency} callable when required
     # authentication fails. Carries the Rack 401 response tuple.
-    class AuthError < StandardError
+    class AuthError < SignalWire::Error
       attr_reader :response
 
       def initialize(response)

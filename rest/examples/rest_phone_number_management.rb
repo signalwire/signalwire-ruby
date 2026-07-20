@@ -22,7 +22,7 @@ end
 
 # 1. Search for available phone numbers
 puts 'Searching available numbers...'
-available = client.phone_numbers.search(area_code: '512', max_results: 3)
+available = client.phone_numbers.search(areacode: '512', max_results: 3)
 (available['data'] || []).each do |num|
   puts "  - #{num.fetch('e164', num.fetch('number', 'unknown'))}"
 end

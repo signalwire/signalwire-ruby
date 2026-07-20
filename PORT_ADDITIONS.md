@@ -109,6 +109,7 @@ signalwire.agent_server.AgentServer.port: port-only: Ruby attr_reader exposing c
 signalwire.agent_server.AgentServer.rack_app: port-only: Ruby attr_reader exposing constructor state (idiomatic Ruby; Python uses property decorators or public fields)
 signalwire.contexts.Contexts: port-only: SignalWire::Contexts module with create_simple_context helper
 signalwire.contexts.Contexts.create_simple_context: port-only: Ruby counterpart of Python signalwire.core.contexts.create_simple_context (omitted)
+signalwire.error.Error: port-only: SignalWire::Error root of the SDK exception hierarchy (Stripe `StripeError` idiom); a common ancestor under StandardError that the 5 error families reparent onto. Python subclasses Exception directly with no shared root, so this is a Ruby-idiom addition, non-breaking (rescue StandardError still catches).
 signalwire.core.agent_base.AgentBase.add_function_include: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
 signalwire.core.agent_base.AgentBase.agent_id: port-only: Ruby attr_reader for the auto-generated/explicit agent UUID (Python keeps it as `self.agent_id` instance attribute)
 signalwire.core.agent_base.AgentBase.default_webhook_url: port-only: Ruby attr_reader for the constructor `default_webhook_url:` arg (Python: `self._default_webhook_url`)
@@ -514,6 +515,8 @@ signalwire.relay.message.Message.terminal?: port-only: typed predicate over `Mes
 signalwire.rest._base.CrudResource.update_method: port-only: per-resource override hook for PATCH vs PUT (default update verb)
 signalwire.rest._base.HttpClient.base_url: port-only: attr_reader for base_url
 signalwire.rest._base.SignalWireRestError.body: port-only: attr_reader for error body
+signalwire.rest._base.SignalWireRestError.headers: port-only: attr_reader for the response headers (§6.6; Python holds it as a plain instance attribute)
+signalwire.rest._base.SignalWireRestError.request_id: port-only: attr_reader for the platform request id extracted from the response headers (§6.6; Python holds it as a plain instance attribute)
 signalwire.rest._base.SignalWireRestError.method_name: port-only: attr_reader for originating HTTP method
 signalwire.rest._base.SignalWireRestError.status_code: port-only: attr_reader for HTTP status
 signalwire.rest._base.SignalWireRestError.url: port-only: attr_reader for failed URL
@@ -781,6 +784,11 @@ signalwire.core.agent_base.AgentBase.signing_key: ruby_idiom_port_only: AgentBas
 signalwire.core.agent_base.AgentBase.prompt: ruby-idiom alias (reader) over get_prompt; native `agent.prompt` accessor, Python name retained for parity
 signalwire.core.agent_base.AgentBase.prompt_text: ruby-idiom alias (reader+writer) over get_raw_prompt/set_prompt_text; native `agent.prompt_text` / `agent.prompt_text=`
 signalwire.core.agent_base.AgentBase.post_prompt: ruby-idiom alias (reader+writer) over get_post_prompt/set_post_prompt; native `agent.post_prompt` / `agent.post_prompt=`
+signalwire.core.agent_base.AgentBase.app: ruby-idiom bare-noun reader (D9) over get_app; native `agent.app`, get_ name retained for parity
+signalwire.core.agent_base.AgentBase.full_url: ruby-idiom bare-noun reader (D9) over get_full_url; native `agent.full_url`, get_ name retained for parity
+signalwire.core.agent_base.AgentBase.basic_auth_credentials: ruby-idiom bare-noun reader (D9) over get_basic_auth_credentials; native `agent.basic_auth_credentials`, get_ name retained for parity
+signalwire.core.agent_base.AgentBase.skill: ruby-idiom predicate (D9) over has_skill? — signature audit strips Ruby ?/! suffixes (Layer A spelling of `skill?` below)
+signalwire.core.agent_base.AgentBase.skill?: ruby-idiom predicate (D9) over has_skill?; native `agent.skill?(name)`, has_ name retained for parity
 signalwire.swml.service.Service.all_functions: ruby-idiom reader alias over get_all_functions
 signalwire.swml.service.Service.basic_auth_credentials_with_source: ruby-idiom reader alias over get_basic_auth_credentials_with_source
 signalwire.swml.service.Service.function?: ruby-idiom `?`-predicate alias over has_function
