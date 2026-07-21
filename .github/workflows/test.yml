@@ -36,7 +36,7 @@ jobs:
           # main yet, so main makes BEHAVIORAL crash on unknown-rule and SEMVER/
           # DRIFT diff against a stale oracle.
           # REVERT to main (drop this ref:) when porting-sdk wave/1-aplus merges.
-          ref: wave/1-aplus
+          ref: main
           token: ${{ secrets.PORTING_SDK_TOKEN }}
 
       # The EMISSION gate compares this port's to_dict() output against the
