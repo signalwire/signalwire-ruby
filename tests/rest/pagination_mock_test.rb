@@ -14,6 +14,7 @@
 #      correspond to the two HTTP fetches.
 
 require 'minitest/autorun'
+require 'timeout'
 require_relative 'mock_test'
 
 class PaginationMockTest < Minitest::Test
@@ -129,6 +130,23 @@ class PaginationMockTest < Minitest::Test
 
     assert_equal(%w[addr-late], collected.map { |x| x['id'] })
     assert_two_paginated_gets
+  end
+
+  # Cycle guard: a server that keeps returning the SAME links.next cursor must
+  # not loop forever. The empty-page fix terminates only on an ABSENT next link,
+  # so a repeating next would otherwise hang. Seeing a repeat terminates the walk
+  # yielding exactly the items already collected. Mirrors the python reference
+  # (_pagination.py _seen_next) + the PAGINATION-CORPUS repeating_cursor_guard.
+  def test_repeating_next_cursor_terminates_not_hangs
+    loop_url = 'http://example.com/api/fabric/addresses?page_token=LOOP'
+    push_page([{ 'id' => 'loop-1' }], { 'next' => loop_url })
+    push_page([{ 'id' => 'loop-2' }], { 'next' => loop_url })
+
+    collected = nil
+    Timeout.timeout(8) { collected = build_iterator.to_a }
+
+    assert_equal(%w[loop-1 loop-2], collected.map { |x| x['id'] },
+                 'repeated cursor must not be re-fetched')
   end
 
   def test_next_returns_stop_when_done

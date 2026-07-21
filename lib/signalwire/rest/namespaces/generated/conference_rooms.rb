@@ -22,7 +22,7 @@ module SignalWire
             super(http, '/api/fabric/resources/conference_rooms')
           end
 
-          def create(name:, enable_room_previews:, display_name: nil, description: nil, join_from: nil, join_until: nil, max_members: nil, quality: nil, remove_at: nil, remove_after_seconds_elapsed: nil, layout: nil, record_on_start: nil, meta: nil, sync_audio_video: nil, tone_on_entry_and_exit: nil, room_join_video_off: nil, user_join_video_off: nil, extras: {}, **kwargs)
+          def create(name:, enable_room_previews:, display_name: nil, description: nil, join_from: nil, join_until: nil, max_members: nil, quality: nil, remove_at: nil, remove_after_seconds_elapsed: nil, layout: nil, record_on_start: nil, meta: nil, sync_audio_video: nil, tone_on_entry_and_exit: nil, room_join_video_off: nil, user_join_video_off: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['name'] = name
             body['enable_room_previews'] = enable_room_previews
@@ -42,10 +42,10 @@ module SignalWire
             body['room_join_video_off'] = room_join_video_off unless room_join_video_off.nil?
             body['user_join_video_off'] = user_join_video_off unless user_join_video_off.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(resource_id, enable_room_previews:, sync_audio_video:, name: nil, display_name: nil, description: nil, join_from: nil, join_until: nil, max_members: nil, quality: nil, remove_at: nil, remove_after_seconds_elapsed: nil, layout: nil, record_on_start: nil, meta: nil, tone_on_entry_and_exit: nil, room_join_video_off: nil, user_join_video_off: nil, extras: {}, **kwargs)
+          def update(resource_id, enable_room_previews:, sync_audio_video:, name: nil, display_name: nil, description: nil, join_from: nil, join_until: nil, max_members: nil, quality: nil, remove_at: nil, remove_after_seconds_elapsed: nil, layout: nil, record_on_start: nil, meta: nil, tone_on_entry_and_exit: nil, room_join_video_off: nil, user_join_video_off: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['enable_room_previews'] = enable_room_previews
             body['sync_audio_video'] = sync_audio_video
@@ -65,11 +65,11 @@ module SignalWire
             body['room_join_video_off'] = room_join_video_off unless room_join_video_off.nil?
             body['user_join_video_off'] = user_join_video_off unless user_join_video_off.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.put(_path(resource_id), body)
+            @http.put(_path(resource_id), body, request_options: request_options)
           end
 
-          def list_addresses(id, **params)
-            @http.get("/api/fabric/resources/conference_room/#{id}/addresses", params.empty? ? nil : params)
+          def list_addresses(id, request_options: nil, **params)
+            @http.get("/api/fabric/resources/conference_room/#{id}/addresses", params.empty? ? nil : params, request_options: request_options)
           end
         end
       end

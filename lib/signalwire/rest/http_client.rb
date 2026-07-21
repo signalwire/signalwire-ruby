@@ -30,7 +30,7 @@ module SignalWire
         x-request-id x-signalwire-request-id request-id x-amzn-requestid
       ].freeze
 
-      def initialize(status_code, body, url, method_name = 'GET', headers: nil)
+      def initialize(status_code, body, url, method_name = 'GET', headers = nil)
         @status_code = status_code
         @body        = body
         @url         = url
@@ -139,7 +139,9 @@ module SignalWire
       # +ca_file+ (optional) names a PEM CA bundle to trust for HTTPS, for
       # private-CA / pinned-CA deployments. When set, requests verify the peer
       # (VERIFY_PEER) against a store seeded from the OpenSSL defaults (which
-      # honor SSL_CERT_FILE) plus that bundle. When unset, Net::HTTP's default
+      # honor SSL_CERT_FILE) plus that bundle. When unset, it falls back to the
+      # fleet-standard +SIGNALWIRE_REST_CA_FILE+ env var (the REST transport's
+      # custom-CA trust bundle). When neither is set, Net::HTTP's default
       # verification (system store, VERIFY_PEER) applies unchanged. HTTPS is
       # always verified either way — there is no VERIFY_NONE path.
       #
@@ -150,10 +152,22 @@ module SignalWire
         @base_url        = derive_base_url(space, base_url)
         @project_id      = project_id
         @token           = token
-        @ca_file         = (ca_file if ca_file && !ca_file.empty?)
+        effective_ca    = ca_file
+        effective_ca    = ENV.fetch('SIGNALWIRE_REST_CA_FILE', nil) if effective_ca.nil? || effective_ca.empty?
+        @ca_file         = (effective_ca if effective_ca && !effective_ca.empty?)
         @auth_header     = "Basic #{Base64.strict_encode64("#{project_id}:#{token}")}"
         @request_options = request_options
       end
+
+      # Redacted inspect: NEVER print the raw API token or the derived Basic-auth
+      # header (which embeds the token). Enterprise credential-hygiene (A6 /
+      # SECRET-SCRUB) — the default #inspect dumps every ivar, leaking the token
+      # into logs / crash dumps / a REPL session.
+      def inspect
+        "#<#{self.class.name} base_url=#{@base_url.inspect} " \
+          "project_id=#{@project_id.inspect} token=[REDACTED]>"
+      end
+      alias to_s inspect
 
       def get(path, params = nil, request_options: nil)
         request('GET', path, params: params, request_options: request_options)
@@ -265,7 +279,7 @@ module SignalWire
           return Attempt.retry
         end
         raise SignalWireRestError.new(status, parse_error_body(response), url, method,
-                                      headers: response_headers(response))
+                                      response_headers(response))
       end
 
       # Flatten a Net::HTTPResponse's headers into a plain {name => value} hash
@@ -385,8 +399,8 @@ module SignalWire
     # +signalwire.rest._base.ReadResource+: the read half of the CRUD surface,
     # extended by CrudResource with create/update/delete.
     class ReadResource < BaseResource
-      def list(**params)
-        @http.get(@base_path, params.empty? ? nil : params)
+      def list(request_options: nil, **params)
+        @http.get(@base_path, params.empty? ? nil : params, request_options: request_options)
       end
 
       # Iterate every item across all pages of this resource's list endpoint.
@@ -401,12 +415,13 @@ module SignalWire
       # +resp["data"]+ and follows +resp["links"]["next"]+), so callers no
       # longer hand-construct the path + token loop. Returns an Enumerable
       # +PaginatedIterator+ — the Ruby idiom for Python's returned iterator.
-      def paginate(**params)
-        PaginatedIterator.new(@http, @base_path, params.empty? ? nil : params, 'data')
+      def paginate(request_options: nil, **params)
+        PaginatedIterator.new(@http, @base_path, params.empty? ? nil : params, 'data',
+                              request_options)
       end
 
-      def get(resource_id)
-        @http.get(_path(resource_id))
+      def get(resource_id, request_options: nil)
+        @http.get(_path(resource_id), request_options: request_options)
       end
     end
 
@@ -433,17 +448,17 @@ module SignalWire
         attr_writer :update_method
       end
 
-      def create(**kwargs)
-        @http.post(@base_path, kwargs)
+      def create(request_options: nil, **kwargs)
+        @http.post(@base_path, kwargs, request_options: request_options)
       end
 
-      def update(resource_id, **kwargs)
+      def update(resource_id, request_options: nil, **kwargs)
         m = self.class.update_method.downcase
-        @http.send(m, _path(resource_id), kwargs)
+        @http.send(m, _path(resource_id), kwargs, request_options: request_options)
       end
 
-      def delete(resource_id)
-        @http.delete(_path(resource_id))
+      def delete(resource_id, request_options: nil)
+        @http.delete(_path(resource_id), request_options: request_options)
       end
     end
 
@@ -453,8 +468,9 @@ module SignalWire
     # list/create/get/update/delete surface, issuing
     # +GET {base_path}/{resource_id}/addresses+.
     class CrudWithAddresses < CrudResource
-      def list_addresses(resource_id, **params)
-        @http.get(_path(resource_id, 'addresses'), params.empty? ? nil : params)
+      def list_addresses(resource_id, request_options: nil, **params)
+        @http.get(_path(resource_id, 'addresses'), params.empty? ? nil : params,
+                  request_options: request_options)
       end
     end
   end

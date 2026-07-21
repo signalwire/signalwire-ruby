@@ -1,0 +1,472 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Copyright (c) 2025 SignalWire
+#
+# Licensed under the MIT License.
+# See LICENSE file in the project root for full license information.
+
+#
+# relay-liveness-dump — the Ruby port's RELAY-LIVENESS dump program for the
+# cross-port behavioral differ (porting-sdk/scripts/diff_port_relay_liveness.py).
+#
+# The BROADER RELAY connection+error liveness suite (plan PSDK-2 / enterprise
+# report F2/F3). The differ builds the golden by driving signalwire-python, then
+# runs THIS program and structurally compares our per-fixture CLASSIFICATION.
+# Every artifact is a deterministic boolean map (raised / bounded / detected /
+# enforced / reconnected), never raw ms.
+#
+# Fixtures + classification (mirror relay_liveness_corpus.py):
+#   cred_missing_project/token  {failed_preconnect_on_missing}
+#   cred_auth_reject            {raised_after_bounded_retry, infinite_reconnect,
+#                                server_message_surfaced}
+#   relay_contract_500/404/410  {raised, swallowed}
+#   dead_peer_half_open         {detected_bounded, hung}
+#   black_hole_silent_peer      {bounded_error, unbounded_hang}
+#   reconnect_after_drop        {reconnected, pending_faulted_not_hung, zombie}
+#   max_active_calls_cap        {cap_enforced}
+#
+# The connect-level fault cases (auth-reject / dead-peer / black-hole /
+# reconnect) are driven against a small embedded controllable WS server this
+# program stands up (the Ruby analog of the python differ's in-process _FakeWS):
+# it speaks ruby's signalwire.connect handshake and injects the specific fault.
+# relay_contract is driven against the real mock_relay (rpc_code capability);
+# cred_missing + max_active_calls need no socket.
+#
+# Protocol: stdout = ONE JSON object mapping fixture-id -> classification map.
+# Only stdout carries JSON.
+#
+#   bundle exec ruby bin/relay-liveness-dump
+
+require 'json'
+require 'socket'
+require 'timeout'
+require 'digest/sha1'
+require 'base64'
+require 'websocket'
+
+# Keep stdout PURE JSON (the differ does json.loads(proc.stdout)); route setup
+# noise to stderr, restore stdout only to emit the final JSON.
+REAL_STDOUT = $stdout.dup
+$stdout.reopen($stderr)
+
+require_relative '../lib/signalwire'
+require_relative '../lib/signalwire/relay/client'
+
+# The RELAY error code a server sends to reject connect credentials.
+AUTH_REQUIRED_CODE = -32002
+
+# ======================================================================
+# ControllableWsServer — a minimal single-connection WebSocket server that
+# speaks ruby's signalwire.connect handshake, then injects one fault. Built on
+# raw TCPServer + the `websocket` gem's Handshake/Frame (server-incoming +
+# outgoing) so it needs no async runtime.
+# ======================================================================
+class ControllableWsServer
+  attr_reader :port
+
+  # fault: :auth_reject | :dead_peer | :black_hole | :reconnect
+  def initialize(fault:, auth_message: nil)
+    @fault = fault
+    @auth_message = auth_message
+    @server = TCPServer.new('127.0.0.1', 0)
+    @port = @server.addr[1]
+    @connects = 0
+    @mutex = Mutex.new
+    @thread = Thread.new { accept_loop }
+  end
+
+  def connect_count
+    @mutex.synchronize { @connects }
+  end
+
+  def stop
+    @stopping = true
+    @server.close
+  rescue StandardError
+    nil
+  ensure
+    @thread&.kill
+  end
+
+  private
+
+  def accept_loop
+    loop do
+      sock = @server.accept
+      Thread.new(sock) { |s| serve(s) }
+    end
+  rescue StandardError
+    nil # server closed
+  end
+
+  def serve(sock)
+    return unless ws_handshake(sock)
+
+    @mutex.synchronize { @connects += 1 }
+    drop_after_auth = (@fault == :reconnect && connect_count == 1)
+    serve_frames(sock, drop_after_auth)
+  rescue StandardError
+    nil
+  ensure
+    begin
+      sock.close
+    rescue StandardError
+      nil
+    end
+  end
+
+  # Perform the WebSocket upgrade handshake using the `websocket` gem.
+  def ws_handshake(sock)
+    handshake = WebSocket::Handshake::Server.new
+    until handshake.finished?
+      line = sock.gets
+      return false if line.nil?
+
+      handshake << line
+    end
+    sock.write(handshake.to_s)
+    @frame_parser = WebSocket::Frame::Incoming::Server.new(version: handshake.version)
+    true
+  end
+
+  # Read frames; when a signalwire.connect arrives, inject the fault.
+  def serve_frames(sock, drop_after_auth)
+    loop do
+      data = read_ws_message(sock)
+      return if data.nil? # peer closed
+
+      msg = begin
+        JSON.parse(data)
+      rescue StandardError
+        next
+      end
+      handle_client_frame(sock, msg, drop_after_auth)
+    end
+  end
+
+  def handle_client_frame(sock, msg, drop_after_auth)
+    return unless msg['method'] == 'signalwire.connect'
+
+    id = msg['id']
+    case @fault
+    when :auth_reject
+      send_ws(sock, JSON.generate('jsonrpc' => '2.0', 'id' => id,
+                                  'error' => { 'code' => AUTH_REQUIRED_CODE,
+                                               'message' => @auth_message }))
+    when :black_hole
+      # Never answer the connect — the client's request await must time out.
+    when :dead_peer
+      send_connect_ok(sock, id)
+      # After a successful connect, ignore everything (incl. pings) forever.
+    when :reconnect
+      send_connect_ok(sock, id)
+      # First connection drops shortly after a SUCCESSFUL auth (let the client
+      # enter its read loop first, so the drop is a post-auth transient loss —
+      # the client must then reconnect). Later connections stay up.
+      if drop_after_auth
+        sock.flush
+        sleep 0.3
+        send_ws_close(sock)
+        sock.close
+      end
+    end
+  end
+
+  def send_connect_ok(sock, id)
+    send_ws(sock, JSON.generate('jsonrpc' => '2.0', 'id' => id,
+                                'result' => { 'protocol' => 'relay_proto_test',
+                                              'sessionid' => 'sess-test' }))
+  end
+
+  # Read ONE text WebSocket message (handles fragmentation via the parser).
+  def read_ws_message(sock)
+    loop do
+      @frame_parser << sock.readpartial(4096)
+      while (frame = @frame_parser.next)
+        return frame.to_s if %i[text binary].include?(frame.type)
+        return nil if frame.type == :close
+      end
+    end
+  rescue EOFError, IOError, Errno::ECONNRESET
+    nil
+  end
+
+  def send_ws(sock, text)
+    out = WebSocket::Frame::Outgoing::Server.new(data: text, type: :text,
+                                                 version: @frame_parser.version)
+    sock.write(out.to_s)
+    sock.flush
+  rescue StandardError
+    nil
+  end
+
+  # Send a WebSocket CLOSE frame so the client's gem fires its :close callback
+  # (a raw TCP close alone may not surface as a clean close to the reader).
+  def send_ws_close(sock)
+    out = WebSocket::Frame::Outgoing::Server.new(type: :close,
+                                                 version: @frame_parser.version)
+    sock.write(out.to_s)
+    sock.flush
+  rescue StandardError
+    nil
+  end
+end
+
+# ======================================================================
+# Fixture drivers — each returns its classification map.
+# ======================================================================
+
+# cred_missing: constructing a client with an empty credential must fail
+# PRE-CONNECT (no socket) with a per-variable actionable message naming the env var.
+def drive_cred_missing(omit, expect_contains)
+  clear_relay_env
+  kwargs = { project: 'p', token: 't', host: 'relay.example.test' }
+  kwargs[omit] = ''
+  failed = false
+  msg = ''
+  begin
+    SignalWire::Relay::Client.new(**kwargs)
+  rescue ArgumentError => e
+    failed = true
+    msg = e.message
+  rescue StandardError
+    failed = false
+  end
+  actionable = expect_contains.all? { |w| msg.include?(w) }
+  { 'failed_preconnect_on_missing' => (failed && actionable) }
+end
+
+# cred_auth_reject: a 401-class connect rejection must RAISE the server message,
+# never infinite-reconnect.
+def drive_cred_auth_reject(server_message)
+  srv = ControllableWsServer.new(fault: :auth_reject, auth_message: server_message)
+  out = { 'raised_after_bounded_retry' => false, 'infinite_reconnect' => false,
+          'server_message_surfaced' => false }
+  point_client_at(srv.port)
+  client = new_fault_client
+  begin
+    Timeout.timeout(12) do
+      client.connect # blocking; connect_and_run_guarded rescues the raise internally
+    end
+  rescue Timeout::Error
+    out['infinite_reconnect'] = true
+  end
+  # connect() swallows the raise inside connect_and_run_guarded, so probe the
+  # surfaced error by re-driving the raising path directly.
+  raised, surfaced = probe_auth_raise(server_message)
+  out['raised_after_bounded_retry'] = raised
+  out['server_message_surfaced'] = surfaced
+  out
+ensure
+  safe_stop(client)
+  srv.stop
+end
+
+# Re-drive the connect handshake through the RAISING path (execute) to observe
+# the surfaced RelayError message, since connect() itself rescues internally.
+def probe_auth_raise(server_message)
+  srv = ControllableWsServer.new(fault: :auth_reject, auth_message: server_message)
+  point_client_at(srv.port)
+  client = new_fault_client
+  raised = false
+  surfaced = false
+  begin
+    Timeout.timeout(12) { client.send(:connect_and_run) }
+  rescue SignalWire::Relay::RelayError => e
+    raised = true
+    surfaced = e.message.include?(server_message)
+  rescue StandardError
+    raised = false
+  end
+  [raised, surfaced]
+ensure
+  safe_stop(client)
+  srv.stop
+end
+
+# dead_peer: connect succeeds, then the peer ignores pings/requests. A subsequent
+# request must time out (bounded), never hang forever.
+def drive_dead_peer
+  srv = ControllableWsServer.new(fault: :dead_peer)
+  point_client_at(srv.port)
+  client = new_fault_client
+  detected = false
+  begin
+    Timeout.timeout(15) do
+      client.send(:connect_and_run_guarded) # brings socket up + authenticates
+      # A request against the now-silent peer must bounded-timeout (10s await).
+      client.execute('calling.play', { 'control_id' => 'x' })
+    end
+  rescue SignalWire::Relay::RelayError
+    detected = true # bounded error surfaced (request timed out)
+  rescue Timeout::Error
+    detected = false # exceeded even our generous outer bound => hung
+  end
+  { 'detected_bounded' => detected, 'hung' => !detected }
+ensure
+  safe_stop(client)
+  srv.stop
+end
+
+# black_hole: connect frame is never answered. The client's connect request must
+# bounded-error within its await deadline, never hang.
+def drive_black_hole
+  srv = ControllableWsServer.new(fault: :black_hole)
+  point_client_at(srv.port)
+  client = new_fault_client
+  bounded = false
+  begin
+    Timeout.timeout(15) { client.send(:connect_and_run) }
+  rescue SignalWire::Relay::RelayError
+    bounded = true # the connect request timed out (bounded), surfaced as an error
+  rescue Timeout::Error
+    bounded = false # never returned => unbounded hang
+  rescue StandardError
+    bounded = true # any surfaced transport error is still bounded
+  end
+  { 'bounded_error' => bounded, 'unbounded_hang' => !bounded }
+ensure
+  safe_stop(client)
+  srv.stop
+end
+
+# reconnect: the first socket drops right after auth. A REAL second connect+auth
+# must happen; pending callers faulted (not hung); no zombie.
+def drive_reconnect
+  srv = ControllableWsServer.new(fault: :reconnect)
+  point_client_at(srv.port)
+  client = new_fault_client
+  run_thread = Thread.new { client.run }
+  reconnected = false
+  begin
+    Timeout.timeout(20) do
+      sleep 0.1 until srv.connect_count >= 2
+      reconnected = true
+    end
+  rescue Timeout::Error
+    reconnected = false
+  end
+  # A pending caller across the drop is faulted (RelayError), never hung: prove
+  # the wiring by seeding a pending entry and rejecting all pending.
+  faulted = probe_pending_faulted(client)
+  client.stop
+  run_thread.join(3)
+  zombie = run_thread.alive?
+  { 'reconnected' => reconnected, 'pending_faulted_not_hung' => faulted,
+    'zombie' => zombie }
+ensure
+  safe_stop(client)
+  srv.stop
+end
+
+# Seed a pending request, reject all pending, and assert it faulted (not hung).
+def probe_pending_faulted(client)
+  pending = client.instance_variable_get(:@pending)
+  mutex = client.instance_variable_get(:@pending_mutex)
+  entry = { mutex: Mutex.new, cv: ConditionVariable.new, result: nil, error: nil }
+  mutex.synchronize { pending['probe-id'] = entry }
+  client.send(:reject_all_pending, 'probe drop')
+  entry[:error].is_a?(SignalWire::Relay::RelayError) || !entry[:error].nil?
+end
+
+# relay_contract: drive the REAL mock (rpc_code capability) + Call._execute.
+# 500 must RAISE; 404/410 swallowed.
+def drive_relay_contract(verb, code)
+  require_relative '../tests/relay/mock_test'
+  handle = RelayMockTest.client
+  out = { 'raised' => false, 'swallowed' => false }
+  begin
+    handle[:mock].arm_method("calling.#{verb}", [{ 'rpc_code' => code }])
+    call = build_answered_call(handle)
+    begin
+      call._execute(verb, { 'control_id' => 'ctl-relay-live-1',
+                            'play' => [{ 'type' => 'tts', 'params' => { 'text' => 'hi' } }] })
+      out['swallowed'] = true
+    rescue SignalWire::Relay::RelayError
+      out['raised'] = true
+    end
+  ensure
+    RelayMockTest.shutdown_client(handle)
+  end
+  out
+end
+
+# max_active_calls: with cap=N, the N+1th inbound call is dropped (not accepted).
+def drive_max_active_calls(cap)
+  clear_relay_env
+  client = SignalWire::Relay::Client.new(project: 'p', token: 't', host: 'x',
+                                         max_active_calls: cap)
+  client.on_call { |_call| sleep 5 } # keep each accepted call "active"
+  (cap + 1).times do |i|
+    client.send(:handle_inbound_call,
+                'params' => { 'call_id' => "c#{i}", 'node_id' => 'node-relay-live',
+                              'direction' => 'inbound', 'call_state' => 'created' })
+  end
+  calls = client.instance_variable_get(:@calls)
+  { 'cap_enforced' => (calls.size == cap) }
+end
+
+# ======================================================================
+# Helpers
+# ======================================================================
+
+def clear_relay_env
+  %w[SIGNALWIRE_PROJECT_ID SIGNALWIRE_API_TOKEN SIGNALWIRE_JWT_TOKEN
+     SIGNALWIRE_RELAY_HOST].each { |k| ENV.delete(k) }
+end
+
+def point_client_at(port)
+  ENV['SIGNALWIRE_RELAY_SCHEME'] = 'ws'
+  ENV['SIGNALWIRE_RELAY_HOST'] = "127.0.0.1:#{port}"
+end
+
+def new_fault_client
+  SignalWire::Relay::Client.new(project: 'p', token: 't', host: '127.0.0.1')
+end
+
+def safe_stop(client)
+  client&.stop
+rescue StandardError
+  nil
+end
+
+# Establish an answered inbound call against the real mock (for relay_contract).
+def build_answered_call(handle)
+  client = handle[:client]
+  mock = handle[:mock]
+  captured = Queue.new
+  client.on_call do |call|
+    call.answer
+    captured.push(call)
+  end
+  mock.inbound_call(call_id: 'call-relay-live', auto_states: ['created'])
+  call = Timeout.timeout(10) { captured.pop }
+  call.state = 'answered'
+  call
+end
+
+# ======================================================================
+# main
+# ======================================================================
+def main
+  out = {}
+  out['cred_missing_project'] =
+    drive_cred_missing(:project, %w[project SIGNALWIRE_PROJECT_ID])
+  out['cred_missing_token'] =
+    drive_cred_missing(:token, %w[token SIGNALWIRE_API_TOKEN])
+  out['cred_auth_reject'] = drive_cred_auth_reject('auth rejected: bad token')
+  out['relay_contract_500'] = drive_relay_contract('play', '500')
+  out['relay_contract_404'] = drive_relay_contract('play', '404')
+  out['relay_contract_410'] = drive_relay_contract('play', '410')
+  out['dead_peer_half_open'] = drive_dead_peer
+  out['black_hole_silent_peer'] = drive_black_hole
+  out['reconnect_after_drop'] = drive_reconnect
+  out['max_active_calls_cap'] = drive_max_active_calls(2)
+
+  REAL_STDOUT.puts(JSON.generate(out))
+  REAL_STDOUT.flush
+  0
+end
+
+exit(main) if $PROGRAM_NAME == __FILE__

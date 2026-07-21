@@ -1,0 +1,118 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Copyright (c) 2025 SignalWire
+#
+# Licensed under the MIT License.
+# See LICENSE file in the project root for full license information.
+
+#
+# pagination-dump — the Ruby port's PAGINATION-CORPUS dump program for the
+# cross-port behavioral differ (porting-sdk/scripts/diff_port_pagination.py).
+#
+# Drives the SDK's REST PaginatedIterator through the three shared corpus
+# fixtures against a live mock_signalwire (each page body — including
+# links.next — armed via the mock's scenario store, FIFO on a list endpoint) and
+# prints the per-fixture CLASSIFICATION map as JSON on stdout:
+#
+#   empty_page_with_next   {continued_past_empty: bool, items_seen: int}
+#   repeating_cursor_guard {loop_guarded: bool, hung: bool}
+#   exhaustion             {terminated: bool, total_items: int}
+#
+# The golden (what a correct port emits) is
+# `python3 scripts/diff_port_pagination.py --show-oracle`. The classifications
+# are booleans + fixed item counts, so the dump is deterministic. A paginator
+# that stops on the empty page reds empty_page_with_next; one with no cycle guard
+# HANGS and the bounded watchdog here (+ the differ's deadline) reds it LOUD.
+#
+# Protocol: stdout = ONE JSON object mapping fixture-id -> classification map.
+# Only stdout carries JSON.
+#
+# Run from the signalwire-ruby repo root (mock auto-spawned or via
+# MOCK_SIGNALWIRE_PORT):
+#
+#   bundle exec ruby bin/pagination-dump
+
+require 'json'
+require 'timeout'
+
+# Keep stdout PURE JSON (the differ does json.loads(proc.stdout)); route setup
+# noise to stderr, restore stdout only to emit the final JSON.
+REAL_STDOUT = $stdout.dup
+$stdout.reopen($stderr)
+
+require_relative '../lib/signalwire'
+require_relative '../tests/rest/mock_test'
+
+# The list endpoint the mock's scenario store overrides FIFO (a stable
+# spec-derived endpoint id that returns a {data, links} shape). Same endpoint the
+# ruby pagination_mock_test uses.
+LIST_PATH        = '/api/fabric/addresses'
+LIST_ENDPOINT_ID = 'fabric.list_fabric_addresses'
+
+# The bounded watchdog for the cycle-guard fixture: a paginator with no guard
+# loops forever, so a walk that does not terminate inside this window is HUNG.
+CYCLE_WATCHDOG_S = 8.0
+
+# Arm one FIFO page on the list endpoint (data + links). links is a Hash with an
+# optional 'next' cursor URL.
+def push_page(mock, data, links)
+  mock.push_scenario(LIST_ENDPOINT_ID, status: 200,
+                                        response: { 'data' => data, 'links' => links })
+end
+
+def new_iterator(client)
+  SignalWire::REST::PaginatedIterator.new(client.http, LIST_PATH, nil, 'data')
+end
+
+def next_link(token)
+  "http://example.com#{LIST_PATH}?page_token=#{token}"
+end
+
+# empty_page_with_next — page 1 empty but carries links.next; page 2 has the item.
+# A naive `while data:` stops on page 1 and drops page 2.
+def run_empty_page_with_next(client, mock)
+  push_page(mock, [], { 'next' => next_link('EP_page2') })
+  push_page(mock, [{ 'id' => 'found-after-empty' }], {})
+  ids = new_iterator(client).to_a.map { |x| x['id'] }
+  { 'continued_past_empty' => (ids == ['found-after-empty']), 'items_seen' => ids.length }
+end
+
+# repeating_cursor_guard — both pages point at the SAME links.next cursor. A
+# paginator with no cycle guard re-fetches forever.
+def run_repeating_cursor_guard(client, mock)
+  push_page(mock, [{ 'id' => 'loop-1' }], { 'next' => next_link('LOOP') })
+  push_page(mock, [{ 'id' => 'loop-2' }], { 'next' => next_link('LOOP') })
+  ids = nil
+  Timeout.timeout(CYCLE_WATCHDOG_S) { ids = new_iterator(client).to_a.map { |x| x['id'] } }
+  { 'loop_guarded' => (ids == %w[loop-1 loop-2]), 'hung' => false }
+rescue Timeout::Error
+  { 'loop_guarded' => false, 'hung' => true }
+end
+
+# exhaustion — three pages; the walk must terminate yielding exactly all 5 items.
+def run_exhaustion(client, mock)
+  push_page(mock, [{ 'id' => 'x-1' }, { 'id' => 'x-2' }], { 'next' => next_link('EX_page2') })
+  push_page(mock, [{ 'id' => 'x-3' }, { 'id' => 'x-4' }], { 'next' => next_link('EX_page3') })
+  push_page(mock, [{ 'id' => 'x-5' }], {})
+  ids = new_iterator(client).to_a.map { |x| x['id'] }
+  { 'terminated' => (ids == %w[x-1 x-2 x-3 x-4 x-5]), 'total_items' => ids.length }
+end
+
+def main
+  out = {}
+  # A fresh client (fresh auth-scoped scenario view) per fixture so an armed FIFO
+  # sequence never crosses between fixtures.
+  h = MockTest.client
+  out['empty_page_with_next'] = run_empty_page_with_next(h[:client], h[:mock])
+  h = MockTest.client
+  out['repeating_cursor_guard'] = run_repeating_cursor_guard(h[:client], h[:mock])
+  h = MockTest.client
+  out['exhaustion'] = run_exhaustion(h[:client], h[:mock])
+
+  REAL_STDOUT.puts(JSON.generate(out))
+  REAL_STDOUT.flush
+  0
+end
+
+exit(main) if $PROGRAM_NAME == __FILE__

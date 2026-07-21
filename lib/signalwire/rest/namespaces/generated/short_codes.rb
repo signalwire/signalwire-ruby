@@ -22,15 +22,15 @@ module SignalWire
             super(http, '/api/relay/rest/short_codes')
           end
 
-          def list(**params)
-            @http.get(@base_path, params.empty? ? nil : params)
+          def list(request_options: nil, **params)
+            @http.get(@base_path, params.empty? ? nil : params, request_options: request_options)
           end
 
-          def get(id, **params)
-            @http.get(_path(id), params.empty? ? nil : params)
+          def get(id, request_options: nil, **params)
+            @http.get(_path(id), params.empty? ? nil : params, request_options: request_options)
           end
 
-          def update(id, name:, message_handler:, message_request_url: nil, message_request_method: nil, message_fallback_url: nil, message_fallback_method: nil, message_laml_application_id: nil, message_relay_context: nil, extras: {}, **kwargs)
+          def update(id, name:, message_handler:, message_request_url: nil, message_request_method: nil, message_fallback_url: nil, message_fallback_method: nil, message_laml_application_id: nil, message_relay_context: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['name'] = name
             body['message_handler'] = message_handler
@@ -41,7 +41,7 @@ module SignalWire
             body['message_laml_application_id'] = message_laml_application_id unless message_laml_application_id.nil?
             body['message_relay_context'] = message_relay_context unless message_relay_context.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.put(_path(id), body)
+            @http.put(_path(id), body, request_options: request_options)
           end
         end
       end

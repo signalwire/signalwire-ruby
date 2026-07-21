@@ -24,7 +24,7 @@ module SignalWire
             super(http, '/api/calling/calls')
           end
 
-          def dial(from:, to:, caller_id: nil, fallback_url: nil, status_url: nil, status_events: nil, url_method: nil, url: nil, codecs: nil, swml: nil, extras: {}, **kwargs)
+          def dial(from:, to:, caller_id: nil, fallback_url: nil, status_url: nil, status_events: nil, url_method: nil, url: nil, codecs: nil, swml: nil, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['from'] = from
             params['to'] = to
@@ -38,10 +38,10 @@ module SignalWire
             params['swml'] = swml unless swml.nil?
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'dial', 'params' => params }
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(id:, fallback_url: nil, status: nil, status_url: nil, url: nil, swml: nil, extras: {}, **kwargs)
+          def update(id:, fallback_url: nil, status: nil, status_url: nil, url: nil, swml: nil, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['id'] = id
             params['fallback_url'] = fallback_url unless fallback_url.nil?
@@ -51,38 +51,38 @@ module SignalWire
             params['swml'] = swml unless swml.nil?
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'update', 'params' => params }
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def end(call_id, reason: nil, extras: {}, **kwargs)
+          def end(call_id, reason: nil, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['reason'] = reason unless reason.nil?
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.end', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def ai_hold(call_id, timeout: nil, prompt: nil, extras: {}, **kwargs)
+          def ai_hold(call_id, timeout: nil, prompt: nil, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['timeout'] = timeout unless timeout.nil?
             params['prompt'] = prompt unless prompt.nil?
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.ai_hold', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def ai_unhold(call_id, prompt: nil, extras: {}, **kwargs)
+          def ai_unhold(call_id, prompt: nil, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['prompt'] = prompt unless prompt.nil?
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.ai_unhold', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def ai_message(call_id, role: nil, message_text: nil, reset: nil, global_data: nil, extras: {}, **kwargs)
+          def ai_message(call_id, role: nil, message_text: nil, reset: nil, global_data: nil, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['role'] = role unless role.nil?
             params['message_text'] = message_text unless message_text.nil?
@@ -91,55 +91,55 @@ module SignalWire
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.ai_message', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def live_transcribe(call_id, action:, extras: {}, **kwargs)
+          def live_transcribe(call_id, action:, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['action'] = action
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.live_transcribe', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def live_translate(call_id, action:, status_url: nil, extras: {}, **kwargs)
+          def live_translate(call_id, action:, status_url: nil, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['action'] = action
             params['status_url'] = status_url unless status_url.nil?
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.live_translate', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def transfer(call_id, dest:, extras: {}, **kwargs)
+          def transfer(call_id, dest:, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['dest'] = dest
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.transfer', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def user_event(call_id, event:, extras: {}, **kwargs)
+          def user_event(call_id, event:, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['event'] = event
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.user_event', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def disconnect(call_id, extras: {}, **kwargs)
+          def disconnect(call_id, extras: {}, request_options: nil, **kwargs)
             params = {}
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.disconnect', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def play(call_id, play:, control_id: nil, volume: nil, direction: nil, loop: nil, status_url: nil, extras: {}, **kwargs)
+          def play(call_id, play:, control_id: nil, volume: nil, direction: nil, loop: nil, status_url: nil, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['play'] = play
             params['control_id'] = control_id unless control_id.nil?
@@ -150,47 +150,47 @@ module SignalWire
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.play', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def play_pause(call_id, control_id:, extras: {}, **kwargs)
+          def play_pause(call_id, control_id:, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['control_id'] = control_id
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.play.pause', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def play_resume(call_id, control_id:, extras: {}, **kwargs)
+          def play_resume(call_id, control_id:, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['control_id'] = control_id
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.play.resume', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def play_stop(call_id, control_id:, extras: {}, **kwargs)
+          def play_stop(call_id, control_id:, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['control_id'] = control_id
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.play.stop', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def play_volume(call_id, control_id:, volume:, extras: {}, **kwargs)
+          def play_volume(call_id, control_id:, volume:, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['control_id'] = control_id
             params['volume'] = volume
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.play.volume', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def record(call_id, control_id: nil, audio: nil, status_url: nil, extras: {}, **kwargs)
+          def record(call_id, control_id: nil, audio: nil, status_url: nil, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['control_id'] = control_id unless control_id.nil?
             params['audio'] = audio unless audio.nil?
@@ -198,37 +198,37 @@ module SignalWire
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.record', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def record_pause(call_id, control_id:, extras: {}, **kwargs)
+          def record_pause(call_id, control_id:, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['control_id'] = control_id
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.record.pause', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def record_resume(call_id, control_id:, extras: {}, **kwargs)
+          def record_resume(call_id, control_id:, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['control_id'] = control_id
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.record.resume', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def record_stop(call_id, control_id:, extras: {}, **kwargs)
+          def record_stop(call_id, control_id:, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['control_id'] = control_id
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.record.stop', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def collect(call_id, control_id: nil, initial_timeout: nil, digits: nil, speech: nil, continuous: nil, partial_results: nil, extras: {}, **kwargs)
+          def collect(call_id, control_id: nil, initial_timeout: nil, digits: nil, speech: nil, continuous: nil, partial_results: nil, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['control_id'] = control_id unless control_id.nil?
             params['initial_timeout'] = initial_timeout unless initial_timeout.nil?
@@ -239,28 +239,28 @@ module SignalWire
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.collect', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def collect_stop(call_id, control_id:, extras: {}, **kwargs)
+          def collect_stop(call_id, control_id:, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['control_id'] = control_id
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.collect.stop', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def collect_start_input_timers(call_id, control_id:, extras: {}, **kwargs)
+          def collect_start_input_timers(call_id, control_id:, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['control_id'] = control_id
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.collect.start_input_timers', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def detect(call_id, detect:, control_id: nil, timeout: nil, extras: {}, **kwargs)
+          def detect(call_id, detect:, control_id: nil, timeout: nil, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['detect'] = detect
             params['control_id'] = control_id unless control_id.nil?
@@ -268,19 +268,19 @@ module SignalWire
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.detect', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def detect_stop(call_id, control_id:, extras: {}, **kwargs)
+          def detect_stop(call_id, control_id:, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['control_id'] = control_id
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.detect.stop', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def tap(call_id, tap:, device:, control_id: nil, extras: {}, **kwargs)
+          def tap(call_id, tap:, device:, control_id: nil, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['tap'] = tap
             params['device'] = device
@@ -288,19 +288,19 @@ module SignalWire
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.tap', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def tap_stop(call_id, control_id:, extras: {}, **kwargs)
+          def tap_stop(call_id, control_id:, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['control_id'] = control_id
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.tap.stop', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def stream(call_id, url:, control_id: nil, codec: nil, track: nil, authorization_bearer_token: nil, custom_parameters: nil, extras: {}, **kwargs)
+          def stream(call_id, url:, control_id: nil, codec: nil, track: nil, authorization_bearer_token: nil, custom_parameters: nil, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['url'] = url
             params['control_id'] = control_id unless control_id.nil?
@@ -311,88 +311,88 @@ module SignalWire
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.stream', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def stream_stop(call_id, control_id:, extras: {}, **kwargs)
+          def stream_stop(call_id, control_id:, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['control_id'] = control_id
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.stream.stop', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def denoise(call_id, extras: {}, **kwargs)
+          def denoise(call_id, extras: {}, request_options: nil, **kwargs)
             params = {}
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.denoise', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def denoise_stop(call_id, extras: {}, **kwargs)
+          def denoise_stop(call_id, extras: {}, request_options: nil, **kwargs)
             params = {}
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.denoise.stop', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def transcribe(call_id, control_id: nil, status_url: nil, extras: {}, **kwargs)
+          def transcribe(call_id, control_id: nil, status_url: nil, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['control_id'] = control_id unless control_id.nil?
             params['status_url'] = status_url unless status_url.nil?
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.transcribe', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def transcribe_stop(call_id, control_id:, extras: {}, **kwargs)
+          def transcribe_stop(call_id, control_id:, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['control_id'] = control_id
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.transcribe.stop', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def ai_stop(call_id, control_id:, extras: {}, **kwargs)
+          def ai_stop(call_id, control_id:, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['control_id'] = control_id
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.ai.stop', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def send_fax_stop(call_id, control_id:, extras: {}, **kwargs)
+          def send_fax_stop(call_id, control_id:, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['control_id'] = control_id
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.send_fax.stop', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def receive_fax_stop(call_id, control_id:, extras: {}, **kwargs)
+          def receive_fax_stop(call_id, control_id:, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['control_id'] = control_id
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.receive_fax.stop', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def refer(call_id, device:, status_url: nil, extras: {}, **kwargs)
+          def refer(call_id, device:, status_url: nil, extras: {}, request_options: nil, **kwargs)
             params = {}
             params['device'] = device
             params['status_url'] = status_url unless status_url.nil?
             params = params.merge(extras).merge(kwargs)
             body = { 'command' => 'calling.refer', 'params' => params }
             body['id'] = call_id if call_id
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
         end
       end

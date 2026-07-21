@@ -20,15 +20,25 @@ module SignalWire
 
       attr_reader :http, :path, :params, :data_key, :index, :items, :done
 
-      def initialize(http, path, params = nil, data_key = 'data')
+      def initialize(http, path, params = nil, data_key = 'data', request_options = nil)
         @http     = http
         @path     = path
         # Dup so callers can't mutate iterator state via the original Hash.
         @params   = params ? params.dup : {}
         @data_key = data_key
+        # Per-request options (timeout / connect_timeout / headers) forwarded to
+        # every page fetch, so pagination honors the same request contract as a
+        # single call. Mirrors Python _pagination.py's +request_options+ thread.
+        @request_options = request_options
         @items    = []
         @index    = 0
         @done     = false
+        # Cycle guard: +links.next+ cursors already followed. A server that keeps
+        # returning the SAME +next+ would otherwise loop forever (the empty-page
+        # fix terminates only on an ABSENT next link, so a repeating next became
+        # an infinite loop). Seeing a repeat terminates iteration. Mirrors the
+        # python reference (_pagination.py _seen_next).
+        @seen_next = {}
       end
 
       def each
@@ -82,7 +92,7 @@ module SignalWire
 
       def fetch_next
         params_for_request = @params.empty? ? nil : @params
-        resp = @http.get(@path, params_for_request)
+        resp = @http.get(@path, params_for_request, request_options: @request_options)
         data = resp[@data_key] || []
         @items.concat(data)
 
@@ -92,11 +102,16 @@ module SignalWire
         # page — e.g. a filtered page that matches nothing here. The old
         # +next_url && !data.empty?+ condition stopped on such a page and
         # silently dropped every subsequent page. Mirrors the Python reference
-        # fix (_pagination.py, #58). (A cycle guard against a self-repeating
-        # +next+ URL is pending in the Python reference; mirror it here once it
-        # lands there.)
-        next_url = (resp['links'] || {})['next']
-        if next_url
+        # fix (_pagination.py, #58).
+        advance_or_finish((resp['links'] || {})['next'])
+      end
+
+      # Advance to the next page, or terminate. A +next+ we have already followed
+      # (repeating cursor) or an absent +next+ both terminate — the cycle guard
+      # prevents an infinite re-fetch loop. Mirrors python _pagination.py _seen_next.
+      def advance_or_finish(next_url)
+        if next_url && !@seen_next.key?(next_url)
+          @seen_next[next_url] = true
           @params = params_from_next_url(next_url)
         else
           @done = true

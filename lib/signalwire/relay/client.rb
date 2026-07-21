@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'json'
+require 'socket'
 require 'securerandom'
 require 'websocket-client-simple'
 
@@ -123,13 +124,16 @@ module SignalWire
         # inside the token, so only the host is still required. Mirrors the
         # Python reference's truthiness check (an empty jwt_token is no token).
         unless jwt_token.empty?
-          raise ArgumentError, 'host is required' if space.empty?
+          raise ArgumentError, 'host is required (set SIGNALWIRE_SPACE)' if space.empty?
 
           return
         end
-        raise ArgumentError, 'project is required' if project_id.empty?
-        raise ArgumentError, 'token or jwt_token is required' if token.empty?
-        raise ArgumentError, 'host is required' if space.empty?
+        # Per-variable actionable pre-connect errors (A6): each names the missing
+        # credential AND its env var so a failure is self-diagnosing. Mirrors the
+        # python reference (client.py project-is-required / token-is-required).
+        raise ArgumentError, 'project is required (set SIGNALWIRE_PROJECT_ID)' if project_id.empty?
+        raise ArgumentError, 'token or jwt_token is required (set SIGNALWIRE_API_TOKEN)' if token.empty?
+        raise ArgumentError, 'host is required (set SIGNALWIRE_SPACE)' if space.empty?
       end
 
       def init_correlation_state
@@ -175,6 +179,18 @@ module SignalWire
       end
 
       public
+
+      # Redacted inspect: NEVER print the raw API token, JWT, or the server's
+      # authorization_state re-auth blob — the default #inspect dumps every ivar,
+      # leaking every credential into logs / crash dumps / a REPL session.
+      # Enterprise credential-hygiene (A6 / SECRET-SCRUB): show only the
+      # non-secret identity + connection state.
+      def inspect
+        "#<#{self.class.name} project_id=#{@project_id.inspect} " \
+          "host=#{@host.inspect} connected=#{@connected} " \
+          'token=[REDACTED] jwt_token=[REDACTED] authorization_state=[REDACTED]>'
+      end
+      alias to_s inspect
 
       # Register inbound call handler.
       def on_call(&block)
@@ -456,8 +472,46 @@ module SignalWire
         @reconnect_delay = RECONNECT_MIN_DELAY
         authenticate
 
-        # Keep reading until disconnected
-        sleep 1 while @running && @connected
+        # Keep reading until disconnected. The websocket-client-simple gem does
+        # NOT surface a peer close on its read thread (on EOF its getc returns
+        # nil and it just sleeps+retries, never emitting :close), so a
+        # post-auth TCP drop would otherwise leave @connected stuck true and the
+        # reconnect loop would never run. Poll for a peer close and force the
+        # teardown that triggers reconnect (F3 liveness).
+        sleep(1) while @running && @connected && !peer_closed?
+        @ws_mutex.synchronize { @connected = false } if @running
+      end
+
+      # True when the underlying transport socket has seen a peer close (TCP FIN
+      # / EOF). Uses a NON-consuming MSG_PEEK so it never steals a byte from the
+      # gem's read thread: a readable socket that peeks empty is at EOF (closed);
+      # a readable socket with bytes pending is a live frame the gem will read.
+      def peer_closed?
+        raw = raw_transport_socket
+        return true if raw.nil? || raw.closed?
+        return false unless raw.wait_readable(0)
+
+        # A readable socket that peeks nil/empty is at EOF (peer closed); bytes
+        # pending mean a live frame the gem will read (PEEK never consumes them).
+        peeked = raw.recv_nonblock(1, Socket::MSG_PEEK)
+        peeked.nil? || peeked.empty?
+      rescue IO::WaitReadable
+        false
+      rescue Errno::ECONNRESET, Errno::ENOTCONN, IOError
+        # IOError covers EOFError; a reset/not-connected peer is closed.
+        true
+      end
+
+      # The plain transport socket under the websocket-client-simple client (a
+      # TCPSocket for ws://; an SSLSocket for wss:// — its #to_io is the TCP
+      # socket). nil when unavailable.
+      def raw_transport_socket
+        sock = @ws&.instance_variable_get(:@socket)
+        return nil if sock.nil?
+
+        sock.respond_to?(:to_io) ? sock.to_io : sock
+      rescue StandardError
+        nil
       end
 
       # Open the WebSocket and block until it reports open, raising on error.
@@ -514,7 +568,7 @@ module SignalWire
       # enforce real certificate verification (VERIFY_PEER) against a store
       # seeded from the OpenSSL default paths (which honor the SSL_CERT_FILE /
       # SSL_CERT_DIR env vars) plus, when set, the explicit CA bundle named by
-      # SIGNALWIRE_RELAY_SSL_CA_FILE. For any non-wss scheme (plain ws:// used
+      # the fleet-standard SIGNALWIRE_RELAY_CA_FILE. For any non-wss scheme (plain ws:// used
       # by the loopback audit fixtures) it returns an empty hash so the
       # transport stays untouched.
       #
@@ -527,7 +581,7 @@ module SignalWire
         require 'openssl'
         store = OpenSSL::X509::Store.new
         store.set_default_paths
-        ca_file = ENV.fetch('SIGNALWIRE_RELAY_SSL_CA_FILE', nil)
+        ca_file = ENV.fetch('SIGNALWIRE_RELAY_CA_FILE', nil)
         store.add_file(ca_file) if ca_file && !ca_file.empty? && File.file?(ca_file)
 
         { verify_mode: OpenSSL::SSL::VERIFY_PEER, cert_store: store }
@@ -747,6 +801,8 @@ module SignalWire
 
       def handle_inbound_call(payload)
         event_params = payload['params'] || {}
+        return if max_active_calls_reached?
+
         call = build_inbound_call(event_params)
         @calls_mutex.synchronize { @calls[call.call_id] = call }
 
@@ -757,6 +813,18 @@ module SignalWire
         rescue StandardError => e
           warn "[RELAY] Error in on_call handler: #{e.message}"
         end
+      end
+
+      # True when the configured max_active_calls cap is reached, so the N+1th
+      # inbound call is DROPPED (not silently accepted). nil cap = unlimited.
+      # Mirrors python client.py _handle_inbound_call (len(_calls) >= cap).
+      def max_active_calls_reached?
+        cap = @max_active_calls
+        return false if cap.nil?
+
+        reached = @calls_mutex.synchronize { @calls.size >= cap }
+        warn "[RELAY] Max active calls (#{cap}) reached, dropping inbound call" if reached
+        reached
       end
 
       def build_inbound_call(event_params)

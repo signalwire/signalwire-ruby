@@ -113,7 +113,7 @@ class RestNamespacesDetailedTest < Minitest::Test
       @calls = []
     end
 
-    def put(path, _body = nil)
+    def put(path, _body = nil, request_options: nil) # rubocop:disable Lint/UnusedMethodArgument
       @calls << ['PUT', path]
       {}
     end

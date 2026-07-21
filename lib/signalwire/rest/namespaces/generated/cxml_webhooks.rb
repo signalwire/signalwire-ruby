@@ -22,7 +22,7 @@ module SignalWire
             super(http, '/api/fabric/resources/cxml_webhooks')
           end
 
-          def create(primary_request_url:, name: nil, used_for: nil, primary_request_method: nil, fallback_request_url: nil, fallback_request_method: nil, status_callback_url: nil, status_callback_method: nil, extras: {}, **kwargs)
+          def create(primary_request_url:, name: nil, used_for: nil, primary_request_method: nil, fallback_request_url: nil, fallback_request_method: nil, status_callback_url: nil, status_callback_method: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['primary_request_url'] = primary_request_url
             body['name'] = name unless name.nil?
@@ -33,10 +33,10 @@ module SignalWire
             body['status_callback_url'] = status_callback_url unless status_callback_url.nil?
             body['status_callback_method'] = status_callback_method unless status_callback_method.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(resource_id, name: nil, used_for: nil, primary_request_url: nil, primary_request_method: nil, fallback_request_url: nil, fallback_request_method: nil, status_callback_url: nil, status_callback_method: nil, extras: {}, **kwargs)
+          def update(resource_id, name: nil, used_for: nil, primary_request_url: nil, primary_request_method: nil, fallback_request_url: nil, fallback_request_method: nil, status_callback_url: nil, status_callback_method: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['name'] = name unless name.nil?
             body['used_for'] = used_for unless used_for.nil?
@@ -47,7 +47,7 @@ module SignalWire
             body['status_callback_url'] = status_callback_url unless status_callback_url.nil?
             body['status_callback_method'] = status_callback_method unless status_callback_method.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.patch(_path(resource_id), body)
+            @http.patch(_path(resource_id), body, request_options: request_options)
           end
         end
       end

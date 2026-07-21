@@ -22,7 +22,7 @@ module SignalWire
             super(http, '/api/video/conferences')
           end
 
-          def create(display_name:, name: nil, description: nil, join_from: nil, join_until: nil, quality: nil, layout: nil, size: nil, record_on_start: nil, enable_room_previews: nil, enable_chat: nil, dark_primary: nil, dark_background: nil, dark_foreground: nil, dark_success: nil, dark_negative: nil, light_primary: nil, light_background: nil, light_foreground: nil, light_success: nil, light_negative: nil, extras: {}, **kwargs)
+          def create(display_name:, name: nil, description: nil, join_from: nil, join_until: nil, quality: nil, layout: nil, size: nil, record_on_start: nil, enable_room_previews: nil, enable_chat: nil, dark_primary: nil, dark_background: nil, dark_foreground: nil, dark_success: nil, dark_negative: nil, light_primary: nil, light_background: nil, light_foreground: nil, light_success: nil, light_negative: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['display_name'] = display_name
             body['name'] = name unless name.nil?
@@ -46,10 +46,10 @@ module SignalWire
             body['light_success'] = light_success unless light_success.nil?
             body['light_negative'] = light_negative unless light_negative.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(resource_id, display_name:, description: nil, join_from: nil, join_until: nil, quality: nil, layout: nil, size: nil, record_on_start: nil, tone_on_entry_and_exit: nil, room_join_video_off: nil, user_join_video_off: nil, enable_room_previews: nil, enable_chat: nil, dark_primary: nil, dark_background: nil, dark_foreground: nil, dark_success: nil, dark_negative: nil, light_primary: nil, light_background: nil, light_foreground: nil, light_success: nil, light_negative: nil, extras: {}, **kwargs)
+          def update(resource_id, display_name:, description: nil, join_from: nil, join_until: nil, quality: nil, layout: nil, size: nil, record_on_start: nil, tone_on_entry_and_exit: nil, room_join_video_off: nil, user_join_video_off: nil, enable_room_previews: nil, enable_chat: nil, dark_primary: nil, dark_background: nil, dark_foreground: nil, dark_success: nil, dark_negative: nil, light_primary: nil, light_background: nil, light_foreground: nil, light_success: nil, light_negative: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['display_name'] = display_name
             body['description'] = description unless description.nil?
@@ -75,26 +75,26 @@ module SignalWire
             body['light_success'] = light_success unless light_success.nil?
             body['light_negative'] = light_negative unless light_negative.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.put(_path(resource_id), body)
+            @http.put(_path(resource_id), body, request_options: request_options)
           end
 
-          def delete(resource_id)
-            @http.delete(_path(resource_id))
+          def delete(resource_id, request_options: nil)
+            @http.delete(_path(resource_id), request_options: request_options)
           end
 
-          def list_conference_tokens(id, **params)
-            @http.get(_path(id, 'conference_tokens'), params.empty? ? nil : params)
+          def list_conference_tokens(id, request_options: nil, **params)
+            @http.get(_path(id, 'conference_tokens'), params.empty? ? nil : params, request_options: request_options)
           end
 
-          def list_streams(id, **params)
-            @http.get(_path(id, 'streams'), params.empty? ? nil : params)
+          def list_streams(id, request_options: nil, **params)
+            @http.get(_path(id, 'streams'), params.empty? ? nil : params, request_options: request_options)
           end
 
-          def create_stream(id, url:, extras: {}, **kwargs)
+          def create_stream(id, url:, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['url'] = url
             body = body.merge(extras).merge(kwargs)
-            @http.post(_path(id, 'streams'), body)
+            @http.post(_path(id, 'streams'), body, request_options: request_options)
           end
         end
       end

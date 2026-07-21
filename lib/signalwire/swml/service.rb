@@ -58,7 +58,7 @@ module SignalWire
       # Define a SWAIG function the AI can call. Tool descriptions and
       # parameter descriptions are LLM-facing prompt engineering — see
       # PORTING_GUIDE for guidance.
-      def define_tool(name:, description:, parameters: {}, secure: false, &handler)
+      def define_tool(name:, description:, parameters: {}, secure: true, &handler)
         @tools[name] = {
           definition: {
             'function' => name,

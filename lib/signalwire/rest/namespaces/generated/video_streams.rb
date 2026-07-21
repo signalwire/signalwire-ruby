@@ -21,19 +21,19 @@ module SignalWire
             super(http, '/api/video/streams')
           end
 
-          def get(id, **params)
-            @http.get(_path(id), params.empty? ? nil : params)
+          def get(id, request_options: nil, **params)
+            @http.get(_path(id), params.empty? ? nil : params, request_options: request_options)
           end
 
-          def update(id, url:, extras: {}, **kwargs)
+          def update(id, url:, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['url'] = url
             body = body.merge(extras).merge(kwargs)
-            @http.put(_path(id), body)
+            @http.put(_path(id), body, request_options: request_options)
           end
 
-          def delete(id)
-            @http.delete(_path(id))
+          def delete(id, request_options: nil)
+            @http.delete(_path(id), request_options: request_options)
           end
         end
       end

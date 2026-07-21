@@ -21,16 +21,16 @@ module SignalWire
             super(http, '/api/relay/rest/recordings')
           end
 
-          def list(**params)
-            @http.get(@base_path, params.empty? ? nil : params)
+          def list(request_options: nil, **params)
+            @http.get(@base_path, params.empty? ? nil : params, request_options: request_options)
           end
 
-          def get(id, **params)
-            @http.get(_path(id), params.empty? ? nil : params)
+          def get(id, request_options: nil, **params)
+            @http.get(_path(id), params.empty? ? nil : params, request_options: request_options)
           end
 
-          def delete(id)
-            @http.delete(_path(id))
+          def delete(id, request_options: nil)
+            @http.delete(_path(id), request_options: request_options)
           end
         end
       end

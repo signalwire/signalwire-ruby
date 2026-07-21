@@ -22,7 +22,7 @@ module SignalWire
             super(http, '/api/projects')
           end
 
-          def create(name:, protect_recordings: nil, protect_message_media: nil, protect_fax_media: nil, force_https_requests: nil, extras: {}, **kwargs)
+          def create(name:, protect_recordings: nil, protect_message_media: nil, protect_fax_media: nil, force_https_requests: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['name'] = name
             body['protect_recordings'] = protect_recordings unless protect_recordings.nil?
@@ -30,10 +30,10 @@ module SignalWire
             body['protect_fax_media'] = protect_fax_media unless protect_fax_media.nil?
             body['force_https_requests'] = force_https_requests unless force_https_requests.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(resource_id, name:, protect_recordings: nil, protect_message_media: nil, protect_fax_media: nil, force_https_requests: nil, extras: {}, **kwargs)
+          def update(resource_id, name:, protect_recordings: nil, protect_message_media: nil, protect_fax_media: nil, force_https_requests: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['name'] = name
             body['protect_recordings'] = protect_recordings unless protect_recordings.nil?
@@ -41,15 +41,15 @@ module SignalWire
             body['protect_fax_media'] = protect_fax_media unless protect_fax_media.nil?
             body['force_https_requests'] = force_https_requests unless force_https_requests.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.patch(_path(resource_id), body)
+            @http.patch(_path(resource_id), body, request_options: request_options)
           end
 
-          def delete(resource_id)
-            @http.delete(_path(resource_id))
+          def delete(resource_id, request_options: nil)
+            @http.delete(_path(resource_id), request_options: request_options)
           end
 
-          def rotate_signing_key(id)
-            @http.post(_path(id, 'signing-key', 'rotate'), {})
+          def rotate_signing_key(id, request_options: nil)
+            @http.post(_path(id, 'signing-key', 'rotate'), {}, request_options: request_options)
           end
         end
       end

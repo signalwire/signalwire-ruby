@@ -111,6 +111,7 @@ signalwire.contexts.Contexts: port-only: SignalWire::Contexts module with create
 signalwire.contexts.Contexts.create_simple_context: port-only: Ruby counterpart of Python signalwire.core.contexts.create_simple_context (omitted)
 signalwire.error.Error: port-only: SignalWire::Error root of the SDK exception hierarchy (Stripe `StripeError` idiom); a common ancestor under StandardError that the 5 error families reparent onto. Python subclasses Exception directly with no shared root, so this is a Ruby-idiom addition, non-breaking (rescue StandardError still catches).
 signalwire.core.agent_base.AgentBase.add_function_include: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
+signalwire.core.agent_base.AgentBase.build_main_section: port-only: Ruby SWML "main"-section assembly helper called by #_render_swml_internal (Python assembles the sections inline in its render path; Ruby factors the ordered pre-answer/answer/record/post/ai/post-ai phase build into a named method)
 signalwire.core.agent_base.AgentBase.agent_id: port-only: Ruby attr_reader for the auto-generated/explicit agent UUID (Python keeps it as `self.agent_id` instance attribute)
 signalwire.core.agent_base.AgentBase.default_webhook_url: port-only: Ruby attr_reader for the constructor `default_webhook_url:` arg (Python: `self._default_webhook_url`)
 signalwire.core.agent_base.AgentBase.add_hint: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
@@ -297,6 +298,8 @@ signalwire.relay.call.Call.to_s: port-only: Ruby Object#to_s override
 signalwire.relay.client.ActionTimeoutError: port-only: Ruby error class for action timeouts (Python uses asyncio.TimeoutError)
 signalwire.relay.client.RelayClient.host: port-only: Ruby attr_reader for the resolved RELAY host URL (Python parity: `self.host` instance attribute)
 signalwire.relay.client.RelayClient.max_active_calls: port-only: Ruby attr_reader for the constructor `max_active_calls:` arg (Python: `self._max_active_calls`)
+signalwire.relay.client.RelayClient.inspect: port-only: Ruby Object#inspect override — redacts project/token/JWT so a client never renders raw credentials in logs/IRB (RUBY-3 credential-scrub; Python has no #inspect equivalent)
+signalwire.relay.client.RelayClient.to_s: port-only: Ruby Object#to_s override (aliases #inspect — same credential-redacting string form; RUBY-3)
 signalwire.relay.client.RelayClient.project_id: port-only: attr_reader for project_id on Client
 signalwire.relay.client.RelayClient.protocol: port-only: Ruby Client#protocol - see PORT_OMISSIONS for Python relay_protocol equivalent
 signalwire.relay.client.RelayClient.stop: port-only: Ruby Client#stop - see PORT_OMISSIONS for Python disconnect equivalent
@@ -514,6 +517,10 @@ signalwire.relay.message.Message.terminal?: port-only: typed predicate over `Mes
 
 signalwire.rest._base.CrudResource.update_method: port-only: per-resource override hook for PATCH vs PUT (default update verb)
 signalwire.rest._base.HttpClient.base_url: port-only: attr_reader for base_url
+signalwire.rest._base.HttpClient.inspect: port-only: Ruby Object#inspect override — redacts project/token so the HTTP client never renders raw credentials in logs/IRB (RUBY-3 credential-scrub; Python has no #inspect equivalent)
+signalwire.rest._base.HttpClient.to_s: port-only: Ruby Object#to_s override (aliases #inspect — same credential-redacting string form; RUBY-3)
+signalwire.rest.client.RestClient.inspect: port-only: Ruby Object#inspect override — redacts project/token so the REST client never renders raw credentials in logs/IRB (RUBY-3 credential-scrub; Python has no #inspect equivalent)
+signalwire.rest.client.RestClient.to_s: port-only: Ruby Object#to_s override (aliases #inspect — same credential-redacting string form; RUBY-3)
 signalwire.rest._base.SignalWireRestError.body: port-only: attr_reader for error body
 signalwire.rest._base.SignalWireRestError.headers: port-only: attr_reader for the response headers (§6.6; Python holds it as a plain instance attribute)
 signalwire.rest._base.SignalWireRestError.request_id: port-only: attr_reader for the platform request id extracted from the response headers (§6.6; Python holds it as a plain instance attribute)
@@ -630,6 +637,9 @@ signalwire.skills.joke.skill.JokeSkill.description: port-only: Ruby attr_reader 
 signalwire.skills.joke.skill.JokeSkill.name: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
 signalwire.skills.math.skill.MathSkill.description: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
 signalwire.skills.math.skill.MathSkill.name: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
+signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.description: port-only: Ruby method for skill description (Python uses SKILL_DESCRIPTION class constant)
+signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.name: port-only: Ruby method for skill name (Python uses SKILL_NAME class constant)
+signalwire.skills.mcp_gateway.skill.MCPGatewaySkill.version: port-only: Ruby method for skill version (Python uses SKILL_VERSION class constant)
 signalwire.skills.native_vector_search.skill.NativeVectorSearchSkill.description: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
 signalwire.skills.native_vector_search.skill.NativeVectorSearchSkill.instance_key: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
 signalwire.skills.native_vector_search.skill.NativeVectorSearchSkill.name: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)

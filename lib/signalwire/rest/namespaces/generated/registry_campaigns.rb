@@ -21,31 +21,31 @@ module SignalWire
             super(http, '/api/relay/rest/registry/beta/campaigns')
           end
 
-          def get(id, **params)
-            @http.get(_path(id), params.empty? ? nil : params)
+          def get(id, request_options: nil, **params)
+            @http.get(_path(id), params.empty? ? nil : params, request_options: request_options)
           end
 
-          def update(id, name: nil, extras: {}, **kwargs)
+          def update(id, name: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['name'] = name unless name.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.put(_path(id), body)
+            @http.put(_path(id), body, request_options: request_options)
           end
 
-          def list_numbers(id, **params)
-            @http.get(_path(id, 'numbers'), params.empty? ? nil : params)
+          def list_numbers(id, request_options: nil, **params)
+            @http.get(_path(id, 'numbers'), params.empty? ? nil : params, request_options: request_options)
           end
 
-          def list_orders(id, **params)
-            @http.get(_path(id, 'orders'), params.empty? ? nil : params)
+          def list_orders(id, request_options: nil, **params)
+            @http.get(_path(id, 'orders'), params.empty? ? nil : params, request_options: request_options)
           end
 
-          def create_order(id, phone_numbers: nil, status_callback_url: nil, extras: {}, **kwargs)
+          def create_order(id, phone_numbers: nil, status_callback_url: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['phone_numbers'] = phone_numbers unless phone_numbers.nil?
             body['status_callback_url'] = status_callback_url unless status_callback_url.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.post(_path(id, 'orders'), body)
+            @http.post(_path(id, 'orders'), body, request_options: request_options)
           end
         end
       end

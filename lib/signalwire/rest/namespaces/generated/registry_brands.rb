@@ -21,24 +21,24 @@ module SignalWire
             super(http, '/api/relay/rest/registry/beta/brands')
           end
 
-          def list(**params)
-            @http.get(@base_path, params.empty? ? nil : params)
+          def list(request_options: nil, **params)
+            @http.get(@base_path, params.empty? ? nil : params, request_options: request_options)
           end
 
-          def create(body)
-            @http.post(@base_path, body)
+          def create(body, request_options: nil)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def get(id, **params)
-            @http.get(_path(id), params.empty? ? nil : params)
+          def get(id, request_options: nil, **params)
+            @http.get(_path(id), params.empty? ? nil : params, request_options: request_options)
           end
 
-          def list_campaigns(id, **params)
-            @http.get(_path(id, 'campaigns'), params.empty? ? nil : params)
+          def list_campaigns(id, request_options: nil, **params)
+            @http.get(_path(id, 'campaigns'), params.empty? ? nil : params, request_options: request_options)
           end
 
-          def create_campaign(id, body)
-            @http.post(_path(id, 'campaigns'), body)
+          def create_campaign(id, body, request_options: nil)
+            @http.post(_path(id, 'campaigns'), body, request_options: request_options)
           end
         end
       end

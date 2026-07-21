@@ -21,35 +21,35 @@ module SignalWire
             super(http, '/api/relay/rest/verified_caller_ids')
           end
 
-          def create(number:, name: nil, extension: nil, extras: {}, **kwargs)
+          def create(number:, name: nil, extension: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['number'] = number
             body['name'] = name unless name.nil?
             body['extension'] = extension unless extension.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(resource_id, name:, extras: {}, **kwargs)
+          def update(resource_id, name:, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['name'] = name
             body = body.merge(extras).merge(kwargs)
-            @http.put(_path(resource_id), body)
+            @http.put(_path(resource_id), body, request_options: request_options)
           end
 
-          def delete(resource_id)
-            @http.delete(_path(resource_id))
+          def delete(resource_id, request_options: nil)
+            @http.delete(_path(resource_id), request_options: request_options)
           end
 
-          def redial_verification(id)
-            @http.post(_path(id, 'verification'), {})
+          def redial_verification(id, request_options: nil)
+            @http.post(_path(id, 'verification'), {}, request_options: request_options)
           end
 
-          def submit_verification(id, verification_code:, extras: {}, **kwargs)
+          def submit_verification(id, verification_code:, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['verification_code'] = verification_code
             body = body.merge(extras).merge(kwargs)
-            @http.put(_path(id, 'verification'), body)
+            @http.put(_path(id, 'verification'), body, request_options: request_options)
           end
         end
       end

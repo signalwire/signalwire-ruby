@@ -78,11 +78,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Addresses::delete": [
@@ -91,6 +91,13 @@
         "name": "id",
         "required": true,
         "type": "string"
+      },
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
+        "required": false,
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Addresses::get": [
@@ -101,20 +108,20 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Addresses::list": [
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "CallFlows::deploy_version": [
@@ -129,6 +136,13 @@
         "name": "body",
         "required": true,
         "type": "dict<string,any>"
+      },
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
+        "required": false,
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "CallFlows::list_addresses": [
@@ -139,11 +153,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "CallFlows::list_versions": [
@@ -154,11 +168,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::ai_hold": [
@@ -190,11 +204,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::ai_message": [
@@ -240,11 +254,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::ai_stop": [
@@ -268,11 +282,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::ai_unhold": [
@@ -297,11 +311,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::collect": [
@@ -361,11 +375,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::collect_start_input_timers": [
@@ -389,11 +403,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::collect_stop": [
@@ -417,11 +431,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::denoise": [
@@ -439,11 +453,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::denoise_stop": [
@@ -461,11 +475,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::detect": [
@@ -503,11 +517,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::detect_stop": [
@@ -531,11 +545,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::dial": [
@@ -615,11 +629,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::disconnect": [
@@ -637,11 +651,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::end": [
@@ -666,11 +680,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::live_transcribe": [
@@ -694,11 +708,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::live_translate": [
@@ -729,11 +743,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::play": [
@@ -792,11 +806,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::play_pause": [
@@ -820,11 +834,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::play_resume": [
@@ -848,11 +862,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::play_stop": [
@@ -876,11 +890,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::play_volume": [
@@ -910,11 +924,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::receive_fax_stop": [
@@ -938,11 +952,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::record": [
@@ -981,11 +995,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::record_pause": [
@@ -1009,11 +1023,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::record_resume": [
@@ -1037,11 +1051,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::record_stop": [
@@ -1065,11 +1079,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::refer": [
@@ -1100,11 +1114,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::send_fax_stop": [
@@ -1128,11 +1142,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::stream": [
@@ -1191,11 +1205,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::stream_stop": [
@@ -1219,11 +1233,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::tap": [
@@ -1260,11 +1274,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::tap_stop": [
@@ -1288,11 +1302,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::transcribe": [
@@ -1324,11 +1338,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::transcribe_stop": [
@@ -1352,11 +1366,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::transfer": [
@@ -1380,11 +1394,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::update": [
@@ -1437,11 +1451,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Calling::user_event": [
@@ -1465,11 +1479,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Chat::create_token": [
@@ -1507,20 +1521,20 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "ConferenceLogs::list": [
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "ConferenceRooms::list_addresses": [
@@ -1531,11 +1545,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "CxmlApplications::delete": [
@@ -1544,6 +1558,13 @@
         "name": "id",
         "required": true,
         "type": "string"
+      },
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
+        "required": false,
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "CxmlApplications::get": [
@@ -1554,20 +1575,20 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "CxmlApplications::list": [
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "CxmlApplications::list_addresses": [
@@ -1578,11 +1599,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "CxmlApplications::update": [
@@ -1698,11 +1719,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "DatasphereDocuments::delete_chunk": [
@@ -1717,6 +1738,13 @@
         "name": "chunk_id",
         "required": true,
         "type": "string"
+      },
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
+        "required": false,
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "DatasphereDocuments::get_chunk": [
@@ -1733,11 +1761,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "DatasphereDocuments::list_chunks": [
@@ -1748,11 +1776,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "DatasphereDocuments::search": [
@@ -1819,11 +1847,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "FabricTokens::create_embed_token": [
@@ -1841,11 +1869,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "FabricTokens::create_guest_token": [
@@ -1870,11 +1898,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "FabricTokens::create_invite_token": [
@@ -1899,11 +1927,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "FabricTokens::create_subscriber_token": [
@@ -1998,11 +2026,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "FabricTokens::refresh_subscriber_token": [
@@ -2020,11 +2048,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "GenericResources::assign_domain_application": [
@@ -2048,11 +2076,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "GenericResources::assign_phone_route": [
@@ -2082,11 +2110,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "GenericResources::delete": [
@@ -2095,6 +2123,13 @@
         "name": "id",
         "required": true,
         "type": "string"
+      },
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
+        "required": false,
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "GenericResources::get": [
@@ -2105,20 +2140,20 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "GenericResources::list": [
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "GenericResources::list_addresses": [
@@ -2129,11 +2164,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "ImportedNumbers::create": [
@@ -2164,11 +2199,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Lookup::phone_number": [
@@ -2179,11 +2214,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Messages::create": [
@@ -2242,11 +2277,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Messages::update": [
@@ -2270,11 +2305,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Mfa::call": [
@@ -2334,11 +2369,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Mfa::sms": [
@@ -2398,11 +2433,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Mfa::verify": [
@@ -2426,11 +2461,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "NumberGroups::add_membership": [
@@ -2454,11 +2489,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "NumberGroups::delete_membership": [
@@ -2467,6 +2502,13 @@
         "name": "id",
         "required": true,
         "type": "string"
+      },
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
+        "required": false,
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "NumberGroups::get_membership": [
@@ -2477,11 +2519,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "NumberGroups::list_memberships": [
@@ -2492,20 +2534,20 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "PhoneNumbers::search": [
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "PhoneNumbers::set_ai_agent": [
@@ -2522,11 +2564,11 @@
         "type": "dict<string,any>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "extra",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "PhoneNumbers::set_call_flow": [
@@ -2550,11 +2592,11 @@
         "type": "optional<any>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "extra",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "PhoneNumbers::set_cxml_application": [
@@ -2571,11 +2613,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "extra",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "PhoneNumbers::set_cxml_webhook": [
@@ -2606,11 +2648,11 @@
         "type": "optional<any>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "extra",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "PhoneNumbers::set_relay_application": [
@@ -2627,11 +2669,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "extra",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "PhoneNumbers::set_relay_topic": [
@@ -2655,11 +2697,11 @@
         "type": "optional<any>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "extra",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "PhoneNumbers::set_swml_webhook": [
@@ -2676,11 +2718,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "extra",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "ProjectTokens::create": [
@@ -2711,11 +2753,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "ProjectTokens::delete": [
@@ -2724,6 +2766,13 @@
         "name": "token_id",
         "required": true,
         "type": "string"
+      },
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
+        "required": false,
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "ProjectTokens::update": [
@@ -2755,11 +2804,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Projects::rotate_signing_key": [
@@ -2768,6 +2817,13 @@
         "name": "id",
         "required": true,
         "type": "string"
+      },
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
+        "required": false,
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "PubSub::create_token": [
@@ -2805,11 +2861,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Queues::get_member": [
@@ -2826,11 +2882,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Queues::get_next_member": [
@@ -2841,11 +2897,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Queues::list_members": [
@@ -2856,11 +2912,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Recordings::delete": [
@@ -2869,6 +2925,13 @@
         "name": "id",
         "required": true,
         "type": "string"
+      },
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
+        "required": false,
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Recordings::get": [
@@ -2879,20 +2942,20 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Recordings::list": [
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "RegistryBrands::create": [
@@ -2901,6 +2964,13 @@
         "name": "body",
         "required": true,
         "type": "dict<string,any>"
+      },
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
+        "required": false,
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "RegistryBrands::create_campaign": [
@@ -2915,6 +2985,13 @@
         "name": "body",
         "required": true,
         "type": "dict<string,any>"
+      },
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
+        "required": false,
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "RegistryBrands::get": [
@@ -2925,20 +3002,20 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "RegistryBrands::list": [
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "RegistryBrands::list_campaigns": [
@@ -2949,11 +3026,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "RegistryCampaigns::create_order": [
@@ -2985,11 +3062,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "RegistryCampaigns::get": [
@@ -3000,11 +3077,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "RegistryCampaigns::list_numbers": [
@@ -3015,11 +3092,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "RegistryCampaigns::list_orders": [
@@ -3030,11 +3107,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "RegistryCampaigns::update": [
@@ -3059,11 +3136,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "RegistryNumbers::delete": [
@@ -3072,6 +3149,13 @@
         "name": "id",
         "required": true,
         "type": "string"
+      },
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
+        "required": false,
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "RegistryOrders::get": [
@@ -3082,11 +3166,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "ShortCodes::get": [
@@ -3097,20 +3181,20 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "ShortCodes::list": [
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "ShortCodes::update": [
@@ -3182,20 +3266,20 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "SipProfile::get": [
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "SipProfile::update": [
@@ -3242,11 +3326,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Subscribers::create_sip_endpoint": [
@@ -3311,11 +3395,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Subscribers::delete_sip_endpoint": [
@@ -3330,6 +3414,13 @@
         "name": "id",
         "required": true,
         "type": "string"
+      },
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
+        "required": false,
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Subscribers::get_sip_endpoint": [
@@ -3346,11 +3437,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Subscribers::list_sip_endpoints": [
@@ -3361,11 +3452,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "Subscribers::update_sip_endpoint": [
@@ -3438,11 +3529,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "VerifiedCallers::redial_verification": [
@@ -3451,6 +3542,13 @@
         "name": "id",
         "required": true,
         "type": "string"
+      },
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
+        "required": false,
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "VerifiedCallers::submit_verification": [
@@ -3474,11 +3572,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "VideoConferenceTokens::get": [
@@ -3489,11 +3587,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "VideoConferenceTokens::reset": [
@@ -3502,6 +3600,13 @@
         "name": "id",
         "required": true,
         "type": "string"
+      },
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
+        "required": false,
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "VideoConferences::create_stream": [
@@ -3525,11 +3630,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "VideoConferences::list_conference_tokens": [
@@ -3540,11 +3645,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "VideoConferences::list_streams": [
@@ -3555,11 +3660,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "VideoRoomRecordings::delete": [
@@ -3568,6 +3673,13 @@
         "name": "id",
         "required": true,
         "type": "string"
+      },
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
+        "required": false,
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "VideoRoomRecordings::get": [
@@ -3578,20 +3690,20 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "VideoRoomRecordings::list": [
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "VideoRoomRecordings::list_events": [
@@ -3602,11 +3714,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "VideoRoomSessions::list_events": [
@@ -3617,11 +3729,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "VideoRoomSessions::list_members": [
@@ -3632,11 +3744,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "VideoRoomSessions::list_recordings": [
@@ -3647,11 +3759,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "VideoRoomTokens::create": [
@@ -3788,11 +3900,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "VideoRooms::create_stream": [
@@ -3816,11 +3928,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "VideoRooms::list_streams": [
@@ -3831,11 +3943,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "VideoStreams::delete": [
@@ -3844,6 +3956,13 @@
         "name": "id",
         "required": true,
         "type": "string"
+      },
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
+        "required": false,
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "VideoStreams::get": [
@@ -3854,11 +3973,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "VideoStreams::update": [
@@ -3882,11 +4001,11 @@
         "type": "optional<dict<string,any>>"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "kwargs",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ],
     "VoiceLogs::list_events": [
@@ -3897,11 +4016,11 @@
         "type": "string"
       },
       {
-        "default": {},
-        "kind": "var_keyword",
-        "name": "params",
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
         "required": false,
-        "type": "any"
+        "type": "optional<class:RequestOptions>"
       }
     ]
   }

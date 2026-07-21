@@ -21,8 +21,8 @@ module SignalWire
             super(http, '/api/relay/rest/registry/beta/orders')
           end
 
-          def get(id, **params)
-            @http.get(_path(id), params.empty? ? nil : params)
+          def get(id, request_options: nil, **params)
+            @http.get(_path(id), params.empty? ? nil : params, request_options: request_options)
           end
         end
       end

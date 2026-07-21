@@ -21,13 +21,13 @@ module SignalWire
             super(http, '/api/relay/rest/imported_phone_numbers')
           end
 
-          def create(number:, number_type:, capabilities: nil, extras: {}, **kwargs)
+          def create(number:, number_type:, capabilities: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['number'] = number
             body['number_type'] = number_type
             body['capabilities'] = capabilities unless capabilities.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
         end
       end

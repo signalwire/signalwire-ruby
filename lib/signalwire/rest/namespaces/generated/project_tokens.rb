@@ -21,25 +21,25 @@ module SignalWire
             super(http, '/api/project/tokens')
           end
 
-          def create(name:, permissions:, subproject_id: nil, extras: {}, **kwargs)
+          def create(name:, permissions:, subproject_id: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['name'] = name
             body['permissions'] = permissions
             body['subproject_id'] = subproject_id unless subproject_id.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(token_id, name: nil, permissions: nil, extras: {}, **kwargs)
+          def update(token_id, name: nil, permissions: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['name'] = name unless name.nil?
             body['permissions'] = permissions unless permissions.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.patch(_path(token_id), body)
+            @http.patch(_path(token_id), body, request_options: request_options)
           end
 
-          def delete(token_id)
-            @http.delete(_path(token_id))
+          def delete(token_id, request_options: nil)
+            @http.delete(_path(token_id), request_options: request_options)
           end
         end
       end

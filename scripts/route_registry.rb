@@ -42,25 +42,31 @@ class RecordingHttp < SignalWire::REST::HttpClient
     @calls = []
   end
 
-  def get(path, _params = nil)
+  # Mirror the real HttpClient verb signatures, including the trailing keyword-only
+  # +request_options:+ (§PY-7) every generated resource verb now forwards. Without
+  # it, every capture call raises ArgumentError and Set B comes up empty. The
+  # capture only needs (method, path); the body/params/request_options are ignored.
+  # rubocop:disable Lint/UnusedMethodArgument
+  def get(path, _params = nil, request_options: nil)
     record('GET', path)
   end
 
-  def post(path, _body = nil)
+  def post(path, _body = nil, params: nil, request_options: nil)
     record('POST', path)
   end
 
-  def put(path, _body = nil)
+  def put(path, _body = nil, request_options: nil)
     record('PUT', path)
   end
 
-  def patch(path, _body = nil)
+  def patch(path, _body = nil, request_options: nil)
     record('PATCH', path)
   end
 
-  def delete(path)
+  def delete(path, request_options: nil)
     record('DELETE', path)
   end
+  # rubocop:enable Lint/UnusedMethodArgument
 
   private
 

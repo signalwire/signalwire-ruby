@@ -66,6 +66,17 @@ module SignalWire
         materialize_namespaces!
       end
 
+      # Redacted inspect: NEVER print the API token — the default #inspect would
+      # dump @http (which holds the raw token + Basic-auth header) and every
+      # materialized namespace ivar. Enterprise credential-hygiene (A6 /
+      # SECRET-SCRUB): a client leaked into a log / crash dump / REPL must not
+      # expose the credential.
+      def inspect
+        "#<#{self.class.name} project_id=#{@project_id.inspect} " \
+          "base_url=#{@http.base_url.inspect} token=[REDACTED]>"
+      end
+      alias to_s inspect
+
       # The HttpClient the generated ResourceTree accessors build their resources
       # off of. Named +generated_http_client+ (not just +http+) to match the
       # contract the generated module expects (§8).

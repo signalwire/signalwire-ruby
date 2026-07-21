@@ -21,8 +21,8 @@ module SignalWire
             super(http, '/api/relay/rest/registry/beta/numbers')
           end
 
-          def delete(id)
-            @http.delete(_path(id))
+          def delete(id, request_options: nil)
+            @http.delete(_path(id), request_options: request_options)
           end
         end
       end

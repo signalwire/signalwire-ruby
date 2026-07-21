@@ -259,7 +259,8 @@ Guides are also available in the [`docs/`](docs/) directory:
 | `SIGNALWIRE_SKILL_PATHS` | Skills | Extra skill search directories (colon-separated) |
 | `SIGNALWIRE_RELAY_HOST` | RELAY | Override the RELAY WebSocket host (testing / self-hosted) |
 | `SIGNALWIRE_RELAY_SCHEME` | RELAY | Override the RELAY WebSocket scheme (`ws`/`wss`) |
-| `SIGNALWIRE_RELAY_SSL_CA_FILE` | RELAY | Custom CA bundle for the RELAY TLS connection |
+| `SIGNALWIRE_RELAY_CA_FILE` | RELAY | Custom CA bundle for the RELAY TLS (`wss://`) connection |
+| `SIGNALWIRE_REST_CA_FILE` | REST | Custom CA bundle for the REST HTTPS connection |
 | `SIGNALWIRE_LOG_LEVEL` | All | Logging level (`debug`, `info`, `warn`, `error`) |
 | `SIGNALWIRE_LOG_MODE` | All | Set to `off` to suppress all logging |
 

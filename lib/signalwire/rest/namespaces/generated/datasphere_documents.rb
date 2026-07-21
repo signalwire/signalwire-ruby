@@ -22,22 +22,22 @@ module SignalWire
             super(http, '/api/datasphere/documents')
           end
 
-          def create(body)
-            @http.post(@base_path, body)
+          def create(body, request_options: nil)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(resource_id, tags:, extras: {}, **kwargs)
+          def update(resource_id, tags:, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['tags'] = tags
             body = body.merge(extras).merge(kwargs)
-            @http.patch(_path(resource_id), body)
+            @http.patch(_path(resource_id), body, request_options: request_options)
           end
 
-          def delete(resource_id)
-            @http.delete(_path(resource_id))
+          def delete(resource_id, request_options: nil)
+            @http.delete(_path(resource_id), request_options: request_options)
           end
 
-          def search(query_string:, tags: nil, document_id: nil, distance: nil, count: nil, language: nil, pos_to_expand: nil, max_synonyms: nil, extras: {}, **kwargs)
+          def search(query_string:, tags: nil, document_id: nil, distance: nil, count: nil, language: nil, pos_to_expand: nil, max_synonyms: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['query_string'] = query_string
             body['tags'] = tags unless tags.nil?
@@ -48,19 +48,19 @@ module SignalWire
             body['pos_to_expand'] = pos_to_expand unless pos_to_expand.nil?
             body['max_synonyms'] = max_synonyms unless max_synonyms.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.post(_path('search'), body)
+            @http.post(_path('search'), body, request_options: request_options)
           end
 
-          def list_chunks(document_id, **params)
-            @http.get(_path(document_id, 'chunks'), params.empty? ? nil : params)
+          def list_chunks(document_id, request_options: nil, **params)
+            @http.get(_path(document_id, 'chunks'), params.empty? ? nil : params, request_options: request_options)
           end
 
-          def get_chunk(document_id, chunk_id, **params)
-            @http.get(_path(document_id, 'chunks', chunk_id), params.empty? ? nil : params)
+          def get_chunk(document_id, chunk_id, request_options: nil, **params)
+            @http.get(_path(document_id, 'chunks', chunk_id), params.empty? ? nil : params, request_options: request_options)
           end
 
-          def delete_chunk(document_id, chunk_id)
-            @http.delete(_path(document_id, 'chunks', chunk_id))
+          def delete_chunk(document_id, chunk_id, request_options: nil)
+            @http.delete(_path(document_id, 'chunks', chunk_id), request_options: request_options)
           end
         end
       end

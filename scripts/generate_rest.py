@@ -628,6 +628,22 @@ def _register_sidecar(cls: str, ruby_method: str, records: list[dict]) -> None:
     _SIDECAR[(cls, ruby_method)] = records
 
 
+# §PY-7 request_options: every generated REST verb accepts a trailing keyword-only
+# ``request_options:`` (per-call timeout / connect_timeout / headers), forwarded to
+# the HttpClient verb and NEVER folded into the wire body. Mirrors the Python
+# reference, which types it ``RequestOptions | None`` on all resource verbs. The
+# sidecar records it as a typed keyword so DRIFT matches the reference's concretely-
+# typed param (the diff withdraws the bare-``any`` tolerance for input params).
+REQUEST_OPTIONS_TYPE = "optional<class:RequestOptions>"
+REQUEST_OPTIONS_SIG = "request_options: nil"
+REQUEST_OPTIONS_FWD = "request_options: request_options"
+
+
+def _request_options_record() -> dict:
+    return {"name": "request_options", "kind": "keyword",
+            "type": REQUEST_OPTIONS_TYPE, "required": False, "default": None}
+
+
 def schema_fields(spec: Spec, schema: dict, seen=None) -> set[str]:
     if schema is None:
         return set()
@@ -697,16 +713,18 @@ def kwarg_params_and_body(spec, fields, indent="        ", body_var="body"):
             build.append(f"{indent}{body_var}[{rb_str(wire_name)}] = {ident} unless {ident}.nil?")
         records.append(rec)
     params.append("extras: {}")
+    params.append(REQUEST_OPTIONS_SIG)
     params.append("**kwargs")
     build.append(f"{indent}{body_var} = {body_var}.merge(extras).merge(kwargs)")
     records.append({
         "name": "extras", "kind": "keyword",
         "type": "optional<dict<string,any>>", "required": False, "default": None,
     })
-    records.append({
-        "name": "kwargs", "kind": "var_keyword", "type": "any",
-        "required": False, "default": {},
-    })
+    # §PY-7: the trailing sidecar slot is the keyword-only ``request_options`` (the
+    # reference records it at the var_keyword position; the ``**kwargs`` forward-
+    # compat splat stays in the physical signature but is not surfaced in the
+    # sidecar). Callers that consume ``records`` therefore already carry it.
+    records.append(_request_options_record())
     return params, build, records, body_var
 
 
@@ -784,15 +802,18 @@ def emit_method(spec: Spec, anchor: str, markup: dict, base: str,
     # positional as ``string`` (a URL path segment). Record them so.
     id_records = [{"name": a, "kind": "positional", "type": "string", "required": True} for a in id_args]
 
+    ro_rec = _request_options_record()
     if write_verb and has_body:
         body_schema = spec.op_body.get(op_id) or {}
         if is_object_body(spec, body_schema):
             fields = object_body_fields(spec, body_schema)
+            # kwarg_params_and_body already emits ``request_options: nil`` into the
+            # signature (kw) and the request_options record into ``records``.
             kw, build, records, bvar = kwarg_params_and_body(spec, fields, indent=indent + "  ")
             sig = ", ".join(id_args + kw)
             lines.append(f"{indent}def {name}({sig})")
             lines.extend(build)
-            lines.append(f"{indent}  @http.{verb_fn}({path_expr}, {bvar})")
+            lines.append(f"{indent}  @http.{verb_fn}({path_expr}, {bvar}, {REQUEST_OPTIONS_FWD})")
             lines.append(f"{indent}end")
             _register_sidecar(cls, name, id_records + records)
         else:
@@ -804,35 +825,37 @@ def emit_method(spec: Spec, anchor: str, markup: dict, base: str,
             # ``gen:<Name>`` — ``canonical_type`` returns the folding
             # ``dict<string,any>`` for it; a bare inline union stays ``any``.
             body_type = canonical_type(spec, body_schema, True)
-            sig = ", ".join(id_args + ["body"])
+            sig = ", ".join(id_args + ["body", REQUEST_OPTIONS_SIG])
             lines.append(f"{indent}def {name}({sig})")
-            lines.append(f"{indent}  @http.{verb_fn}({path_expr}, body)")
+            lines.append(f"{indent}  @http.{verb_fn}({path_expr}, body, {REQUEST_OPTIONS_FWD})")
             lines.append(f"{indent}end")
             _register_sidecar(cls, name, id_records + [
                 {"name": "body", "kind": "positional", "type": body_type, "required": True},
+                ro_rec,
             ])
     elif write_verb:
-        sig = ", ".join(id_args)
+        sig = ", ".join(id_args + [REQUEST_OPTIONS_SIG])
         lines.append(f"{indent}def {name}({sig})")
-        lines.append(f"{indent}  @http.{verb_fn}({path_expr}, {{}})")
+        lines.append(f"{indent}  @http.{verb_fn}({path_expr}, {{}}, {REQUEST_OPTIONS_FWD})")
         lines.append(f"{indent}end")
-        _register_sidecar(cls, name, id_records)
+        _register_sidecar(cls, name, id_records + [ro_rec])
     elif verb == "get":
-        # §5.3 GET query door — a trailing keyword-splat `**params` map.
-        sig = ", ".join(id_args + ["**params"])
+        # §5.3 GET query door — a trailing keyword-splat `**params` map, plus the
+        # keyword-only ``request_options:`` (extracted before the splat). The
+        # reference enumerator records ONLY the path-ids + ``request_options`` for
+        # a GET (the ``**params`` var_keyword is not surfaced), so the sidecar
+        # mirrors that shape (drop ``params``, record ``request_options``).
+        sig = ", ".join(id_args + [REQUEST_OPTIONS_SIG, "**params"])
         lines.append(f"{indent}def {name}({sig})")
-        lines.append(f"{indent}  @http.get({path_expr}, params.empty? ? nil : params)")
+        lines.append(f"{indent}  @http.get({path_expr}, params.empty? ? nil : params, {REQUEST_OPTIONS_FWD})")
         lines.append(f"{indent}end")
-        _register_sidecar(cls, name, id_records + [
-            {"name": "params", "kind": "var_keyword", "type": "any",
-             "required": False, "default": {}},
-        ])
+        _register_sidecar(cls, name, id_records + [ro_rec])
     else:  # delete
-        sig = ", ".join(id_args)
+        sig = ", ".join(id_args + [REQUEST_OPTIONS_SIG])
         lines.append(f"{indent}def {name}({sig})")
-        lines.append(f"{indent}  @http.delete({path_expr})")
+        lines.append(f"{indent}  @http.delete({path_expr}, {REQUEST_OPTIONS_FWD})")
         lines.append(f"{indent}end")
-        _register_sidecar(cls, name, id_records)
+        _register_sidecar(cls, name, id_records + [ro_rec])
     return lines
 
 
@@ -874,11 +897,11 @@ def emit_crud_create_update(spec: Spec, anchor: str, markup: dict, base: str, in
             kw, build, _records, bvar = kwarg_params_and_body(spec, fields, indent=indent + "  ")
             lines.append(f"{indent}def create({', '.join(kw)})")
             lines.extend(build)
-            lines.append(f"{indent}  @http.post(@base_path, {bvar})")
+            lines.append(f"{indent}  @http.post(@base_path, {bvar}, {REQUEST_OPTIONS_FWD})")
             lines.append(f"{indent}end")
         else:
-            lines.append(f"{indent}def create(body)")
-            lines.append(f"{indent}  @http.post(@base_path, body)")
+            lines.append(f"{indent}def create(body, {REQUEST_OPTIONS_SIG})")
+            lines.append(f"{indent}  @http.post(@base_path, body, {REQUEST_OPTIONS_FWD})")
             lines.append(f"{indent}end")
 
     if update_op:
@@ -890,12 +913,12 @@ def emit_crud_create_update(spec: Spec, anchor: str, markup: dict, base: str, in
             lines.append("")
             lines.append(f"{indent}def update(resource_id, {', '.join(kw)})")
             lines.extend(build)
-            lines.append(f"{indent}  @http.{verb_fn}(_path(resource_id), {bvar})")
+            lines.append(f"{indent}  @http.{verb_fn}(_path(resource_id), {bvar}, {REQUEST_OPTIONS_FWD})")
             lines.append(f"{indent}end")
         else:
             lines.append("")
-            lines.append(f"{indent}def update(resource_id, body)")
-            lines.append(f"{indent}  @http.{verb_fn}(_path(resource_id), body)")
+            lines.append(f"{indent}def update(resource_id, body, {REQUEST_OPTIONS_SIG})")
+            lines.append(f"{indent}  @http.{verb_fn}(_path(resource_id), body, {REQUEST_OPTIONS_FWD})")
             lines.append(f"{indent}end")
 
     # delete: a CrudResource OWN member → recorded on a plain CrudResource
@@ -903,8 +926,8 @@ def emit_crud_create_update(spec: Spec, anchor: str, markup: dict, base: str, in
     # (not recorded on the subclass) — do NOT emit for FabricResource.
     if base == "CrudResource":
         lines.append("")
-        lines.append(f"{indent}def delete(resource_id)")
-        lines.append(f"{indent}  @http.delete(_path(resource_id))")
+        lines.append(f"{indent}def delete(resource_id, {REQUEST_OPTIONS_SIG})")
+        lines.append(f"{indent}  @http.delete(_path(resource_id), {REQUEST_OPTIONS_FWD})")
         lines.append(f"{indent}end")
     return lines
 
@@ -941,23 +964,23 @@ def emit_read_list_get(spec: Spec, anchor: str, markup: dict, indent: str) -> li
     `get(resource_id)` (item GET, NO query tail — the base-inherited shape, per
     L4: only DECLARED GET methods carry a query tail, not the base list/get)."""
     lines: list[str] = []
-    lines.append(f"{indent}def list(**params)")
-    lines.append(f"{indent}  @http.get(@base_path, params.empty? ? nil : params)")
+    lines.append(f"{indent}def list({REQUEST_OPTIONS_SIG}, **params)")
+    lines.append(f"{indent}  @http.get(@base_path, params.empty? ? nil : params, {REQUEST_OPTIONS_FWD})")
     lines.append(f"{indent}end")
     lines.append("")
     # paginate: the ReadResource base's page-walking iterator (oracle records
     # `paginate` on every ReadResource subclass). Returns an Enumerable
     # PaginatedIterator wired to this resource's collection path — the Ruby
     # idiom for Python's returned iterator; follows resp["links"]["next"].
-    lines.append(f"{indent}def paginate(**params)")
+    lines.append(f"{indent}def paginate({REQUEST_OPTIONS_SIG}, **params)")
     lines.append(
         f"{indent}  SignalWire::REST::PaginatedIterator.new("
-        "@http, @base_path, params.empty? ? nil : params, 'data')"
+        "@http, @base_path, params.empty? ? nil : params, 'data', request_options)"
     )
     lines.append(f"{indent}end")
     lines.append("")
-    lines.append(f"{indent}def get(resource_id)")
-    lines.append(f"{indent}  @http.get(_path(resource_id))")
+    lines.append(f"{indent}def get(resource_id, {REQUEST_OPTIONS_SIG})")
+    lines.append(f"{indent}  @http.get(_path(resource_id), {REQUEST_OPTIONS_FWD})")
     lines.append(f"{indent}end")
     return lines
 
@@ -1002,11 +1025,12 @@ def emit_set_method(spec: Spec, markup: dict, sm_name: str, sm: dict,
             optional_lines.append((ident, field))
         records.append(rec)
     params.append("extra: {}")
+    params.append(REQUEST_OPTIONS_SIG)
     params.append("**kwargs")
-    records.append({
-        "name": "extra", "kind": "var_keyword", "type": "any",
-        "required": False, "default": {},
-    })
+    # Reference records the trailing keyword-only ``request_options`` at the
+    # var_keyword slot (the ``extra``/``**kwargs`` forward-compat splat is not
+    # surfaced) — mirror that: append request_options, not an ``extra`` record.
+    records.append(_request_options_record())
     _register_sidecar(markup["name"], sm_name, records)
     sig = ", ".join(params)
     lines: list[str] = []
@@ -1015,7 +1039,7 @@ def emit_set_method(spec: Spec, markup: dict, sm_name: str, sm: dict,
     lines.extend(required_lines)
     for ident, field in optional_lines:
         lines.append(f"{indent}  body[{rb_str(field)}] = {ident} unless {ident}.nil?")
-    lines.append(f"{indent}  update(resource_id, **body.transform_keys(&:to_sym), **extra, **kwargs)")
+    lines.append(f"{indent}  update(resource_id, {REQUEST_OPTIONS_FWD}, **body.transform_keys(&:to_sym), **extra, **kwargs)")
     lines.append(f"{indent}end")
     return lines
 
@@ -1083,7 +1107,7 @@ def emit_command_dispatch(spec: Spec, anchor: str, markup: dict) -> str:
         lines.append(f"            body = {{ 'command' => {rb_str(cmd)}, 'params' => {bvar} }}")
         if with_id:
             lines.append("            body['id'] = call_id if call_id")
-        lines.append("            @http.post(@base_path, body)")
+        lines.append(f"            @http.post(@base_path, body, {REQUEST_OPTIONS_FWD})")
         lines.append("          end")
     lines.append("        end")
     lines.append("      end")

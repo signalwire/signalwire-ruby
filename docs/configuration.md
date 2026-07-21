@@ -180,7 +180,8 @@ connect time — no code changes required.
 |---|---|---|
 | `SIGNALWIRE_RELAY_HOST` | Override the RELAY endpoint host the client connects to. Used to point the client at a non-production endpoint (e.g. a loopback audit fixture) without touching credential resolution. | derived from the space/host |
 | `SIGNALWIRE_RELAY_SCHEME` | URL scheme for the RELAY WebSocket connection. Set to `ws` to connect over plain (non-TLS) WebSocket — e.g. for a loopback test/audit fixture — instead of the production `wss`. Any other value is used verbatim as the scheme. | `wss` |
-| `SIGNALWIRE_RELAY_SSL_CA_FILE` | Path to an additional PEM CA-bundle file to trust when verifying the RELAY server certificate on a `wss://` connection. The named file is added to the certificate store alongside the OpenSSL default paths (which themselves honor `SSL_CERT_FILE` / `SSL_CERT_DIR`). Use it to trust a private/custom CA. Ignored for non-`wss` schemes. | _unset_ (system trust store only) |
+| `SIGNALWIRE_RELAY_CA_FILE` | Path to an additional PEM CA-bundle file to trust when verifying the RELAY server certificate on a `wss://` connection. The named file is added to the certificate store alongside the OpenSSL default paths (which themselves honor `SSL_CERT_FILE` / `SSL_CERT_DIR`). Use it to trust a private/custom CA. Ignored for non-`wss` schemes. | _unset_ (system trust store only) |
+| `SIGNALWIRE_REST_CA_FILE` | Path to an additional PEM CA-bundle file to trust when verifying the REST server certificate over HTTPS. The named file is added to a certificate store seeded from the OpenSSL defaults (which honor `SSL_CERT_FILE`). Used when no explicit `ca_file:` is passed to the REST client. Use it to trust a private/custom CA. | _unset_ (system trust store only) |
 
 Both are read at connection time, so setting them before `RelayClient#connect`
 is sufficient. `SIGNALWIRE_RELAY_SCHEME=ws` disables TLS entirely, so use it

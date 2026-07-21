@@ -22,11 +22,11 @@ module SignalWire
             super(http, '/api/relay/rest/addresses')
           end
 
-          def list(**params)
-            @http.get(@base_path, params.empty? ? nil : params)
+          def list(request_options: nil, **params)
+            @http.get(@base_path, params.empty? ? nil : params, request_options: request_options)
           end
 
-          def create(label:, country:, first_name:, last_name:, street_number:, street_name:, city:, state:, postal_code:, address_type: nil, address_number: nil, extras: {}, **kwargs)
+          def create(label:, country:, first_name:, last_name:, street_number:, street_name:, city:, state:, postal_code:, address_type: nil, address_number: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['label'] = label
             body['country'] = country
@@ -40,15 +40,15 @@ module SignalWire
             body['address_type'] = address_type unless address_type.nil?
             body['address_number'] = address_number unless address_number.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.post(@base_path, body)
+            @http.post(@base_path, body, request_options: request_options)
           end
 
-          def get(id, **params)
-            @http.get(_path(id), params.empty? ? nil : params)
+          def get(id, request_options: nil, **params)
+            @http.get(_path(id), params.empty? ? nil : params, request_options: request_options)
           end
 
-          def delete(id)
-            @http.delete(_path(id))
+          def delete(id, request_options: nil)
+            @http.delete(_path(id), request_options: request_options)
           end
         end
       end

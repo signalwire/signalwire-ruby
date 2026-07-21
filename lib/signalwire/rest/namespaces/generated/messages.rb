@@ -22,7 +22,7 @@ module SignalWire
             super(http, '/api/messaging/messages')
           end
 
-          def create(to:, from:, body: nil, media: nil, send_as_mms: nil, status_callback: nil, custom_variables: nil, extras: {}, **kwargs)
+          def create(to:, from:, body: nil, media: nil, send_as_mms: nil, status_callback: nil, custom_variables: nil, extras: {}, request_options: nil, **kwargs)
             req_body = {}
             req_body['to'] = to
             req_body['from'] = from
@@ -32,14 +32,14 @@ module SignalWire
             req_body['status_callback'] = status_callback unless status_callback.nil?
             req_body['custom_variables'] = custom_variables unless custom_variables.nil?
             req_body = req_body.merge(extras).merge(kwargs)
-            @http.post(@base_path, req_body)
+            @http.post(@base_path, req_body, request_options: request_options)
           end
 
-          def update(message_id, body:, extras: {}, **kwargs)
+          def update(message_id, body:, extras: {}, request_options: nil, **kwargs)
             req_body = {}
             req_body['body'] = body
             req_body = req_body.merge(extras).merge(kwargs)
-            @http.patch(_path(message_id), req_body)
+            @http.patch(_path(message_id), req_body, request_options: request_options)
           end
         end
       end

@@ -11,7 +11,7 @@ class RegistryDetailedTest < Minitest::Test
     EXPECTED_SKILLS.each do |skill_name|
       assert_includes registered, skill_name, "Missing skill: #{skill_name}"
     end
-    # mcp_gateway is NOT ported (approved Python-only per §I.1).
+    # mcp_gateway CLIENT skill IS ported (Python-only server half excluded).
     assert_operator registered.size, :>=, EXPECTED_SKILLS.size
   end
 

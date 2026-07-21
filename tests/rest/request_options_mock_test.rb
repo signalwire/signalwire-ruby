@@ -23,7 +23,7 @@ require 'minitest/autorun'
 require_relative 'mock_test'
 require_relative '../../lib/signalwire/rest/request_options'
 
-class RequestOptionsMockTest < Minitest::Test
+class RequestOptionsMockTest < Minitest::Test # rubocop:disable Metrics/ClassLength
   # Parallelize: per-client unique-project + auth-scoped harness isolates each test.
   parallelize_me!
 
@@ -137,6 +137,30 @@ class RequestOptionsMockTest < Minitest::Test
 
     refute_nil result
     assert_equal 2, address_gets.length, 'per-request retries override the client default'
+  end
+
+  # ---- generated resource verb forwards request_options to the transport (PY-7)
+  # The retry/timeout contract above drives @http directly. This proves the NEW
+  # surface: a per-call +request_options:+ passed to a GENERATED resource verb
+  # (fabric.addresses.list) threads all the way to the transport, so the mock
+  # sees the retry. Without the generator wiring request_options through, the
+  # option would be silently dropped and only ONE attempt would be recorded.
+  def test_generated_list_verb_forwards_request_options_retry
+    @mock.push_scenario(ADDRESSES_ENDPOINT_ID, status: 503, response: {})
+    @mock.push_scenario(ADDRESSES_ENDPOINT_ID, status: 200, response: delayed_ok_body)
+    @client.fabric.addresses.list(
+      request_options: SignalWire::REST::RequestOptions.new(retries: 1, retry_backoff: 0)
+    )
+
+    assert_equal 2, address_gets.length,
+                 'generated list verb must forward request_options so the 503 is retried'
+  end
+
+  def test_generated_list_verb_default_no_retry
+    @mock.push_scenario(ADDRESSES_ENDPOINT_ID, status: 503, response: {})
+    assert_raises(SignalWire::REST::SignalWireRestError) { @client.fabric.addresses.list }
+    assert_equal 1, address_gets.length,
+                 'no request_options => default (no retry) still holds on the generated verb'
   end
 
   private

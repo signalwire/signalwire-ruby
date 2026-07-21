@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ bb99959440d1e77ba785815e6e30538533e32b88",
+  "generated_from": "signalwire-ruby @ 307c736cbf7eaaace8c1090efaf4398ea64105d5",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -106,6 +106,7 @@
           "as_rack_app",
           "auto_map_sip_usernames",
           "basic_auth_credentials",
+          "build_main_section",
           "clear_post_ai_verbs",
           "clear_post_answer_verbs",
           "clear_pre_answer_verbs",
@@ -1272,6 +1273,7 @@
           "disconnect",
           "execute",
           "host",
+          "inspect",
           "max_active_calls",
           "on_call",
           "on_event",
@@ -1282,6 +1284,7 @@
           "run",
           "send_json",
           "send_message",
+          "to_s",
           "unreceive"
         ],
         "RelayError": [
@@ -1736,10 +1739,12 @@
           "base_url",
           "delete",
           "get",
+          "inspect",
           "patch",
           "post",
           "project_id",
-          "put"
+          "put",
+          "to_s"
         ],
         "ReadResource": [
           "get",
@@ -1803,7 +1808,9 @@
           "__init__",
           "generated_http_client",
           "http",
-          "project_id"
+          "inspect",
+          "project_id",
+          "to_s"
         ]
       },
       "functions": []
@@ -3301,6 +3308,22 @@
           "name",
           "register_tools",
           "setup"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.skills.mcp_gateway.skill": {
+      "classes": {
+        "MCPGatewaySkill": [
+          "description",
+          "get_global_data",
+          "get_hints",
+          "get_parameter_schema",
+          "get_prompt_sections",
+          "name",
+          "register_tools",
+          "setup",
+          "version"
         ]
       },
       "functions": []

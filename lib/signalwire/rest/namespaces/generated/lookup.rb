@@ -21,8 +21,8 @@ module SignalWire
             super(http, '/api/relay/rest/lookup')
           end
 
-          def phone_number(e164, **params)
-            @http.get(_path('phone_number', e164), params.empty? ? nil : params)
+          def phone_number(e164, request_options: nil, **params)
+            @http.get(_path('phone_number', e164), params.empty? ? nil : params, request_options: request_options)
           end
         end
       end

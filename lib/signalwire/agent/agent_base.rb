@@ -252,6 +252,7 @@ module SignalWire
       @web_hook_url_override   = nil
       @post_prompt_url_override = nil
       @swaig_query_params      = {}
+      @render_call_id          = nil
       @debug_routes_enabled    = false
       @summary_callback        = nil
       init_sip_and_mcp_state
@@ -686,9 +687,10 @@ module SignalWire
     # @param parameters [Hash] JSON-Schema parameters
     # @param handler [Proc, nil] explicit handler (alternative to a
     #   block); kept for backward compat
-    # @param secure [Boolean] require token validation. Ruby defaults
-    #   to ``false`` (kept for backward compat); Python defaults to
-    #   ``True``. Pass ``secure: true`` to match Python.
+    # @param secure [Boolean] require token validation. Defaults to
+    #   ``true`` (fleet-wide, matching Python): a tool defined without an
+    #   explicit ``secure:`` requires SWAIG token validation. Pass
+    #   ``secure: false`` to opt a tool out.
     # @param fillers [Hash, nil] language-keyed filler phrases
     # @param wait_file [String, nil] URL of audio file to play while
     #   the tool runs server-side
@@ -704,7 +706,7 @@ module SignalWire
     # @yield [args, raw_data] tool handler body (alternative to
     #   passing ``handler:``)
     def define_tool(name:, description:, parameters: {}, handler: nil,
-                    secure: false, fillers: nil,
+                    secure: true, fillers: nil,
                     wait_file: nil, wait_file_loops: nil,
                     webhook_url: nil, required: nil,
                     is_typed_handler: false,
@@ -2115,7 +2117,20 @@ module SignalWire
     end
 
     # @api private
-    def _render_swml_internal
+    #
+    # +call_id+ (optional) is the active call's id. When present, each SECURE
+    # tool's rendered SWAIG webhook carries a per-tool ``__token`` (minted via
+    # the SessionManager) so the platform can validate the callback — the wire
+    # manifestation of ``secure`` (mirrors python agent_base.py:1040/1096-1100).
+    def _render_swml_internal(call_id: nil)
+      @render_call_id = call_id
+      { 'version' => '1.0.0', 'sections' => { 'main' => build_main_section } }
+    ensure
+      @render_call_id = nil
+    end
+
+    # Assemble the ordered SWML "main" section entries.
+    def build_main_section
       sections_main = []
       sections_main.concat(verb_entries(@pre_answer_verbs)) # PHASE 1: pre-answer verbs
       sections_main << answer_entry if auto_answer           # PHASE 2: answer verb
@@ -2123,8 +2138,7 @@ module SignalWire
       sections_main.concat(verb_entries(@post_answer_verbs)) # PHASE 3b: post-answer verbs
       sections_main << { 'ai' => build_ai_config } # PHASE 4: AI verb
       sections_main.concat(verb_entries(@post_ai_verbs)) # PHASE 5: post-AI verbs
-
-      { 'version' => '1.0.0', 'sections' => { 'main' => sections_main } }
+      sections_main
     end
 
     # Map a [[verb_name, config], ...] list into [{verb_name => config}, ...].
@@ -2259,13 +2273,16 @@ module SignalWire
 
     def tool_function_entry(tool)
       func_entry = tool[:definition].dup
-      # Add a per-function webhook URL when there are query params. (Secure
-      # tools get per-call URLs at request time — token isn't known yet at
-      # render — so the default webhook URL handles their dispatch here.)
-      if tool[:secure] || !@swaig_query_params.empty?
-        qp = @swaig_query_params.dup
-        func_entry['web_hook_url'] = build_webhook_url('swaig', qp) unless qp.empty?
+      # A SECURE tool rendered with an active call_id gets a per-tool ``__token``
+      # appended to its webhook URL (minted via the SessionManager) so the
+      # platform validates the callback — the wire manifestation of ``secure``
+      # (mirrors python agent_base.py:1040/1096-1100). Absent a call_id (or for
+      # an insecure tool) it falls back to the query-param webhook, if any.
+      qp = @swaig_query_params.dup
+      if tool[:secure] && @render_call_id && !@render_call_id.to_s.empty?
+        qp['__token'] = create_tool_token(func_entry['function'], @render_call_id)
       end
+      func_entry['web_hook_url'] = build_webhook_url('swaig', qp) unless qp.empty?
       func_entry
     end
 

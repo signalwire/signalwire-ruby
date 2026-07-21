@@ -62,8 +62,12 @@ class RegistryMockTest < Minitest::Test
   end
 
   def test_brands_create_campaign_posts_to_brand_subpath
+    # Union-body write: the reference takes ``body`` POSITIONALLY (a variant
+    # request object), plus the keyword-only ``request_options:``. Pass the body
+    # as an explicit hash — the pre-request_options Ruby-2 trailing-kwargs→hash
+    # collapse no longer applies now that the method declares a keyword param.
     body = @client.registry.brands.create_campaign(
-      'brand-2', sms_use_case: 'LOW_VOLUME', description: 'MFA'
+      'brand-2', { sms_use_case: 'LOW_VOLUME', description: 'MFA' }
     )
 
     assert_kind_of Hash, body

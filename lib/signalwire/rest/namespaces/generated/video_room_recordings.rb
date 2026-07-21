@@ -21,20 +21,20 @@ module SignalWire
             super(http, '/api/video/room_recordings')
           end
 
-          def list(**params)
-            @http.get(@base_path, params.empty? ? nil : params)
+          def list(request_options: nil, **params)
+            @http.get(@base_path, params.empty? ? nil : params, request_options: request_options)
           end
 
-          def get(id, **params)
-            @http.get(_path(id), params.empty? ? nil : params)
+          def get(id, request_options: nil, **params)
+            @http.get(_path(id), params.empty? ? nil : params, request_options: request_options)
           end
 
-          def delete(id)
-            @http.delete(_path(id))
+          def delete(id, request_options: nil)
+            @http.delete(_path(id), request_options: request_options)
           end
 
-          def list_events(id, **params)
-            @http.get(_path(id, 'events'), params.empty? ? nil : params)
+          def list_events(id, request_options: nil, **params)
+            @http.get(_path(id, 'events'), params.empty? ? nil : params, request_options: request_options)
           end
         end
       end
