@@ -8,6 +8,7 @@
 #   SIGNALWIRE_SPACE        - your SignalWire space (e.g. example.signalwire.com)
 
 require 'signalwire'
+require 'signalwire/rest/rest_client'  # opt-in subsystem (Python: from signalwire.rest import Client)
 
 client = SignalWire::REST::RestClient.new
 
@@ -22,7 +23,7 @@ end
 
 # 1. Create a conference room
 puts 'Creating conference room...'
-room = client.fabric.conference_rooms.create(name: 'team-standup')
+room = client.fabric.conference_rooms.create(name: 'team-standup', enable_room_previews: true)
 room_id = room['id']
 puts "  Created conference room: #{room_id}"
 
@@ -40,8 +41,8 @@ end
 # 3. Create a cXML script
 puts "\nCreating cXML script..."
 cxml = client.fabric.cxml_scripts.create(
-  name:     'Hold Music Script',
-  contents: '<Response><Say>Please hold.</Say><Play>https://example.com/hold.mp3</Play></Response>'
+  display_name: 'Hold Music Script',
+  contents:     '<Response><Say>Please hold.</Say><Play>https://example.com/hold.mp3</Play></Response>'
 )
 cxml_id = cxml['id']
 puts "  Created cXML script: #{cxml_id}"
@@ -68,7 +69,7 @@ end
 
 # 7. Assign a domain application (demo)
 puts "\nAssigning domain application (demo)..."
-safe('Domain app') { client.fabric.resources.assign_domain_application(relay_id, domain: 'app.example.com') }
+safe('Domain app') { client.fabric.resources.assign_domain_application(relay_id, domain_application_id: relay_id) }
 
 # NOTE: To bind a phone number to a webhook/agent/flow, set call_handler on
 # the phone number directly -- see rest_bind_phone_to_swml_webhook.rb.
@@ -77,15 +78,15 @@ safe('Domain app') { client.fabric.resources.assign_domain_application(relay_id,
 # 8. Generate tokens
 puts "\nGenerating tokens..."
 safe('Guest token') do
-  guest = client.fabric.tokens.create_guest_token(resource_id: relay_id)
+  guest = client.fabric.tokens.create_guest_token(allowed_addresses: [relay_id])
   puts "  Guest token: #{guest.fetch('token', '')[0, 40]}..."
 end
 safe('Invite token') do
-  invite = client.fabric.tokens.create_invite_token(resource_id: relay_id)
+  invite = client.fabric.tokens.create_invite_token(address_id: relay_id)
   puts "  Invite token: #{invite.fetch('token', '')[0, 40]}..."
 end
 safe('Embed token') do
-  embed = client.fabric.tokens.create_embed_token(resource_id: relay_id)
+  embed = client.fabric.tokens.create_embed_token(token: 'demo-embed-token')
   puts "  Embed token: #{embed.fetch('token', '')[0, 40]}..."
 end
 

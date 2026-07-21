@@ -11,6 +11,7 @@
 #   SIGNALWIRE_SPACE        - your SignalWire space (e.g. example.signalwire.com)
 
 require 'signalwire'
+require 'signalwire/rest/rest_client'  # opt-in subsystem (Python: from signalwire.rest import Client)
 
 client = SignalWire::REST::RestClient.new
 
@@ -27,12 +28,17 @@ end
 puts 'Registering 10DLC brand...'
 brand = safe('Register brand') do
   client.registry.brands.create(
-    company_name: 'Acme Corp',
-    ein:          '12-3456789',
-    entity_type:  'PRIVATE_PROFIT',
-    vertical:     'TECHNOLOGY',
-    website:      'https://acme.example.com',
-    country:      'US'
+    {
+      name:                'Acme Brand',
+      company_name:        'Acme Corp',
+      contact_email:       'brand_info@acme.example.com',
+      contact_phone:       '+18995551212',
+      ein_issuing_country: 'United States',
+      legal_entity_type:   'PRIVATE_PROFIT',
+      ein:                 '12-3456789',
+      company_address:     '123 Brand St, Hill Valley CA, 91905',
+      company_website:     'www.acme.example.com'
+    }
   )
 end
 brand_id = brand && brand['id']
@@ -58,9 +64,11 @@ if brand_id
   campaign = safe('Create campaign') do
     client.registry.brands.create_campaign(
       brand_id,
-      use_case:       'MIXED',
-      description:    'Customer notifications and support messages',
-      sample_message: 'Your order #12345 has shipped.'
+      {
+        name:                   'Customer Notifications',
+        brand_id:               brand_id,
+        csp_campaign_reference: 'C123456'
+      }
     )
   end
   campaign_id = campaign && campaign['id']
@@ -82,7 +90,7 @@ if campaign_id
   puts "\nCampaign: #{camp_detail.fetch('name', 'N/A')} (#{camp_detail.fetch('state', 'N/A')})"
 
   safe('Update campaign') do
-    client.registry.campaigns.update(campaign_id, description: 'Updated: customer notifications')
+    client.registry.campaigns.update(campaign_id, name: 'Updated Customer Notifications')
   end
 end
 

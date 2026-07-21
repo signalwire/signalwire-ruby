@@ -8,6 +8,7 @@
 #   SIGNALWIRE_SPACE        - your SignalWire space (e.g. example.signalwire.com)
 
 require 'signalwire'
+require 'signalwire/rest/rest_client'  # opt-in subsystem (Python: from signalwire.rest import Client)
 
 client = SignalWire::REST::RestClient.new
 
@@ -22,7 +23,12 @@ end
 
 # 1. Create a subscriber
 puts 'Creating subscriber...'
-subscriber = client.fabric.subscribers.create(name: 'Alice Johnson', email: 'alice@example.com')
+subscriber = client.fabric.subscribers.create(
+  email:        'alice@example.com',
+  first_name:   'Alice',
+  last_name:    'Johnson',
+  display_name: 'Alice Johnson'
+)
 sub_id = subscriber['id']
 inner_sub_id = subscriber.dig('subscriber', 'id') || sub_id
 puts "  Created subscriber: #{sub_id}"
@@ -82,10 +88,7 @@ end
 # 8. Generate a subscriber token
 puts "\nGenerating subscriber token..."
 safe('Subscriber token') do
-  token = client.fabric.tokens.create_subscriber_token(
-    subscriber_id: inner_sub_id,
-    reference:     inner_sub_id
-  )
+  token = client.fabric.tokens.create_subscriber_token(reference: inner_sub_id)
   puts "  Token: #{token.fetch('token', '')[0, 40]}..."
 end
 

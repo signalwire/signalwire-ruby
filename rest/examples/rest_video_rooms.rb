@@ -8,6 +8,7 @@
 #   SIGNALWIRE_SPACE        - your SignalWire space (e.g. example.signalwire.com)
 
 require 'signalwire'
+require 'signalwire/rest/rest_client'  # opt-in subsystem (Python: from signalwire.rest import Client)
 
 client = SignalWire::REST::RestClient.new
 

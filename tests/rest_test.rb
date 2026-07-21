@@ -56,6 +56,25 @@ class RestHttpClientTest < Minitest::Test
 
     assert_equal 'https://myspace.signalwire.com', client.base_url
   end
+
+  # §2.2: a loopback host (local mock/dev server) gets http://; a real space gets
+  # https://. Lets a shipped example run verbatim against the local mock without a
+  # separate base_url knob. Mirrors python rest/_base.py _is_loopback_host.
+  def test_loopback_host_uses_http
+    ['127.0.0.1:8790', '127.0.0.1', 'localhost:3000', 'localhost'].each do |host|
+      client = SignalWire::REST::HttpClient.new('proj', 'tok', host)
+
+      assert_equal "http://#{host}", client.base_url, host
+    end
+  end
+
+  def test_real_space_uses_https
+    ['example.signalwire.com', 'myspace.signalwire.com'].each do |host|
+      client = SignalWire::REST::HttpClient.new('proj', 'tok', host)
+
+      assert_equal "https://#{host}", client.base_url, host
+    end
+  end
 end
 
 class RestSignalWireRestErrorTest < Minitest::Test

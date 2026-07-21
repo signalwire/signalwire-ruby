@@ -192,13 +192,30 @@ module SignalWire
       private
 
       # An explicit +base_url+ wins (trailing slash stripped); otherwise derive
-      # +https://{host}+ from +space+ ("acme" -> acme.signalwire.com; a value
-      # already containing a dot is treated as a full host).
+      # the URL from +space+ ("acme" -> acme.signalwire.com; a value already
+      # containing a dot is treated as a full host).
+      #
+      # A loopback host (127.0.0.1[:port] / localhost[:port] / ::1) is a local
+      # mock/dev server that speaks plain HTTP -> use http:// for it; every other
+      # host is the real platform over https://. This lets a shipped example run
+      # verbatim against the local mock without a separate base_url knob;
+      # production is unaffected (a real +<name>.signalwire.com+ space is never
+      # loopback). Mirrors python rest/_base.py _is_loopback_host.
       def derive_base_url(space, base_url)
         return base_url.sub(%r{/$}, '') if base_url && !base_url.empty?
 
+        # A loopback space (127.0.0.1[:port] / localhost[:port]) is used verbatim
+        # over http://; a bare short space ("acme") expands to the platform host.
+        return "http://#{space}" if loopback_host?(space)
+
         host = space.include?('.') ? space : "#{space}.signalwire.com"
         "https://#{host}"
+      end
+
+      # True if +host+ (bare host or host:port) is a local loopback address.
+      def loopback_host?(host)
+        hostname = host.include?(':') ? host.rpartition(':').first : host
+        %w[127.0.0.1 localhost ::1 [::1]].include?(hostname)
       end
 
       def request(method, path, body: nil, params: nil, request_options: nil)
