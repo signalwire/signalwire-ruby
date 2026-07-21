@@ -230,6 +230,7 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
   'SignalWire::Skills::Builtin::InfoGathererSkill' => 'signalwire.skills.info_gatherer.skill',
   'SignalWire::Skills::Builtin::JokeSkill' => 'signalwire.skills.joke.skill',
   'SignalWire::Skills::Builtin::MathSkill' => 'signalwire.skills.math.skill',
+  'SignalWire::Skills::Builtin::MCPGatewaySkill' => 'signalwire.skills.mcp_gateway.skill',
   'SignalWire::Skills::Builtin::NativeVectorSearchSkill' => 'signalwire.skills.native_vector_search.skill',
   'SignalWire::Skills::Builtin::PlayBackgroundFileSkill' => 'signalwire.skills.play_background_file.skill',
   'SignalWire::Skills::Builtin::SpiderSkill' => 'signalwire.skills.spider.skill',

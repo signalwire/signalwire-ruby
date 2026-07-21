@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 7a2e2a7f5e5a3a947fdee910efa5ea3d6333b08d",
+  "generated_from": "signalwire-ruby @ 307c736cbf7eaaace8c1090efaf4398ea64105d5",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -3308,6 +3308,22 @@
           "name",
           "register_tools",
           "setup"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.skills.mcp_gateway.skill": {
+      "classes": {
+        "MCPGatewaySkill": [
+          "description",
+          "get_global_data",
+          "get_hints",
+          "get_parameter_schema",
+          "get_prompt_sections",
+          "name",
+          "register_tools",
+          "setup",
+          "version"
         ]
       },
       "functions": []

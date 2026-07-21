@@ -30,10 +30,11 @@ require_relative '../lib/signalwire/skills/skill_registry'
 module TestHelper
   # The canonical list of built-in skills the Ruby port registers.
   #
-  # 17 built-ins: mcp_gateway is NOT ported (approved Python-only per §I.1).
-  # This is the single source consumed by both skills_test.rb and
-  # skills/registry_test.rb. tests/skill_name_test.rb keeps its OWN copy on
-  # purpose — it is a deliberate independent cross-check of this set.
+  # 18 built-ins. The mcp_gateway CLIENT skill IS ported (connects to a running
+  # MCP Gateway over HTTP); only the Python-only SERVER half stays unported (see
+  # PORT_PHILOSOPHY_RUBY.md). This is the single source consumed by both
+  # skills_test.rb and skills/registry_test.rb. tests/skill_name_test.rb keeps
+  # its OWN copy on purpose — a deliberate independent cross-check of this set.
   BUILTIN_SKILL_NAMES = %w[
     api_ninjas_trivia
     claude_skills
@@ -45,6 +46,7 @@ module TestHelper
     info_gatherer
     joke
     math
+    mcp_gateway
     native_vector_search
     play_background_file
     spider

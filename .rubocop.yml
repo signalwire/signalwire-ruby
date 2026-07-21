@@ -154,6 +154,12 @@ Metrics/ClassLength:
     - 'lib/signalwire/pom/section.rb'
     - 'lib/signalwire/security/session_manager.rb'
     - 'lib/signalwire/skills/builtin/spider.rb'
+    # Full HTTP-client skill: its 6 public methods (get_parameter_schema / setup
+    # / register_tools / get_hints / get_global_data / get_prompt_sections) ARE
+    # the cross-port parity surface (1:1 with signalwire.skills.mcp_gateway.skill
+    # .MCPGatewaySkill), plus the auth + retry + TLS request path. Same
+    # surface-bearing-unit rationale as spider.rb above.
+    - 'lib/signalwire/skills/builtin/mcp_gateway.rb'
     - 'lib/signalwire/prefabs/concierge.rb'
     # Real functional prefab (subclasses AgentBase, registers tools + a real
     # submit_answer state machine); 1:1 with Python's InfoGathererAgent surface.
@@ -164,6 +170,19 @@ Metrics/ClassLength:
 Metrics/ModuleLength:
   Exclude:
     - 'lib/signalwire/security/webhook_validator.rb'
+
+# MethodLength is a LOGIC-complexity heuristic; it mis-fires on methods whose
+# body is a single DATA LITERAL (a config-param schema hash, a prompt-section
+# hash, a tool-def hash) where each "line" is one declarative key, not a branch.
+# The mcp_gateway skill's get_parameter_schema sub-hashes and its SWAIG tool-def
+# / prompt-section builders are exactly that shape — 1:1 with the Python
+# reference's get_parameter_schema / get_prompt_sections / register_tools
+# surface. Splitting a declarative hash purely to satisfy a line count harms
+# readability without reducing any real complexity (the logic methods were kept
+# under the limit; these three are pure literals). Per-file exclusion.
+Metrics/MethodLength:
+  Exclude:
+    - 'lib/signalwire/skills/builtin/mcp_gateway.rb'
 
 # Prefer keyword args for boolean defaults — a good cop in general, but a known
 # false positive on FLUENT SINGLE-ARGUMENT TOGGLES, which is exactly these sites:
