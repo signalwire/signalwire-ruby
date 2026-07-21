@@ -28,11 +28,15 @@ jobs:
         with:
           repository: signalwire/porting-sdk
           path: porting-sdk
-          # Plan window: this PR depends on gate engines (doc_surface.py,
-          # check_wired_modes.py) that live on porting-sdk's plan branch, not yet
-          # on main. REVERT to main (drop this ref:) when plan/a-bar-2026-07-18
-          # merges to porting-sdk main.
-          ref: main
+          # Wave-1 (A+ campaign) window: this PR's gates diff against the
+          # porting-sdk `wave/1-aplus` oracle + rule set — PY-7's request_options
+          # signature additions in python_signatures.json AND the new BEHAVIORAL
+          # rule ids (PAGINATION-CORPUS / CA-VAR / SECURE-DEFAULT / SECRET-SCRUB)
+          # that this port's run-ci.sh schedules. They do NOT exist on porting-sdk
+          # main yet, so main makes BEHAVIORAL crash on unknown-rule and SEMVER/
+          # DRIFT diff against a stale oracle.
+          # REVERT to main (drop this ref:) when porting-sdk wave/1-aplus merges.
+          ref: wave/1-aplus
           token: ${{ secrets.PORTING_SDK_TOKEN }}
 
       # The EMISSION gate compares this port's to_dict() output against the
