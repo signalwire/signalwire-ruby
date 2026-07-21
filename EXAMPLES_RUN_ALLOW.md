@@ -16,5 +16,6 @@ document IDs, or the audit-driver fixture env (`REST_OPERATION` / `SKILL_NAME` /
 - examples/datasphere_serverless_env.rb — needs real DATASPHERE_DOCUMENT_ID + datasphere creds, not mockable (approver: user, 2026-07-07)
 - examples/datasphere_webhook_env_demo.rb — needs real DATASPHERE_DOCUMENT_ID + datasphere creds, not mockable (approver: user, 2026-07-07)
 - examples/relay_audit_harness.rb — RELAY audit driver probe; needs porting-sdk audit_relay_handshake.py to inject SIGNALWIRE_RELAY_HOST + a loopback WS fixture, not a standalone run (approver: user, 2026-07-07)
+- relay/examples/relay_dial_and_play.rb — connect() opens a live RELAY WebSocket + dials RELAY_FROM_NUMBER/RELAY_TO_NUMBER; the shared harness runs only mock_signalwire (REST), no mock_relay, so this needs a real relay endpoint (same owner-approved connect() class + reason as signalwire-php relay/examples/relay_dial_and_play.php, approver: user, 2026-07-09)
 - examples/rest_audit_harness.rb — REST audit driver probe; needs porting-sdk audit_rest_transport.py to inject REST_OPERATION + REST_FIXTURE_URL, not a standalone run (approver: user, 2026-07-07)
 - examples/skills_audit_harness.rb — skills audit driver probe; needs porting-sdk audit_skills_dispatch.py to inject SKILL_NAME + SKILL_FIXTURE_URL, not a standalone run (approver: user, 2026-07-07)

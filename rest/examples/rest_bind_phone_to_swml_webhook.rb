@@ -16,9 +16,10 @@
 #   SWML_WEBHOOK_URL        - your backend's SWML endpoint
 
 require 'signalwire'
+require 'signalwire/rest/rest_client'  # opt-in subsystem (Python: from signalwire.rest import Client)
 
-pn_sid      = ENV.fetch('PHONE_NUMBER_SID')
-webhook_url = ENV.fetch('SWML_WEBHOOK_URL')
+pn_sid      = ENV.fetch('PHONE_NUMBER_SID', 'pn-00000000-0000-0000-0000-000000000000')
+webhook_url = ENV.fetch('SWML_WEBHOOK_URL', 'https://example.com/swml')
 
 client = SignalWire::REST::RestClient.new
 

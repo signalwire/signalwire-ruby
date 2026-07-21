@@ -8,6 +8,7 @@
 #   SIGNALWIRE_SPACE        - your SignalWire space (e.g. example.signalwire.com)
 
 require 'signalwire'
+require 'signalwire/rest/rest_client'  # opt-in subsystem (Python: from signalwire.rest import Client)
 
 client = SignalWire::REST::RestClient.new
 
@@ -92,7 +93,7 @@ end
 puts "\nCreating verified caller..."
 caller_id = nil
 begin
-  caller = client.verified_callers.create(phone_number: '+15125559999')
+  caller = client.verified_callers.create(number: '+15125559999')
   caller_id = caller['id']
   puts "  Created verified caller: #{caller_id}"
   client.verified_callers.submit_verification(caller_id, verification_code: '123456')
@@ -124,12 +125,15 @@ puts "\nCreating address..."
 addr_id = nil
 addr = safe('Create address') do
   client.addresses.create(
-    friendly_name: 'HQ Address',
-    street:        '123 Main St',
+    label:         'HQ Address',
+    country:       'US',
+    first_name:    'Jane',
+    last_name:     'Doe',
+    street_number: '123',
+    street_name:   'Main St',
     city:          'Austin',
-    region:        'TX',
-    postal_code:   '78701',
-    iso_country:   'US'
+    state:         'TX',
+    postal_code:   '78701'
   )
 end
 addr_id = addr && addr['id']

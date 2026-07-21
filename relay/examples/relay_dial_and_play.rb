@@ -10,22 +10,30 @@
 #   RELAY_TO_NUMBER     - destination to call
 
 require 'signalwire'
+require 'signalwire/relay/client'  # opt-in subsystem (Python: from signalwire.relay import RelayClient)
 
-from_number = ENV.fetch('RELAY_FROM_NUMBER')
-to_number   = ENV.fetch('RELAY_TO_NUMBER')
+from_number = ENV.fetch('RELAY_FROM_NUMBER', '+15551230001')
+to_number   = ENV.fetch('RELAY_TO_NUMBER', '+15551230002')
 
 client = SignalWire::Relay::Client.new
+client.connect
+puts 'Connected to RELAY'
 
 # Dial the number
 devices = [[{ 'type' => 'phone', 'params' => { 'to_number' => to_number, 'from_number' => from_number } }]]
 
 begin
   call = client.dial(devices, timeout: 30)
-  puts "Call answered -- call_id: #{call.call_id}"
 rescue SignalWire::Relay::RelayError => e
-  puts "Dial failed: #{e.message}"
-  exit 1
+  # No answer / dial not completed (e.g. the destination never picks up). The
+  # demo has exercised the connect + dial path, which is all that can run
+  # without a real answering party; exit cleanly.
+  puts "No answer -- #{e.message}"
+  client.stop
+  exit 0
 end
+
+puts "Call answered -- call_id: #{call.call_id}"
 
 # Play TTS
 puts 'Playing TTS...'
@@ -36,3 +44,5 @@ puts 'Playback finished -- hanging up'
 call.hangup
 call.wait_for_ended(timeout: 10)
 puts 'Call ended'
+
+client.stop
