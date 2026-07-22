@@ -72,5 +72,45 @@ module SignalWire
     def self.reset_schema!
       @schema = nil
     end
+
+    # Normalize a vivified verb's positional args + kwargs into its config Hash
+    # (string-keyed). This is the strict-render contract for the auto-vivified
+    # (method_missing / __getattr__-analog) verb path, shared by SWMLService and
+    # SWMLBuilder so both behave identically:
+    #
+    #   verb(k: v)                 -> {"k" => v}          (kwargs)
+    #   verb({"k" => v})           -> {"k" => v}          (a single positional
+    #                                                      Hash — the SDK's own
+    #                                                      documented string-key
+    #                                                      hash style)
+    #   verb({"k" => v}, k2: w)    -> {"k" => v, "k2" => w}  (merge; kwargs win)
+    #   verb("x")   / verb(h1, h2) -> ArgumentError        (misshapen — RAISE,
+    #                                                      never a silent {})
+    #
+    # Silently dropping a positional Hash (the previous behavior) produced an
+    # empty verb — e.g. `svc.play({'url'=>...})` rendered `{"play":{}}` with no
+    # warning (ruby_R5 N2). A misshapen call now fails loudly instead.
+    def self.verb_config(verb_name, args, kwargs)
+      kw = kwargs.transform_keys(&:to_s)
+      positional = positional_config!(verb_name, args)
+      # positional Hash is the base; kwargs override on a key collision.
+      positional.merge(kw).compact
+    end
+
+    # The config Hash from a vivified verb's positional args (empty when none).
+    # Accepts exactly zero or one positional, and it must be a Hash — anything
+    # else RAISES (never a silent empty verb).
+    def self.positional_config!(verb_name, args)
+      return {} if args.nil? || args.empty?
+
+      unless args.length == 1 && args.first.is_a?(Hash)
+        raise ArgumentError,
+              "#{verb_name}: expected keyword args or a single config Hash, " \
+              "got #{args.length} positional argument(s) " \
+              "(#{args.map { |a| a.class.name }.join(', ')})"
+      end
+
+      args.first.transform_keys(&:to_s)
+    end
   end
 end

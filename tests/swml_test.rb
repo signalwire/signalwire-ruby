@@ -332,6 +332,35 @@ class ServiceTest < Minitest::Test
     assert_equal({ 'play' => { 'url' => 'http://example.com/ring.mp3' } }, verbs.first)
   end
 
+  # N2: a single positional Hash — the SDK's own documented string-key hash style
+  # (CLAUDE.md "String keys in hashes") — must become the verb config, NOT be
+  # silently dropped into an empty {"play":{}} document.
+  def test_play_verb_with_positional_string_key_hash
+    svc = SignalWire::SWML::Service.new(name: 'test')
+    svc.play({ 'url' => 'http://example.com/ring.mp3' })
+    verbs = svc.document.get_verbs
+
+    assert_equal({ 'play' => { 'url' => 'http://example.com/ring.mp3' } }, verbs.first)
+  end
+
+  # A positional Hash and kwargs merge (kwargs win on a key collision).
+  def test_verb_positional_hash_merges_with_kwargs
+    svc = SignalWire::SWML::Service.new(name: 'test')
+    svc.play({ 'url' => 'a.mp3', 'volume' => 1 }, volume: 5)
+    verbs = svc.document.get_verbs
+
+    assert_equal({ 'play' => { 'url' => 'a.mp3', 'volume' => 5 } }, verbs.first)
+  end
+
+  # A misshapen positional (a non-Hash, or more than one) must RAISE loudly, not
+  # silently produce an empty verb.
+  def test_verb_non_hash_positional_raises
+    svc = SignalWire::SWML::Service.new(name: 'test')
+
+    assert_raises(ArgumentError) { svc.play('http://example.com/ring.mp3') }
+    assert_raises(ArgumentError) { svc.play({ 'url' => 'a' }, { 'url' => 'b' }) }
+  end
+
   def test_sleep_with_integer
     svc = SignalWire::SWML::Service.new(name: 'test')
     svc.sleep(2000)

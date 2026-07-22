@@ -161,8 +161,7 @@ module SignalWire
         if verb == 'sleep'
           @service.document.add_verb('sleep', sleep_duration(args, kwargs))
         else
-          config = kwargs.transform_keys(&:to_s).compact
-          @service.document.add_verb(verb, config)
+          @service.document.add_verb(verb, SWML.verb_config(verb, args, kwargs))
         end
         self
       end

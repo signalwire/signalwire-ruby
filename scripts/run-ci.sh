@@ -160,6 +160,9 @@ sched_gate COORDINATED-PASS desc="a non-main porting-sdk pin must be declared on
 sched_gate ENV-VAR-CONSISTENCY desc="REST base-url override present + custom-CA env names canonical (SIGNALWIRE_{REST,RELAY}_CA_FILE)" \
     -- python3 "$PORTING_SDK_DIR/scripts/env_var_consistency.py" --port ruby --repo "$PORT_ROOT"
 
+sched_gate ACTIONLINT desc="GitHub Actions workflow YAML is valid (no step-level secrets.* in if:, etc.)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/actionlint_gate.py" --repo "$PORT_ROOT"
+
 sched_gate FMT defer=1 desc="run-format.sh (local: apply; CI: --check)" \
     -- bash scripts/run-format.sh ${CI:+--check}
 
