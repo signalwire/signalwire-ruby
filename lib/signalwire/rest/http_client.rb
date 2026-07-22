@@ -134,7 +134,10 @@ module SignalWire
       # +base_url+ overrides the derived +https://{space}+ value when set,
       # which is how the audit fixture and tests point the client at a
       # loopback server. Pass either +space+ ("acme") / a host
-      # ("acme.signalwire.com") OR an explicit +base_url+ ("http://127.0.0.1:NNNN").
+      # ("acme.signalwire.com" / "localhost:8917") OR an explicit +base_url+
+      # ("http://127.0.0.1:NNNN"). When +base_url+ is unset, the
+      # +SIGNALWIRE_REST_BASE_URL+ env var (fleet convention; the REST analog of
+      # RELAY's +SIGNALWIRE_RELAY_HOST+) is honored before deriving from +space+.
       #
       # +ca_file+ (optional) names a PEM CA bundle to trust for HTTPS, for
       # private-CA / pinned-CA deployments. When set, requests verify the peer
@@ -191,25 +194,39 @@ module SignalWire
 
       private
 
-      # An explicit +base_url+ wins (trailing slash stripped); otherwise derive
-      # the URL from +space+ ("acme" -> acme.signalwire.com; a value already
-      # containing a dot is treated as a full host).
+      # Resolution order for the REST endpoint:
+      #   1. an explicit +base_url+ argument (trailing slash stripped), else
+      #   2. the +SIGNALWIRE_REST_BASE_URL+ env var — the REST analog of RELAY's
+      #      +SIGNALWIRE_RELAY_HOST+, so a mock/dev endpoint is selectable from the
+      #      environment without a code change (fleet convention; go has it), else
+      #   3. derive from +space+.
       #
-      # A loopback host (127.0.0.1[:port] / localhost[:port] / ::1) is a local
-      # mock/dev server that speaks plain HTTP -> use http:// for it; every other
-      # host is the real platform over https://. This lets a shipped example run
-      # verbatim against the local mock without a separate base_url knob;
-      # production is unaffected (a real +<name>.signalwire.com+ space is never
-      # loopback). Mirrors python rest/_base.py _is_loopback_host.
+      # Deriving from +space+: a value that is already a full host — it contains a
+      # dot ("acme.signalwire.com") OR carries an explicit +:port+ ("myspace:8917",
+      # "localhost:8917") — is used verbatim and NEVER suffixed with
+      # +.signalwire.com+ (a bare +space+ like "acme" is the only thing that
+      # expands to "acme.signalwire.com"). A loopback host (127.0.0.1[:port] /
+      # localhost[:port] / ::1) is a local mock/dev server that speaks plain HTTP
+      # -> http://; every other host is the real platform over https://. This lets
+      # a shipped example run verbatim against a local mock without a separate
+      # base_url knob, and a dev host:port never mangles into
+      # "myspace:8917.signalwire.com". Mirrors python rest/_base.py.
       def derive_base_url(space, base_url)
+        base_url = ENV.fetch('SIGNALWIRE_REST_BASE_URL', nil) if base_url.nil? || base_url.empty?
         return base_url.sub(%r{/$}, '') if base_url && !base_url.empty?
 
         # A loopback space (127.0.0.1[:port] / localhost[:port]) is used verbatim
         # over http://; a bare short space ("acme") expands to the platform host.
         return "http://#{space}" if loopback_host?(space)
 
-        host = space.include?('.') ? space : "#{space}.signalwire.com"
+        host = full_host?(space) ? space : "#{space}.signalwire.com"
         "https://#{host}"
+      end
+
+      # True if +space+ is already a full host (has a dot OR an explicit :port),
+      # so it must be used verbatim rather than suffixed with +.signalwire.com+.
+      def full_host?(space)
+        space.include?('.') || space.include?(':')
       end
 
       # True if +host+ (bare host or host:port) is a local loopback address.

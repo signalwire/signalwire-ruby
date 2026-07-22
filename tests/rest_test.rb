@@ -75,6 +75,49 @@ class RestHttpClientTest < Minitest::Test
       assert_equal "https://#{host}", client.base_url, host
     end
   end
+
+  # A host carrying an explicit :port is a full host — NEVER suffix it with
+  # `.signalwire.com`. `host: 'localhost:8917'` (and any dev/staging host:port)
+  # must not mangle into `myspace:8917.signalwire.com` (deep_dogfood SEV1). The
+  # port is the signal that the caller gave a concrete endpoint, not a bare
+  # SignalWire space name.
+  def test_dotless_host_with_port_is_not_suffixed
+    client = SignalWire::REST::HttpClient.new('proj', 'tok', 'myspace:8917')
+
+    assert_equal 'https://myspace:8917', client.base_url
+  end
+
+  def test_loopback_host_with_port_no_suffix_no_crash
+    # Regression for the exact reported crash: host: 'localhost:8917' produced
+    # `https://localhost:8917.signalwire.com` -> URI::InvalidURIError. Must not raise.
+    client = SignalWire::REST::HttpClient.new('proj', 'tok', 'localhost:8917')
+
+    assert_equal 'http://localhost:8917', client.base_url
+  end
+
+  # Fleet convention: SIGNALWIRE_REST_BASE_URL overrides the derived host, the
+  # REST analog of RELAY's SIGNALWIRE_RELAY_HOST — so a mock/dev endpoint can be
+  # pointed at from the environment without a code change (go already has it).
+  def test_rest_base_url_env_override
+    prev = ENV.fetch('SIGNALWIRE_REST_BASE_URL', nil)
+    ENV['SIGNALWIRE_REST_BASE_URL'] = 'http://127.0.0.1:8917'
+    client = SignalWire::REST::HttpClient.new('proj', 'tok', 'myspace')
+
+    assert_equal 'http://127.0.0.1:8917', client.base_url
+  ensure
+    prev.nil? ? ENV.delete('SIGNALWIRE_REST_BASE_URL') : (ENV['SIGNALWIRE_REST_BASE_URL'] = prev)
+  end
+
+  # An explicit base_url: arg still wins over the env var.
+  def test_explicit_base_url_beats_env
+    prev = ENV.fetch('SIGNALWIRE_REST_BASE_URL', nil)
+    ENV['SIGNALWIRE_REST_BASE_URL'] = 'http://127.0.0.1:9999'
+    client = SignalWire::REST::HttpClient.new('proj', 'tok', 'myspace', base_url: 'http://127.0.0.1:8917')
+
+    assert_equal 'http://127.0.0.1:8917', client.base_url
+  ensure
+    prev.nil? ? ENV.delete('SIGNALWIRE_REST_BASE_URL') : (ENV['SIGNALWIRE_REST_BASE_URL'] = prev)
+  end
 end
 
 class RestSignalWireRestErrorTest < Minitest::Test
