@@ -241,11 +241,18 @@ Guides are also available in the [`docs/`](docs/) directory:
 
 ## Environment Variables
 
+Your **Project ID**, **API Token**, and **Space** come from the SignalWire
+dashboard: sign in at [my.signalwire.com](https://signalwire.com/signin) → **API**
+(Project ID + Space URL) and **API** → **Tokens** (create an API token).
+
 | Variable | Used by | Description |
 |----------|---------|-------------|
 | `SIGNALWIRE_PROJECT_ID` | RELAY, REST | Project identifier |
 | `SIGNALWIRE_API_TOKEN` | RELAY, REST | API token |
 | `SIGNALWIRE_SPACE` | RELAY, REST | Space hostname (e.g. `example.signalwire.com`) |
+| `SIGNALWIRE_REST_BASE_URL` | REST | Override the derived REST endpoint (point at a mock/dev server without a code change) |
+| `SIGNALWIRE_REST_CA_FILE` | REST | Path to a custom CA bundle to trust for the REST transport (private-CA deployments) |
+| `SIGNALWIRE_RELAY_CA_FILE` | RELAY | Path to a custom CA bundle to trust for the RELAY WebSocket transport |
 | `SIGNALWIRE_SIGNING_KEY` | Agents | HMAC key for inbound webhook signature validation (validation is off until set) |
 | `SWML_BASIC_AUTH_USER` | Agents | Basic auth username (default: auto-generated) |
 | `SWML_BASIC_AUTH_PASSWORD` | Agents | Basic auth password (default: auto-generated) |

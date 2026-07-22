@@ -83,21 +83,32 @@ begin
 rescue SignalWire::REST::SignalWireRestError => e
   puts e.status_code   # 404
   puts e.body          # {"error"=>"not found"}
-  puts e.url           # "/api/fabric/resources/ai_agents/bad-id"
+  puts e.url           # "https://acme.signalwire.com/api/fabric/resources/ai_agents/bad-id"
   puts e.method_name   # "GET"
+  puts e.request_id    # "89ca56c9-…" (from the response headers, or nil)
 end
 ```
 
-`SignalWire::REST::SignalWireRestError` is raised on any non-2xx HTTP response.
+`SignalWire::REST::SignalWireRestError` is raised on any non-2xx HTTP response. It
+descends from `SignalWire::Error` (the SDK's root error class), so a single
+`rescue SignalWire::Error` catches every error the SDK raises on its own behalf.
+
+A **transport** failure — the request never reaches an HTTP response (connection
+refused, DNS failure, reset, TLS error, timeout) — is raised as
+`SignalWire::REST::SignalWireRestTransportError`, a subclass of
+`SignalWireRestError` with `status_code == nil`. One `rescue SignalWireRestError`
+therefore handles both HTTP-error and transport-failure cases.
 
 ### Error Attributes
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `status_code` | `Integer` | HTTP status code |
-| `body` | `Hash` or `String` | Response body (parsed JSON or raw text) |
-| `url` | `String` | Request path |
+| `status_code` | `Integer` or `nil` | HTTP status code (`nil` for a transport failure — no response was received) |
+| `body` | `Hash` or `String` | Response body (parsed JSON or raw text); the transport error message for a transport failure |
+| `url` | `String` | The **full** request URL — scheme, host, path and query (e.g. `https://acme.signalwire.com/api/…`), not just the path |
 | `method_name` | `String` | HTTP method |
+| `headers` | `Hash` or `nil` | Response headers (case-insensitively accessible), when a response was received |
+| `request_id` | `String` or `nil` | The SignalWire request id extracted from the response headers, for support correlation |
 
 ## Session Behavior
 
@@ -106,3 +117,42 @@ end
 - User-Agent is `signalwire-ruby/<version>` (the stable product token plus the real SDK version).
 - DELETE requests returning 204 return an empty Hash.
 - Responses are plain Ruby Hashes (parsed JSON) -- there are no wrapper objects.
+
+## Timeouts, retries and cancellation
+
+Transport behavior is governed by a `SignalWire::REST::RequestOptions` envelope.
+Pass it as a **client default** (applied to every request) and/or override it
+**per request**; a per-request options object shallow-merges over the client
+default, so you set only what you want to change.
+
+```ruby
+require 'signalwire'
+
+# Client default: 10s per attempt, up to 2 retries with exponential backoff.
+client = SignalWire::REST::RestClient.new(
+  project: 'proj', token: 'tok', host: 'acme.signalwire.com',
+  request_options: SignalWire::REST::RequestOptions.new(timeout: 10, retries: 2)
+)
+
+# Per-request override (wins over the client default for this call only).
+client.fabric.ai_agents.list(
+  request_options: SignalWire::REST::RequestOptions.new(timeout: 30)
+)
+```
+
+`RequestOptions` fields:
+
+| Field | Default | Meaning |
+|-------|---------|---------|
+| `timeout` | none | Max wall-clock seconds per attempt; on exceed the attempt fails (and may retry). |
+| `retries` | `0` | Number of RETRY attempts (total attempts = `retries + 1`). Retries are **opt-in**. |
+| `retry_on_status` | `[429, 500, 502, 503, 504]` | Statuses that trigger a retry for an idempotent method. |
+| `retry_backoff` | | Base seconds for exponential backoff (`backoff * 2 ** (attempt - 1)`), honoring a `Retry-After` response header when present. |
+| `abort_signal` | none | A cooperative-cancellation object (responds to `set?`, e.g. `SignalWire::REST::AbortSignal`); when set before/between attempts the request stops. |
+
+**Idempotency asymmetry.** Idempotent methods (`GET`/`PUT`/`DELETE`/`HEAD`/`OPTIONS`)
+retry on the full `retry_on_status` set. Non-idempotent methods (`POST`/`PATCH`)
+retry **only** on a transport error or `429`/`503` (throttles), never blindly on a
+`5xx` — so a request that may have created or mutated a resource is not silently
+replayed. The SDK also sets `Net::HTTP`'s own hidden idempotent retry to `0`, so
+`retries` is the single source of truth.
