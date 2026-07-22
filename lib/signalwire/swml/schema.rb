@@ -90,17 +90,20 @@ module SignalWire
     # Silently dropping a positional Hash (the previous behavior) produced an
     # empty verb — e.g. `svc.play({'url'=>...})` rendered `{"play":{}}` with no
     # warning (ruby_R5 N2). A misshapen call now fails loudly instead.
-    def self.verb_config(verb_name, args, kwargs)
+    # Underscore-prefixed: an internal helper shared by SWMLService + SWMLBuilder,
+    # not part of the public reference surface (the enumerator skips single-`_`
+    # names).
+    def self._verb_config(verb_name, args, kwargs)
       kw = kwargs.transform_keys(&:to_s)
-      positional = positional_config!(verb_name, args)
+      positional = _positional_config!(verb_name, args)
       # positional Hash is the base; kwargs override on a key collision.
       positional.merge(kw).compact
     end
 
     # The config Hash from a vivified verb's positional args (empty when none).
     # Accepts exactly zero or one positional, and it must be a Hash — anything
-    # else RAISES (never a silent empty verb).
-    def self.positional_config!(verb_name, args)
+    # else RAISES (never a silent empty verb). Internal (see _verb_config).
+    def self._positional_config!(verb_name, args)
       return {} if args.nil? || args.empty?
 
       unless args.length == 1 && args.first.is_a?(Hash)

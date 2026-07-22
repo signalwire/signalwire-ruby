@@ -161,7 +161,7 @@ module SignalWire
         if verb == 'sleep'
           @service.document.add_verb('sleep', sleep_duration(args, kwargs))
         else
-          @service.document.add_verb(verb, SWML.verb_config(verb, args, kwargs))
+          @service.document.add_verb(verb, SWML._verb_config(verb, args, kwargs))
         end
         self
       end

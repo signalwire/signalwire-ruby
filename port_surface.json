@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 307c736cbf7eaaace8c1090efaf4398ea64105d5",
+  "generated_from": "signalwire-ruby @ a882f7b12006e489def563b525ec09b3f0b7a172",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -3143,7 +3143,8 @@
           "execution_mode",
           "lambda?",
           "lambda_base_url",
-          "serverless?"
+          "serverless?",
+          "suppress_run?"
         ]
       },
       "functions": []

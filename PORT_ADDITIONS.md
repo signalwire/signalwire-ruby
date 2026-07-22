@@ -595,6 +595,7 @@ signalwire.runtime.Runtime.execution_mode: port-only: detects lambda/cgi/google_
 signalwire.runtime.Runtime.lambda?: port-only: Ruby predicate - true when inside AWS Lambda
 signalwire.runtime.Runtime.lambda_base_url: port-only: constructs the AWS Lambda Function URL from env
 signalwire.runtime.Runtime.serverless?: port-only: Ruby predicate - true inside any serverless platform
+signalwire.runtime.Runtime.suppress_run?: port-only: Ruby predicate - true when SIGNALWIRE_SUPPRESS_RUN is set, so tooling (swaig-test --file) can load an example that ends in a bare agent.run without booting a blocking server
 signalwire.serverless.lambda_handler.LambdaHandler: port-only: Lambda runtime support added in feat/lambda-support; not in Python module structure
 signalwire.serverless.lambda_handler.LambdaHandler.__init__: port-only: Lambda runtime support
 signalwire.serverless.lambda_handler.LambdaHandler.call: port-only: Lambda runtime support (Rack-style #call entrypoint)
