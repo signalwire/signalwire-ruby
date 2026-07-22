@@ -647,6 +647,10 @@ module SignalWire
       # @param domain [String, nil] domain for SSL config
       def serve(host: nil, port: nil, ssl_cert: nil, ssl_key: nil,
                 ssl_enabled: nil, domain: nil)
+        # Suppress-run guard (ruby_R5 N1): loading an example whose last line is
+        # `svc.serve` must not boot a blocking server under tooling.
+        return nil if SignalWire::Runtime.suppress_run?
+
         require 'webrick'
 
         bind_host = host || @host

@@ -24,6 +24,7 @@ module RuntimeEnvIsolation
     FUNCTIONS_WORKER_RUNTIME
     AzureWebJobsStorage
     SWML_PROXY_URL_BASE
+    SIGNALWIRE_SUPPRESS_RUN
   ].freeze
 
   def setup
@@ -108,6 +109,39 @@ class RuntimeExecutionModeTest < Minitest::Test
     ENV['AWS_LAMBDA_FUNCTION_NAME'] = ''
 
     assert_equal :server, SignalWire::Runtime.execution_mode
+  end
+end
+
+# The suppress-run guard: SIGNALWIRE_SUPPRESS_RUN lets tooling (swaig-test
+# --file / --list / --simulate-serverless) LOAD an example whose last line is a
+# bare `agent.run` without booting a blocking WEBrick server — the example still
+# serves normally when executed directly (env unset). ruby_R5 N1.
+class RuntimeSuppressRunTest < Minitest::Test
+  include RuntimeEnvIsolation
+
+  def test_suppress_run_default_false
+    assert_equal false, SignalWire::Runtime.suppress_run?
+  end
+
+  def test_suppress_run_true_when_set
+    ENV['SIGNALWIRE_SUPPRESS_RUN'] = '1'
+
+    assert_equal true, SignalWire::Runtime.suppress_run?
+  end
+
+  def test_suppress_run_empty_is_false
+    ENV['SIGNALWIRE_SUPPRESS_RUN'] = ''
+
+    assert_equal false, SignalWire::Runtime.suppress_run?
+  end
+
+  # An AgentBase whose script ends in `agent.run` must return immediately
+  # (no server boot) when suppressed — the deterministic anti-hang for tooling.
+  def test_agent_run_is_noop_when_suppressed
+    ENV['SIGNALWIRE_SUPPRESS_RUN'] = '1'
+    agent = SignalWire::AgentBase.new(name: 'test')
+
+    assert_nil agent.run
   end
 end
 

@@ -46,6 +46,18 @@ module SignalWire
       :server
     end
 
+    # True when SIGNALWIRE_SUPPRESS_RUN is set (non-empty). When set, an agent's
+    # blocking entry points (AgentBase#run / #serve, SWMLService#serve,
+    # AgentServer#run) return immediately WITHOUT booting a server. This is the
+    # deterministic anti-hang for tooling that must LOAD an example whose last
+    # line is a bare `agent.run` — swaig-test (--file / --list / exec /
+    # --simulate-serverless) sets it before Kernel.load. Unset (the normal case),
+    # `run`/`serve` behave exactly as before, so an example still serves when run
+    # directly. (ruby_R5 N1.)
+    def self.suppress_run?
+      env_present?('SIGNALWIRE_SUPPRESS_RUN')
+    end
+
     # True when any of the named environment variables is set and non-empty.
     # @return [Boolean]
     def self.env_present?(*names)

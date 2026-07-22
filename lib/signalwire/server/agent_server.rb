@@ -270,6 +270,10 @@ module SignalWire
     # @return [Object, nil] response for serverless modes, nil for
     #   server mode (blocking until shutdown).
     def run(event: nil, context: nil, host: nil, port: nil)
+      # Suppress-run guard (ruby_R5 N1): loading a multi-agent example whose last
+      # line is `AgentServer…run` must not boot a blocking server under tooling.
+      return nil if SignalWire::Runtime.suppress_run?
+
       mode = _detect_execution_mode
 
       case mode
