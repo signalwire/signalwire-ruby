@@ -28,15 +28,10 @@ jobs:
         with:
           repository: signalwire/porting-sdk
           path: porting-sdk
-          # Wave-1 (A+ campaign) window: this PR's gates diff against the
-          # porting-sdk `wave/1-aplus` oracle + rule set — PY-7's request_options
-          # signature additions in python_signatures.json AND the new BEHAVIORAL
-          # rule ids (PAGINATION-CORPUS / CA-VAR / SECURE-DEFAULT / SECRET-SCRUB)
-          # that this port's run-ci.sh schedules. They do NOT exist on porting-sdk
-          # main yet, so main makes BEHAVIORAL crash on unknown-rule and SEMVER/
-          # DRIFT diff against a stale oracle.
-          # REVERT to main (drop this ref:) when porting-sdk wave/1-aplus merges.
-          ref: main
+          # Coordinated-pass pin: 'main' normally; set the PORTING_SDK_REF repo variable
+          # to a wave branch to test a coordinated porting-sdk change, declared on the PR
+          # (see porting-sdk/COORDINATED_PASS.md). No revert commit.
+          ref: ${{ vars.PORTING_SDK_REF || 'main' }}
           token: ${{ secrets.PORTING_SDK_TOKEN }}
 
       # The EMISSION gate compares this port's to_dict() output against the
@@ -97,4 +92,7 @@ jobs:
         env:
           PORTING_SDK: ${{ github.workspace }}/porting-sdk
           SW_CI_TIER: ${{ steps.tier.outputs.tier }}
+          # COORDINATED-PASS reads the live PR body/labels via 'gh api' to see a
+          # 'Coordinated-With:' declaration edited after the triggering push.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bash scripts/run-ci.sh

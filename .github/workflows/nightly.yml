@@ -86,9 +86,10 @@ jobs:
         with:
           repository: signalwire/porting-sdk
           path: porting-sdk
-          # Plan window: depends on porting-sdk plan-branch gate engines. REVERT
-          # to main (drop this ref:) when plan/a-bar-2026-07-18 merges.
-          ref: main
+          # Coordinated-pass pin: 'main' normally; set the PORTING_SDK_REF repo variable
+          # to a wave branch to test a coordinated porting-sdk change, declared on the PR
+          # (see porting-sdk/COORDINATED_PASS.md). No revert commit.
+          ref: ${{ vars.PORTING_SDK_REF || 'main' }}
           token: ${{ secrets.PORTING_SDK_TOKEN }}
 
       # The EMISSION gate compares this port's to_dict() output against the
@@ -135,6 +136,9 @@ jobs:
           # This is the nightly workflow: always run the full heavy gate set
           # (nightly is a superset of the per-PR tier).
           SW_CI_TIER: nightly
+          # COORDINATED-PASS reads the live PR body/labels via 'gh api' to see a
+          # 'Coordinated-With:' declaration edited after the triggering push.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bash scripts/run-ci.sh
 
       - name: Record green marker for this input triple
