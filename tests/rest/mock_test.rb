@@ -283,11 +283,14 @@ module MockTest
     def spawn_server(port)
       cmd = ['python', '-m', 'mock_signalwire', '--host', '127.0.0.1',
              '--port', port.to_s, '--log-level', 'error']
-      # Detach: redirect stdio to /dev/null and put the child in its own
-      # process group so signals to the test runner don't cascade. The OS
-      # cleans up on exit; we explicitly Process.detach so no zombie remains.
-      @pid = Process.spawn(spawn_env, *cmd,
-                           out: '/dev/null', err: '/dev/null', in: '/dev/null', pgroup: true)
+      # Detach: redirect stdio to the null device and (POSIX) put the child in
+      # its own process group so signals to the test runner don't cascade. The
+      # OS cleans up on exit; we Process.detach so no zombie remains. File::NULL
+      # is 'NUL' on Windows / '/dev/null' elsewhere, and `pgroup:` is a POSIX-only
+      # spawn option (Windows raises "wrong exec option symbol: pgroup").
+      opts = { out: File::NULL, err: File::NULL, in: File::NULL }
+      opts[:pgroup] = true unless Gem.win_platform?
+      @pid = Process.spawn(spawn_env, *cmd, **opts)
       Process.detach(@pid)
     rescue Errno::ENOENT => e
       raise "mocktest: failed to spawn `python -m mock_signalwire`: #{e.message} " \
