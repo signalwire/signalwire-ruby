@@ -34,23 +34,14 @@ class GemspecDependencyHonestyTest < Minitest::Test
     end
   end
 
-  # The library must actually require + use both without a warning on the current
-  # Ruby (a clean-bundle require smoke; the CI future-Ruby leg exercises the
-  # eviction boundary).
-  def test_base64_and_logger_load_clean
-    warnings = []
-    original = $VERBOSE
-    $VERBOSE = true
-    begin
-      require 'base64'
-      require 'logger'
+  # The library must actually require + use both on the current Ruby (a
+  # clean-bundle require smoke; the CI future-Ruby leg exercises the eviction
+  # boundary under -w).
+  def test_base64_and_logger_load
+    require 'base64'
+    require 'logger'
 
-      assert_respond_to Base64, :strict_encode64
-      assert defined?(Logger)
-    ensure
-      $VERBOSE = original
-    end
-
-    assert_empty warnings
+    assert_respond_to Base64, :strict_encode64
+    assert defined?(Logger)
   end
 end
