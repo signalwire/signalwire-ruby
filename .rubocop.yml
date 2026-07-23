@@ -45,6 +45,7 @@ AllCops:
     - 'bin/relay-liveness-dump'
     - 'bin/pagination-dump'
     - 'bin/secret-scrub-dump'
+    - 'bin/ai-chat-dump'
     # Cross-port gate fixture-replay tooling, same category as the bin/*-dump
     # programs above: doc_wire_runner.rb only DRIVES the documented REST calls
     # against the DOC-WIRE flag-mode mock so it journals the wire shape. Not
@@ -135,6 +136,11 @@ Metrics/ClassLength:
     # drop those methods from the enumerated surface and break DRIFT (same
     # rationale as the classes below).
     - 'lib/signalwire/rest/http_client.rb'
+    # AI Chat client: its 6 public methods (create_conversation / chat / end /
+    # delete / log / summarize) + the JSON-RPC wire path ARE the cross-port
+    # parity surface, 1:1 with signalwire.ai_chat.AIChatClient. Same
+    # surface-bearing-unit rationale as http_client.rb above.
+    - 'lib/signalwire/ai_chat/client.rb'
     # 1:1 parity classes ported from the Python core.* modules whose public
     # method surface IS the cross-port parity contract (config_loader.py 266
     # lines / security_config.py 390 lines). Same surface-bearing-unit

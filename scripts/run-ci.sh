@@ -231,6 +231,16 @@ sched_gate DOC-SURFACE desc="public YARD doc-comment coverage holds the .doc_sur
 sched_gate WIRED-MODES desc="run-ci exports every load-bearing strict-mode line declared in WIRED_MODES.md" \
     -- python3 "$PORTING_SDK_DIR/scripts/check_wired_modes.py" --port ruby --repo "$PORT_ROOT"
 
+# AI-CHAT (task #22, COORDINATED pass ruby:ai-chat-client <-> porting-sdk:ai-chat-client):
+# wire-behavioral gate for the AIChatClient. Drives bin/ai-chat-dump through the shared
+# ai_chat_corpus against porting-sdk's in-process mock_ai_chat and asserts the client
+# speaks the AI Chat JSON-RPC protocol per the vendored spec (ai-chat-specs/ai-chat.yaml).
+# The gate script (diff_port_ai_chat.py) + mock live on the porting-sdk `ai-chat-client`
+# branch, so during the coordinated pass PORTING_SDK_REF pins that branch and the gate
+# runs; on plain main it skip-passes until the branch merges.
+sched_gate AI-CHAT desc="AIChatClient speaks the AI Chat protocol per the vendored spec (mock_ai_chat wire-behavioral)" \
+    -- bash -c 'if [ -f "$1/scripts/diff_port_ai_chat.py" ]; then python3 "$1/scripts/diff_port_ai_chat.py" --port ruby --dump-cmd "ruby $2/bin/ai-chat-dump"; else echo "[ai-chat] diff_port_ai_chat.py not on porting-sdk main yet — skip-pass (coordinated-branch dep: porting-sdk ai-chat-client)"; fi' _ "$PORTING_SDK_DIR" "$PORT_ROOT"
+
 # GATE-INVENTORY NOTE (§2.16): §1.11b (GATE-INVENTORY freshness) is intentionally
 # NOT wired here. gen_gate_inventory.py resolves its reference port as a SIBLING
 # checkout (DEFAULT_REFERENCE=signalwire-typescript), which does not exist in a
