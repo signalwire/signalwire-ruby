@@ -125,8 +125,10 @@ Pass it as a **client default** (applied to every request) and/or override it
 **per request**; a per-request options object shallow-merges over the client
 default, so you set only what you want to change.
 
+<!-- snippet: no-run makes a live REST call (fabric.ai_agents.list); the SDK REST base is https://{space} with no mock override, so it can't reach the mock standalone -->
 ```ruby
 require 'signalwire'
+require 'signalwire/rest/rest_client'
 
 # Client default: 10s per attempt, up to 2 retries with exponential backoff.
 client = SignalWire::REST::RestClient.new(
