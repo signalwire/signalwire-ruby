@@ -348,6 +348,75 @@ def apply_sig_free_function_projections(out_modules: dict) -> None:
                 target.setdefault(m, sig)
 
 
+# The AI-Chat response models are Ruby ``Struct.new(..., keyword_init: true)``
+# value types — the idiomatic analog of the reference's ``@dataclass``
+# ConversationInfo / ChatResponse / ChatLog. A Struct's constructor params are
+# invisible to Method#parameters reflection (the fields surface only as zero-arg
+# READERS), and it auto-generates machinery (``new`` / ``members`` /
+# ``keyword_init`` / ``inspect``) the reference dataclass doesn't have. Rebuild
+# each class's signature to the ONE method the reference records — a keyword
+# ``__init__`` whose params ARE the Struct fields — sourced from the reflected
+# field readers (so a real field drop/rename still surfaces as drift), and drop
+# the machinery. The reference-param-type projection (run next) attaches the
+# concrete field types by name. Keyed by (module, class) -> ordered field names
+# (Struct field order = the reference __init__ positional order).
+AI_CHAT_STRUCT_FIELDS: dict[tuple, list[str]] = {
+    ("signalwire.ai_chat.client", "ConversationInfo"): ["id", "status", "initial_message"],
+    ("signalwire.ai_chat.client", "ChatResponse"): ["text", "conversation_id", "user_event"],
+    ("signalwire.ai_chat.client", "ChatLog"): ["messages", "call_timeline"],
+}
+
+# Ruby-idiom accessors/methods on the AI-Chat client family the reference records
+# as plain instance ATTRIBUTES or a PRIVATE method — no reference surface member
+# to compare against, so drop them (mirrors enumerate_surface.rb's
+# SURFACE_MEMBER_DROPS). Keyed (module, class) -> method names to remove.
+AI_CHAT_METHOD_DROPS: dict[tuple, set[str]] = {
+    # resolve_url mirrors the reference's PRIVATE ``_resolve_url`` @staticmethod
+    # (dropped from the reference surface by its leading ``_``); Ruby exposes the
+    # same helper public for testability.
+    ("signalwire.ai_chat.client", "AIChatClient"): {"resolve_url"},
+    # #code / #server_message are attr_readers over the reference's
+    # ``self.code`` / message instance attributes set in ``__init__``.
+    ("signalwire.ai_chat.client", "AIChatError"): {"code", "server_message"},
+}
+
+
+def synth_ai_chat_struct_inits(out_modules: dict) -> None:
+    """Rebuild the AI-Chat Struct value models to a single keyword ``__init__``
+    (params = the reflected Struct field readers) and drop the Struct machinery;
+    also drop the client-family Ruby-idiom accessors the reference records as
+    attributes/private. In place."""
+    for (mod, cls), fields in AI_CHAT_STRUCT_FIELDS.items():
+        entry = out_modules.get(mod, {}).get("classes", {}).get(cls)
+        if not entry:
+            continue
+        methods = entry.get("methods", {})
+        # Verify each declared field is present as a reflected zero-arg reader —
+        # a real Struct field drop/rename then re-surfaces as drift here.
+        readers = [
+            f for f in fields
+            if f in methods and not _has_value_params(methods[f])
+        ]
+        params = [{"name": "self", "kind": "self"}] + [
+            {"name": f, "type": "any", "kind": "keyword", "required": False, "default": None}
+            for f in readers
+        ]
+        entry["methods"] = {"__init__": {"params": params, "returns": "void"}}
+
+    for (mod, cls), drops in AI_CHAT_METHOD_DROPS.items():
+        entry = out_modules.get(mod, {}).get("classes", {}).get(cls)
+        if not entry:
+            continue
+        for m in drops:
+            entry.get("methods", {}).pop(m, None)
+
+
+def _has_value_params(sig: dict) -> bool:
+    """True if the method takes any non-receiver param (i.e. it is not a plain
+    zero-arg reader)."""
+    return any(p.get("kind") not in ("self", "cls") for p in sig.get("params", []))
+
+
 def apply_hand_param_renames(out_modules: dict) -> None:
     """Rewrite Ruby-idiom hand-written param identifiers to the reference name so
     the projection + diff compare EQUAL (see HAND_PARAM_RENAMES). In place."""
@@ -574,6 +643,22 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
     "SignalWire::Relay::AIEvent": "signalwire.relay.event",
     "SignalWire::Relay::RelayEvent": "signalwire.relay.event",
     "SignalWire::Relay::Message": "signalwire.relay.message",
+    # AI Chat: the reference collapses the client, its typed error family, and
+    # the response models into one module signalwire.ai_chat.client. Ruby splits
+    # the client (top-level SignalWire::AIChatClient) from the error/model family
+    # (nested under SignalWire::AIChat::*); pin every one to the reference module
+    # so the surface + signature gates route them identically (mirrors
+    # enumerate_surface.rb's auto-resolve of these unique class names).
+    "SignalWire::AIChatClient": "signalwire.ai_chat.client",
+    "SignalWire::AIChat::AIChatError": "signalwire.ai_chat.client",
+    "SignalWire::AIChat::AuthenticationError": "signalwire.ai_chat.client",
+    "SignalWire::AIChat::ConversationNotFoundError": "signalwire.ai_chat.client",
+    "SignalWire::AIChat::RateLimitError": "signalwire.ai_chat.client",
+    "SignalWire::AIChat::ChatInProgressError": "signalwire.ai_chat.client",
+    "SignalWire::AIChat::SummaryError": "signalwire.ai_chat.client",
+    "SignalWire::AIChat::ConversationInfo": "signalwire.ai_chat.client",
+    "SignalWire::AIChat::ChatResponse": "signalwire.ai_chat.client",
+    "SignalWire::AIChat::ChatLog": "signalwire.ai_chat.client",
     # RequestOptions envelope (plan 4.2): route the value type to the
     # reference module signalwire.rest._request_options. Its helper classes
     # (EffectiveOptions/AbortSignal) mirror that module's PRIVATE
@@ -1057,6 +1142,7 @@ def collect(raw: dict) -> dict:
     apply_sig_method_aliases(out_modules)
     apply_sig_method_donors(out_modules)
     apply_sig_free_function_projections(out_modules)
+    synth_ai_chat_struct_inits(out_modules)
     apply_hand_param_renames(out_modules)
     project_reference_param_types(out_modules)
     normalize_request_options_param_kind(out_modules)

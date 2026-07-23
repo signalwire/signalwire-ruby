@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ a882f7b12006e489def563b525ec09b3f0b7a172",
+  "generated_from": "signalwire-ruby @ 51b233a67e7ec2f255ae77a7e6fc1fd6661868d9",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -47,6 +47,31 @@
           "set_voice",
           "to_s"
         ]
+      },
+      "functions": []
+    },
+    "signalwire.ai_chat.client": {
+      "classes": {
+        "AIChatClient": [
+          "__init__",
+          "chat",
+          "create_conversation",
+          "delete",
+          "end",
+          "log",
+          "summarize"
+        ],
+        "AIChatError": [
+          "__init__"
+        ],
+        "AuthenticationError": [],
+        "ChatInProgressError": [],
+        "ChatLog": [],
+        "ChatResponse": [],
+        "ConversationInfo": [],
+        "ConversationNotFoundError": [],
+        "RateLimitError": [],
+        "SummaryError": []
       },
       "functions": []
     },

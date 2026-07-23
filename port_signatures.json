@@ -341,49 +341,49 @@
                 },
                 {
                   "name": "name",
-                  "type": "any",
+                  "type": "string",
                   "kind": "keyword",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "route",
-                  "type": "any",
+                  "type": "string",
                   "kind": "keyword",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "system_prompt",
-                  "type": "any",
+                  "type": "optional<string>",
                   "kind": "keyword",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "voice_id",
-                  "type": "any",
+                  "type": "string",
                   "kind": "keyword",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "temperature",
-                  "type": "any",
+                  "type": "float",
                   "kind": "keyword",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "top_p",
-                  "type": "any",
+                  "type": "float",
                   "kind": "keyword",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "max_tokens",
-                  "type": "any",
+                  "type": "int",
                   "kind": "keyword",
                   "required": false,
                   "default": null
@@ -415,21 +415,21 @@
                 },
                 {
                   "name": "temperature",
-                  "type": "any",
+                  "type": "optional<float>",
                   "kind": "keyword",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "top_p",
-                  "type": "any",
+                  "type": "optional<float>",
                   "kind": "keyword",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "max_tokens",
-                  "type": "any",
+                  "type": "optional<int>",
                   "kind": "keyword",
                   "required": false,
                   "default": null
@@ -445,7 +445,7 @@
                 },
                 {
                   "name": "model",
-                  "type": "any",
+                  "type": "string",
                   "required": true
                 }
               ],
@@ -459,7 +459,7 @@
                 },
                 {
                   "name": "temperature",
-                  "type": "any",
+                  "type": "float",
                   "required": true
                 }
               ],
@@ -505,7 +505,7 @@
                 },
                 {
                   "name": "voice_id",
-                  "type": "any",
+                  "type": "string",
                   "required": true
                 }
               ],
@@ -519,6 +519,410 @@
                 }
               ],
               "returns": "any"
+            }
+          }
+        }
+      }
+    },
+    "signalwire.ai_chat.client": {
+      "classes": {
+        "AIChatClient": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "project",
+                  "type": "optional<string>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "token",
+                  "type": "optional<string>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "space",
+                  "type": "optional<string>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "url",
+                  "type": "optional<string>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "connect_timeout",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "read_idle_timeout",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "void"
+            },
+            "chat": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "conversation_id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "message",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "role",
+                  "type": "string",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "config_url",
+                  "type": "optional<string>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "user_metadata",
+                  "type": "optional<dict<string,any>>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "timeout",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "reinit",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "create_conversation": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "conversation_id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "config_url",
+                  "type": "string",
+                  "kind": "keyword",
+                  "required": true
+                },
+                {
+                  "name": "user_message",
+                  "type": "optional<string>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "timeout",
+                  "type": "optional<int>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "user_metadata",
+                  "type": "optional<dict<string,any>>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "reinit",
+                  "type": "bool",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "delete": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "conversation_id",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "end": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "conversation_id",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "inspect": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "log": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "conversation_id",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "summarize": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "conversation_id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "summary_prompt",
+                  "type": "optional<string>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "temperature",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "top_p",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "frequency_penalty",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "presence_penalty",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "max_tokens",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "to_s": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "url": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        },
+        "AIChatError": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "code",
+                  "type": "optional<int>",
+                  "required": true
+                },
+                {
+                  "name": "message",
+                  "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "void"
+            }
+          }
+        },
+        "ChatLog": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "messages",
+                  "type": "list<dict<string,any>>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "call_timeline",
+                  "type": "list<dict<string,any>>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "void"
+            }
+          }
+        },
+        "ChatResponse": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "text",
+                  "type": "string",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "conversation_id",
+                  "type": "string",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "user_event",
+                  "type": "optional<dict<string,any>>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "void"
+            }
+          }
+        },
+        "ConversationInfo": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "status",
+                  "type": "string",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "initial_message",
+                  "type": "optional<string>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "void"
             }
           }
         }
@@ -36772,6 +37176,10 @@
             "serverless": {
               "params": [],
               "returns": "any"
+            },
+            "suppress_run": {
+              "params": [],
+              "returns": "any"
             }
           }
         }
@@ -39326,8 +39734,8 @@
                   "kind": "self"
                 },
                 {
-                  "name": "_document",
-                  "type": "any",
+                  "name": "document",
+                  "type": "dict<string,any>",
                   "required": true
                 }
               ],
