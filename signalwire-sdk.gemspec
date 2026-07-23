@@ -39,6 +39,10 @@ Gem::Specification.new do |s|
   # on websocket-client-simple; logger has no such backstop). Declare them so the
   # require resolves cleanly on every supported Ruby without a warning.
   s.add_dependency 'base64', '>= 0.1'
+  # json_schemer performs full SWML JSON-Schema validation (Draft 2020-12,
+  # closed-key + type checking) in SchemaUtils, mirroring Python's jsonschema-rs.
+  # It is a runtime dep because schema validation is on by default.
+  s.add_dependency 'json_schemer', '>= 2.0'
   s.add_dependency 'logger', '>= 1.4'
   s.add_dependency 'rack', '>= 2.0'
   s.add_dependency 'rackup', '>= 1.0'

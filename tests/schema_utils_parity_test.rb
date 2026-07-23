@@ -85,11 +85,25 @@ class SchemaUtilsParityTest < Minitest::Test
     assert_equal [], su.get_verb_required_properties('not_a_verb')
   end
 
-  def test_validate_document_no_full_validator
-    # Ruby port doesn't ship a full validator yet; validate_document must
-    # return [false, ['Schema validator not initialized']] — same
-    # contract as Python.
+  def test_validate_document_valid_doc
+    # With schema validation ON (the default) the json_schemer full validator
+    # is wired, so a well-formed document validates true — mirroring Python's
+    # jsonschema-rs-backed validate_document.
     su = SchemaUtils.new
+    valid, errors = su.validate_document(
+      'version' => '1.0.0',
+      'sections' => { 'main' => [{ 'answer' => { 'max_duration' => 5 } }] }
+    )
+
+    assert valid, "expected valid document, got errors: #{errors.inspect}"
+    assert_empty errors
+  end
+
+  def test_validate_document_no_full_validator_when_disabled
+    # When validation is disabled no full validator is initialized, so
+    # validate_document reports the same [false, ['...not initialized']]
+    # contract as Python's uninitialized path.
+    su = SchemaUtils.new(nil, false)
     valid, errors = su.validate_document(
       'version' => '1.0.0',
       'sections' => { 'main' => [] }

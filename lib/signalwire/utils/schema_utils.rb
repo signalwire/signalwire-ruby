@@ -39,11 +39,13 @@ module SignalWire
     #   - The env var SWML_SKIP_SCHEMA_VALIDATION=1/true/yes also disables
     #     validation regardless of the constructor argument.
     #
-    # The Ruby port currently ships only the lightweight validator (verb
-    # existence + required-property check). Full JSON Schema validation
-    # can be wired in via the `json_schemer` gem by extending
-    # init_full_validator. The lightweight contract matches Python's
-    # _validate_verb_lightweight() exactly.
+    # Full JSON Schema validation (Draft 2020-12, including closed-key
+    # `unevaluatedProperties` and type checking) is performed via the
+    # `json_schemer` gem, mirroring Python's jsonschema-rs validator: a verb
+    # config is wrapped in a minimal SWML document and validated against the
+    # bundled schema.json. When json_schemer is unavailable the port falls back
+    # to the lightweight validator (verb existence + required-property check),
+    # which matches Python's _validate_verb_lightweight() exactly.
     class SchemaUtils
       # JSON-schema scalar type → Python type-annotation string (codegen).
       PYTHON_SCALAR_TYPES = {
@@ -68,6 +70,7 @@ module SignalWire
         @validation_enabled = schema_validation && !env_skip
         @schema = load_schema
         @verbs = {}
+        @full_validator = nil
         extract_verbs
         init_full_validator if @validation_enabled && !@schema.empty?
       end
@@ -144,15 +147,18 @@ module SignalWire
         end
       end
 
-      # Validate a complete SWML document.
-      # Mirrors Python's validate_document(document). Returns
-      # (false, ['Schema validator not initialized']) when no full
-      # validator is wired in.
-      def validate_document(_document)
+      # Validate a complete SWML document against the full JSON Schema.
+      # Mirrors Python's validate_document(document): runs the json_schemer
+      # validator over the whole document. Returns
+      # (false, ['Schema validator not initialized']) when no full validator is
+      # wired in (validation disabled or json_schemer unavailable).
+      def validate_document(document)
         return [false, ['Schema validator not initialized']] if @full_validator.nil?
 
-        # Reserved for full-validator wiring.
-        [true, []]
+        errors = @full_validator.validate(document).to_a
+        return [true, []] if errors.empty?
+
+        [false, ["Document validation error: #{schema_error_detail(nil, errors)}"]]
       end
 
       # Generate a Python-style method signature string for a verb.
@@ -177,6 +183,34 @@ module SignalWire
       end
 
       private
+
+      # @api private — internal helper used by SWMLService for handler
+      # verbs (not part of the reference SchemaUtils surface).
+      # Top-level-key validation for a verb whose config is checked by a
+      # specialized handler (e.g. the ai verb). Enforces exactly the closed-key
+      # + required-key contract at the verb's OWN level — reject an unknown or
+      # misspelled top-level key and a missing required key — WITHOUT recursing
+      # into the verb's deep sub-schemas. The ai verb's deep shapes (an empty
+      # prompt.pom [], SWAIG.defaults/web_hook_url/__token) are legitimate
+      # renders the bundled schema does not fully accept, so full-deep
+      # validating the ai verb would false-reject valid documents. This mirrors
+      # the reference: the ai verb rejects stray TOP-LEVEL keys like every other
+      # verb, but its inner objects (prompt, SWAIG, params) stay as the handler
+      # and runtime define them. params is open by construction — this check
+      # never looks inside it.
+      #
+      # @return [Array(Boolean, Array<String>)] (valid, errors) tuple.
+      def validate_verb_top_level_keys(verb_name, verb_config)
+        return [true, []] unless @validation_enabled
+        return [false, ["Unknown verb: #{verb_name}"]] unless @verbs.key?(verb_name)
+        return [true, []] unless verb_config.is_a?(Hash)
+
+        schema = resolved_verb_schema(verb_name)
+        return [true, []] if schema.nil?
+
+        errors = top_level_key_errors(verb_name, verb_config, schema)
+        [errors.empty?, errors]
+      end
 
       def method_body_kwargs_lines(verb_name)
         ['        # Add any additional parameters from kwargs',
@@ -270,14 +304,47 @@ module SignalWire
         ref[prefix.length..]
       end
 
+      # Wire the json_schemer full validator (Draft 2020-12) over the loaded
+      # schema, mirroring Python's jsonschema-rs Draft202012Validator. Leaves
+      # @full_validator nil (lightweight fallback) if json_schemer is not
+      # installed or the schema lacks the full document structure — so a
+      # partial/test schema without a 'sections' property never crashes here.
       def init_full_validator
-        # Reserved for full-validator wiring (json_schemer gem).
+        return unless @schema.is_a?(Hash) && @schema.dig('properties', 'sections')
+
+        require 'json_schemer'
+        @full_validator = JSONSchemer.schema(
+          @schema, meta_schema: 'https://json-schema.org/draft/2020-12/schema'
+        )
+      rescue LoadError, StandardError
         @full_validator = nil
       end
 
+      # Full JSON Schema validation via json_schemer. Mirrors Python's
+      # _validate_verb_full: wrap the verb in a minimal SWML document
+      # ({version, sections:{main:[{verb: config}]}}) and validate the whole
+      # doc, so the schema's closed-key (`unevaluatedProperties`) and type
+      # rules apply to the verb config exactly as they do in the reference.
       def validate_verb_full(verb_name, verb_config)
-        # Reserved for full-validator wiring; falls back to lightweight check.
-        validate_verb_lightweight(verb_name, verb_config)
+        return validate_verb_lightweight(verb_name, verb_config) if @full_validator.nil?
+
+        minimal_doc = {
+          'version' => '1.0.0',
+          'sections' => { 'main' => [{ verb_name => verb_config }] }
+        }
+        errors = @full_validator.validate(minimal_doc).to_a
+        return [true, []] if errors.empty?
+
+        detail = schema_error_detail(verb_name, errors)
+        [false, ["Schema validation error for '#{verb_name}': #{detail}"]]
+      end
+
+      # Build a concise error string from json_schemer's error records, capped
+      # like Python's 500-char truncation.
+      def schema_error_detail(_verb_name, errors)
+        msg = errors.filter_map { |e| e['error'] || e['type'] }.join('; ')
+        msg = "#{msg[0, 500]}..." if msg.length > 500
+        msg
       end
 
       def validate_verb_lightweight(verb_name, verb_config)
@@ -286,6 +353,60 @@ module SignalWire
           errors << "Missing required property '#{prop}' for verb '#{verb_name}'" unless verb_config.key?(prop)
         end
         [errors.empty?, errors]
+      end
+
+      # Resolve a verb's own object schema (following a single top-level $ref,
+      # e.g. the ai verb -> #/$defs/AIObject), returning the Hash schema whose
+      # `properties` + `required` + closed-key flag define the verb's top level,
+      # or nil when it can't be resolved.
+      def resolved_verb_schema(verb_name)
+        node = get_verb_properties(verb_name)
+        return node unless node.is_a?(Hash)
+
+        ref = node['$ref']
+        return node unless ref.is_a?(String)
+
+        prefix = '#/$defs/'
+        return node unless ref.start_with?(prefix)
+
+        target = @schema.dig('$defs', ref[prefix.length..])
+        target.is_a?(Hash) ? target : node
+      end
+
+      # Closed-key + required-key errors at the verb's own level. A key not in
+      # the schema's declared `properties` is rejected only when the schema is
+      # closed (unevaluatedProperties / additionalProperties disallow extras) —
+      # matching the reference's closed-verb contract.
+      def top_level_key_errors(verb_name, verb_config, schema)
+        errors = missing_required_errors(verb_name, verb_config, schema)
+        errors.concat(unknown_key_errors(verb_name, verb_config, schema)) if schema_closed?(schema)
+        errors
+      end
+
+      def missing_required_errors(verb_name, verb_config, schema)
+        required = schema['required']
+        return [] unless required.is_a?(Array)
+
+        required.reject { |req| verb_config.key?(req) }
+                .map { |req| "Missing required property '#{req}' for verb '#{verb_name}'" }
+      end
+
+      def unknown_key_errors(verb_name, verb_config, schema)
+        props = schema['properties']
+        allowed = props.is_a?(Hash) ? props.keys : []
+        verb_config.keys.reject { |key| allowed.include?(key) }
+                        .map { |key| "Unknown property '#{key}' for verb '#{verb_name}'" }
+      end
+
+      # Whether a schema disallows unlisted properties (closed), via either the
+      # 2020-12 `unevaluatedProperties: {not: {}}` (or false) or the classic
+      # `additionalProperties: false`.
+      def schema_closed?(schema)
+        unevaluated = schema['unevaluatedProperties']
+        return true if unevaluated == false
+        return true if unevaluated.is_a?(Hash) && unevaluated['not'] == {}
+
+        schema['additionalProperties'] == false
       end
 
       def python_type_annotation(defn)

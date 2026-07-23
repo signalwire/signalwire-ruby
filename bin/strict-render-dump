@@ -1,0 +1,173 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Copyright (c) 2025 SignalWire
+#
+# Licensed under the MIT License.
+# See LICENSE file in the project root for full license information.
+
+#
+# strict-render-dump — the Ruby port's SWML STRICT-RENDER dump program for the
+# cross-port negative differ (porting-sdk/scripts/diff_port_strict_render.py).
+#
+# The strict-render contract: building/rendering an SWML document with a
+# misshapen config, an unknown verb, or a misspelled/unknown key must RAISE —
+# not silently drop/accept it. For each strict_render_corpus case this program
+# builds the document in Ruby idiom, catching any raised exception as "raised"
+# and a clean build as "ok", then emits ONE JSON object mapping
+#
+#   case-id -> "raised" | "ok"
+#
+# to stdout. The differ compares each case's outcome against the python oracle.
+#
+# SWMLService cases use add_verb(name, config) with schema_validation ON (the
+# schema/handler validation raises SchemaValidationError on a bad verb).
+# AgentBase cases exercise the contexts builder: define_tool then
+# define_contexts -> add_context -> add_step -> set_text/set_functions/
+# set_valid_contexts, then ContextBuilder#validate! (via to_h) — mirroring the
+# corpus _ctx_add_step / _ctx_validate verbs the python oracle interprets.
+#
+# Only stdout carries JSON: the differ does json.loads(proc.stdout), so any
+# stray byte (a gem notice, a logger line) corrupts the parse. As in swml-dump,
+# save the real stdout, redirect all setup/logging to stderr, and restore only
+# to emit the final JSON.
+#
+# Run from the signalwire-ruby repo root:
+#
+#   bundle exec ruby bin/strict-render-dump
+
+require 'json'
+
+REAL_STDOUT = $stdout.dup
+$stdout.reopen($stderr)
+ENV['SIGNALWIRE_LOG_MODE'] ||= 'off'
+require_relative '../lib/signalwire'
+
+# Build one SWMLService verb-level case. schema_validation defaults ON so a
+# misshapen/unknown/misspelled verb config raises.
+def run_swml_service_case
+  svc = SignalWire::SWML::Service.new(name: 's', route: '/s', schema_validation: true)
+  yield svc
+  'ok'
+rescue StandardError
+  'raised'
+end
+
+# Build one AgentBase contexts-level case. define_tool registers a SWAIG tool;
+# the contexts builder validate! runs on to_h.
+def run_agent_case
+  agent = SignalWire::AgentBase.new(name: 'a', route: '/a', schema_validation: true)
+  builder = agent.define_contexts
+  yield agent, builder
+  'ok'
+rescue StandardError
+  'raised'
+end
+
+# Add (or fetch) a context on the builder, then add a step; apply the corpus
+# step config (text / functions / valid_contexts / valid_steps).
+def ctx_add_step(_agent, builder, context:, step:, **opts)
+  ctx = builder.get_context(context) || builder.add_context(context)
+  st = ctx.add_step(step)
+  st.set_text(opts[:text]) if opts.key?(:text)
+  st.set_functions(opts[:functions]) if opts.key?(:functions)
+  st.set_valid_contexts(opts[:valid_contexts]) if opts.key?(:valid_contexts)
+  st.set_valid_steps(opts[:valid_steps]) if opts.key?(:valid_steps)
+  st
+end
+
+out = {}
+
+# ================================================================
+# Verb-level strict render (SWMLService, validation ON)
+# ================================================================
+
+out['strict_unknown_verb'] = run_swml_service_case do |svc|
+  svc.add_verb('foobar', {})
+end
+
+out['strict_answer_misspelled_key'] = run_swml_service_case do |svc|
+  svc.add_verb('answer', { 'maxduration' => 5 })
+end
+
+out['strict_answer_unknown_key'] = run_swml_service_case do |svc|
+  svc.add_verb('answer', { 'wibble' => 1 })
+end
+
+out['strict_play_misspelled_key'] = run_swml_service_case do |svc|
+  svc.add_verb('play', { 'urlz' => ['say:hi'] })
+end
+
+out['strict_play_valid_plus_unknown_key'] = run_swml_service_case do |svc|
+  svc.add_verb('play', { 'url' => 'say:hi', 'foo' => 1 })
+end
+
+out['strict_record_misspelled_key'] = run_swml_service_case do |svc|
+  svc.add_verb('record', { 'formatt' => 'wav' })
+end
+
+out['strict_answer_wrong_type'] = run_swml_service_case do |svc|
+  svc.add_verb('answer', { 'max_duration' => 'notanumber' })
+end
+
+out['strict_ai_misspelled_top_key'] = run_swml_service_case do |svc|
+  svc.add_verb('ai', { 'prompt' => { 'text' => 'hi' }, 'temperatur' => 0.5 })
+end
+
+out['strict_ai_unknown_top_key'] = run_swml_service_case do |svc|
+  svc.add_verb('ai', { 'prompt' => { 'text' => 'hi' }, 'zzz' => 1 })
+end
+
+out['strict_ai_missing_prompt'] = run_swml_service_case do |svc|
+  svc.add_verb('ai', { 'post_prompt' => { 'text' => 'bye' } })
+end
+
+# ---- good documents must still render (regression guard) ----
+out['strict_answer_ok'] = run_swml_service_case do |svc|
+  svc.add_verb('answer', { 'max_duration' => 5 })
+end
+
+out['strict_play_ok'] = run_swml_service_case do |svc|
+  svc.add_verb('play', { 'url' => 'say:hi' })
+end
+
+out['strict_ai_ok'] = run_swml_service_case do |svc|
+  svc.add_verb('ai', { 'prompt' => { 'text' => 'hi' } })
+end
+
+out['strict_ai_params_open_ok'] = run_swml_service_case do |svc|
+  svc.add_verb('ai', { 'prompt' => { 'text' => 'hi' }, 'params' => { 'some_future_param' => 1 } })
+end
+
+# ================================================================
+# Contexts-level strict render (AgentBase; dangling refs)
+# ================================================================
+
+out['strict_dangling_step_function'] = run_agent_case do |agent, builder|
+  agent.define_tool(name: 'order_status', description: 'look up an order', parameters: {}) { |_a, _r| nil }
+  ctx_add_step(agent, builder, context: 'default', step: 'help', text: 'help',
+                               functions: %w[order_status get_datetime])
+  builder.to_h
+end
+
+out['strict_registered_step_function_ok'] = run_agent_case do |agent, builder|
+  agent.define_tool(name: 'order_status', description: 'look up an order', parameters: {}) { |_a, _r| nil }
+  ctx_add_step(agent, builder, context: 'default', step: 'help', text: 'help',
+                               functions: %w[order_status])
+  builder.to_h
+end
+
+out['strict_reserved_native_function_ok'] = run_agent_case do |agent, builder|
+  ctx_add_step(agent, builder, context: 'default', step: 'help', text: 'help',
+                               functions: %w[next_step change_context])
+  builder.to_h
+end
+
+out['strict_dangling_valid_context'] = run_agent_case do |agent, builder|
+  ctx_add_step(agent, builder, context: 'default', step: 'help', text: 'help',
+                               valid_contexts: %w[nowhere])
+  builder.to_h
+end
+
+REAL_STDOUT.puts(JSON.generate(out))
+REAL_STDOUT.flush
