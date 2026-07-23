@@ -39,10 +39,10 @@ jobs:
           repository: signalwire/porting-sdk
           path: porting-sdk
           token: ${{ secrets.PORTING_SDK_TOKEN }}
-          # PINNED to wave/1-aplus: the mcp_gateway client-skill surface (+ request_options
-          # oracle) lives there; against main the symbol-parity check misses MCPGatewaySkill.
-          # REVERT to main (drop this ref:) when porting-sdk wave/1-aplus merges.
-          ref: main
+          # Coordinated-pass pin: 'main' normally; set the PORTING_SDK_REF repo variable
+          # to a wave branch to test a coordinated porting-sdk change, declared on the PR
+          # (see porting-sdk/COORDINATED_PASS.md). No revert commit.
+          ref: ${{ vars.PORTING_SDK_REF || 'main' }}
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1

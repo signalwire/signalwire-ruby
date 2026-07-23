@@ -130,6 +130,19 @@ class SwmlBuilderTest < Minitest::Test
     assert_equal({ 'record_call' => { 'stereo' => true, 'format' => 'wav' } }, main.first)
   end
 
+  # N2: a single positional Hash (the SDK's documented string-key style) becomes
+  # the config on the vivified path too — not silently dropped.
+  def test_method_missing_positional_string_key_hash
+    @builder.record_call({ 'stereo' => true, 'format' => 'wav' })
+
+    assert_equal({ 'record_call' => { 'stereo' => true, 'format' => 'wav' } }, main.first)
+  end
+
+  def test_method_missing_non_hash_positional_raises
+    assert_raises(ArgumentError) { @builder.record_call('wav') }
+    assert_raises(ArgumentError) { @builder.record_call({ 'a' => 1 }, { 'b' => 2 }) }
+  end
+
   def test_respond_to_missing_true_for_verbs
     assert_respond_to @builder, :denoise
     assert_respond_to @builder, :sleep

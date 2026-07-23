@@ -4,6 +4,13 @@ source 'https://rubygems.org'
 
 gemspec
 
+# tzinfo (a gemspec runtime dep, used by the datetime skill) needs a timezone
+# data source. On POSIX it reads the OS zoneinfo db; Windows and JRuby have none,
+# so they need the pure-Ruby tzinfo-data gem or every zone lookup raises
+# TZInfo::DataSourceNotFound. Windows consumers of the published gem must likewise
+# add `gem 'tzinfo-data'` (documented in the datetime skill docs).
+gem 'tzinfo-data', platforms: %i[windows mingw mswin x64_mingw jruby]
+
 # Development dependencies (declared here, not in the gemspec, per RuboCop's
 # Gemspec/DevelopmentDependencies — so consumers installing the gem don't pull
 # the test/lint toolchain).

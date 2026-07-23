@@ -124,7 +124,7 @@ sched_gate GEN defer=1 desc="generated-code freshness suite (GEN-FRESH/-TESTS/-R
 # is the separate line below.
 sched_gate BEHAVIORAL defer=1 desc="behavioral suite (BEHAVIORAL-*/EMISSION/ERROR-ENVELOPE/PAGINATION-WIRED/PAGINATION-CORPUS/DOC-WIRE/REST-COVERAGE/SPEC-PARITY/SKILL-CONTRACT/SWAIG-COVERAGE/SWAIG-CLI/CA-VAR/SECURE-DEFAULT/SECRET-SCRUB)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/behavioral.py" --port ruby --repo "$PORT_ROOT" \
-        --rules BEHAVIORAL-WIRE,BEHAVIORAL-SWML,BEHAVIORAL-STATE,BEHAVIORAL-HTTP,BEHAVIORAL-WIRE-RELAY,EMISSION,ERROR-ENVELOPE,PAGINATION-WIRED,PAGINATION-CORPUS,DOC-WIRE,REST-COVERAGE,SPEC-PARITY,SKILL-CONTRACT,SWAIG-COVERAGE,SWAIG-CLI,CA-VAR,SECURE-DEFAULT,SECRET-SCRUB
+        --rules BEHAVIORAL-WIRE,BEHAVIORAL-SWML,BEHAVIORAL-STRICT-RENDER,BEHAVIORAL-STATE,BEHAVIORAL-HTTP,BEHAVIORAL-WIRE-RELAY,EMISSION,ERROR-ENVELOPE,PAGINATION-WIRED,PAGINATION-CORPUS,DOC-WIRE,REST-COVERAGE,SPEC-PARITY,SKILL-CONTRACT,SWAIG-COVERAGE,SWAIG-CLI,CA-VAR,SECURE-DEFAULT,SECRET-SCRUB
 
 sched_gate BEHAVIORAL-NIGHTLY tier=nightly defer=1 desc="behavioral suite, nightly rules (WAIT-LIVENESS/RELAY-LIVENESS/SECRET-SCRUB-LIVE)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/behavioral.py" --port ruby --repo "$PORT_ROOT" \
@@ -153,6 +153,22 @@ sched_gate PACKAGE-NIGHTLY tier=nightly defer=1 desc="package suite, nightly rul
 # ---- gates that stay standalone (native toolchains + singletons) -------------
 sched_gate NO-CHEAT desc="audit_no_cheat_tests" \
     -- python3 "$PORTING_SDK_DIR/scripts/audit_no_cheat_tests.py" --root "$PORT_ROOT"
+
+sched_gate COORDINATED-PASS desc="a non-main porting-sdk pin must be declared on the PR (Coordinated-With: line or coordinated-pass label)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/coordinated_pass.py" --porting-sdk "$PORTING_SDK_DIR"
+
+sched_gate COORDINATED-REFS desc="every coordinated-set checkout (porting-sdk + python oracle + matrix ports) uses PORTING_SDK_REF, not a literal ref" \
+    -- python3 "$PORTING_SDK_DIR/scripts/check_coordinated_refs.py" --repo "$PORT_ROOT"
+
+sched_gate ENV-VAR-CONSISTENCY desc="REST base-url override present + custom-CA env names canonical (SIGNALWIRE_{REST,RELAY}_CA_FILE)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/env_var_consistency.py" --port ruby --repo "$PORT_ROOT"
+
+# NOTE: ACTIONLINT is intentionally NOT wired into ruby's run-ci. The gate fails
+# LOUD (exit 2) when the actionlint native binary is absent, and ruby's CI runners
+# don't install it — wiring it would red the test job (as it did for another port).
+# porting-sdk's cross-port ACTIONLINT run already covers workflow-validity detection
+# for every port. This port's workflows are verified valid (live-smoke.yml gates on a
+# JOB-level env, not a step-level secrets.* in if:); actionlint is clean here.
 
 sched_gate FMT defer=1 desc="run-format.sh (local: apply; CI: --check)" \
     -- bash scripts/run-format.sh ${CI:+--check}

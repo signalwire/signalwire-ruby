@@ -86,9 +86,10 @@ jobs:
         with:
           repository: signalwire/porting-sdk
           path: porting-sdk
-          # Plan window: depends on porting-sdk plan-branch gate engines. REVERT
-          # to main (drop this ref:) when plan/a-bar-2026-07-18 merges.
-          ref: main
+          # Coordinated-pass pin: 'main' normally; set the PORTING_SDK_REF repo variable
+          # to a wave branch to test a coordinated porting-sdk change, declared on the PR
+          # (see porting-sdk/COORDINATED_PASS.md). No revert commit.
+          ref: ${{ vars.PORTING_SDK_REF || 'main' }}
           token: ${{ secrets.PORTING_SDK_TOKEN }}
 
       # The EMISSION gate compares this port's to_dict() output against the
@@ -99,7 +100,7 @@ jobs:
         with:
           repository: signalwire/signalwire-python
           path: signalwire-python
-          ref: main
+          ref: ${{ vars.PORTING_SDK_REF || 'main' }}
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
@@ -135,6 +136,9 @@ jobs:
           # This is the nightly workflow: always run the full heavy gate set
           # (nightly is a superset of the per-PR tier).
           SW_CI_TIER: nightly
+          # COORDINATED-PASS reads the live PR body/labels via 'gh api' to see a
+          # 'Coordinated-With:' declaration edited after the triggering push.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bash scripts/run-ci.sh
 
       - name: Record green marker for this input triple
@@ -143,4 +147,67 @@ jobs:
         with:
           path: .nightly-green-marker
           key: ${{ needs.guard.outputs.cache_key }}
+
+  # future-ruby: run the suite on a FORWARD Ruby (head + the next stable) so the
+  # stdlib-eviction class of failure is caught before it ships. base64 left the
+  # default gems in 3.4 and logger in 3.5; a require of an EXTRACTED-but-
+  # undeclared stdlib gem warns/LoadErrors under Bundler on the Ruby that evicted
+  # it — invisible on the pinned 3.4.9 CI. Runs under `-w` so a lingering
+  # bundled-gem deprecation warning is loud. Tier: nightly (runner cost).
+  future-ruby:
+    needs: guard
+    if: needs.guard.outputs.changed == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ['3.5', 'head']
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.ruby == 'head' }}
+    steps:
+      - name: Checkout signalwire-ruby
+        uses: actions/checkout@v7
+        with:
+          path: signalwire-ruby
+
+      - name: Checkout porting-sdk (mock harnesses + audit scripts)
+        uses: actions/checkout@v7
+        with:
+          repository: signalwire/porting-sdk
+          path: porting-sdk
+          # Coordinated-pass pin: 'main' normally; set the PORTING_SDK_REF repo variable
+          # to a wave branch to test a coordinated porting-sdk change, declared on the PR
+          # (see porting-sdk/COORDINATED_PASS.md). No revert commit.
+          ref: ${{ vars.PORTING_SDK_REF || 'main' }}
+          token: ${{ secrets.PORTING_SDK_TOKEN }}
+
+      - name: Set up forward Ruby (${{ matrix.ruby }})
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+          working-directory: signalwire-ruby
+
+      - name: Set up Python (mock harnesses)
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Install Python test harnesses (mock_relay + mock_signalwire)
+        run: |
+          pip install -e porting-sdk/test_harness/mock_relay
+          pip install -e porting-sdk/test_harness/mock_signalwire
+
+      # A clean-bundle require + the full suite on the forward Ruby: -w surfaces any
+      # deprecation warning from a stdlib gem that was extracted from the defaults.
+      - name: Require smoke + gemspec-dependency honesty (extracted-stdlib deps)
+        working-directory: signalwire-ruby
+        env:
+          RUBYOPT: '-w'
+        run: |
+          bundle exec ruby -e "require 'signalwire'; require 'signalwire/rest/rest_client'; puts 'require clean on ' + RUBY_VERSION"
+          bash scripts/run-tests.sh tests/gemspec_dependency_honesty_test.rb
+
+      - name: TEST (full suite on the forward Ruby)
+        working-directory: signalwire-ruby
+        run: bash scripts/run-tests.sh
 

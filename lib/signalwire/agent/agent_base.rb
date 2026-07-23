@@ -1817,6 +1817,10 @@ module SignalWire
       handler = SERVERLESS_DISPATCH[mode]
       return handler.call(self, event, context) if handler
 
+      # In :server mode this calls serve, which honors the SIGNALWIRE_SUPPRESS_RUN
+      # guard (ruby_R5 N1) — so tooling loading an example ending in a bare
+      # `agent.run` gets a no-op instead of a blocking WEBrick boot, while a
+      # serverless-simulation dispatch above still runs.
       serve(host: host, port: port)
     end
 
@@ -1987,6 +1991,10 @@ module SignalWire
     # ``host`` / ``port`` overrides default to the constructor-supplied
     # values.
     def serve(host: nil, port: nil)
+      # Suppress-run guard (ruby_R5 N1): tooling loading an example whose last
+      # line calls serve must not block on a booted WEBrick server.
+      return nil if SignalWire::Runtime.suppress_run?
+
       require 'webrick'
       bind_host = host || @host
       bind_port = port || @port

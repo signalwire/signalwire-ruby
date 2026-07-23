@@ -810,6 +810,9 @@ module SignalWire
       end
 
       # Validate the full configuration. Raises ArgumentError on problems.
+      # rubocop:disable Metrics/MethodLength -- a flat, ordered list of
+      # validation passes; each line is one distinct check. Splitting it would
+      # only hide the validation flow, not simplify it.
       def validate!
         raise ArgumentError, 'At least one context must be defined' if @contexts.empty?
 
@@ -817,12 +820,14 @@ module SignalWire
         validate_steps_present
         validate_initial_steps
         validate_valid_steps_refs
+        validate_step_function_refs
         validate_context_level_refs
         validate_step_level_context_refs
         validate_gather_infos
         validate_reserved_tool_names
         true
       end
+      # rubocop:enable Metrics/MethodLength
 
       def to_h
         validate!
@@ -885,6 +890,39 @@ module SignalWire
 
         raise ArgumentError,
               "Step '#{step_name}' in context '#{ctx_name}' references unknown step '#{ref}'"
+      end
+
+      # A step's set_functions([...]) whitelist must reference the known tool
+      # universe: registered SWAIG tools plus the reserved native tools. A name
+      # that is neither is a DANGLING reference — the step would render an
+      # active-function set silently pointing at nothing (r5 F3, e.g.
+      # get_datetime vs get_current_time). Only enforced when a real tool
+      # registry is present (@agent responds to list_tool_names); a builder with
+      # no agent cannot know the tool universe, so a valid document must not red.
+      # "none"/[] are explicit disable-all, not lists of references to resolve.
+      def validate_step_function_refs
+        return unless @agent.respond_to?(:list_tool_names)
+
+        known = @agent.list_tool_names.to_a.to_set | RESERVED_NATIVE_TOOL_NAMES.to_set
+        @contexts.each do |ctx_name, ctx|
+          ctx._steps.each do |step_name, step|
+            funcs = step.to_h['functions']
+            next unless funcs.is_a?(Array)
+
+            funcs.each { |func| check_step_function_ref(known, ctx_name, step_name, func) }
+          end
+        end
+      end
+
+      def check_step_function_ref(known, ctx_name, step_name, func)
+        return if known.include?(func)
+
+        raise ArgumentError,
+              "Step '#{step_name}' in context '#{ctx_name}' whitelists function " \
+              "'#{func}' via set_functions(), but no such SWAIG tool is registered " \
+              'on the agent and it is not a reserved native tool. This would emit ' \
+              'a dangling function reference. Register the tool (define_tool / a ' \
+              "skill) or remove it from the step. Available: #{known.to_a.sort.inspect}"
       end
 
       def validate_context_level_refs

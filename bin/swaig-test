@@ -133,6 +133,20 @@ module SwaigTest
     end
   end
 
+  # Kernel.load a user file with SIGNALWIRE_SUPPRESS_RUN set for exactly the
+  # duration of the load, then restored — so an example whose last line is a
+  # bare `agent.run` / `svc.serve` is INTROSPECTED instead of booting a blocking
+  # WEBrick server and hanging the CLI (ruby_R5 N1). Scoped (not a persistent
+  # ENV set) so the in-process CLI test harness doesn't leak the flag into other
+  # tests that legitimately start a server.
+  def self.load_without_serving(path)
+    prev = ENV.fetch('SIGNALWIRE_SUPPRESS_RUN', nil)
+    ENV['SIGNALWIRE_SUPPRESS_RUN'] = '1'
+    Kernel.load(File.expand_path(path))
+  ensure
+    prev.nil? ? ENV.delete('SIGNALWIRE_SUPPRESS_RUN') : (ENV['SIGNALWIRE_SUPPRESS_RUN'] = prev)
+  end
+
   # Loads an agent source file (for --simulate-serverless mode) and finds the
   # SignalWire::AgentBase instance it exposes. Preferred convention: a top-level
   # `AGENT` constant; falls back to any AgentBase instance at top level. Uses
@@ -142,7 +156,7 @@ module SwaigTest
     module_function
 
     def load(path)
-      Kernel.load(File.expand_path(path))
+      SwaigTest.load_without_serving(path)
       named_agent_constant || discovered_agent
     end
 
@@ -657,7 +671,7 @@ module SwaigTest
       # left over from earlier requires (e.g. AgentBase).
       pre_existing = subclasses_of(service_class).to_set
 
-      load(File.expand_path(path))
+      SwaigTest.load_without_serving(path)
 
       resolve_service(service_class, pre_existing)
     rescue StandardError => e

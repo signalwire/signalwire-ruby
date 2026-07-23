@@ -208,8 +208,7 @@ module SignalWire
         if verb_name == 'sleep'
           @document.add_verb(verb_name, sleep_duration(args, kwargs))
         else
-          config = kwargs.transform_keys(&:to_s).compact
-          @document.add_verb(verb_name, config)
+          @document.add_verb(verb_name, SWML._verb_config(verb_name, args, kwargs))
         end
       end
 
@@ -648,6 +647,10 @@ module SignalWire
       # @param domain [String, nil] domain for SSL config
       def serve(host: nil, port: nil, ssl_cert: nil, ssl_key: nil,
                 ssl_enabled: nil, domain: nil)
+        # Suppress-run guard (ruby_R5 N1): loading an example whose last line is
+        # `svc.serve` must not boot a blocking server under tooling.
+        return nil if SignalWire::Runtime.suppress_run?
+
         require 'webrick'
 
         bind_host = host || @host
@@ -712,11 +715,28 @@ module SignalWire
       # Run the verb config through a registered specialized handler when one
       # exists, otherwise the schema validator. Returns [is_valid, errors].
       def validate_verb_config(verb_name, config)
-        if verb_registry.has_handler(verb_name)
-          verb_registry.get_handler(verb_name).validate_config(config)
-        else
-          schema_utils.validate_verb(verb_name, config)
-        end
+        return schema_utils.validate_verb(verb_name, config) unless verb_registry.has_handler(verb_name)
+
+        # A specialized handler's validate_config carries verb-specific
+        # diagnostics (e.g. the ai verb's prompt/SWAIG shape checks) but does
+        # NOT run the schema's closed-key check — so unknown/misspelled
+        # top-level keys would slip through silently (r5 silent-drop family).
+        # Run the schema pass too when the handler is satisfied, so a handler
+        # verb rejects stray keys like every other verb (ai.params stays open
+        # per its schema). The schema pass is a no-op when validation is
+        # disabled, so this never tightens the validation-off path.
+        is_valid, errors = verb_registry.get_handler(verb_name).validate_config(config)
+        return [is_valid, errors] unless is_valid
+
+        # Top-level-key check only (not a full deep validation): reject stray
+        # top-level keys the handler doesn't police, while leaving the verb's
+        # deep shapes (e.g. the ai verb's prompt.pom / SWAIG functions) to the
+        # handler + runtime. Deep-validating a handler verb here would
+        # false-reject legitimate renders the bundled schema doesn't fully
+        # accept (empty prompt.pom, SWAIG defaults). ai.params stays open.
+        # validate_verb_top_level_keys is an @api-private SchemaUtils helper
+        # (not part of the reference surface), so reach it via __send__.
+        schema_utils.__send__(:validate_verb_top_level_keys, verb_name, config)
       end
 
       # Construct the WEBrick server, mount the Rack app, and install the

@@ -218,12 +218,22 @@ module TlsTransport
     env['PYTHONPATH'] = prepend_pythonpath(env['PYTHONPATH'], pkg_dir)
     extra_env.each { |k, v| env[k] = v }
 
-    pid = Process.spawn(env, *cmd, out: File::NULL, err: File::NULL, in: File::NULL, pgroup: true)
+    pid = Process.spawn(env, *cmd, **detached_null_spawn_opts)
     Process.detach(pid)
     register_pgroup_kill(pid)
     pid
   rescue Errno::ENOENT
     nil
+  end
+
+  # Portable detached-spawn options: stdio to the null device (File::NULL is
+  # 'NUL' on Windows) and, on POSIX only, a new process group. `pgroup:` is a
+  # POSIX-only Process.spawn option — Windows raises "wrong exec option symbol:
+  # pgroup".
+  def detached_null_spawn_opts
+    opts = { out: File::NULL, err: File::NULL, in: File::NULL }
+    opts[:pgroup] = true unless Gem.win_platform?
+    opts
   end
 
   def prepend_pythonpath(current, pkg_dir)
@@ -234,7 +244,13 @@ module TlsTransport
 
   def register_pgroup_kill(pid)
     at_exit do
-      Process.kill('TERM', -Process.getpgid(pid))
+      # POSIX: signal the whole process group (negative pid). Windows has no
+      # process groups / getpgid — fall back to killing the pid directly.
+      if Gem.win_platform?
+        Process.kill('KILL', pid)
+      else
+        Process.kill('TERM', -Process.getpgid(pid))
+      end
     rescue StandardError
       # already gone
     end

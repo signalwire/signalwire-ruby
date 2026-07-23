@@ -405,10 +405,11 @@ module RelayMockTest
     def spawn_server(host, ws_port, http_port)
       cmd = ['python3', '-m', 'mock_relay', '--host', host,
              '--ws-port', ws_port.to_s, '--http-port', http_port.to_s, '--log-level', 'error']
-      @pid = Process.spawn(
-        mock_relay_env, *cmd,
-        out: '/dev/null', err: '/dev/null', in: '/dev/null', pgroup: true
-      )
+      # File::NULL is portable ('NUL' on Windows); `pgroup:` is a POSIX-only
+      # Process.spawn option (Windows raises "wrong exec option symbol: pgroup").
+      opts = { out: File::NULL, err: File::NULL, in: File::NULL }
+      opts[:pgroup] = true unless Gem.win_platform?
+      @pid = Process.spawn(mock_relay_env, *cmd, **opts)
       Process.detach(@pid)
     rescue Errno::ENOENT => e
       raise "mocktest: failed to spawn `python3 -m mock_relay`: #{e.message} " \
