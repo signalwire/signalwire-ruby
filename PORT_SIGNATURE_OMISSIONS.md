@@ -56,10 +56,6 @@ signalwire.relay.client.RelayClient.on_call: kwargs-idiom — Ruby keyword args 
 signalwire.relay.client.RelayClient.on_message: kwargs-idiom — Ruby keyword args ≡ Python positional with default
 signalwire.rest.client.RestClient.__init__: kwargs-idiom — Ruby keyword constructor ≡ Python positional with default
 
-# Python-only aiohttp session-injection param (no Ruby analog)
-
-signalwire.ai_chat.client.AIChatClient.__init__: impossible — the reference's 5th param `session: aiohttp.ClientSession | None = None` injects a shared aiohttp connection-pool session; Ruby's AIChatClient uses Net::HTTP with a fresh per-request connection (no injectable session object), so it exposes no `session` param. Optional in the reference (default None), so callers never need it; Ruby instead trails its own optional `connect_timeout`/`read_idle_timeout` idioms (mirrors RelayClient's Python-only DI params). NEEDS HUMAN APPROVAL.
-
 # from_payload classmethod — Ruby static method has no explicit cls receiver
 
 
