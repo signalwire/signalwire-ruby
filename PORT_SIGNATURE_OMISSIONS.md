@@ -39,118 +39,25 @@ PORT_ADDITIONS.md and are inherited automatically by the signature diff.
 
 # Ruby keyword-argument idiom (Python positional with default ≡ Ruby keyword arg)
 
-signalwire.agent_server.AgentServer.__init__: kwargs-idiom — Ruby keyword constructor (`host:`, `port:`, `log_level:`) ≡ Python positional with default
-signalwire.agent_server.AgentServer.run: kwargs-idiom — Ruby `run(event:, context:, host:, port:)` ≡ Python `run(event=None, context=None, host=None, port=None)`
-signalwire.agent_server.AgentServer.register: kwargs-idiom — Ruby `register(agent, route: nil)` ≡ Python `register(agent, route=None)`
-signalwire.core.agent_base.AgentBase.__init__: kwargs-idiom — Ruby keyword constructor (21 keyword params) ≡ Python positional with default
-signalwire.core.swml_service.SWMLService.__init__: kwargs-idiom — Ruby keyword constructor (`name:`, `route:`, `host:`, `port:`, `basic_auth:`, `schema_path:`, `config_file:`, `schema_validation:`) ≡ Python positional with default
 signalwire.core.contexts.Step.add_gather_question: kwargs-idiom — Ruby keyword args (`key:`, `question:`, `type:`, `confirm:`, `prompt:`, `functions:`) ≡ Python positional with default
-signalwire.core.agent.prompt.manager.PromptManager.prompt_add_section: kwargs-idiom — Ruby `(title, body=nil, bullets:, numbered:, numbered_bullets:, subsections:)` ≡ Python positional with default
 signalwire.core.agent.prompt.manager.PromptManager.prompt_add_to_section: kwargs-idiom — Ruby `(title, body_arg=nil, body:, bullet:, bullets:)` ≡ Python positional with default
-signalwire.core.mixins.prompt_mixin.PromptMixin.prompt_add_section: kwargs-idiom — Ruby `(title, body=nil, bullets:, numbered:, numbered_bullets:, subsections:)` ≡ Python positional with default
 signalwire.core.mixins.prompt_mixin.PromptMixin.prompt_add_to_section: kwargs-idiom — Ruby `(title, body_arg=nil, body:, bullet:, bullets:)` ≡ Python positional with default
-signalwire.core.agent.tools.registry.ToolRegistry.define_tool: kwargs-idiom — Ruby keyword args (`name:`, `description:`, `parameters:`, ..., `swaig_fields:`) ≡ Python positional + `**swaig_fields`
 signalwire.core.mixins.tool_mixin.ToolMixin.define_tool: kwargs-idiom — Ruby keyword args (`name:`, `description:`, `parameters:`, ..., `swaig_fields:`) ≡ Python positional + `**swaig_fields`
 signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_language: kwargs-idiom — Ruby positional `(name, code, voice, ...)` plus `speech_fillers:`, `function_fillers:`, `engine:`, `model:` keyword args ≡ Python positional with default
 signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_pattern_hint: kwargs-idiom — Ruby splats positional args plus optional keyword `ignore_case:`; ≡ Python `(hint, pattern, replace, ignore_case=False)`
-signalwire.core.mixins.web_mixin.WebMixin.run: kwargs-idiom — Ruby `run(event:, context:, force_mode:, host:, port:)` ≡ Python `run(event=None, context=None, force_mode=None, host=None, port=None)`
-signalwire.core.mixins.web_mixin.WebMixin.serve: kwargs-idiom — Ruby `serve(host:, port:)` ≡ Python `serve(host=None, port=None)`
 signalwire.core.mixins.web_mixin.WebMixin.on_swml_request: kwargs-idiom — Ruby third positional optional + `request:` keyword ≡ Python `on_swml_request(request_data, callback_path, request)`
-signalwire.core.swml_service.SWMLService.serve: kwargs-idiom — Ruby `serve(host:, port:, ssl_cert:, ssl_key:, ssl_enabled:, domain:)` ≡ Python positional with default
-signalwire.core.swml_service.SWMLService.get_basic_auth_credentials: kwargs-idiom — Ruby `get_basic_auth_credentials(include_source:)` ≡ Python `get_basic_auth_credentials(include_source=False)`
-signalwire.core.mixins.auth_mixin.AuthMixin.get_basic_auth_credentials: kwargs-idiom — Ruby keyword `include_source:` ≡ Python positional with default
-signalwire.relay.client.RelayClient.__init__: kwargs-idiom — Ruby keyword constructor (`project:`, `token:`, `jwt_token:`, `host:`, `contexts:`, `max_active_calls:`) ≡ Python positional with default
-signalwire.agent_server.AgentServer.setup_sip_routing: kwargs-idiom — Ruby keyword args (`route:`, `auto_map:`) ≡ Python positional with default
-signalwire.core.agent.prompt.manager.PromptManager.prompt_add_subsection: kwargs-idiom — Ruby `bullets:` keyword ≡ Python positional with default
-signalwire.core.agent_base.AgentBase.enable_sip_routing: kwargs-idiom — Ruby keyword args (`auto_map:`, `path:`) ≡ Python positional with default
 signalwire.core.agent_base.AgentBase.on_debug_event: kwargs-idiom — Ruby `handler:` keyword ≡ Python positional with default
 signalwire.core.contexts.GatherInfo.__init__: kwargs-idiom — Ruby `(output_key:, completion_action:, prompt:)` ≡ Python positional with default
-signalwire.core.contexts.GatherInfo.add_question: kwargs-idiom — Ruby `(key:, question:, ...)` keyword args ≡ Python positional
 signalwire.core.contexts.GatherQuestion.__init__: kwargs-idiom — Ruby keyword constructor ≡ Python positional with default
 signalwire.core.contexts.Step.set_gather_info: kwargs-idiom — Ruby keyword args ≡ Python positional with default
-signalwire.core.data_map.DataMap.expression: kwargs-idiom — Ruby `nomatch_output:` keyword ≡ Python positional with default
 signalwire.core.data_map.DataMap.parameter: kwargs-idiom — Ruby `(required:, enum:)` keyword ≡ Python positional with default
-signalwire.core.data_map.DataMap.webhook: kwargs-idiom — Ruby keyword args (`headers:`, `form_param:`, etc.) ≡ Python positional with default
-signalwire.core.function_result.FunctionResult.__init__: kwargs-idiom — Ruby `post_process:` keyword ≡ Python positional with default
-signalwire.core.function_result.FunctionResult.connect: kwargs-idiom — Ruby keyword `final:`, `from_addr:` ≡ Python positional with default
-signalwire.core.function_result.FunctionResult.create_payment_prompt: kwargs-idiom — Ruby keyword `card_type:`, `error_type:` ≡ Python positional with default
-signalwire.core.function_result.FunctionResult.execute_rpc: kwargs-idiom — Ruby keyword args ≡ Python positional with default
-signalwire.core.function_result.FunctionResult.execute_swml: kwargs-idiom — Ruby `transfer:` keyword ≡ Python positional with default
-signalwire.core.function_result.FunctionResult.join_conference: kwargs-idiom — Ruby keyword args ≡ Python positional with default
-signalwire.core.function_result.FunctionResult.pay: kwargs-idiom — Ruby keyword args ≡ Python positional with default
-signalwire.core.function_result.FunctionResult.play_background_file: kwargs-idiom — Ruby `wait:` keyword ≡ Python positional with default
-signalwire.core.function_result.FunctionResult.record_call: kwargs-idiom — Ruby keyword args ≡ Python positional with default
-signalwire.core.function_result.FunctionResult.rpc_ai_message: kwargs-idiom — Ruby `role:` keyword ≡ Python positional with default
-signalwire.core.function_result.FunctionResult.rpc_dial: kwargs-idiom — Ruby keyword args ≡ Python positional with default
-signalwire.core.function_result.FunctionResult.send_sms: kwargs-idiom — Ruby keyword args ≡ Python positional with default
-signalwire.core.function_result.FunctionResult.stop_record_call: kwargs-idiom — Ruby `control_id:` keyword ≡ Python positional with default
-signalwire.core.function_result.FunctionResult.stop_tap: kwargs-idiom — Ruby `control_id:` keyword ≡ Python positional with default
-signalwire.core.function_result.FunctionResult.switch_context: kwargs-idiom — Ruby keyword args ≡ Python positional with default
-signalwire.core.function_result.FunctionResult.swml_transfer: kwargs-idiom — Ruby `final:` keyword ≡ Python positional with default
-signalwire.core.function_result.FunctionResult.tap: kwargs-idiom — Ruby keyword args ≡ Python positional with default
-signalwire.core.function_result.FunctionResult.wait_for_user: kwargs-idiom — Ruby keyword args ≡ Python positional with default
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_function_include: kwargs-idiom — Ruby keyword args ≡ Python positional with default
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_pronunciation: kwargs-idiom — Ruby keyword args ≡ Python positional with default
-signalwire.core.mixins.prompt_mixin.PromptMixin.prompt_add_subsection: kwargs-idiom — Ruby `bullets:` keyword ≡ Python positional with default
-signalwire.core.security.session_manager.SessionManager.__init__: kwargs-idiom — Ruby keyword constructor ≡ Python positional with default
 signalwire.core.swml_service.SWMLService.register_routing_callback: kwargs-idiom — Ruby keyword args ≡ Python positional with default
-signalwire.prefabs.concierge.ConciergeAgent.__init__: kwargs-idiom — Ruby keyword constructor ≡ Python positional with default
-signalwire.prefabs.faq_bot.FAQBotAgent.__init__: kwargs-idiom — Ruby keyword constructor ≡ Python positional with default
-signalwire.prefabs.info_gatherer.InfoGathererAgent.__init__: kwargs-idiom — Ruby keyword constructor ≡ Python positional with default
-signalwire.relay.call.Action.wait: kwargs-idiom — Ruby `timeout:` keyword ≡ Python positional with default
-signalwire.relay.call.Call.__init__: kwargs-idiom — Ruby keyword constructor ≡ Python positional with default
-signalwire.relay.call.Call.hangup: kwargs-idiom — Ruby `reason:` keyword ≡ Python positional with default
-signalwire.relay.call.Call.live_transcribe: kwargs-idiom — Ruby keyword args ≡ Python positional with default
-signalwire.relay.call.Call.on: kwargs-idiom — Ruby keyword `event:` ≡ Python positional with default
-signalwire.relay.call.Call.record: kwargs-idiom — Ruby keyword args ≡ Python positional with default
-signalwire.relay.call.Call.transfer: kwargs-idiom — Ruby keyword args ≡ Python positional with default
-signalwire.relay.call.Call.wait_for_answered: kwargs-idiom — Ruby `timeout:` keyword ≡ Python positional with default
-signalwire.relay.call.Call.wait_for_ended: kwargs-idiom — Ruby `timeout:` keyword ≡ Python positional with default
-signalwire.relay.call.Call.wait_for_ending: kwargs-idiom — Ruby `timeout:` keyword ≡ Python positional with default
-signalwire.relay.call.Call.wait_for_ringing: kwargs-idiom — Ruby `timeout:` keyword ≡ Python positional with default
-signalwire.relay.call.PlayAction.pause: kwargs-idiom — Ruby `behavior:` keyword ≡ Python positional with default
-signalwire.relay.call.CollectAction.pause: kwargs-idiom — Ruby `behavior:` keyword ≡ Python positional with default
-signalwire.relay.call.RecordAction.pause: kwargs-idiom — Ruby keyword args ≡ Python positional with default
 signalwire.relay.client.RelayClient.on_call: kwargs-idiom — Ruby keyword args ≡ Python positional with default
 signalwire.relay.client.RelayClient.on_message: kwargs-idiom — Ruby keyword args ≡ Python positional with default
-signalwire.relay.event.RelayEvent.__init__: kwargs-idiom — Ruby keyword constructor ≡ Python positional with default
-signalwire.relay.message.Message.wait: kwargs-idiom — Ruby `timeout:` keyword ≡ Python positional with default
-signalwire.rest._base.HttpClient.post: kwargs-idiom — Ruby keyword args ≡ Python positional with default
 signalwire.rest.client.RestClient.__init__: kwargs-idiom — Ruby keyword constructor ≡ Python positional with default
-signalwire.rest.namespaces.phone_numbers.PhoneNumbersResource.set_ai_agent: kwargs-idiom — Ruby keyword args ≡ Python positional with default
-signalwire.rest.namespaces.phone_numbers.PhoneNumbersResource.set_call_flow: kwargs-idiom — Ruby keyword args ≡ Python positional with default
-signalwire.rest.namespaces.phone_numbers.PhoneNumbersResource.set_cxml_application: kwargs-idiom — Ruby keyword args ≡ Python positional with default
-signalwire.rest.namespaces.phone_numbers.PhoneNumbersResource.set_cxml_webhook: kwargs-idiom — Ruby keyword args ≡ Python positional with default
-signalwire.rest.namespaces.phone_numbers.PhoneNumbersResource.set_relay_application: kwargs-idiom — Ruby keyword args ≡ Python positional with default
-signalwire.rest.namespaces.phone_numbers.PhoneNumbersResource.set_relay_topic: kwargs-idiom — Ruby keyword args ≡ Python positional with default
-signalwire.rest.namespaces.phone_numbers.PhoneNumbersResource.set_swml_webhook: kwargs-idiom — Ruby keyword args ≡ Python positional with default
 
 # from_payload classmethod — Ruby static method has no explicit cls receiver
 
-signalwire.relay.event.CallReceiveEvent.from_payload: classmethod-cls — Ruby `def self.from_payload(payload)` ≡ Python `@classmethod from_payload(cls, payload)`
-signalwire.relay.event.CallStateEvent.from_payload: classmethod-cls — Ruby static factory method has no explicit `cls` receiver
-signalwire.relay.event.CallingErrorEvent.from_payload: classmethod-cls — Ruby static factory method has no explicit `cls` receiver
-signalwire.relay.event.CollectEvent.from_payload: classmethod-cls — Ruby static factory method has no explicit `cls` receiver
-signalwire.relay.event.ConferenceEvent.from_payload: classmethod-cls — Ruby static factory method has no explicit `cls` receiver
-signalwire.relay.event.ConnectEvent.from_payload: classmethod-cls — Ruby static factory method has no explicit `cls` receiver
-signalwire.relay.event.DenoiseEvent.from_payload: classmethod-cls — Ruby static factory method has no explicit `cls` receiver
-signalwire.relay.event.DetectEvent.from_payload: classmethod-cls — Ruby static factory method has no explicit `cls` receiver
-signalwire.relay.event.DialEvent.from_payload: classmethod-cls — Ruby static factory method has no explicit `cls` receiver
-signalwire.relay.event.EchoEvent.from_payload: classmethod-cls — Ruby static factory method has no explicit `cls` receiver
-signalwire.relay.event.FaxEvent.from_payload: classmethod-cls — Ruby static factory method has no explicit `cls` receiver
-signalwire.relay.event.HoldEvent.from_payload: classmethod-cls — Ruby static factory method has no explicit `cls` receiver
-signalwire.relay.event.MessageReceiveEvent.from_payload: classmethod-cls — Ruby static factory method has no explicit `cls` receiver
-signalwire.relay.event.MessageStateEvent.from_payload: classmethod-cls — Ruby static factory method has no explicit `cls` receiver
-signalwire.relay.event.PayEvent.from_payload: classmethod-cls — Ruby static factory method has no explicit `cls` receiver
-signalwire.relay.event.PlayEvent.from_payload: classmethod-cls — Ruby static factory method has no explicit `cls` receiver
-signalwire.relay.event.QueueEvent.from_payload: classmethod-cls — Ruby static factory method has no explicit `cls` receiver
-signalwire.relay.event.RecordEvent.from_payload: classmethod-cls — Ruby static factory method has no explicit `cls` receiver
-signalwire.relay.event.ReferEvent.from_payload: classmethod-cls — Ruby static factory method has no explicit `cls` receiver
-signalwire.relay.event.RelayEvent.from_payload: classmethod-cls — Ruby static factory method has no explicit `cls` receiver
-signalwire.relay.event.SendDigitsEvent.from_payload: classmethod-cls — Ruby static factory method has no explicit `cls` receiver
-signalwire.relay.event.StreamEvent.from_payload: classmethod-cls — Ruby static factory method has no explicit `cls` receiver
-signalwire.relay.event.TapEvent.from_payload: classmethod-cls — Ruby static factory method has no explicit `cls` receiver
-signalwire.relay.event.TranscribeEvent.from_payload: classmethod-cls — Ruby static factory method has no explicit `cls` receiver
 
 # Ruby **kwargs collapse — Call methods forward a hash to RELAY (matches TS port BACKLOG)
 
@@ -219,9 +126,7 @@ signalwire.pom.pom.Section.render_xml: Ruby keyword-arg idiom — `indent:` and 
 
 # Cross-port parity methods — Ruby keyword-arg idiom (positional-with-default in Python)
 
-signalwire.agent_server.AgentServer.register_global_routing_callback: kwargs-idiom — Ruby `path:` keyword ≡ Python positional
 signalwire.prefabs.info_gatherer.InfoGathererAgent.on_swml_request: kwargs-idiom — Ruby third param `request:` is keyword ≡ Python positional (matches WebMixin.on_swml_request)
-signalwire.relay.call.Call.wait_for: kwargs-idiom — Ruby `predicate:`/`timeout:` keywords ≡ Python positional with default
 
 
 
@@ -236,33 +141,8 @@ signalwire.relay.call.Call.wait_for: kwargs-idiom — Ruby `predicate:`/`timeout
 # true Ruby-only addition. Each carries its signature-level reason.
 
 # --- Ruby keyword-arg / **kwargs / block / classmethod idiom (kind & count) ---
-signalwire.core.agent_base.AgentBase.get_full_url: kwargs-idiom — Ruby keyword arg(s) (include_auth) ≡ Python positional with default
-signalwire.core.auth_handler.AuthHandler.get_fastapi_dependency: kwargs-idiom — Ruby keyword arg(s) (optional) ≡ Python positional with default
-signalwire.core.data_map.create_expression_tool: kwargs-idiom — Ruby keyword arg(s) (name, patterns, parameters) ≡ Python positional with default
-signalwire.core.data_map.create_simple_api_tool: kwargs-idiom — Ruby keyword arg(s) (name, url, response_template, parameters, method, headers, body, error_keys) ≡ Python positional with default
-signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_mcp_server: kwargs-idiom — Ruby keyword arg(s) (headers, resources, resource_vars) ≡ Python positional with default
-signalwire.core.mixins.serverless_mixin.ServerlessMixin.handle_serverless_request: kwargs-idiom — Ruby keyword arg(s) (event, context, mode) ≡ Python positional with default
-signalwire.core.pom_builder.PomBuilder.add_section: kwargs-idiom — Ruby keyword arg(s) (body, bullets, numbered, numbered_bullets, subsections) ≡ Python positional with default
-signalwire.core.pom_builder.PomBuilder.add_subsection: kwargs-idiom — Ruby keyword arg(s) (body, bullets) ≡ Python positional with default
-signalwire.core.pom_builder.PomBuilder.add_to_section: kwargs-idiom — Ruby keyword arg(s) (body, bullet, bullets) ≡ Python positional with default
-signalwire.core.security_config.SecurityConfig.__init__: kwargs-idiom — Ruby keyword arg(s) (config_file, service_name) ≡ Python positional with default
-signalwire.core.security_config.SecurityConfig.get_security_headers: kwargs-idiom — Ruby keyword arg(s) (is_https) ≡ Python positional with default
-signalwire.core.swaig_function.SWAIGFunction.__init__: kwargs-idiom — Ruby keyword arg(s) (name, handler, description, parameters, secure, fillers, wait_file, wait_file_loops, webhook_url, required, is_typed_handler) ≡ Python positional with default
-signalwire.core.swaig_function.SWAIGFunction.to_swaig: kwargs-idiom — Ruby keyword arg(s) (base_url, token, call_id, include_auth) ≡ Python positional with default
-signalwire.core.swml_builder.SWMLBuilder.ai: kwargs-idiom — Ruby keyword arg(s) (prompt_text, prompt_pom, post_prompt, post_prompt_url, swaig) ≡ Python positional with default
-signalwire.core.swml_builder.SWMLBuilder.answer: kwargs-idiom — Ruby keyword arg(s) (max_duration, codecs) ≡ Python positional with default
-signalwire.core.swml_builder.SWMLBuilder.hangup: kwargs-idiom — Ruby keyword arg(s) (reason) ≡ Python positional with default
-signalwire.core.swml_builder.SWMLBuilder.play: kwargs-idiom — Ruby keyword arg(s) (url, urls, volume, say_voice, say_language, say_gender, auto_answer) ≡ Python positional with default
-signalwire.core.swml_builder.SWMLBuilder.say: kwargs-idiom — Ruby keyword arg(s) (voice, language, gender, volume) ≡ Python positional with default
 signalwire.relay.call.PlayAction.volume: untyped-idiom — Ruby is dynamically typed; the `volume` param carries no static type (untyped `any`) where Python types it `float`. Same value on the wire (`play.volume` with `volume` key); the type divergence is Ruby's runtime-typed idiom, not a wire difference.
 signalwire.relay.call.CollectAction.volume: untyped-idiom — Ruby is dynamically typed; the `volume` param carries no static type (untyped `any`) where Python types it `float`. Same value on the wire (`play_and_collect.volume` with `volume` key); the type divergence is Ruby's runtime-typed idiom, not a wire difference.
-signalwire.core.swml_handler.AIVerbHandler.build_config: kwargs-idiom — Ruby keyword arg(s) (prompt_text, prompt_pom, contexts, post_prompt, post_prompt_url, swaig) ≡ Python positional with default
-signalwire.core.swml_renderer.SwmlRenderer.render_function_response_swml: kwargs-idiom — Ruby keyword arg(s) (response_text, service, actions, format) ≡ Python positional with default
-signalwire.core.swml_renderer.SwmlRenderer.render_swml: kwargs-idiom — Ruby keyword arg(s) (prompt, service, post_prompt, post_prompt_url, swaig_functions, startup_hook_url, hangup_hook_url, prompt_is_pom, params, add_answer, record_call, record_format, record_stereo, format, default_webhook_url) ≡ Python positional with default
-signalwire.relay.call.Call.tap: kwargs-idiom — Ruby keyword arg(s) (device) ≡ Python positional with default
-signalwire.relay.message.Message.on: kwargs-idiom — Ruby keyword arg(s) (handler) ≡ Python positional with default
-signalwire.web.web_service.WebService.__init__: kwargs-idiom — Ruby keyword arg(s) (port, directories, basic_auth, config_file, enable_directory_browsing, allowed_extensions, blocked_extensions, max_file_size, enable_cors) ≡ Python positional with default
-signalwire.web.web_service.WebService.start: kwargs-idiom — Ruby keyword arg(s) (host, port, ssl_cert, ssl_key) ≡ Python positional with default
 signalwire.core.logging_config.strip_control_chars: Ruby structlog processor closure takes only `event_dict`; Python's (logger, method_name, event_dict) processor signature — same processor contract
 signalwire.core.pom_builder.PomBuilder.from_sections: classmethod idiom — Ruby `def self.` factory has no explicit `cls` receiver
 signalwire.core.skill_base.SkillBase.define_tool: Ruby explicit keyword args (`name:`, `description:`, `parameters:`, &handler) ≡ Python `**kwargs` — same define_tool contract as named Ruby kwargs
