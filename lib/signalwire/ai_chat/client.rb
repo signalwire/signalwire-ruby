@@ -191,6 +191,13 @@ module SignalWire
             'or provide space: / SIGNALWIRE_SPACE.'
     end
 
+    # Release any client-held resources. The reference closes its persistent
+    # aiohttp session here; Ruby's AIChatClient opens a fresh Net::HTTP
+    # connection per request and owns no long-lived session, so there is nothing
+    # to release — this is a well-defined no-op that completes the lifecycle
+    # contract (mirrors the reference #close). Safe to call any number of times.
+    def close; end
+
     # ── API methods ──────────────────────────────────────────────────
 
     # Create a conversation (or, with +reinit+, reinitialize an existing one) and

@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 51b233a67e7ec2f255ae77a7e6fc1fd6661868d9",
+  "generated_from": "signalwire-ruby @ 540083fb912f02fe4cc25ac09599d92b1c00192d",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -55,6 +55,7 @@
         "AIChatClient": [
           "__init__",
           "chat",
+          "close",
           "create_conversation",
           "delete",
           "end",

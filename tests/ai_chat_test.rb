@@ -191,6 +191,16 @@ class AIChatClientConstructionTest < Minitest::Test
     refute_match(/super-secret/, c.inspect)
     assert_match(/\[REDACTED\]/, c.inspect)
   end
+
+  def test_close_is_a_no_op_lifecycle_member
+    c = SignalWire::AIChatClient.new(project: 'p', token: 't', url: 'http://x')
+
+    # No persistent session/connection to release (Net::HTTP is per-request), so
+    # #close completes the lifecycle contract as a no-op and is safe to call
+    # repeatedly. Mirrors the reference AIChatClient.close.
+    assert_nil c.close
+    assert_nil c.close
+  end
 end
 
 class AIChatClientWireTest < Minitest::Test
