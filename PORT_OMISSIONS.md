@@ -68,6 +68,8 @@ port surface; the diff tool will fail the build on unexcused drift.
 
 # Omitted symbols
 
+signalwire.ai_chat.client.AIChatClient.__aenter__: impossible: Python async-context-manager protocol dunder; Ruby's AIChatClient is stateless per-request (Net::HTTP, no persistent aiohttp session to enter) — no __aenter__ equivalent (mirrors RelayClient.__aenter__; TS/PHP omit identically)
+signalwire.ai_chat.client.AIChatClient.__aexit__: impossible: Python async-context-manager protocol dunder; Ruby's AIChatClient holds no persistent session to exit/close (Net::HTTP is per-request) — no __aexit__ equivalent (mirrors RelayClient.__aexit__; TS/PHP omit identically)
 signalwire.cli.build_search.console_entry_point: Ruby SDK does not ship a CLI; Python CLI is a separate tool
 signalwire.cli.build_search.main: Ruby SDK does not ship a CLI; Python CLI is a separate tool
 signalwire.cli.build_search.migrate_command: Ruby SDK does not ship a CLI; Python CLI is a separate tool

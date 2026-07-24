@@ -720,6 +720,41 @@ def surface_module?(name, seen_classes)
   true
 end
 
+# The AI-Chat response models are Ruby `Struct.new(..., keyword_init: true)`
+# value types — the idiomatic Ruby analog of the reference's `@dataclass`
+# ConversationInfo / ChatResponse / ChatLog. griffe records a dataclass's fields
+# as ATTRIBUTES, so the reference surface for each is METHOD-LESS. A Ruby Struct,
+# by contrast, auto-generates a pile of machinery (`[]`, `new`, `members`,
+# `keyword_init?`, `inspect`, plus a reader per field). Surface these classes
+# method-less — exactly like the generated payload/type DTOs — so each compares
+# EQUAL to the reference's method-less dataclass (emission covers the Struct
+# idiom; no PORT_ADDITIONS entry per accessor). Scoped by FQN so no other class
+# is affected.
+AI_CHAT_METHODLESS_CLASSES = %w[
+  SignalWire::AIChat::ConversationInfo
+  SignalWire::AIChat::ChatResponse
+  SignalWire::AIChat::ChatLog
+].freeze
+
+# Per-[module, class] surface members to DROP: a Ruby-idiom accessor/method that
+# the reference records as a plain instance ATTRIBUTE (not a surface method), so
+# there is no reference member to compare against — the idiomatic-Ruby getter is
+# folded away rather than surfaced as an addition. Applied after the alias pass.
+#   * AIChatClient#url        → the reference's `self.url` instance attribute;
+#   * AIChatClient#inspect/to_s → token-redacting Ruby object hooks (the reference
+#                                 AIChatClient defines no `__repr__`/`__str__`);
+#   * AIChatClient#resolve_url → the reference's PRIVATE `_resolve_url`
+#                                 @staticmethod (excluded from the reference
+#                                 surface by the leading `_`); Ruby exposes the
+#                                 same helper public for testability, so drop it
+#                                 to match the reference's private form;
+#   * AIChatError#code/#server_message → the reference's `self.code` / message
+#                                 instance attributes set in `__init__`.
+SURFACE_MEMBER_DROPS = {
+  ['signalwire.ai_chat.client', 'AIChatClient'] => %w[url inspect to_s resolve_url],
+  ['signalwire.ai_chat.client', 'AIChatError'] => %w[code server_message]
+}.freeze
+
 # A generated wire-type / read-side-payload class surfaces METHOD-LESS: the
 # reference records these as method-less type definitions (griffe: dataclass
 # fields are attributes, not surface methods). The SWML-verbs / post-prompt /
@@ -729,6 +764,7 @@ end
 # Scoped to the generated-payload/type FQN prefixes so no SDK class is affected.
 def generated_methodless_class?(ruby_fqn)
   return true if ruby_fqn.start_with?(GENERATED_TYPES_PREFIX)
+  return true if AI_CHAT_METHODLESS_CLASSES.include?(ruby_fqn)
 
   GENERATED_PAYLOAD_PREFIXES.each_key { |prefix| return true if ruby_fqn.start_with?(prefix) }
   false
@@ -741,10 +777,21 @@ def process_module(mod, name, modules, python_index)
     methods = generated_methodless_class?(name) ? [] : enumerate_methods(mod)
     methods = project_free_functions(name, methods, modules)
     methods = apply_method_aliases(target_mod, cls, methods)
+    methods = drop_idiom_members(target_mod, cls, methods)
     modules[target_mod]['classes'][cls] = methods
   else
     process_namespace_module(mod, name, modules)
   end
+end
+
+# Drop the per-[module, class] Ruby-idiom accessors the reference records as
+# plain instance attributes (SURFACE_MEMBER_DROPS). Applied after aliasing so the
+# names being dropped are already in their reference spelling.
+def drop_idiom_members(target_mod, cls, methods)
+  drops = SURFACE_MEMBER_DROPS[[target_mod, cls]]
+  return methods unless drops
+
+  methods - drops
 end
 
 # Apply the per-[module, class] Ruby-idiom -> reference method-name aliases,
