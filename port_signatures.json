@@ -618,14 +618,14 @@
                 },
                 {
                   "name": "timeout",
-                  "type": "optional<integer>",
+                  "type": "optional<int>",
                   "kind": "keyword",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "reinit",
-                  "type": "boolean",
+                  "type": "bool",
                   "kind": "keyword",
                   "required": false,
                   "default": null
