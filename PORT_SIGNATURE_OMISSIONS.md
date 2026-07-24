@@ -233,3 +233,33 @@ signalwire.core.swml_builder.SWMLBuilder.method_missing: reference-oracle gap �
 signalwire.core.swml_service.SWMLService.function: port-only: Ruby SWMLService `function` DSL helper; absent from the reference surface + signature oracle
 signalwire.core.swml_service.SWMLService.method_missing: reference-oracle gap — port `method_missing` is Ruby's dynamic-dispatch primitive (surface reconciles it to `__getattr__`, which the reference surface records but the signature oracle omits) (SURFACE-DIFF PASS)
 signalwire.web.web_service.WebService.file_allowed: port-only: Ruby WebService `file_allowed` internal predicate; absent from the reference surface + signature oracle
+
+# --- Surface-reconciled AgentBase-mixin / relay-predicate / skills additions ---
+# The port emits these as real per-class signature members; the SURFACE diff folds
+# them (AgentBase mixin-flatten / predicate idiom / rename) so they carry NO surface
+# addition. Recorded here (signature-only) so the DRIFT gate excuses the
+# missing-reference divergence without a now-dead PORT_ADDITIONS.md entry.
+signalwire.core.agent_base.AgentBase.basic_auth_credentials: ruby-idiom bare-noun reader (D9) over get_basic_auth_credentials; native `agent.basic_auth_credentials`, get_ name retained for parity
+signalwire.core.agent_base.AgentBase.contexts: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
+signalwire.core.agent_base.AgentBase.create_tool_token: port-only: Ruby instance helper that delegates to SessionManager#create_token (Python keeps token creation only in SessionManager)
+signalwire.core.agent_base.AgentBase.extract_sip_username: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
+signalwire.core.agent_base.AgentBase.extract_sip_username_from_request: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
+signalwire.core.agent_base.AgentBase.full_url: ruby-idiom bare-noun reader (D9) over get_full_url; native `agent.full_url`, get_ name retained for parity
+signalwire.core.agent_base.AgentBase.handle_additional_route: port-only: AgentBase exposes Service's handle_additional_route through inheritance — Ruby method-resolution makes the inherited method visible on the subclass
+signalwire.core.agent_base.AgentBase.render_swml: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
+signalwire.core.agent_base.AgentBase.skill: ruby-idiom predicate (D9) over has_skill? — signature audit strips Ruby ?/! suffixes (Layer A spelling of `skill?` below)
+signalwire.relay.call_state.terminal: port-only: Layer A suffix-stripped spelling of `CallState.terminal?`
+signalwire.relay.call_state.valid: port-only: Layer A suffix-stripped spelling of `CallState.valid?`
+signalwire.relay.dial_state.terminal: port-only: Layer A suffix-stripped spelling of `DialState.terminal?`
+signalwire.relay.dial_state.valid: port-only: Layer A suffix-stripped spelling of `DialState.valid?`
+signalwire.relay.event.RelayEvent.eql: port-only: Ruby value-equality (`eql?`) so same-data events are interchangeable Hash keys; inherited by every typed event subclass
+signalwire.relay.message_state.terminal: port-only: Layer A suffix-stripped spelling of `MessageState.terminal?`
+signalwire.relay.message_state.valid: port-only: Layer A suffix-stripped spelling of `MessageState.valid?`
+signalwire.skills.registry.SkillRegistry.get_factory: rename-carried: the Ruby name for the reference `get_skill_class`. enumerate_surface.rb renames it surface-side (SURFACE-DIFF passes); the signature oracle records `get_skill_class` with a shape the Ruby method does not match 1:1, so the Ruby name is carried here signature-side rather than renamed. The reference HAS the counterpart — not invented surface.
+signalwire.skills.registry.SkillRegistry.register_builtins: port-only: same as SkillRegistry.register_builtins! - signature audit strips Ruby ?/! suffixes
+signalwire.skills.registry.SkillRegistry.registered: port-only: same as SkillRegistry.registered? - signature audit strips Ruby ?/! suffixes
+signalwire.skills.registry.SkillRegistry.reset: port-only: same as SkillRegistry.reset! - signature audit strips Ruby ?/! suffixes
+signalwire.skills.skill_name.builtin: port-only: SignalWire::Skills::SkillName.builtin?(name) — named-constant single-source-of-truth predicate for the built-in skill set (Ruby's idiom-track equivalent of the other ports' SkillName enum membership check); add_skill still accepts the bare string, the set stays open for custom skills
+signalwire.swml.reset_schema: port-only: Ruby module-level helper for clearing the cached singleton (used in tests); canonical SchemaUtils ships separately
+signalwire.swml.schema: port-only: Ruby module-level singleton accessor; canonical SchemaUtils ships separately at signalwire.utils.schema_utils
+signalwire.core.mixins.tool_mixin.ToolMixin.tool: impossible: Python @tool class/instance decorator relies on the decorator protocol; Ruby has no method-decorator feature — tools register via define_tool(name:, description:, parameters:, &handler) directly (TS + PHP both omit this as impossible)

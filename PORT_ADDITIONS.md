@@ -154,22 +154,6 @@ signalwire.agent_server.AgentServer.log_level: port-only: Ruby attr_reader for t
 signalwire.agent_server.AgentServer.port: port-only: Ruby attr_reader exposing constructor state (idiomatic Ruby; Python uses property decorators or public fields)
 signalwire.agent_server.AgentServer.rack_app: port-only: Ruby attr_reader exposing constructor state (idiomatic Ruby; Python uses property decorators or public fields)
 signalwire.error.Error: port-only: SignalWire::Error root of the SDK exception hierarchy (Stripe `StripeError` idiom); a common ancestor under StandardError that the 5 error families reparent onto. Python subclasses Exception directly with no shared root, so this is a Ruby-idiom addition, non-breaking (rescue StandardError still catches).
-signalwire.core.agent_base.AgentBase.build_main_section: port-only: Ruby SWML "main"-section assembly helper called by #_render_swml_internal (Python assembles the sections inline in its render path; Ruby factors the ordered pre-answer/answer/record/post/ai/post-ai phase build into a named method)
-signalwire.core.agent_base.AgentBase.agent_id: port-only: Ruby attr_reader for the auto-generated/explicit agent UUID (Python keeps it as `self.agent_id` instance attribute)
-signalwire.core.agent_base.AgentBase.default_webhook_url: port-only: Ruby attr_reader for the constructor `default_webhook_url:` arg (Python: `self._default_webhook_url`)
-signalwire.core.agent_base.AgentBase.as_rack_app: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
-signalwire.core.agent_base.AgentBase.contexts: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
-signalwire.core.agent_base.AgentBase.create_tool_token: port-only: Ruby instance helper that delegates to SessionManager#create_token (Python keeps token creation only in SessionManager)
-signalwire.core.agent_base.AgentBase.extract_sip_username: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
-signalwire.core.agent_base.AgentBase.extract_sip_username_from_request: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
-signalwire.core.agent_base.AgentBase.get_contexts: port-only: Ruby getter for the contexts dictionary (Python parity: PromptManager#get_contexts via PromptMixin projection)
-signalwire.core.agent_base.AgentBase.get_raw_prompt: port-only: Ruby getter for the raw prompt text (Python parity: PromptManager#get_raw_prompt via PromptMixin projection)
-signalwire.core.agent_base.AgentBase.list_tool_names: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
-signalwire.core.agent_base.AgentBase.logger: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
-signalwire.core.agent_base.AgentBase.native_functions: port-only: Ruby attr_reader for the constructor `native_functions:` arg (Python: `self.native_functions` list)
-signalwire.core.agent_base.AgentBase.rack_app: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
-signalwire.core.agent_base.AgentBase.render_swml: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
-signalwire.core.agent_base.AgentBase.use_pom: port-only: Ruby attr_reader for the constructor `use_pom:` flag (Python: `self._use_pom` private attribute)
 signalwire.core.contexts.Context.name: port-only: Ruby attr_reader exposing constructor state (idiomatic Ruby; Python uses property decorators or public fields)
 signalwire.core.contexts.ContextBuilder.attach_agent: port-only: Ruby ContextBuilder attaches to an agent for method chaining
 signalwire.core.contexts.GatherInfo.completion_action: port-only: Ruby attr_reader exposing constructor state (idiomatic Ruby; Python uses property decorators or public fields)
@@ -372,7 +356,6 @@ signalwire.relay.event.RelayEvent.params: port-only: Ruby attr_reader on relay e
 signalwire.relay.event.RelayEvent.timestamp: port-only: Ruby attr_reader on relay event (Python exposes same data as dataclass field)
 signalwire.relay.event.RelayEvent.deconstruct: port-only: Ruby 3.0 array pattern-matching hook (`in [type, call_id, ts]`); defined once on the base, inherited by every typed event subclass
 signalwire.relay.event.RelayEvent.deconstruct_keys: port-only: Ruby 3.0 hash pattern-matching hook (`case event in { call_state: }`); defined once on the base, inherited by every typed event subclass
-signalwire.relay.event.RelayEvent.eql: port-only: Ruby value-equality (`eql?`) so same-data events are interchangeable Hash keys; inherited by every typed event subclass
 signalwire.relay.event.RelayEvent.eql?: port-only: Ruby value-equality `eql?` (Layer B keeps the `?` suffix; same method as the suffix-stripped `eql` Layer A spelling above)
 signalwire.relay.event.RelayEvent.hash: port-only: Ruby `Object#hash` override paired with `==`/`eql?` so equal events share a Set/Hash bucket; inherited by every typed event subclass
 signalwire.relay.event.RelayEvent.to_h: port-only: Ruby convention - typed Hash projection (envelope + typed fields, not raw params); inherited by every typed event subclass
@@ -424,7 +407,6 @@ signalwire.relay.device.Device.to_h: port-only: wire Hash `{ "type"=>, "params"=
 signalwire.relay.device.Device.to_json: port-only: Ruby convention - JSON serializer over `to_h`
 signalwire.relay.device.Device.deconstruct: port-only: Ruby 3.0 array pattern-matching hook (`in [type, params]`)
 signalwire.relay.device.Device.deconstruct_keys: port-only: Ruby 3.0 hash pattern-matching hook (`in { type: "phone", params: }`)
-signalwire.relay.device.Device.eql: port-only: Ruby value-equality (`eql?`) — same type + params (Layer A suffix-stripped spelling)
 signalwire.relay.device.Device.eql?: port-only: Ruby value-equality `eql?` (Layer B keeps the `?` suffix; same method as the suffix-stripped `eql` above)
 signalwire.relay.device.Device.hash: port-only: Ruby `Object#hash` override paired with `==`/`eql?` so equal devices share a Set/Hash bucket
 signalwire.relay.device.Device.to_s: port-only: Ruby Object#to_s override
@@ -442,7 +424,6 @@ signalwire.relay.collect_config.CollectConfig.start_input_timers: port-only: att
 signalwire.relay.collect_config.CollectConfig.to_h: port-only: wire Hash with only the set fields (omit-when-nil), byte-identical to the wrapper's collect literal
 signalwire.relay.collect_config.CollectConfig.to_json: port-only: Ruby convention - JSON serializer over `to_h`
 signalwire.relay.collect_config.CollectConfig.deconstruct_keys: port-only: Ruby 3.0 hash pattern-matching hook (`in { initial_timeout: }`)
-signalwire.relay.collect_config.CollectConfig.eql: port-only: Ruby value-equality (`eql?`) over the projected wire shape (Layer A suffix-stripped spelling)
 signalwire.relay.collect_config.CollectConfig.eql?: port-only: Ruby value-equality `eql?` (Layer B keeps the `?` suffix; same method as the suffix-stripped `eql` above)
 signalwire.relay.collect_config.CollectConfig.hash: port-only: Ruby `Object#hash` override paired with `==`/`eql?`
 signalwire.relay.collect_config.CollectConfig.to_s: port-only: Ruby Object#to_s override
@@ -450,19 +431,13 @@ signalwire.relay.collect_config.CollectConfig.inspect: port-only: Ruby Object#in
 # RELAY state enums: frozen named-constant modules wrapping the flat *_STATE_* literals (single source) with ALL/TERMINAL/terminal?/valid?; wire value stays a bare String. Python keys off bare-string compares.
 signalwire.relay.call_state.CallState: port-only: frozen named view over the call-state vocabulary (ALL/TERMINAL + predicates); wraps the flat CALL_STATE_* literals
 signalwire.relay.call_state.CallState.terminal?: port-only: `CallState.terminal?(state)` predicate (true for `ended`); Python compares `== "ended"`
-signalwire.relay.call_state.terminal: port-only: Layer A suffix-stripped spelling of `CallState.terminal?`
 signalwire.relay.call_state.CallState.valid?: port-only: `CallState.valid?(state)` membership predicate over ALL
-signalwire.relay.call_state.valid: port-only: Layer A suffix-stripped spelling of `CallState.valid?`
 signalwire.relay.dial_state.DialState: port-only: frozen named view over the outbound-dial vocabulary (dialing/answered/failed) — new vocabulary the reference exposes no flat constants for (grounded in client.py `_handle_dial_event` docstring)
 signalwire.relay.dial_state.DialState.terminal?: port-only: `DialState.terminal?(state)` predicate (true for answered/failed — the dial resolves/rejects)
-signalwire.relay.dial_state.terminal: port-only: Layer A suffix-stripped spelling of `DialState.terminal?`
 signalwire.relay.dial_state.DialState.valid?: port-only: `DialState.valid?(state)` membership predicate over ALL
-signalwire.relay.dial_state.valid: port-only: Layer A suffix-stripped spelling of `DialState.valid?`
 signalwire.relay.message_state.MessageState: port-only: frozen named view over the messaging-state vocabulary (ALL/TERMINAL + predicates); wraps the flat MESSAGE_STATE_* literals, TERMINAL is the same object as MESSAGE_TERMINAL_STATES
 signalwire.relay.message_state.MessageState.terminal?: port-only: `MessageState.terminal?(state)` predicate (delivered/undelivered/failed); Python uses `MESSAGE_TERMINAL_STATES`
-signalwire.relay.message_state.terminal: port-only: Layer A suffix-stripped spelling of `MessageState.terminal?`
 signalwire.relay.message_state.MessageState.valid?: port-only: `MessageState.valid?(state)` membership predicate over ALL
-signalwire.relay.message_state.valid: port-only: Layer A suffix-stripped spelling of `MessageState.valid?`
 # Typed state-predicate accessors ALONGSIDE the bare string on the events/Message that already carry the state.
 signalwire.relay.event.CallStateEvent.terminal?: port-only: typed predicate over `call_state` (agrees with `CallState.terminal?`), alongside the bare string
 signalwire.relay.event.DialEvent.terminal?: port-only: typed predicate over `dial_state` (agrees with `DialState.terminal?`), alongside the bare string
@@ -489,64 +464,7 @@ signalwire.rest._request_options.RequestOptions.timeout: port-only: Ruby attr_re
 signalwire.rest._request_options.RequestOptions.retries: port-only: Ruby attr_reader mirroring the reference dataclass field `retries`
 signalwire.rest._request_options.RequestOptions.retry_on_status: port-only: Ruby attr_reader mirroring the reference dataclass field `retry_on_status`
 signalwire.rest._request_options.RequestOptions.retry_backoff: port-only: Ruby attr_reader mirroring the reference dataclass field `retry_backoff`
-signalwire.rest._request_options.RequestOptions.abort_signal: port-only: Ruby attr_reader mirroring the reference dataclass field `abort_signal`
 signalwire.rest.client.RestClient.generated_http_client: port-only: the HttpClient the generated ResourceTree accessors build resources off of (§8 composition seam; Python has no equivalent public accessor)
-signalwire.rest.namespaces._client_tree_generated.FabricNamespace.addresses: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.FabricNamespace.ai_agents: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.FabricNamespace.call_flows: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.FabricNamespace.conference_rooms: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.FabricNamespace.cxml_applications: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.FabricNamespace.cxml_scripts: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.FabricNamespace.cxml_webhooks: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.FabricNamespace.freeswitch_connectors: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.FabricNamespace.relay_applications: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.FabricNamespace.resources: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.FabricNamespace.sip_endpoints: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.FabricNamespace.sip_gateways: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.FabricNamespace.subscribers: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.FabricNamespace.swml_scripts: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.FabricNamespace.swml_webhooks: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.FabricNamespace.tokens: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.DatasphereNamespace.documents: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.LogsNamespace.conferences: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.LogsNamespace.fax: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.LogsNamespace.messages: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.LogsNamespace.voice: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.ProjectNamespace.tokens: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.RegistryNamespace.brands: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.RegistryNamespace.campaigns: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.RegistryNamespace.numbers: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.RegistryNamespace.orders: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.VideoNamespace.conference_tokens: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.VideoNamespace.conferences: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.VideoNamespace.room_recordings: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.VideoNamespace.room_sessions: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.VideoNamespace.room_tokens: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.VideoNamespace.rooms: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces._client_tree_generated.VideoNamespace.streams: port-only: attr_reader for sub-resource on the generated namespace container (Python uses @property; not recorded on the reference _client_tree_generated container which surfaces only __init__)
-signalwire.rest.namespaces.datasphere_resources_generated.DatasphereDocuments.delete: reference-oracle gap: base-inherited CRUD method the SIGNATURE oracle (python_signatures.json) records on this class but the SURFACE oracle (python_surface.json) omits; the route is real (exercised by REST-COVERAGE) and the generated resource emits it per the signature oracle — cannot fix the reference (read-only)
-signalwire.rest.namespaces.fabric_resources_generated.FabricAddresses.get: reference-oracle gap: base-inherited CRUD method the SIGNATURE oracle (python_signatures.json) records on this class but the SURFACE oracle (python_surface.json) omits; the route is real (exercised by REST-COVERAGE) and the generated resource emits it per the signature oracle — cannot fix the reference (read-only)
-signalwire.rest.namespaces.fabric_resources_generated.FabricAddresses.list: reference-oracle gap: base-inherited CRUD method the SIGNATURE oracle (python_signatures.json) records on this class but the SURFACE oracle (python_surface.json) omits; the route is real (exercised by REST-COVERAGE) and the generated resource emits it per the signature oracle — cannot fix the reference (read-only)
-signalwire.rest.namespaces.fabric_resources_generated.FabricAddresses.paginate: reference-oracle gap: base-inherited ReadResource#paginate the SIGNATURE oracle (python_signatures.json) records per-subclass but the SURFACE oracle (python_surface.json) records only on the ReadResource base; the generated resource emits it per the signature oracle — cannot fix the reference (read-only)
-signalwire.rest.namespaces.fax_resources_generated.FaxLogs.get: reference-oracle gap: base-inherited CRUD method the SIGNATURE oracle (python_signatures.json) records on this class but the SURFACE oracle (python_surface.json) omits; the route is real (exercised by REST-COVERAGE) and the generated resource emits it per the signature oracle — cannot fix the reference (read-only)
-signalwire.rest.namespaces.fax_resources_generated.FaxLogs.list: reference-oracle gap: base-inherited CRUD method the SIGNATURE oracle (python_signatures.json) records on this class but the SURFACE oracle (python_surface.json) omits; the route is real (exercised by REST-COVERAGE) and the generated resource emits it per the signature oracle — cannot fix the reference (read-only)
-signalwire.rest.namespaces.fax_resources_generated.FaxLogs.paginate: reference-oracle gap: base-inherited ReadResource#paginate the SIGNATURE oracle (python_signatures.json) records per-subclass but the SURFACE oracle (python_surface.json) records only on the ReadResource base; the generated resource emits it per the signature oracle — cannot fix the reference (read-only)
-signalwire.rest.namespaces.message_resources_generated.MessageLogs.get: reference-oracle gap: base-inherited CRUD method the SIGNATURE oracle (python_signatures.json) records on this class but the SURFACE oracle (python_surface.json) omits; the route is real (exercised by REST-COVERAGE) and the generated resource emits it per the signature oracle — cannot fix the reference (read-only)
-signalwire.rest.namespaces.message_resources_generated.MessageLogs.list: reference-oracle gap: base-inherited CRUD method the SIGNATURE oracle (python_signatures.json) records on this class but the SURFACE oracle (python_surface.json) omits; the route is real (exercised by REST-COVERAGE) and the generated resource emits it per the signature oracle — cannot fix the reference (read-only)
-signalwire.rest.namespaces.message_resources_generated.MessageLogs.paginate: reference-oracle gap: base-inherited ReadResource#paginate the SIGNATURE oracle (python_signatures.json) records per-subclass but the SURFACE oracle (python_surface.json) records only on the ReadResource base; the generated resource emits it per the signature oracle — cannot fix the reference (read-only)
-signalwire.rest.namespaces.projects_resources_generated.Projects.delete: reference-oracle gap: base-inherited CRUD method the SIGNATURE oracle (python_signatures.json) records on this class but the SURFACE oracle (python_surface.json) omits; the route is real (exercised by REST-COVERAGE) and the generated resource emits it per the signature oracle — cannot fix the reference (read-only)
-signalwire.rest.namespaces.relay_rest_resources_generated.NumberGroups.delete: reference-oracle gap: base-inherited CRUD method the SIGNATURE oracle (python_signatures.json) records on this class but the SURFACE oracle (python_surface.json) omits; the route is real (exercised by REST-COVERAGE) and the generated resource emits it per the signature oracle — cannot fix the reference (read-only)
-signalwire.rest.namespaces.relay_rest_resources_generated.PhoneNumbers.delete: reference-oracle gap: base-inherited CRUD method the SIGNATURE oracle (python_signatures.json) records on this class but the SURFACE oracle (python_surface.json) omits; the route is real (exercised by REST-COVERAGE) and the generated resource emits it per the signature oracle — cannot fix the reference (read-only)
-signalwire.rest.namespaces.relay_rest_resources_generated.Queues.delete: reference-oracle gap: base-inherited CRUD method the SIGNATURE oracle (python_signatures.json) records on this class but the SURFACE oracle (python_surface.json) omits; the route is real (exercised by REST-COVERAGE) and the generated resource emits it per the signature oracle — cannot fix the reference (read-only)
-signalwire.rest.namespaces.relay_rest_resources_generated.VerifiedCallers.delete: reference-oracle gap: base-inherited CRUD method the SIGNATURE oracle (python_signatures.json) records on this class but the SURFACE oracle (python_surface.json) omits; the route is real (exercised by REST-COVERAGE) and the generated resource emits it per the signature oracle — cannot fix the reference (read-only)
-signalwire.rest.namespaces.video_resources_generated.VideoConferences.delete: reference-oracle gap: base-inherited CRUD method the SIGNATURE oracle (python_signatures.json) records on this class but the SURFACE oracle (python_surface.json) omits; the route is real (exercised by REST-COVERAGE) and the generated resource emits it per the signature oracle — cannot fix the reference (read-only)
-signalwire.rest.namespaces.video_resources_generated.VideoRoomSessions.get: reference-oracle gap: base-inherited CRUD method the SIGNATURE oracle (python_signatures.json) records on this class but the SURFACE oracle (python_surface.json) omits; the route is real (exercised by REST-COVERAGE) and the generated resource emits it per the signature oracle — cannot fix the reference (read-only)
-signalwire.rest.namespaces.video_resources_generated.VideoRoomSessions.list: reference-oracle gap: base-inherited CRUD method the SIGNATURE oracle (python_signatures.json) records on this class but the SURFACE oracle (python_surface.json) omits; the route is real (exercised by REST-COVERAGE) and the generated resource emits it per the signature oracle — cannot fix the reference (read-only)
-signalwire.rest.namespaces.video_resources_generated.VideoRoomSessions.paginate: reference-oracle gap: base-inherited ReadResource#paginate the SIGNATURE oracle (python_signatures.json) records per-subclass but the SURFACE oracle (python_surface.json) records only on the ReadResource base; the generated resource emits it per the signature oracle — cannot fix the reference (read-only)
-signalwire.rest.namespaces.video_resources_generated.VideoRooms.delete: reference-oracle gap: base-inherited CRUD method the SIGNATURE oracle (python_signatures.json) records on this class but the SURFACE oracle (python_surface.json) omits; the route is real (exercised by REST-COVERAGE) and the generated resource emits it per the signature oracle — cannot fix the reference (read-only)
-signalwire.rest.namespaces.voice_resources_generated.VoiceLogs.get: reference-oracle gap: base-inherited CRUD method the SIGNATURE oracle (python_signatures.json) records on this class but the SURFACE oracle (python_surface.json) omits; the route is real (exercised by REST-COVERAGE) and the generated resource emits it per the signature oracle — cannot fix the reference (read-only)
-signalwire.rest.namespaces.voice_resources_generated.VoiceLogs.list: reference-oracle gap: base-inherited CRUD method the SIGNATURE oracle (python_signatures.json) records on this class but the SURFACE oracle (python_surface.json) omits; the route is real (exercised by REST-COVERAGE) and the generated resource emits it per the signature oracle — cannot fix the reference (read-only)
-signalwire.rest.namespaces.voice_resources_generated.VoiceLogs.paginate: reference-oracle gap: base-inherited ReadResource#paginate the SIGNATURE oracle (python_signatures.json) records per-subclass but the SURFACE oracle (python_surface.json) records only on the ReadResource base; the generated resource emits it per the signature oracle — cannot fix the reference (read-only)
 signalwire.runtime.Runtime: port-only: Ruby SDK runtime bootstrap (feat/lambda-support - not in Python module structure)
 signalwire.runtime.Runtime.execution_mode: port-only: detects lambda/cgi/google_cloud_function/azure_function/server runtime
 signalwire.runtime.Runtime.lambda?: port-only: Ruby predicate - true when inside AWS Lambda
@@ -600,14 +518,10 @@ signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.description
 signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.name: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
 signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.supports_multiple_instances?: port-only: Ruby predicate method (? suffix)
 signalwire.skills.registry.SkillRegistry.external_paths: port-only: Ruby attr_reader for registered skill directories (Python parity: `self._external_paths`)
-signalwire.skills.registry.SkillRegistry.get_factory: rename-carried: the Ruby name for the reference `get_skill_class`. enumerate_surface.rb renames it surface-side (SURFACE-DIFF passes); the signature oracle records `get_skill_class` with a shape the Ruby method does not match 1:1, so the Ruby name is carried here signature-side rather than renamed. The reference HAS the counterpart — not invented surface.
 signalwire.skills.registry.SkillRegistry.last_registered: port-only: Ruby attr_reader recording the most recent skill name registered via #register_skill (test/audit helper)
 signalwire.skills.registry.SkillRegistry.register: port-only: explicit registry registration (Ruby ships built-ins via register_builtins!)
-signalwire.skills.registry.SkillRegistry.register_builtins: port-only: same as SkillRegistry.register_builtins! - signature audit strips Ruby ?/! suffixes
 signalwire.skills.registry.SkillRegistry.register_builtins!: port-only: Ruby bang-convention to seed the registry with built-in skills
-signalwire.skills.registry.SkillRegistry.registered: port-only: same as SkillRegistry.registered? - signature audit strips Ruby ?/! suffixes
 signalwire.skills.registry.SkillRegistry.registered?: port-only: Ruby predicate - is_registered check
-signalwire.skills.registry.SkillRegistry.reset: port-only: same as SkillRegistry.reset! - signature audit strips Ruby ?/! suffixes
 signalwire.skills.registry.SkillRegistry.reset!: port-only: Ruby bang-convention to clear the registry (used in tests)
 signalwire.skills.spider.skill.SpiderSkill.description: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
 signalwire.skills.spider.skill.SpiderSkill.name: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
@@ -639,22 +553,11 @@ signalwire.swml.document.Document.reset: port-only: consolidated Ruby SWML class
 signalwire.swml.document.Document.sections: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
 signalwire.swml.document.Document.to_h: port-only: Ruby convention - to_h replaces Python to_dict
 signalwire.swml.document.Document.version: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
-signalwire.swml.schema.Schema: port-only: Ruby consolidated schema utils; maps to Python SchemaUtils
-signalwire.swml.schema.Schema.__init__: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
-signalwire.swml.schema.Schema.get_verb: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
-signalwire.swml.schema.Schema.valid_verb?: port-only: Ruby predicate method (? suffix)
-signalwire.swml.schema.Schema.verb_count: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
-signalwire.swml.schema.Schema.verb_names: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
-signalwire.swml.schema.Schema.verbs: port-only: consolidated Ruby SWML class (see signalwire.swml.document/schema/service class-level rationale)
-signalwire.core.agent_base.AgentBase.handle_additional_route: port-only: AgentBase exposes Service's handle_additional_route through inheritance — Ruby method-resolution makes the inherited method visible on the subclass
 signalwire.relay.client.RelayClient.on_event: port-only: generic event-handler hook for integration probes (e.g. audit_relay_handshake harness); Python uses callback registration on individual events
 signalwire.relay.client.RelayClient.send_json: port-only: public surface for emitting raw JSON-RPC frames (used by tests and the audit harness; Python keeps this private)
 signalwire.rest._base.HttpClient.project_id: port-only: Ruby attr_reader exposes the constructor-set project_id (used by audit_rest_transport harness to build paths in the LAML namespace)
 signalwire.rest.client.RestClient.project_id: port-only: Ruby attr_reader exposes the constructor-set project_id (used by tests and the audit harness)
 signalwire.core.swml_schema.Schema.get_verb: port-only: pre-existing singleton sidecar; canonical SchemaUtils ships separately at signalwire.utils.schema_utils
-signalwire.core.swml_schema.Schema.valid_verb: port-only: pre-existing singleton sidecar; canonical SchemaUtils ships separately at signalwire.utils.schema_utils
-signalwire.swml.reset_schema: port-only: Ruby module-level helper for clearing the cached singleton (used in tests); canonical SchemaUtils ships separately
-signalwire.swml.schema: port-only: Ruby module-level singleton accessor; canonical SchemaUtils ships separately at signalwire.utils.schema_utils
 signalwire.utils.schema_utils.SchemaUtils.generate_method_signature: Python-source codegen helper; canonical Python signatures filter this method out (Python-only output shape)
 signalwire.utils.schema_utils.SchemaUtils.generate_method_body: Python-source codegen helper; canonical Python signatures filter this method out (Python-only output shape)
 signalwire.utils.schema_utils.SchemaUtils.schema: port-only: Ruby attr_reader exposing the loaded schema hash (Python: `self.schema` instance attribute filtered out by surface enumeration)
@@ -685,19 +588,10 @@ signalwire.pom.pom.Section.bullets: port-only: Ruby attr_accessor for bullets li
 signalwire.pom.pom.Section.numbered: port-only: Ruby attr_accessor for the numbered flag (Python: instance attribute)
 signalwire.pom.pom.Section.numbered_bullets: port-only: Ruby attr_accessor for the numberedBullets flag (Python: instance attribute, snake_case in Ruby; renders to camelCase JSON/YAML)
 signalwire.pom.pom.Section.title: port-only: Ruby attr_accessor for the section title (Python: instance attribute)
-signalwire.core.agent_base.AgentBase.signing_key: ruby_idiom_port_only: AgentBase exposes a `signing_key` accessor; Python keeps it as private state (no public getter). Public access in Ruby for testability and middleware mounting.
 
 # --- Idiomatic Ruby accessor aliases (eng/RUBY_ERGONOMICS_MIGRATION.md prototype) ---
 # Additive aliases over the Python-named get_/set_ originals (which stay for
 # audit parity). Prototype scope: AgentBase prompt accessors only.
-signalwire.core.agent_base.AgentBase.prompt: ruby-idiom alias (reader) over get_prompt; native `agent.prompt` accessor, Python name retained for parity
-signalwire.core.agent_base.AgentBase.prompt_text: ruby-idiom alias (reader+writer) over get_raw_prompt/set_prompt_text; native `agent.prompt_text` / `agent.prompt_text=`
-signalwire.core.agent_base.AgentBase.post_prompt: ruby-idiom alias (reader+writer) over get_post_prompt/set_post_prompt; native `agent.post_prompt` / `agent.post_prompt=`
-signalwire.core.agent_base.AgentBase.app: ruby-idiom bare-noun reader (D9) over get_app; native `agent.app`, get_ name retained for parity
-signalwire.core.agent_base.AgentBase.full_url: ruby-idiom bare-noun reader (D9) over get_full_url; native `agent.full_url`, get_ name retained for parity
-signalwire.core.agent_base.AgentBase.basic_auth_credentials: ruby-idiom bare-noun reader (D9) over get_basic_auth_credentials; native `agent.basic_auth_credentials`, get_ name retained for parity
-signalwire.core.agent_base.AgentBase.skill: ruby-idiom predicate (D9) over has_skill? — signature audit strips Ruby ?/! suffixes (Layer A spelling of `skill?` below)
-signalwire.core.agent_base.AgentBase.skill?: ruby-idiom predicate (D9) over has_skill?; native `agent.skill?(name)`, has_ name retained for parity
 
 # --- Closed-set named constants (Ruby's idiom-track answer to the other
 # ports' enums; IDIOM_PASS_JOURNAL.md §2/§4). Ruby already validated these
@@ -720,7 +614,6 @@ signalwire.core.agent_base.AgentBase.skill?: ruby-idiom predicate (D9) over has_
 # Only one of these registers as enumerated signature surface (the module-
 # constant groups carry no methods the griffe/reflection enumerator emits);
 # the SkillName convenience predicate does, hence this single excused line:
-signalwire.skills.skill_name.builtin: port-only: SignalWire::Skills::SkillName.builtin?(name) — named-constant single-source-of-truth predicate for the built-in skill set (Ruby's idiom-track equivalent of the other ports' SkillName enum membership check); add_skill still accepts the bare string, the set stays open for custom skills
 # Layer B (surface enumerator) renders the same predicate as a class-with-
 # method instead of a module free function, and keeps the `?` suffix. Both
 # spellings below describe the identical SkillName.builtin? helper above.

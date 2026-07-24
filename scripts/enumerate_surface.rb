@@ -149,6 +149,43 @@ def abort_missing_python_surface(path)
   MSG
 end
 
+# The generated read-side payload reference modules whose model classes expose
+# TYPED field-accessor members on the reference SURFACE (griffe records a
+# generated Pydantic model's class-typed / list<class> / union<..,SWMLVar>
+# fields as accessor members — the porting-sdk B1 composition-attr enrichment).
+# Ruby's generated models carry a zero-arg `attr_reader` per wire field, so the
+# subset the reference records is emittable here (DTO-FIELD consistency fix):
+# instead of surfacing these classes method-less (which OMITS every recorded
+# field), emit exactly the readers the oracle records on each class — gated on
+# the ORACLE'S member set so scalar wire fields the reference does NOT record
+# (ai_volume, global_data, …) are never over-emitted. This mirrors what
+# go/rust/cpp/ts/php/dotnet already emit. Other generated-payload modules
+# (swaig_actions_generated, relay.protocol_types_generated) record zero members
+# on every class, so they stay method-less naturally — this map only lists the
+# modules the oracle records members on.
+ORACLE_FIELD_ACCESSOR_MODULES = %w[
+  signalwire.core.swml_verbs_generated
+  signalwire.core.post_prompt_generated
+  signalwire.core.swaig_request_generated
+].freeze
+
+# Load the oracle's per-class recorded surface members for the generated-payload
+# modules that expose field accessors. Returns { [ref_module, class] => Set }.
+# Empty-member classes are omitted (they surface method-less either way).
+def load_oracle_generated_members(python_surface_path)
+  abort_missing_python_surface(python_surface_path) unless python_surface_path.file?
+
+  data = JSON.parse(python_surface_path.read)
+  out = {}
+  ORACLE_FIELD_ACCESSOR_MODULES.each do |mod|
+    entry = data.dig('modules', mod) or next
+    entry.fetch('classes', {}).each do |cls, members|
+      out[[mod, cls]] = members.to_set unless members.empty?
+    end
+  end
+  out
+end
+
 # When a class name has multiple Python modules or when Ruby's class name
 # doesn't match Python's exactly, we need an explicit override. Keys are
 # fully-qualified Ruby names; values are the canonical Python module.
@@ -683,10 +720,10 @@ end
 # -----------------------------------------------------------------------------
 # Gather everything.
 # -----------------------------------------------------------------------------
-def collect_modules(python_index)
+def collect_modules(python_index, oracle_generated_members = {})
   # Modules in the final snapshot. Each entry: {"classes" => {...}, "functions" => [...]}.
   modules = Hash.new { |h, k| h[k] = { 'classes' => {}, 'functions' => [] } }
-  scan_object_space(modules, python_index)
+  scan_object_space(modules, python_index, oracle_generated_members)
   apply_method_donors(modules)
   apply_mixin_projections(modules)
   add_toplevel_functions(modules)
@@ -696,14 +733,14 @@ def collect_modules(python_index)
   modules.reject { |_k, v| v['classes'].empty? && v['functions'].empty? }
 end
 
-def scan_object_space(modules, python_index)
+def scan_object_space(modules, python_index, oracle_generated_members = {})
   seen_classes = {}
   ObjectSpace.each_object(Module) do |m|
     name = m.name
     next unless surface_module?(name, seen_classes)
 
     seen_classes[name] = true
-    process_module(m, name, modules, python_index)
+    process_module(m, name, modules, python_index, oracle_generated_members)
   end
 end
 
@@ -770,18 +807,53 @@ def generated_methodless_class?(ruby_fqn)
   false
 end
 
+# For a generated read-side payload class, return the subset of its zero-arg
+# field readers the oracle records as surface members on the reference class.
+# Gated on the ORACLE'S member set (never the full reader list) so scalar wire
+# fields the reference does not record are not over-emitted. Empty (method-less)
+# when the class is not one the oracle records field accessors for.
+def oracle_gated_field_accessors(klass, target_mod, cls, oracle_generated_members)
+  wanted = oracle_generated_members[[target_mod, cls]]
+  return [] unless wanted
+
+  readers = klass.public_instance_methods(false).to_set(&:to_s)
+  missing = wanted.to_a - readers.to_a
+  unless missing.empty?
+    abort "generated model #{target_mod}.#{cls} is missing oracle-recorded field " \
+          "reader(s) #{missing.sort.inspect}; regenerate the model or update the oracle"
+  end
+  wanted.to_a.select { |m| readers.include?(m) }.sort
+end
+
 # Record one Ruby class or module into `modules`.
-def process_module(mod, name, modules, python_index)
+def process_module(mod, name, modules, python_index, oracle_generated_members = {})
   if mod.is_a?(Class)
-    target_mod, cls = translate_class(name, python_index)
-    methods = generated_methodless_class?(name) ? [] : enumerate_methods(mod)
-    methods = project_free_functions(name, methods, modules)
-    methods = apply_method_aliases(target_mod, cls, methods)
-    methods = drop_idiom_members(target_mod, cls, methods)
-    modules[target_mod]['classes'][cls] = methods
+    process_class(mod, name, modules, python_index, oracle_generated_members)
   else
     process_namespace_module(mod, name, modules)
   end
+end
+
+# Record one Ruby CLASS into `modules` (the method surface after projections,
+# aliasing, and idiom drops).
+def process_class(mod, name, modules, python_index, oracle_generated_members)
+  target_mod, cls = translate_class(name, python_index)
+  methods = surface_methods_for(mod, name, target_mod, cls, oracle_generated_members)
+  methods = project_free_functions(name, methods, modules)
+  methods = apply_method_aliases(target_mod, cls, methods)
+  methods = drop_idiom_members(target_mod, cls, methods)
+  modules[target_mod]['classes'][cls] = methods
+end
+
+# The raw method surface for a Ruby class before projection/aliasing. A generated
+# read-side payload/type class is method-less on the SURFACE EXCEPT for the typed
+# field accessors the reference records (class-typed / list<class> / union
+# members): emit exactly that oracle-recorded subset of the class's zero-arg
+# readers so the port matches go/rust/cpp/ts/php/dotnet instead of omitting them.
+def surface_methods_for(mod, name, target_mod, cls, oracle_generated_members)
+  return enumerate_methods(mod) unless generated_methodless_class?(name)
+
+  oracle_gated_field_accessors(mod, target_mod, cls, oracle_generated_members)
 end
 
 # Drop the per-[module, class] Ruby-idiom accessors the reference records as
@@ -936,8 +1008,9 @@ end
 
 def build_snapshot(python_surface_path)
   python_index = load_python_index(python_surface_path)
+  oracle_generated_members = load_oracle_generated_members(python_surface_path)
   load_all_lib_files
-  mods = collect_modules(python_index)
+  mods = collect_modules(python_index, oracle_generated_members)
 
   {
     'version' => '1',
