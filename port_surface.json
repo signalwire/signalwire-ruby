@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 595f2b709d8162d9f585918037e8a5fd4dddb257",
+  "generated_from": "signalwire-ruby @ d10d555f5fa491fc06b9054e13d8f9621f32a3cc",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -67,9 +67,20 @@
         ],
         "AuthenticationError": [],
         "ChatInProgressError": [],
-        "ChatLog": [],
-        "ChatResponse": [],
-        "ConversationInfo": [],
+        "ChatLog": [
+          "call_timeline",
+          "messages"
+        ],
+        "ChatResponse": [
+          "conversation_id",
+          "text",
+          "user_event"
+        ],
+        "ConversationInfo": [
+          "id",
+          "initial_message",
+          "status"
+        ],
         "ConversationNotFoundError": [],
         "RateLimitError": [],
         "SummaryError": []
@@ -1627,7 +1638,7 @@
         "DialEvent": [
           "__init__",
           "answered?",
-          "call_data",
+          "call",
           "dial_state",
           "failed?",
           "from_payload",

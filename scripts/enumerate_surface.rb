@@ -167,6 +167,7 @@ ORACLE_FIELD_ACCESSOR_MODULES = %w[
   signalwire.core.swml_verbs_generated
   signalwire.core.post_prompt_generated
   signalwire.core.swaig_request_generated
+  signalwire.ai_chat.client
 ].freeze
 
 # Load the oracle's per-class recorded surface members for the generated-payload
@@ -455,6 +456,7 @@ SURFACE_METHOD_ALIASES = {
   ['signalwire.pom.pom', 'PromptObjectModel'] => { 'to_h' => 'to_dict' },
   ['signalwire.pom.pom', 'Section'] => { 'to_h' => 'to_dict' },
   ['signalwire.core.function_result', 'FunctionResult'] => { 'to_h' => 'to_dict' },
+  ['signalwire.relay.event', 'DialEvent'] => { 'call_data' => 'call' },
   ['signalwire.relay.call', 'Action'] => { 'done?' => 'is_done' },
   ['signalwire.relay.call', 'Call'] => { 'inspect' => '__repr__', 'pass_call' => 'pass_', 'tap_audio' => 'tap' },
   ['signalwire.relay.message', 'Message'] => { 'inspect' => '__repr__', 'done?' => 'is_done', 'on_event' => 'on' },
@@ -759,14 +761,15 @@ end
 
 # The AI-Chat response models are Ruby `Struct.new(..., keyword_init: true)`
 # value types — the idiomatic Ruby analog of the reference's `@dataclass`
-# ConversationInfo / ChatResponse / ChatLog. griffe records a dataclass's fields
-# as ATTRIBUTES, so the reference surface for each is METHOD-LESS. A Ruby Struct,
-# by contrast, auto-generates a pile of machinery (`[]`, `new`, `members`,
-# `keyword_init?`, `inspect`, plus a reader per field). Surface these classes
-# method-less — exactly like the generated payload/type DTOs — so each compares
-# EQUAL to the reference's method-less dataclass (emission covers the Struct
-# idiom; no PORT_ADDITIONS entry per accessor). Scoped by FQN so no other class
-# is affected.
+# ConversationInfo / ChatResponse / ChatLog. The oracle now records each
+# dataclass's PUBLIC FIELDS as surface members (`id`/`status`/`initial_message`,
+# `text`/`conversation_id`/`user_event`, `messages`/`call_timeline`). A Ruby
+# Struct auto-generates a reader per field whose spelling MATCHES the reference
+# field name, so we surface exactly the oracle-recorded field subset (via
+# `signalwire.ai_chat.client` in ORACLE_FIELD_ACCESSOR_MODULES) and drop the rest
+# of the Struct machinery (`[]`, `new`, `members`, `keyword_init?`, …). Emission
+# covers the Struct idiom; no PORT_ADDITIONS entry per accessor. Scoped by FQN so
+# no other class is affected.
 AI_CHAT_METHODLESS_CLASSES = %w[
   SignalWire::AIChat::ConversationInfo
   SignalWire::AIChat::ChatResponse

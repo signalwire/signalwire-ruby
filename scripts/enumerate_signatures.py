@@ -239,6 +239,7 @@ SIG_METHOD_ALIASES: dict[tuple, dict[str, str]] = {
     ("signalwire.pom.pom", "PromptObjectModel"): {"to_h": "to_dict"},
     ("signalwire.pom.pom", "Section"): {"to_h": "to_dict"},
     ("signalwire.core.function_result", "FunctionResult"): {"to_h": "to_dict"},
+    ("signalwire.relay.event", "DialEvent"): {"call_data": "call"},
     ("signalwire.relay.call", "Call"): {"pass_call": "pass_", "tap_audio": "tap"},
     ("signalwire.relay.message", "Message"): {"on_event": "on"},
     ("signalwire.relay.client", "RelayClient"): {"stop": "disconnect"},
@@ -401,7 +402,16 @@ def synth_ai_chat_struct_inits(out_modules: dict) -> None:
             {"name": f, "type": "any", "kind": "keyword", "required": False, "default": None}
             for f in readers
         ]
-        entry["methods"] = {"__init__": {"params": params, "returns": "void"}}
+        # The oracle records each dataclass field BOTH as an ``__init__`` param
+        # AND as a zero-arg accessor member (griffe surfaces the field). Keep the
+        # Struct's field readers (their `self`-only zero-arg shape) alongside the
+        # synthesized keyword ``__init__``; drop the rest of the Struct machinery
+        # (`new`/`members`/`keyword_init?`/`inspect`/`[]`/…). The field types come
+        # from the reference-param-type projection run next.
+        new_methods = {"__init__": {"params": params, "returns": "void"}}
+        for f in readers:
+            new_methods[f] = methods[f]
+        entry["methods"] = new_methods
 
     for (mod, cls), drops in AI_CHAT_METHOD_DROPS.items():
         entry = out_modules.get(mod, {}).get("classes", {}).get(cls)
