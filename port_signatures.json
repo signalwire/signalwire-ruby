@@ -3222,6 +3222,13 @@
                   "kind": "keyword",
                   "required": false,
                   "default": null
+                },
+                {
+                  "name": "isolated",
+                  "type": "bool",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "void"
@@ -3348,6 +3355,13 @@
                   "kind": "keyword",
                   "required": false,
                   "default": null
+                },
+                {
+                  "name": "isolated",
+                  "type": "optional<bool>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "void"
@@ -3362,6 +3376,15 @@
               "returns": "any"
             },
             "functions": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "isolated": {
               "params": [
                 {
                   "name": "self",
@@ -3497,6 +3520,13 @@
                   "kind": "keyword",
                   "required": false,
                   "default": null
+                },
+                {
+                  "name": "isolated",
+                  "type": "optional<bool>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -3589,6 +3619,13 @@
                 {
                   "name": "prompt",
                   "type": "optional<string>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "isolated",
+                  "type": "bool",
                   "kind": "keyword",
                   "required": false,
                   "default": null
@@ -20099,6 +20136,13 @@
                   "default": null
                 },
                 {
+                  "name": "voice",
+                  "type": "string",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
                   "name": "_opts",
                   "type": "any",
                   "kind": "var_keyword",
@@ -20251,6 +20295,20 @@
                   "default": null
                 },
                 {
+                  "name": "brand_name",
+                  "type": "optional<string>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "max_retries",
+                  "type": "int",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
                   "name": "name",
                   "type": "string",
                   "kind": "keyword",
@@ -20273,6 +20331,15 @@
                 }
               ],
               "returns": "void"
+            },
+            "brand_name": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
             },
             "global_data": {
               "params": [
@@ -20355,6 +20422,15 @@
                   "name": "_raw_data",
                   "type": "any",
                   "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "max_retries": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
                 }
               ],
               "returns": "any"
@@ -40416,6 +40492,10 @@
           "type": "optional<string>",
           "required": false
         },
+        "isolated": {
+          "type": "bool",
+          "required": false
+        },
         "output_key": {
           "type": "optional<string>",
           "required": false
@@ -40434,6 +40514,10 @@
         },
         "functions": {
           "type": "optional<list<string>>",
+          "required": false
+        },
+        "isolated": {
+          "type": "optional<bool>",
           "required": false
         },
         "key": {
@@ -40767,17 +40851,29 @@
         "route": {
           "type": "string",
           "required": false
+        },
+        "voice": {
+          "type": "string",
+          "required": false
         }
       }
     },
     "signalwire.prefabs.survey.SurveyAgent": {
       "params": {
+        "brand_name": {
+          "type": "optional<string>",
+          "required": false
+        },
         "conclusion": {
           "type": "optional<string>",
           "required": false
         },
         "introduction": {
           "type": "optional<string>",
+          "required": false
+        },
+        "max_retries": {
+          "type": "int",
           "required": false
         },
         "name": {

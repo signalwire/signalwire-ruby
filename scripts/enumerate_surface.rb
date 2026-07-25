@@ -824,13 +824,24 @@ AI_CHAT_METHODLESS_CLASSES = %w[
 #                                 With no oracle member to compare against, the
 #                                 Ruby reader folds here rather than surfacing as
 #                                 an ADDITION (§7 accessor row).
+#   * GatherQuestion#isolated → the reference's PUBLIC `self.isolated`
+#                                 instance attribute (core/contexts.py:59, the
+#                                 tri-state that `to_dict` emits even when
+#                                 False). The oracle's class-B2 blind spot
+#                                 records it only as an `__init__` param, so the
+#                                 Ruby `attr_accessor` folds here.
+#   * SurveyAgent#brand_name / #max_retries → the reference's PUBLIC
+#                                 `self.brand_name` / `self.max_retries`
+#                                 (prefabs/survey.py:93-94). Same B2 blind spot.
 SURFACE_MEMBER_DROPS = {
   ['signalwire.ai_chat.client', 'AIChatClient'] => %w[url inspect to_s resolve_url],
   ['signalwire.ai_chat.client', 'AIChatError'] => %w[code server_message],
   ['signalwire.agent_server', 'AgentServer'] => %w[logger],
   ['signalwire.core.skill_base', 'SkillBase'] => %w[logger],
   ['signalwire.core.skill_manager', 'SkillManager'] => %w[logger],
-  ['signalwire.skills.registry', 'SkillRegistry'] => %w[logger]
+  ['signalwire.skills.registry', 'SkillRegistry'] => %w[logger],
+  ['signalwire.core.contexts', 'GatherQuestion'] => %w[isolated],
+  ['signalwire.prefabs.survey', 'SurveyAgent'] => %w[brand_name max_retries]
 }.freeze
 
 # A generated wire-type / read-side-payload class surfaces METHOD-LESS: the

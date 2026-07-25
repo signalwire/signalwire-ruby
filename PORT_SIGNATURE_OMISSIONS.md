@@ -86,7 +86,7 @@ PORT_ADDITIONS.md and are inherited automatically by the signature diff.
 
 # Ruby keyword-argument idiom (Python positional with default ≡ Ruby keyword arg)
 
-signalwire.core.contexts.Step.add_gather_question: kwargs-idiom — Ruby keyword args (`key:`, `question:`, `type:`, `confirm:`, `prompt:`, `functions:`) ≡ Python positional with default
+signalwire.core.contexts.Step.add_gather_question: kwargs-idiom — Ruby keyword args (`key:`, `question:`, `type:`, `confirm:`, `prompt:`, `functions:`, `isolated:`) ≡ Python positional with default
 signalwire.core.agent.prompt.manager.PromptManager.prompt_add_to_section: kwargs-idiom — Ruby `(title, body_arg=nil, body:, bullet:, bullets:)` ≡ Python positional with default
 signalwire.core.mixins.prompt_mixin.PromptMixin.prompt_add_to_section: kwargs-idiom — Ruby `(title, body_arg=nil, body:, bullet:, bullets:)` ≡ Python positional with default
 signalwire.core.mixins.tool_mixin.ToolMixin.define_tool: kwargs-idiom — Ruby keyword args (`name:`, `description:`, `parameters:`, ..., `swaig_fields:`) ≡ Python positional + `**swaig_fields`
@@ -94,7 +94,7 @@ signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_language: kwargs-idiom 
 signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_pattern_hint: kwargs-idiom — Ruby splats positional args plus optional keyword `ignore_case:`; ≡ Python `(hint, pattern, replace, ignore_case=False)`
 signalwire.core.mixins.web_mixin.WebMixin.on_swml_request: kwargs-idiom — Ruby third positional optional + `request:` keyword ≡ Python `on_swml_request(request_data, callback_path, request)`
 signalwire.core.agent_base.AgentBase.on_debug_event: kwargs-idiom — Ruby `handler:` keyword ≡ Python positional with default
-signalwire.core.contexts.GatherInfo.__init__: kwargs-idiom — Ruby `(output_key:, completion_action:, prompt:)` ≡ Python positional with default
+signalwire.core.contexts.GatherInfo.__init__: kwargs-idiom — Ruby `(output_key:, completion_action:, prompt:, isolated:)` ≡ Python positional with default
 signalwire.core.contexts.GatherQuestion.__init__: kwargs-idiom — Ruby keyword constructor ≡ Python positional with default
 signalwire.core.contexts.Step.set_gather_info: kwargs-idiom — Ruby keyword args ≡ Python positional with default
 signalwire.core.data_map.DataMap.parameter: kwargs-idiom — Ruby `(required:, enum:)` keyword ≡ Python positional with default

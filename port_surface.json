@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ b8f9f502fc47595dec6a4ed283a739e3632eed0a",
+  "generated_from": "signalwire-ruby @ bd7c1b4adc7d33dba521e86ee511c7a37e55a8b7",
   "modules": {
     "signalwire": {
       "classes": {},
