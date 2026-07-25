@@ -864,8 +864,6 @@ RUBY_MODULE_LEVEL_OVERRIDES = {
 # singleton methods as a synthetic class (mirroring enumerate_surface.rb)
 # so the surface- and signature-level audits see the same shape.
 RUBY_PORT_ONLY_MODULE_AS_CLASS = {
-    # SignalWire::Logging.global_level / .logger / etc. -> Logging class
-    "SignalWire::Logging": ("signalwire.logging", "Logging"),
     # SignalWire::Runtime.execution_mode / .lambda? / etc. -> Runtime class
     "SignalWire::Runtime": ("signalwire.runtime", "Runtime"),
     # SignalWire::Contexts.create_simple_context -> Contexts class
@@ -881,6 +879,18 @@ EXCLUDED_RUBY_CLASSES = {
     "SignalWire::SWML::Service::SecurityHeadersMiddleware",
     "SignalWire::SWML::Service::TimingSafeBasicAuth",
     "SignalWire::Logging::Logger",
+    # The PRIVATE backing implementation of the public reference-parity facade
+    # SignalWire::Core::LoggingConfig, which already projects onto all five
+    # signalwire.core.logging_config free functions (zero omissions).
+    # lib/signalwire/core/logging_config.rb delegates explicitly:
+    # get_logger -> Logging.logger, reset_logging_configuration ->
+    # Logging.reset!, configure_logging -> Logging.configure; global_level /
+    # suppressed? are the SIGNALWIRE_LOG_LEVEL / SIGNALWIRE_LOG_MODE=off
+    # settings the reference's configure_logging reads from the environment.
+    # No capability the reference cannot reach -> idiom, folded here rather
+    # than recorded as ADDITIONs (ALLOWLIST_DISCIPLINE §0/§0b). Kept in
+    # lockstep with RUBY_EXCLUDED_CLASSES in scripts/enumerate_surface.rb.
+    "SignalWire::Logging",
     "SignalWire::REST::Namespaces",
     # Internal implementation classes extracted during the lint burndown purely
     # to satisfy Metrics cops — no Python counterpart, file-local, not public

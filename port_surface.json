@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ d10d555f5fa491fc06b9054e13d8f9621f32a3cc",
+  "generated_from": "signalwire-ruby @ b8f9f502fc47595dec6a4ed283a739e3632eed0a",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -20,7 +20,6 @@
           "get_agents",
           "host",
           "log_level",
-          "logger",
           "port",
           "rack_app",
           "register",
@@ -666,7 +665,6 @@
           "get_parameter_schema",
           "get_prompt_sections",
           "get_skill_data",
-          "logger",
           "name",
           "params",
           "register_tools",
@@ -692,7 +690,6 @@
           "has_skill",
           "list_loaded_skills",
           "load_skill",
-          "logger",
           "size",
           "unload_skill"
         ]
@@ -1202,17 +1199,6 @@
     "signalwire.error": {
       "classes": {
         "Error": []
-      },
-      "functions": []
-    },
-    "signalwire.logging": {
-      "classes": {
-        "Logging": [
-          "global_level",
-          "logger",
-          "reset!",
-          "suppressed?"
-        ]
       },
       "functions": []
     },
@@ -3600,7 +3586,6 @@
           "last_registered",
           "list_all_skill_sources",
           "list_skills",
-          "logger",
           "register",
           "register_builtins!",
           "register_skill",

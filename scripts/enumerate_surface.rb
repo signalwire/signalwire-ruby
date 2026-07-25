@@ -368,6 +368,23 @@ RUBY_SWML_MODULE_OVERRIDES = {
 
 # Nested helper/middleware classes we don't want in the surface (they're
 # internal plumbing, not public API).
+#
+# `SignalWire::Logging` (and its nested `Logger`) is the PRIVATE BACKING
+# IMPLEMENTATION of the public reference-parity facade
+# `SignalWire::Core::LoggingConfig`, which is already projected onto the
+# reference's `signalwire.core.logging_config` free functions via
+# RUBY_FREE_FUNCTION_MODULES — all five of them (`configure_logging`,
+# `get_execution_mode`, `get_logger`, `reset_logging_configuration`,
+# `strip_control_chars`), with zero omissions. The delegation is explicit in
+# lib/signalwire/core/logging_config.rb: `get_logger` -> `Logging.logger`,
+# `reset_logging_configuration` -> `Logging.reset!`, `configure_logging` ->
+# `Logging.configure`. The remaining members are reachable through the
+# reference too — `global_level` / `suppressed?` are the SIGNALWIRE_LOG_LEVEL /
+# SIGNALWIRE_LOG_MODE=off settings the reference's `configure_logging` reads
+# from the environment. So `Logging` adds NO server capability the reference
+# cannot reach; it is the Ruby-idiom shape of an already-ported capability and
+# folds here (ALLOWLIST_DISCIPLINE §0/§0b) rather than surfacing as five
+# ADDITION entries.
 RUBY_EXCLUDED_CLASSES = %w[
   SignalWire::AgentBase::AgentBodyLimitMiddleware
   SignalWire::AgentBase::AgentSecurityHeadersMiddleware
@@ -375,6 +392,7 @@ RUBY_EXCLUDED_CLASSES = %w[
   SignalWire::SWML::Service::SecurityHeadersMiddleware
   SignalWire::SWML::Service::TimingSafeBasicAuth
   SignalWire::Logging::Logger
+  SignalWire::Logging
   SignalWire::REST::Namespaces
   SignalWire::Skills::Builtin::SafeEvaluator
   SignalWire::Skills::Builtin::MathTokenizer
@@ -790,9 +808,29 @@ AI_CHAT_METHODLESS_CLASSES = %w[
 #                                 to match the reference's private form;
 #   * AIChatError#code/#server_message → the reference's `self.code` / message
 #                                 instance attributes set in `__init__`.
+#   * #logger on AgentServer / SkillBase / SkillManager / SkillRegistry → the
+#                                 reference sets `self.logger = get_logger(...)`
+#                                 in each of these four `__init__`s
+#                                 (signalwire/agent_server.py:65,
+#                                 core/skill_base.py:41, core/skill_manager.py:24,
+#                                 skills/registry.py:31), so Ruby's
+#                                 `attr_reader :logger` reaches the SAME
+#                                 capability. Per the owner ruling 2026-07-24
+#                                 (ALLOWLIST_DISCIPLINE §8) logging is a
+#                                 MODULE-LEVEL capability — the contract is the
+#                                 five `signalwire.core.logging_config` free
+#                                 functions, and the per-instance attribute was
+#                                 dropped from the oracle as a marked exclusion.
+#                                 With no oracle member to compare against, the
+#                                 Ruby reader folds here rather than surfacing as
+#                                 an ADDITION (§7 accessor row).
 SURFACE_MEMBER_DROPS = {
   ['signalwire.ai_chat.client', 'AIChatClient'] => %w[url inspect to_s resolve_url],
-  ['signalwire.ai_chat.client', 'AIChatError'] => %w[code server_message]
+  ['signalwire.ai_chat.client', 'AIChatError'] => %w[code server_message],
+  ['signalwire.agent_server', 'AgentServer'] => %w[logger],
+  ['signalwire.core.skill_base', 'SkillBase'] => %w[logger],
+  ['signalwire.core.skill_manager', 'SkillManager'] => %w[logger],
+  ['signalwire.skills.registry', 'SkillRegistry'] => %w[logger]
 }.freeze
 
 # A generated wire-type / read-side-payload class surfaces METHOD-LESS: the

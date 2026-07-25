@@ -193,11 +193,6 @@ signalwire.core.skill_base.SkillBase.version: port-only: Ruby attr_reader on ski
 signalwire.core.skill_manager.SkillManager.agent: port-only: Ruby attr_reader for the owning AgentBase (Python parity: `self.agent`)
 signalwire.core.skill_manager.SkillManager.clear: port-only: SkillManager#clear - no direct Python equivalent (Python unloads individually)
 signalwire.core.skill_manager.SkillManager.size: port-only: SkillManager#size - count of loaded skills
-signalwire.logging.Logging: port-only: Ruby SignalWire::Logging module (Python splits this between core.logging_config and standard logging)
-signalwire.logging.Logging.global_level: port-only: module accessor for the current log level
-signalwire.logging.Logging.logger: port-only: module accessor for a named logger
-signalwire.logging.Logging.reset!: port-only: Ruby bang-convention - reset logging configuration (used in tests)
-signalwire.logging.Logging.suppressed?: port-only: Ruby predicate - check if logging is suppressed
 signalwire.prefabs.concierge.ConciergeAgent.amenities: port-only: Ruby attr_reader on prefab (configuration state)
 signalwire.prefabs.concierge.ConciergeAgent.global_data: port-only: Ruby attr_reader on prefab (configuration state)
 signalwire.prefabs.concierge.ConciergeAgent.handle_amenity_info: port-only: Ruby prefab handler method (Ruby naming differs from Python)

@@ -19086,36 +19086,6 @@
         }
       }
     },
-    "signalwire.logging": {
-      "classes": {
-        "Logging": {
-          "methods": {
-            "global_level": {
-              "params": [],
-              "returns": "any"
-            },
-            "logger": {
-              "params": [
-                {
-                  "name": "name",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
-            "reset": {
-              "params": [],
-              "returns": "any"
-            },
-            "suppressed": {
-              "params": [],
-              "returns": "any"
-            }
-          }
-        }
-      }
-    },
     "signalwire.pom.pom": {
       "classes": {
         "PromptObjectModel": {
