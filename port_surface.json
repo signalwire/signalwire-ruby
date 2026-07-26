@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ da5455c75fe72dca1492232870d041ccb968d567",
+  "generated_from": "signalwire-ruby @ c72a0b28a75aba8f75612d073ab81d769b955f84",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -898,6 +898,10 @@
         "AIPromptText": [
           "contexts"
         ],
+        "AiSidecar": [],
+        "AiSidecarConfig": [
+          "SWAIG"
+        ],
         "AllOfProperty": [
           "allOf"
         ],
@@ -1113,6 +1117,7 @@
         "Request": [],
         "RequestConfig": [],
         "Return": [],
+        "RingbackConfig": [],
         "SIPRefer": [],
         "SMSWithBody": [],
         "SMSWithMedia": [],
