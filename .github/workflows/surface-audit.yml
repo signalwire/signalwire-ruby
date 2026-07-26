@@ -44,6 +44,13 @@ jobs:
           # (see porting-sdk/COORDINATED_PASS.md). No revert commit.
           ref: ${{ vars.PORTING_SDK_REF || 'main' }}
 
+      - name: Install porting-sdk script dependencies
+        # NOT optional: the gate scripts reach the reference oracle through
+        # generate_rest.py, which needs PyYAML, and a swallowed ImportError turned its
+        # absence into an EMPTY oracle — 266 gated members silently vanished and the diff
+        # reported "311 symbols missing from port" against a port that was correct.
+        run: python3 -m pip install --quiet -r ${{ github.workspace }}/porting-sdk/scripts/requirements.txt
+
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
