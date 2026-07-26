@@ -31,6 +31,12 @@ module SignalWire
           # @return [SignalWire::POM::PromptObjectModel] the backing POM
           attr_reader :pom
 
+          # @return [Object, nil] the parent AgentBase back-reference this
+          #   manager was constructed with. The reference exposes the same
+          #   attribute (core/agent/prompt/manager.py), so a caller that passes
+          #   an agent can read it back.
+          attr_reader :agent
+
           # @param agent [Object, nil] optional parent AgentBase instance
           #   (kept as a back-reference; may be nil for standalone use).
           def initialize(agent = nil)

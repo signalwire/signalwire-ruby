@@ -187,6 +187,34 @@ def load_oracle_generated_members(python_surface_path)
   out
 end
 
+# The oracle's FULL per-class recorded surface, every module — { [mod, cls] =>
+# Set }. Used to ORACLE-GATE the idiom member-strip table (SURFACE_MEMBER_DROPS):
+# a strip entry applies only while the reference does NOT record that name on
+# that class. Rationale (ALLOWLIST_DISCIPLINE §15 / class B2): every entry in
+# that table was written when the oracle recorded a caller-supplied ctor param
+# ONLY as an `__init__` param and never as a surface member, so the Ruby
+# `attr_reader` over it had no reference counterpart to compare against. Class B2
+# closed that blind spot — the oracle now records those attributes — so a
+# hand-maintained strip has become a hand-maintained CAPABILITY REMOVAL. Gating
+# on the oracle makes the table self-retire member by member as the oracle grows,
+# instead of needing a hand edit per oracle change.
+#
+# Populated once by `build_snapshot` from the oracle; read by
+# `drop_idiom_members`. Mutable so the load happens after option parsing (the
+# oracle path is a CLI flag) without threading it through every process_* frame.
+ORACLE_ALL_MEMBERS = {} # rubocop:disable Style/MutableConstant -- filled by build_snapshot
+
+def load_oracle_all_members(python_surface_path)
+  abort_missing_python_surface(python_surface_path) unless python_surface_path.file?
+
+  data = JSON.parse(python_surface_path.read)
+  out = {}
+  data.fetch('modules', {}).each do |mod, entry|
+    entry.fetch('classes', {}).each { |cls, members| out[[mod, cls]] = members.to_set }
+  end
+  out
+end
+
 # When a class name has multiple Python modules or when Ruby's class name
 # doesn't match Python's exactly, we need an explicit override. Keys are
 # fully-qualified Ruby names; values are the canonical Python module.
@@ -472,13 +500,30 @@ SURFACE_METHOD_ALIASES = {
   ['signalwire.core.contexts', 'GatherInfo'] => { 'to_h' => 'to_dict' },
   ['signalwire.core.contexts', 'GatherQuestion'] => { 'to_h' => 'to_dict' },
   ['signalwire.pom.pom', 'PromptObjectModel'] => { 'to_h' => 'to_dict' },
-  ['signalwire.pom.pom', 'Section'] => { 'to_h' => 'to_dict' },
+  # `numberedBullets` is recorded camelCase VERBATIM because it IS the POM wire
+  # key (pom.py:345,361,371 round-trip it through the section dict unchanged), not
+  # reference sloppiness. Ruby spells the reader snake_case per its own idiom and
+  # the RENAME re-establishes the identity; converting the wire key would be wrong.
+  ['signalwire.pom.pom', 'Section'] => { 'to_h' => 'to_dict', 'numbered_bullets' => 'numberedBullets' },
   ['signalwire.core.function_result', 'FunctionResult'] => { 'to_h' => 'to_dict' },
   ['signalwire.relay.event', 'DialEvent'] => { 'call_data' => 'call' },
   ['signalwire.relay.call', 'Action'] => { 'done?' => 'is_done' },
   ['signalwire.relay.call', 'Call'] => { 'inspect' => '__repr__', 'pass_call' => 'pass_', 'tap_audio' => 'tap' },
   ['signalwire.relay.message', 'Message'] => { 'inspect' => '__repr__', 'done?' => 'is_done', 'on_event' => 'on' },
-  ['signalwire.relay.client', 'RelayClient'] => { 'stop' => 'disconnect' },
+  # `project_id` is Ruby's spelling of the reference's `project` ctor param /
+  # attribute (RelayClient reads it back as `self.project`, relay/client.py:171).
+  # A rename, not an omission: the identity lines up and every other member of
+  # the class keeps comparing.
+  ['signalwire.relay.client', 'RelayClient'] => { 'stop' => 'disconnect', 'project_id' => 'project' },
+  # Ruby cannot name these readers `message`: `Exception#message` is already
+  # defined by the stdlib and overriding it would change what `raise`/`rescue`
+  # and every logger prints. So the port spells them `error_message` /
+  # `server_message` and the rename re-establishes the reference identity.
+  ['signalwire.relay.client', 'RelayError'] => { 'error_message' => 'message' },
+  ['signalwire.ai_chat.client', 'AIChatError'] => { 'server_message' => 'message' },
+  # `method` is `Object#method` in Ruby — a core reflection method on every
+  # object. The port spells the HTTP-verb reader `method_name`; renamed here.
+  ['signalwire.rest._base', 'SignalWireRestError'] => { 'method_name' => 'method' },
   ['signalwire.prefabs.faq_bot', 'FAQBotAgent'] => { 'handle_search' => 'search_faqs' },
   ['signalwire.prefabs.info_gatherer', 'InfoGathererAgent'] => {
     'handle_start' => 'start_questions', 'handle_submit' => 'submit_answer'
@@ -798,6 +843,15 @@ AI_CHAT_METHODLESS_CLASSES = %w[
 # the reference records as a plain instance ATTRIBUTE (not a surface method), so
 # there is no reference member to compare against — the idiomatic-Ruby getter is
 # folded away rather than surfaced as an addition. Applied after the alias pass.
+#
+# ORACLE-GATED (see `drop_idiom_members`): an entry takes effect ONLY while the
+# oracle does NOT record that name on that class. The premise of every entry is
+# "the reference has no such surface member", so the oracle is the authority on
+# whether the premise still holds — and class B2 (ALLOWLIST_DISCIPLINE §15) made
+# several of these premises false by recording caller-supplied `__init__`
+# attributes. Gating rather than hand-pruning means the table degrades itself as
+# the oracle grows; a stale entry can no longer silently remove a reader the
+# reference publishes (which is CONSTRUCTION-READBACK's exact failure mode).
 #   * AIChatClient#url        → the reference's `self.url` instance attribute;
 #   * AIChatClient#inspect/to_s → token-redacting Ruby object hooks (the reference
 #                                 AIChatClient defines no `__repr__`/`__str__`);
@@ -827,15 +881,26 @@ AI_CHAT_METHODLESS_CLASSES = %w[
 #   * GatherQuestion#isolated → the reference's PUBLIC `self.isolated`
 #                                 instance attribute (core/contexts.py:59, the
 #                                 tri-state that `to_dict` emits even when
-#                                 False). The oracle's class-B2 blind spot
-#                                 records it only as an `__init__` param, so the
-#                                 Ruby `attr_accessor` folds here.
+#                                 False). Written for the pre-B2 oracle blind
+#                                 spot; the oracle NOW records it, so the gate
+#                                 retires this entry and the Ruby
+#                                 `attr_accessor` is emitted.
 #   * SurveyAgent#brand_name / #max_retries → the reference's PUBLIC
 #                                 `self.brand_name` / `self.max_retries`
-#                                 (prefabs/survey.py:93-94). Same B2 blind spot.
+#                                 (prefabs/survey.py:93-94). Same pre-B2 blind
+#                                 spot; also now oracle-retired.
+# Entries kept here are deliberately RETAINED as documentation of intent: the
+# gate reads them, so a future oracle change flips each one automatically and the
+# comment above it records why it was written. Deleting an entry that the gate
+# already neutralises would lose that provenance.
 SURFACE_MEMBER_DROPS = {
   ['signalwire.ai_chat.client', 'AIChatClient'] => %w[url inspect to_s resolve_url],
-  ['signalwire.ai_chat.client', 'AIChatError'] => %w[code server_message],
+  # `message` is the POST-ALIAS spelling (SURFACE_METHOD_ALIASES renames Ruby's
+  # `server_message` first); this table is keyed by the name the emitter will
+  # EMIT, never the source name. Keying a member table by the source spelling
+  # while the consumer sees the emitted one is how typescript silently dropped
+  # every field of an aliased class.
+  ['signalwire.ai_chat.client', 'AIChatError'] => %w[code message],
   ['signalwire.agent_server', 'AgentServer'] => %w[logger],
   ['signalwire.core.skill_base', 'SkillBase'] => %w[logger],
   ['signalwire.core.skill_manager', 'SkillManager'] => %w[logger],
@@ -911,11 +976,21 @@ end
 # Drop the per-[module, class] Ruby-idiom accessors the reference records as
 # plain instance attributes (SURFACE_MEMBER_DROPS). Applied after aliasing so the
 # names being dropped are already in their reference spelling.
+#
+# ORACLE-GATED: a drop applies only while the oracle does NOT record that name as
+# a surface member of that same class. The moment it does, the port MUST emit its
+# reader — a strip would remove a capability the reference publishes, which is
+# precisely what CONSTRUCTION-READBACK exists to catch. This makes the table
+# self-retiring: no hand edit is needed when the oracle grows.
 def drop_idiom_members(target_mod, cls, methods)
   drops = SURFACE_MEMBER_DROPS[[target_mod, cls]]
   return methods unless drops
 
-  methods - drops
+  recorded = ORACLE_ALL_MEMBERS[[target_mod, cls]] || Set.new
+  effective = drops.reject { |m| recorded.include?(m) }
+  return methods if effective.empty?
+
+  methods - effective
 end
 
 # Apply the per-[module, class] Ruby-idiom -> reference method-name aliases,
@@ -1061,15 +1136,26 @@ end
 def build_snapshot(python_surface_path)
   python_index = load_python_index(python_surface_path)
   oracle_generated_members = load_oracle_generated_members(python_surface_path)
+  prime_oracle_gate(python_surface_path)
   load_all_lib_files
   mods = collect_modules(python_index, oracle_generated_members)
+  snapshot_envelope(mods)
+end
 
+# The versioned envelope around the enumerated modules.
+def snapshot_envelope(mods)
   {
     'version' => '1',
     'generated_from' => "signalwire-ruby @ #{git_sha}",
     'ruby_version' => RUBY_VERSION,
     'modules' => sort_modules(mods)
   }
+end
+
+# Fill ORACLE_ALL_MEMBERS, the gate for SURFACE_MEMBER_DROPS. Must run before
+# any class is processed.
+def prime_oracle_gate(python_surface_path)
+  ORACLE_ALL_MEMBERS.replace(load_oracle_all_members(python_surface_path))
 end
 
 # Load all Ruby source files so every class/module is visible to ObjectSpace.

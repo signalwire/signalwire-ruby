@@ -39,6 +39,15 @@ module SignalWire
     class Client
       attr_reader :project_id, :protocol, :host, :max_active_calls
 
+      # Caller-supplied connection config, readable back. The reference exposes
+      # every one of these as a public attribute set from the same-named
+      # constructor param (relay/client.py:171-175), so a Ruby caller that can
+      # PASS `token:`/`jwt_token:`/`contexts:` must be able to read them; they
+      # were behind `private` until now, which took the read-back capability away
+      # from Ruby callers only. (`space` stays private — it is a back-compat
+      # alias for `host:` with no reference counterpart.)
+      attr_reader :token, :jwt_token, :contexts
+
       # Field maps for event -> object construction: kwarg => [event key, default].
       INBOUND_CALL_FIELDS = {
         call_id: ['call_id', ''], node_id: ['node_id', ''], project_id: ['project_id', ''],
@@ -93,8 +102,8 @@ module SignalWire
 
       private
 
-      # Read-only connection config, set once during initialize.
-      attr_reader :space, :token, :jwt_token, :contexts
+      # Back-compat-only connection config, set once during initialize.
+      attr_reader :space
 
       def resolve_credentials(project, token, host, space)
         @project_id = value_or_env(project, 'SIGNALWIRE_PROJECT_ID')

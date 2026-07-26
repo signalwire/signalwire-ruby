@@ -26,6 +26,13 @@ module SignalWire
       DEFAULT_PATHS = ['config.json', 'agent_config.json', 'swml_config.json', '.swml/config.json',
                        File.expand_path('~/.swml/config.json'), '/etc/swml/config.json'].freeze
 
+      # @return [Array<String>] the search paths in use — the caller-supplied
+      #   list, or {DEFAULT_PATHS} when none was given. The reference exposes the
+      #   same resolved attribute (`self.config_paths = config_paths or
+      #   self._get_default_paths()`, core/config_loader.py:37), so which paths a
+      #   loader is actually consulting is readable back either way.
+      attr_reader :config_paths
+
       # Initialize the config loader.
       #
       # +config_paths+ is an optional Array of config file paths to check.

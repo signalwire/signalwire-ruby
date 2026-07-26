@@ -837,6 +837,24 @@
                 }
               ],
               "returns": "void"
+            },
+            "code": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "message": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
             }
           }
         },
@@ -1034,6 +1052,15 @@
                 }
               ],
               "returns": "void"
+            },
+            "agent": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
             },
             "define_contexts": {
               "params": [
@@ -1294,6 +1321,15 @@
                 }
               ],
               "returns": "void"
+            },
+            "agent": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
             },
             "define_tool": {
               "params": [
@@ -2558,6 +2594,15 @@
                 }
               ],
               "returns": "void"
+            },
+            "config_paths": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
             },
             "find_config_file": {
               "params": [
@@ -8689,6 +8734,15 @@
               ],
               "returns": "any"
             },
+            "secret_key": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "set_session_metadata": {
               "params": [
                 {
@@ -8709,6 +8763,15 @@
                   "name": "value",
                   "type": "any",
                   "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "token_expiry_secs": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
                 }
               ],
               "returns": "any"
@@ -19453,15 +19516,6 @@
               ],
               "returns": "any"
             },
-            "numbered_bullets": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "render_markdown": {
               "params": [
                 {
@@ -19527,6 +19581,15 @@
               "returns": "any"
             },
             "to_dict": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "numberedBullets": {
               "params": [
                 {
                   "name": "self",
@@ -19706,6 +19769,15 @@
               ],
               "returns": "any"
             },
+            "hours_of_operation": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "name": {
               "params": [
                 {
@@ -19754,6 +19826,15 @@
               "returns": "any"
             },
             "services": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "special_instructions": {
               "params": [
                 {
                   "name": "self",
@@ -19885,6 +19966,15 @@
               ],
               "returns": "any"
             },
+            "persona": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "prompt_sections": {
               "params": [
                 {
@@ -19895,6 +19985,15 @@
               "returns": "any"
             },
             "route": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "suggest_related": {
               "params": [
                 {
                   "name": "self",
@@ -20341,6 +20440,15 @@
               ],
               "returns": "any"
             },
+            "conclusion": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "global_data": {
               "params": [
                 {
@@ -20403,6 +20511,15 @@
                   "name": "_raw_data",
                   "type": "any",
                   "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "introduction": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
                 }
               ],
               "returns": "any"
@@ -22827,6 +22944,15 @@
               ],
               "returns": "any"
             },
+            "contexts": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "dial": {
               "params": [
                 {
@@ -22900,6 +23026,15 @@
               ],
               "returns": "any"
             },
+            "jwt_token": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "max_active_calls": {
               "params": [
                 {
@@ -22953,15 +23088,6 @@
                   "kind": "keyword",
                   "required": false,
                   "default": null
-                }
-              ],
-              "returns": "any"
-            },
-            "project_id": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
                 }
               ],
               "returns": "any"
@@ -23084,6 +23210,15 @@
               ],
               "returns": "any"
             },
+            "token": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "unreceive": {
               "params": [
                 {
@@ -23099,6 +23234,15 @@
               "returns": "any"
             },
             "disconnect": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "project": {
               "params": [
                 {
                   "name": "self",
@@ -23139,7 +23283,7 @@
               ],
               "returns": "any"
             },
-            "error_message": {
+            "message": {
               "params": [
                 {
                   "name": "self",
@@ -26707,15 +26851,6 @@
               ],
               "returns": "any"
             },
-            "method_name": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "request_id": {
               "params": [
                 {
@@ -26735,6 +26870,15 @@
               "returns": "any"
             },
             "url": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "method": {
               "params": [
                 {
                   "name": "self",

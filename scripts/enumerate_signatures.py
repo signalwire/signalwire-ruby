@@ -122,9 +122,21 @@ REST_SIGNATURES: dict[str, list[dict]] = _REST_SIG_RAW.get("methods", {})
 #     ``**kwargs``) have no projection source and stay ``any`` — those remain
 #     governed by PORT_SIGNATURE_OMISSIONS.md as before.
 _REF_SIG_PATH = PSDK / "python_signatures.json"
-_REF_SIG_RAW = (
-    json.loads(_REF_SIG_PATH.read_text()) if _REF_SIG_PATH.is_file() else {}
-)
+# FAIL LOUD on an unresolvable oracle. This used to be
+# ``… if _REF_SIG_PATH.is_file() else {}``, which DEGRADED SILENTLY: an empty
+# oracle empties REF_PARAM_TYPES (every param type falls back to ``any``) and
+# empties every oracle-gated fold below, while the enumerator still exits 0 with
+# a plausible-looking snapshot. That exact failure mode cost dotnet ~300 lost
+# symbols behind a phantom CI red and go ~200 chased through six wrong
+# hypotheses. A gate that cannot resolve its oracle must say so, not quietly
+# emit less.
+if not _REF_SIG_PATH.is_file():
+    raise SystemExit(
+        f"porting-sdk oracle not found: {_REF_SIG_PATH}\n"
+        "  Set $PORTING_SDK to the porting-sdk checkout, or clone it as a "
+        "sibling of this repo. Refusing to emit a degraded snapshot."
+    )
+_REF_SIG_RAW = json.loads(_REF_SIG_PATH.read_text())
 
 
 def _build_ref_param_type_index() -> dict:
@@ -157,6 +169,26 @@ def _build_ref_param_type_index() -> dict:
 
 
 REF_PARAM_TYPES = _build_ref_param_type_index()
+
+
+def _build_ref_method_index() -> dict:
+    """``(module, class) -> {method_name, ...}`` for every method the reference
+    signature oracle records. The gate for the idiom method-strip tables below:
+    a strip entry's premise is "the reference records no such member", so the
+    oracle is the authority on whether that premise still holds. Class B2
+    (ALLOWLIST_DISCIPLINE §15) made several such premises false by recording
+    caller-supplied ``__init__`` attributes, which turned those entries into
+    hand-maintained capability removals. Gating on the oracle makes them
+    self-retire as it grows, instead of needing a hand edit per oracle change.
+    """
+    idx: dict = {}
+    for mod, me in _REF_SIG_RAW.get("modules", {}).items():
+        for cls, ce in me.get("classes", {}).items():
+            idx[(mod, cls)] = set(ce.get("methods", {}))
+    return idx
+
+
+REF_METHODS = _build_ref_method_index()
 
 # Hand-written param RENAMES (renames, NOT omissions — same param slot, same wire
 # role; only the Ruby-side identifier differs from the reference-recorded name).
@@ -243,12 +275,24 @@ SIG_METHOD_ALIASES: dict[tuple, dict[str, str]] = {
     ("signalwire.core.contexts", "GatherInfo"): {"to_h": "to_dict"},
     ("signalwire.core.contexts", "GatherQuestion"): {"to_h": "to_dict"},
     ("signalwire.pom.pom", "PromptObjectModel"): {"to_h": "to_dict"},
-    ("signalwire.pom.pom", "Section"): {"to_h": "to_dict"},
+    # ``numberedBullets`` is recorded camelCase VERBATIM because it IS the POM
+    # wire key (pom.py:345,361,371 round-trip it unchanged); Ruby spells the
+    # reader snake_case per its own idiom.
+    ("signalwire.pom.pom", "Section"): {
+        "to_h": "to_dict", "numbered_bullets": "numberedBullets"},
     ("signalwire.core.function_result", "FunctionResult"): {"to_h": "to_dict"},
     ("signalwire.relay.event", "DialEvent"): {"call_data": "call"},
     ("signalwire.relay.call", "Call"): {"pass_call": "pass_", "tap_audio": "tap"},
     ("signalwire.relay.message", "Message"): {"on_event": "on"},
-    ("signalwire.relay.client", "RelayClient"): {"stop": "disconnect"},
+    ("signalwire.relay.client", "RelayClient"): {
+        "stop": "disconnect", "project_id": "project"},
+    # Ruby cannot name these readers ``message``: ``Exception#message`` is
+    # stdlib-defined and overriding it changes what raise/rescue and every logger
+    # print. Likewise ``method`` is ``Object#method``, core reflection on every
+    # object. Renamed here, wire/reference identity preserved.
+    ("signalwire.relay.client", "RelayError"): {"error_message": "message"},
+    ("signalwire.ai_chat.client", "AIChatError"): {"server_message": "message"},
+    ("signalwire.rest._base", "SignalWireRestError"): {"method_name": "method"},
     ("signalwire.prefabs.faq_bot", "FAQBotAgent"): {"handle_search": "search_faqs"},
     ("signalwire.prefabs.info_gatherer", "InfoGathererAgent"): {
         "handle_start": "start_questions", "handle_submit": "submit_answer"},
@@ -377,14 +421,22 @@ AI_CHAT_STRUCT_FIELDS: dict[tuple, list[str]] = {
 # as plain instance ATTRIBUTES or a PRIVATE method — no reference surface member
 # to compare against, so drop them (mirrors enumerate_surface.rb's
 # SURFACE_MEMBER_DROPS). Keyed (module, class) -> method names to remove.
+# ORACLE-GATED (see the loop in synth_ai_chat_struct_inits): an entry applies
+# only while REF_METHODS does NOT record that name on that class. Names here are
+# the POST-ALIAS spelling — apply_sig_method_aliases runs first, so ``message``
+# not ``server_message``. Keying a member table by the SOURCE name while the
+# consumer sees the EMITTED one is how typescript silently dropped every field of
+# an aliased class; key it by what the emitter emits.
 AI_CHAT_METHOD_DROPS: dict[tuple, set[str]] = {
     # resolve_url mirrors the reference's PRIVATE ``_resolve_url`` @staticmethod
     # (dropped from the reference surface by its leading ``_``); Ruby exposes the
-    # same helper public for testability.
+    # same helper public for testability. Still live — the oracle records no
+    # ``resolve_url``.
     ("signalwire.ai_chat.client", "AIChatClient"): {"resolve_url"},
-    # #code / #server_message are attr_readers over the reference's
-    # ``self.code`` / message instance attributes set in ``__init__``.
-    ("signalwire.ai_chat.client", "AIChatError"): {"code", "server_message"},
+    # Written for the pre-B2 oracle, which recorded ``code``/``message`` only as
+    # ``__init__`` params. The oracle NOW records both as members, so the gate
+    # retires this entry and the Ruby readers are emitted.
+    ("signalwire.ai_chat.client", "AIChatError"): {"code", "message"},
 }
 
 
@@ -423,7 +475,12 @@ def synth_ai_chat_struct_inits(out_modules: dict) -> None:
         entry = out_modules.get(mod, {}).get("classes", {}).get(cls)
         if not entry:
             continue
+        recorded = REF_METHODS.get((mod, cls), set())
         for m in drops:
+            # Oracle gate: never strip a member the reference records — that
+            # would remove a capability the reference publishes.
+            if m in recorded:
+                continue
             entry.get("methods", {}).pop(m, None)
 
 

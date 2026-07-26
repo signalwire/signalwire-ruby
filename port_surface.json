@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ bd7c1b4adc7d33dba521e86ee511c7a37e55a8b7",
+  "generated_from": "signalwire-ruby @ da5455c75fe72dca1492232870d041ccb968d567",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -59,10 +59,13 @@
           "delete",
           "end",
           "log",
-          "summarize"
+          "summarize",
+          "url"
         ],
         "AIChatError": [
-          "__init__"
+          "__init__",
+          "code",
+          "message"
         ],
         "AuthenticationError": [],
         "ChatInProgressError": [],
@@ -90,6 +93,7 @@
       "classes": {
         "PromptManager": [
           "__init__",
+          "agent",
           "define_contexts",
           "get_contexts",
           "get_post_prompt",
@@ -111,6 +115,7 @@
       "classes": {
         "ToolRegistry": [
           "__init__",
+          "agent",
           "define_tool",
           "get_all_functions",
           "get_function",
@@ -212,6 +217,7 @@
       "classes": {
         "ConfigLoader": [
           "__init__",
+          "config_paths",
           "find_config_file",
           "get",
           "get_config",
@@ -276,6 +282,7 @@
           "__init__",
           "confirm",
           "functions",
+          "isolated",
           "key",
           "prompt",
           "question",
@@ -594,7 +601,9 @@
           "end_session",
           "generate_token",
           "get_session_metadata",
+          "secret_key",
           "set_session_metadata",
+          "token_expiry_secs",
           "validate_token",
           "validate_tool_token"
         ]
@@ -1227,7 +1236,7 @@
           "body",
           "bullets",
           "numbered",
-          "numbered_bullets",
+          "numberedBullets",
           "render_markdown",
           "render_xml",
           "subsections",
@@ -1247,11 +1256,13 @@
           "global_data",
           "handle_amenity_info",
           "handle_service_info",
+          "hours_of_operation",
           "name",
           "on_summary",
           "prompt_sections",
           "route",
           "services",
+          "special_instructions",
           "tools",
           "venue_name"
         ]
@@ -1266,9 +1277,11 @@
           "global_data",
           "name",
           "on_summary",
+          "persona",
           "prompt_sections",
           "route",
           "search_faqs",
+          "suggest_related",
           "tools"
         ]
       },
@@ -1311,11 +1324,15 @@
       "classes": {
         "SurveyAgent": [
           "__init__",
+          "brand_name",
+          "conclusion",
           "global_data",
           "handle_start",
           "handle_submit",
           "handle_summary",
+          "introduction",
           "log_response",
+          "max_retries",
           "name",
           "on_summary",
           "prompt_sections",
@@ -1483,28 +1500,31 @@
         "RelayClient": [
           "__init__",
           "connect",
+          "contexts",
           "dial",
           "disconnect",
           "execute",
           "host",
           "inspect",
+          "jwt_token",
           "max_active_calls",
           "on_call",
           "on_event",
           "on_message",
-          "project_id",
+          "project",
           "protocol",
           "receive",
           "run",
           "send_json",
           "send_message",
           "to_s",
+          "token",
           "unreceive"
         ],
         "RelayError": [
           "__init__",
           "code",
-          "error_message"
+          "message"
         ]
       },
       "functions": []
@@ -1969,7 +1989,7 @@
           "__init__",
           "body",
           "headers",
-          "method_name",
+          "method",
           "request_id",
           "status_code",
           "url"

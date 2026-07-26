@@ -20,7 +20,21 @@ module SignalWire
     #   )
     #
     class FaqBot
+      # The bullet the reference appends to its Instructions section when
+      # suggest_related is on (prefabs/faq_bot.py:111-113).
+      SUGGEST_RELATED_INSTRUCTION =
+        'When appropriate, suggest other related questions from the FAQ database ' \
+        'that might be helpful.'
+
       attr_reader :faqs, :name, :route
+
+      # @return [String] the personality body in force — the caller-supplied
+      #   +persona:+ or the default. Reference attribute `self.persona`
+      #   (prefabs/faq_bot.py:76).
+      # @return [Boolean] +suggest_related+: whether the agent is instructed to
+      #   offer related questions. Reference attribute `self.suggest_related`
+      #   (prefabs/faq_bot.py:75).
+      attr_reader :persona, :suggest_related
 
       def initialize(faqs:, suggest_related: true, persona: nil,
                      name: 'faq_bot', route: '/faq', **_opts)
@@ -39,13 +53,20 @@ module SignalWire
 
       def prompt_sections
         bullets = @faqs.map { |f| "Q: #{f['question']}" }
-        [
+        sections = [
           {
             'title' => 'FAQ Bot',
             'body' => @persona,
             'bullets' => bullets
           }
         ]
+        # suggest_related must reach the PROMPT, not just global_data — it is the
+        # switch that tells the agent to offer related questions, and the
+        # reference renders it in two places (an Instructions bullet plus a
+        # Related Questions section, prefabs/faq_bot.py:110,143-148). Without
+        # this the flag was accepted and had no effect on agent behaviour.
+        sections << { 'title' => 'Related Questions', 'body' => SUGGEST_RELATED_INSTRUCTION } if @suggest_related
+        sections
       end
 
       def global_data

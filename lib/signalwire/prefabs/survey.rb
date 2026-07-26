@@ -76,6 +76,15 @@ module SignalWire
 
       attr_reader :survey_name, :questions, :name, :route, :brand_name, :max_retries
 
+      # @return [String] the opening message in force — the caller-supplied
+      #   +introduction:+ or the generated default. Reference attribute
+      #   `self.introduction` (prefabs/survey.py).
+      # @return [String] +conclusion+: the closing message — caller-supplied or
+      #   {DEFAULT_CONCLUSION}. Also a public reference attribute. Both are
+      #   defaulted, so reading back is the only way a caller learns which text
+      #   the agent will actually speak.
+      attr_reader :introduction, :conclusion
+
       # @param brand_name [String, nil] brand or company name the agent
       #   represents; defaults to +DEFAULT_BRAND_NAME+ when nil.
       # @param max_retries [Integer] maximum number of times to retry an

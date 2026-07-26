@@ -119,4 +119,24 @@ class SurveyPrefabBrandRetriesTest < Minitest::Test
     assert_equal 'WidgetCorp', data['brand_name']
     assert_equal 5, data['max_retries']
   end
+
+  # ---- introduction / conclusion are readable back ---------------------------
+  # Both are DEFAULTED, so reading them back is the only way a caller learns
+  # which text the agent will actually speak. Public reference attributes.
+
+  def test_introduction_readable_back
+    assert_equal 'Welcome aboard.', survey(introduction: 'Welcome aboard.').introduction
+  end
+
+  def test_introduction_default_readable_back
+    assert_includes survey.introduction, 'Test'
+  end
+
+  def test_conclusion_readable_back
+    assert_equal 'All done, bye.', survey(conclusion: 'All done, bye.').conclusion
+  end
+
+  def test_conclusion_default_readable_back
+    assert_equal 'Thank you for completing the survey!', survey.conclusion
+  end
 end
