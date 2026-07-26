@@ -54,12 +54,25 @@ LIB_DIR   = REPO_ROOT.join('lib')
 # disagrees with python_surface.json on every symbol.
 #
 # Search order (first existing wins):
-#   1. $PORTING_SDK_PATH (env override)
-#   2. ./porting-sdk     (CI layout — checked out as a sibling under repo root)
-#   3. ../porting-sdk    (local layout — sibling of signalwire-ruby)
+#   1. $PORTING_SDK      (the canonical cross-port var — what the workflows set)
+#   2. $PORTING_SDK_PATH (this script's original, ruby-only spelling)
+#   3. ./porting-sdk     (CI layout — checked out as a sibling under repo root)
+#   4. ../porting-sdk    (local layout — sibling of signalwire-ruby)
+#
+# $PORTING_SDK is checked FIRST because it is the name every workflow here
+# exports (test.yml, nightly.yml, publish.yml) and the name the sibling
+# enumerate_signatures.py honours. Reading only PORTING_SDK_PATH — which nothing
+# sets — made the env escape hatch dead: it happened to work solely because
+# ../porting-sdk resolves in both the local and CI layouts, so an explicit
+# override would have been silently ignored. A resolution failure still fails
+# LOUD via abort_missing_python_surface; this never degrades to an empty oracle.
+ENV_PORTING_SDK_VARS = %w[PORTING_SDK PORTING_SDK_PATH].freeze
+
 def find_default_porting_sdk
-  env = ENV.fetch('PORTING_SDK_PATH', nil)
-  return Pathname.new(env) if env && !env.empty?
+  ENV_PORTING_SDK_VARS.each do |var|
+    env = ENV.fetch(var, nil)
+    return Pathname.new(env) if env && !env.empty?
+  end
 
   [REPO_ROOT.join('porting-sdk'), REPO_ROOT.parent.join('porting-sdk')].each do |p|
     return p if p.directory?
@@ -145,7 +158,7 @@ def abort_missing_python_surface(path)
       The script needs the canonical Python surface to map Ruby classes onto
       Python module paths. Without it the output is not comparable against
       python_surface.json and the Layer B audit will fail.
-      Pass --python-surface PATH or set PORTING_SDK_PATH.
+      Pass --python-surface PATH or set PORTING_SDK.
   MSG
 end
 
