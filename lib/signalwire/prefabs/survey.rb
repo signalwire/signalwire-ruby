@@ -12,8 +12,8 @@ require_relative '../swaig/function_result'
 module SignalWire
   module Prefabs
     # @api private — per-question-type answer validation for Survey. Split out
-    # of Survey so the class keeps only its parity surface + survey state;
-    # these helpers are pure functions of (question, response).
+    # of Survey so the class keeps only its public API + survey state; these
+    # helpers are pure functions of (question, response).
     module AnswerValidation
       private
 
