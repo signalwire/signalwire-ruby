@@ -33,16 +33,41 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 PORT_ROOT = HERE.parent
-PSDK = (PORT_ROOT.parent / "porting-sdk").resolve()
-if not PSDK.is_dir():
+
+
+def _resolve_porting_sdk() -> Path:
+    """Locate the porting-sdk checkout, or FAIL LOUD.
+
+    Order (first existing wins), matching ``enumerate_surface.rb``:
+      1. ``$PORTING_SDK``   — the canonical var every workflow here exports
+      2. ``../porting-sdk`` — local layout (sibling of this repo)
+      3. ``./porting-sdk``  — CI layout (checked out under the repo root)
+
+    The env var goes FIRST on purpose. It used to be checked only as a fallback
+    *after* the sibling probe, so on any machine with a sibling checkout an
+    explicit override was silently ignored and could not redirect the enumerator
+    at all — the opposite of what an override is for. ``./porting-sdk`` was not
+    probed at all, which is the layout CI actually uses.
+
+    Never returns a degraded result: an unresolvable oracle raises. A resolver
+    that quietly yields "no oracle" is the trap that cost dotnet ~300 lost
+    symbols behind a phantom CI red and go ~200 chased through six wrong
+    hypotheses, because the enumerator still exited 0 with a plausible snapshot.
+    """
     env_psdk = os.environ.get("PORTING_SDK")
     if env_psdk and Path(env_psdk).is_dir():
-        PSDK = Path(env_psdk).resolve()
-    else:
-        raise SystemExit(
-            "porting-sdk not found: expected a sibling of this repo "
-            f"({PORT_ROOT.parent / 'porting-sdk'}) or a $PORTING_SDK override."
-        )
+        return Path(env_psdk).resolve()
+    for cand in (PORT_ROOT.parent / "porting-sdk", PORT_ROOT / "porting-sdk"):
+        if cand.is_dir():
+            return cand.resolve()
+    raise SystemExit(
+        "porting-sdk not found: set $PORTING_SDK, or clone it as a sibling of "
+        f"this repo ({PORT_ROOT.parent / 'porting-sdk'}) or under it "
+        f"({PORT_ROOT / 'porting-sdk'}). Refusing to emit a degraded snapshot."
+    )
+
+
+PSDK = _resolve_porting_sdk()
 
 # The generated REST resource layer (scripts/generate_rest.py) emits every
 # class into SignalWire::REST::Namespaces::Generated::<Name>; the idiom-blind
