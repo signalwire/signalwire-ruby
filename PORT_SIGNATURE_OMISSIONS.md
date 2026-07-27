@@ -79,10 +79,14 @@ PORT_ADDITIONS.md and are inherited automatically by the signature diff.
    instead of the full Python parameter list. Tracked here as Ruby idiom
    matching the TypeScript port's BACKLOG entries.
 
-4. **Ruby `**base` event spread** — Subclassed event `__init__` methods
-   take their subclass-specific keyword args plus `**base` to forward to
-   `super(**base)`. Python flattens the constructor inheritance into a
-   single explicit signature; Ruby keeps base-class params under `**base`.
+Constructors (`__init__` as a member) are NOT excused here: per
+ALLOWLIST_DISCIPLINE.md §495 the shared signature diff EXCLUDES a `__init__`
+member whenever the reference publishes a `construction` entry for that class,
+because the §10 construction node already compares the same capability BY
+PARAMETER NAME instead of by position. The Ruby keyword-constructor idiom and
+the event-subclass `**base` spread therefore need no ledger entries at all.
+A `__init__` on a class the construction node does NOT cover keeps its member
+finding and stays listed below.
 
 # Ruby keyword-argument idiom (Python positional with default ≡ Ruby keyword arg)
 
@@ -94,14 +98,11 @@ signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_language: kwargs-idiom 
 signalwire.core.mixins.ai_config_mixin.AIConfigMixin.add_pattern_hint: kwargs-idiom — Ruby splats positional args plus optional keyword `ignore_case:`; ≡ Python `(hint, pattern, replace, ignore_case=False)`
 signalwire.core.mixins.web_mixin.WebMixin.on_swml_request: kwargs-idiom — Ruby third positional optional + `request:` keyword ≡ Python `on_swml_request(request_data, callback_path, request)`
 signalwire.core.agent_base.AgentBase.on_debug_event: kwargs-idiom — Ruby `handler:` keyword ≡ Python positional with default
-signalwire.core.contexts.GatherInfo.__init__: kwargs-idiom — Ruby `(output_key:, completion_action:, prompt:, isolated:)` ≡ Python positional with default
-signalwire.core.contexts.GatherQuestion.__init__: kwargs-idiom — Ruby keyword constructor ≡ Python positional with default
 signalwire.core.contexts.Step.set_gather_info: kwargs-idiom — Ruby keyword args ≡ Python positional with default
 signalwire.core.data_map.DataMap.parameter: kwargs-idiom — Ruby `(required:, enum:)` keyword ≡ Python positional with default
 signalwire.core.swml_service.SWMLService.register_routing_callback: kwargs-idiom — Ruby keyword args ≡ Python positional with default
 signalwire.relay.client.RelayClient.on_call: kwargs-idiom — Ruby keyword args ≡ Python positional with default
 signalwire.relay.client.RelayClient.on_message: kwargs-idiom — Ruby keyword args ≡ Python positional with default
-signalwire.rest.client.RestClient.__init__: kwargs-idiom — Ruby keyword constructor ≡ Python positional with default
 
 # from_payload classmethod — Ruby static method has no explicit cls receiver
 
@@ -131,34 +132,6 @@ signalwire.relay.call.Call.send_digits: kwargs-collapse — Ruby includes option
 signalwire.relay.call.Call.send_fax: kwargs-collapse — Ruby keeps required args explicit, optionals collapse into **kwargs
 signalwire.relay.call.Call.stream: kwargs-collapse — Ruby keeps required args explicit, optionals collapse into **kwargs
 signalwire.relay.call.Call.transcribe: kwargs-collapse — Ruby keeps required args explicit, optionals collapse into **kwargs
-signalwire.prefabs.receptionist.ReceptionistAgent.__init__: kwargs-collapse — Ruby `**_opts` forwards extra kwargs to AgentBase super
-signalwire.prefabs.survey.SurveyAgent.__init__: kwargs-collapse — Ruby `**_opts` forwards extra kwargs to AgentBase super
-
-# Ruby **base spread — event subclass __init__ takes its own keyword args plus **base for super
-
-signalwire.relay.event.CallReceiveEvent.__init__: base-spread — Ruby keyword args + `**base` forwarded to super; Python flattens inheritance
-signalwire.relay.event.CallStateEvent.__init__: base-spread — Ruby keyword args + `**base` forwarded to super
-signalwire.relay.event.CallingErrorEvent.__init__: base-spread — Ruby keyword args + `**base` forwarded to super
-signalwire.relay.event.CollectEvent.__init__: base-spread — Ruby keyword args + `**base` forwarded to super
-signalwire.relay.event.ConferenceEvent.__init__: base-spread — Ruby keyword args + `**base` forwarded to super
-signalwire.relay.event.ConnectEvent.__init__: base-spread — Ruby keyword args + `**base` forwarded to super
-signalwire.relay.event.DenoiseEvent.__init__: base-spread — Ruby keyword args + `**base` forwarded to super
-signalwire.relay.event.DetectEvent.__init__: base-spread — Ruby keyword args + `**base` forwarded to super
-signalwire.relay.event.DialEvent.__init__: base-spread — Ruby keyword args + `**base` forwarded to super
-signalwire.relay.event.EchoEvent.__init__: base-spread — Ruby keyword args + `**base` forwarded to super
-signalwire.relay.event.FaxEvent.__init__: base-spread — Ruby keyword args + `**base` forwarded to super
-signalwire.relay.event.HoldEvent.__init__: base-spread — Ruby keyword args + `**base` forwarded to super
-signalwire.relay.event.MessageReceiveEvent.__init__: base-spread — Ruby keyword args + `**base` forwarded to super
-signalwire.relay.event.MessageStateEvent.__init__: base-spread — Ruby keyword args + `**base` forwarded to super
-signalwire.relay.event.PayEvent.__init__: base-spread — Ruby keyword args + `**base` forwarded to super
-signalwire.relay.event.PlayEvent.__init__: base-spread — Ruby keyword args + `**base` forwarded to super
-signalwire.relay.event.QueueEvent.__init__: base-spread — Ruby keyword args + `**base` forwarded to super
-signalwire.relay.event.RecordEvent.__init__: base-spread — Ruby keyword args + `**base` forwarded to super
-signalwire.relay.event.ReferEvent.__init__: base-spread — Ruby keyword args + `**base` forwarded to super
-signalwire.relay.event.SendDigitsEvent.__init__: base-spread — Ruby keyword args + `**base` forwarded to super
-signalwire.relay.event.StreamEvent.__init__: base-spread — Ruby keyword args + `**base` forwarded to super
-signalwire.relay.event.TapEvent.__init__: base-spread — Ruby keyword args + `**base` forwarded to super
-signalwire.relay.event.TranscribeEvent.__init__: base-spread — Ruby keyword args + `**base` forwarded to super
 
 # Single-case: kind 'keyword' vs 'var_keyword' (RelayClient.dial)
 
@@ -166,7 +139,6 @@ signalwire.relay.client.RelayClient.dial: kwargs-spread — Ruby `dial_timeout:`
 
 # Prompt Object Model — Ruby keyword-arg idiom
 
-signalwire.pom.pom.PromptObjectModel.__init__: Ruby keyword-arg idiom — `debug:` defaults are keyword in Ruby, positional with default in Python
 signalwire.pom.pom.PromptObjectModel.to_json: Ruby JSON convention — `to_json(*_args)` accepts the optional state argument that Ruby's JSON.generate forwards
 signalwire.pom.pom.Section.render_markdown: Ruby keyword-arg idiom — `level:` and `section_number:` are keyword in Ruby, positional with default in Python
 signalwire.pom.pom.Section.render_xml: Ruby keyword-arg idiom — `indent:` and `section_number:` are keyword in Ruby, positional with default in Python
@@ -206,7 +178,6 @@ signalwire.core.swml_service.SWMLService.security: Ruby SWMLService keeps securi
 signalwire.web.web_service.WebService.app: Ruby WebService wraps a Rack app via `rack_app`; Python exposes a Flask `.app` attribute — no direct equivalent (matches AgentServer.app / PORT_OMISSIONS)
 
 # --- Reference signature-oracle gaps (reference surface HAS the symbol) ---
-signalwire.agents.bedrock.BedrockAgent.__init__: reference-oracle gap — the signature oracle omits `signalwire.agents.bedrock`, but the reference SURFACE records the full BedrockAgent surface and the port implements it (SURFACE-DIFF PASS)
 signalwire.agents.bedrock.BedrockAgent.set_inference_params: reference-oracle gap — the signature oracle omits `signalwire.agents.bedrock`, but the reference SURFACE records the full BedrockAgent surface and the port implements it (SURFACE-DIFF PASS)
 signalwire.agents.bedrock.BedrockAgent.set_llm_model: reference-oracle gap — the signature oracle omits `signalwire.agents.bedrock`, but the reference SURFACE records the full BedrockAgent surface and the port implements it (SURFACE-DIFF PASS)
 signalwire.agents.bedrock.BedrockAgent.set_llm_temperature: reference-oracle gap — the signature oracle omits `signalwire.agents.bedrock`, but the reference SURFACE records the full BedrockAgent surface and the port implements it (SURFACE-DIFF PASS)
