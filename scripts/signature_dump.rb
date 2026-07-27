@@ -70,11 +70,29 @@ def singleton_method_entries(mod)
   end
 end
 
+# The SDK-internal superclass, when the class has one. Recorded so the
+# construction contract (porting-sdk ALLOWLIST_DISCIPLINE.md §10) can follow a
+# ``**opts``-to-``super`` forward: a Ruby subclass that splats the inherited
+# keyword args accepts every one of them by name, but Method#parameters shows
+# only the splat. Nil for non-classes and for anything outside SignalWire::.
+def sdk_superclass(mod)
+  return nil unless mod.is_a?(Class)
+
+  sup = mod.superclass
+  return nil if sup.nil?
+
+  sup_name = sup.name
+  return nil if sup_name.nil? || !sup_name.start_with?('SignalWire')
+
+  sup_name
+end
+
 def type_entry(mod, name)
   methods = instance_method_entries(mod) + singleton_method_entries(mod)
   return nil if methods.empty?
 
-  { full_name: name, short_name: name.split('::').last, kind: module_kind(mod), methods: methods }
+  { full_name: name, short_name: name.split('::').last, kind: module_kind(mod),
+    superclass: sdk_superclass(mod), methods: methods }
 end
 
 # Pre-load every .rb file under lib/ so reflection sees every class.

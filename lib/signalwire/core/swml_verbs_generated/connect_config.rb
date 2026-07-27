@@ -24,7 +24,7 @@ module SignalWire
           'codecs' => :string,
           'webrtc_media' => :object,
           'session_timeout' => :object,
-          'ringback' => :array,
+          'ringback' => :object,
           'result' => :object,
           'timeout' => :object,
           'max_duration' => :object,

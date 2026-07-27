@@ -20,7 +20,20 @@ module SignalWire
     #   )
     #
     class Concierge
+      # The reference's default when the caller supplies no hours
+      # (prefabs/concierge.py:78). It always renders an Hours of Operation
+      # section, so the default has to exist rather than the section vanishing.
+      DEFAULT_HOURS = { 'default' => '9 AM - 5 PM' }.freeze
+
       attr_reader :venue_name, :services, :amenities, :name, :route
+
+      # @return [Hash{String=>String}] operating hours per label — the
+      #   caller-supplied map or {DEFAULT_HOURS}. Reference attribute
+      #   `self.hours_of_operation` (prefabs/concierge.py:78).
+      # @return [Array<String>] +special_instructions+: extra instruction
+      #   bullets appended to the agent's Instructions. Reference attribute
+      #   `self.special_instructions` (prefabs/concierge.py:79).
+      attr_reader :hours_of_operation, :special_instructions
 
       def initialize(venue_name:, services:, amenities:, hours_of_operation: nil,
                      special_instructions: nil, welcome_message: nil,
@@ -28,9 +41,12 @@ module SignalWire
         @venue_name     = venue_name
         @services       = services || []
         @amenities      = (amenities || {}).transform_keys(&:to_s)
-        @hours          = hours_of_operation
-        @instructions   = special_instructions || []
-        @welcome        = welcome_message || "Welcome to #{venue_name}! How can I assist you today?"
+        # The reference takes a per-label MAP (`dict[str, str]`); normalise a
+        # bare String to the default label so both shapes reach the prompt and
+        # `global_data` always carries a map, as every other port does.
+        @hours_of_operation = normalize_hours(hours_of_operation)
+        @special_instructions = special_instructions || []
+        @welcome = welcome_message || "Welcome to #{venue_name}! How can I assist you today?"
         @name  = name
         @route = route
       end
@@ -47,7 +63,10 @@ module SignalWire
             'bullets' => @services.map(&:to_s) + amenity_bullets
           }
         ]
-        sections << hours_section if @hours
+        sections << instructions_section unless @special_instructions.empty?
+        # Always emitted — the reference renders this section unconditionally
+        # from a defaulted map, so hours are never silently absent.
+        sections << hours_section
         sections
       end
 
@@ -55,7 +74,9 @@ module SignalWire
         {
           'venue_name' => @venue_name,
           'services' => @services,
-          'amenities' => @amenities
+          'amenities' => @amenities,
+          'hours_of_operation' => @hours_of_operation,
+          'special_instructions' => @special_instructions
         }
       end
 
@@ -149,10 +170,30 @@ module SignalWire
         info.is_a?(Hash) ? info.map { |k, v| "#{k}: #{v}" }.join(', ') : info.to_s
       end
 
-      # The optional "Hours of Operation" prompt section built from @hours.
+      # Normalise the caller's hours to the reference's per-label map shape. A
+      # bare String is accepted for convenience and filed under the default
+      # label; nil falls back to DEFAULT_HOURS.
+      def normalize_hours(hours)
+        return DEFAULT_HOURS.dup if hours.nil?
+        return { 'default' => hours.to_s } unless hours.is_a?(Hash)
+
+        hours.transform_keys(&:to_s)
+      end
+
+      # The "Hours of Operation" prompt section. One "Label: value" line per
+      # entry, labels title-cased and newline-joined, matching the reference
+      # (`"\n".join(f"{k.title()}: {v}" ...)`, prefabs/concierge.py:133-135).
       def hours_section
-        body = @hours.is_a?(Hash) ? @hours.map { |k, v| "#{k}: #{v}" }.join('; ') : @hours.to_s
+        body = @hours_of_operation.map { |k, v| "#{k.to_s.split(/\s+/).map(&:capitalize).join(' ')}: #{v}" }
+                                  .join("\n")
         { 'title' => 'Hours of Operation', 'body' => body }
+      end
+
+      # The extra instruction bullets the caller supplied. The reference appends
+      # these to its Instructions section (prefabs/concierge.py:106); before this
+      # they were stored and never reached the prompt at all.
+      def instructions_section
+        { 'title' => 'Instructions', 'bullets' => @special_instructions.map(&:to_s) }
       end
 
       def amenity_not_found(amenity)

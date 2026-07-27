@@ -33,16 +33,41 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 PORT_ROOT = HERE.parent
-PSDK = (PORT_ROOT.parent / "porting-sdk").resolve()
-if not PSDK.is_dir():
+
+
+def _resolve_porting_sdk() -> Path:
+    """Locate the porting-sdk checkout, or FAIL LOUD.
+
+    Order (first existing wins), matching ``enumerate_surface.rb``:
+      1. ``$PORTING_SDK``   — the canonical var every workflow here exports
+      2. ``../porting-sdk`` — local layout (sibling of this repo)
+      3. ``./porting-sdk``  — CI layout (checked out under the repo root)
+
+    The env var goes FIRST on purpose. It used to be checked only as a fallback
+    *after* the sibling probe, so on any machine with a sibling checkout an
+    explicit override was silently ignored and could not redirect the enumerator
+    at all — the opposite of what an override is for. ``./porting-sdk`` was not
+    probed at all, which is the layout CI actually uses.
+
+    Never returns a degraded result: an unresolvable oracle raises. A resolver
+    that quietly yields "no oracle" is the trap that cost dotnet ~300 lost
+    symbols behind a phantom CI red and go ~200 chased through six wrong
+    hypotheses, because the enumerator still exited 0 with a plausible snapshot.
+    """
     env_psdk = os.environ.get("PORTING_SDK")
     if env_psdk and Path(env_psdk).is_dir():
-        PSDK = Path(env_psdk).resolve()
-    else:
-        raise SystemExit(
-            "porting-sdk not found: expected a sibling of this repo "
-            f"({PORT_ROOT.parent / 'porting-sdk'}) or a $PORTING_SDK override."
-        )
+        return Path(env_psdk).resolve()
+    for cand in (PORT_ROOT.parent / "porting-sdk", PORT_ROOT / "porting-sdk"):
+        if cand.is_dir():
+            return cand.resolve()
+    raise SystemExit(
+        "porting-sdk not found: set $PORTING_SDK, or clone it as a sibling of "
+        f"this repo ({PORT_ROOT.parent / 'porting-sdk'}) or under it "
+        f"({PORT_ROOT / 'porting-sdk'}). Refusing to emit a degraded snapshot."
+    )
+
+
+PSDK = _resolve_porting_sdk()
 
 # The generated REST resource layer (scripts/generate_rest.py) emits every
 # class into SignalWire::REST::Namespaces::Generated::<Name>; the idiom-blind
@@ -122,9 +147,21 @@ REST_SIGNATURES: dict[str, list[dict]] = _REST_SIG_RAW.get("methods", {})
 #     ``**kwargs``) have no projection source and stay ``any`` — those remain
 #     governed by PORT_SIGNATURE_OMISSIONS.md as before.
 _REF_SIG_PATH = PSDK / "python_signatures.json"
-_REF_SIG_RAW = (
-    json.loads(_REF_SIG_PATH.read_text()) if _REF_SIG_PATH.is_file() else {}
-)
+# FAIL LOUD on an unresolvable oracle. This used to be
+# ``… if _REF_SIG_PATH.is_file() else {}``, which DEGRADED SILENTLY: an empty
+# oracle empties REF_PARAM_TYPES (every param type falls back to ``any``) and
+# empties every oracle-gated fold below, while the enumerator still exits 0 with
+# a plausible-looking snapshot. That exact failure mode cost dotnet ~300 lost
+# symbols behind a phantom CI red and go ~200 chased through six wrong
+# hypotheses. A gate that cannot resolve its oracle must say so, not quietly
+# emit less.
+if not _REF_SIG_PATH.is_file():
+    raise SystemExit(
+        f"porting-sdk oracle not found: {_REF_SIG_PATH}\n"
+        "  Set $PORTING_SDK to the porting-sdk checkout, or clone it as a "
+        "sibling of this repo. Refusing to emit a degraded snapshot."
+    )
+_REF_SIG_RAW = json.loads(_REF_SIG_PATH.read_text())
 
 
 def _build_ref_param_type_index() -> dict:
@@ -157,6 +194,26 @@ def _build_ref_param_type_index() -> dict:
 
 
 REF_PARAM_TYPES = _build_ref_param_type_index()
+
+
+def _build_ref_method_index() -> dict:
+    """``(module, class) -> {method_name, ...}`` for every method the reference
+    signature oracle records. The gate for the idiom method-strip tables below:
+    a strip entry's premise is "the reference records no such member", so the
+    oracle is the authority on whether that premise still holds. Class B2
+    (ALLOWLIST_DISCIPLINE §15) made several such premises false by recording
+    caller-supplied ``__init__`` attributes, which turned those entries into
+    hand-maintained capability removals. Gating on the oracle makes them
+    self-retire as it grows, instead of needing a hand edit per oracle change.
+    """
+    idx: dict = {}
+    for mod, me in _REF_SIG_RAW.get("modules", {}).items():
+        for cls, ce in me.get("classes", {}).items():
+            idx[(mod, cls)] = set(ce.get("methods", {}))
+    return idx
+
+
+REF_METHODS = _build_ref_method_index()
 
 # Hand-written param RENAMES (renames, NOT omissions — same param slot, same wire
 # role; only the Ruby-side identifier differs from the reference-recorded name).
@@ -202,6 +259,12 @@ HAND_PARAM_RENAMES: dict[tuple, dict[str, str]] = {
     ("signalwire.pom.pom", "Section", "__init__"): {"numbered_bullets": "numberedBullets"},
     ("signalwire.pom.pom", "Section", "add_subsection"): {"numbered_bullets": "numberedBullets"},
     ("signalwire.relay.call", "Call", "play"): {"loop_count": "loop"},
+    # DialEvent's ctor kwarg: the reference dataclass field is ``call``, Ruby
+    # spells the same slot ``call_data`` (``call`` collides with nothing but
+    # reads as a verb on an event object). Same wire key — both sides read
+    # ``params['call']`` (relay_event.rb:508, event.py:308) — so this is a
+    # RENAME, not a missing configurable.
+    ("signalwire.relay.event", "DialEvent", "__init__"): {"call_data": "call"},
     ("signalwire.rest._base", "HttpClient", "__init__"): {"project_id": "project", "space": "host"},
     ("signalwire.rest._base", "SignalWireRestError", "__init__"): {"method_name": "method"},
     ("signalwire.rest._base", "SignalWireRestTransportError", "__init__"): {"method_name": "method"},
@@ -237,11 +300,24 @@ SIG_METHOD_ALIASES: dict[tuple, dict[str, str]] = {
     ("signalwire.core.contexts", "GatherInfo"): {"to_h": "to_dict"},
     ("signalwire.core.contexts", "GatherQuestion"): {"to_h": "to_dict"},
     ("signalwire.pom.pom", "PromptObjectModel"): {"to_h": "to_dict"},
-    ("signalwire.pom.pom", "Section"): {"to_h": "to_dict"},
+    # ``numberedBullets`` is recorded camelCase VERBATIM because it IS the POM
+    # wire key (pom.py:345,361,371 round-trip it unchanged); Ruby spells the
+    # reader snake_case per its own idiom.
+    ("signalwire.pom.pom", "Section"): {
+        "to_h": "to_dict", "numbered_bullets": "numberedBullets"},
     ("signalwire.core.function_result", "FunctionResult"): {"to_h": "to_dict"},
+    ("signalwire.relay.event", "DialEvent"): {"call_data": "call"},
     ("signalwire.relay.call", "Call"): {"pass_call": "pass_", "tap_audio": "tap"},
     ("signalwire.relay.message", "Message"): {"on_event": "on"},
-    ("signalwire.relay.client", "RelayClient"): {"stop": "disconnect"},
+    ("signalwire.relay.client", "RelayClient"): {
+        "stop": "disconnect", "project_id": "project"},
+    # Ruby cannot name these readers ``message``: ``Exception#message`` is
+    # stdlib-defined and overriding it changes what raise/rescue and every logger
+    # print. Likewise ``method`` is ``Object#method``, core reflection on every
+    # object. Renamed here, wire/reference identity preserved.
+    ("signalwire.relay.client", "RelayError"): {"error_message": "message"},
+    ("signalwire.ai_chat.client", "AIChatError"): {"server_message": "message"},
+    ("signalwire.rest._base", "SignalWireRestError"): {"method_name": "method"},
     ("signalwire.prefabs.faq_bot", "FAQBotAgent"): {"handle_search": "search_faqs"},
     ("signalwire.prefabs.info_gatherer", "InfoGathererAgent"): {
         "handle_start": "start_questions", "handle_submit": "submit_answer"},
@@ -370,14 +446,22 @@ AI_CHAT_STRUCT_FIELDS: dict[tuple, list[str]] = {
 # as plain instance ATTRIBUTES or a PRIVATE method — no reference surface member
 # to compare against, so drop them (mirrors enumerate_surface.rb's
 # SURFACE_MEMBER_DROPS). Keyed (module, class) -> method names to remove.
+# ORACLE-GATED (see the loop in synth_ai_chat_struct_inits): an entry applies
+# only while REF_METHODS does NOT record that name on that class. Names here are
+# the POST-ALIAS spelling — apply_sig_method_aliases runs first, so ``message``
+# not ``server_message``. Keying a member table by the SOURCE name while the
+# consumer sees the EMITTED one is how typescript silently dropped every field of
+# an aliased class; key it by what the emitter emits.
 AI_CHAT_METHOD_DROPS: dict[tuple, set[str]] = {
     # resolve_url mirrors the reference's PRIVATE ``_resolve_url`` @staticmethod
     # (dropped from the reference surface by its leading ``_``); Ruby exposes the
-    # same helper public for testability.
+    # same helper public for testability. Still live — the oracle records no
+    # ``resolve_url``.
     ("signalwire.ai_chat.client", "AIChatClient"): {"resolve_url"},
-    # #code / #server_message are attr_readers over the reference's
-    # ``self.code`` / message instance attributes set in ``__init__``.
-    ("signalwire.ai_chat.client", "AIChatError"): {"code", "server_message"},
+    # Written for the pre-B2 oracle, which recorded ``code``/``message`` only as
+    # ``__init__`` params. The oracle NOW records both as members, so the gate
+    # retires this entry and the Ruby readers are emitted.
+    ("signalwire.ai_chat.client", "AIChatError"): {"code", "message"},
 }
 
 
@@ -401,13 +485,27 @@ def synth_ai_chat_struct_inits(out_modules: dict) -> None:
             {"name": f, "type": "any", "kind": "keyword", "required": False, "default": None}
             for f in readers
         ]
-        entry["methods"] = {"__init__": {"params": params, "returns": "void"}}
+        # The oracle records each dataclass field BOTH as an ``__init__`` param
+        # AND as a zero-arg accessor member (griffe surfaces the field). Keep the
+        # Struct's field readers (their `self`-only zero-arg shape) alongside the
+        # synthesized keyword ``__init__``; drop the rest of the Struct machinery
+        # (`new`/`members`/`keyword_init?`/`inspect`/`[]`/…). The field types come
+        # from the reference-param-type projection run next.
+        new_methods = {"__init__": {"params": params, "returns": "void"}}
+        for f in readers:
+            new_methods[f] = methods[f]
+        entry["methods"] = new_methods
 
     for (mod, cls), drops in AI_CHAT_METHOD_DROPS.items():
         entry = out_modules.get(mod, {}).get("classes", {}).get(cls)
         if not entry:
             continue
+        recorded = REF_METHODS.get((mod, cls), set())
         for m in drops:
+            # Oracle gate: never strip a member the reference records — that
+            # would remove a capability the reference publishes.
+            if m in recorded:
+                continue
             entry.get("methods", {}).pop(m, None)
 
 
@@ -854,8 +952,6 @@ RUBY_MODULE_LEVEL_OVERRIDES = {
 # singleton methods as a synthetic class (mirroring enumerate_surface.rb)
 # so the surface- and signature-level audits see the same shape.
 RUBY_PORT_ONLY_MODULE_AS_CLASS = {
-    # SignalWire::Logging.global_level / .logger / etc. -> Logging class
-    "SignalWire::Logging": ("signalwire.logging", "Logging"),
     # SignalWire::Runtime.execution_mode / .lambda? / etc. -> Runtime class
     "SignalWire::Runtime": ("signalwire.runtime", "Runtime"),
     # SignalWire::Contexts.create_simple_context -> Contexts class
@@ -871,6 +967,18 @@ EXCLUDED_RUBY_CLASSES = {
     "SignalWire::SWML::Service::SecurityHeadersMiddleware",
     "SignalWire::SWML::Service::TimingSafeBasicAuth",
     "SignalWire::Logging::Logger",
+    # The PRIVATE backing implementation of the public reference-parity facade
+    # SignalWire::Core::LoggingConfig, which already projects onto all five
+    # signalwire.core.logging_config free functions (zero omissions).
+    # lib/signalwire/core/logging_config.rb delegates explicitly:
+    # get_logger -> Logging.logger, reset_logging_configuration ->
+    # Logging.reset!, configure_logging -> Logging.configure; global_level /
+    # suppressed? are the SIGNALWIRE_LOG_LEVEL / SIGNALWIRE_LOG_MODE=off
+    # settings the reference's configure_logging reads from the environment.
+    # No capability the reference cannot reach -> idiom, folded here rather
+    # than recorded as ADDITIONs (ALLOWLIST_DISCIPLINE §0/§0b). Kept in
+    # lockstep with RUBY_EXCLUDED_CLASSES in scripts/enumerate_surface.rb.
+    "SignalWire::Logging",
     "SignalWire::REST::Namespaces",
     # Internal implementation classes extracted during the lint burndown purely
     # to satisfy Metrics cops — no Python counterpart, file-local, not public
@@ -974,6 +1082,13 @@ KIND_TO_CANONICAL = {
 
 def collect(raw: dict) -> dict:
     out_modules: dict = {}
+    # canonical ``module.Class`` -> canonical ``module.Class`` of its SDK
+    # superclass. Populated below; consumed ONLY by build_construction to follow
+    # a ``**opts``-to-``super`` forward (see that function's docstring). Kept as
+    # a side index rather than a field on the emitted classes so port_signatures
+    # keeps exactly the shape the differ and the other ports use.
+    superclass_index: dict[str, str] = {}
+    ruby_to_canonical: dict[str, str] = {}
 
     for type_entry in raw.get("types", []):
         full = type_entry.get("full_name", "")
@@ -1108,6 +1223,10 @@ def collect(raw: dict) -> dict:
         out_modules[mod]["classes"][canonical_class] = {
             "methods": dict(sorted(methods_out.items())),
         }
+        ruby_to_canonical[full] = f"{mod}.{canonical_class}"
+        raw_super = type_entry.get("superclass")
+        if raw_super:
+            superclass_index[f"{mod}.{canonical_class}"] = raw_super
 
     # Mixin projection: Ruby mixes all AgentBase mixins via include/extend
     # so every method shows on AgentBase. Project canonical-Python mixin
@@ -1157,11 +1276,180 @@ def collect(raw: dict) -> dict:
             }
         if "functions" in entry:
             sorted_modules[k]["functions"] = dict(sorted(entry["functions"].items()))
+    # Resolve each recorded Ruby superclass name to its canonical ``module.Class``.
+    # A superclass outside the audited set (or dropped by EXCLUDED_RUBY_CLASSES)
+    # simply has no entry — the chain stops there.
+    canonical_supers = {
+        cls: ruby_to_canonical[raw_super]
+        for cls, raw_super in superclass_index.items()
+        if raw_super in ruby_to_canonical
+    }
     return {
         "version": "2",
         "generated_from": "signalwire-ruby via Method#parameters reflection",
         "modules": sorted_modules,
+        "construction": build_construction(sorted_modules, canonical_supers),
     }
+
+
+# ---------------------------------------------------------------------------
+# Construction contract (porting-sdk ALLOWLIST_DISCIPLINE.md §10)
+# ---------------------------------------------------------------------------
+
+# Ruby expresses the reference's wide kwargs constructor DIRECTLY: Python's
+# ``AgentBase.__init__(self, name=…, route=…, host=…, …)`` is Ruby's
+# ``AgentBase#initialize(name:, route:, host:, …)``. Ruby keyword args are the
+# closest analogue to Python kwargs in the fleet — same NAMED, unordered,
+# any-subset call shape — so no builder binding and no name mapping are needed;
+# the construction set is exactly the ctor's keyword parameters.
+#
+# This is what retires the 33 ``__init__`` signature-omissions whose rationale is
+# literally "kwargs-idiom — Ruby keyword constructor ≡ Python positional with
+# default": the positional-matching ``compare_param`` could never line a keyword
+# ctor up against Python's positional-with-default signature, so the whole
+# constructor was excused at once. Name-keyed construction compares them
+# param-for-param instead.
+
+# Params that are the ctor MECHANISM, not configurables. Ruby's ``**base`` spread
+# (event subclasses forward the base-event fields to ``super``) and ``*args`` are
+# splats, not named configurables; ``&block`` likewise. Kinds are already
+# canonicalized by KIND_TO_CANONICAL, so this is a kind filter, not a name list.
+_CONSTRUCTION_NON_PARAM_KINDS = frozenset(
+    {"self", "cls", "var_keyword", "var_positional"}
+)
+
+# The reference's own construction sets, used to GATE the ``**opts``-to-``super``
+# fold (see build_construction). This is the same oracle-driven discipline as
+# enumerate_surface.rb's ORACLE_FIELD_ACCESSOR_MODULES: the adapter never decides
+# on its own which inheritance to flatten — it asks the oracle what the reference
+# actually records, per class.
+REF_CONSTRUCTION: dict = _REF_SIG_RAW.get("construction", {})
+
+
+def _oracle_flattens(cls: str, parent: str) -> bool:
+    """Does the REFERENCE flatten ``parent``'s construction params into ``cls``?
+
+    True when the reference's own construction set for ``cls`` already contains
+    the parent's params (Python's ``@dataclass`` inheritance) — then Ruby's
+    ``**base`` splat is folding the SAME set and must be unfolded to compare.
+    False when the reference records only the subclass's own params (a
+    ``**kwargs``-to-``super()`` forward, which the oracle does not enumerate) —
+    folding there would invent extra params the reference never declares.
+
+    FAILS LOUD rather than guessing: an oracle with no ``construction`` node at
+    all means this enumerator is running against a pre-contract reference, and a
+    silent False would emit a construction set that quietly under-reports every
+    event class. Raising is the correct behaviour — regenerate/pull the oracle.
+    """
+    if not REF_CONSTRUCTION:
+        raise RuntimeError(
+            f"{_REF_SIG_PATH} has no `construction` node — cannot gate the "
+            "**opts-to-super fold against the oracle. Pull porting-sdk (the "
+            "construction contract landed in cf05021) and re-run."
+        )
+    ref_cls = (REF_CONSTRUCTION.get(cls) or {}).get("params")
+    ref_parent = (REF_CONSTRUCTION.get(parent) or {}).get("params")
+    if not ref_cls or not ref_parent:
+        # The reference does not record a construction set for one side of this
+        # edge; there is nothing to unfold TOWARD, so leave the port's own set.
+        return False
+    return set(ref_parent).issubset(set(ref_cls))
+
+
+def build_construction(modules: dict, superclasses: dict) -> dict:
+    """Return ``{"module.Class": {"params": {name: {type, required}}}}``.
+
+    A NAME-KEYED set — order/arity/mechanism are idiom, the named set is the
+    capability (porting-sdk ALLOWLIST_DISCIPLINE.md §10). The primary source for
+    Ruby is the class's own ``__init__`` (``initialize``): Ruby's keyword
+    constructor already IS the reference's named parameter set, unlike the
+    factory/options-struct/builder ports which must bind a second construct.
+
+    ``required`` mirrors the source signature — Ruby's ``:keyreq`` (``name:``
+    with no default) is required, ``:key`` (``name: default``) is not. Per the
+    owner ruling ``required`` is contract and must not vary between ports, so a
+    Ruby ctor that defaults a reference-required param (or demands a
+    reference-defaulted one) raises ``construction-required-flip`` rather than
+    being smoothed over here.
+
+    THE ``**opts``-TO-``super`` FOLD, ORACLE-GATED. Ruby's second construction
+    idiom is the keyword splat: ``CallReceiveEvent#initialize(call_state: '', …,
+    **base)`` ends in ``super(**base)``, so a caller may pass every one of the
+    base class's keyword args — ``event_type:``, ``params:``, ``call_id:``,
+    ``timestamp:`` — directly to the subclass (verified by construction, not by
+    reading). ``Method#parameters`` reports only the ``:keyrest`` splat, so
+    reflection alone under-reports the set by the whole inherited tail.
+
+    But the reference has TWO subclass-construction shapes and they record
+    DIFFERENTLY, so the fold cannot be applied unconditionally:
+
+      * ``@dataclass`` events (``CallReceiveEvent(RelayEvent)``) — Python's
+        dataclass machinery genuinely FLATTENS the base's fields into the
+        generated ``__init__``, so the oracle records all 12 params. Ruby's
+        ``**base`` splat is the same capability; without the fold each event
+        reads as 4 missing configurables. FOLD.
+      * ``**kwargs`` agents (``BedrockAgent(AgentBase)``) — the reference
+        subclass ALSO forwards to ``super()``, and the oracle records only the
+        subclass's OWN 7 params. Folding here would make Ruby declare 20
+        ``construction-extra-param``s against a reference that simply does not
+        enumerate them. DO NOT FOLD.
+
+    The discriminator is not a property of Ruby at all — it is what the ORACLE
+    records — so the gate reads the oracle: fold only into classes the reference
+    itself flattens, i.e. where the reference's construction set already
+    CONTAINS the parent's params. Same discipline as
+    ``ORACLE_FIELD_ACCESSOR_MODULES`` in enumerate_surface.rb: oracle-driven,
+    scoped, and it fails loud (see ``_oracle_flattens``) rather than guessing
+    when the oracle is unavailable.
+
+    Gating additionally on the splat keeps it honest from the Ruby side — a
+    subclass that does NOT splat genuinely cannot accept the inherited keywords,
+    and its missing params stay visible.
+    """
+    own: dict = {}
+    splats: set = set()
+    for mod, entry in modules.items():
+        for cls, cinfo in (entry.get("classes") or {}).items():
+            init = (cinfo.get("methods") or {}).get("__init__")
+            if not isinstance(init, dict):
+                continue
+            key = f"{mod}.{cls}"
+            params: dict = {}
+            for p in init.get("params", []):
+                if not isinstance(p, dict):
+                    continue
+                kind = p.get("kind") or "positional"
+                if kind == "var_keyword":
+                    splats.add(key)
+                if kind in _CONSTRUCTION_NON_PARAM_KINDS:
+                    continue
+                name = p.get("name")
+                if not name or name.startswith("_"):
+                    continue
+                params[name] = {
+                    "type": p.get("type", "any"),
+                    "required": bool(p.get("required", True)),
+                }
+            own[key] = params
+
+    def resolved(key: str, seen: frozenset = frozenset()) -> dict:
+        """Own params, plus the superclass's when this ctor splats to ``super``
+        AND the reference flattens the same inheritance (see the docstring)."""
+        params = dict(own.get(key, {}))
+        parent = superclasses.get(key)
+        if (key in splats and parent and parent not in seen
+                and _oracle_flattens(key, parent)):
+            inherited = resolved(parent, seen | {key})
+            for name, spec in inherited.items():
+                params.setdefault(name, spec)
+        return params
+
+    out: dict = {}
+    for key in own:
+        params = resolved(key)
+        if params:
+            out[key] = {"params": dict(sorted(params.items()))}
+    return dict(sorted(out.items()))
 
 
 def build_signature(method: dict, instance_method: bool) -> dict:

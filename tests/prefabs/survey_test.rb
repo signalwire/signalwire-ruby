@@ -72,3 +72,71 @@ class SurveyPrefabDetailedTest < Minitest::Test
     end
   end
 end
+
+# ---------------------------------------------------------------------------
+# Python parity: brand_name / max_retries
+# ---------------------------------------------------------------------------
+class SurveyPrefabBrandRetriesTest < Minitest::Test
+  def survey(**)
+    SignalWire::Prefabs::Survey.new(
+      survey_name: 'Test', questions: [{ 'id' => 'q1', 'text' => 'Q?' }], **
+    )
+  end
+
+  def prompt_blob(agent)
+    agent.prompt_sections.map { |s| [s['title'], s['body'], *(s['bullets'] || [])].join(' ') }.join(' ')
+  end
+
+  def test_default_brand_name
+    assert_equal 'Our Company', survey.brand_name
+  end
+
+  def test_custom_brand_name
+    assert_equal 'WidgetCorp', survey(brand_name: 'WidgetCorp').brand_name
+  end
+
+  def test_default_max_retries
+    assert_equal 2, survey.max_retries
+  end
+
+  def test_max_retries_setting
+    assert_equal 5, survey(max_retries: 5).max_retries
+  end
+
+  # brand_name reaches the model through the personality prompt section
+  def test_brand_name_in_prompt_sections
+    assert_includes prompt_blob(survey(brand_name: 'WidgetCorp')), 'WidgetCorp'
+  end
+
+  # max_retries reaches the model through the retry instruction bullet
+  def test_max_retries_in_prompt_sections
+    assert_includes prompt_blob(survey(max_retries: 5)), 'retry up to 5 times'
+  end
+
+  def test_brand_name_and_max_retries_in_global_data
+    data = survey(brand_name: 'WidgetCorp', max_retries: 5).global_data
+
+    assert_equal 'WidgetCorp', data['brand_name']
+    assert_equal 5, data['max_retries']
+  end
+
+  # ---- introduction / conclusion are readable back ---------------------------
+  # Both are DEFAULTED, so reading them back is the only way a caller learns
+  # which text the agent will actually speak. Public reference attributes.
+
+  def test_introduction_readable_back
+    assert_equal 'Welcome aboard.', survey(introduction: 'Welcome aboard.').introduction
+  end
+
+  def test_introduction_default_readable_back
+    assert_includes survey.introduction, 'Test'
+  end
+
+  def test_conclusion_readable_back
+    assert_equal 'All done, bye.', survey(conclusion: 'All done, bye.').conclusion
+  end
+
+  def test_conclusion_default_readable_back
+    assert_equal 'Thank you for completing the survey!', survey.conclusion
+  end
+end

@@ -54,12 +54,25 @@ LIB_DIR   = REPO_ROOT.join('lib')
 # disagrees with python_surface.json on every symbol.
 #
 # Search order (first existing wins):
-#   1. $PORTING_SDK_PATH (env override)
-#   2. ./porting-sdk     (CI layout — checked out as a sibling under repo root)
-#   3. ../porting-sdk    (local layout — sibling of signalwire-ruby)
+#   1. $PORTING_SDK      (the canonical cross-port var — what the workflows set)
+#   2. $PORTING_SDK_PATH (this script's original, ruby-only spelling)
+#   3. ./porting-sdk     (CI layout — checked out as a sibling under repo root)
+#   4. ../porting-sdk    (local layout — sibling of signalwire-ruby)
+#
+# $PORTING_SDK is checked FIRST because it is the name every workflow here
+# exports (test.yml, nightly.yml, publish.yml) and the name the sibling
+# enumerate_signatures.py honours. Reading only PORTING_SDK_PATH — which nothing
+# sets — made the env escape hatch dead: it happened to work solely because
+# ../porting-sdk resolves in both the local and CI layouts, so an explicit
+# override would have been silently ignored. A resolution failure still fails
+# LOUD via abort_missing_python_surface; this never degrades to an empty oracle.
+ENV_PORTING_SDK_VARS = %w[PORTING_SDK PORTING_SDK_PATH].freeze
+
 def find_default_porting_sdk
-  env = ENV.fetch('PORTING_SDK_PATH', nil)
-  return Pathname.new(env) if env && !env.empty?
+  ENV_PORTING_SDK_VARS.each do |var|
+    env = ENV.fetch(var, nil)
+    return Pathname.new(env) if env && !env.empty?
+  end
 
   [REPO_ROOT.join('porting-sdk'), REPO_ROOT.parent.join('porting-sdk')].each do |p|
     return p if p.directory?
@@ -145,8 +158,74 @@ def abort_missing_python_surface(path)
       The script needs the canonical Python surface to map Ruby classes onto
       Python module paths. Without it the output is not comparable against
       python_surface.json and the Layer B audit will fail.
-      Pass --python-surface PATH or set PORTING_SDK_PATH.
+      Pass --python-surface PATH or set PORTING_SDK.
   MSG
+end
+
+# The generated read-side payload reference modules whose model classes expose
+# TYPED field-accessor members on the reference SURFACE (griffe records a
+# generated Pydantic model's class-typed / list<class> / union<..,SWMLVar>
+# fields as accessor members — the porting-sdk B1 composition-attr enrichment).
+# Ruby's generated models carry a zero-arg `attr_reader` per wire field, so the
+# subset the reference records is emittable here (DTO-FIELD consistency fix):
+# instead of surfacing these classes method-less (which OMITS every recorded
+# field), emit exactly the readers the oracle records on each class — gated on
+# the ORACLE'S member set so scalar wire fields the reference does NOT record
+# (ai_volume, global_data, …) are never over-emitted. This mirrors what
+# go/rust/cpp/ts/php/dotnet already emit. Other generated-payload modules
+# (swaig_actions_generated, relay.protocol_types_generated) record zero members
+# on every class, so they stay method-less naturally — this map only lists the
+# modules the oracle records members on.
+ORACLE_FIELD_ACCESSOR_MODULES = %w[
+  signalwire.core.swml_verbs_generated
+  signalwire.core.post_prompt_generated
+  signalwire.core.swaig_request_generated
+  signalwire.ai_chat.client
+].freeze
+
+# Load the oracle's per-class recorded surface members for the generated-payload
+# modules that expose field accessors. Returns { [ref_module, class] => Set }.
+# Empty-member classes are omitted (they surface method-less either way).
+def load_oracle_generated_members(python_surface_path)
+  abort_missing_python_surface(python_surface_path) unless python_surface_path.file?
+
+  data = JSON.parse(python_surface_path.read)
+  out = {}
+  ORACLE_FIELD_ACCESSOR_MODULES.each do |mod|
+    entry = data.dig('modules', mod) or next
+    entry.fetch('classes', {}).each do |cls, members|
+      out[[mod, cls]] = members.to_set unless members.empty?
+    end
+  end
+  out
+end
+
+# The oracle's FULL per-class recorded surface, every module — { [mod, cls] =>
+# Set }. Used to ORACLE-GATE the idiom member-strip table (SURFACE_MEMBER_DROPS):
+# a strip entry applies only while the reference does NOT record that name on
+# that class. Rationale (ALLOWLIST_DISCIPLINE §15 / class B2): every entry in
+# that table was written when the oracle recorded a caller-supplied ctor param
+# ONLY as an `__init__` param and never as a surface member, so the Ruby
+# `attr_reader` over it had no reference counterpart to compare against. Class B2
+# closed that blind spot — the oracle now records those attributes — so a
+# hand-maintained strip has become a hand-maintained CAPABILITY REMOVAL. Gating
+# on the oracle makes the table self-retire member by member as the oracle grows,
+# instead of needing a hand edit per oracle change.
+#
+# Populated once by `build_snapshot` from the oracle; read by
+# `drop_idiom_members`. Mutable so the load happens after option parsing (the
+# oracle path is a CLI flag) without threading it through every process_* frame.
+ORACLE_ALL_MEMBERS = {} # rubocop:disable Style/MutableConstant -- filled by build_snapshot
+
+def load_oracle_all_members(python_surface_path)
+  abort_missing_python_surface(python_surface_path) unless python_surface_path.file?
+
+  data = JSON.parse(python_surface_path.read)
+  out = {}
+  data.fetch('modules', {}).each do |mod, entry|
+    entry.fetch('classes', {}).each { |cls, members| out[[mod, cls]] = members.to_set }
+  end
+  out
 end
 
 # When a class name has multiple Python modules or when Ruby's class name
@@ -330,6 +409,23 @@ RUBY_SWML_MODULE_OVERRIDES = {
 
 # Nested helper/middleware classes we don't want in the surface (they're
 # internal plumbing, not public API).
+#
+# `SignalWire::Logging` (and its nested `Logger`) is the PRIVATE BACKING
+# IMPLEMENTATION of the public reference-parity facade
+# `SignalWire::Core::LoggingConfig`, which is already projected onto the
+# reference's `signalwire.core.logging_config` free functions via
+# RUBY_FREE_FUNCTION_MODULES — all five of them (`configure_logging`,
+# `get_execution_mode`, `get_logger`, `reset_logging_configuration`,
+# `strip_control_chars`), with zero omissions. The delegation is explicit in
+# lib/signalwire/core/logging_config.rb: `get_logger` -> `Logging.logger`,
+# `reset_logging_configuration` -> `Logging.reset!`, `configure_logging` ->
+# `Logging.configure`. The remaining members are reachable through the
+# reference too — `global_level` / `suppressed?` are the SIGNALWIRE_LOG_LEVEL /
+# SIGNALWIRE_LOG_MODE=off settings the reference's `configure_logging` reads
+# from the environment. So `Logging` adds NO server capability the reference
+# cannot reach; it is the Ruby-idiom shape of an already-ported capability and
+# folds here (ALLOWLIST_DISCIPLINE §0/§0b) rather than surfacing as five
+# ADDITION entries.
 RUBY_EXCLUDED_CLASSES = %w[
   SignalWire::AgentBase::AgentBodyLimitMiddleware
   SignalWire::AgentBase::AgentSecurityHeadersMiddleware
@@ -337,6 +433,7 @@ RUBY_EXCLUDED_CLASSES = %w[
   SignalWire::SWML::Service::SecurityHeadersMiddleware
   SignalWire::SWML::Service::TimingSafeBasicAuth
   SignalWire::Logging::Logger
+  SignalWire::Logging
   SignalWire::REST::Namespaces
   SignalWire::Skills::Builtin::SafeEvaluator
   SignalWire::Skills::Builtin::MathTokenizer
@@ -416,12 +513,30 @@ SURFACE_METHOD_ALIASES = {
   ['signalwire.core.contexts', 'GatherInfo'] => { 'to_h' => 'to_dict' },
   ['signalwire.core.contexts', 'GatherQuestion'] => { 'to_h' => 'to_dict' },
   ['signalwire.pom.pom', 'PromptObjectModel'] => { 'to_h' => 'to_dict' },
-  ['signalwire.pom.pom', 'Section'] => { 'to_h' => 'to_dict' },
+  # `numberedBullets` is recorded camelCase VERBATIM because it IS the POM wire
+  # key (pom.py:345,361,371 round-trip it through the section dict unchanged), not
+  # reference sloppiness. Ruby spells the reader snake_case per its own idiom and
+  # the RENAME re-establishes the identity; converting the wire key would be wrong.
+  ['signalwire.pom.pom', 'Section'] => { 'to_h' => 'to_dict', 'numbered_bullets' => 'numberedBullets' },
   ['signalwire.core.function_result', 'FunctionResult'] => { 'to_h' => 'to_dict' },
+  ['signalwire.relay.event', 'DialEvent'] => { 'call_data' => 'call' },
   ['signalwire.relay.call', 'Action'] => { 'done?' => 'is_done' },
   ['signalwire.relay.call', 'Call'] => { 'inspect' => '__repr__', 'pass_call' => 'pass_', 'tap_audio' => 'tap' },
   ['signalwire.relay.message', 'Message'] => { 'inspect' => '__repr__', 'done?' => 'is_done', 'on_event' => 'on' },
-  ['signalwire.relay.client', 'RelayClient'] => { 'stop' => 'disconnect' },
+  # `project_id` is Ruby's spelling of the reference's `project` ctor param /
+  # attribute (RelayClient reads it back as `self.project`, relay/client.py:171).
+  # A rename, not an omission: the identity lines up and every other member of
+  # the class keeps comparing.
+  ['signalwire.relay.client', 'RelayClient'] => { 'stop' => 'disconnect', 'project_id' => 'project' },
+  # Ruby cannot name these readers `message`: `Exception#message` is already
+  # defined by the stdlib and overriding it would change what `raise`/`rescue`
+  # and every logger prints. So the port spells them `error_message` /
+  # `server_message` and the rename re-establishes the reference identity.
+  ['signalwire.relay.client', 'RelayError'] => { 'error_message' => 'message' },
+  ['signalwire.ai_chat.client', 'AIChatError'] => { 'server_message' => 'message' },
+  # `method` is `Object#method` in Ruby — a core reflection method on every
+  # object. The port spells the HTTP-verb reader `method_name`; renamed here.
+  ['signalwire.rest._base', 'SignalWireRestError'] => { 'method_name' => 'method' },
   ['signalwire.prefabs.faq_bot', 'FAQBotAgent'] => { 'handle_search' => 'search_faqs' },
   ['signalwire.prefabs.info_gatherer', 'InfoGathererAgent'] => {
     'handle_start' => 'start_questions', 'handle_submit' => 'submit_answer'
@@ -683,10 +798,10 @@ end
 # -----------------------------------------------------------------------------
 # Gather everything.
 # -----------------------------------------------------------------------------
-def collect_modules(python_index)
+def collect_modules(python_index, oracle_generated_members = {})
   # Modules in the final snapshot. Each entry: {"classes" => {...}, "functions" => [...]}.
   modules = Hash.new { |h, k| h[k] = { 'classes' => {}, 'functions' => [] } }
-  scan_object_space(modules, python_index)
+  scan_object_space(modules, python_index, oracle_generated_members)
   apply_method_donors(modules)
   apply_mixin_projections(modules)
   add_toplevel_functions(modules)
@@ -696,14 +811,14 @@ def collect_modules(python_index)
   modules.reject { |_k, v| v['classes'].empty? && v['functions'].empty? }
 end
 
-def scan_object_space(modules, python_index)
+def scan_object_space(modules, python_index, oracle_generated_members = {})
   seen_classes = {}
   ObjectSpace.each_object(Module) do |m|
     name = m.name
     next unless surface_module?(name, seen_classes)
 
     seen_classes[name] = true
-    process_module(m, name, modules, python_index)
+    process_module(m, name, modules, python_index, oracle_generated_members)
   end
 end
 
@@ -722,14 +837,15 @@ end
 
 # The AI-Chat response models are Ruby `Struct.new(..., keyword_init: true)`
 # value types — the idiomatic Ruby analog of the reference's `@dataclass`
-# ConversationInfo / ChatResponse / ChatLog. griffe records a dataclass's fields
-# as ATTRIBUTES, so the reference surface for each is METHOD-LESS. A Ruby Struct,
-# by contrast, auto-generates a pile of machinery (`[]`, `new`, `members`,
-# `keyword_init?`, `inspect`, plus a reader per field). Surface these classes
-# method-less — exactly like the generated payload/type DTOs — so each compares
-# EQUAL to the reference's method-less dataclass (emission covers the Struct
-# idiom; no PORT_ADDITIONS entry per accessor). Scoped by FQN so no other class
-# is affected.
+# ConversationInfo / ChatResponse / ChatLog. The oracle now records each
+# dataclass's PUBLIC FIELDS as surface members (`id`/`status`/`initial_message`,
+# `text`/`conversation_id`/`user_event`, `messages`/`call_timeline`). A Ruby
+# Struct auto-generates a reader per field whose spelling MATCHES the reference
+# field name, so we surface exactly the oracle-recorded field subset (via
+# `signalwire.ai_chat.client` in ORACLE_FIELD_ACCESSOR_MODULES) and drop the rest
+# of the Struct machinery (`[]`, `new`, `members`, `keyword_init?`, …). Emission
+# covers the Struct idiom; no PORT_ADDITIONS entry per accessor. Scoped by FQN so
+# no other class is affected.
 AI_CHAT_METHODLESS_CLASSES = %w[
   SignalWire::AIChat::ConversationInfo
   SignalWire::AIChat::ChatResponse
@@ -740,6 +856,15 @@ AI_CHAT_METHODLESS_CLASSES = %w[
 # the reference records as a plain instance ATTRIBUTE (not a surface method), so
 # there is no reference member to compare against — the idiomatic-Ruby getter is
 # folded away rather than surfaced as an addition. Applied after the alias pass.
+#
+# ORACLE-GATED (see `drop_idiom_members`): an entry takes effect ONLY while the
+# oracle does NOT record that name on that class. The premise of every entry is
+# "the reference has no such surface member", so the oracle is the authority on
+# whether the premise still holds — and class B2 (ALLOWLIST_DISCIPLINE §15) made
+# several of these premises false by recording caller-supplied `__init__`
+# attributes. Gating rather than hand-pruning means the table degrades itself as
+# the oracle grows; a stale entry can no longer silently remove a reader the
+# reference publishes (which is CONSTRUCTION-READBACK's exact failure mode).
 #   * AIChatClient#url        → the reference's `self.url` instance attribute;
 #   * AIChatClient#inspect/to_s → token-redacting Ruby object hooks (the reference
 #                                 AIChatClient defines no `__repr__`/`__str__`);
@@ -750,9 +875,51 @@ AI_CHAT_METHODLESS_CLASSES = %w[
 #                                 to match the reference's private form;
 #   * AIChatError#code/#server_message → the reference's `self.code` / message
 #                                 instance attributes set in `__init__`.
+#   * #logger on AgentServer / SkillBase / SkillManager / SkillRegistry → the
+#                                 reference sets `self.logger = get_logger(...)`
+#                                 in each of these four `__init__`s
+#                                 (signalwire/agent_server.py:65,
+#                                 core/skill_base.py:41, core/skill_manager.py:24,
+#                                 skills/registry.py:31), so Ruby's
+#                                 `attr_reader :logger` reaches the SAME
+#                                 capability. Per the owner ruling 2026-07-24
+#                                 (ALLOWLIST_DISCIPLINE §8) logging is a
+#                                 MODULE-LEVEL capability — the contract is the
+#                                 five `signalwire.core.logging_config` free
+#                                 functions, and the per-instance attribute was
+#                                 dropped from the oracle as a marked exclusion.
+#                                 With no oracle member to compare against, the
+#                                 Ruby reader folds here rather than surfacing as
+#                                 an ADDITION (§7 accessor row).
+#   * GatherQuestion#isolated → the reference's PUBLIC `self.isolated`
+#                                 instance attribute (core/contexts.py:59, the
+#                                 tri-state that `to_dict` emits even when
+#                                 False). Written for the pre-B2 oracle blind
+#                                 spot; the oracle NOW records it, so the gate
+#                                 retires this entry and the Ruby
+#                                 `attr_accessor` is emitted.
+#   * SurveyAgent#brand_name / #max_retries → the reference's PUBLIC
+#                                 `self.brand_name` / `self.max_retries`
+#                                 (prefabs/survey.py:93-94). Same pre-B2 blind
+#                                 spot; also now oracle-retired.
+# Entries kept here are deliberately RETAINED as documentation of intent: the
+# gate reads them, so a future oracle change flips each one automatically and the
+# comment above it records why it was written. Deleting an entry that the gate
+# already neutralises would lose that provenance.
 SURFACE_MEMBER_DROPS = {
   ['signalwire.ai_chat.client', 'AIChatClient'] => %w[url inspect to_s resolve_url],
-  ['signalwire.ai_chat.client', 'AIChatError'] => %w[code server_message]
+  # `message` is the POST-ALIAS spelling (SURFACE_METHOD_ALIASES renames Ruby's
+  # `server_message` first); this table is keyed by the name the emitter will
+  # EMIT, never the source name. Keying a member table by the source spelling
+  # while the consumer sees the emitted one is how typescript silently dropped
+  # every field of an aliased class.
+  ['signalwire.ai_chat.client', 'AIChatError'] => %w[code message],
+  ['signalwire.agent_server', 'AgentServer'] => %w[logger],
+  ['signalwire.core.skill_base', 'SkillBase'] => %w[logger],
+  ['signalwire.core.skill_manager', 'SkillManager'] => %w[logger],
+  ['signalwire.skills.registry', 'SkillRegistry'] => %w[logger],
+  ['signalwire.core.contexts', 'GatherQuestion'] => %w[isolated],
+  ['signalwire.prefabs.survey', 'SurveyAgent'] => %w[brand_name max_retries]
 }.freeze
 
 # A generated wire-type / read-side-payload class surfaces METHOD-LESS: the
@@ -770,28 +937,73 @@ def generated_methodless_class?(ruby_fqn)
   false
 end
 
+# For a generated read-side payload class, return the subset of its zero-arg
+# field readers the oracle records as surface members on the reference class.
+# Gated on the ORACLE'S member set (never the full reader list) so scalar wire
+# fields the reference does not record are not over-emitted. Empty (method-less)
+# when the class is not one the oracle records field accessors for.
+def oracle_gated_field_accessors(klass, target_mod, cls, oracle_generated_members)
+  wanted = oracle_generated_members[[target_mod, cls]]
+  return [] unless wanted
+
+  readers = klass.public_instance_methods(false).to_set(&:to_s)
+  missing = wanted.to_a - readers.to_a
+  unless missing.empty?
+    abort "generated model #{target_mod}.#{cls} is missing oracle-recorded field " \
+          "reader(s) #{missing.sort.inspect}; regenerate the model or update the oracle"
+  end
+  wanted.to_a.select { |m| readers.include?(m) }.sort
+end
+
 # Record one Ruby class or module into `modules`.
-def process_module(mod, name, modules, python_index)
+def process_module(mod, name, modules, python_index, oracle_generated_members = {})
   if mod.is_a?(Class)
-    target_mod, cls = translate_class(name, python_index)
-    methods = generated_methodless_class?(name) ? [] : enumerate_methods(mod)
-    methods = project_free_functions(name, methods, modules)
-    methods = apply_method_aliases(target_mod, cls, methods)
-    methods = drop_idiom_members(target_mod, cls, methods)
-    modules[target_mod]['classes'][cls] = methods
+    process_class(mod, name, modules, python_index, oracle_generated_members)
   else
     process_namespace_module(mod, name, modules)
   end
 end
 
+# Record one Ruby CLASS into `modules` (the method surface after projections,
+# aliasing, and idiom drops).
+def process_class(mod, name, modules, python_index, oracle_generated_members)
+  target_mod, cls = translate_class(name, python_index)
+  methods = surface_methods_for(mod, name, target_mod, cls, oracle_generated_members)
+  methods = project_free_functions(name, methods, modules)
+  methods = apply_method_aliases(target_mod, cls, methods)
+  methods = drop_idiom_members(target_mod, cls, methods)
+  modules[target_mod]['classes'][cls] = methods
+end
+
+# The raw method surface for a Ruby class before projection/aliasing. A generated
+# read-side payload/type class is method-less on the SURFACE EXCEPT for the typed
+# field accessors the reference records (class-typed / list<class> / union
+# members): emit exactly that oracle-recorded subset of the class's zero-arg
+# readers so the port matches go/rust/cpp/ts/php/dotnet instead of omitting them.
+def surface_methods_for(mod, name, target_mod, cls, oracle_generated_members)
+  return enumerate_methods(mod) unless generated_methodless_class?(name)
+
+  oracle_gated_field_accessors(mod, target_mod, cls, oracle_generated_members)
+end
+
 # Drop the per-[module, class] Ruby-idiom accessors the reference records as
 # plain instance attributes (SURFACE_MEMBER_DROPS). Applied after aliasing so the
 # names being dropped are already in their reference spelling.
+#
+# ORACLE-GATED: a drop applies only while the oracle does NOT record that name as
+# a surface member of that same class. The moment it does, the port MUST emit its
+# reader — a strip would remove a capability the reference publishes, which is
+# precisely what CONSTRUCTION-READBACK exists to catch. This makes the table
+# self-retiring: no hand edit is needed when the oracle grows.
 def drop_idiom_members(target_mod, cls, methods)
   drops = SURFACE_MEMBER_DROPS[[target_mod, cls]]
   return methods unless drops
 
-  methods - drops
+  recorded = ORACLE_ALL_MEMBERS[[target_mod, cls]] || Set.new
+  effective = drops.reject { |m| recorded.include?(m) }
+  return methods if effective.empty?
+
+  methods - effective
 end
 
 # Apply the per-[module, class] Ruby-idiom -> reference method-name aliases,
@@ -936,15 +1148,27 @@ end
 
 def build_snapshot(python_surface_path)
   python_index = load_python_index(python_surface_path)
+  oracle_generated_members = load_oracle_generated_members(python_surface_path)
+  prime_oracle_gate(python_surface_path)
   load_all_lib_files
-  mods = collect_modules(python_index)
+  mods = collect_modules(python_index, oracle_generated_members)
+  snapshot_envelope(mods)
+end
 
+# The versioned envelope around the enumerated modules.
+def snapshot_envelope(mods)
   {
     'version' => '1',
     'generated_from' => "signalwire-ruby @ #{git_sha}",
     'ruby_version' => RUBY_VERSION,
     'modules' => sort_modules(mods)
   }
+end
+
+# Fill ORACLE_ALL_MEMBERS, the gate for SURFACE_MEMBER_DROPS. Must run before
+# any class is processed.
+def prime_oracle_gate(python_surface_path)
+  ORACLE_ALL_MEMBERS.replace(load_oracle_all_members(python_surface_path))
 end
 
 # Load all Ruby source files so every class/module is visible to ObjectSpace.

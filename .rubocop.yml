@@ -167,6 +167,12 @@ Metrics/ClassLength:
     # surface-bearing-unit rationale as spider.rb above.
     - 'lib/signalwire/skills/builtin/mcp_gateway.rb'
     - 'lib/signalwire/prefabs/concierge.rb'
+    # Real functional prefab; its public surface (survey_name / questions /
+    # introduction / conclusion / brand_name / max_retries + the 5 tools) IS the
+    # parity contract, 1:1 with Python's SurveyAgent. Crossed the threshold when
+    # the caller-supplied introduction/conclusion readers were exposed for
+    # CONSTRUCTION-READBACK — extracting them would re-hide them.
+    - 'lib/signalwire/prefabs/survey.rb'
     # Real functional prefab (subclasses AgentBase, registers tools + a real
     # submit_answer state machine); 1:1 with Python's InfoGathererAgent surface.
     - 'lib/signalwire/prefabs/info_gatherer.rb'

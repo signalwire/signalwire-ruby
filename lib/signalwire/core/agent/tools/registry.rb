@@ -28,6 +28,12 @@ module SignalWire
         # stores plain Hashes on the wire), so the registry stores the
         # built definition Hash with string keys, matching the wire shape.
         class ToolRegistry
+          # @return [Object, nil] the parent AgentBase back-reference this
+          #   registry was constructed with. The reference exposes the same
+          #   attribute (core/agent/tools/registry.py), so a caller that passes
+          #   an agent can read it back.
+          attr_reader :agent
+
           # @param agent [Object, nil] optional parent AgentBase instance
           #   (kept as a back-reference for parity with the Python/TS
           #   registries; may be nil for standalone use).

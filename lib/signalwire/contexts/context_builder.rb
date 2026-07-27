@@ -69,15 +69,21 @@ module SignalWire
 
     # Represents a single question in a gather_info configuration.
     class GatherQuestion
-      attr_accessor :key, :question, :type, :confirm, :prompt, :functions
+      attr_accessor :key, :question, :type, :confirm, :prompt, :functions, :isolated
 
-      def initialize(key:, question:, type: 'string', confirm: false, prompt: nil, functions: nil)
+      # +isolated+ is TRI-STATE: +nil+ inherits the gather's default, +true+
+      # hides the sibling Q&A while this question is asked, +false+ keeps it
+      # visible even inside an isolated gather.
+      def initialize(key:, question:, type: 'string', confirm: false, prompt: nil,
+                     functions: nil, isolated: nil)
         @key       = key
         @question  = question
         @type      = type
         @confirm   = confirm
         @prompt    = prompt
         @functions = functions
+        # Tri-state: nil means "inherit the gather_info default"
+        @isolated  = isolated
       end
 
       def to_h
@@ -86,6 +92,8 @@ module SignalWire
         h['confirm']   = true       if @confirm
         h['prompt']    = @prompt    if @prompt
         h['functions'] = @functions if @functions
+        # Emitted even when false, so it can override an isolated gather
+        h['isolated'] = @isolated unless @isolated.nil?
         h
       end
     end
@@ -95,10 +103,15 @@ module SignalWire
       attr_accessor :output_key, :completion_action, :prompt
       attr_reader   :questions
 
-      def initialize(output_key: nil, completion_action: nil, prompt: nil)
+      # +isolated+ is the default for every question in this gather: when
+      # true, each question is asked with the sibling Q&A hidden from the
+      # model. A question's own +isolated:+ overrides this default. Held
+      # privately, matching the reference's `self._isolated`.
+      def initialize(output_key: nil, completion_action: nil, prompt: nil, isolated: false)
         @output_key        = output_key
         @completion_action = completion_action
         @prompt            = prompt
+        @isolated          = isolated
         @questions         = []
       end
 
@@ -110,7 +123,8 @@ module SignalWire
           type: opts.fetch(:type, 'string'),
           confirm: opts.fetch(:confirm, false),
           prompt: opts[:prompt],
-          functions: opts[:functions]
+          functions: opts[:functions],
+          isolated: opts[:isolated]
         )
         self
       end
@@ -122,6 +136,7 @@ module SignalWire
         h['prompt']            = @prompt            if @prompt
         h['output_key']        = @output_key        if @output_key
         h['completion_action'] = @completion_action if @completion_action
+        h['isolated']          = true               if @isolated
         h
       end
     end
@@ -271,11 +286,18 @@ module SignalWire
 
       # Enable info gathering for this step. Returns +self+.
       # After calling this, use +add_gather_question+ to define questions.
-      def set_gather_info(output_key: nil, completion_action: nil, prompt: nil)
+      #
+      # +isolated+ is the default for every question in this gather. When
+      # true, a question is asked with the sibling Q&A hidden from the model,
+      # so it must ask rather than derive the answer from an earlier one. A
+      # question's own +isolated:+ overrides this. The hidden turns remain in
+      # the call log.
+      def set_gather_info(output_key: nil, completion_action: nil, prompt: nil, isolated: false)
         @gather_info = GatherInfo.new(
           output_key: output_key,
           completion_action: completion_action,
-          prompt: prompt
+          prompt: prompt,
+          isolated: isolated
         )
         self
       end
@@ -301,19 +323,20 @@ module SignalWire
       #   email, geocode a ZIP), pass that tool name in this question's
       #   +functions:+ option. Functions listed here are active ONLY for
       #   this question.
-      # The +type+, +confirm+, +prompt+ and +functions+ options are all
-      # optional keyword args.
+      # The +type+, +confirm+, +prompt+, +functions+ and +isolated+ options
+      # are all optional keyword args.
+      #
+      #   +isolated+ overrides the gather's +isolated+ default for this one
+      #   question. True hides the sibling Q&A while this question is asked;
+      #   false keeps it visible even in an isolated gather. nil (default)
+      #   inherits the gather's setting.
       def add_gather_question(key:, question:, type: 'string', confirm: false,
-                              prompt: nil, functions: nil)
+                              prompt: nil, functions: nil, isolated: nil)
         raise ArgumentError, 'Must call set_gather_info before add_gather_question' if @gather_info.nil?
 
         @gather_info.add_question(
-          key: key,
-          question: question,
-          type: type,
-          confirm: confirm,
-          prompt: prompt,
-          functions: functions
+          key: key, question: question, type: type, confirm: confirm,
+          prompt: prompt, functions: functions, isolated: isolated
         )
         self
       end

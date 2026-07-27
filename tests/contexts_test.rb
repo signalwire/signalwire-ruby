@@ -724,6 +724,70 @@ class ContextsGatherInfoTest < Minitest::Test
 end
 
 # ================================================================
+# gather_info.isolated and per-question isolated overrides
+# ================================================================
+class ContextsGatherIsolatedTest < Minitest::Test
+  def test_gather_isolated_emitted
+    gi = GI.new(isolated: true)
+    gi.add_question(key: 'k', question: 'Q?')
+
+    assert_equal true, gi.to_h['isolated']
+  end
+
+  def test_gather_isolated_absent_by_default
+    gi = GI.new
+    gi.add_question(key: 'k', question: 'Q?')
+
+    refute_includes gi.to_h.keys, 'isolated'
+  end
+
+  def test_question_isolated_absent_by_default
+    q = GQ.new(key: 'k', question: 'Q?')
+
+    refute_includes q.to_h.keys, 'isolated'
+  end
+
+  def test_question_isolated_true
+    q = GQ.new(key: 'k', question: 'Q?', isolated: true)
+
+    assert_equal true, q.to_h['isolated']
+  end
+
+  # false must survive to SWML so it can override an isolated gather
+  def test_question_isolated_false_is_emitted
+    q = GQ.new(key: 'k', question: 'Q?', isolated: false)
+
+    assert_includes q.to_h.keys, 'isolated'
+    assert_equal false, q.to_h['isolated']
+  end
+
+  def isolated_roundtrip_gather
+    step = STP.new('collect').set_text('t')
+    step.set_gather_info(output_key: 'cust', isolated: true)
+    step.add_gather_question(key: 'name', question: 'Your name?')
+    step.add_gather_question(key: 'zip', question: 'Your ZIP?', isolated: false)
+    step.to_h['gather_info']
+  end
+
+  def test_step_gather_isolated_roundtrip
+    gather = isolated_roundtrip_gather
+
+    assert_equal true, gather['isolated']
+    assert_equal 'cust', gather['output_key']
+    refute_includes gather['questions'][0].keys, 'isolated'
+    assert_equal false, gather['questions'][1]['isolated']
+  end
+
+  # add_question via the **opts path must forward the tri-state, including false
+  def test_gather_info_add_question_forwards_isolated_false
+    gi = GI.new(isolated: true)
+    gi.add_question(key: 'k', question: 'Q?', isolated: false)
+
+    assert_equal false, gi.to_h['questions'][0]['isolated']
+  end
+end
+
+# ================================================================
 # Validation: gather_info
 # ================================================================
 class ContextsGatherValidationTest < Minitest::Test

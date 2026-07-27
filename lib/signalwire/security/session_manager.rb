@@ -29,6 +29,18 @@ module SignalWire
       # surface, so none is projected here.
       attr_writer :debug_mode
 
+      # @return [String] the hex-encoded HMAC secret in use — the caller-supplied
+      #   +secret_key:+, or the +SecureRandom.hex(32)+ value generated when none
+      #   was given. The reference exposes the same attribute
+      #   (`self.secret_key`, core/security/session_manager.py) and keys every
+      #   HMAC with this STRING's bytes, so reading it back is what lets a caller
+      #   verify or reproduce a token minted elsewhere (cross-port interop).
+      # @return [Integer] +token_expiry_secs+: the clamped lifetime tokens are
+      #   minted with. Also a public reference attribute; a caller that passes a
+      #   lifetime must be able to read the value actually in force (the clamp
+      #   means the stored value is not always the value passed).
+      attr_reader :secret_key, :token_expiry_secs
+
       # @param token_expiry_secs [Integer] seconds until tokens expire (minimum 1)
       # @param secret_key [String, nil] hex-encoded secret; generated if omitted
       def initialize(token_expiry_secs: 3600, secret_key: nil)

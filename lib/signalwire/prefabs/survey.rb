@@ -11,6 +11,50 @@ require_relative '../swaig/function_result'
 
 module SignalWire
   module Prefabs
+    # @api private — per-question-type answer validation for Survey. Split out
+    # of Survey so the class keeps only its public API + survey state; these
+    # helpers are pure functions of (question, response).
+    module AnswerValidation
+      private
+
+      # Return an error message for an invalid response, or +nil+ when the
+      # response is valid for the question's type.
+      def validation_message(question, response)
+        case question['type']
+        when 'rating'          then rating_error(question, response)
+        when 'multiple_choice' then multiple_choice_error(question, response)
+        when 'yes_no'          then yes_no_error(response)
+        when 'open_ended'      then open_ended_error(question, response)
+        end
+      end
+
+      def rating_error(question, response)
+        scale = question['scale'] || 5
+        rating = Integer(response.strip, exception: false)
+        return unless rating.nil? || rating < 1 || rating > scale
+
+        "Invalid rating. Please provide a number between 1 and #{scale}."
+      end
+
+      def multiple_choice_error(question, response)
+        options = question['options'] || []
+        return if options.any? { |opt| response.downcase.strip == opt.downcase }
+
+        "Invalid choice. Please select one of: #{options.join(', ')}."
+      end
+
+      def yes_no_error(response)
+        return if %w[yes no y n].include?(response.downcase.strip)
+
+        "Please answer with 'yes' or 'no'."
+      end
+
+      def open_ended_error(question, response)
+        required = question.key?('required') ? question['required'] : true
+        'A response is required for this question.' if response.strip.empty? && required
+      end
+    end
+
     # Prefab agent for conducting automated surveys.
     #
     #   agent = Survey.new(
@@ -21,16 +65,41 @@ module SignalWire
     #   )
     #
     class Survey
-      attr_reader :survey_name, :questions, :name, :route
+      include AnswerValidation
 
+      # Brand used when the caller does not supply one.
+      DEFAULT_BRAND_NAME = 'Our Company'
+      # Times the agent re-asks a question after an invalid answer.
+      DEFAULT_MAX_RETRIES = 2
+      # Closing message used when the caller does not supply one.
+      DEFAULT_CONCLUSION = 'Thank you for completing the survey!'
+
+      attr_reader :survey_name, :questions, :name, :route, :brand_name, :max_retries
+
+      # @return [String] the opening message in force — the caller-supplied
+      #   +introduction:+ or the generated default. Reference attribute
+      #   `self.introduction` (prefabs/survey.py).
+      # @return [String] +conclusion+: the closing message — caller-supplied or
+      #   {DEFAULT_CONCLUSION}. Also a public reference attribute. Both are
+      #   defaulted, so reading back is the only way a caller learns which text
+      #   the agent will actually speak.
+      attr_reader :introduction, :conclusion
+
+      # @param brand_name [String, nil] brand or company name the agent
+      #   represents; defaults to +DEFAULT_BRAND_NAME+ when nil.
+      # @param max_retries [Integer] maximum number of times to retry an
+      #   invalid answer before moving on.
       def initialize(survey_name:, questions:, introduction: nil, conclusion: nil,
+                     brand_name: nil, max_retries: DEFAULT_MAX_RETRIES,
                      name: 'survey', route: '/survey', **_opts)
-        raise ArgumentError, 'questions must be a non-empty Array' unless questions.is_a?(Array) && !questions.empty?
+        validate_questions!(questions)
 
         @survey_name  = survey_name
         @questions    = questions.map { |q| q.transform_keys(&:to_s) }
-        @introduction = introduction || "Welcome to the #{survey_name}. Let's get started."
-        @conclusion   = conclusion   || 'Thank you for completing the survey!'
+        @introduction = introduction || default_introduction(survey_name)
+        @conclusion   = conclusion   || DEFAULT_CONCLUSION
+        @brand_name   = brand_name   || DEFAULT_BRAND_NAME
+        @max_retries  = max_retries
         @name  = name
         @route = route
       end
@@ -40,22 +109,16 @@ module SignalWire
       end
 
       def prompt_sections
-        [
-          {
-            'title' => "Survey: #{@survey_name}",
-            'body' => @introduction,
-            'bullets' => @questions.map { |q| "#{q['id']}: #{q['text']} (#{q['type'] || 'open_ended'})" }
-          }
-        ]
+        [personality_section, instructions_section, questions_section]
       end
 
       def global_data
         {
+          'survey_name' => @survey_name, 'brand_name' => @brand_name,
+          'max_retries' => @max_retries,
           'survey' => {
-            'name' => @survey_name,
-            'questions' => @questions,
-            'current' => 0,
-            'responses' => {}
+            'name' => @survey_name, 'questions' => @questions,
+            'current' => 0, 'responses' => {}
           }
         }
       end
@@ -132,41 +195,42 @@ module SignalWire
 
       private
 
-      # Return an error message for an invalid response, or +nil+ when the
-      # response is valid for the question's type.
-      def validation_message(question, response)
-        case question['type']
-        when 'rating'          then rating_error(question, response)
-        when 'multiple_choice' then multiple_choice_error(question, response)
-        when 'yes_no'          then yes_no_error(response)
-        when 'open_ended'      then open_ended_error(question, response)
-        end
+      def validate_questions!(questions)
+        return if questions.is_a?(Array) && !questions.empty?
+
+        raise ArgumentError, 'questions must be a non-empty Array'
       end
 
-      def rating_error(question, response)
-        scale = question['scale'] || 5
-        rating = Integer(response.strip, exception: false)
-        return unless rating.nil? || rating < 1 || rating > scale
-
-        "Invalid rating. Please provide a number between 1 and #{scale}."
+      def default_introduction(survey_name)
+        "Welcome to the #{survey_name}. Let's get started."
       end
 
-      def multiple_choice_error(question, response)
-        options = question['options'] || []
-        return if options.any? { |opt| response.downcase.strip == opt.downcase }
-
-        "Invalid choice. Please select one of: #{options.join(', ')}."
+      # The brand the agent represents reaches the model here.
+      def personality_section
+        {
+          'title' => 'Personality',
+          'body' => "You are a friendly and professional survey agent representing #{@brand_name}."
+        }
       end
 
-      def yes_no_error(response)
-        return if %w[yes no y n].include?(response.downcase.strip)
-
-        "Please answer with 'yes' or 'no'."
+      # The retry budget reaches the model here.
+      def instructions_section
+        {
+          'title' => 'Instructions',
+          'bullets' => [
+            'Ask only one question at a time and wait for a response.',
+            "If a response is invalid, explain and retry up to #{@max_retries} times.",
+            'After all questions are answered, thank the user for their participation.'
+          ]
+        }
       end
 
-      def open_ended_error(question, response)
-        required = question.key?('required') ? question['required'] : true
-        'A response is required for this question.' if response.strip.empty? && required
+      def questions_section
+        {
+          'title' => "Survey: #{@survey_name}",
+          'body' => @introduction,
+          'bullets' => @questions.map { |q| "#{q['id']}: #{q['text']} (#{q['type'] || 'open_ended'})" }
+        }
       end
     end
   end

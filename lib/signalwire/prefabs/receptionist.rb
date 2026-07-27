@@ -19,14 +19,23 @@ module SignalWire
     #   )
     #
     class Receptionist
+      # Default voice ID the receptionist speaks with.
+      DEFAULT_VOICE = 'rime.spore'
+
       attr_reader :departments, :name, :route, :greeting
 
+      # @param voice [String] voice ID the agent speaks with. Configures the
+      #   agent's English language entry (mirrors Python's
+      #   +add_language(name="English", code="en-US", voice=voice)+); like the
+      #   reference it is held privately, not exposed as public surface.
       def initialize(departments:, name: 'receptionist', route: '/receptionist',
-                     greeting: 'Thank you for calling. How can I help you today?', **_opts)
+                     greeting: 'Thank you for calling. How can I help you today?',
+                     voice: DEFAULT_VOICE, **_opts)
         @departments = validate_departments(departments)
         @greeting    = greeting
         @name  = name
         @route = route
+        configure_agent_settings(voice)
       end
 
       def tools
@@ -75,6 +84,14 @@ module SignalWire
       end
 
       private
+
+      # Configure the agent's language with the requested voice. Mirrors the
+      # reference's `_configure_agent_settings(voice)` → `add_language(...)`;
+      # the resulting list is private state (`self._languages` in Python).
+      def configure_agent_settings(voice)
+        @voice = voice
+        @languages = [{ 'name' => 'English', 'code' => 'en-US', 'voice' => voice }]
+      end
 
       def validate_departments(departments)
         unless departments.is_a?(Array) && !departments.empty?
