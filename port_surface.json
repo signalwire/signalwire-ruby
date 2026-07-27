@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ c72a0b28a75aba8f75612d073ab81d769b955f84",
+  "generated_from": "signalwire-ruby @ 9dbbd2524244b97c1c466de2512175be549592aa",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -825,6 +825,7 @@
           "define_tool",
           "define_tools",
           "document",
+          "domain",
           "execute_verb",
           "extract_sip_username",
           "full_validation_enabled",
@@ -862,6 +863,9 @@
           "schema_utils",
           "schema_validation",
           "serve",
+          "ssl_cert_path",
+          "ssl_enabled",
+          "ssl_key_path",
           "stop",
           "swaig_pre_dispatch",
           "validate_basic_auth",
@@ -3639,6 +3643,7 @@
           "get_parameter_schema",
           "name",
           "register_tools",
+          "remove_xpaths",
           "setup",
           "supports_multiple_instances?"
         ]
