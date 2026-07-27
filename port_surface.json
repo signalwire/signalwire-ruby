@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 9dbbd2524244b97c1c466de2512175be549592aa",
+  "generated_from": "signalwire-ruby @ 30050b53cb20672ba296852b008f91f58132e889",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -2049,11 +2049,33 @@
       "classes": {
         "RestClient": [
           "__init__",
+          "addresses",
+          "calling",
+          "chat",
+          "datasphere",
+          "fabric",
           "generated_http_client",
           "http",
+          "imported_numbers",
           "inspect",
+          "logs",
+          "lookup",
+          "messages",
+          "mfa",
+          "number_groups",
+          "phone_numbers",
+          "project",
           "project_id",
-          "to_s"
+          "projects",
+          "pubsub",
+          "queues",
+          "recordings",
+          "registry",
+          "short_codes",
+          "sip_profile",
+          "to_s",
+          "verified_callers",
+          "video"
         ]
       },
       "functions": []

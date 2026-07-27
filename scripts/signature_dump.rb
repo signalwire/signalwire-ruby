@@ -37,7 +37,7 @@ def instance_method_entries(mod)
   return [] unless mod.is_a?(Class)
 
   entries = constructor_entry(mod)
-  mod.instance_methods(false).sort.each do |meth_name|
+  (mod.instance_methods(false).sort + composed_module_methods(mod)).each do |meth_name|
     next if meth_name == :initialize
     next if meth_name.to_s.start_with?('_')
 
@@ -45,6 +45,54 @@ def instance_method_entries(mod)
     entries << method_entry(meth, meth_name.to_s, is_constructor: false, is_static: false)
   end
   entries
+end
+
+# Ruby LANGUAGE-PROTOCOL hooks — methods the interpreter or a core protocol
+# (JSON, equality/Hash keying, Ruby-3 pattern matching, object printing) calls,
+# not methods a caller invokes for a SignalWire capability. Never port surface.
+# Kept in lockstep with RUBY_PROTOCOL_METHODS in scripts/enumerate_surface.rb.
+RUBY_PROTOCOL_METHODS = %i[
+  to_s to_json inspect hash eql? deconstruct deconstruct_keys
+].freeze
+
+# Modules that are pure INTERNAL COMPOSITION: a class `include`s them to reach
+# their methods, but they are not themselves audited surface. Their members must
+# therefore be attributed to the INCLUDING class, which is how a caller sees them.
+# This is an EXPLICIT list rather than a reference to the surface enumerator's
+# RUBY_EXCLUDED_CLASSES because this dump is a standalone Ruby script that shares
+# no constants with it. Every entry must also be excluded there (and in
+# enumerate_signatures.py's EXCLUDED_RUBY_CLASSES) — otherwise the module is BOTH
+# its own audited symbol and lifted onto its includers, double-counting its
+# members. Both current entries satisfy that. Adding an entry here means checking
+# the other two tables.
+COMPOSED_MODULES = %w[
+  SignalWire::REST::Namespaces::Generated::ResourceTree
+  SignalWire::Relay::MessageSerialization
+].freeze
+
+# Public instance methods a class reaches through `include` from a
+# COMPOSED_MODULES module.
+#
+# The blind spot this closes: `instance_methods(false)` is DECLARED-ONLY.
+# `RestClient` composes its 22 flat-resource / namespace-container accessors by
+# including the generated `Namespaces::Generated::ResourceTree`
+# (lib/signalwire/rest/rest_client.rb:42) rather than writing 22 `def`s, so all 22
+# were invisible here — recorded as 1 of 23 members and reported as 22 missing
+# symbols against a reference that records them all on `RestClient`. They were
+# never missing; `client.calling` / `client.fabric` / `client.video` have always
+# worked (pinned by tests/rest/resource_tree_accessors_mock_test.rb). This is the
+# Ruby analog of `_wired_base_attributes` in porting-sdk's reference enumerator,
+# which lifts members off a base the walker would otherwise miss.
+#
+# Scoped deliberately narrow, mirroring that precedent: only the explicitly listed
+# non-surface modules are lifted (a module that is its own audited symbol would be
+# double-counted), and language-protocol hooks are skipped.
+def composed_module_methods(klass)
+  klass.included_modules.flat_map do |mod|
+    next [] unless COMPOSED_MODULES.include?(mod.name)
+
+    mod.public_instance_methods(false).reject { |m| RUBY_PROTOCOL_METHODS.include?(m) }.sort
+  end
 end
 
 def constructor_entry(mod)

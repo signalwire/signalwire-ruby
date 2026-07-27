@@ -989,6 +989,13 @@ EXCLUDED_RUBY_CLASSES = {
     "SignalWire::POM::SectionBuilder",
     "SignalWire::Skills::SkillIntrospection",
     "SignalWire::Relay::MessageSerialization",
+    # Composition-only mixins whose members signature_dump.rb LIFTS onto the
+    # classes that `include` them (COMPOSED_MODULES there), so the enumerator
+    # records the surface a CALLER sees: RestClient's 22 resource accessors come
+    # from ResourceTree, Relay::Message's serialization from MessageSerialization.
+    # They must stay excluded HERE so a lifted module is not also recorded as its
+    # own symbol, which would double-count every member it contributes.
+    "SignalWire::REST::Namespaces::Generated::ResourceTree",
     # RequestOptions helpers mirroring the reference's PRIVATE
     # signalwire.rest._request_options._EffectiveOptions / _AbortSignal.
     "SignalWire::REST::EffectiveOptions",

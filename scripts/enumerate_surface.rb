@@ -780,10 +780,81 @@ def raw_class_methods(klass)
   # Class methods (Python module-level "classmethod"/"staticmethod" show up as
   # methods on the class too).
   raw.concat(klass.singleton_methods(false).map(&:to_s))
+  # Methods the class COMPOSES via `include` from a non-surface module.
+  raw.concat(composed_module_methods(klass))
   # initialize is private by default — include it explicitly.
   raw << 'initialize' if klass.private_method_defined?(:initialize, false)
   raw
 end
+
+# Public instance methods a class reaches through `include`, lifted onto the
+# class so a reflective walk sees the surface a CALLER sees.
+#
+# The blind spot this closes: `public_instance_methods(false)` is
+# DECLARED-ONLY. `RestClient` composes its 22 flat-resource / namespace-container
+# accessors by including the generated `Namespaces::Generated::ResourceTree`
+# (rest/rest_client.rb:42) instead of writing 22 `def`s, so every one of them was
+# invisible to this enumerator — and reported as 22 missing symbols against a
+# reference that records them all on `RestClient`. They were never missing;
+# `client.calling` / `client.fabric` / `client.video` have always worked (pinned
+# by tests/rest/resource_tree_accessors_mock_test.rb). This is the Ruby analog of
+# `_wired_base_attributes` in porting-sdk's own reference enumerator, which lifts
+# members off a base the walker would otherwise miss.
+#
+# Scoped deliberately narrow, mirroring that precedent:
+#   * Only modules EXCLUDED from the surface scan (RUBY_EXCLUDED_CLASSES) are
+#     lifted. A module that is its own surface symbol already has its members
+#     enumerated on itself; lifting those onto every includer would duplicate
+#     real composition into flattened members. `ResourceTree` and `Generated`
+#     are both excluded, so nothing double-counts.
+#   * Only SignalWire-owned modules — never a stdlib/gem mixin (Comparable,
+#     Enumerable, Kernel), which are language idiom and not port surface.
+#   * `initialize` is skipped; the class's own constructor is handled above.
+#   * RUBY_PROTOCOL_METHODS are skipped — see that constant.
+# Filtering to the public surface (`_`-prefixed, `=` writers) happens in the
+# caller via `surface_method?`, exactly as for declared methods.
+def composed_module_methods(klass)
+  klass.included_modules.select { |mod| composed_module?(mod.name) }
+                        .flat_map { |mod| liftable_module_methods(mod) }
+end
+
+# A module whose members are lifted onto its includers: SignalWire-owned AND
+# excluded from the surface scan (so lifting cannot double-count a module that is
+# its own surface symbol).
+def composed_module?(name)
+  return false if name.nil? || !name.start_with?('SignalWire')
+
+  RUBY_EXCLUDED_CLASSES.include?(name)
+end
+
+# The public instance methods of a composed module that count as lifted surface.
+def liftable_module_methods(mod)
+  mod.public_instance_methods(false).map(&:to_s).reject do |m|
+    m == 'initialize' || RUBY_PROTOCOL_METHODS.include?(m)
+  end
+end
+
+# Ruby LANGUAGE-PROTOCOL hooks: methods the interpreter (or a core protocol like
+# pattern matching / Hash keying / JSON) calls on an object, not methods a caller
+# invokes for a SignalWire capability. These are never port surface — the same
+# reasoning that already folds `AIChatClient#inspect`/`#to_s` in
+# SURFACE_MEMBER_DROPS ("token-redacting Ruby object hooks; the reference defines
+# no `__repr__`/`__str__`").
+#
+# Only consulted by `composed_module_methods`, i.e. for methods reached through an
+# `include`. A class that DECLARES one of these keeps its existing treatment, so
+# this cannot retroactively strip anything that was already emitted.
+#
+# Concretely: `MessageSerialization` (an excluded mixin, extracted from
+# `Relay::Message` so the class stays focused on lifecycle) contributes
+# to_s / to_json / hash / eql? / deconstruct / deconstruct_keys — Ruby's
+# JSON, equality, and Ruby-3 pattern-matching protocols. The reference `Message`
+# records none of them (it records `__repr__`, which is the Python side of the
+# same idiom), so lifting them would surface pure language idiom as 6 port
+# ADDITIONS. Folding them here is the emitter doing the idiom reconciliation.
+RUBY_PROTOCOL_METHODS = %w[
+  to_s to_json inspect hash eql? deconstruct deconstruct_keys
+].freeze
 
 # A method is part of the public surface unless it's a single-underscore
 # "private convention" name or an auto-generated writer (attr_writer/accessor);
