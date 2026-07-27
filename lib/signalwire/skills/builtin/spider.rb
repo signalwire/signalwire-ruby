@@ -17,6 +17,26 @@ module SignalWire
         # Default user-agent.
         DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
 
+        # Elements whose *entire subtree* is dropped before text extraction —
+        # boilerplate that would otherwise pollute the extracted text. Spelled
+        # as XPath expressions to match the reference; {#strip_html} compiles
+        # each to the equivalent tag-with-content regex (Ruby has no bundled
+        # HTML tree parser, so there is no lxml-style +drop_tree+ to call).
+        DEFAULT_REMOVE_XPATHS = [
+          '//script',
+          '//style',
+          '//nav',
+          '//header',
+          '//footer',
+          '//aside',
+          '//noscript'
+        ].freeze
+
+        # XPath expressions for the unwanted elements dropped by {#strip_html}.
+        # Prefilled with {DEFAULT_REMOVE_XPATHS}; mutable per instance so a
+        # caller can add or remove entries before scraping.
+        attr_reader :remove_xpaths
+
         # Extracts the performance / crawling / content-processing
         # configuration off ``params`` and allocates the per-instance
         # response cache at construction time so the ivars (and the cache
@@ -32,6 +52,7 @@ module SignalWire
           @tool_prefix     = "#{@tool_prefix}_" unless @tool_prefix.empty?
           @cache_enabled   = get_param('cache_enabled', default: true) != false
           @cache = @cache_enabled ? {} : nil
+          @remove_xpaths = DEFAULT_REMOVE_XPATHS.dup
         end
 
         def setup
@@ -207,12 +228,18 @@ module SignalWire
           body
         end
 
+        # Drop each {#remove_xpaths} element together with its content, then
+        # flatten whatever tags remain to whitespace. Only the simple
+        # ``//tag`` form is compiled — anything more expressive would need a
+        # real XPath engine, so it is skipped rather than mis-applied.
         def strip_html(body)
-          body.gsub(%r{<script[^>]*>.*?</script>}mi, '')
-              .gsub(%r{<style[^>]*>.*?</style>}mi, '')
-              .gsub(/<[^>]+>/, ' ')
-              .gsub(/\s+/, ' ')
-              .strip
+          text = remove_xpaths.reduce(body) do |acc, xpath|
+            tag = xpath[%r{\A//([a-zA-Z][a-zA-Z0-9]*)\z}, 1]
+            next acc if tag.nil?
+
+            acc.gsub(%r{<#{tag}\b[^>]*>.*?</#{tag}>}mi, '')
+          end
+          text.gsub(/<[^>]+>/, ' ').gsub(/\s+/, ' ').strip
         end
 
         # Extract the path-and-query portion of a URL. Used by

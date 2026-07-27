@@ -24,8 +24,15 @@ module SignalWire
       # - ``schema_validation`` — boolean flag controlling out-bound SWML
       #   schema validation. ``SWML_SKIP_SCHEMA_VALIDATION=1`` env var
       #   forces this to false.
+      # - ``ssl_enabled``, ``ssl_cert_path``, ``ssl_key_path``, ``domain`` —
+      #   the resolved TLS configuration, derived in {#init_ssl_config} from
+      #   the ``SWML_SSL_*`` / ``SWML_DOMAIN`` env vars and overridable by the
+      #   matching {#serve} kwargs. Readable so a caller can inspect the
+      #   effective TLS posture (and the public URL scheme it implies) without
+      #   re-deriving it from the environment.
       attr_reader :name, :route, :host, :port,
-                  :schema_path, :config_file, :schema_validation
+                  :schema_path, :config_file, :schema_validation,
+                  :ssl_enabled, :ssl_cert_path, :ssl_key_path, :domain
 
       # @param name   [String]  Human-readable service name
       # @param route  [String]  HTTP path this service responds on (default "/")

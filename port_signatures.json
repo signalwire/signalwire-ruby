@@ -11172,6 +11172,15 @@
               ],
               "returns": "any"
             },
+            "domain": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
             "execute_verb": {
               "params": [
                 {
@@ -11743,6 +11752,33 @@
                   "kind": "keyword",
                   "required": false,
                   "default": null
+                }
+              ],
+              "returns": "any"
+            },
+            "ssl_cert_path": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "ssl_enabled": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "ssl_key_path": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
                 }
               ],
               "returns": "any"
@@ -39089,6 +39125,15 @@
               "returns": "any"
             },
             "register_tools": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "remove_xpaths": {
               "params": [
                 {
                   "name": "self",
