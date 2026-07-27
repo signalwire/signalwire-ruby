@@ -7,26 +7,36 @@
 # See LICENSE file in the project root for full license information.
 
 #
-# secure-default-dump — the Ruby port's SECURE-DEFAULT dump program for the
-# cross-port behavioral differ (porting-sdk/scripts/diff_port_secure_default.py).
+# secure-default-dump — the Ruby port's SECURE-DEFAULT (A1) Layer-D dump program
+# for the cross-port behavioral differ
+# (porting-sdk/scripts/diff_port_secure_default.py).
 #
-# The A1 secure-default parity contract: AgentBase#define_tool defaults
-# secure=true fleet-wide, and a SECURE tool rendered with an active call_id
-# carries a per-tool __token on its SWAIG web_hook_url (the wire manifestation of
-# secure). A secure=false tool carries NO __token.
+# The differ drives the python reference through the secure_default corpus to
+# build the golden token TOPOLOGY, then runs THIS program (which embeds the same
+# two fixtures) and classifies OUR rendered payload the same way.
 #
-# This program defines two tools — one default (no explicit secure:) and one
-# secure:false — renders the SWML with the fixed corpus CALL_ID, and for each
-# emits {secure_default_true, wire_reflects_secure}:
+# Protocol (the 2026-07-27 redesign — a WIRE payload, not a self-verdict):
 #
-#   secure_default_true   the SDK-recorded secure flag for the default tool
-#                         (true for the default case, false for the explicit case).
-#   wire_reflects_secure  a __token is present on the rendered webhook IFF the
-#                         tool is secure (secure -> token present; insecure ->
-#                         token absent).
+#   {"<fixture id>": {"secure_default_true": bool, "rendered": {<functions[] entry>}}}
 #
-# The token VALUE is an HMAC and is NOT compared — only its PRESENCE. Protocol:
-# stdout = ONE JSON object mapping corpus fixture-id -> classification map.
+#   secure_default_true — the SDK-RECORDED secure flag for that tool, read back
+#     from the live registry (``@tools[name][:secure]``). It is deliberately NOT
+#     the value this program passed to ``define_tool``: echoing the input back
+#     would make the field incapable of ever failing, which is precisely the
+#     vacuity this redesign exists to close.
+#   rendered — that tool's own ``SWAIG.functions[]`` entry, VERBATIM, with every
+#     token VALUE replaced by the corpus placeholder ``<TOKEN>`` (the values are
+#     HMACs and vary per run; the KEY PATH is the whole contract and is preserved
+#     exactly).
+#
+# This program makes NO judgement about whether the render is correct — the
+# differ derives ``has_own_webhook`` and ``token_carrier`` from the keys. The
+# contract it pins (signalwire-python core/agent_base.py:1085-1099): a SECURE
+# tool's entry carries its own ``web_hook_url`` with a ``__token`` query param;
+# an INSECURE tool's entry carries NO ``web_hook_url`` key at all and falls back
+# to the shared ``SWAIG.defaults.web_hook_url``.
+#
+# Only stdout carries JSON; setup noise goes to stderr.
 #
 # Run from the signalwire-ruby repo root:
 #
@@ -40,62 +50,90 @@ REAL_STDOUT = $stdout.dup
 $stdout.reopen($stderr)
 require_relative '../lib/signalwire'
 
-# Must match porting-sdk/scripts/secure_default_corpus.py CALL_ID + tool names.
+# The FIXED call_id the corpus renders with, so a secure tool deterministically
+# gets a __token. Mirrors secure_default_corpus.CALL_ID.
 CALL_ID = 'call-secure-default-fixture'
 
-CORPUS = [
-  { 'id' => 'define_tool_default_is_secure', 'kind' => 'secure_default',
-    'tool_name' => 'sd_default_secure', 'expect_secure' => true },
-  { 'id' => 'define_tool_explicit_insecure', 'kind' => 'secure_explicit_false',
-    'tool_name' => 'sd_explicit_insecure', 'expect_secure' => false }
-].freeze
+# Mirrors secure_default_corpus.TOKEN_PLACEHOLDER.
+TOKEN_PLACEHOLDER = '<TOKEN>'
 
-# Locate one SWAIG function entry (by name) in a rendered SWML document.
+# Locate the SWAIG functions array in a rendered SWML document.
 def swaig_functions(doc)
   sections = doc['sections']
   main = sections.is_a?(Hash) ? sections['main'] : nil
   return [] unless main.is_a?(Array)
 
-  ai = main.find { |sec| sec.is_a?(Hash) && sec.key?('ai') }
+  ai = main.find { |sec| sec.is_a?(Hash) && sec['ai'].is_a?(Hash) }
   return [] unless ai
 
   fns = ai.dig('ai', 'SWAIG', 'functions')
   fns.is_a?(Array) ? fns : []
 end
 
-# True iff a rendered SWAIG function entry's webhook carries a per-tool __token.
-def webhook_has_token?(entry)
-  url = (entry && entry['web_hook_url']) || ''
-  url.include?('__token=')
+# Replace the VALUE of every token-suffixed query parameter in a URL, preserving
+# the key and every other pair exactly.
+def redact_url(url)
+  q = url.index('?')
+  return url unless q
+
+  rebuilt = url[(q + 1)..].split('&').map do |pair|
+    key, sep, _value = pair.partition('=')
+    sep == '=' && key.downcase.end_with?('token') ? "#{key}=#{TOKEN_PLACEHOLDER}" : pair
+  end
+  "#{url[0..q]}#{rebuilt.join('&')}"
+end
+
+# Replace every nondeterministic token VALUE (an HMAC) with the corpus
+# placeholder while preserving every KEY and key path exactly — both a
+# token-suffixed field and a token-suffixed query parameter on a URL value.
+# Mirrors diff_port_secure_default.redact_entry so the differ's re-application
+# is a no-op.
+def redact_entry(entry)
+  entry.each_with_object({}) do |(key, value), out|
+    out[key] =
+      if value.is_a?(String) && key.to_s.downcase.end_with?('token')
+        TOKEN_PLACEHOLDER
+      elsif value.is_a?(String) && (value.include?('://') || value.start_with?('/'))
+        redact_url(value)
+      else
+        value
+      end
+  end
+end
+
+# Build a fresh agent, define one tool via the caller's block, render the SWML
+# with the fixed call_id, and emit {secure_default_true, rendered} for the
+# differ to classify.
+def emit(tool_name)
+  agent = SignalWire::AgentBase.new(name: 'secure-default-fixture', route: '/sd')
+  yield agent
+
+  # The SDK-RECORDED flag, read back from the registry — never the value we
+  # passed in (see the header: an echoed input can never red).
+  tool = agent.instance_variable_get(:@tools)[tool_name] || {}
+  recorded_secure = tool[:secure] ? true : false
+
+  doc = agent._render_swml_internal(call_id: CALL_ID)
+  entry = swaig_functions(doc).find { |f| f.is_a?(Hash) && f['function'] == tool_name } || {}
+
+  { 'secure_default_true' => recorded_secure, 'rendered' => redact_entry(entry) }
 end
 
 def main
-  agent = SignalWire::AgentBase.new(name: 'secure-default-fixture', route: '/sd')
-
-  # A default tool (no explicit secure:) + a secure:false tool.
-  agent.define_tool(name: 'sd_default_secure', description: 'secure-default fixture tool',
-                    parameters: {}) { |_a, _r| nil }
-  agent.define_tool(name: 'sd_explicit_insecure', description: 'secure-default fixture tool',
-                    parameters: {}, secure: false) { |_a, _r| nil }
-
-  # Read back the SDK-recorded secure flag per tool.
-  recorded = agent.instance_variable_get(:@tools).transform_values { |t| t[:secure] ? true : false }
-
-  # Render the SWML WITH the fixed call_id so secure tools emit their __token.
-  doc = agent._render_swml_internal(call_id: CALL_ID)
-  by_name = {}
-  swaig_functions(doc).each { |f| by_name[f['function']] = f if f.is_a?(Hash) }
-
   out = {}
-  CORPUS.each do |kase|
-    name = kase['tool_name']
-    expect_secure = kase['expect_secure']
-    is_secure = recorded.fetch(name, false)
-    token_present = webhook_has_token?(by_name[name])
-    out[kase['id']] = {
-      'secure_default_true' => (is_secure ? true : false),
-      'wire_reflects_secure' => (token_present == expect_secure)
-    }
+
+  # A1 (a): a tool defined with NO explicit secure: must default to SECURE →
+  # its rendered entry carries its own web_hook_url with a __token query param.
+  out['define_tool_default_is_secure'] = emit('sd_default_secure') do |a|
+    a.define_tool(name: 'sd_default_secure', description: 'A default-secure tool',
+                  parameters: { 'q' => { 'type' => 'string' } }) { |_args, _raw| nil }
+  end
+
+  # A1 (b): a tool defined with secure: false must be INSECURE → NO per-tool
+  # web_hook_url key at all (it falls back to SWAIG.defaults.web_hook_url).
+  out['define_tool_explicit_insecure'] = emit('sd_explicit_insecure') do |a|
+    a.define_tool(name: 'sd_explicit_insecure', description: 'An explicitly-insecure tool',
+                  parameters: { 'q' => { 'type' => 'string' } }, secure: false) { |_args, _raw| nil }
   end
 
   REAL_STDOUT.puts(JSON.generate(out))
