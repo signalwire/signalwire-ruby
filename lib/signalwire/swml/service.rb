@@ -425,11 +425,19 @@ module SignalWire
       def decode_basic_auth(auth)
         return [nil, nil] if auth.nil? || auth.empty?
 
-        scheme, credentials = auth.split(' ', 2)
-        return [nil, nil] unless scheme&.downcase == 'basic' && credentials
+        # FIRST-space split, case-INSENSITIVE scheme compare (RFC 7235; the
+        # reference does `scheme.lower() != "basic"`).
+        scheme, _sep, credentials = auth.partition(' ')
+        return [nil, nil] unless scheme.downcase == 'basic' && !credentials.strip.empty?
 
         require 'base64'
-        Base64.decode64(credentials).split(':', 2)
+        username, separator, password = Base64.decode64(credentials.strip).partition(':')
+        # RFC 7617 / the reference's `if not separator: raise` -- a decoded
+        # payload with NO colon is not a credential pair; reject it at the parse
+        # rather than returning a 1-element split with a nil password.
+        return [nil, nil] if separator.empty?
+
+        [username, password]
       end
 
       # Framework-free proxy detection over a URL + plain headers Hash, mirroring

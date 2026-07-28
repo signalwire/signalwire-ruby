@@ -195,11 +195,17 @@ module SignalWire
       end
 
       def credentials_match?(req, user, pass)
-        header = req['Authorization'].to_s
-        return false unless header.start_with?('Basic ')
+        # Split on the FIRST space and compare the scheme case-INSENSITIVELY
+        # (RFC 7235; the reference does `scheme.lower() != "basic"`).
+        scheme, _sep, param = req['Authorization'].to_s.partition(' ')
+        return false unless scheme.downcase == 'basic'
 
-        decoded = Base64.decode64(header[6..])
-        input_user, _sep, input_pass = decoded.partition(':')
+        decoded = Base64.decode64(param.strip)
+        input_user, separator, input_pass = decoded.partition(':')
+        # RFC 7617 / the reference's `if not separator: raise` -- a payload with
+        # NO colon is not a credential pair; never default the password to ''.
+        return false if separator.empty?
+
         Rack::Utils.secure_compare(user.to_s, input_user) && Rack::Utils.secure_compare(pass.to_s, input_pass)
       rescue ArgumentError
         false

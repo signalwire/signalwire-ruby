@@ -54,6 +54,72 @@ class HandleRequestCoreServiceTest < HandleRequestCoreTestBase
     assert_equal 401, status
   end
 
+  # RFC 7235: the auth-scheme token is case-insensitive (the reference compares
+  # `scheme.lower() != "basic"` after partitioning on the first space).
+  def test_lowercase_basic_scheme_is_accepted
+    %w[basic BASIC BaSiC Basic].each do |scheme|
+      headers = { 'Authorization' => "#{scheme} #{Base64.strict_encode64('u:p')}" }
+      status, = @svc.handle_request('GET', 'http://host/', headers)
+
+      assert_equal 200, status, "scheme #{scheme.inspect} must authenticate (RFC 7235)"
+    end
+  end
+
+  def test_wrong_schemes_are_still_unauthorized
+    encoded = Base64.strict_encode64('u:p')
+
+    %w[Digest Negotiate Basicx basicx Bearer].each do |scheme|
+      status, = @svc.handle_request('GET', 'http://host/', { 'Authorization' => "#{scheme} #{encoded}" })
+
+      assert_equal 401, status, "scheme #{scheme.inspect} must NOT authenticate"
+    end
+  end
+
+  def test_schemeless_header_is_unauthorized
+    headers = { 'Authorization' => Base64.strict_encode64('u:p') }
+    status, = @svc.handle_request('GET', 'http://host/', headers)
+
+    assert_equal 401, status
+  end
+
+  # RFC 7617 / the reference's `if not separator: raise` -- a decoded Basic
+  # payload with NO colon is not a credential pair. `split(':', 2)` used to
+  # yield the 1-element ['u'] (password nil), leaving the rejection to a
+  # downstream nil-guard instead of the parse; the parse itself must reject.
+  def test_colonless_basic_payload_is_unauthorized
+    svc = SignalWire::SWML::Service.new(name: 'nocolon', basic_auth: ['u', ''])
+    headers = { 'Authorization' => "Basic #{Base64.strict_encode64('u')}" }
+    status, = svc.handle_request('GET', 'http://host/', headers)
+
+    assert_equal 401, status, 'a colon-less Basic payload must be rejected'
+  end
+
+  def test_decode_basic_auth_rejects_a_colonless_payload_at_the_parse
+    svc = SignalWire::SWML::Service.new(name: 'parse', basic_auth: %w[u p])
+
+    assert_equal [nil, nil], svc.send(:decode_basic_auth, "Basic #{Base64.strict_encode64('u')}"),
+                 'no separator means no credential pair -- the parse must reject, not return a 1-element split'
+    assert_equal %w[u p], svc.send(:decode_basic_auth, "Basic #{Base64.strict_encode64('u:p')}")
+    assert_equal ['u', ''], svc.send(:decode_basic_auth, "Basic #{Base64.strict_encode64('u:')}")
+    assert_equal ['u', 'p:a'], svc.send(:decode_basic_auth, "Basic #{Base64.strict_encode64('u:p:a')}")
+  end
+
+  def test_explicit_trailing_colon_is_a_valid_empty_password
+    svc = SignalWire::SWML::Service.new(name: 'emptypw', basic_auth: ['u', ''])
+    headers = { 'Authorization' => "Basic #{Base64.strict_encode64('u:')}" }
+    status, = svc.handle_request('GET', 'http://host/', headers)
+
+    assert_equal 200, status
+  end
+
+  def test_password_containing_a_colon_keeps_everything_after_the_first
+    svc = SignalWire::SWML::Service.new(name: 'coloned', basic_auth: ['u', 'p:a:s:s'])
+    headers = { 'Authorization' => "Basic #{Base64.strict_encode64('u:p:a:s:s')}" }
+    status, = svc.handle_request('GET', 'http://host/', headers)
+
+    assert_equal 200, status
+  end
+
   def test_on_request_modifications_merged
     svc = SignalWire::SWML::Service.new(name: 'mod', basic_auth: %w[u p])
     svc.define_singleton_method(:on_request) { |_body, _cb| { 'version' => '9.9.9' } }

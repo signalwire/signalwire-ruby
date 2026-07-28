@@ -32,8 +32,10 @@ module SignalWire
       # authorization.
       #
       # These carry the fields parsed out of the +Authorization+ header. The
-      # bearer header is split on the FIRST space: the first part is the
-      # +scheme+ ("Bearer"), the second the +credentials+ (the token itself).
+      # header is split on the FIRST space: the first part is the +scheme+
+      # ("Bearer"), the second the +credentials+ (the token itself). Per RFC
+      # 7235 the scheme token is compared case-INSENSITIVELY but carried
+      # VERBATIM here, mirroring the reference's HTTPAuthorizationCredentials.
       BasicCredentials = Struct.new(:username, :password)
       BearerCredentials = Struct.new(:scheme, :credentials)
 
@@ -149,14 +151,25 @@ module SignalWire
       def bearer_env_ok?(env)
         return false unless @auth_methods.dig('bearer', 'enabled')
 
-        header = env['HTTP_AUTHORIZATION'].to_s
-        return false unless header.start_with?('Bearer ')
+        scheme, credentials = split_authorization(env['HTTP_AUTHORIZATION'])
+        # RFC 7235: the auth-scheme token is case-INSENSITIVE, so compare it
+        # folded (the reference does `scheme.lower() != "bearer"`) while
+        # carrying the scheme VERBATIM into the carrier.
+        return false unless scheme.downcase == 'bearer' && !credentials.empty?
 
-        # Split on the FIRST space only: scheme, then the token verbatim (a
-        # token may itself contain no space, but splitting on all of them
-        # would silently truncate a malformed one instead of failing compare).
-        scheme, credentials = header.split(' ', 2)
         verify_bearer_token(BearerCredentials.new(scheme, credentials))
+      end
+
+      # Split an Authorization header on the FIRST space into
+      # +[scheme, credentials]+, mirroring the reference's
+      # +get_authorization_scheme_param+ (partition on ' ', strip the param).
+      # A nil/blank header yields +['', '']+.
+      def split_authorization(header)
+        value = header.to_s
+        return ['', ''] if value.empty?
+
+        scheme, _sep, param = value.partition(' ')
+        [scheme, param.strip]
       end
 
       def api_key_env_ok?(env)
@@ -177,10 +190,18 @@ module SignalWire
       end
 
       def parse_basic_auth(header)
-        return nil unless header.start_with?('Basic ')
+        scheme, param = split_authorization(header)
+        # RFC 7235 case-insensitive scheme compare (reference:
+        # `scheme.lower() != "basic"`).
+        return nil unless scheme.downcase == 'basic'
 
-        decoded = Base64.decode64(header[6..])
-        user, _sep, pass = decoded.partition(':')
+        decoded = Base64.decode64(param)
+        user, separator, pass = decoded.partition(':')
+        # RFC 7617 / reference: `if not separator: raise`. A decoded payload
+        # with NO colon is NOT a credential pair -- reject it outright rather
+        # than defaulting the password to ''.
+        return nil if separator.empty?
+
         BasicCredentials.new(user, pass)
       rescue ArgumentError
         nil

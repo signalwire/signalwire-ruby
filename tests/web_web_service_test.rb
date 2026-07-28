@@ -136,3 +136,105 @@ class WebWebServiceTest < Minitest::Test
     svc&.stop
   end
 end
+
+# The WebService Authorization guard, over the real WEBrick listener.
+#
+# RFC 7235 makes the auth-scheme token case-INSENSITIVE and RFC 7617 requires a
+# colon in the decoded Basic payload. The reference (fastapi.security.http
+# HTTPBasic) partitions the header on the FIRST space, compares
+# `scheme.lower() != "basic"`, then does
+# `username, separator, password = data.partition(":")` and raises when
+# `separator` is empty. Ruby used a fixed-offset `header[6..]` slice (which both
+# hardcoded the scheme length and could not match a lowercase scheme) and
+# discarded the separator into `_sep`, so `Basic <b64("webuser")>` -- no colon
+# at all -- parsed as username "webuser" with a defaulted empty password.
+class WebWebServiceAuthSchemeTest < Minitest::Test
+  USER = WebWebServiceTest::USER
+  PASS = WebWebServiceTest::PASS
+
+  def setup
+    @dir = Dir.mktmpdir
+    File.write(File.join(@dir, 'hello.txt'), 'hello world')
+    @services = []
+  end
+
+  def teardown
+    @services.each(&:stop)
+    FileUtils.remove_entry(@dir) if @dir && File.directory?(@dir)
+  end
+
+  # Start a WebService on an ephemeral port; returns the port. Registered for
+  # teardown so nothing is left listening.
+  def serve(password)
+    svc = SignalWire::Web::WebService.new(basic_auth: [USER, password])
+    svc.add_directory('/static', @dir)
+    port = svc.start(host: '127.0.0.1', port: 0)
+    @services << svc
+    port
+  end
+
+  def get_with_header(port, header)
+    uri = URI("http://127.0.0.1:#{port}/static/hello.txt")
+    req = Net::HTTP::Get.new(uri)
+    req['Authorization'] = header
+    Net::HTTP.start(uri.host, uri.port, read_timeout: 5) { |http| http.request(req) }
+  end
+
+  def basic(scheme, payload)
+    "#{scheme} #{Base64.strict_encode64(payload)}"
+  end
+
+  # --- case-insensitive scheme: ACCEPT ---------------------------------------
+
+  def test_lowercase_basic_scheme_is_accepted
+    port = serve(PASS)
+
+    %w[basic BASIC BaSiC Basic].each do |scheme|
+      res = get_with_header(port, basic(scheme, "#{USER}:#{PASS}"))
+
+      assert_equal '200', res.code, "scheme #{scheme.inspect} must authenticate (RFC 7235)"
+    end
+  end
+
+  # --- case-insensitive scheme: still REJECT the wrong ones ------------------
+
+  def test_wrong_schemes_are_still_rejected
+    port = serve(PASS)
+
+    %w[Digest Negotiate Basicx basicx Bearer].each do |scheme|
+      res = get_with_header(port, basic(scheme, "#{USER}:#{PASS}"))
+
+      assert_equal '401', res.code, "scheme #{scheme.inspect} must NOT authenticate"
+    end
+  end
+
+  def test_schemeless_header_is_rejected
+    port = serve(PASS)
+    res = get_with_header(port, Base64.strict_encode64("#{USER}:#{PASS}"))
+
+    assert_equal '401', res.code
+  end
+
+  # --- the colon is mandatory ------------------------------------------------
+
+  def test_colonless_basic_payload_is_rejected
+    port = serve('')
+    res = get_with_header(port, basic('Basic', USER))
+
+    assert_equal '401', res.code, 'a colon-less Basic payload must be rejected'
+  end
+
+  def test_explicit_trailing_colon_is_a_valid_empty_password
+    port = serve('')
+    res = get_with_header(port, basic('Basic', "#{USER}:"))
+
+    assert_equal '200', res.code, 'an explicit trailing colon IS a separator'
+  end
+
+  def test_password_containing_a_colon_keeps_everything_after_the_first
+    port = serve('p:a:s:s')
+    res = get_with_header(port, basic('Basic', "#{USER}:p:a:s:s"))
+
+    assert_equal '200', res.code
+  end
+end

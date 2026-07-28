@@ -208,3 +208,117 @@ class CoreAuthCredentialsTest < Minitest::Test
     assert_equal 'bearer', result['method']
   end
 end
+
+# RFC 7235 makes the auth-scheme token case-INSENSITIVE, and RFC 7617 requires a
+# colon in the decoded Basic payload. The reference (fastapi.security.http)
+# partitions the header on the FIRST SPACE, compares `scheme.lower()` against
+# "basic"/"bearer", and for Basic does `username, separator, password =
+# data.partition(":")` then `if not separator: raise` -- a colon-less payload is
+# rejected outright, never defaulted to an empty password.
+class CoreAuthSchemeAndColonTest < Minitest::Test
+  def handler(**)
+    SignalWire::Core::AuthHandler.new(CoreAuthHandlerTest::FakeConfig.new(**))
+  end
+
+  def env(header)
+    { 'HTTP_AUTHORIZATION' => header, 'REQUEST_METHOD' => 'GET',
+      'PATH_INFO' => '/', 'REMOTE_ADDR' => '1.2.3.4' }
+  end
+
+  def auth(handler, header)
+    handler.rack_dependency(optional: true).call(env(header))
+  end
+
+  def basic_header(scheme, payload)
+    "#{scheme} #{Base64.strict_encode64(payload)}"
+  end
+
+  # --- (a) case-insensitive scheme: ACCEPT ------------------------------------
+
+  def test_lowercase_bearer_scheme_is_accepted
+    h = handler(bearer_token: 'tok123')
+
+    %w[bearer BEARER BeArEr Bearer].each do |scheme|
+      result = auth(h, "#{scheme} tok123")
+
+      assert result['authenticated'], "scheme #{scheme.inspect} must authenticate (RFC 7235)"
+      assert_equal 'bearer', result['method']
+    end
+  end
+
+  def test_lowercase_basic_scheme_is_accepted
+    h = handler(user: 'alice', password: 'secret')
+
+    %w[basic BASIC BaSiC Basic].each do |scheme|
+      result = auth(h, basic_header(scheme, 'alice:secret'))
+
+      assert result['authenticated'], "scheme #{scheme.inspect} must authenticate (RFC 7235)"
+      assert_equal 'basic', result['method']
+    end
+  end
+
+  # --- (a) case-insensitive scheme: still REJECT the wrong ones ---------------
+
+  def test_wrong_schemes_are_still_rejected_on_the_bearer_path
+    h = handler(user: 'nobody', password: 'nothing', bearer_token: 'tok123')
+
+    ['Digest tok123', 'Negotiate tok123', 'Bearerx tok123', 'bearerx tok123',
+     'Basic tok123', 'tok123'].each do |header|
+      refute auth(h, header)['authenticated'], "#{header.inspect} must NOT authenticate"
+    end
+  end
+
+  def test_wrong_schemes_are_still_rejected_on_the_basic_path
+    h = handler(user: 'alice', password: 'secret')
+    encoded = Base64.strict_encode64('alice:secret')
+
+    ["Digest #{encoded}", "Negotiate #{encoded}", "Basicx #{encoded}",
+     "basicx #{encoded}", "Bearer #{encoded}", encoded].each do |header|
+      refute auth(h, header)['authenticated'], "#{header.inspect} must NOT authenticate"
+    end
+  end
+
+  def test_scheme_is_carried_verbatim_into_the_bearer_carrier
+    h = handler(bearer_token: 'tok123')
+    seen = nil
+    h.define_singleton_method(:verify_bearer_token) do |credentials|
+      seen = credentials
+      super(credentials)
+    end
+
+    auth(h, 'bearer tok123')
+
+    assert_equal 'bearer', seen.scheme, 'the scheme must be carried verbatim, not normalized'
+    assert_equal 'tok123', seen.credentials
+  end
+
+  # --- (b) a colon-less Basic payload must be REJECTED ------------------------
+
+  def test_colonless_basic_payload_is_rejected
+    h = handler(user: 'bob', password: '')
+
+    refute auth(h, basic_header('Basic', 'bob'))['authenticated'],
+           'a decoded Basic payload with NO colon must be rejected (RFC 7617 / reference partition-separator check)'
+  end
+
+  def test_colonless_basic_payload_is_rejected_even_when_the_password_is_empty_by_config
+    h = handler(user: 'bob', password: nil)
+
+    refute auth(h, basic_header('Basic', 'bob'))['authenticated'],
+           'no colon means no credential pair, regardless of the configured password'
+  end
+
+  def test_empty_password_with_an_explicit_trailing_colon_is_still_parsed
+    h = handler(user: 'bob', password: '')
+
+    assert auth(h, basic_header('Basic', 'bob:'))['authenticated'],
+           'an explicit trailing colon IS a separator -- username "bob", empty password'
+  end
+
+  def test_password_containing_a_colon_keeps_everything_after_the_first_one
+    h = handler(user: 'alice', password: 'p:a:s:s')
+
+    assert auth(h, basic_header('Basic', 'alice:p:a:s:s'))['authenticated'],
+           'only the FIRST colon separates; the rest belongs to the password'
+  end
+end
