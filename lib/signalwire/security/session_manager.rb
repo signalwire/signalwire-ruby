@@ -41,9 +41,11 @@ module SignalWire
       #   means the stored value is not always the value passed).
       attr_reader :secret_key, :token_expiry_secs
 
-      # @param token_expiry_secs [Integer] seconds until tokens expire (minimum 1)
+      # @param token_expiry_secs [Integer] seconds until tokens expire
+      #   (default: 900 — 15 minutes; minimum 1). Matches the reference
+      #   (+core/security/session_manager.py+ +__init__+).
       # @param secret_key [String, nil] hex-encoded secret; generated if omitted
-      def initialize(token_expiry_secs: 3600, secret_key: nil)
+      def initialize(token_expiry_secs: 900, secret_key: nil)
         @token_expiry_secs = [token_expiry_secs, 1].max
         @secret_key = secret_key || SecureRandom.hex(32)
         @debug_mode = false
