@@ -202,13 +202,22 @@ module SignalWire
       alias to_s inspect
 
       # Register inbound call handler.
-      def on_call(&block)
-        @on_call_handler = block
+      #
+      # ``handler`` is REQUIRED, matching the reference
+      # (``on_call(self, handler: CallHandler)``) and every other port. Ruby
+      # cannot let a block satisfy a required positional, so the callable is
+      # passed explicitly — ``client.on_call(->(call) { ... })``. A block is still
+      # accepted and takes precedence when both are given, which keeps
+      # ``on_call(nil) { |call| ... }`` working for callers who prefer the block
+      # body; what is NOT accepted is omitting the argument entirely, because
+      # that registers nothing and every other port rejects it.
+      def on_call(handler, &block)
+        @on_call_handler = require_handler(handler, block, 'on_call')
       end
 
-      # Register inbound message handler.
-      def on_message(&block)
-        @on_message_handler = block
+      # Register inbound message handler. See #on_call for the handler contract.
+      def on_message(handler, &block)
+        @on_message_handler = require_handler(handler, block, 'on_message')
       end
 
       # Register a generic inbound-event handler. Called for every
@@ -309,15 +318,21 @@ module SignalWire
       # ------------------------------------------------------------------
 
       # Dial outbound call(s). Returns a Call object.
-      def dial(devices, timeout: 120, tag: nil, **kwargs)
+      # Keyword names and defaults mirror the reference
+      # (``tag=None, max_duration=None, dial_timeout=None``): ``dial_timeout``
+      # defaults to nil and the 120s fallback is applied at the wait, exactly
+      # where python applies it (`dial_timeout if dial_timeout is not None else
+      # 120.0`). ``max_duration`` is an explicit keyword, not a **kwargs
+      # passenger, and reaches the wire only when truthy.
+      def dial(devices, tag: nil, max_duration: nil, dial_timeout: nil)
         dial_tag = tag || SecureRandom.uuid
 
         # Register pending dial BEFORE sending RPC
         entry = { mutex: Mutex.new, cv: ConditionVariable.new, call: nil, error: nil }
         @dials_mutex.synchronize { @pending_dials[dial_tag] = entry }
 
-        send_dial_rpc(dial_tag, devices, kwargs)
-        await_dial(dial_tag, entry, timeout)
+        send_dial_rpc(dial_tag, devices, max_duration)
+        await_dial(dial_tag, entry, dial_timeout.nil? ? 120.0 : dial_timeout)
         @dials_mutex.synchronize { @pending_dials.delete(dial_tag) }
         raise RelayError.new(-1, entry[:error]) if entry[:error]
 
@@ -365,7 +380,7 @@ module SignalWire
 
       # Send a JSON-RPC request and wait for the response.
       # Returns the result hash. Raises RelayError on error.
-      def execute(method, params = {})
+      def execute(method, params)
         id = SecureRandom.uuid
         entry = { mutex: Mutex.new, cv: ConditionVariable.new, result: nil, error: nil }
         @pending_mutex.synchronize { @pending[id] = entry }
@@ -385,6 +400,17 @@ module SignalWire
       end
 
       private
+
+      # The handler slot for a ``on_*`` registration: the block if one was given,
+      # else the explicit callable. Raises when neither is supplied — the
+      # reference declares the handler REQUIRED, so a registration that registers
+      # nothing must fail loudly rather than leave a silently-dead callback.
+      def require_handler(handler, block, method_name)
+        callback = block || handler
+        raise ArgumentError, "#{method_name} requires a handler (block or callable)" if callback.nil?
+
+        callback
+      end
 
       def connect_and_run_guarded
         connect_and_run
@@ -426,9 +452,9 @@ module SignalWire
         raise ArgumentError, 'body or media is required'
       end
 
-      def send_dial_rpc(dial_tag, devices, kwargs)
+      def send_dial_rpc(dial_tag, devices, max_duration)
         params = { 'tag' => dial_tag, 'devices' => devices }
-        kwargs.each { |k, v| params[k.to_s] = v }
+        params['max_duration'] = max_duration if max_duration
         execute('calling.dial', params)
       rescue StandardError
         @dials_mutex.synchronize { @pending_dials.delete(dial_tag) }

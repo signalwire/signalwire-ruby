@@ -83,9 +83,16 @@ module SignalWire
       # ------------------------------------------------------------------
 
       # Register an event listener for this call.
-      def on(event_type, &handler)
+      #
+      # The handler is REQUIRED, matching the reference
+      # (``on(self, event_type: str, handler: EventHandler)``). Ruby's block IS
+      # the handler; supplying neither registers nothing and raises.
+      def on(event_type, handler, &block)
+        callback = block || handler
+        raise ArgumentError, 'on requires a handler (block or callable)' if callback.nil?
+
         @mutex.synchronize do
-          (@listeners[event_type] ||= []) << handler
+          (@listeners[event_type] ||= []) << callback
         end
       end
 
@@ -233,7 +240,7 @@ module SignalWire
         state   = { result: nil, satisfied: false }
         handler = one_shot_handler(mutex, cv, state, predicate)
 
-        on(event_type, &handler)
+        on(event_type, handler)
         with_one_shot_listener(event_type, handler) do
           mutex.synchronize { block_until(cv, mutex, timeout) { state[:satisfied] } }
           state[:result]

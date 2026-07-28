@@ -59,7 +59,7 @@ class RenderWithToolsTest < Minitest::Test
 
   def test_tools_rendered
     agent = SignalWire::AgentBase.new
-    agent.define_tool(name: 'foo', description: 'Foo tool') { |_, _| }
+    agent.define_tool(name: 'foo', description: 'Foo tool', parameters: {}, handler: nil) { |_, _| }
     swml = agent.render_swml
     ai = ai_section(swml)
 

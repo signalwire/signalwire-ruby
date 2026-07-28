@@ -124,7 +124,7 @@ end
 # agent-relative (the Go reference does the same).
 def serverless_swaig
   a = SignalWire::AgentBase.new(name: 'demo', route: '/', basic_auth: [USER, PASSWORD])
-  a.define_tool(name: 'say_hello', description: 'greet', parameters: {}) do |_args, _raw|
+  a.define_tool(name: 'say_hello', description: 'greet', parameters: {}, handler: nil) do |_args, _raw|
     SignalWire::Swaig::FunctionResult.new('hello there')
   end
   event = {
@@ -170,7 +170,7 @@ out['http_handle_request_401_bad_password'] = observe_response(status, headers, 
 # ---- handle_request: 307 redirect via routing callback ----
 svc = new_swml_service
 cb = redirect_cb
-svc.register_routing_callback('/sip', &cb)
+svc.register_routing_callback(cb, '/sip')
 status, headers, body = svc.handle_request('POST', 'http://localhost:3000/swml/sip',
                                            { 'Authorization' => basic_auth(USER, PASSWORD) },
                                            { 'call' => { 'to' => 'sip:redirect-me@space' } })
@@ -178,7 +178,7 @@ out['http_handle_request_307_redirect'] = observe_response(status, headers, body
 
 # ---- handle_request: callback returns nil -> normal 200 SWML ----
 svc = new_swml_service
-svc.register_routing_callback('/sip', &cb)
+svc.register_routing_callback(cb, '/sip')
 status, headers, body = svc.handle_request('POST', 'http://localhost:3000/swml/sip',
                                            { 'Authorization' => basic_auth(USER, PASSWORD) },
                                            { 'call' => { 'to' => 'sip:keep@space' } })

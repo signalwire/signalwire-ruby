@@ -49,7 +49,7 @@ PROMPT
 agent.define_tool(
   name:        'get_time',
   description: 'Get the current time',
-  parameters:  {}
+  parameters:  {}, handler: nil
 ) do |_args, _raw_data|
   now = Time.now.strftime('%H:%M:%S')
   SignalWire::Swaig::FunctionResult.new("The current time is #{now}")
@@ -60,7 +60,7 @@ agent.define_tool(
   description: 'Get the current weather for a location',
   parameters:  {
     'location' => { 'type' => 'string', 'description' => 'City or location' }
-  }
+  }, handler: nil
 ) do |args, _raw_data|
   location = args['location'] || 'Unknown location'
   SignalWire::Swaig::FunctionResult.new("It's sunny and 72F in #{location}.")
@@ -68,7 +68,7 @@ end
 
 # --- Summary callback ---
 
-agent.on_summary do |summary, _raw_data|
+agent.on_summary(nil) do |summary, _raw_data|
   puts "Conversation summary: #{summary.inspect}"
 end
 

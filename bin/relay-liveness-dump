@@ -397,7 +397,7 @@ def drive_max_active_calls(cap)
   clear_relay_env
   client = SignalWire::Relay::Client.new(project: 'p', token: 't', host: 'x',
                                          max_active_calls: cap)
-  client.on_call { |_call| sleep 5 } # keep each accepted call "active"
+  client.on_call(nil) { |_call| sleep 5 } # keep each accepted call "active"
   (cap + 1).times do |i|
     client.send(:handle_inbound_call,
                 'params' => { 'call_id' => "c#{i}", 'node_id' => 'node-relay-live',
@@ -436,7 +436,7 @@ def build_answered_call(handle)
   client = handle[:client]
   mock = handle[:mock]
   captured = Queue.new
-  client.on_call do |call|
+  client.on_call(nil) do |call|
     call.answer
     captured.push(call)
   end

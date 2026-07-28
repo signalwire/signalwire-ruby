@@ -31,7 +31,7 @@ agent.prompt_add_section(
 agent.define_tool(
   name:        'health_status',
   description: 'Get the health status of this agent',
-  parameters:  {}
+  parameters:  {}, handler: nil
 ) do |_args, _raw_data|
   SignalWire::Swaig::FunctionResult.new(
     "Agent '#{agent.name}' is healthy, running on port #{agent.port} in Kubernetes."

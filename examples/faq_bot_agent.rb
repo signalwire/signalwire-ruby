@@ -50,7 +50,7 @@ agent.define_tool(
   description: 'Search the FAQ knowledge base',
   parameters:  {
     'query' => { 'type' => 'string', 'description' => 'Search query' }
-  }
+  }, handler: nil
 ) do |args, raw_data|
   faq_bot.handle_search(args, raw_data)
 end
@@ -59,7 +59,7 @@ end
 agent.post_prompt =
   'Provide a JSON summary: {"question_type": "CATEGORY", "answered_from_kb": true/false, "follow_up_needed": true/false}'
 
-agent.on_summary do |summary, _raw_data|
+agent.on_summary(nil) do |summary, _raw_data|
   puts "FAQ Bot summary: #{summary.inspect}"
 end
 

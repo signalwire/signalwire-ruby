@@ -593,7 +593,7 @@ class ServiceRackTest < Minitest::Test
   # -- Routing callback ---------------------------------------------------
 
   def test_routing_callback
-    @service.register_routing_callback('/custom') do |data|
+    @service.register_routing_callback(nil, '/custom') do |data|
       { 'custom' => true, 'received' => data }
     end
 

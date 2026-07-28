@@ -129,7 +129,7 @@ def run_case(handle, kase)
   # Establish an answered inbound call (mirrors RelayActionsTestBase helper).
   captured = Queue.new
   done = Queue.new
-  client.on_call do |call|
+  client.on_call(nil) do |call|
     captured.push(call)
     call.answer
     done.push(true)

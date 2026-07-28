@@ -71,7 +71,7 @@ agent.define_tool(
   description: 'Look up the status of an existing insurance claim',
   parameters:  {
     'claim_number' => { 'type' => 'string', 'description' => 'The claim number to look up' }
-  }
+  }, handler: nil
 ) do |args, _raw_data|
   claim = args['claim_number'] || 'unknown'
   SignalWire::Swaig::FunctionResult.new(
@@ -88,7 +88,7 @@ agent.define_tool(
     'date'        => { 'type' => 'string', 'description' => 'Date of incident (YYYY-MM-DD)' },
     'description' => { 'type' => 'string', 'description' => 'Description of the incident' },
     'amount'      => { 'type' => 'number', 'description' => 'Estimated damage amount in USD' }
-  }
+  }, handler: nil
 ) do |args, _raw_data|
   claim_num = "CLM-#{rand(100_000..999_999)}"
   result = SignalWire::Swaig::FunctionResult.new(

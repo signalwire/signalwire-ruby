@@ -57,7 +57,8 @@ AGENT.prompt_add_section('Role', 'You are a helpful assistant.')
 AGENT.define_tool(
   name:        'get_time',
   description: 'Get the current time',
-  parameters:  {}
+  parameters:  {},
+  handler:     nil # the block below is the handler
 ) do |_args, _raw_data|
   SignalWire::Swaig::FunctionResult.new("The time is #{Time.now.strftime('%H:%M:%S')}")
 end
@@ -139,7 +140,7 @@ client = SignalWire::Relay::Client.new(
   contexts: ['default']
 )
 
-client.on_call do |call|
+client.on_call(nil) do |call|
   call.answer
   action = call.play([{ 'type' => 'tts', 'params' => { 'text' => 'Welcome!' } }])
   action.wait

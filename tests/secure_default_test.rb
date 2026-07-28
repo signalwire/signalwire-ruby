@@ -21,8 +21,8 @@ class SecureDefaultTest < Minitest::Test
 
   # The SDK-recorded flag: a default define_tool is secure; secure:false is not.
   def test_define_tool_defaults_secure_true
-    @agent.define_tool(name: 'a', description: 'd', parameters: {}) { |_a, _r| nil }
-    @agent.define_tool(name: 'b', description: 'd', parameters: {}, secure: false) { |_a, _r| nil }
+    @agent.define_tool(name: 'a', description: 'd', parameters: {}, handler: nil) { |_a, _r| nil }
+    @agent.define_tool(name: 'b', description: 'd', parameters: {}, secure: false, handler: nil) { |_a, _r| nil }
 
     tools = @agent.instance_variable_get(:@tools)
 
@@ -33,9 +33,9 @@ class SecureDefaultTest < Minitest::Test
   # The wire manifestation: with a call_id, the secure tool's webhook carries a
   # __token; the insecure tool's does not.
   def test_secure_tool_webhook_carries_token_with_call_id
-    @agent.define_tool(name: 'sd_default_secure', description: 'd', parameters: {}) { |_a, _r| nil }
+    @agent.define_tool(name: 'sd_default_secure', description: 'd', parameters: {}, handler: nil) { |_a, _r| nil }
     @agent.define_tool(name: 'sd_explicit_insecure', description: 'd',
-                       parameters: {}, secure: false) { |_a, _r| nil }
+                       parameters: {}, secure: false, handler: nil) { |_a, _r| nil }
 
     fns = swaig_functions(@agent.send(:_render_swml_internal, call_id: CALL_ID))
     by_name = fns.to_h { |f| [f['function'], f] }
@@ -48,7 +48,7 @@ class SecureDefaultTest < Minitest::Test
 
   # Without a call_id, no token is minted (the render is call-agnostic).
   def test_no_token_without_call_id
-    @agent.define_tool(name: 'sd_default_secure', description: 'd', parameters: {}) { |_a, _r| nil }
+    @agent.define_tool(name: 'sd_default_secure', description: 'd', parameters: {}, handler: nil) { |_a, _r| nil }
     fns = swaig_functions(@agent.send(:_render_swml_internal))
     entry = fns.find { |f| f['function'] == 'sd_default_secure' } || {}
 

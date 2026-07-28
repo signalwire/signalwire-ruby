@@ -27,7 +27,7 @@ agent = SignalWire::AgentBase.new(
   record_call: true
 )
 
-agent.set_dynamic_config_callback do |query_params, _body, _headers, ephemeral|
+agent.set_dynamic_config_callback(nil) do |query_params, _body, _headers, ephemeral|
   tier       = (query_params['tier']       || 'standard').downcase
   industry   = (query_params['industry']   || 'general').downcase
   language   = (query_params['language']   || 'en').downcase

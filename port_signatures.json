@@ -194,13 +194,11 @@
                 {
                   "name": "callback_fn",
                   "type": "callable<list<dict<string,any>,dict<string,any>>,optional<string>>",
-                  "required": false,
-                  "default": null
+                  "required": true
                 },
                 {
                   "name": "path",
                   "type": "string",
-                  "kind": "keyword",
                   "required": true
                 },
                 {
@@ -283,7 +281,8 @@
                 {
                   "name": "route",
                   "type": "string",
-                  "required": true
+                  "required": false,
+                  "default": "/"
                 }
               ],
               "returns": "any"
@@ -567,14 +566,14 @@
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 10
                 },
                 {
                   "name": "read_idle_timeout",
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 60
                 }
               ],
               "returns": "void"
@@ -1071,8 +1070,7 @@
                 {
                   "name": "contexts",
                   "type": "union<dict<string,any>,any>",
-                  "required": false,
-                  "default": null
+                  "required": true
                 }
               ],
               "returns": "any"
@@ -1136,8 +1134,9 @@
                 {
                   "name": "body",
                   "type": "string",
+                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "bullets",
@@ -1189,8 +1188,9 @@
                 {
                   "name": "body",
                   "type": "string",
+                  "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "bullets",
@@ -1212,12 +1212,6 @@
                   "name": "title",
                   "type": "string",
                   "required": true
-                },
-                {
-                  "name": "body_arg",
-                  "type": "any",
-                  "required": false,
-                  "default": null
                 },
                 {
                   "name": "body",
@@ -1353,15 +1347,13 @@
                   "name": "parameters",
                   "type": "dict<string,any>",
                   "kind": "keyword",
-                  "required": false,
-                  "default": {}
+                  "required": true
                 },
                 {
                   "name": "handler",
                   "type": "callable<list<any>,any>",
                   "kind": "keyword",
-                  "required": false,
-                  "default": null
+                  "required": true
                 },
                 {
                   "name": "secure",
@@ -1418,13 +1410,6 @@
                   "kind": "keyword",
                   "required": false,
                   "default": null
-                },
-                {
-                  "name": "block",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
                 }
               ],
               "returns": "any"
@@ -1473,8 +1458,8 @@
                   "kind": "self"
                 },
                 {
-                  "name": "func_def",
-                  "type": "any",
+                  "name": "function_dict",
+                  "type": "dict<string,any>",
                   "required": true
                 }
               ],
@@ -1717,7 +1702,8 @@
                 {
                   "name": "config",
                   "type": "optional<dict<string,any>>",
-                  "required": true
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -2128,6 +2114,11 @@
                   "kind": "self"
                 },
                 {
+                  "name": "handler",
+                  "type": "callable<list<any>,any>",
+                  "required": true
+                },
+                {
                   "name": "block",
                   "type": "any",
                   "kind": "keyword",
@@ -2146,8 +2137,7 @@
                 {
                   "name": "summary",
                   "type": "optional<class:signalwire.core.post_prompt_generated.PostPromptData>",
-                  "required": false,
-                  "default": null
+                  "required": true
                 },
                 {
                   "name": "raw_data",
@@ -4809,7 +4799,7 @@
                   "type": "optional<string>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "The payment status is ${pay_result}, do not mention anything else about collecting payment if successful."
                 }
               ],
               "returns": "any"
@@ -4869,14 +4859,14 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "wav"
                 },
                 {
                   "name": "direction",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "both"
                 },
                 {
                   "name": "terminators",
@@ -5402,14 +5392,14 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "both"
                 },
                 {
                   "name": "codec",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "PCMU"
                 },
                 {
                   "name": "rtp_ptime",
@@ -5654,22 +5644,19 @@
                   "kind": "self"
                 },
                 {
-                  "name": "name_or_config",
-                  "type": "any",
-                  "required": false,
-                  "default": null
+                  "name": "name",
+                  "type": "string",
+                  "required": true
                 },
                 {
                   "name": "code",
                   "type": "string",
-                  "required": false,
-                  "default": null
+                  "required": true
                 },
                 {
                   "name": "voice",
                   "type": "string",
-                  "required": false,
-                  "default": null
+                  "required": true
                 },
                 {
                   "name": "speech_fillers",
@@ -5703,13 +5690,6 @@
                   "name": "params",
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "opts",
-                  "type": "any",
-                  "kind": "var_keyword",
                   "required": false,
                   "default": null
                 }
@@ -5758,32 +5738,19 @@
                   "kind": "self"
                 },
                 {
-                  "name": "args",
-                  "type": "any",
-                  "kind": "var_positional",
-                  "required": false,
-                  "default": null
-                },
-                {
                   "name": "hint",
                   "type": "string",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
+                  "required": true
                 },
                 {
                   "name": "pattern",
                   "type": "string",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
+                  "required": true
                 },
                 {
                   "name": "replace",
                   "type": "string",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
+                  "required": true
                 },
                 {
                   "name": "ignore_case",
@@ -5791,13 +5758,6 @@
                   "kind": "keyword",
                   "required": false,
                   "default": false
-                },
-                {
-                  "name": "language",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": "en-US"
                 }
               ],
               "returns": "any"
@@ -6171,7 +6131,7 @@
                 },
                 {
                   "name": "contexts",
-                  "type": "union<dict<string,any>,any>",
+                  "type": "optional<union<dict<string,any>,class:signalwire.core.contexts.ContextBuilder>>",
                   "required": false,
                   "default": null
                 }
@@ -6211,7 +6171,7 @@
                   "name": "body",
                   "type": "string",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "bullets",
@@ -6264,7 +6224,7 @@
                   "name": "body",
                   "type": "string",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "bullets",
@@ -6429,7 +6389,7 @@
                   "name": "params",
                   "type": "optional<dict<string,any>>",
                   "required": false,
-                  "default": {}
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -6533,15 +6493,13 @@
                   "name": "parameters",
                   "type": "dict<string,any>",
                   "kind": "keyword",
-                  "required": false,
-                  "default": {}
+                  "required": true
                 },
                 {
                   "name": "handler",
                   "type": "callable<list<any>,any>",
                   "kind": "keyword",
-                  "required": false,
-                  "default": null
+                  "required": true
                 },
                 {
                   "name": "secure",
@@ -6559,14 +6517,14 @@
                 },
                 {
                   "name": "wait_file",
-                  "type": "optional<string>",
+                  "type": "any",
                   "kind": "keyword",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "wait_file_loops",
-                  "type": "optional<int>",
+                  "type": "any",
                   "kind": "keyword",
                   "required": false,
                   "default": null
@@ -6628,7 +6586,8 @@
                 {
                   "name": "raw_data",
                   "type": "optional<dict<string,any>>",
-                  "required": true
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -6759,9 +6718,15 @@
                   "kind": "self"
                 },
                 {
+                  "name": "callback_fn",
+                  "type": "callable<list<dict<string,any>,dict<string,any>>,optional<string>>",
+                  "required": true
+                },
+                {
                   "name": "path",
                   "type": "string",
-                  "required": true
+                  "required": false,
+                  "default": "/sip"
                 },
                 {
                   "name": "block",
@@ -6849,8 +6814,7 @@
                 {
                   "name": "callback",
                   "type": "callable<list<dict<string,any>,dict<string,any>,dict<string,any>,class:signalwire.core.agent_base.AgentBase>,void>",
-                  "required": false,
-                  "default": null
+                  "required": true
                 },
                 {
                   "name": "block",
@@ -11309,7 +11273,7 @@
                 },
                 {
                   "name": "name",
-                  "type": "string",
+                  "type": "any",
                   "required": true
                 }
               ],
@@ -11377,7 +11341,7 @@
                 },
                 {
                   "name": "name",
-                  "type": "string",
+                  "type": "any",
                   "required": true
                 }
               ],
@@ -11471,7 +11435,8 @@
                 {
                   "name": "raw_data",
                   "type": "any",
-                  "required": true
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -11557,9 +11522,15 @@
                   "kind": "self"
                 },
                 {
+                  "name": "callback_fn",
+                  "type": "callable<list<dict<string,any>,dict<string,any>>,optional<string>>",
+                  "required": true
+                },
+                {
                   "name": "path",
                   "type": "string",
-                  "required": true
+                  "required": false,
+                  "default": "/sip"
                 },
                 {
                   "name": "block",
@@ -11607,7 +11578,7 @@
                 },
                 {
                   "name": "name",
-                  "type": "string",
+                  "type": "any",
                   "required": true
                 }
               ],
@@ -20415,8 +20386,7 @@
                 {
                   "name": "raw_data",
                   "type": "dict<string,any>",
-                  "required": false,
-                  "default": {}
+                  "required": true
                 }
               ],
               "returns": "any"
@@ -20435,8 +20405,7 @@
                 {
                   "name": "raw_data",
                   "type": "dict<string,any>",
-                  "required": false,
-                  "default": {}
+                  "required": true
                 }
               ],
               "returns": "any"
@@ -20487,7 +20456,7 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "rime.spore"
                 },
                 {
                   "name": "_opts",
@@ -20653,7 +20622,7 @@
                   "type": "int",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 2
                 },
                 {
                   "name": "name",
@@ -21762,6 +21731,11 @@
                 {
                   "name": "handler",
                   "type": "class:signalwire.relay.call.EventHandler",
+                  "required": true
+                },
+                {
+                  "name": "block",
+                  "type": "any",
                   "kind": "keyword",
                   "required": false,
                   "default": null
@@ -23215,13 +23189,6 @@
                   "required": true
                 },
                 {
-                  "name": "timeout",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": 120
-                },
-                {
                   "name": "tag",
                   "type": "optional<string>",
                   "kind": "keyword",
@@ -23229,9 +23196,16 @@
                   "default": null
                 },
                 {
-                  "name": "kwargs",
-                  "type": "any",
-                  "kind": "var_keyword",
+                  "name": "max_duration",
+                  "type": "optional<int>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "dial_timeout",
+                  "type": "optional<float>",
+                  "kind": "keyword",
                   "required": false,
                   "default": null
                 }
@@ -23252,8 +23226,7 @@
                 {
                   "name": "params",
                   "type": "dict<string,any>",
-                  "required": false,
-                  "default": {}
+                  "required": true
                 }
               ],
               "returns": "any"
@@ -23301,6 +23274,11 @@
                   "kind": "self"
                 },
                 {
+                  "name": "handler",
+                  "type": "class:signalwire.relay.client.CallHandler",
+                  "required": true
+                },
+                {
                   "name": "block",
                   "type": "any",
                   "kind": "keyword",
@@ -23331,6 +23309,11 @@
                 {
                   "name": "self",
                   "kind": "self"
+                },
+                {
+                  "name": "handler",
+                  "type": "class:signalwire.relay.client.MessageHandler",
+                  "required": true
                 },
                 {
                   "name": "block",
@@ -26587,6 +26570,11 @@
                 {
                   "name": "handler",
                   "type": "callable<list<class:signalwire.relay.event.RelayEvent>,any>",
+                  "required": true
+                },
+                {
+                  "name": "block",
+                  "type": "any",
                   "kind": "keyword",
                   "required": false,
                   "default": null
@@ -39885,7 +39873,7 @@
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "string"
                 }
               ],
               "returns": "any"

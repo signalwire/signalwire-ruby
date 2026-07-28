@@ -67,8 +67,10 @@ module SignalWire
         raise 'skill has no agent to define tools on' unless @agent
 
         merged = (@swaig_fields || {}).merge(kwargs)
+        # `handler:` is a required keyword; the block IS the handler here, so the
+        # explicit slot is nil unless the caller's merged kwargs already set it.
         @agent.define_tool(name: name, description: description,
-                           parameters: parameters, **merged, &handler)
+                           parameters: parameters, handler: nil, **merged, &handler)
       end
 
       # Speech recognition hints.

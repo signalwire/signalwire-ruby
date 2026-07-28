@@ -40,19 +40,19 @@ agent = SignalWire::AgentBase.new(
 agent.define_tool(
   name:        'validate_email',
   description: 'Validate that an email address is well-formed and deliverable',
-  parameters:  { 'email' => { 'type' => 'string' } }
+  parameters:  { 'email' => { 'type' => 'string' } }, handler: nil
 ) { |_args, _raw| { 'response' => 'valid' } }
 
 agent.define_tool(
   name:        'geocode_zip',
   description: 'Look up the city/state for a US ZIP code',
-  parameters:  { 'zip' => { 'type' => 'string' } }
+  parameters:  { 'zip' => { 'type' => 'string' } }, handler: nil
 ) { |_args, _raw| { 'response' => '{"city":"...","state":"..."}' } }
 
 agent.define_tool(
   name:        'check_age_eligibility',
   description: 'Verify the customer is old enough for the product',
-  parameters:  { 'age' => { 'type' => 'integer' } }
+  parameters:  { 'age' => { 'type' => 'integer' } }, handler: nil
 ) { |_args, _raw| { 'response' => 'eligible' } }
 
 # These tools are NOT whitelisted on any gather question. They are
@@ -61,13 +61,13 @@ agent.define_tool(
 agent.define_tool(
   name:        'escalate_to_human',
   description: 'Transfer the conversation to a live agent',
-  parameters:  {}
+  parameters:  {}, handler: nil
 ) { |_args, _raw| { 'response' => 'transferred' } }
 
 agent.define_tool(
   name:        'lookup_existing_account',
   description: 'Search for an existing account by email',
-  parameters:  { 'email' => { 'type' => 'string' } }
+  parameters:  { 'email' => { 'type' => 'string' } }, handler: nil
 ) { |_args, _raw| { 'response' => 'not found' } }
 
 # Build a single-context agent with one onboarding step.

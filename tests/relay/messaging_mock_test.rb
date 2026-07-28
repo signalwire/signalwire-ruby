@@ -172,7 +172,7 @@ class RelayMessagingInboundMockTest < Minitest::Test
 
   def test_inbound_message_fires_on_message_handler
     received_q = Queue.new
-    @client.on_message { |m| received_q.push(m) }
+    @client.on_message(nil) { |m| received_q.push(m) }
     push_event('messaging.receive', inbound_message_params)
     Timeout.timeout(5) { @inbound = received_q.pop }
 

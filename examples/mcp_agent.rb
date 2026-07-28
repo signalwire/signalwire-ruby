@@ -54,7 +54,7 @@ agent.define_tool(
   description: 'Get the current weather for a location',
   parameters: {
     'location' => { 'type' => 'string', 'description' => 'City name or zip code' }
-  }
+  }, handler: nil
 ) do |args, _raw|
   location = args['location'] || 'unknown'
   SignalWire::Swaig::FunctionResult.new("Currently 72F and sunny in #{location}.")
@@ -66,7 +66,7 @@ agent.define_tool(
   parameters: {
     'subject'     => { 'type' => 'string', 'description' => 'Ticket subject' },
     'description' => { 'type' => 'string', 'description' => 'Detailed description' }
-  }
+  }, handler: nil
 ) do |args, _raw|
   subject = args['subject'] || 'No subject'
   SignalWire::Swaig::FunctionResult.new("Ticket created: '#{subject}'. Reference number: TK-12345.")

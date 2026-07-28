@@ -1268,7 +1268,28 @@ def collect(raw: dict) -> dict:
             out_modules.setdefault(target_mod, {})
             out_modules[target_mod].setdefault("classes", {})
             out_modules[target_mod]["classes"].setdefault(target_cls, {"methods": {}})
-            out_modules[target_mod]["classes"][target_cls]["methods"].update(present)
+            target_methods = out_modules[target_mod]["classes"][target_cls]["methods"]
+            # A projection FILLS a method the target class does not declare; it
+            # must never CLOBBER one the target really has. PromptManager is the
+            # case that proved it: Ruby declares its own
+            # ``PromptManager#define_contexts(contexts)`` — required, matching the
+            # reference's PromptManager — but the projection overwrote it with
+            # AgentBase's ``define_contexts(contexts = nil)``, whose reference
+            # counterpart (PromptMixin) is deliberately OPTIONAL. The two
+            # reference methods genuinely differ, so overwriting reported the
+            # correct Ruby method as a required-flip against a signature it does
+            # not have. Only project the names the target is actually missing.
+            target_methods.update(
+                {m: sig for m, sig in present.items() if m not in target_methods}
+            )
+            # The AgentBase donor copy is popped for EVERY name this projection
+            # CLAIMS -- both the ones it filled in and the ones the target already
+            # declared. Claiming is what says "this member's reference home is the
+            # target class, not AgentBase"; whether Ruby happened to also declare
+            # it on the target does not change where the reference records it.
+            # (Popping only the filled ones stranded ``set_prompt_pom`` on
+            # AgentBase, where the reference has no counterpart -> a bogus
+            # missing-reference drift.)
             projected.update(present)
         for n in projected:
             ab_methods.pop(n, None)

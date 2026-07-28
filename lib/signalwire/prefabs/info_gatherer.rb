@@ -108,7 +108,7 @@ module SignalWire
 
       # Tool handler: start_questions. Reads the current question index from the
       # request's global_data and returns the corresponding question.
-      def handle_start(_args, raw_data = {})
+      def handle_start(_args, raw_data)
         gd = request_global_data(raw_data)
         questions = gd['questions']
         index     = gd['question_index']
@@ -126,7 +126,7 @@ module SignalWire
       # Tool handler: submit_answer. Real state machine — records the answer,
       # advances the index, and returns the next question (or completion),
       # persisting the updated state back into global_data.
-      def handle_submit(args, raw_data = {})
+      def handle_submit(args, raw_data)
         answer = args['answer'] || ''
         gd = request_global_data(raw_data)
         questions = gd['questions']

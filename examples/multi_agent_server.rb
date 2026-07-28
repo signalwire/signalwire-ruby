@@ -24,7 +24,7 @@ sales.define_tool(
   parameters:  {
     'email' => { 'type' => 'string', 'description' => 'Caller email address' },
     'date'  => { 'type' => 'string', 'description' => 'Preferred date (YYYY-MM-DD)' }
-  }
+  }, handler: nil
 ) do |args, _raw_data|
   SignalWire::Swaig::FunctionResult.new(
     "Demo scheduled for #{args['email']} on #{args['date']}. " \
@@ -48,7 +48,7 @@ support.define_tool(
   description: 'Look up a support ticket by number',
   parameters:  {
     'ticket_number' => { 'type' => 'string', 'description' => 'The support ticket number' }
-  }
+  }, handler: nil
 ) do |args, _raw_data|
   SignalWire::Swaig::FunctionResult.new(
     "Ticket #{args['ticket_number']}: Status is 'In Progress'. " \
@@ -75,7 +75,7 @@ receptionist.define_tool(
       'type'        => 'string',
       'description' => 'Department name: sales, support, or billing'
     }
-  }
+  }, handler: nil
 ) do |args, _raw_data|
   dept = args['department'] || 'unknown'
   result = SignalWire::Swaig::FunctionResult.new(

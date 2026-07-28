@@ -17,7 +17,7 @@ require 'signalwire/relay/client'  # opt-in subsystem (Python: from signalwire.r
 client = SignalWire::Relay::Client.new(contexts: ['default'])
 
 # Handle inbound calls
-client.on_call do |call|
+client.on_call(nil) do |call|
   puts "Incoming call from #{call.device.dig('params', 'from_number') || 'unknown'}"
   puts "  Call ID: #{call.call_id}"
   puts "  Direction: #{call.direction}"
@@ -53,7 +53,7 @@ client.on_call do |call|
 end
 
 # Handle inbound messages (optional)
-client.on_message do |msg|
+client.on_message(nil) do |msg|
   puts "Incoming message from #{msg.from_number}: #{msg.body}"
 end
 

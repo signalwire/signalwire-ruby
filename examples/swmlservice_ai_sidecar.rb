@@ -82,7 +82,7 @@ class SalesSidecar < SignalWire::SWML::Service
     # 3. (Optional) Mount an event sink for ai_sidecar lifecycle events
     #    at POST /sales-sidecar/events. Comment this out if you don't
     #    need it. The sidecar POSTs each event as JSON.
-    register_routing_callback('/events') do |request_data|
+    register_routing_callback(nil, '/events') do |request_data|
       event_type = request_data && request_data['type']
       warn "[sidecar event] type=#{event_type.inspect} body=#{request_data.inspect}"
       { 'ok' => true }

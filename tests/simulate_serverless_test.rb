@@ -58,7 +58,7 @@ module SimulateServerlessTestHelpers
       AGENT.define_tool(
         name:        #{tool[:name].inspect},
         description: #{tool[:description].inspect},
-        parameters:  #{tool.fetch(:parameters, {}).inspect}
+        parameters:  #{tool.fetch(:parameters, {}).inspect}, handler: nil
       ) do |args, raw|
         #{tool.fetch(:body, "SignalWire::Swaig::FunctionResult.new('ok')")}
       end

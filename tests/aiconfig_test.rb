@@ -28,7 +28,7 @@ class AIConfigHintsTest < Minitest::Test
   end
 
   def test_add_pattern_hint
-    @agent.add_pattern_hint('SW.*', hint: 'SignalWire', language: 'en-US')
+    @agent.add_pattern_hint('SignalWire', 'SW.*', 'SignalWire')
     swml = @agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
     pattern_hint = ai['hints'].find { |h| h.is_a?(Hash) }
@@ -53,7 +53,7 @@ class AIConfigLanguagesTest < Minitest::Test
   end
 
   def test_add_language
-    @agent.add_language({ 'name' => 'English', 'code' => 'en-US', 'voice' => 'rachel' })
+    @agent.add_language('English', 'en-US', 'rachel')
     swml = @agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
 
@@ -73,28 +73,18 @@ class AIConfigLanguagesTest < Minitest::Test
     assert_equal 2, ai['languages'].length
   end
 
-  # #34 regression (RED on the pre-fix code, which raised ArgumentError
-  # "wrong number of arguments (given 0)"). A braceless string-keyed hash —
-  # `add_language('name' => …, 'code' => …, 'voice' => …)` — is routed by Ruby
-  # toward keywords; it must be accepted as the hash config form.
-  def test_add_language_braceless_string_keyed_hash
-    @agent.add_language('name' => 'English', 'code' => 'en-US', 'voice' => 'rachel')
-    langs = @agent.instance_variable_get(:@languages)
-
-    assert_equal 1, langs.length
-    assert_equal 'English', langs[0]['name']
-    assert_equal 'en-US', langs[0]['code']
-    assert_equal 'rachel', langs[0]['voice']
-  end
-
-  # The braceless symbol-keyed shape must also work, with keys stringified to
-  # match SWML's string-keyed language config.
-  def test_add_language_braceless_symbol_keyed_hash
-    @agent.add_language(name: 'French', code: 'fr-FR', voice: 'amelie')
-    langs = @agent.instance_variable_get(:@languages)
-
-    assert_equal 'French', langs[0]['name']
-    assert_equal 'fr-FR', langs[0]['code']
+  # The hash-config shapes #34 added (`add_language(config_hash)` and the
+  # braceless `add_language('name' => …)`) were removed — the reference's
+  # `add_language` takes three REQUIRED positionals and spells the hash-config
+  # capability #set_languages. A hash in the `name` slot is now just a name.
+  def test_add_language_rejects_hash_config_shapes
+    assert_raises(ArgumentError) do
+      @agent.add_language('name' => 'English', 'code' => 'en-US', 'voice' => 'rachel')
+    end
+    assert_raises(ArgumentError) { @agent.add_language(name: 'French', code: 'fr-FR', voice: 'amelie') }
+    assert_raises(ArgumentError) do
+      @agent.add_language({ 'name' => 'English', 'code' => 'en-US', 'voice' => 'rachel' })
+    end
   end
 
   # The positional form remains supported (no regression).
@@ -376,8 +366,8 @@ class AIConfigChainingTest < Minitest::Test
 
     assert_same agent, agent.add_hint('x')
     assert_same agent, agent.add_hints(['x'])
-    assert_same agent, agent.add_pattern_hint('p')
-    assert_same agent, agent.add_language({ 'name' => 'E', 'code' => 'en' })
+    assert_same agent, agent.add_pattern_hint('h', 'p', 'r')
+    assert_same agent, agent.add_language('E', 'en', 'v')
     assert_same agent, agent.set_languages([])
     assert_same agent, agent.add_pronunciation('a', 'b')
     assert_same agent, agent.set_pronunciations([])

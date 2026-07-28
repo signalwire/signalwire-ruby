@@ -49,8 +49,26 @@ require_relative '../lib/signalwire'
 
 # Sentinel distinguishing "no static value recoverable" from a literal ``nil``
 # default. ``def f(x = nil)`` genuinely defaults to nil and must be recorded as
-# such; ``def f(x = CONST)`` must not be recorded at all.
+# such; a default that is neither a literal nor a resolvable CONSTANT must not be
+# recorded at all.
 NO_STATIC_DEFAULT = Object.new.freeze
+
+# A CONSTANT reference used as a default (``def f(fmt: RecordFormat::WAV)``).
+#
+# This is NOT a "non-static expression" -- a constant is exactly as fixed as an
+# inline literal; writing ``format: RecordFormat::WAV`` instead of
+# ``format: 'wav'`` is a readability choice, not a behavioural one. Dropping it
+# reported five FunctionResult params (``record_call`` format/direction, ``tap``
+# direction/codec, ``pay`` ai_response) as having no default when the reference
+# records "wav"/"both"/"PCMU"/the pay prompt -- a correct port reading as drift.
+#
+# Resolution is DEFERRED rather than done during the source parse because the
+# parse walks files with no lexical-scope tracking, so a bare ``WAV`` has no
+# namespace to resolve against. The reflection side does: ``Method#owner`` is the
+# exact module the ``def`` was written in, which is the lexical scope Ruby itself
+# would use. So the parse records the reference and ``resolve_const_refs``
+# resolves it against the owner's namespace chain (see ``const_lookup``).
+ConstRef = Struct.new(:path)
 
 # Convert a Ripper value sexp to its literal Ruby value, or NO_STATIC_DEFAULT
 # when it is not a static literal.
@@ -65,7 +83,12 @@ def ripper_literal(node)
   case node[0]
   when :@int then ripper_integer(node[1])
   when :@float then ripper_float(node[1])
-  when :var_ref, :vcall then ripper_keyword_literal(node[1])
+  # ``true``/``false``/``nil`` arrive as :var_ref/:vcall over a :@kw token; a
+  # :var_ref over a :@const is a CONSTANT and falls through to the arm below.
+  when :vcall then ripper_keyword_literal(node[1])
+  when :var_ref
+    kw = ripper_keyword_literal(node[1])
+    kw.equal?(NO_STATIC_DEFAULT) ? ripper_const_ref(node) : kw
   when :string_literal then ripper_string_literal(node[1])
   when :symbol_literal then ripper_symbol_literal(node[1])
   # A bare word inside a %w[] / %i[] list -- Ripper emits the raw token with
@@ -73,7 +96,35 @@ def ripper_literal(node)
   when :@tstring_content then node[1]
   when :array then ripper_array_literal(node[1])
   when :hash then ripper_hash_literal(node[1])
+  # A namespaced CONSTANT (``RecordFormat::WAV`` / ``A::B::C`` / ``::A::B``) --
+  # recorded as a deferred reference, resolved later against the owning module.
+  when :const_path_ref, :top_const_ref then ripper_const_ref(node)
   else NO_STATIC_DEFAULT
+  end
+end
+
+# Flatten a constant sexp to a dotted path, or NO_STATIC_DEFAULT when the node is
+# not a pure constant chain. Only :@const links are accepted -- ``foo::BAR`` (a
+# method call on the left) resolves at call time and is not statically known.
+def ripper_const_ref(node)
+  parts = flatten_const_path(node)
+  return NO_STATIC_DEFAULT if parts.nil?
+
+  ConstRef.new(parts)
+end
+
+def flatten_const_path(node)
+  return nil unless node.is_a?(Array)
+
+  case node[0]
+  when :@const then [node[1]]
+  when :var_ref, :top_const_ref then flatten_const_path(node[1])
+  when :const_path_ref
+    left = flatten_const_path(node[1])
+    right = flatten_const_path(node[2])
+    return nil if left.nil? || right.nil?
+
+    left + right
   end
 end
 
@@ -276,8 +327,73 @@ rescue StandardError
   path
 end
 
+# Replace every deferred ConstRef with the constant's VALUE, resolved against the
+# module the method was defined in. A reference that does not resolve, or that
+# resolves to something that is not a JSON-representable scalar/collection (a
+# Class, a Proc, an arbitrary object), is dropped back to NO_STATIC_DEFAULT --
+# unrecovered rather than fabricated.
+def resolve_const_refs(defaults, owner)
+  out = {}
+  defaults.each do |pname, val|
+    resolved = val.is_a?(ConstRef) ? const_lookup(val.path, owner) : val
+    out[pname] = resolved unless resolved.equal?(NO_STATIC_DEFAULT)
+  end
+  out
+end
+
+# Resolve a dotted constant path the way Ruby's own lexical lookup would: try the
+# owning module first, then each enclosing namespace, then top level.
+#
+# ``Module#const_get`` with inherit:true already walks the ancestry, so the extra
+# work here is walking OUTWARD through the enclosing namespaces -- which is what
+# makes a bare ``WAV`` written inside ``SignalWire::Swaig::FunctionResult``
+# resolve to ``SignalWire::Swaig::RecordFormat::WAV``'s sibling scope.
+def const_lookup(path, owner)
+  joined = path.join('::')
+  namespaces_for(owner).each do |ns|
+    return json_scalar(ns.const_get(joined))
+  rescue NameError, TypeError
+    next
+  end
+  NO_STATIC_DEFAULT
+end
+
+# [owner, each enclosing namespace ..., Object] for a module, by name.
+def namespaces_for(owner)
+  out = []
+  name = owner.is_a?(Module) ? owner.name : nil
+  if name
+    parts = name.split('::')
+    parts.length.downto(1) do |i|
+      out << Object.const_get(parts[0, i].join('::'))
+    rescue NameError, TypeError
+      next
+    end
+  end
+  out << Object
+  out
+end
+
+# A constant's value, only when it is a plain JSON-representable value. Anything
+# else (Class, Module, Proc, Struct, arbitrary object) has no meaningful default
+# representation and is rejected rather than stringified.
+def json_scalar(val)
+  case val
+  when String, Integer, Float, true, false, nil then val
+  when Symbol then val.to_s
+  when Array then if val.all? { |v| json_scalar(v) != NO_STATIC_DEFAULT }
+                    val.map do |v|
+                      json_scalar(v)
+                    end
+                  else
+                    NO_STATIC_DEFAULT
+                  end
+  else NO_STATIC_DEFAULT
+  end
+end
+
 def method_entry(meth, name, is_constructor:, is_static:)
-  defaults = defaults_for(meth)
+  defaults = resolve_const_refs(defaults_for(meth), meth.owner)
   parameters = meth.parameters.map do |kind, pname|
     entry = { kind: kind.to_s, name: pname.to_s }
     # Emit ``default`` ONLY when a literal was actually recovered. Its ABSENCE

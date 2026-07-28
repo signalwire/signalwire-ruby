@@ -212,7 +212,7 @@ class SwaigTestCLIIntegrationTest < Minitest::Test
     agent.define_tool(
       name: 'greet',
       description: 'Greet someone by name',
-      parameters: { 'name' => { 'type' => 'string', 'description' => 'Person name' } }
+      parameters: { 'name' => { 'type' => 'string', 'description' => 'Person name' } }, handler: nil
     ) do |args, _raw|
       SignalWire::Swaig::FunctionResult.new("Hello, #{args['name']}!")
     end

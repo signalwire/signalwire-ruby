@@ -332,7 +332,7 @@ module SignalWire
     # @param numbered_bullets [Boolean] render bullets as numbered
     # @param subsections [Array<Hash>, nil] optional pre-rendered
     #   subsection hashes (each ``{title:, body:, bullets:}``)
-    def prompt_add_section(title, body = nil, bullets: nil,
+    def prompt_add_section(title, body = '', bullets: nil,
                            numbered: false, numbered_bullets: false,
                            subsections: nil)
       @prompt_text = nil
@@ -344,7 +344,8 @@ module SignalWire
 
     def build_section(title, body, **opts)
       section = { 'title' => title }
-      section['body']             = body              if body
+      # See prompt_add_subsection: `''` is truthy in Ruby, falsy in python.
+      section['body']             = body              unless body.nil? || body.empty?
       section['bullets']          = opts[:bullets]    if opts[:bullets]
       section['numbered']         = true              if opts[:numbered]
       section['numbered_bullets'] = true              if opts[:numbered_bullets]
@@ -408,11 +409,15 @@ module SignalWire
     end
 
     # Add a subsection under a parent section.
-    def prompt_add_subsection(parent_title, title, body = nil, bullets: nil)
+    def prompt_add_subsection(parent_title, title, body = '', bullets: nil)
       parent = find_or_create_section(parent_title)
       parent['subsections'] ||= []
       sub = { 'title' => title }
-      sub['body']    = body    if body
+      # An EMPTY body is omitted, not emitted as "". Ruby's `''` is truthy where
+      # python's is falsy, so a bare `if body` would emit `"body": ""` for the
+      # default where the reference (`if self.body:` in pom.Section.to_dict)
+      # omits the key entirely.
+      sub['body']    = body    unless body.nil? || body.empty?
       sub['bullets'] = bullets if bullets
       parent['subsections'] << sub
       self
@@ -703,9 +708,16 @@ module SignalWire
     #   runtime but is accepted for signature compatibility)
     # @param swaig_fields [Hash, nil] additional fields merged into
     #   the SWAIG function definition
-    # @yield [args, raw_data] tool handler body (alternative to
-    #   passing ``handler:``)
-    def define_tool(name:, description:, parameters: {}, handler: nil,
+    # @yield [args, raw_data] tool handler body (takes precedence over an
+    #   explicit ``handler:``, which must still be supplied — pass ``nil``)
+    #
+    # ``parameters:`` and ``handler:`` are REQUIRED, matching the reference
+    # (``define_tool(name, description, parameters, handler, ...)``). They
+    # previously defaulted to ``{}`` / ``nil``, so a call that named no
+    # parameters and registered no handler was silently accepted here while every
+    # other port rejected it. A tool with no parameters states ``parameters: {}``
+    # explicitly; a block-bodied tool states ``handler: nil`` and passes the block.
+    def define_tool(name:, description:, parameters:, handler:,
                     secure: true, fillers: nil,
                     wait_file: nil, wait_file_loops: nil,
                     webhook_url: nil, required: nil,
@@ -790,7 +802,7 @@ module SignalWire
     end
 
     # Dispatch a function call to the registered handler.
-    def on_function_call(name, args, raw_data)
+    def on_function_call(name, args, raw_data = nil)
       tool = @tools[name]
       return { 'response' => "Function '#{name}' not found" } unless tool
       return { 'response' => 'Invalid or expired token' } unless secure_token_ok?(name, tool, raw_data)
@@ -852,61 +864,32 @@ module SignalWire
 
     # Add a complex (pattern-matched) hint.
     #
-    # Two call shapes are supported: the positional form
-    # ``add_pattern_hint(hint, pattern, replace, ignore_case: false)`` and
-    # the legacy keyword form ``add_pattern_hint(pattern, hint:, language:)``
-    # (kept for backward compat).
+    # ``hint``, ``pattern`` and ``replace`` are REQUIRED, matching the reference
+    # (``add_pattern_hint(hint, pattern, replace, ignore_case=False)``). The
+    # legacy ``add_pattern_hint(pattern, hint:, language:)`` overload was removed:
+    # it had no reference counterpart AND emitted a different wire shape
+    # (``{pattern, hint, language}`` instead of
+    # ``{hint, pattern, replace, ignore_case}``), so it was port-invented surface
+    # rather than an idiomatic spelling of the reference call.
     #
-    # @overload add_pattern_hint(hint, pattern, replace, ignore_case: false)
-    #   @param hint [String] hint to match
-    #   @param pattern [String] regex pattern
-    #   @param replace [String] replacement text
-    #   @param ignore_case [Boolean] match without regard to case
-    # @overload add_pattern_hint(pattern, hint:, language: 'en-US')
-    #   Legacy Ruby form — pattern + optional hint string and language.
-    def add_pattern_hint(*args, hint: nil, pattern: nil, replace: nil,
-                         ignore_case: false, language: 'en-US')
-      @hints << build_pattern_hint(args, hint: hint, pattern: pattern, replace: replace,
-                                         ignore_case: ignore_case, language: language)
+    # @param hint [String] hint to match
+    # @param pattern [String] regex pattern
+    # @param replace [String] replacement text
+    # @param ignore_case [Boolean] match without regard to case
+    def add_pattern_hint(hint, pattern, replace, ignore_case: false)
+      @hints << { 'hint' => hint, 'pattern' => pattern,
+                  'replace' => replace, 'ignore_case' => ignore_case }
       self
-    end
-
-    def build_pattern_hint(args, **opts)
-      # Three positional args = Python positional shape.
-      return replace_hint(*args, opts[:ignore_case]) if args.length == 3
-      # Single positional ≡ legacy add_pattern_hint(pattern, hint:, language:).
-      return legacy_pattern_hint(args.first, opts[:hint], opts[:language]) if legacy_hint_form?(args, opts)
-      # Pure-keyword form (Python-named keywords).
-      return replace_hint(opts[:hint], opts[:pattern], opts[:replace], opts[:ignore_case]) if keyword_hint_form?(opts)
-
-      raise ArgumentError,
-            'add_pattern_hint: pass either (hint, pattern, replace) or use legacy (pattern, hint:, language:) form'
-    end
-
-    def legacy_hint_form?(args, opts)
-      args.length == 1 && opts[:pattern].nil? && opts[:replace].nil?
-    end
-
-    def keyword_hint_form?(opts)
-      opts[:pattern] && opts[:hint] && opts[:replace]
-    end
-
-    def replace_hint(hint, pattern, replace, ignore_case)
-      { 'hint' => hint, 'pattern' => pattern, 'replace' => replace, 'ignore_case' => ignore_case }
-    end
-
-    def legacy_pattern_hint(pattern, hint, language)
-      entry = { 'pattern' => pattern }
-      entry['hint']     = hint     if hint
-      entry['language'] = language if language
-      entry
     end
 
     # Add a language configuration.
     #
-    # Two call shapes are supported: the positional shape
-    # ``add_language(name, code, voice, speech_fillers:, function_fillers:,
-    # engine:, model:)`` and the original ``add_language(config)`` hash form.
+    # ``name``, ``code`` and ``voice`` are REQUIRED, matching the reference
+    # (``add_language(name, code, voice, ...)``). The preformed-hash shapes this
+    # method used to also accept (``add_language(config_hash)`` and the braceless
+    # ``add_language('name' => …, 'code' => …)``) had no reference counterpart —
+    # the reference spells that capability #set_languages, which takes the list of
+    # config hashes — so they were removed rather than kept as port-only surface.
     #
     # Voice argument can be either a simple voice id (``"en-US-Neural2-F"``)
     # or a combined ``"engine.voice:model"`` string
@@ -914,67 +897,29 @@ module SignalWire
     # parsed into ``engine``/``voice``/``model`` keys when ``engine``
     # and ``model`` aren't supplied explicitly.
     #
-    # @overload add_language(config)
-    #   @param config [Hash] preformed language config
-    # @overload add_language(name, code, voice, speech_fillers: nil,
-    #   function_fillers: nil, engine: nil, model: nil, params: nil)
-    #   @param name [String] language name (e.g. ``"English"``)
-    #   @param code [String] BCP47 language code (e.g. ``"en-US"``)
-    #   @param voice [String] voice id or ``engine.voice:model`` string
-    #   @param speech_fillers [Array<String>, nil] filler phrases for
-    #     natural speech
-    #   @param function_fillers [Array<String>, nil] filler phrases
-    #     during function calls
-    #   @param engine [String, nil] explicit engine override
-    #   @param model [String, nil] explicit model override
-    #   @param params [Hash, nil] optional per-language params (engine-
-    #     specific tuning, voice settings, etc.). Emitted as the language
-    #     object's ``params`` key in SWML; the key is only emitted when
-    #     non-empty so existing entries stay byte-identical.
-    #   @param opts [Hash] a braceless hash passed as the whole config —
-    #     ``add_language('name' => 'English', 'code' => 'en-US',
-    #     'voice' => '…')``. Ruby routes a trailing braceless hash toward
-    #     keywords, so this shape arrives here (not as +name_or_config+); it is
-    #     unfolded back into the hash config form.
-    def add_language(name_or_config = nil, code = nil, voice = nil,
+    # @param name [String] language name (e.g. ``"English"``)
+    # @param code [String] BCP47 language code (e.g. ``"en-US"``)
+    # @param voice [String] voice id or ``engine.voice:model`` string
+    # @param speech_fillers [Array<String>, nil] filler phrases for
+    #   natural speech
+    # @param function_fillers [Array<String>, nil] filler phrases
+    #   during function calls
+    # @param engine [String, nil] explicit engine override
+    # @param model [String, nil] explicit model override
+    # @param params [Hash, nil] optional per-language params (engine-
+    #   specific tuning, voice settings, etc.). Emitted as the language
+    #   object's ``params`` key in SWML; the key is only emitted when
+    #   non-empty so existing entries stay byte-identical.
+    def add_language(name, code, voice,
                      speech_fillers: nil, function_fillers: nil,
-                     engine: nil, model: nil, params: nil, **opts)
-      # Braceless hash form: `add_language('name' => …, 'code' => …)` — Ruby
-      # collects the trailing pairs into **opts, leaving no positional. Re-route
-      # to the hash config form so the documented one-liner call just works.
-      name_or_config = braceless_config(name_or_config, opts)
-
-      # Hash form (legacy / direct config)
-      return (@languages << name_or_config) && self if hash_language_form?(name_or_config, code, voice)
-
-      require_language_args!(name_or_config, code, voice)
-
-      lang = { 'name' => name_or_config, 'code' => code }
+                     engine: nil, model: nil, params: nil)
+      lang = { 'name' => name, 'code' => code }
       apply_language_voice(lang, voice, engine, model)
       apply_language_fillers(lang, speech_fillers, function_fillers)
       # Only emit params when non-empty so SWML isn't polluted with empty objects.
       lang['params'] = params if params.is_a?(Hash) && !params.empty?
       @languages << lang
       self
-    end
-
-    # When no positional name was given but keyword-style pairs arrived (a
-    # braceless hash routed to **opts), fold them back into a string-keyed
-    # config hash; otherwise pass the positional name through unchanged.
-    def braceless_config(name_or_config, opts)
-      return name_or_config unless name_or_config.nil? && !opts.empty?
-
-      opts.transform_keys(&:to_s)
-    end
-
-    def require_language_args!(name, code, voice)
-      return unless name.nil? || code.nil? || voice.nil?
-
-      raise ArgumentError, 'add_language: name, code, voice are required (or pass a Hash)'
-    end
-
-    def hash_language_form?(name_or_config, code, voice)
-      name_or_config.is_a?(Hash) && code.nil? && voice.nil?
     end
 
     # Resolve the voice/engine/model triple onto `lang`. Explicit engine/model
@@ -1242,7 +1187,7 @@ module SignalWire
       self
     end
 
-    def add_answer_verb(config)
+    def add_answer_verb(config = nil)
       @answer_config = config
       self
     end
@@ -1287,6 +1232,11 @@ module SignalWire
     # @param contexts [SignalWire::Contexts::ContextBuilder, Hash, nil]
     #   optional override
     # @return [SignalWire::Contexts::ContextBuilder] the active builder
+    # ``contexts`` is OPTIONAL here, matching the reference's AgentBase-facing
+    # ``PromptMixin.define_contexts(contexts=None)`` — the no-argument call is the
+    # documented "get or create the builder" shape. The reference's OTHER
+    # ``define_contexts``, on PromptManager, does require it; Ruby's
+    # PromptManager#define_contexts matches that separately.
     def define_contexts(contexts = nil)
       return (@context_builder = attach_context_builder(contexts)) if contexts.is_a?(Contexts::ContextBuilder)
       return (@context_builder = build_context_builder_from_hash(contexts)) if contexts.is_a?(Hash)
@@ -1346,14 +1296,17 @@ module SignalWire
     # ==================================================================
 
     # Load and register a skill by name.
-    def add_skill(skill_name, params = {})
+    def add_skill(skill_name, params = nil)
       # Ensure builtins are registered
       Skills::SkillRegistry.register_builtins!
 
       factory = Skills::SkillRegistry.get_factory(skill_name)
       raise ArgumentError, "Unknown skill: '#{skill_name}'" unless factory
 
-      skill = factory.call(params)
+      # The default is `nil` to match the reference (`params: dict | None = None`),
+      # but every registered factory is a block that INDEXES the params hash, so
+      # the nil is normalised here rather than pushed onto each factory.
+      skill = factory.call(params || {})
       @skill_manager.load(skill.instance_key, skill)
       @loaded_skills[skill_name] = skill
 
@@ -1375,8 +1328,10 @@ module SignalWire
       td_handler = sym_or_str(tool_def, :handler)
       return unless td_name && td_handler
 
+      # `handler:` is a required keyword; the skill's handler is passed as the
+      # block, so the explicit slot is nil.
       define_tool(name: td_name, description: sym_or_str(tool_def, :description) || '',
-                  parameters: sym_or_str(tool_def, :parameters) || {}, &td_handler)
+                  parameters: sym_or_str(tool_def, :parameters) || {}, handler: nil, &td_handler)
     end
 
     # Read a key from a hash that may use symbol or string keys.
@@ -1419,8 +1374,14 @@ module SignalWire
     # Web / HTTP configuration
     # ==================================================================
 
-    def set_dynamic_config_callback(callable = nil, &block)
-      @dynamic_config_callback = callable || block
+    # The callback is REQUIRED, matching the reference
+    # (``set_dynamic_config_callback(self, callback)``); the block is the
+    # idiomatic spelling of the same slot and passing neither raises.
+    def set_dynamic_config_callback(callable, &block)
+      callback = callable || block
+      raise ArgumentError, 'set_dynamic_config_callback requires a callback (block or callable)' if callback.nil?
+
+      @dynamic_config_callback = callback
       self
     end
 
@@ -1526,7 +1487,7 @@ module SignalWire
       # SIP username from the request body and returns nil (matched → this agent
       # handles the call so dispatch renders SWML; unmatched → routing
       # continues) — exactly Python's sip_routing_callback.
-      register_routing_callback(path) { |body, _headers| sip_routing_callback(body) }
+      register_routing_callback(nil, path) { |body, _headers| sip_routing_callback(body) }
 
       auto_map_sip_usernames if auto_map
       self
@@ -1776,15 +1737,20 @@ module SignalWire
     #
     # 1. **Registration** — pass a block to install a callback. The block
     #    receives ``(summary, raw_data)`` when a summary is delivered.
-    #    ``on_summary { |sum, raw| ... }``
+    #    ``on_summary(nil) { |sum, raw| ... }``
     # 2. **Override** — subclass and override
     #    ``on_summary(summary, raw_data = nil)``. Default implementation
     #    calls the registered block (if any) and otherwise no-ops.
     #
+    # ``summary`` is REQUIRED, matching the reference
+    # (``on_summary(self, summary: PostPromptData | None, raw_data=None)``): the
+    # slot is nullABLE, not omittABLE, so a caller states `nil` explicitly rather
+    # than relying on a port-invented default the other nine ports do not have.
+    #
     # @param summary [Hash, nil] the post-prompt summary
     # @param raw_data [Hash, nil] the complete raw POST data
     # @yield [summary, raw_data] optional callback registration
-    def on_summary(summary = nil, raw_data = nil, &block)
+    def on_summary(summary, raw_data = nil, &block)
       if block
         @summary_callback = block
         return self
@@ -1794,8 +1760,14 @@ module SignalWire
       nil
     end
 
-    def on_debug_event(&block)
-      @debug_event_callback = block
+    # Register the debug-event handler. REQUIRED, matching the reference
+    # (``on_debug_event(self, handler)``); the block is the idiomatic spelling of
+    # the same slot and passing neither raises.
+    def on_debug_event(handler, &block)
+      callback = block || handler
+      raise ArgumentError, 'on_debug_event requires a handler (block or callable)' if callback.nil?
+
+      @debug_event_callback = callback
       self
     end
 
@@ -2720,15 +2692,14 @@ module SignalWire
     # methods span multiple public/private regions above.
     private :add_context_step, :add_pom_section, :append_section_bullets, :apply_compound_voice
     private :apply_dynamic_config, :apply_language_fillers, :apply_language_voice, :attach_context_builder
-    private :braceless_config, :require_language_args!
-    private :basic_auth_source, :build_context_builder_from_hash, :build_pattern_hint, :build_section
+    private :basic_auth_source, :build_context_builder_from_hash, :build_section
     private :build_subsection, :build_subsections, :build_tool_definition, :build_tool_param_schema
     private :coerce_function_result, :compound_voice?, :define_skill_tool, :find_or_create_section
-    private :hash_language_form?, :invoke_debug_event_callback, :invoke_summary_callback, :join_rack_body
-    private :keyword_hint_form?, :legacy_hint_form?, :legacy_pattern_hint, :log_server_startup
+    private :invoke_debug_event_callback, :invoke_summary_callback, :join_rack_body
+    private :log_server_startup
     private :matches_env_auth?, :mcp_input_schema, :mcp_tool_entry, :merge_skill_hints_and_data
     private :merge_skill_prompt_sections, :optional_tool_fields, :rack_env, :register_no_vowels_variation
-    private :register_skill_tools, :replace_hint, :sanitize_sip_username, :section_pom_kwargs
+    private :register_skill_tools, :sanitize_sip_username, :section_pom_kwargs
     private :secure_token_ok?, :sym_or_str, :verb_entries, :warn_unexpected_function_result
     private :warn_unknown_filler_name, :warn_unknown_filler_names, :webrick_opts
     private :answer_entry, :record_call_entry, :webrick_handler

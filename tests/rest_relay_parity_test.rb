@@ -170,8 +170,9 @@ class RegisterGlobalRoutingCallbackParityTest < Minitest::Test
       @registered = []
     end
 
-    def register_routing_callback(path, &block)
-      @registered << [path, block]
+    # Reference param order: (callback_fn, path="/sip").
+    def register_routing_callback(callback_fn = nil, path = '/sip', &block)
+      @registered << [path, block || callback_fn]
     end
   end
 
@@ -185,7 +186,7 @@ class RegisterGlobalRoutingCallbackParityTest < Minitest::Test
 
   def test_registers_callback_on_every_agent
     cb = ->(_req, _data) { 'route' }
-    @server.register_global_routing_callback(cb, path: '/sw')
+    @server.register_global_routing_callback(cb, '/sw')
 
     [@a1, @a2].each do |agent|
       assert_equal 1, agent.registered.length
@@ -197,24 +198,24 @@ class RegisterGlobalRoutingCallbackParityTest < Minitest::Test
   end
 
   def test_normalizes_path_leading_and_trailing_slash
-    @server.register_global_routing_callback(->(_r, _d) {}, path: 'webhook/')
+    @server.register_global_routing_callback(->(_r, _d) {}, 'webhook/')
 
     assert_equal '/webhook', @a1.registered.first[0]
   end
 
   def test_accepts_block_form
     block = proc { 'x' }
-    @server.register_global_routing_callback(path: '/blk', &block)
+    @server.register_global_routing_callback(nil, '/blk', &block)
 
     assert_same block, @a1.registered.first[1]
   end
 
   def test_returns_self_for_chaining
-    assert_same @server, @server.register_global_routing_callback(->(_r, _d) {}, path: '/c')
+    assert_same @server, @server.register_global_routing_callback(->(_r, _d) {}, '/c')
   end
 
   def test_requires_a_callback
-    assert_raises(ArgumentError) { @server.register_global_routing_callback(path: '/none') }
+    assert_raises(ArgumentError) { @server.register_global_routing_callback(nil, '/none') }
   end
 end
 

@@ -95,7 +95,7 @@ module SignalWire
 
       # Dispatch a function call to the registered handler. Default plain
       # implementation — AgentBase overrides with token validation.
-      def on_function_call(name, args, raw_data)
+      def on_function_call(name, args, raw_data = nil)
         tool = @tools[name]
         return nil unless tool && tool[:handler]
 
@@ -279,10 +279,22 @@ module SignalWire
       # Register a routing callback at +path+. The path is normalized for
       # consistent lookup — trailing slash stripped, leading slash ensured
       # (so "/sip/" and "sip" both store as "/sip").
-      def register_routing_callback(path, &block)
+      #
+      # Parameter ORDER and defaults mirror the reference
+      # (``register_routing_callback(callback_fn, path="/sip")``): the CALLBACK
+      # comes first and is required, +path+ second and defaulted. Ruby's block is
+      # the idiomatic spelling of ``callback_fn``, so
+      # ``register_routing_callback('/sip') { ... }`` would put the path in the
+      # callback slot — pass the path as the second argument
+      # (``register_routing_callback(nil, '/sip') { ... }``) or rely on the
+      # "/sip" default.
+      def register_routing_callback(callback_fn, path = '/sip', &block)
+        callback = block || callback_fn
+        raise ArgumentError, 'register_routing_callback requires a callback (block or callable)' if callback.nil?
+
         normalized = path.to_s.chomp('/')
         normalized = "/#{normalized}" unless normalized.start_with?('/')
-        @routing_callbacks[normalized] = block
+        @routing_callbacks[normalized] = callback
       end
 
       # Framework-free request-dispatch core — the primitive dispatch surface

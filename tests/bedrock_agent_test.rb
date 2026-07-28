@@ -53,7 +53,7 @@ class BedrockAgentTest < Minitest::Test
   def test_bedrock_object_keys_present_with_tool_and_post_prompt
     agent = SignalWire::Agents::BedrockAgent.new
     agent.set_prompt_text('Hi')
-    agent.define_tool(name: 't', description: 'd') { |_a, _r| {} }
+    agent.define_tool(name: 't', description: 'd', parameters: {}, handler: nil) { |_a, _r| {} }
     agent.set_post_prompt('summarize')
     ab = bedrock_verb(agent)
 

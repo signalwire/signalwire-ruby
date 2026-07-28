@@ -24,7 +24,7 @@ voice.prompt_add_section('Instructions', nil, bullets: [
 voice.add_language('English', 'en-US', 'elevenlabs.rachel')
 
 voice.define_tool(
-  name: 'get_time', description: 'Get the current time', parameters: {}
+  name: 'get_time', description: 'Get the current time', parameters: {}, handler: nil
 ) do |_args, _raw_data|
   now = Time.now.strftime('%I:%M %p')
   SignalWire::Swaig::FunctionResult.new("The current time is #{now}")
@@ -42,7 +42,7 @@ info.prompt_add_section('Guidelines', nil, bullets: [
 
 info.define_tool(
   name: 'get_directory', description: 'Look up a department',
-  parameters: { 'department' => { 'type' => 'string', 'description' => 'Department name' } }
+  parameters: { 'department' => { 'type' => 'string', 'description' => 'Department name' } }, handler: nil
 ) do |args, _raw_data|
   dept = args['department'] || 'unknown'
   SignalWire::Swaig::FunctionResult.new("#{dept.capitalize}: Floor 3, Room 302. Hours 9 AM-5 PM.")

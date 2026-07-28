@@ -40,7 +40,7 @@ class RelayActionsTestBase < Minitest::Test
   def answered_inbound_call(call_id = 'act-call-1')
     captured_q = Queue.new
     handler_done = Queue.new
-    @client.on_call { |call| _capture_answered_call(call, captured_q, handler_done) }
+    @client.on_call(nil) { |call| _capture_answered_call(call, captured_q, handler_done) }
     @mock.inbound_call(call_id: call_id, auto_states: ['created'])
     Timeout.timeout(5) { handler_done.pop }
     call = Timeout.timeout(5) { captured_q.pop }

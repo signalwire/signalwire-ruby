@@ -16,7 +16,7 @@ client = SignalWire::Relay::Client.new(
   contexts: ['default']
 )
 
-client.on_call do |call|
+client.on_call(nil) do |call|
   call.answer
   action = call.play([{ 'type' => 'tts', 'params' => { 'text' => 'Welcome!' } }])
   action.wait

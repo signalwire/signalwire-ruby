@@ -194,7 +194,7 @@ class AgentConstructionSummaryTest < Minitest::Test
   def test_on_summary_block_registration_and_invocation
     agent = SignalWire::AgentBase.new
     received = []
-    agent.on_summary { |sum, raw| received << [sum, raw] }
+    agent.on_summary(nil) { |sum, raw| received << [sum, raw] }
 
     summary = { 'topic' => 'billing' }
     raw     = { 'call_id' => 'abc' }
@@ -222,7 +222,7 @@ class AgentConstructionToolsAndLanguagesTest < Minitest::Test
   def test_define_tool_with_wait_file_and_loops
     agent = SignalWire::AgentBase.new
     agent.define_tool(name: 'play_tune', description: 'play a tune', parameters: {},
-                      wait_file: 'https://example.com/wait.mp3', wait_file_loops: 3) do |_args, _raw|
+                      wait_file: 'https://example.com/wait.mp3', wait_file_loops: 3, handler: nil) do |_args, _raw|
       { 'response' => 'ok' }
     end
     tool = agent.define_tools.find { |d| d['function'] == 'play_tune' }
@@ -238,7 +238,7 @@ class AgentConstructionToolsAndLanguagesTest < Minitest::Test
       name: 'lookup',
       description: 'lookup',
       parameters: {},
-      webhook_url: 'https://example.com/swaig'
+      webhook_url: 'https://example.com/swaig', handler: nil
     ) { |_args, _raw| {} }
     defs = agent.define_tools
     tool = defs.find { |d| d['function'] == 'lookup' }
@@ -252,7 +252,7 @@ class AgentConstructionToolsAndLanguagesTest < Minitest::Test
       name: 'verify',
       description: 'verify',
       parameters: { 'type' => 'object', 'properties' => { 'a' => { 'type' => 'string' } } },
-      required: ['a']
+      required: ['a'], handler: nil
     ) { |_args, _raw| {} }
     defs = agent.define_tools
     tool = defs.find { |d| d['function'] == 'verify' }
@@ -266,7 +266,7 @@ class AgentConstructionToolsAndLanguagesTest < Minitest::Test
       name: 't',
       description: 'd',
       parameters: {},
-      is_typed_handler: true
+      is_typed_handler: true, handler: nil
     ) { |_args, _raw| {} }
     defs = agent.define_tools
     tool = defs.find { |d| d['function'] == 't' }
@@ -290,13 +290,24 @@ class AgentConstructionToolsAndLanguagesTest < Minitest::Test
     assert_equal true, entry['ignore_case']
   end
 
-  def test_add_pattern_hint_legacy_form_still_works
+  # The legacy single-positional form (`add_pattern_hint('foo')`) was removed:
+  # it had no reference counterpart and emitted a different wire shape. All
+  # three of hint/pattern/replace are now required, matching the reference.
+  def test_add_pattern_hint_requires_hint_pattern_and_replace
     agent = SignalWire::AgentBase.new
-    agent.add_pattern_hint('foo') # legacy single positional
-    # Pattern stored in hints
+
+    assert_raises(ArgumentError) { agent.add_pattern_hint('foo') }
+    assert_raises(ArgumentError) { agent.add_pattern_hint('foo', 'bar') }
+  end
+
+  # ignore_case defaults to false — asserted WITHOUT passing it, so the default
+  # itself is under test (passing it explicitly would prove nothing).
+  def test_add_pattern_hint_ignore_case_defaults_to_false
+    agent = SignalWire::AgentBase.new
+    agent.add_pattern_hint('hello', '\\bhi\\b', 'hello there')
     hint = agent.instance_variable_get(:@hints).first
 
-    assert_equal 'foo', hint['pattern']
+    assert_equal false, hint['ignore_case']
   end
 end
 
@@ -348,9 +359,19 @@ class AgentConstructionLanguagesAndRelayTest < Minitest::Test
     assert_equal ['one moment'], lang['function_fillers']
   end
 
-  def test_add_language_legacy_hash_form
+  # The preformed-hash form (`add_language(config_hash)`) was removed: the
+  # reference spells that capability #set_languages. name/code/voice are now all
+  # required, matching the reference's `add_language(name, code, voice, ...)`.
+  def test_add_language_requires_name_code_and_voice
     agent = SignalWire::AgentBase.new
-    agent.add_language({ 'name' => 'Spanish', 'code' => 'es-ES', 'voice' => 'voice' })
+
+    assert_raises(ArgumentError) { agent.add_language('Spanish') }
+    assert_raises(ArgumentError) { agent.add_language('Spanish', 'es-ES') }
+  end
+
+  def test_set_languages_is_the_hash_config_path
+    agent = SignalWire::AgentBase.new
+    agent.set_languages([{ 'name' => 'Spanish', 'code' => 'es-ES', 'voice' => 'voice' }])
     lang = agent.instance_variable_get(:@languages).first
 
     assert_equal 'Spanish', lang['name']
@@ -504,7 +525,8 @@ class AgentToolTest < Minitest::Test
 
   def test_define_tool_with_block
     @agent.define_tool(name: 'greet', description: 'Say hello',
-                       parameters: { 'name' => { 'type' => 'string', 'description' => 'Name' } }) do |args, _raw|
+                       parameters: { 'name' => { 'type' => 'string', 'description' => 'Name' } },
+                       handler: nil) do |args, _raw|
       SignalWire::Swaig::FunctionResult.new("Hello, #{args['name']}!")
     end
     tools = @agent.define_tools
@@ -529,7 +551,7 @@ class AgentToolTest < Minitest::Test
     @agent.define_tool(
       name: 'echo',
       description: 'Echo back',
-      parameters: {}
+      parameters: {}, handler: nil
     ) do |args, _raw|
       SignalWire::Swaig::FunctionResult.new("Echo: #{args['text']}")
     end
@@ -549,7 +571,7 @@ class AgentToolTest < Minitest::Test
     @agent.define_tool(
       name: 'slow_op',
       description: 'Slow operation',
-      fillers: { 'en-US' => ['Please wait...', 'Working on it...'] }
+      fillers: { 'en-US' => ['Please wait...', 'Working on it...'] }, parameters: {}, handler: nil
     ) { |_, _| SignalWire::Swaig::FunctionResult.new('Done') }
 
     tools = @agent.define_tools
@@ -558,7 +580,7 @@ class AgentToolTest < Minitest::Test
   end
 
   def test_define_tool_returns_self
-    result = @agent.define_tool(name: 'x', description: 'x') { |_, _| }
+    result = @agent.define_tool(name: 'x', description: 'x', parameters: {}, handler: nil) { |_, _| }
 
     assert_same @agent, result
   end
@@ -591,7 +613,7 @@ class AgentAIConfigTest < Minitest::Test
   end
 
   def test_add_language
-    @agent.add_language({ 'name' => 'English', 'code' => 'en-US', 'voice' => 'rachel' })
+    @agent.add_language('English', 'en-US', 'rachel')
     swml = @agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
 
@@ -741,7 +763,7 @@ class AgentAIConfigFillersAndIncludesTest < Minitest::Test
   end
 
   def test_add_pattern_hint
-    @agent.add_pattern_hint('SW.*', hint: 'SignalWire', language: 'en-US')
+    @agent.add_pattern_hint('SignalWire', 'SW.*', 'SignalWire')
     swml = @agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
     pattern_hint = ai['hints'].find { |h| h.is_a?(Hash) }
@@ -942,7 +964,7 @@ class AgentRenderSwmlTest < Minitest::Test
 
   def test_with_tools
     agent = SignalWire::AgentBase.new
-    agent.define_tool(name: 'foo', description: 'Foo tool') { |_, _| }
+    agent.define_tool(name: 'foo', description: 'Foo tool', parameters: {}, handler: nil) { |_, _| }
     ai = rendered_ai(agent)
 
     assert ai.key?('SWAIG')
@@ -1003,7 +1025,7 @@ class AgentRenderSwmlUrlsTest < Minitest::Test
 
   def test_webhook_url_in_swml
     agent = SignalWire::AgentBase.new(basic_auth: %w[u p])
-    agent.define_tool(name: 'test', description: 'Test') { |_, _| }
+    agent.define_tool(name: 'test', description: 'Test', parameters: {}, handler: nil) { |_, _| }
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
     default_url = ai['SWAIG']['defaults']['web_hook_url']
@@ -1024,7 +1046,7 @@ class AgentRenderSwmlUrlsTest < Minitest::Test
   def test_web_hook_url_override
     agent = SignalWire::AgentBase.new
     agent.set_web_hook_url('https://custom.example.com/hook')
-    agent.define_tool(name: 'test', description: 'Test') { |_, _| }
+    agent.define_tool(name: 'test', description: 'Test', parameters: {}, handler: nil) { |_, _| }
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
 
@@ -1051,7 +1073,7 @@ class AgentDynamicConfigTest < Minitest::Test
   def test_dynamic_config_callback_applied
     agent = SignalWire::AgentBase.new
     agent.set_prompt_text('Original')
-    agent.set_dynamic_config_callback do |_query, _body, _headers, ephemeral|
+    agent.set_dynamic_config_callback(nil) do |_query, _body, _headers, ephemeral|
       ephemeral.set_prompt_text('Modified')
     end
     swml = agent.render_swml
@@ -1063,7 +1085,7 @@ class AgentDynamicConfigTest < Minitest::Test
   def test_original_not_mutated
     agent = SignalWire::AgentBase.new
     agent.set_prompt_text('Original')
-    agent.set_dynamic_config_callback do |_query, _body, _headers, ephemeral|
+    agent.set_dynamic_config_callback(nil) do |_query, _body, _headers, ephemeral|
       ephemeral.set_prompt_text('Modified')
       ephemeral.add_hint('NewHint')
     end
@@ -1078,8 +1100,9 @@ class AgentDynamicConfigTest < Minitest::Test
 
   def test_dynamic_config_can_add_tools
     agent = SignalWire::AgentBase.new
-    agent.set_dynamic_config_callback do |_q, _b, _h, ephemeral|
-      ephemeral.define_tool(name: 'dynamic_tool', description: 'Added dynamically') { |_, _| }
+    agent.set_dynamic_config_callback(nil) do |_q, _b, _h, ephemeral|
+      ephemeral.define_tool(name: 'dynamic_tool', description: 'Added dynamically',
+                            parameters: {}, handler: nil) { |_, _| }
     end
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
@@ -1101,10 +1124,10 @@ class AgentRackTest < Minitest::Test
   def app
     @agent = SignalWire::AgentBase.new(basic_auth: %w[testuser testpass])
     @agent.set_prompt_text('Hello')
-    @agent.define_tool(name: 'echo', description: 'Echo') do |args, _raw|
+    @agent.define_tool(name: 'echo', description: 'Echo', parameters: {}, handler: nil) do |args, _raw|
       SignalWire::Swaig::FunctionResult.new("Echo: #{args['msg']}")
     end
-    @agent.on_summary do |summary, _raw|
+    @agent.on_summary(nil) do |summary, _raw|
       @last_summary = summary
     end
     @agent.rack_app
@@ -1283,8 +1306,8 @@ class AgentMethodChainingTest < Minitest::Test
     ->(a) { a.prompt_add_subsection('T', 'S', 'B') },
     ->(a) { a.add_hint('x') },
     ->(a) { a.add_hints(['x']) },
-    ->(a) { a.add_pattern_hint('p') },
-    ->(a) { a.add_language({ 'name' => 'E', 'code' => 'en' }) },
+    ->(a) { a.add_pattern_hint('h', 'p', 'r') },
+    ->(a) { a.add_language('E', 'en', 'v') },
     ->(a) { a.set_languages([]) },
     ->(a) { a.add_pronunciation('a', 'b') },
     ->(a) { a.set_pronunciations([]) },
@@ -1307,7 +1330,7 @@ class AgentMethodChainingTest < Minitest::Test
     :clear_post_answer_verbs.to_proc,
     ->(a) { a.add_post_ai_verb('hangup', {}) },
     :clear_post_ai_verbs.to_proc,
-    ->(a) { a.set_dynamic_config_callback { |*| } },
+    ->(a) { a.set_dynamic_config_callback(nil) { |*| } },
     ->(a) { a.manual_set_proxy_url('x') },
     ->(a) { a.set_web_hook_url('x') },
     ->(a) { a.set_post_prompt_url('x') },
@@ -1316,8 +1339,8 @@ class AgentMethodChainingTest < Minitest::Test
     :enable_debug_routes.to_proc,
     :enable_sip_routing.to_proc,
     ->(a) { a.register_sip_username('u') },
-    ->(a) { a.on_summary {} },
-    ->(a) { a.on_debug_event {} },
+    ->(a) { a.on_summary(nil) {} },
+    ->(a) { a.on_debug_event(nil) {} },
     ->(a) { a.register_swaig_function({ 'function' => 'x' }) },
     ->(a) { a.remove_skill('nonexistent') }
   ].freeze
@@ -1338,7 +1361,7 @@ class AgentProxyUrlTest < Minitest::Test
   def test_proxy_url_from_env
     ENV['SWML_PROXY_URL_BASE'] = 'https://proxy.example.com'
     agent = SignalWire::AgentBase.new
-    agent.define_tool(name: 'test', description: 'Test') { |_, _| }
+    agent.define_tool(name: 'test', description: 'Test', parameters: {}, handler: nil) { |_, _| }
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
     url = ai['SWAIG']['defaults']['web_hook_url']
@@ -1351,7 +1374,7 @@ class AgentProxyUrlTest < Minitest::Test
   def test_manual_set_proxy_url
     agent = SignalWire::AgentBase.new
     agent.manual_set_proxy_url('https://manual.example.com')
-    agent.define_tool(name: 'test', description: 'Test') { |_, _| }
+    agent.define_tool(name: 'test', description: 'Test', parameters: {}, handler: nil) { |_, _| }
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
     url = ai['SWAIG']['defaults']['web_hook_url']
@@ -1367,7 +1390,7 @@ class AgentSwaigQueryParamsTest < Minitest::Test
   def test_add_swaig_query_params
     agent = SignalWire::AgentBase.new(basic_auth: %w[u p])
     agent.add_swaig_query_params({ 'tenant' => 'acme' })
-    agent.define_tool(name: 'test', description: 'Test') { |_, _| }
+    agent.define_tool(name: 'test', description: 'Test', parameters: {}, handler: nil) { |_, _| }
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
     url = ai['SWAIG']['defaults']['web_hook_url']
@@ -1379,7 +1402,7 @@ class AgentSwaigQueryParamsTest < Minitest::Test
     agent = SignalWire::AgentBase.new
     agent.add_swaig_query_params({ 'key' => 'val' })
     agent.clear_swaig_query_params
-    agent.define_tool(name: 'test', description: 'Test') { |_, _| }
+    agent.define_tool(name: 'test', description: 'Test', parameters: {}, handler: nil) { |_, _| }
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
     url = ai['SWAIG']['defaults']['web_hook_url']
@@ -1422,7 +1445,7 @@ class AgentDebugEventTest < Minitest::Test
   def app
     @agent = SignalWire::AgentBase.new(basic_auth: %w[u p])
     @received_event = nil
-    @agent.on_debug_event do |event_type, data|
+    @agent.on_debug_event(nil) do |event_type, data|
       @received_event = [event_type, data]
     end
     @agent.rack_app
@@ -1620,7 +1643,7 @@ class AgentAsRouterTest < Minitest::Test
   def build_agent
     agent = SignalWire::AgentBase.new(basic_auth: %w[testuser testpass])
     agent.set_prompt_text('Hello')
-    agent.define_tool(name: 'echo', description: 'Echo') do |args, _raw|
+    agent.define_tool(name: 'echo', description: 'Echo', parameters: {}, handler: nil) do |args, _raw|
       SignalWire::Swaig::FunctionResult.new("Echo: #{args['msg']}")
     end
     agent

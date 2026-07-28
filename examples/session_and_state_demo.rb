@@ -54,7 +54,7 @@ agent.define_tool(
   description: 'Look up an order by order ID',
   parameters:  {
     'order_id' => { 'type' => 'string', 'description' => 'The order ID to look up' }
-  }
+  }, handler: nil
 ) do |args, _raw_data|
   order_id = args['order_id'] || 'unknown'
   SignalWire::Swaig::FunctionResult.new(
@@ -69,7 +69,7 @@ agent.define_tool(
   parameters:  {
     'delivery_window' => { 'type' => 'string', 'description' => 'Preferred window: morning, afternoon, evening' },
     'sms_updates'     => { 'type' => 'boolean', 'description' => 'Enable SMS delivery updates' }
-  }
+  }, handler: nil
 ) do |args, _raw_data|
   result = SignalWire::Swaig::FunctionResult.new(
     "Preferences updated: delivery window=#{args['delivery_window']}, " \
@@ -87,7 +87,7 @@ end
 
 # --- Summary callback ---
 
-agent.on_summary do |summary, raw_data|
+agent.on_summary(nil) do |summary, raw_data|
   puts "\n=== Call Summary ==="
   puts "Summary: #{summary}"
   call_id = raw_data&.dig('call', 'call_id') || 'unknown'

@@ -20,7 +20,7 @@ service.play(url: 'say:Hello, thank you for calling our service.')
 service.hangup
 
 # Register a callback for the /vip sub-path
-service.register_routing_callback('/vip') do |request_data|
+service.register_routing_callback(nil, '/vip') do |request_data|
   doc = SignalWire::SWML::Document.new
   doc.add_verb('answer', {})
 
@@ -34,7 +34,7 @@ service.register_routing_callback('/vip') do |request_data|
 end
 
 # Register a callback for the /new sub-path
-service.register_routing_callback('/new') do |_request_data|
+service.register_routing_callback(nil, '/new') do |_request_data|
   doc = SignalWire::SWML::Document.new
   doc.add_verb('answer', {})
   doc.add_verb('play', { 'url' => 'say:Welcome to our service! Press 1 to learn about our products, 2 to speak with sales.' })

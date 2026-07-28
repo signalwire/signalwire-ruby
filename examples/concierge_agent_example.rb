@@ -67,7 +67,7 @@ agent.define_tool(
   description: 'Get information about a resort amenity',
   parameters:  {
     'amenity' => { 'type' => 'string', 'description' => 'Name of the amenity' }
-  }
+  }, handler: nil
 ) do |args, raw_data|
   concierge.handle_amenity_info(args, raw_data)
 end
@@ -77,7 +77,7 @@ agent.define_tool(
   description: 'Get information about a resort service',
   parameters:  {
     'service' => { 'type' => 'string', 'description' => 'Name of the service' }
-  }
+  }, handler: nil
 ) do |args, raw_data|
   concierge.handle_service_info(args, raw_data)
 end

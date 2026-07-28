@@ -25,7 +25,7 @@ def define_weather_tool(agent)
     description: 'Get the weather for a location',
     parameters: {
       'location' => { 'type' => 'string', 'description' => 'City name' }
-    }
+    }, handler: nil
   ) do |args, _raw|
     loc = args['location'] || 'unknown'
     SignalWire::Swaig::FunctionResult.new("72F sunny in #{loc}")

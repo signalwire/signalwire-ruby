@@ -49,7 +49,7 @@ agent.add_post_ai_verb('play', {
 
 agent.enable_debug_events(2)  # Level 2 for detailed events
 
-agent.on_debug_event do |event_type, event_data|
+agent.on_debug_event(nil) do |event_type, event_data|
   puts "[DEBUG] #{event_type}: #{event_data.inspect}"
 end
 
@@ -62,7 +62,7 @@ agent.define_tool(
     'check_in'  => { 'type' => 'string', 'description' => 'Check-in date (YYYY-MM-DD)' },
     'check_out' => { 'type' => 'string', 'description' => 'Check-out date (YYYY-MM-DD)' },
     'room_type' => { 'type' => 'string', 'description' => 'Room type: standard, deluxe, suite' }
-  }
+  }, handler: nil
 ) do |args, _raw_data|
   SignalWire::Swaig::FunctionResult.new(
     "#{args['room_type']&.capitalize} room available from #{args['check_in']} " \
@@ -78,7 +78,7 @@ agent.define_tool(
     'check_in'   => { 'type' => 'string', 'description' => 'Check-in date (YYYY-MM-DD)' },
     'check_out'  => { 'type' => 'string', 'description' => 'Check-out date (YYYY-MM-DD)' },
     'room_type'  => { 'type' => 'string', 'description' => 'Room type' }
-  }
+  }, handler: nil
 ) do |args, _raw_data|
   conf_num = "RES-#{rand(100_000..999_999)}"
   result = SignalWire::Swaig::FunctionResult.new(
@@ -93,7 +93,7 @@ end
 agent.define_tool(
   name:        'transfer_to_front_desk',
   description: 'Transfer the call to the front desk',
-  parameters:  {}
+  parameters:  {}, handler: nil
 ) do |_args, _raw_data|
   result = SignalWire::Swaig::FunctionResult.new(
     'Transferring you to the front desk now.'

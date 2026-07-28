@@ -47,19 +47,19 @@ agent = SignalWire::AgentBase.new(
 agent.define_tool(
   name:        'lookup_account',
   description: 'Look up customer account details by account number',
-  parameters:  { 'account_number' => { 'type' => 'string' } }
+  parameters:  { 'account_number' => { 'type' => 'string' } }, handler: nil
 ) { |_args, _raw| { 'response' => 'looked up' } }
 
 agent.define_tool(
   name:        'process_payment',
   description: 'Process a payment for the current customer',
-  parameters:  { 'amount' => { 'type' => 'number' } }
+  parameters:  { 'amount' => { 'type' => 'number' } }, handler: nil
 ) { |_args, _raw| { 'response' => 'payment processed' } }
 
 agent.define_tool(
   name:        'send_receipt',
   description: 'Email a receipt to the customer',
-  parameters:  { 'email' => { 'type' => 'string' } }
+  parameters:  { 'email' => { 'type' => 'string' } }, handler: nil
 ) { |_args, _raw| { 'response' => 'sent' } }
 
 # Build the contexts.

@@ -128,8 +128,9 @@ out['server_unregister'] = s.get_agents.keys.sort
 # ---- routing-callback registration on SWMLService (path-normalized) ----
 svc = SignalWire::SWML::Service.new(name: 'svc', route: '/svc')
 noop = ->(_body, _headers) {}
-svc.register_routing_callback('/sip/', &noop)
-svc.register_routing_callback('voice', &noop)
+# Reference param ORDER is (callback_fn, path="/sip"): callback first, path second.
+svc.register_routing_callback(noop, '/sip/')
+svc.register_routing_callback(noop, 'voice')
 out['state_register_routing_callback'] = ivar(svc, :@routing_callbacks).keys.sort
 
 # ---- verb-handler registration (VerbHandlerRegistry: ai preloaded) ----

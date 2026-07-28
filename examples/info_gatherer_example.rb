@@ -49,7 +49,7 @@ agent.global_data = gatherer.global_data
 agent.define_tool(
   name:        'start_questions',
   description: 'Start the question sequence',
-  parameters:  {}
+  parameters:  {}, handler: nil
 ) do |args, raw_data|
   gatherer.handle_start(args, raw_data)
 end
@@ -59,7 +59,7 @@ agent.define_tool(
   description: 'Submit an answer to the current question',
   parameters:  {
     'answer' => { 'type' => 'string', 'description' => "The caller's answer" }
-  }
+  }, handler: nil
 ) do |args, raw_data|
   gatherer.handle_submit(args, raw_data)
 end

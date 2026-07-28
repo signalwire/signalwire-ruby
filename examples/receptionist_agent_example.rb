@@ -45,14 +45,14 @@ agent.define_tool(
   description: 'Transfer the caller to a specific department',
   parameters:  {
     'department' => { 'type' => 'string', 'description' => 'Department name' }
-  }
+  }, handler: nil
 ) do |args, raw_data|
   receptionist.handle_transfer(args, raw_data)
 end
 
 agent.add_hints(%w[sales support billing hours directions transfer])
 
-agent.on_summary do |summary, _raw_data|
+agent.on_summary(nil) do |summary, _raw_data|
   puts "\n=== Call Summary ==="
   puts summary.inspect
   puts "==================\n"

@@ -61,7 +61,7 @@ agent.global_data = survey.global_data
 agent.define_tool(
   name:        'start_survey',
   description: 'Start the survey and present the first question',
-  parameters:  {}
+  parameters:  {}, handler: nil
 ) do |args, raw_data|
   survey.handle_start(args, raw_data)
 end
@@ -71,7 +71,7 @@ agent.define_tool(
   description: 'Record the answer to the current survey question',
   parameters:  {
     'answer' => { 'type' => 'string', 'description' => "The caller's response" }
-  }
+  }, handler: nil
 ) do |args, raw_data|
   survey.handle_submit(args, raw_data)
 end
@@ -79,7 +79,7 @@ end
 agent.define_tool(
   name:        'get_survey_summary',
   description: 'Get the final survey summary and thank the caller',
-  parameters:  {}
+  parameters:  {}, handler: nil
 ) do |args, raw_data|
   survey.handle_summary(args, raw_data)
 end

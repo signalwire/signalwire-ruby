@@ -64,7 +64,10 @@ module SignalWire
           # @param swaig_fields [Hash, nil] extra fields merged into the def
           # @raise [ArgumentError] if the tool name already exists
           # @return [Hash] the stored definition
-          def define_tool(name:, description:, parameters: {}, handler: nil,
+          # ``parameters:`` and ``handler:`` are REQUIRED, matching the reference
+          # (``define_tool(name, description, parameters, handler, ...)``). A tool
+          # with no parameters states ``parameters: {}`` explicitly.
+          def define_tool(name:, description:, parameters:, handler:,
                           secure: true, fillers: nil,
                           wait_file: nil, wait_file_loops: nil,
                           webhook_url: nil, required: nil,

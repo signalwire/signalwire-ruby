@@ -47,7 +47,7 @@ AGENT.define_tool(
   description: 'Greet a user by name',
   parameters:  {
     'name' => { 'type' => 'string', 'description' => 'Name to greet' }
-  }
+  }, handler: nil
 ) do |args, _raw_data|
   name = args['name'] || 'friend'
   SignalWire::Swaig::FunctionResult.new("Hello #{name}! I'm running in serverless mode!")
@@ -56,7 +56,7 @@ end
 AGENT.define_tool(
   name:        'get_time',
   description: 'Get the current time',
-  parameters:  {}
+  parameters:  {}, handler: nil
 ) do |_args, _raw_data|
   SignalWire::Swaig::FunctionResult.new("Current time: #{Time.now.iso8601}")
 end

@@ -30,7 +30,7 @@ precise.post_prompt = 'Provide a brief technical summary of the key points discu
 precise.set_post_prompt_llm_params(temperature: 0.1)
 
 precise.define_tool(
-  name: 'get_system_info', description: 'Get system info', parameters: {}
+  name: 'get_system_info', description: 'Get system info', parameters: {}, handler: nil
 ) do |_args, _raw_data|
   SignalWire::Swaig::FunctionResult.new(
     "System Status: CPU #{rand(10..90)}%, Memory #{rand(1..16)}GB, Uptime #{rand(1..30)} days"
@@ -60,7 +60,7 @@ creative.set_post_prompt_llm_params(temperature: 0.7)
 
 creative.define_tool(
   name: 'generate_story_prompt', description: 'Generate a creative story prompt',
-  parameters: { 'theme' => { 'type' => 'string', 'description' => 'Story theme' } }
+  parameters: { 'theme' => { 'type' => 'string', 'description' => 'Story theme' } }, handler: nil
 ) do |args, _raw_data|
   theme = args['theme'] || 'adventure'
   prompts = {
@@ -96,7 +96,7 @@ support.set_post_prompt_llm_params(temperature: 0.3)
 
 support.define_tool(
   name: 'check_order_status', description: 'Check order status',
-  parameters: { 'order_id' => { 'type' => 'string', 'description' => 'Order ID' } }
+  parameters: { 'order_id' => { 'type' => 'string', 'description' => 'Order ID' } }, handler: nil
 ) do |args, _raw_data|
   order_id = args['order_id'] || 'unknown'
   statuses = [

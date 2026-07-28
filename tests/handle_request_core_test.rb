@@ -78,7 +78,7 @@ end
 class HandleRequestCoreRoutingTest < HandleRequestCoreTestBase
   def test_routing_callback_returns_redirect
     seen = {}
-    @svc.register_routing_callback('/sip') { |body, headers| seen.merge!(body:, headers:) && '/redirected' }
+    @svc.register_routing_callback(nil, '/sip') { |body, headers| seen.merge!(body:, headers:) && '/redirected' }
     status, headers, body = @svc.handle_request('POST', 'http://host/sip', auth_headers, { 'call_id' => 'abc' })
 
     assert_equal 307, status
@@ -89,7 +89,7 @@ class HandleRequestCoreRoutingTest < HandleRequestCoreTestBase
   end
 
   def test_routing_callback_returning_nil_falls_through
-    @svc.register_routing_callback('/sip') { |_body, _headers| nil }
+    @svc.register_routing_callback(nil, '/sip') { |_body, _headers| nil }
     status, = @svc.handle_request('POST', 'http://host/sip', auth_headers, { 'x' => 1 })
 
     assert_equal 200, status
@@ -97,7 +97,7 @@ class HandleRequestCoreRoutingTest < HandleRequestCoreTestBase
 
   def test_single_arg_routing_callback_still_supported
     got = nil
-    @svc.register_routing_callback('/sip') do |body|
+    @svc.register_routing_callback(nil, '/sip') do |body|
       got = body
       '/legacy'
     end
@@ -110,7 +110,7 @@ class HandleRequestCoreRoutingTest < HandleRequestCoreTestBase
 
   def test_get_does_not_trigger_routing_callback
     ran = false
-    @svc.register_routing_callback('/sip') do |_body, _headers|
+    @svc.register_routing_callback(nil, '/sip') do |_body, _headers|
       ran = true
       '/nope'
     end
@@ -142,7 +142,7 @@ class HandleRequestCoreAgentTest < HandleRequestCoreTestBase
 
   def test_agent_base_routing_redirect
     agent = SignalWire::AgentBase.new(name: 'a', basic_auth: %w[u p])
-    agent.register_routing_callback('/sip') { |_body, _headers| '/elsewhere' }
+    agent.register_routing_callback(nil, '/sip') { |_body, _headers| '/elsewhere' }
     status, headers, = agent.handle_request(
       'POST', 'http://host/sip', auth_headers, { 'call_id' => 'z' }
     )

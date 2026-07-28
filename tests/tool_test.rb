@@ -13,7 +13,8 @@ class ToolRegistrationTest < Minitest::Test
 
   def test_define_tool_with_block
     @agent.define_tool(name: 'greet', description: 'Say hello',
-                       parameters: { 'name' => { 'type' => 'string', 'description' => 'Name' } }) do |args, _raw|
+                       parameters: { 'name' => { 'type' => 'string', 'description' => 'Name' } },
+                       handler: nil) do |args, _raw|
       SignalWire::Swaig::FunctionResult.new("Hello, #{args['name']}!")
     end
 
@@ -25,14 +26,14 @@ class ToolRegistrationTest < Minitest::Test
   end
 
   def test_define_tool_returns_self
-    result = @agent.define_tool(name: 'x', description: 'x') { |_, _| }
+    result = @agent.define_tool(name: 'x', description: 'x', parameters: {}, handler: nil) { |_, _| }
 
     assert_same @agent, result
   end
 
   def test_define_multiple_tools
     3.times do |i|
-      @agent.define_tool(name: "tool_#{i}", description: "Tool #{i}") { |_, _| }
+      @agent.define_tool(name: "tool_#{i}", description: "Tool #{i}", parameters: {}, handler: nil) { |_, _| }
     end
 
     assert_equal 3, @agent.define_tools.length
@@ -42,7 +43,7 @@ class ToolRegistrationTest < Minitest::Test
     @agent.define_tool(
       name: 'slow_op',
       description: 'Slow operation',
-      fillers: { 'en-US' => ['Please wait...', 'Working on it...'] }
+      fillers: { 'en-US' => ['Please wait...', 'Working on it...'] }, parameters: {}, handler: nil
     ) { |_, _| SignalWire::Swaig::FunctionResult.new('Done') }
 
     tools = @agent.define_tools
@@ -60,7 +61,7 @@ class ToolDispatchTest < Minitest::Test
     @agent.define_tool(
       name: 'echo',
       description: 'Echo back',
-      parameters: {}
+      parameters: {}, handler: nil
     ) do |args, _raw|
       SignalWire::Swaig::FunctionResult.new("Echo: #{args['text']}")
     end
@@ -77,7 +78,7 @@ class ToolDispatchTest < Minitest::Test
   end
 
   def test_on_function_call_error_handling
-    @agent.define_tool(name: 'bad', description: 'Raises') do |_, _|
+    @agent.define_tool(name: 'bad', description: 'Raises', parameters: {}, handler: nil) do |_, _|
       raise 'intentional error'
     end
 
@@ -133,9 +134,9 @@ end
 class DefineToolsOrderingTest < Minitest::Test
   def test_tools_appear_before_swaig_functions
     agent = SignalWire::AgentBase.new
-    agent.define_tool(name: 'tool_a', description: 'A') { |_, _| }
+    agent.define_tool(name: 'tool_a', description: 'A', parameters: {}, handler: nil) { |_, _| }
     agent.register_swaig_function({ 'function' => 'dm_b', 'description' => 'B' })
-    agent.define_tool(name: 'tool_c', description: 'C') { |_, _| }
+    agent.define_tool(name: 'tool_c', description: 'C', parameters: {}, handler: nil) { |_, _| }
 
     tools = agent.define_tools
     names = tools.map { |t| t['function'] }

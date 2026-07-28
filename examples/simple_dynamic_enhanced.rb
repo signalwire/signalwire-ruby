@@ -19,7 +19,7 @@ agent = SignalWire::AgentBase.new(
   record_call: true
 )
 
-agent.set_dynamic_config_callback do |query_params, _body_params, _headers, clone|
+agent.set_dynamic_config_callback(nil) do |query_params, _body_params, _headers, clone|
   is_vip      = query_params['vip'].to_s.downcase == 'true'
   department  = (query_params['department'] || 'general').downcase
   customer_id = query_params['customer_id'] || ''
