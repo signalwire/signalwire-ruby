@@ -191,14 +191,6 @@ signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.__init__: r
 signalwire.skills.weather_api.skill.WeatherApiSkill.__init__: reference-oracle gap — the reference surface records this skill class but the signature oracle omits its `__init__` (SURFACE-DIFF PASS)
 
 # --- True Ruby-only additions (absent from reference surface too) ---
-signalwire.core.auth_handler.basic_credentials.BasicCredentials.inspect: port-only: Ruby Struct/Data auto-generated method on a credentials value object; no Python counterpart (reference surface omits it too)
-signalwire.core.auth_handler.basic_credentials.BasicCredentials.keyword_init: port-only: Ruby Struct/Data auto-generated method on a credentials value object; no Python counterpart (reference surface omits it too)
-signalwire.core.auth_handler.basic_credentials.BasicCredentials.members: port-only: Ruby Struct/Data auto-generated method on a credentials value object; no Python counterpart (reference surface omits it too)
-signalwire.core.auth_handler.basic_credentials.BasicCredentials.new: port-only: Ruby Struct/Data auto-generated method on a credentials value object; no Python counterpart (reference surface omits it too)
-signalwire.core.auth_handler.bearer_credentials.BearerCredentials.inspect: port-only: Ruby Struct/Data auto-generated method on a credentials value object; no Python counterpart (reference surface omits it too)
-signalwire.core.auth_handler.bearer_credentials.BearerCredentials.keyword_init: port-only: Ruby Struct/Data auto-generated method on a credentials value object; no Python counterpart (reference surface omits it too)
-signalwire.core.auth_handler.bearer_credentials.BearerCredentials.members: port-only: Ruby Struct/Data auto-generated method on a credentials value object; no Python counterpart (reference surface omits it too)
-signalwire.core.auth_handler.bearer_credentials.BearerCredentials.new: port-only: Ruby Struct/Data auto-generated method on a credentials value object; no Python counterpart (reference surface omits it too)
 signalwire.core.swaig_function.SWAIGFunction.call: reference-oracle gap — port `call` is Ruby's callable primitive (surface reconciles it to `__call__`, which the reference surface records but the signature oracle omits) (SURFACE-DIFF PASS)
 signalwire.core.swml_builder.SWMLBuilder.method_missing: reference-oracle gap — port `method_missing` is Ruby's dynamic-dispatch primitive (surface reconciles it to `__getattr__`, which the reference surface records but the signature oracle omits) (SURFACE-DIFF PASS)
 signalwire.core.swml_service.SWMLService.function: port-only: Ruby SWMLService `function` DSL helper; absent from the reference surface + signature oracle

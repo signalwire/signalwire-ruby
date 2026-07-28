@@ -475,6 +475,63 @@ AI_CHAT_METHOD_DROPS: dict[tuple, set[str]] = {
 }
 
 
+# POSITIONAL ``Struct.new(:a, :b)`` value carriers — the counterpart of
+# AI_CHAT_STRUCT_FIELDS above, which handles the ``keyword_init: true`` form.
+#
+# Both forms hit the SAME reflection blind spot: a Struct's constructor params
+# are invisible to ``Method#parameters`` (``new`` reflects as ``*args``), the
+# fields surface only as zero-arg READERS, and Ruby auto-generates machinery
+# (``new`` / ``members`` / ``keyword_init?`` / ``inspect`` / ``[]``) plus a
+# WRITER per field that the reference class does not have. The difference is
+# only the ``__init__`` param KIND: a positional Struct's fields are positional
+# (canonical: no explicit ``kind``), matching how the oracle records this
+# dataclass — so these cannot ride AI_CHAT_STRUCT_FIELDS, which hard-codes
+# ``kind: keyword``.
+#
+# Unlike the keyword_init case, a positional Struct field IS required at the
+# oracle (the reference dataclass declares it with no default), and Ruby's
+# positional Struct does accept the same positional call — so ``required: True``
+# with no default is the accurate record here, not ``default: None``.
+#
+# Keyed (module, class) -> ordered field names (Struct field order = the
+# reference ``__init__`` positional order). The declared fields are VERIFIED
+# against the reflected readers, so a real field drop/rename still surfaces as
+# drift rather than being papered over by this table.
+POSITIONAL_STRUCT_FIELDS: dict[tuple, list[str]] = {
+    # The oracle's structural filler for FastAPI's HTTPBasicCredentials /
+    # HTTPAuthorizationCredentials (porting-sdk dcff742). FastAPI splits the
+    # Authorization header on the first space: scheme, then credentials.
+    ("signalwire.core.auth_handler", "BasicCredentials"): ["username", "password"],
+    ("signalwire.core.auth_handler", "BearerCredentials"): ["scheme", "credentials"],
+}
+
+
+def synth_positional_struct_inits(out_modules: dict) -> None:
+    """Rebuild each POSITIONAL Struct value carrier to the single ``__init__``
+    the reference records — params = the reflected field readers, positional and
+    required — keep the readers, and drop the Struct machinery and the Ruby
+    auto-generated ``field=`` writers. In place."""
+    for (mod, cls), fields in POSITIONAL_STRUCT_FIELDS.items():
+        entry = out_modules.get(mod, {}).get("classes", {}).get(cls)
+        if not entry:
+            continue
+        methods = entry.get("methods", {})
+        # Verify each declared field is present as a reflected zero-arg reader —
+        # a real Struct field drop/rename then re-surfaces as drift here.
+        readers = [
+            f for f in fields
+            if f in methods and not _has_value_params(methods[f])
+        ]
+        params = [{"name": "self", "kind": "self"}] + [
+            {"name": f, "type": "any", "required": True} for f in readers
+        ]
+        new_methods = {"__init__": {"params": params, "returns": "void"}}
+        for f in readers:
+            new_methods[f] = methods[f]
+        entry["methods"] = new_methods
+        entry["dataclass"] = True
+
+
 def synth_ai_chat_struct_inits(out_modules: dict) -> None:
     """Rebuild the AI-Chat Struct value models to a single keyword ``__init__``
     (params = the reflected Struct field readers) and drop the Struct machinery;
@@ -677,6 +734,15 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
     # gates route these classes to the same reference module.
     "SignalWire::Swaig::SWAIGFunction": "signalwire.core.swaig_function",
     "SignalWire::Core::AuthHandler": "signalwire.core.auth_handler",
+    # The two credential carriers are nested INSIDE AuthHandler in Ruby, so the
+    # default namespace derivation would route them to the fabricated modules
+    # signalwire.core.auth_handler.basic_credentials / .bearer_credentials —
+    # which exist nowhere in the oracle, so every member silently failed to
+    # compare. The oracle publishes both as module-level classes of
+    # signalwire.core.auth_handler (porting-sdk dcff742, the structural filler
+    # for FastAPI's HTTPBasicCredentials / HTTPAuthorizationCredentials).
+    "SignalWire::Core::AuthHandler::BasicCredentials": "signalwire.core.auth_handler",
+    "SignalWire::Core::AuthHandler::BearerCredentials": "signalwire.core.auth_handler",
     "SignalWire::Core::ConfigLoader": "signalwire.core.config_loader",
     "SignalWire::Core::SecurityConfig": "signalwire.core.security_config",
     "SignalWire::Core::PomBuilder": "signalwire.core.pom_builder",
@@ -1315,6 +1381,7 @@ def collect(raw: dict) -> dict:
     apply_sig_method_donors(out_modules)
     apply_sig_free_function_projections(out_modules)
     synth_ai_chat_struct_inits(out_modules)
+    synth_positional_struct_inits(out_modules)
     apply_hand_param_renames(out_modules)
     project_reference_param_types(out_modules)
     normalize_request_options_param_kind(out_modules)

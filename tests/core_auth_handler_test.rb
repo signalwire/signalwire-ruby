@@ -53,14 +53,14 @@ class CoreAuthHandlerTest < Minitest::Test
   def test_verify_bearer_token
     h = handler(bearer_token: 'tok123')
 
-    assert h.verify_bearer_token(Bearer.new('tok123'))
-    refute h.verify_bearer_token(Bearer.new('wrong'))
+    assert h.verify_bearer_token(Bearer.new('Bearer', 'tok123'))
+    refute h.verify_bearer_token(Bearer.new('Bearer', 'wrong'))
   end
 
   def test_verify_bearer_disabled_without_token
     h = handler
 
-    refute h.verify_bearer_token(Bearer.new('anything'))
+    refute h.verify_bearer_token(Bearer.new('Bearer', 'anything'))
   end
 
   def test_verify_api_key
@@ -162,5 +162,49 @@ class CoreAuthHandlerTest < Minitest::Test
 
     assert_equal false, result['authenticated']
     assert_nil result['method']
+  end
+end
+
+# The credential CARRIERS themselves: both must expose exactly the fields the
+# reference's carrier does (oracle: signalwire.core.auth_handler.BasicCredentials
+# {username, password} / BearerCredentials {scheme, credentials} -- porting-sdk
+# dcff742's structural filler for FastAPI's HTTPBasicCredentials /
+# HTTPAuthorizationCredentials). `scheme` was absent from the Ruby Struct
+# entirely until 2026-07-28, so nothing pinned the header split.
+class CoreAuthCredentialsTest < Minitest::Test
+  Basic = SignalWire::Core::AuthHandler::BasicCredentials
+  Bearer = SignalWire::Core::AuthHandler::BearerCredentials
+
+  def handler(**)
+    SignalWire::Core::AuthHandler.new(CoreAuthHandlerTest::FakeConfig.new(**))
+  end
+
+  def test_bearer_credentials_carries_scheme_and_credentials
+    c = Bearer.new('Bearer', 'tok123')
+
+    assert_equal 'Bearer', c.scheme
+    assert_equal 'tok123', c.credentials
+    assert_equal %i[scheme credentials], Bearer.members
+  end
+
+  def test_basic_credentials_carries_username_and_password
+    c = Basic.new('alice', 'secret')
+
+    assert_equal 'alice', c.username
+    assert_equal 'secret', c.password
+    assert_equal %i[username password], Basic.members
+  end
+
+  # The Rack bearer path must populate scheme from the header, not fold the
+  # whole header into credentials (which would make the token compare fail).
+  def test_rack_bearer_path_splits_scheme_from_token
+    h = handler(bearer_token: 'tok-with-scheme')
+    dep = h.rack_dependency(optional: true)
+    result = dep.call({ 'HTTP_AUTHORIZATION' => 'Bearer tok-with-scheme',
+                        'REQUEST_METHOD' => 'GET', 'PATH_INFO' => '/',
+                        'REMOTE_ADDR' => '1.2.3.4' })
+
+    assert result['authenticated'], 'bearer header must authenticate after the scheme/token split'
+    assert_equal 'bearer', result['method']
   end
 end

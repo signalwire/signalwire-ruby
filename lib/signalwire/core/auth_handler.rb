@@ -30,8 +30,12 @@ module SignalWire
     class AuthHandler
       # Lightweight credential carriers for HTTP Basic and Bearer
       # authorization.
+      #
+      # These carry the fields parsed out of the +Authorization+ header. The
+      # bearer header is split on the FIRST space: the first part is the
+      # +scheme+ ("Bearer"), the second the +credentials+ (the token itself).
       BasicCredentials = Struct.new(:username, :password)
-      BearerCredentials = Struct.new(:credentials)
+      BearerCredentials = Struct.new(:scheme, :credentials)
 
       attr_reader :security_config, :auth_methods
 
@@ -148,7 +152,11 @@ module SignalWire
         header = env['HTTP_AUTHORIZATION'].to_s
         return false unless header.start_with?('Bearer ')
 
-        verify_bearer_token(BearerCredentials.new(header[7..]))
+        # Split on the FIRST space only: scheme, then the token verbatim (a
+        # token may itself contain no space, but splitting on all of them
+        # would silently truncate a malformed one instead of failing compare).
+        scheme, credentials = header.split(' ', 2)
+        verify_bearer_token(BearerCredentials.new(scheme, credentials))
       end
 
       def api_key_env_ok?(env)

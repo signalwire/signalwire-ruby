@@ -181,6 +181,7 @@ ORACLE_FIELD_ACCESSOR_MODULES = %w[
   signalwire.core.post_prompt_generated
   signalwire.core.swaig_request_generated
   signalwire.ai_chat.client
+  signalwire.core.auth_handler
 ].freeze
 
 # Load the oracle's per-class recorded surface members for the generated-payload
@@ -260,6 +261,16 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
   # Item-I implemented subsystems: route the new Ruby classes to their
   # reference core modules (class name matches the reference leaf verbatim).
   'SignalWire::Core::AuthHandler' => 'signalwire.core.auth_handler',
+  # The two credential carriers are nested INSIDE AuthHandler in Ruby, so the
+  # default namespace derivation would route them to the fabricated modules
+  # signalwire.core.auth_handler.basic_credentials / .bearer_credentials, which
+  # exist nowhere in the oracle. The oracle publishes both as module-level
+  # classes of signalwire.core.auth_handler (porting-sdk dcff742, the structural
+  # filler for FastAPI's HTTPBasicCredentials / HTTPAuthorizationCredentials).
+  # Kept in lockstep with RUBY_TO_PYTHON_MODULE_OVERRIDES in
+  # scripts/enumerate_signatures.py.
+  'SignalWire::Core::AuthHandler::BasicCredentials' => 'signalwire.core.auth_handler',
+  'SignalWire::Core::AuthHandler::BearerCredentials' => 'signalwire.core.auth_handler',
   'SignalWire::Core::ConfigLoader' => 'signalwire.core.config_loader',
   'SignalWire::Core::SecurityConfig' => 'signalwire.core.security_config',
   'SignalWire::Core::PomBuilder' => 'signalwire.core.pom_builder',
@@ -442,8 +453,6 @@ RUBY_EXCLUDED_CLASSES = %w[
   SignalWire::Relay::MessageSerialization
   SignalWire::REST::Namespaces::Generated
   SignalWire::REST::Namespaces::Generated::ResourceTree
-  SignalWire::Core::AuthHandler::BasicCredentials
-  SignalWire::Core::AuthHandler::BearerCredentials
   SignalWire::REST::EffectiveOptions
   SignalWire::REST::AbortSignal
   SignalWire::REST::Attempt
@@ -923,6 +932,22 @@ AI_CHAT_METHODLESS_CLASSES = %w[
   SignalWire::AIChat::ChatLog
 ].freeze
 
+# The auth credential carriers are the same Struct idiom in the POSITIONAL form
+# (`Struct.new(:a, :b)` rather than `keyword_init: true`), so they take the same
+# oracle-gated-field-accessor path: emit exactly the readers the oracle records
+# (BasicCredentials {username, password} / BearerCredentials {scheme,
+# credentials} — porting-sdk dcff742's structural filler for FastAPI's
+# HTTPBasicCredentials / HTTPAuthorizationCredentials) and drop the rest of the
+# Struct machinery (`new` / `members` / `keyword_init?` / `inspect` / `[]`) and
+# the auto-generated `field=` writers. Emission covers the Struct idiom; no
+# PORT_ADDITIONS entry per accessor. The oracle gate in
+# oracle_gated_field_accessors aborts if a recorded field reader is missing, so a
+# real field drop still fails loud rather than silently shrinking the surface.
+AUTH_CREDENTIAL_STRUCT_CLASSES = %w[
+  SignalWire::Core::AuthHandler::BasicCredentials
+  SignalWire::Core::AuthHandler::BearerCredentials
+].freeze
+
 # Per-[module, class] surface members to DROP: a Ruby-idiom accessor/method that
 # the reference records as a plain instance ATTRIBUTE (not a surface method), so
 # there is no reference member to compare against — the idiomatic-Ruby getter is
@@ -1003,6 +1028,7 @@ SURFACE_MEMBER_DROPS = {
 def generated_methodless_class?(ruby_fqn)
   return true if ruby_fqn.start_with?(GENERATED_TYPES_PREFIX)
   return true if AI_CHAT_METHODLESS_CLASSES.include?(ruby_fqn)
+  return true if AUTH_CREDENTIAL_STRUCT_CLASSES.include?(ruby_fqn)
 
   GENERATED_PAYLOAD_PREFIXES.each_key { |prefix| return true if ruby_fqn.start_with?(prefix) }
   false

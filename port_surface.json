@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 30050b53cb20672ba296852b008f91f58132e889",
+  "generated_from": "signalwire-ruby @ ea630dab1d3639e9644dfc23efc529a57e1aebc1",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -209,6 +209,14 @@
           "verify_api_key",
           "verify_basic_auth",
           "verify_bearer_token"
+        ],
+        "BasicCredentials": [
+          "password",
+          "username"
+        ],
+        "BearerCredentials": [
+          "credentials",
+          "scheme"
         ]
       },
       "functions": []
