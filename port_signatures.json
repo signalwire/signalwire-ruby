@@ -2467,7 +2467,7 @@
                 },
                 {
                   "name": "credentials",
-                  "type": "class:HTTPBasicCredentials",
+                  "type": "class:signalwire.core.auth_handler.BasicCredentials",
                   "required": true
                 }
               ],
@@ -2481,7 +2481,7 @@
                 },
                 {
                   "name": "credentials",
-                  "type": "class:HTTPAuthorizationCredentials",
+                  "type": "class:signalwire.core.auth_handler.BearerCredentials",
                   "required": true
                 }
               ],
@@ -39116,16 +39116,6 @@
               ],
               "returns": "any"
             },
-            "get_factory": {
-              "params": [
-                {
-                  "name": "skill_name",
-                  "type": "any",
-                  "required": true
-                }
-              ],
-              "returns": "any"
-            },
             "last_registered": {
               "params": [
                 {
@@ -39215,6 +39205,16 @@
             },
             "reset": {
               "params": [],
+              "returns": "any"
+            },
+            "get_skill_class": {
+              "params": [
+                {
+                  "name": "skill_name",
+                  "type": "string",
+                  "required": true
+                }
+              ],
               "returns": "any"
             }
           }

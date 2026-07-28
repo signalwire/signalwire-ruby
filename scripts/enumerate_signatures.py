@@ -325,6 +325,16 @@ SIG_METHOD_ALIASES: dict[tuple, dict[str, str]] = {
     ("signalwire.core.skill_manager", "SkillManager"): {
         "load": "load_skill", "unload": "unload_skill", "get": "get_skill",
         "loaded": "has_skill", "loaded_keys": "list_loaded_skills"},
+    # Same lookup capability, Ruby spelling: given a skill name, return the
+    # instantiable handle for that skill or nil. Python hands back the CLASS
+    # (`type[SkillBase] | None`, instantiated `skill_class(agent, params)`);
+    # Ruby's registry stores factory lambdas rather than classes, so it hands
+    # back the Proc (`factory.call(params)`). Same argument, same nil-on-miss,
+    # same role at the single call site (skill_manager.py:48 /
+    # agent_base.rb:1303). MIRRORS enumerate_surface.rb's
+    # SURFACE_METHOD_ALIASES, which already renames this surface-side.
+    ("signalwire.skills.registry", "SkillRegistry"): {
+        "get_factory": "get_skill_class"},
 }
 
 
