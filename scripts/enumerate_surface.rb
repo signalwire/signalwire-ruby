@@ -1039,17 +1039,49 @@ end
 # Gated on the ORACLE'S member set (never the full reader list) so scalar wire
 # fields the reference does not record are not over-emitted. Empty (method-less)
 # when the class is not one the oracle records field accessors for.
+#
+# `__init__` is NOT a field reader and is resolved separately (see
+# `constructor_member?`): the reference records the CONSTRUCTOR of these value
+# carriers, and Ruby's is real but inherited (Struct defines `initialize` on
+# `Struct` itself, so `public_instance_methods(false)` never lists it). Matching
+# it against the reader set would abort on a capability the port genuinely has —
+# `ChatLog.new(messages:, call_timeline:)` works. This mirrors what
+# enumerate_signatures.py already does for the same five classes
+# (synth_positional_struct_inits / synth_ai_chat_struct_inits).
 def oracle_gated_field_accessors(klass, target_mod, cls, oracle_generated_members)
   wanted = oracle_generated_members[[target_mod, cls]]
   return [] unless wanted
 
   readers = klass.public_instance_methods(false).to_set(&:to_s)
-  missing = wanted.to_a - readers.to_a
+  ctor, fields = wanted.to_a.partition { |m| m == '__init__' }
+  assert_oracle_members_present(klass, target_mod, cls, readers, ctor, fields)
+  (ctor + fields.select { |m| readers.include?(m) }).sort
+end
+
+# Fail loud when the port has dropped something the oracle records: a field
+# reader that vanished (a real field drop/rename) or the constructor itself.
+def assert_oracle_members_present(klass, target_mod, cls, readers, ctor, fields)
+  missing = fields - readers.to_a
   unless missing.empty?
     abort "generated model #{target_mod}.#{cls} is missing oracle-recorded field " \
           "reader(s) #{missing.sort.inspect}; regenerate the model or update the oracle"
   end
-  wanted.to_a.select { |m| readers.include?(m) }.sort
+  return if ctor.empty? || constructor_member?(klass)
+
+  abort "generated model #{target_mod}.#{cls} is missing the oracle-recorded " \
+        'constructor (no reachable `initialize`); regenerate the model or update the oracle'
+end
+
+# True when `klass` has a reachable constructor — its own `initialize` or one
+# inherited from a superclass (`Struct`, for the value carriers here). Every
+# Ruby class technically inherits `BasicObject#initialize`, so require the owner
+# to be something more specific than `BasicObject` for the answer to mean
+# "this class defines a real construction contract".
+def constructor_member?(klass)
+  owner = klass.instance_method(:initialize).owner
+  owner != BasicObject
+rescue NameError
+  false
 end
 
 # Record one Ruby class or module into `modules`.

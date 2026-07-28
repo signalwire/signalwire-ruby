@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ ea630dab1d3639e9644dfc23efc529a57e1aebc1",
+  "generated_from": "signalwire-ruby @ 3245faec9432e7d397c8d63000254a6ff7e9d0c8",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -70,15 +70,18 @@
         "AuthenticationError": [],
         "ChatInProgressError": [],
         "ChatLog": [
+          "__init__",
           "call_timeline",
           "messages"
         ],
         "ChatResponse": [
+          "__init__",
           "conversation_id",
           "text",
           "user_event"
         ],
         "ConversationInfo": [
+          "__init__",
           "id",
           "initial_message",
           "status"
@@ -211,10 +214,12 @@
           "verify_bearer_token"
         ],
         "BasicCredentials": [
+          "__init__",
           "password",
           "username"
         ],
         "BearerCredentials": [
+          "__init__",
           "credentials",
           "scheme"
         ]
