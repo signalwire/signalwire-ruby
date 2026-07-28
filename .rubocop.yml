@@ -195,6 +195,38 @@ Metrics/ModuleLength:
 Metrics/MethodLength:
   Exclude:
     - 'lib/signalwire/skills/builtin/mcp_gateway.rb'
+    # signature_dump.rb's Ripper default-value extractor: same DATA-SHAPE (not
+    # logic) rationale. Its size is a 1:1 DISPATCH over Ruby's literal AST node
+    # types (int/float/keyword/string/symbol/array/hash), one arm per node kind
+    # the parser can emit. The arms were already extracted into named
+    # per-node-type helpers (ripper_string_literal / ripper_array_literal /
+    # ripper_hash_literal / ...); what remains is the irreducible dispatch itself
+    # plus each helper's exhaustive shape-guard chain. Splitting further would
+    # scatter one node type's handling across two methods and make it HARDER to
+    # confirm the extractor rejects every non-literal — which is the property
+    # that keeps it from emitting a fabricated default. Size only; no naming or
+    # type idiom is being suppressed.
+    - 'scripts/signature_dump.rb'
+
+# Same scope + same rationale as the Metrics/MethodLength entry above, for the
+# same file. A literal-AST extractor's "complexity" is entirely SHAPE-GUARDING:
+# every branch asks "is this node actually the literal it looks like?" (is it an
+# Array, is its head the expected tag, does a string contain an interpolation,
+# is every array element itself a literal). Those guards are the correctness
+# property — each one is a place the extractor declines to invent a value it
+# cannot prove — so collapsing them to satisfy a branch count would trade the
+# gate's honesty for a metric. Scoped to this file only.
+Metrics/CyclomaticComplexity:
+  Exclude:
+    - 'scripts/signature_dump.rb'
+
+Metrics/PerceivedComplexity:
+  Exclude:
+    - 'scripts/signature_dump.rb'
+
+Metrics/AbcSize:
+  Exclude:
+    - 'scripts/signature_dump.rb'
 
 # Prefer keyword args for boolean defaults — a good cop in general, but a known
 # false positive on FLUENT SINGLE-ARGUMENT TOGGLES, which is exactly these sites:

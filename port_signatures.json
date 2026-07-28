@@ -68,21 +68,21 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "0.0.0.0"
                 },
                 {
                   "name": "port",
                   "type": "int",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 3000
                 },
                 {
                   "name": "log_level",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "info"
                 }
               ],
               "returns": "void"
@@ -299,14 +299,14 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "/sip"
                 },
                 {
                   "name": "auto_map",
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": true
                 }
               ],
               "returns": "any"
@@ -344,14 +344,14 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "bedrock_agent"
                 },
                 {
                   "name": "route",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "/bedrock"
                 },
                 {
                   "name": "system_prompt",
@@ -365,28 +365,28 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "matthew"
                 },
                 {
                   "name": "temperature",
                   "type": "float",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 0.7
                 },
                 {
                   "name": "top_p",
                   "type": "float",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 0.9
                 },
                 {
                   "name": "max_tokens",
                   "type": "int",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 1024
                 },
                 {
                   "name": "**",
@@ -600,7 +600,7 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "user"
                 },
                 {
                   "name": "config_url",
@@ -628,7 +628,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "any"
@@ -685,7 +685,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "any"
@@ -1151,14 +1151,14 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "numbered_bullets",
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "subsections",
@@ -1354,7 +1354,7 @@
                   "type": "dict<string,any>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "handler",
@@ -1368,7 +1368,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": true
                 },
                 {
                   "name": "fillers",
@@ -1410,7 +1410,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "swaig_fields",
@@ -1556,21 +1556,21 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "agent"
                 },
                 {
                   "name": "route",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "/"
                 },
                 {
                   "name": "host",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "0.0.0.0"
                 },
                 {
                   "name": "port",
@@ -1591,42 +1591,42 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": true
                 },
                 {
                   "name": "token_expiry_secs",
                   "type": "int",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 3600
                 },
                 {
                   "name": "auto_answer",
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": true
                 },
                 {
                   "name": "record_call",
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "record_format",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "mp4"
                 },
                 {
                   "name": "record_stereo",
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": true
                 },
                 {
                   "name": "default_webhook_url",
@@ -1661,21 +1661,21 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "enable_post_prompt_override",
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "check_for_input_override",
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "config_file",
@@ -1689,7 +1689,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": true
                 },
                 {
                   "name": "signing_key",
@@ -1703,7 +1703,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "void"
@@ -1840,7 +1840,7 @@
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "any"
@@ -1953,14 +1953,14 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": true
                 },
                 {
                   "name": "path",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "/sip"
                 }
               ],
               "returns": "any"
@@ -1996,7 +1996,7 @@
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "any"
@@ -2012,7 +2012,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "any"
@@ -2089,7 +2089,7 @@
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "any"
@@ -2411,7 +2411,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "any"
@@ -2427,7 +2427,7 @@
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "any"
@@ -2692,7 +2692,7 @@
                   "name": "env_prefix",
                   "type": "string",
                   "required": false,
-                  "default": null
+                  "default": "SWML_"
                 }
               ],
               "returns": "any"
@@ -2712,7 +2712,7 @@
                   "name": "max_depth",
                   "type": "int",
                   "required": false,
-                  "default": null
+                  "default": 10
                 }
               ],
               "returns": "any"
@@ -3273,7 +3273,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "void"
@@ -3378,14 +3378,14 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "string"
                 },
                 {
                   "name": "confirm",
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "prompt",
@@ -3543,14 +3543,14 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "string"
                 },
                 {
                   "name": "confirm",
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "prompt",
@@ -3673,7 +3673,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "any"
@@ -3851,7 +3851,7 @@
               "name": "name",
               "type": "string",
               "required": false,
-              "default": null
+              "default": "default"
             }
           ],
           "returns": "any"
@@ -4040,7 +4040,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "enum",
@@ -4124,7 +4124,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "require_args",
@@ -4210,7 +4210,7 @@
               "type": "string",
               "kind": "keyword",
               "required": false,
-              "default": null
+              "default": "GET"
             },
             {
               "name": "headers",
@@ -4259,7 +4259,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "void"
@@ -4345,7 +4345,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": true
                 },
                 {
                   "name": "from_addr",
@@ -4426,7 +4426,7 @@
                   "name": "enabled",
                   "type": "bool",
                   "required": false,
-                  "default": null
+                  "default": true
                 }
               ],
               "returns": "any"
@@ -4441,7 +4441,7 @@
                   "name": "enabled",
                   "type": "bool",
                   "required": false,
-                  "default": null
+                  "default": true
                 }
               ],
               "returns": "any"
@@ -4497,7 +4497,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "any"
@@ -4521,7 +4521,7 @@
                   "name": "timeout",
                   "type": "int",
                   "required": false,
-                  "default": null
+                  "default": 300
                 }
               ],
               "returns": "any"
@@ -4542,28 +4542,28 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "beep",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "true"
                 },
                 {
                   "name": "start_on_enter",
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": true
                 },
                 {
                   "name": "end_on_exit",
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "wait_url",
@@ -4577,14 +4577,14 @@
                   "type": "int",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 250
                 },
                 {
                   "name": "record",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "do-not-record"
                 },
                 {
                   "name": "region",
@@ -4598,7 +4598,7 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "trim-silence"
                 },
                 {
                   "name": "coach",
@@ -4626,7 +4626,7 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "POST"
                 },
                 {
                   "name": "recording_status_callback",
@@ -4640,14 +4640,14 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "POST"
                 },
                 {
                   "name": "recording_status_callback_event",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "completed"
                 },
                 {
                   "name": "result",
@@ -4690,7 +4690,7 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "dtmf"
                 },
                 {
                   "name": "status_url",
@@ -4704,49 +4704,49 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "credit-card"
                 },
                 {
                   "name": "timeout",
                   "type": "int",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 5
                 },
                 {
                   "name": "max_attempts",
                   "type": "int",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 1
                 },
                 {
                   "name": "security_code",
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": true
                 },
                 {
                   "name": "postal_code",
                   "type": "union<bool,string>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": true
                 },
                 {
                   "name": "min_postal_code_length",
                   "type": "int",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 0
                 },
                 {
                   "name": "token_type",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "reusable"
                 },
                 {
                   "name": "charge_amount",
@@ -4760,21 +4760,21 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "usd"
                 },
                 {
                   "name": "language",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "en-US"
                 },
                 {
                   "name": "voice",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "woman"
                 },
                 {
                   "name": "description",
@@ -4788,7 +4788,7 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "visa mastercard amex"
                 },
                 {
                   "name": "parameters",
@@ -4830,7 +4830,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "any"
@@ -4862,7 +4862,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "format",
@@ -4890,14 +4890,14 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "input_sensitivity",
                   "type": "float",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 44.0
                 },
                 {
                   "name": "initial_timeout",
@@ -4968,7 +4968,7 @@
                   "name": "text",
                   "type": "union<string,bool>",
                   "required": false,
-                  "default": null
+                  "default": true
                 }
               ],
               "returns": "any"
@@ -5003,7 +5003,7 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "system"
                 }
               ],
               "returns": "any"
@@ -5051,7 +5051,7 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "phone"
                 }
               ],
               "returns": "any"
@@ -5292,21 +5292,21 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "full_reset",
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "isolated",
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "any"
@@ -5360,7 +5360,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": true
                 }
               ],
               "returns": "any"
@@ -5416,7 +5416,7 @@
                   "type": "int",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 20
                 },
                 {
                   "name": "status_url",
@@ -5511,7 +5511,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "any"
@@ -5739,7 +5739,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "resource_vars",
@@ -5790,14 +5790,14 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "language",
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "en-US"
                 }
               ],
               "returns": "any"
@@ -5823,14 +5823,14 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "language_code",
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "en-US"
                 }
               ],
               "returns": "any"
@@ -5845,7 +5845,7 @@
                   "name": "level",
                   "type": "int",
                   "required": false,
-                  "default": null
+                  "default": 1
                 }
               ],
               "returns": "any"
@@ -6107,7 +6107,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "any"
@@ -6143,7 +6143,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "resource_vars",
@@ -6225,14 +6225,14 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "numbered_bullets",
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "subsections",
@@ -6429,7 +6429,7 @@
                   "name": "params",
                   "type": "optional<dict<string,any>>",
                   "required": false,
-                  "default": null
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -6534,7 +6534,7 @@
                   "type": "dict<string,any>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "handler",
@@ -6548,7 +6548,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": true
                 },
                 {
                   "name": "fillers",
@@ -6590,7 +6590,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "swaig_fields",
@@ -6904,7 +6904,7 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "bullets",
@@ -6918,14 +6918,14 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "numbered_bullets",
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "subsections",
@@ -6958,7 +6958,7 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "bullets",
@@ -8594,7 +8594,7 @@
                   "type": "int",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 900
                 },
                 {
                   "name": "secret_key",
@@ -8854,7 +8854,7 @@
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "paths",
@@ -8868,7 +8868,9 @@
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": [
+                    "POST"
+                  ]
                 }
               ],
               "returns": "void"
@@ -9079,7 +9081,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "any"
@@ -9299,7 +9301,7 @@
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "kwargs",
@@ -9705,7 +9707,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "fillers",
@@ -9747,7 +9749,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "extra_swaig_fields",
@@ -9923,7 +9925,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": true
                 }
               ],
               "returns": "any"
@@ -10762,7 +10764,7 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "json"
                 }
               ],
               "returns": "any"
@@ -10821,7 +10823,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "params",
@@ -10835,35 +10837,35 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "record_call",
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "record_format",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "mp4"
                 },
                 {
                   "name": "record_stereo",
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": true
                 },
                 {
                   "name": "format",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "json"
                 },
                 {
                   "name": "default_webhook_url",
@@ -10972,14 +10974,14 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "/"
                 },
                 {
                   "name": "host",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "0.0.0.0"
                 },
                 {
                   "name": "port",
@@ -11014,7 +11016,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": true
                 }
               ],
               "returns": "void"
@@ -11135,14 +11137,14 @@
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "secure",
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": true
                 },
                 {
                   "name": "handler",
@@ -11196,13 +11198,13 @@
                   "name": "args",
                   "type": "any",
                   "required": false,
-                  "default": null
+                  "default": []
                 },
                 {
                   "name": "kwargs",
                   "type": "any",
                   "required": false,
-                  "default": null
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -11260,7 +11262,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "any"
@@ -11294,7 +11296,7 @@
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "any"
@@ -19447,7 +19449,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "void"
@@ -19488,7 +19490,7 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "bullets",
@@ -19509,7 +19511,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "any"
@@ -19639,7 +19641,7 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "bullets",
@@ -19660,7 +19662,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "void"
@@ -19709,7 +19711,7 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "bullets",
@@ -19723,14 +19725,14 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "numberedBullets",
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "any"
@@ -19773,7 +19775,7 @@
                   "type": "int",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 2
                 },
                 {
                   "name": "section_number",
@@ -19796,7 +19798,7 @@
                   "type": "int",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 0
                 },
                 {
                   "name": "section_number",
@@ -19902,14 +19904,14 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "concierge"
                 },
                 {
                   "name": "route",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "/concierge"
                 },
                 {
                   "name": "_opts",
@@ -20132,7 +20134,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": true
                 },
                 {
                   "name": "persona",
@@ -20146,14 +20148,14 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "faq_bot"
                 },
                 {
                   "name": "route",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "/faq"
                 },
                 {
                   "name": "_opts",
@@ -20302,14 +20304,14 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "info_gatherer"
                 },
                 {
                   "name": "route",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "/info_gatherer"
                 },
                 {
                   "name": "**",
@@ -20414,7 +20416,7 @@
                   "name": "raw_data",
                   "type": "dict<string,any>",
                   "required": false,
-                  "default": null
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -20434,7 +20436,7 @@
                   "name": "raw_data",
                   "type": "dict<string,any>",
                   "required": false,
-                  "default": null
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -20464,21 +20466,21 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "receptionist"
                 },
                 {
                   "name": "route",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "/receptionist"
                 },
                 {
                   "name": "greeting",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "Thank you for calling. How can I help you today?"
                 },
                 {
                   "name": "voice",
@@ -20658,14 +20660,14 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "survey"
                 },
                 {
                   "name": "route",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "/survey"
                 },
                 {
                   "name": "_opts",
@@ -21078,49 +21080,49 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "context",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "tag",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "direction",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "device",
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "state",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "segment_id",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 }
               ],
               "returns": "void"
@@ -21602,7 +21604,7 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "hangup"
                 }
               ],
               "returns": "any"
@@ -23162,7 +23164,9 @@
                   "type": "optional<list<string>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": [
+                    "default"
+                  ]
                 },
                 {
                   "name": "max_active_calls",
@@ -23215,7 +23219,7 @@
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 120
                 },
                 {
                   "name": "tag",
@@ -23249,7 +23253,7 @@
                   "name": "params",
                   "type": "dict<string,any>",
                   "required": false,
-                  "default": null
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -23770,7 +23774,7 @@
                   "name": "params",
                   "type": "any",
                   "required": false,
-                  "default": null
+                  "default": {}
                 }
               ],
               "returns": "void"
@@ -23975,56 +23979,56 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "direction",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "device",
                   "type": "dict<string,any>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "node_id",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "project_id",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "context",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "segment_id",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "tag",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "base",
@@ -24133,28 +24137,28 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "end_reason",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "direction",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "device",
                   "type": "dict<string,any>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "base",
@@ -24236,14 +24240,14 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "message",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "base",
@@ -24298,21 +24302,21 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "state",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "result",
                   "type": "dict<string,any>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "final",
@@ -24392,21 +24396,21 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "name",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "status",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "base",
@@ -24470,14 +24474,14 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "peer",
                   "type": "dict<string,any>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "base",
@@ -24532,7 +24536,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "base",
@@ -24578,14 +24582,14 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "detect",
                   "type": "dict<string,any>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "base",
@@ -24640,21 +24644,21 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "dial_state",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "call",
                   "type": "dict<string,any>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "base",
@@ -24745,7 +24749,7 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "base",
@@ -24791,14 +24795,14 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "fax",
                   "type": "dict<string,any>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "base",
@@ -24853,7 +24857,7 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "base",
@@ -24899,70 +24903,70 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "context",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "direction",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "from_number",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "to_number",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "body",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "media",
                   "type": "list<string>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": []
                 },
                 {
                   "name": "segments",
                   "type": "int",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 0
                 },
                 {
                   "name": "message_state",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "tags",
                   "type": "list<string>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": []
                 },
                 {
                   "name": "base",
@@ -25089,77 +25093,77 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "context",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "direction",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "from_number",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "to_number",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "body",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "media",
                   "type": "list<string>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": []
                 },
                 {
                   "name": "segments",
                   "type": "int",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 0
                 },
                 {
                   "name": "message_state",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "reason",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "tags",
                   "type": "list<string>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": []
                 },
                 {
                   "name": "base",
@@ -25304,14 +25308,14 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "state",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "base",
@@ -25366,14 +25370,14 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "state",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "base",
@@ -25428,42 +25432,42 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "status",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "queue_id",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "queue_name",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "position",
                   "type": "int",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 0
                 },
                 {
                   "name": "size",
                   "type": "int",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 0
                 },
                 {
                   "name": "base",
@@ -25554,42 +25558,42 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "state",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "url",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "duration",
                   "type": "float",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 0.0
                 },
                 {
                   "name": "size",
                   "type": "int",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 0
                 },
                 {
                   "name": "record",
                   "type": "dict<string,any>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "base",
@@ -25680,28 +25684,28 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "sip_refer_to",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "sip_refer_response_code",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "sip_notify_response_code",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "base",
@@ -25780,21 +25784,21 @@
                   "type": "dict<string,any>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "call_id",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "timestamp",
                   "type": "float",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 0.0
                 }
               ],
               "returns": "void"
@@ -25931,14 +25935,14 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "state",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "base",
@@ -25993,28 +25997,28 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "state",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "url",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "name",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "base",
@@ -26087,28 +26091,28 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "state",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "tap",
                   "type": "dict<string,any>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "device",
                   "type": "dict<string,any>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "base",
@@ -26181,42 +26185,42 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "state",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "url",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "recording_id",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "duration",
                   "type": "float",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 0.0
                 },
                 {
                   "name": "size",
                   "type": "int",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 0
                 },
                 {
                   "name": "base",
@@ -26323,42 +26327,42 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "context",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "direction",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "from_number",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "to_number",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "body",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "media",
@@ -26372,21 +26376,21 @@
                   "type": "int",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 0
                 },
                 {
                   "name": "state",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "reason",
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": ""
                 },
                 {
                   "name": "tags",
@@ -27068,7 +27072,7 @@
                   "name": "method",
                   "type": "string",
                   "required": false,
-                  "default": null
+                  "default": "GET"
                 },
                 {
                   "name": "headers",
@@ -27157,7 +27161,7 @@
                   "name": "method",
                   "type": "string",
                   "required": false,
-                  "default": null
+                  "default": "GET"
                 }
               ],
               "returns": "void"
@@ -27196,7 +27200,7 @@
                   "name": "data_key",
                   "type": "string",
                   "required": false,
-                  "default": null
+                  "default": "data"
                 },
                 {
                   "name": "request_options",
@@ -30046,7 +30050,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -30173,7 +30177,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -30285,7 +30289,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -30339,7 +30343,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -30460,7 +30464,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -30625,7 +30629,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -30799,7 +30803,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -31100,7 +31104,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -31163,7 +31167,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -31266,7 +31270,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -31357,7 +31361,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -31756,7 +31760,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -31812,7 +31816,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -32055,7 +32059,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -32111,7 +32115,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -32214,7 +32218,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -32304,7 +32308,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -32382,7 +32386,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -32452,7 +32456,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -32569,7 +32573,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -32827,7 +32831,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -32978,7 +32982,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -33034,7 +33038,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -33137,7 +33141,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -33228,7 +33232,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -33786,7 +33790,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -33898,7 +33902,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -34533,7 +34537,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -34668,7 +34672,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -34722,7 +34726,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -35249,7 +35253,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -35311,7 +35315,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -35453,7 +35457,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -36201,7 +36205,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -36320,7 +36324,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -36580,7 +36584,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -36875,7 +36879,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -37437,7 +37441,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -37641,7 +37645,7 @@
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": {}
                 },
                 {
                   "name": "request_options",
@@ -39768,7 +39772,7 @@
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "default",
@@ -39816,7 +39820,7 @@
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "default",
@@ -39867,7 +39871,7 @@
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "default",
@@ -39908,7 +39912,7 @@
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "default",
@@ -39956,7 +39960,7 @@
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "default",
@@ -40004,7 +40008,7 @@
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "block",
@@ -40070,7 +40074,7 @@
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "default",
@@ -40226,7 +40230,7 @@
                   "name": "section",
                   "type": "any",
                   "required": false,
-                  "default": null
+                  "default": "main"
                 }
               ],
               "returns": "any"
@@ -40331,7 +40335,7 @@
                   "name": "schema_validation",
                   "type": "bool",
                   "required": false,
-                  "default": null
+                  "default": true
                 }
               ],
               "returns": "void"
@@ -40542,7 +40546,7 @@
               "name": "allow_private",
               "type": "bool",
               "required": false,
-              "default": null
+              "default": false
             }
           ],
           "returns": "any"
@@ -40564,7 +40568,7 @@
                   "type": "int",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": 8002
                 },
                 {
                   "name": "directories",
@@ -40592,7 +40596,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 },
                 {
                   "name": "allowed_extensions",
@@ -40620,7 +40624,7 @@
                   "type": "bool",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": true
                 }
               ],
               "returns": "void"
@@ -40755,7 +40759,7 @@
                   "type": "string",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": "127.0.0.1"
                 },
                 {
                   "name": "port",
@@ -40783,7 +40787,7 @@
                   "type": "any",
                   "kind": "keyword",
                   "required": false,
-                  "default": null
+                  "default": false
                 }
               ],
               "returns": "any"

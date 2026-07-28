@@ -481,6 +481,21 @@ def synth_ai_chat_struct_inits(out_modules: dict) -> None:
             f for f in fields
             if f in methods and not _has_value_params(methods[f])
         ]
+        # DEFAULT VALUES ARE GENUINELY UNRECOVERABLE HERE, and not for the usual
+        # reflection reason. These models are ``Struct.new(..., keyword_init:
+        # true)``: a Struct declares FIELD NAMES only, so there is no per-field
+        # default EXPRESSION anywhere in the source for a parser to read. Every
+        # omitted field is nil by the Struct protocol itself. So unlike a ``def``
+        # parameter — whose default the Ripper pass in signature_dump.rb
+        # recovers from source — there is nothing here to recover, in any
+        # language-level sense.
+        #
+        # ``default: None`` is therefore the accurate record for a Struct field,
+        # not a placeholder. Note the reference oracle types some of these fields
+        # ``required: true`` with no default (the dataclass declares them without
+        # one); Ruby's Struct cannot express a required field, and that
+        # divergence is pre-existing and governed as before — it is NOT changed
+        # here, since this pass is additive to ``default`` only.
         params = [{"name": "self", "kind": "self"}] + [
             {"name": f, "type": "any", "kind": "keyword", "required": False, "default": None}
             for f in readers
@@ -1480,7 +1495,20 @@ def build_signature(method: dict, instance_method: bool) -> dict:
         # for the generated REST bodies' `**kwargs` forward-compat tail.)
         if ruby_kind in ("opt", "key", "block", "rest", "keyrest"):
             param["required"] = False
-            param["default"] = None
+            # The DEFAULT VALUE comes from signature_dump.rb's Ripper source
+            # parse (Method#parameters reports only that a default EXISTS, never
+            # what it IS -- see that script's block comment). ``has_default``
+            # marks a literal that was actually recovered, which is what lets a
+            # recovered literal ``nil`` (``def f(x = nil)``) stay distinct from
+            # "not statically recoverable" (``def f(x = SOME_CONST)``). Both
+            # emit ``default: None``, but only the former is a real match --
+            # they are recorded identically because the reference oracle has no
+            # third state either, so an unrecovered default is reported below
+            # rather than encoded here.
+            #
+            # A splat (*args/**kwargs) and a block have no default expression at
+            # all; they are optional by nature and keep ``default: None``.
+            param["default"] = p.get("default") if p.get("has_default") else None
         else:
             param["required"] = True
         params_out.append(param)

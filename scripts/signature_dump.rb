@@ -13,10 +13,272 @@
 # typed divergence.
 
 require 'json'
+require 'ripper'
 require_relative '../lib/signalwire'
 
+# ---------------------------------------------------------------------------
+# DEFAULT-VALUE recovery (source parse, joined to reflection by source_location)
+#
+# ``Method#parameters`` reports that a default EXISTS (:opt / :key) but never
+# what it IS -- the value is compiled away and the reflection API has no accessor
+# for it. That is a hard limit of Ruby reflection, not an oversight:
+#
+#     class T; def m(a, b = 42, c: "hi"); end; end
+#     T.instance_method(:m).parameters
+#     #=> [[:req, :a], [:opt, :b], [:key, :c]]
+#
+# So a default VALUE can only come from the SOURCE. This pass parses every
+# lib/**/*.rb with ``Ripper`` (stdlib -- deliberately NOT the ``prism`` /
+# ``parser`` gems, which are present only transitively as rubocop dependencies
+# and would be an undeclared dev dep) and indexes each ``def`` node's parameter
+# defaults by ``[realpath, line]``.
+#
+# That pair is the join key because ``Method#source_location`` returns exactly
+# the file and line of the ``def`` keyword, and Ripper's ``def`` node carries the
+# same line for its method-name token. The join is therefore EXACT -- it needs no
+# class/method name matching, so it cannot mis-attribute an overload, a
+# same-named method on another class, or a method reached through include.
+#
+# LITERALS ONLY. A default that is a non-literal EXPRESSION (``SOME_CONST``,
+# ``compute()``, ``other * 2``, an interpolated string) has no static value; this
+# pass records ``nil`` for it rather than evaluating it or inventing one. Emitting
+# a guessed value would be worse than emitting none -- it makes a correct port
+# look defective, and "fixing" the port to match a wrong default can introduce a
+# real defect. See DEFAULT_LITERAL_BLIND_SPOTS below for the exact list.
+# ---------------------------------------------------------------------------
+
+# Sentinel distinguishing "no static value recoverable" from a literal ``nil``
+# default. ``def f(x = nil)`` genuinely defaults to nil and must be recorded as
+# such; ``def f(x = CONST)`` must not be recorded at all.
+NO_STATIC_DEFAULT = Object.new.freeze
+
+# Convert a Ripper value sexp to its literal Ruby value, or NO_STATIC_DEFAULT
+# when it is not a static literal.
+#
+# Handled: integers (incl. 0x/0b/underscored), floats, rationals/imaginaries,
+# true/false/nil, strings (rejecting interpolation), symbols, and empty
+# array/hash literals. Everything else -- constants, method calls, operators,
+# ranges, non-empty collections -- is NOT a static value.
+def ripper_literal(node)
+  return NO_STATIC_DEFAULT unless node.is_a?(Array)
+
+  case node[0]
+  when :@int then ripper_numeric(node[1], Integer)
+  when :@float then ripper_numeric(node[1], Float)
+  when :var_ref, :vcall then ripper_keyword_literal(node[1])
+  when :string_literal then ripper_string_literal(node[1])
+  when :symbol_literal then ripper_symbol_literal(node[1])
+  # A bare word inside a %w[] / %i[] list -- Ripper emits the raw token with
+  # no enclosing :string_literal.
+  when :@tstring_content then node[1]
+  when :array then ripper_array_literal(node[1])
+  when :hash then ripper_hash_literal(node[1])
+  else NO_STATIC_DEFAULT
+  end
+end
+
+# Integer()/Float() rather than to_i/to_f: they honour 0x/0o/0b radix prefixes
+# and ``_`` separators, where a bare to_i would silently turn "0x1f" into 0.
+def ripper_numeric(token, converter)
+  converter.call(token)
+rescue ArgumentError, TypeError
+  NO_STATIC_DEFAULT
+end
+
+# Only the true/false/nil KEYWORDS are literals. A :@const (SOME_CONST) or an
+# :@ident (a local or method call) is not.
+def ripper_keyword_literal(inner)
+  return NO_STATIC_DEFAULT unless inner.is_a?(Array) && inner[0] == :@kw
+
+  case inner[1]
+  when 'true' then true
+  when 'false' then false
+  when 'nil' then nil
+  else NO_STATIC_DEFAULT
+  end
+end
+
+def ripper_string_literal(content)
+  return NO_STATIC_DEFAULT unless content.is_a?(Array) && content[0] == :string_content
+
+  parts = content[1..] || []
+  # Any embedded expression (``"a#{x}b"``) means the value is computed at call
+  # time. Ripper would otherwise hand back the concatenated static fragments
+  # ("ab"), which is a FABRICATED value -- reject it.
+  return NO_STATIC_DEFAULT unless parts.all? { |p| p.is_a?(Array) && p[0] == :@tstring_content }
+
+  parts.map { |p| p[1] }.join
+end
+
+def ripper_symbol_literal(sym)
+  return NO_STATIC_DEFAULT unless sym.is_a?(Array) && sym[0] == :symbol
+
+  tok = sym[1]
+  tok.is_a?(Array) ? tok[1].to_s : NO_STATIC_DEFAULT
+end
+
+# Resolve every element; ONE non-literal element makes the whole array
+# non-static (a partially-reconstructed collection would be a fabricated value).
+def ripper_array_literal(elements)
+  return [] if elements.nil?
+  return NO_STATIC_DEFAULT unless elements.is_a?(Array)
+
+  out = []
+  elements.each do |el|
+    val = ripper_literal(el)
+    return NO_STATIC_DEFAULT if val.equal?(NO_STATIC_DEFAULT)
+
+    out << val
+  end
+  out
+end
+
+def ripper_hash_literal(assoclist)
+  return {} if assoclist.nil?
+  return NO_STATIC_DEFAULT unless assoclist.is_a?(Array) && assoclist[0] == :assoclist_from_args
+
+  pairs = assoclist[1]
+  return NO_STATIC_DEFAULT unless pairs.is_a?(Array)
+
+  out = {}
+  pairs.each do |pair|
+    key, val = ripper_hash_pair(pair)
+    return NO_STATIC_DEFAULT if key.equal?(NO_STATIC_DEFAULT) || val.equal?(NO_STATIC_DEFAULT)
+
+    out[key] = val
+  end
+  out
+end
+
+# [key, value] for one ``k => v`` / ``k: v`` pair, either being
+# NO_STATIC_DEFAULT when unresolvable. A ``**splat`` (:assoc_splat) is not a
+# plain pair and makes the hash non-static.
+def ripper_hash_pair(pair)
+  return [NO_STATIC_DEFAULT, nil] unless pair.is_a?(Array) && pair[0] == :assoc_new
+
+  key_node = pair[1]
+  key =
+    if key_node.is_a?(Array) && key_node[0] == :@label
+      # ``k:`` shorthand -- the key is the SYMBOL :k, recorded as the bare name
+      # to match how a symbol default is recorded above.
+      key_node[1].to_s.chomp(':')
+    else
+      ripper_literal(key_node)
+    end
+  [key, ripper_literal(pair[2])]
+end
+
+# Extract {param_name => literal_value} for one Ripper ``params`` node.
+# Only params that HAVE a recoverable literal default appear in the result.
+def ripper_param_defaults(params_node)
+  # ``def m(...)`` with parens wraps params in a :paren node.
+  params_node = params_node[1] if params_node.is_a?(Array) && params_node[0] == :paren
+  return {} unless params_node.is_a?(Array) && params_node[0] == :params
+
+  # [:params, reqs, optionals, rest, post_reqs, keywords, kwrest, block]
+  out = collect_defaults(params_node[2]) { |name_node| name_node[1].to_s }
+  # Keyword label tokens are "name:" -- strip the trailing colon.
+  out.merge(collect_defaults(params_node[5]) { |label_node| label_node[1].to_s.chomp(':') })
+end
+
+# Shared walk over an optionals/keywords list of [name_node, value_node] pairs.
+# Only entries whose default resolves to a literal are returned.
+def collect_defaults(entries)
+  out = {}
+  (entries || []).each do |name_node, value_node|
+    next unless name_node.is_a?(Array)
+    # A REQUIRED keyword (``f:``) has value_node == false -- no default at all.
+    next if value_node == false || value_node.nil?
+
+    val = ripper_literal(value_node)
+    out[yield(name_node)] = val unless val.equal?(NO_STATIC_DEFAULT)
+  end
+  out
+end
+
+# [realpath, def_line] => {param_name => literal_default}, for every ``def`` in
+# lib/. Built once; consulted per reflected method via #source_location.
+def build_default_index
+  index = {}
+  Dir[File.join(__dir__, '..', 'lib', '**', '*.rb')].each do |path|
+    sexp = parse_file(path)
+    # A file Ripper cannot parse contributes no defaults; its params then stay
+    # null, i.e. honestly unrecovered rather than wrong.
+    next if sexp.nil?
+
+    real = File.realpath(path)
+    walk_sexp(sexp) do |node|
+      line, params_node = def_node_parts(node)
+      next if line.nil?
+
+      defaults = ripper_param_defaults(params_node)
+      index[[real, line]] = defaults unless defaults.empty?
+    end
+  end
+  index
+end
+
+def parse_file(path)
+  Ripper.sexp(File.read(path))
+rescue StandardError
+  nil
+end
+
+# [def_line, params_node] for a ``def``/``def self.`` node, or [nil, nil].
+#   :def  => [:def, name_token, params, body]
+#   :defs => [:defs, target, op, name_token, params, body]
+def def_node_parts(node)
+  name_tok, params_node =
+    case node[0]
+    when :def then [node[1], node[2]]
+    when :defs then [node[3], node[4]]
+    else return [nil, nil]
+    end
+  return [nil, nil] unless name_tok.is_a?(Array) && name_tok[2].is_a?(Array)
+
+  [name_tok[2][0], params_node]
+end
+
+def walk_sexp(node, &block)
+  return unless node.is_a?(Array)
+
+  yield(node) if node[0].is_a?(Symbol)
+  node.each { |child| walk_sexp(child, &block) }
+end
+
+DEFAULT_INDEX = build_default_index
+
+# Literal defaults for this method, keyed by param name. Empty when the method
+# has no source location (C-defined / dynamically defined via define_method) or
+# no literal-valued defaults.
+def defaults_for(meth)
+  loc = begin
+    meth.source_location
+  rescue StandardError
+    nil
+  end
+  return {} if loc.nil?
+
+  DEFAULT_INDEX[[realpath_or_self(loc[0]), loc[1]]] || {}
+end
+
+def realpath_or_self(path)
+  File.realpath(path)
+rescue StandardError
+  path
+end
+
 def method_entry(meth, name, is_constructor:, is_static:)
-  parameters = meth.parameters.map { |kind, pname| { kind: kind.to_s, name: pname.to_s } }
+  defaults = defaults_for(meth)
+  parameters = meth.parameters.map do |kind, pname|
+    entry = { kind: kind.to_s, name: pname.to_s }
+    # Emit ``default`` ONLY when a literal was actually recovered. Its ABSENCE
+    # means "not recoverable", which the wrapper keeps as null -- distinct from a
+    # recovered literal ``nil`` default, which is present with a nil value.
+    entry[:default] = defaults[pname.to_s] if defaults.key?(pname.to_s)
+    entry[:has_default] = defaults.key?(pname.to_s)
+    entry
+  end
   { name: name, is_constructor: is_constructor, is_static: is_static, parameters: parameters }
 end
 
