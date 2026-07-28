@@ -76,7 +76,13 @@ module SignalWire
       # Start the service. Non-blocking by default (runs WEBrick in a background
       # thread and returns the bound port). Pass +block: true+ to run in the
       # foreground. +port+ 0 binds an ephemeral port.
-      def start(host: '127.0.0.1', port: nil, ssl_cert: nil, ssl_key: nil, block: false)
+      #
+      # +host+ defaults to '0.0.0.0' -- the INTENDED server default: listen on all
+      # interfaces so a containerised or remote-hosted agent is reachable. This
+      # matches the reference (signalwire/web/web_service.py, which carries the same
+      # deliberate-choice marker). It is not an oversight; do NOT "harden" it back to
+      # '127.0.0.1' -- pass +host: '127.0.0.1'+ explicitly for loopback-only binding.
+      def start(host: '0.0.0.0', port: nil, ssl_cert: nil, ssl_key: nil, block: false)
         bind_port = port || @port
         @server = build_server(host, bind_port, ssl_cert, ssl_key)
         @directories.each { |route, directory| mount_directory(route, directory) }

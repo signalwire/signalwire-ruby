@@ -106,4 +106,33 @@ class WebWebServiceTest < Minitest::Test
   def test_start_returns_bound_ephemeral_port
     assert_operator @port, :>, 0
   end
+
+  # The DEFAULT host must be '0.0.0.0' (listen on all interfaces), matching the
+  # Python reference. Exercises the default path: start() is called with NO host:
+  # kwarg, and we read back the address WEBrick was actually bound to.
+  def test_default_host_binds_all_interfaces
+    svc = SignalWire::Web::WebService.new(basic_auth: [USER, PASS])
+    svc.add_directory('/static', @dir)
+    svc.start(port: 0)
+
+    server = svc.instance_variable_get(:@server)
+
+    assert_equal '0.0.0.0', server.config[:BindAddress]
+    assert_includes server.listeners.map { |l| l.addr[3] }, '0.0.0.0'
+  ensure
+    svc&.stop
+  end
+
+  # An explicit host: must still be honoured -- only the DEFAULT changed.
+  def test_explicit_host_overrides_default
+    svc = SignalWire::Web::WebService.new(basic_auth: [USER, PASS])
+    svc.add_directory('/static', @dir)
+    svc.start(host: '127.0.0.1', port: 0)
+
+    server = svc.instance_variable_get(:@server)
+
+    assert_equal '127.0.0.1', server.config[:BindAddress]
+  ensure
+    svc&.stop
+  end
 end
