@@ -21739,7 +21739,7 @@
                 },
                 {
                   "name": "handler",
-                  "type": "class:signalwire.relay.call.EventHandler",
+                  "type": "callable<list<class:signalwire.relay.event.RelayEvent>,void>",
                   "required": true
                 },
                 {
@@ -23284,7 +23284,7 @@
                 },
                 {
                   "name": "handler",
-                  "type": "class:signalwire.relay.client.CallHandler",
+                  "type": "callable<list<class:signalwire.relay.call.Call>,void>",
                   "required": true
                 },
                 {
@@ -23321,7 +23321,7 @@
                 },
                 {
                   "name": "handler",
-                  "type": "class:signalwire.relay.client.MessageHandler",
+                  "type": "callable<list<class:signalwire.relay.message.Message>,void>",
                   "required": true
                 },
                 {
@@ -37965,13 +37965,13 @@
                 },
                 {
                   "name": "agent",
-                  "type": "any",
+                  "type": "class:signalwire.core.agent_base.AgentBase",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "params",
-                  "type": "any",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -38982,13 +38982,13 @@
                 },
                 {
                   "name": "agent",
-                  "type": "any",
+                  "type": "class:signalwire.core.agent_base.AgentBase",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "params",
-                  "type": "any",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -39464,13 +39464,13 @@
                 },
                 {
                   "name": "agent",
-                  "type": "any",
+                  "type": "class:signalwire.core.agent_base.AgentBase",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "params",
-                  "type": "any",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -43299,11 +43299,11 @@
     "signalwire.skills.api_ninjas_trivia.skill.ApiNinjasTriviaSkill": {
       "params": {
         "agent": {
-          "type": "any",
+          "type": "class:signalwire.core.agent_base.AgentBase",
           "required": false
         },
         "params": {
-          "type": "any",
+          "type": "optional<dict<string,any>>",
           "required": false
         }
       }
@@ -43311,11 +43311,11 @@
     "signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill": {
       "params": {
         "agent": {
-          "type": "any",
+          "type": "class:signalwire.core.agent_base.AgentBase",
           "required": false
         },
         "params": {
-          "type": "any",
+          "type": "optional<dict<string,any>>",
           "required": false
         }
       }
@@ -43335,11 +43335,11 @@
     "signalwire.skills.weather_api.skill.WeatherApiSkill": {
       "params": {
         "agent": {
-          "type": "any",
+          "type": "class:signalwire.core.agent_base.AgentBase",
           "required": false
         },
         "params": {
-          "type": "any",
+          "type": "optional<dict<string,any>>",
           "required": false
         }
       }

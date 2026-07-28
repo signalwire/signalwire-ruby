@@ -66,7 +66,16 @@ module SignalWire
         nonce     = SecureRandom.hex(8)
         signature = compute_hmac("#{call_id}:#{function_name}:#{expiry}:#{nonce}")
         token_raw = "#{call_id}.#{function_name}.#{expiry}.#{nonce}.#{signature}"
-        Base64.urlsafe_encode64(token_raw, padding: false)
+        # PADDED urlsafe Base64 — the reference is +base64.urlsafe_b64encode+, which
+        # KEEPS the '=' padding, and its +validate_token+ decodes with
+        # +urlsafe_b64decode+, which RAISES on a stripped '='. +padding: false+ made
+        # every token this port minted unusable to the reference (and to any port that
+        # decodes strictly) even though the message and HMAC were correct. Our own
+        # +validate_token+ still accepted them, because +urlsafe_decode64+ tolerates
+        # missing padding on urlsafe input — that asymmetry is why round-tripping
+        # against ourselves could not catch it, and why TOKEN-INTEROP validates against
+        # the REFERENCE decoder instead.
+        Base64.urlsafe_encode64(token_raw)
       end
 
       alias generate_token create_token # Python-surface name for minting.
