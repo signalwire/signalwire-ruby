@@ -3,32 +3,28 @@
 All notable changes to the SignalWire AI Agents SDK for Ruby (`signalwire-sdk`)
 are documented here. This project adheres to [Semantic Versioning](https://semver.org).
 
-## 3.2.0
+## 3.0.0
+
+Parity release aligning the Ruby SDK with the Python reference SDK across the
+REST, RELAY, SWML, and SWAIG surfaces, and the fleet-wide convergence version:
+every SignalWire SDK port declares 3.0.0. Nothing in the 3.x range was ever
+published — this port's published tags top out at `v2.0.0` — so the
+previously-drafted unreleased 3.0.2 / 3.1.0 / 3.2.0 entries are consolidated
+here rather than shipped as a staggered series.
 
 ### Added
-- `client.messages` — the new `/api/messaging/messages` send/redact REST
-  resource (`create` to send an SMS/MMS message, `update` to redact a message
-  body). Distinct from the `client.logs.messages` message-log namespace.
-  Generated from the canonical `messages` REST spec with full success + error
-  wire-test coverage.
-
-## 3.1.0
-
-### Added
+- Spec-generated REST surface: a typed REST client with generated typed I/O and
+  full success + error wire-test coverage across the SignalWire REST namespaces.
 - `client.projects` — the new `/api/projects` full-CRUD project-management REST
   resource (list / create / get / update / delete subprojects, plus
   `rotate_signing_key`). Distinct from the singular `client.project` token
   namespace. Generated from the canonical `projects` REST spec with full
   success + error wire-test coverage.
-
-## 3.0.2
-
-Parity release aligning the Ruby SDK with the Python reference SDK across the
-REST, RELAY, SWML, and SWAIG surfaces.
-
-### Added
-- Spec-generated REST surface: a typed REST client with generated typed I/O and
-  full success + error wire-test coverage across the SignalWire REST namespaces.
+- `client.messages` — the new `/api/messaging/messages` send/redact REST
+  resource (`create` to send an SMS/MMS message, `update` to redact a message
+  body). Distinct from the `client.logs.messages` message-log namespace.
+  Generated from the canonical `messages` REST spec with full success + error
+  wire-test coverage.
 - `paginate()` parity on read resources via a `PaginatedIterator`.
 - Typed SWAIG `ParameterSchema` builder for `define_tool`, and typed RELAY state
   enums (`Device`, `CollectConfig`, record/tap direction/format/codec, skill names).
