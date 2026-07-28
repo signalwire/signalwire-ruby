@@ -63,8 +63,8 @@ def ripper_literal(node)
   return NO_STATIC_DEFAULT unless node.is_a?(Array)
 
   case node[0]
-  when :@int then ripper_numeric(node[1], Integer)
-  when :@float then ripper_numeric(node[1], Float)
+  when :@int then ripper_integer(node[1])
+  when :@float then ripper_float(node[1])
   when :var_ref, :vcall then ripper_keyword_literal(node[1])
   when :string_literal then ripper_string_literal(node[1])
   when :symbol_literal then ripper_symbol_literal(node[1])
@@ -79,8 +79,16 @@ end
 
 # Integer()/Float() rather than to_i/to_f: they honour 0x/0o/0b radix prefixes
 # and ``_`` separators, where a bare to_i would silently turn "0x1f" into 0.
-def ripper_numeric(token, converter)
-  converter.call(token)
+# (Kernel#Integer / Kernel#Float are METHODS, not callable objects -- they cannot
+# be passed as a converter argument.)
+def ripper_integer(token)
+  Integer(token)
+rescue ArgumentError, TypeError
+  NO_STATIC_DEFAULT
+end
+
+def ripper_float(token)
+  Float(token)
 rescue ArgumentError, TypeError
   NO_STATIC_DEFAULT
 end
