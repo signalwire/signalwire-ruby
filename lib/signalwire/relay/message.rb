@@ -12,11 +12,19 @@ module SignalWire
     # lifecycle/completion. Relies on the host defining {#to_h} and the
     # @message_id/@direction/@state ivars.
     module MessageSerialization
+      # A short human-readable summary: the message id, direction, delivery state and
+      # the two numbers. Carries no credentials.
+      #
+      # @return [String]
       def to_s
         "Message(id=#{@message_id}, direction=#{@direction}, " \
           "state=#{@state}, from=#{@from_number}, to=#{@to_number})"
       end
 
+      # Same as {#to_s} — the default `#inspect` would dump every ivar including the
+      # listener list.
+      #
+      # @return [String]
       def inspect
         to_s
       end
@@ -65,6 +73,17 @@ module SignalWire
                   :reason, :result
       attr_accessor :state
 
+      # @param message_id [String] the server's identifier for this message
+      # @param context [String] the messaging context it belongs to
+      # @param direction [String] `"inbound"` or `"outbound"`
+      # @param from_number [String] the sender in E.164
+      # @param to_number [String] the recipient in E.164
+      # @param body [String] the message text
+      # @param media [Array<String>, nil] MMS media URLs; nil becomes an empty Array
+      # @param segments [Integer] how many SMS segments the message was split into
+      # @param state [String] the delivery state (see {MessageState})
+      # @param reason [String] why delivery failed, when it did
+      # @param tags [Array<String>, nil] caller-supplied correlation tags; nil becomes an empty Array
       def initialize(message_id: '', context: '', direction: '', from_number: '',
                      to_number: '', body: '', media: nil, segments: 0,
                      state: '', reason: '', tags: nil)
@@ -95,6 +114,10 @@ module SignalWire
         @listeners << callback
       end
 
+      # Whether the message has reached a terminal delivery state. Non-blocking,
+      # unlike {#wait}.
+      #
+      # @return [Boolean]
       def done?
         @done
       end
@@ -153,6 +176,9 @@ module SignalWire
 
       private
 
+      # @api private — hand a state event to every registered listener. A raising
+      # listener is warned about and the remaining listeners still run, so one bad
+      # handler cannot suppress the others.
       def notify_listeners(event)
         @listeners.each do |handler|
           handler.call(event)
@@ -172,12 +198,17 @@ module SignalWire
         end
       end
 
+      # @api private — set each field as an ivar, defaulting `media` and `tags` to
+      # empty Arrays so callers never have to nil-check them.
       def assign_value_fields(**fields)
         fields[:media] = fields[:media] || []
         fields[:tags]  = fields[:tags] || []
         fields.each { |name, value| instance_variable_set("@#{name}", value) }
       end
 
+      # @api private — initialise the completion machinery: the mutex and condition
+      # variable {#wait} blocks on, the done flag, the terminal event, and the
+      # callback and listener slots.
       def init_completion_tracking
         @mutex        = Mutex.new
         @condition    = ConditionVariable.new
@@ -198,6 +229,9 @@ module SignalWire
         invoke_on_completed(event)
       end
 
+      # @api private — fire the on-completed callback OUTSIDE the mutex, so a
+      # callback that touches this message cannot deadlock. A raising callback is
+      # warned about, not propagated.
       def invoke_on_completed(event)
         return unless @on_completed
 

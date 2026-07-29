@@ -135,6 +135,10 @@ module SignalWire
 
       private
 
+      # @api private — a body must be a String. The error explicitly points at the
+      # `bullets:` parameter, because passing a list here is the common mistake.
+      #
+      # @raise [TypeError]
       def validate_body!(body)
         return if body.is_a?(String)
 
@@ -143,6 +147,9 @@ module SignalWire
               'If you meant to pass a list of bullet points, use bullets parameter instead.'
       end
 
+      # @api private — bullets must be an Array or nil.
+      #
+      # @raise [TypeError]
       def validate_bullets!(bullets)
         return if bullets.nil? || bullets.is_a?(Array)
 
@@ -167,6 +174,11 @@ module SignalWire
         !@title.nil? || !section_number.empty?
       end
 
+      # @api private — the number a subsection renders under: the parent's number
+      # extended by its position when this level is numbered, else the parent's
+      # number unchanged. A subsection with `numbered: false` opts out.
+      #
+      # @return [Array<Integer>]
       def child_section_number(section_number, subsection, idx, any_subsection_numbered)
         if any_subsection_numbered && subsection.numbered != false
           section_number + [idx + 1]
@@ -175,6 +187,9 @@ module SignalWire
         end
       end
 
+      # @api private — render each subsection as markdown. The heading level only
+      # deepens when this section is itself titled or numbered, so an untitled
+      # wrapper does not push its children a level down.
       def render_markdown_subsections(lines, level, section_number)
         any_subsection_numbered = @subsections.any?(&:numbered)
         nested = titled_or_numbered?(section_number)
@@ -187,6 +202,8 @@ module SignalWire
         end
       end
 
+      # @api private — render the bullets as a `<bullets>` element. Numbered bullets
+      # carry a 1-based `id` attribute.
       def render_xml_bullets(xml, indent_str)
         xml << "#{indent_str}  <bullets>"
         @bullets.each_with_index do |bullet, idx|
@@ -199,6 +216,8 @@ module SignalWire
         xml << "#{indent_str}  </bullets>"
       end
 
+      # @api private — render each subsection inside a `<subsections>` element,
+      # computing each child's number the same way the markdown renderer does.
       def render_xml_subsections(xml, indent_str, indent, section_number)
         xml << "#{indent_str}  <subsections>"
         any_subsection_numbered = @subsections.any?(&:numbered)

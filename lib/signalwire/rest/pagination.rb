@@ -21,6 +21,13 @@ module SignalWire
 
       attr_reader :http, :path, :params, :data_key, :index, :items, :done
 
+      # @param http [HttpClient] the transport each page fetch goes through
+      # @param path [String] the collection path to page over
+      # @param params [Hash, nil] initial query parameters; duplicated so a caller
+      #   mutating the original cannot corrupt iterator state
+      # @param data_key [String] the response key holding the page's items
+      # @param request_options [RequestOptions, nil] forwarded to EVERY page fetch, so
+      #   pagination honours the same timeout/retry contract as a single call
       def initialize(http, path, params = nil, data_key = 'data', request_options = nil)
         @http     = http
         @path     = path
@@ -42,6 +49,11 @@ module SignalWire
         @seen_next = {}
       end
 
+      # Yield every item across all pages, fetching pages as needed. Without a block
+      # returns an Enumerator, so the whole Enumerable surface (`map`, `take`, …)
+      # works lazily over the pages.
+      #
+      # @return [Enumerator, void]
       def each
         return enum_for(:each) unless block_given?
 
@@ -91,6 +103,10 @@ module SignalWire
 
       private
 
+      # @api private — fetch one page, append its items, and decide whether to
+      # continue. Termination is driven ONLY by the absence of a `links.next` — an
+      # empty `data` array does NOT stop iteration, because a filtered page can
+      # legitimately match nothing while later pages still have items.
       def fetch_next
         params_for_request = @params.empty? ? nil : @params
         resp = @http.get(@path, params_for_request, request_options: @request_options)
@@ -126,6 +142,9 @@ module SignalWire
         query.each_with_object({}) { |(k, v), flat| merge_query_param(flat, k, v) }
       end
 
+      # @api private — fold one query pair into the params Hash, promoting a repeated
+      # key to an Array so a multi-value parameter in the `next` link survives being
+      # re-sent.
       def merge_query_param(flat, key, value)
         if flat.key?(key)
           existing = flat[key]

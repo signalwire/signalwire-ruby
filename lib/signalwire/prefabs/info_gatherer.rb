@@ -178,17 +178,23 @@ module SignalWire
                     } })
       end
 
+      # @api private — install the prefab's first prompt section on the agent.
       def build_info_gatherer_prompt
         section = prompt_sections.first
         prompt_add_section(section['title'], section['body'])
       end
 
+      # @api private — seed the question-flow state into the agent's `global_data`:
+      # the questions, a zero index and an empty answers list.
       def seed_static_global_data
         set_global_data(
           'questions' => @questions, 'question_index' => 0, 'answers' => []
         )
       end
 
+      # @api private — tune the AI verb's speech timing for a question-and-answer
+      # flow: an 800 ms end-of-speech timeout and a 1000 ms speech-event timeout, so
+      # the agent does not cut a considered answer short.
       def configure_agent_settings
         set_params('end_of_speech_timeout' => 800, 'speech_event_timeout' => 1000)
       end
@@ -220,12 +226,21 @@ module SignalWire
         result
       end
 
+      # @api private — the instruction the model receives for one question. The
+      # FIRST question carries a different lead-in, and a question needing
+      # confirmation appends the read-it-back directive.
+      #
+      # @return [String]
       def question_instruction(question_text, needs_confirmation, first:)
         "#{PROMPT_PREFIX[first ? :first : :next]}: #{question_text}\n\n" \
         'Make sure the answer fits the scope and context of the question before submitting it. ' +
           CONFIRM_TEXT[needs_confirmation ? true : false]
       end
 
+      # @api private — a non-empty Array whose every entry carries both a `key_name`
+      # and a `question_text` (either String- or Symbol-keyed).
+      #
+      # @raise [ArgumentError] naming the index of the offending question
       def validate_questions!(questions)
         raise ArgumentError, 'questions must be a non-empty Array' unless questions.is_a?(Array) && !questions.empty?
 
@@ -256,10 +271,19 @@ module SignalWire
         FALLBACK_QUESTIONS
       end
 
+      # @api private — read a named attribute off a request object, yielding an
+      # empty Hash when the object does not expose it or it is nil. Lets the
+      # question callback run against any request-like object.
+      #
+      # @return [Hash]
       def request_attr(request, name)
         (request.respond_to?(name) ? request.public_send(name) : nil) || {}
       end
 
+      # @api private — the initial question-flow state for a dynamically-resolved
+      # question list: the questions, a zero index and an empty answers list.
+      #
+      # @return [Hash]
       def fresh_global_data(questions)
         {
           'questions' => questions,

@@ -51,6 +51,8 @@ module SignalWire
         @_resolver
       end
 
+      # @api private — override the DNS resolver, so tests can drive
+      # {.validate_url} without real name resolution. Not part of the public surface.
       def self._resolver=(value)
         @_resolver = value
       end
@@ -77,6 +79,10 @@ module SignalWire
         false
       end
 
+      # @api private — only `http` and `https` are allowed. Rejecting everything else
+      # is what stops `file:`, `gopher:` and friends from reaching the fetcher.
+      #
+      # @return [Boolean]
       def self._valid_scheme?(parsed)
         scheme = (parsed.scheme || '').downcase
         return true if %w[http https].include?(scheme)
@@ -114,6 +120,12 @@ module SignalWire
       end
       private_class_method :_hostname_safe?
 
+      # @api private — whether a resolved IP falls in one of the BLOCKED_NETWORKS
+      # (loopback, link-local, private ranges). This is the SSRF check itself: it
+      # runs on the RESOLVED address, so a public hostname pointing at an internal
+      # IP is still rejected.
+      #
+      # @return [Boolean]
       def self._ip_blocked?(hostname, ip_str)
         ip = _parse_ip(ip_str)
         return false if ip.nil?
@@ -127,6 +139,10 @@ module SignalWire
       end
       private_class_method :_ip_blocked?
 
+      # @api private — parse an address string, yielding nil rather than raising for
+      # an unparseable value.
+      #
+      # @return [IPAddr, nil]
       def self._parse_ip(ip_str)
         IPAddr.new(ip_str)
       rescue IPAddr::InvalidAddressError
@@ -134,6 +150,10 @@ module SignalWire
       end
       private_class_method :_parse_ip
 
+      # @api private — whether `SWML_ALLOW_PRIVATE_URLS` is set to 1/true/yes, the
+      # explicit opt-out that lets a deployment reach private addresses.
+      #
+      # @return [Boolean]
       def self._env_allows_private?
         v = (ENV['SWML_ALLOW_PRIVATE_URLS'] || '').downcase
         %w[1 true yes].include?(v)

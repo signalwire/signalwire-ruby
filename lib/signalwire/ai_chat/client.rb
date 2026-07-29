@@ -75,6 +75,10 @@ module SignalWire
       # The server-provided error message (without the +[code]+ prefix).
       attr_reader :server_message
 
+      # @param code [Integer, nil] the JSON-RPC error code, or nil when the failure
+      #   rode the success envelope
+      # @param message [String] the server's error text; also readable via
+      #   {#server_message} without the `[code]` prefix
       def initialize(code, message)
         @code = code
         @server_message = message
@@ -359,6 +363,11 @@ module SignalWire
       http
     end
 
+    # @api private — the chat request: the Basic-auth header, JSON
+    # content/accept types, the SDK's versioned User-Agent, and the payload as the
+    # body.
+    #
+    # @return [Net::HTTP::Post]
     def build_request(uri, payload)
       req = Net::HTTP::Post.new(uri)
       req['Authorization'] = @auth_header

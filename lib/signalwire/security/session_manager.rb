@@ -198,11 +198,20 @@ module SignalWire
 
       private
 
+      # @api private — the debug report for a token that does not split into the
+      # expected number of parts: how many parts it had and how long it was. The
+      # token itself is never included.
+      #
+      # @return [Hash]
       def malformed_debug(token, parts)
         { 'valid_format' => false, 'parts_count' => parts.length,
           'token_length' => token ? token.length : 0 }
       end
 
+      # @api private — the debug report for a well-formed token: its components plus
+      # its expiry status relative to now.
+      #
+      # @return [Hash]
       def decoded_debug(_token, parts)
         status = expiry_status(parts[2], Time.now.to_i)
         {
@@ -212,6 +221,11 @@ module SignalWire
         }
       end
 
+      # @api private — the token's components for the debug report. The call id and
+      # the SIGNATURE are truncated — the signature is the secret-bearing part, so it
+      # is never reported in full.
+      #
+      # @return [Hash]
       def debug_components(parts, expiry_date)
         {
           'call_id' => truncate(parts[0]), 'function' => parts[1],

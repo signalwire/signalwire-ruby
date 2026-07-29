@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module SignalWire
+  # Logging — the SDK's minimal leveled logger and its process-global level.
   module Logging
     LEVELS = { debug: 0, info: 1, warn: 2, error: 3, off: 4 }.freeze
 
@@ -12,6 +13,11 @@ module SignalWire
       @global_level || resolve_level_from_env
     end
 
+    # Override the process-global log level, ignoring the environment. Pass nil
+    # via {.reset!} to go back to env-derived resolution.
+    #
+    # @param level [Symbol, String] one of the LEVELS keys
+    # @raise [ArgumentError] for an unknown level name
     def self.global_level=(level)
       level = level.to_sym if level.is_a?(String)
       raise ArgumentError, "Unknown log level: #{level}" unless LEVELS.key?(level)
@@ -19,10 +25,16 @@ module SignalWire
       @global_level = level
     end
 
+    # Drop any explicitly-set level, so {.global_level} resolves from the
+    # environment again. Intended for tests that set a level and must not leak it
+    # into the next one.
     def self.reset!
       @global_level = nil
     end
 
+    # Whether logging is off entirely (level `:off`, i.e. `SIGNALWIRE_LOG_MODE=off`).
+    #
+    # @return [Boolean]
     def self.suppressed?
       global_level == :off
     end
@@ -36,29 +48,38 @@ module SignalWire
     class Logger
       attr_reader :name
 
+      # @param name [String] the logger's namespace, prefixed to every line
       def initialize(name)
         @name = name
         @output = $stderr
       end
 
+      # Log at `:debug` — the most verbose level, dropped unless the global level is `:debug`.
       def debug(msg)
         log(:debug, msg)
       end
 
+      # Log at `:info`, the default level.
       def info(msg)
         log(:info, msg)
       end
 
+      # Log at `:warn` — something is wrong but the operation continued.
       def warn(msg)
         log(:warn, msg)
       end
 
+      # Log at `:error` — the operation failed.
       def error(msg)
         log(:error, msg)
       end
 
       private
 
+      # @api private — emit one line to stderr when +level+ passes the global
+      # threshold. Control characters are scrubbed BEFORE emission (log-injection
+      # defence): a caller-supplied newline or NUL must not be able to forge a log
+      # line, so the scrub has to be on the emission path rather than merely offered.
       def log(level, msg)
         return if Logging.suppressed?
         return if LEVELS[level] < LEVELS[Logging.global_level]

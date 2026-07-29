@@ -37,6 +37,15 @@ module SignalWire
       #   `self.special_instructions` (prefabs/concierge.py:79).
       attr_reader :hours_of_operation, :special_instructions
 
+      # @param venue_name [String] the venue the agent represents, used throughout its prompt
+      # @param services [Array<String>] the services offered here
+      # @param amenities [Hash{String => Object}] amenity name to its details
+      # @param hours_of_operation [Hash{String => String}, String, nil] hours per label;
+      #   a bare String is normalised to the default label so `global_data` always carries a map
+      # @param special_instructions [Array<String>, nil] extra instruction bullets added to the prompt
+      # @param welcome_message [String, nil] the opening line; a default naming the venue is used when nil
+      # @param name [String] the agent's name
+      # @param route [String] the HTTP path the agent serves on
       def initialize(venue_name:, services:, amenities:, hours_of_operation: nil,
                      special_instructions: nil, welcome_message: nil,
                      name: 'concierge', route: '/concierge', **_opts)
@@ -53,10 +62,18 @@ module SignalWire
         @route = route
       end
 
+      # The SWAIG tool names this prefab's agent exposes.
+      #
+      # @return [Array<String>]
       def tools
         %w[get_amenity_info get_service_info check_availability get_directions]
       end
 
+      # The POM sections that make up the concierge agent's prompt: the venue
+      # welcome with its services and amenities, the special instructions when any
+      # were given, and the hours (always emitted, since they are defaulted).
+      #
+      # @return [Array<Hash>]
       def prompt_sections
         sections = [
           {
@@ -72,6 +89,10 @@ module SignalWire
         sections
       end
 
+      # The `global_data` the concierge agent starts with — the state its tools
+      # read and update over the course of the call.
+      #
+      # @return [Hash]
       def global_data
         {
           'venue_name' => @venue_name,
@@ -82,6 +103,10 @@ module SignalWire
         }
       end
 
+      # @api private — the amenity handler: look the amenity up case-insensitively
+      # and describe it, or list what IS available when it is unknown.
+      #
+      # @return [Swaig::FunctionResult]
       def handle_amenity_info(args, _raw_data)
         amenity = (args['amenity'] || '').downcase
         info = @amenities.find { |k, _v| k.downcase == amenity }&.last
@@ -90,6 +115,11 @@ module SignalWire
         Swaig::FunctionResult.new("#{amenity.capitalize}: #{format_amenity_detail(info)}")
       end
 
+      # @api private — the service handler: match the request as a SUBSTRING of a
+      # known service, so a partial spoken name still resolves. An unmatched request
+      # gets the full service list rather than a bare refusal.
+      #
+      # @return [Swaig::FunctionResult]
       def handle_service_info(args, _raw_data)
         service = (args['service'] || '').downcase
         match = @services.find { |s| s.downcase.include?(service) }
@@ -198,6 +228,10 @@ module SignalWire
         { 'title' => 'Instructions', 'bullets' => @special_instructions.map(&:to_s) }
       end
 
+      # @api private — the answer for an unknown amenity, naming every amenity that
+      # IS configured so the caller can pick one.
+      #
+      # @return [Swaig::FunctionResult]
       def amenity_not_found(amenity)
         Swaig::FunctionResult.new(
           "I don't have information about '#{amenity}'. " \
@@ -205,6 +239,10 @@ module SignalWire
         )
       end
 
+      # @api private — the answer for a service this venue does not offer, naming
+      # the ones it does.
+      #
+      # @return [Swaig::FunctionResult]
       def service_unavailable(service)
         Swaig::FunctionResult.new(
           "I'm sorry, we don't offer #{service} at #{@venue_name}. " \
@@ -212,6 +250,10 @@ module SignalWire
         )
       end
 
+      # @api private — the answer for a location the agent has no directions to,
+      # redirecting the caller to front-desk staff.
+      #
+      # @return [Swaig::FunctionResult]
       def directions_unknown(location)
         Swaig::FunctionResult.new(
           "I don't have specific directions to #{location}. " \

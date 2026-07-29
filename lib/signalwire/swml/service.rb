@@ -44,6 +44,10 @@ module SignalWire
       # Maximum request body size enforced on /swaig and the main route (1 MB).
       SWAIG_FN_NAME = /\A[a-zA-Z_][a-zA-Z0-9_]*\z/
 
+      # @param schema_path [String, nil] path to a SWML schema.json; nil uses the bundled copy
+      # @param config_file [String, nil] explicit config path, or nil to auto-discover
+      # @param schema_validation [Boolean] validate each verb against the schema as it is added;
+      #   false accepts any verb config unchecked
       def initialize(name:, route: '/', host: '0.0.0.0', port: nil, basic_auth: nil,
                      schema_path: nil, config_file: nil, schema_validation: true)
         @name   = name
@@ -127,6 +131,11 @@ module SignalWire
       # def-wrappers (not alias_method) so placement is independent of where
       # the get_* target is defined in the class body.
       def all_functions = get_all_functions
+      # The basic-auth pair plus where it came from (`"environment"` /
+      # `"auto-generated"` / `"provided"`). Bare-noun form of
+      # {#get_basic_auth_credentials_with_source}.
+      #
+      # @return [Array(String, String, String)]
       def basic_auth_credentials_with_source = get_basic_auth_credentials_with_source
       # Ruby `?`-predicate form of has_function.
       def function?(name) = has_function(name)
@@ -203,6 +212,11 @@ module SignalWire
         end
       end
 
+      # Report every SWML verb name as a callable method, so `respond_to?(:play)` is
+      # true and the dynamic verb dispatch in {#method_missing} is discoverable
+      # rather than a silent trap.
+      #
+      # @return [Boolean]
       def respond_to_missing?(method_name, include_private = false)
         SWML.schema.valid_verb?(method_name.to_s) || super
       end
@@ -520,6 +534,10 @@ module SignalWire
         @document.render
       end
 
+      # The current SWML document as indented, human-readable JSON. Same content as
+      # {#render}, formatted for reading rather than the wire.
+      #
+      # @return [String]
       def render_pretty
         @document.render_pretty
       end
@@ -821,6 +839,11 @@ module SignalWire
         end
       end
 
+      # @api private — true when the active credentials came from
+      # SWML_BASIC_AUTH_USER / SWML_BASIC_AUTH_PASSWORD: both must be set,
+      # non-empty, and equal to what the service is using.
+      #
+      # @return [Boolean]
       def service_auth_from_env?(user, pass)
         env_user = ENV.fetch('SWML_BASIC_AUTH_USER', nil)
         env_pass = ENV.fetch('SWML_BASIC_AUTH_PASSWORD', nil)
@@ -937,6 +960,11 @@ module SignalWire
         end
       end
 
+      # @api private — the Rack router: `/health` and `/ready` unauthenticated, and
+      # the service's own route behind the security-header and timing-safe basic-auth
+      # middlewares.
+      #
+      # @return [Rack::Builder]
       def build_rack_app
         main_route = @route
         authenticated = build_authenticated_app
@@ -1069,10 +1097,15 @@ module SignalWire
           'cache-control' => 'no-store, no-cache, must-revalidate'
         }.freeze
 
+        # @param app [#call] the next Rack app in the stack
         def initialize(app)
           @app = app
         end
 
+        # Call the wrapped app and stamp the fixed security headers onto its response.
+        #
+        # @param env [Hash] the Rack env
+        # @return [Array] the Rack response triple, with HEADERS applied
         def call(env)
           status, headers, body = @app.call(env)
           HEADERS.each { |k, v| headers[k] = v }
@@ -1084,11 +1117,19 @@ module SignalWire
       # Middleware: timing-safe Basic-Auth
       # ------------------------------------------------------------------
       class TimingSafeBasicAuth
+        # @param app [#call] the next Rack app in the stack
+        # @param service [Service] the service whose credentials are the expected pair
         def initialize(app, service)
           @app     = app
           @service = service
         end
 
+        # Require valid basic auth before passing the request on. A missing or
+        # non-Basic Authorization header, or a credential mismatch, gets the same 401
+        # challenge — the response does not distinguish the two.
+        #
+        # @param env [Hash] the Rack env
+        # @return [Array] the Rack response triple
         def call(env)
           auth = Rack::Auth::Basic::Request.new(env)
           return unauthorized unless auth.provided? && auth.basic?
@@ -1105,6 +1146,9 @@ module SignalWire
           secure_compare(user, input_user) && secure_compare(pass, input_pass)
         end
 
+        # @api private — the 401 challenge: a `Basic realm="SignalWire SWML Service"`
+        # www-authenticate header and a JSON `{"error":"Unauthorized"}` body, not
+        # plain text.
         def unauthorized
           # Python parity: a JSON {"error":"Unauthorized"} body (not plain text).
           [

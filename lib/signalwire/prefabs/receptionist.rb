@@ -40,10 +40,17 @@ module SignalWire
         configure_agent_settings(voice)
       end
 
+      # The SWAIG tool names this prefab's agent exposes.
+      #
+      # @return [Array<String>]
       def tools
         %w[transfer_to_department collect_caller_info]
       end
 
+      # The POM sections that make up the receptionist agent's prompt: the greeting
+      # plus one bullet per department with its description and number.
+      #
+      # @return [Array<Hash>]
       def prompt_sections
         bullets = @departments.map { |d| "#{d['name']}: #{d['description'] || d['name']} (#{d['number']})" }
         [
@@ -55,6 +62,10 @@ module SignalWire
         ]
       end
 
+      # The `global_data` the receptionist agent starts with: the department list and
+      # an empty `caller_info` bucket for its collect tool to fill.
+      #
+      # @return [Hash]
       def global_data
         {
           'departments' => @departments,
@@ -62,6 +73,11 @@ module SignalWire
         }
       end
 
+      # @api private — the transfer handler: look the department up by EXACT name
+      # and connect the call to its number. An unknown name gets the available list
+      # rather than a failed transfer.
+      #
+      # @return [Swaig::FunctionResult]
       def handle_transfer(args, _raw_data)
         dept_name = args['department']
         dept = @departments.find { |d| d['name'] == dept_name }
@@ -95,6 +111,11 @@ module SignalWire
         @languages = [{ 'name' => 'English', 'code' => 'en-US', 'voice' => voice }]
       end
 
+      # @api private — a non-empty Array whose every entry carries both a `name` and
+      # a `number`. Returns the list with String-normalised keys.
+      #
+      # @raise [ArgumentError] naming the index of the offending department
+      # @return [Array<Hash>]
       def validate_departments(departments)
         unless departments.is_a?(Array) && !departments.empty?
           raise ArgumentError, 'departments must be a non-empty Array'
@@ -109,6 +130,10 @@ module SignalWire
         end
       end
 
+      # @api private — the answer for an unknown department, naming every one that
+      # IS configured so the caller can pick another.
+      #
+      # @return [Swaig::FunctionResult]
       def department_not_found_result
         names = @departments.map { |d| d['name'] }.join(', ')
         Swaig::FunctionResult.new(

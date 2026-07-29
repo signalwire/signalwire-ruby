@@ -41,6 +41,11 @@ module SignalWire
       [:azure_function,         %w[AZURE_FUNCTIONS_ENVIRONMENT FUNCTIONS_WORKER_RUNTIME AzureWebJobsStorage]]
     ].freeze
 
+    # Detect the deployment environment from its marker environment variables, in
+    # MODE_SIGNALS order.
+    #
+    # @return [Symbol] `:cgi`, `:lambda`, `:google_cloud_function`,
+    #   `:azure_function`, or `:server` when none match
     def self.execution_mode
       MODE_SIGNALS.each { |mode, vars| return mode if env_present?(*vars) }
       :server

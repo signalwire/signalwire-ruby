@@ -38,6 +38,12 @@ module SignalWire
       #   (prefabs/faq_bot.py:75).
       attr_reader :persona, :suggest_related
 
+      # @param faqs [Array<Hash>] the question/answer pairs; must be non-empty
+      # @param suggest_related [Boolean] instruct the agent to offer related questions
+      # @param persona [String, nil] the agent's persona; a helpful-FAQ-bot default is used when nil
+      # @param name [String] the agent's name
+      # @param route [String] the HTTP path the agent serves on
+      # @raise [ArgumentError] when +faqs+ is empty or not an Array
       def initialize(faqs:, suggest_related: true, persona: nil,
                      name: 'faq_bot', route: '/faq', **_opts)
         raise ArgumentError, 'faqs must be a non-empty Array' unless faqs.is_a?(Array) && !faqs.empty?
@@ -49,10 +55,19 @@ module SignalWire
         @route = route
       end
 
+      # The SWAIG tool names this prefab's agent exposes.
+      #
+      # @return [Array<String>]
       def tools
         %w[search_faq]
       end
 
+      # The POM sections that make up the FAQ agent's prompt: the persona with every
+      # question listed, plus a Related Questions section when `suggest_related` is
+      # on — the flag has to reach the PROMPT to change behaviour, not just
+      # `global_data`.
+      #
+      # @return [Array<Hash>]
       def prompt_sections
         bullets = @faqs.map { |f| "Q: #{f['question']}" }
         sections = [
@@ -71,6 +86,10 @@ module SignalWire
         sections
       end
 
+      # The `global_data` the FAQ agent starts with — the state its tools
+      # read and update over the course of the call.
+      #
+      # @return [Hash]
       def global_data
         {
           'faqs' => @faqs,
@@ -78,6 +97,11 @@ module SignalWire
         }
       end
 
+      # @api private — the FAQ lookup: match case-insensitively in BOTH directions
+      # (the query inside a question, or a question inside the query), so a partial
+      # spoken question still resolves. No match lists every topic the bot covers.
+      #
+      # @return [Swaig::FunctionResult]
       def handle_search(args, _raw_data)
         query = (args['query'] || '').downcase
         match = @faqs.find { |f| f['question'].downcase.include?(query) || query.include?(f['question'].downcase) }

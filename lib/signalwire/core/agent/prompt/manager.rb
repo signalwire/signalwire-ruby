@@ -214,6 +214,9 @@ module SignalWire
                   'Please use either set_prompt_text() OR the prompt_add_* methods, not both.'
           end
 
+          # @api private — append subsection descriptors to +section+, tolerating both
+          # String and Symbol keys. An entry without a title is skipped rather than
+          # producing an untitled subsection.
           def add_subsections(section, subsections)
             return unless subsections.is_a?(Array)
 
@@ -225,12 +228,17 @@ module SignalWire
             end
           end
 
+          # @api private — append body text to a section, separating it from existing
+          # text with a blank line. An empty existing body is replaced outright rather
+          # than gaining a leading separator.
           def append_body(section, body)
             return unless body
 
             section.body = section.body.to_s.empty? ? body : "#{section.body}\n\n#{body}"
           end
 
+          # @api private — append a single `bullet` and/or a `bullets` array to a
+          # section. A nil/non-Array pair is a no-op.
           def append_bullets(section, bullet, bullets)
             to_add = []
             to_add << bullet if bullet

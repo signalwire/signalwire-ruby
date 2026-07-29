@@ -26,6 +26,7 @@ module SignalWire
   class DataMap
     attr_reader :function_name
 
+    # @param function_name [String] the SWAIG function name this DataMap defines
     def initialize(function_name)
       @function_name = function_name
       @purpose_text = ''
@@ -280,10 +281,18 @@ module SignalWire
 
     private
 
+    # @api private — convert a value to a Hash when it can be (a FunctionResult
+    # typically), else pass it through, so both typed builders and raw Hashes can
+    # be used as outputs.
     def to_h_if_possible(value)
       value.respond_to?(:to_h) ? value.to_h : value
     end
 
+    # @api private — the tool's JSON Schema from the declared parameters, adding
+    # `required` only when at least one parameter was marked required. No
+    # parameters yields an empty object schema.
+    #
+    # @return [Hash]
     def build_param_schema
       return { 'type' => 'object', 'properties' => {} } unless @parameters.any?
 
@@ -292,6 +301,10 @@ module SignalWire
       schema
     end
 
+    # @api private — the `data_map` object: expressions, webhooks, the fallback
+    # output and the global error keys, each included only when non-empty.
+    #
+    # @return [Hash]
     def build_data_map
       data_map = {}
       data_map['expressions'] = @expressions          if @expressions.any?

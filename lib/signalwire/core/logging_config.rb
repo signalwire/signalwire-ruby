@@ -18,6 +18,8 @@
 module SignalWire
   # Core — internal building blocks shared by the agent, SWML and SWAIG layers.
   module Core
+    # LoggingConfig — deployment-environment detection and the log-injection
+    # control-character scrub.
     module LoggingConfig
       module_function
 
@@ -35,11 +37,18 @@ module SignalWire
         'server'
       end
 
+      # @api private — whether AWS Lambda's marker variables are present.
+      #
+      # @return [Boolean]
       def lambda_env?
         env_set?('AWS_LAMBDA_FUNCTION_NAME') || env_set?('LAMBDA_TASK_ROOT')
       end
       private_class_method :lambda_env?
 
+      # @api private — whether Google Cloud Functions / Cloud Run marker variables
+      # are present.
+      #
+      # @return [Boolean]
       def google_cloud_function_env?
         env_set?('FUNCTION_TARGET') ||
           env_set?('K_SERVICE') ||
@@ -47,6 +56,9 @@ module SignalWire
       end
       private_class_method :google_cloud_function_env?
 
+      # @api private — whether Azure Functions marker variables are present.
+      #
+      # @return [Boolean]
       def azure_function_env?
         env_set?('AZURE_FUNCTIONS_ENVIRONMENT') ||
           env_set?('FUNCTIONS_WORKER_RUNTIME') ||
@@ -54,6 +66,10 @@ module SignalWire
       end
       private_class_method :azure_function_env?
 
+      # @api private — whether an environment variable is set to a non-empty value.
+      # An empty string counts as unset, so `FOO=` does not trigger a detection.
+      #
+      # @return [Boolean]
       def env_set?(name)
         v = ENV.fetch(name, nil)
         !v.nil? && !v.empty?

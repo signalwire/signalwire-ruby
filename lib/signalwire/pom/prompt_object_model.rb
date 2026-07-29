@@ -24,6 +24,8 @@ module SignalWire
     class PromptObjectModel
       attr_accessor :sections, :debug
 
+      # @param debug [Boolean] print the computed numbering to stderr while rendering;
+      #   a troubleshooting aid for unexpected section numbers
       def initialize(debug: false)
         @sections = []
         @debug = debug
@@ -170,6 +172,12 @@ module SignalWire
 
       private
 
+      # @api private — resolve a merge target given either a section title or a
+      # {Section} itself.
+      #
+      # @raise [ArgumentError] when no section has that title
+      # @raise [TypeError] when +target+ is neither a String nor a Section
+      # @return [Section]
       def resolve_target_section(target)
         case target
         when String
@@ -202,6 +210,11 @@ module SignalWire
         section
       end
 
+      # Reject a malformed section descriptor: a non-Hash, a wrongly-typed field, or
+      # one with no content at all. A SUBSECTION must additionally carry a title,
+      # which a top-level section may omit.
+      #
+      # @raise [ArgumentError]
       def validate(hash, is_subsection: false)
         raise ArgumentError, 'Each section must be a Hash.' unless hash.is_a?(Hash)
 
@@ -210,6 +223,11 @@ module SignalWire
         raise ArgumentError, 'All subsections must have a title' if is_subsection && !hash.key?('title')
       end
 
+      # Reject a section whose `title` is not a String, whose `subsections` or
+      # `bullets` is not an Array, or whose `numbered` / `numberedBullets` is not a
+      # Boolean. Each is checked only when the key is present.
+      #
+      # @raise [ArgumentError]
       def validate_types(hash)
         if hash.key?('title') && !hash['title'].is_a?(String)
           raise ArgumentError, "'title' must be a string if present."
@@ -221,18 +239,30 @@ module SignalWire
         validate_boolean_field(hash, 'numberedBullets')
       end
 
+      # Reject a present-but-non-Array value for +key+.
+      #
+      # @raise [ArgumentError]
       def validate_array_field(hash, key)
         return unless hash.key?(key) && !hash[key].is_a?(Array)
 
         raise ArgumentError, "'#{key}' must be an Array if provided."
       end
 
+      # Reject a present-but-non-Boolean value for +key+. Only literal true/false
+      # pass — a truthy string does not.
+      #
+      # @raise [ArgumentError]
       def validate_boolean_field(hash, key)
         return unless hash.key?(key) && ![true, false].include?(hash[key])
 
         raise ArgumentError, "'#{key}' must be a boolean if provided."
       end
 
+      # Reject a section with no content: it must have at least one of a non-empty
+      # body, non-empty bullets, or subsections. A section with only a title would
+      # render as a bare heading.
+      #
+      # @raise [ArgumentError]
       def validate_content(hash)
         return if %w[body bullets subsections].any? { |k| present?(hash, k) }
 
@@ -240,10 +270,18 @@ module SignalWire
               'All sections must have either a non-empty body, non-empty bullets, or subsections'
       end
 
+      # Whether +key+ is present and holds a non-empty value.
+      #
+      # @return [Boolean]
       def present?(hash, key)
         hash.key?(key) && hash[key] && !hash[key].empty?
       end
 
+      # The {Section} keyword args for a descriptor Hash. Body and bullets are always
+      # passed (defaulted); the two numbering flags only when present, so an absent
+      # flag inherits Section's own default rather than being forced to false.
+      #
+      # @return [Hash]
       def section_kwargs(hash)
         kwargs = { body: hash.fetch('body', ''), bullets: hash.fetch('bullets', []) }
         kwargs[:numbered] = hash['numbered'] if hash.key?('numbered')
@@ -262,6 +300,9 @@ module SignalWire
         [number, counter]
       end
 
+      # Print the computed numbering decisions to stderr, for diagnosing why a
+      # section did or did not get a number. Only called when the POM was built with
+      # `debug: true`.
       def debug_header(sections, any_section_numbered)
         warn "Any section numbered: #{any_section_numbered}"
         sections.each_with_index do |section, idx|

@@ -91,6 +91,7 @@ module SignalWire
         builder.to_h
       end
 
+      # Create an empty builder: no properties and nothing required yet.
       def initialize
         @properties = {}
         @required   = []

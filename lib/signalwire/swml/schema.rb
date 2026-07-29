@@ -6,9 +6,13 @@ require 'json'
 module SignalWire
   # SWML — SWML document construction, rendering and serving.
   module SWML
+    # The SWML verb registry, loaded from the bundled `schema.json`. Backs the
+    # dynamic verb dispatch on {Service}: a method name is a verb exactly when this
+    # schema knows it.
     class Schema
       attr_reader :verbs
 
+      # Load the bundled schema and build the verb table.
       def initialize
         @verbs = {}
         load_schema
@@ -36,6 +40,10 @@ module SignalWire
 
       private
 
+      # @api private — build the verb table by walking `$defs.SWMLMethod.anyOf`, the
+      # schema's registry of every verb.
+      #
+      # @raise [RuntimeError] when the bundled schema.json is missing
       def load_schema
         schema_path = File.join(__dir__, 'schema.json')
         raise "SWML schema.json not found at #{schema_path}" unless File.exist?(schema_path)

@@ -132,6 +132,8 @@ module SignalWire
 
       private
 
+      # @api private — append body text to a section, separating it from existing
+      # text with a blank line. An empty existing body is replaced outright.
       def append_body(section, body)
         section.body = if section.body && !section.body.empty?
                          "#{section.body}\n\n#{body}"
@@ -140,6 +142,8 @@ module SignalWire
                        end
       end
 
+      # @api private — index a section by title, so a later append can find it
+      # instead of creating a duplicate.
       def register_section(title, section)
         @sections[title] = section
       end

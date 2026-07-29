@@ -133,6 +133,9 @@ module SignalWire
         [self.class, @type, @params].hash
       end
 
+      # A human-readable summary: the device type and its params.
+      #
+      # @return [String]
       def to_s
         "Device(type=#{@type}, params=#{@params.inspect})"
       end

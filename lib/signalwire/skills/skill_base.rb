@@ -23,12 +23,26 @@ module SignalWire
       #   pulled out of ``params`` if provided
       attr_reader :params, :agent, :logger, :swaig_fields
 
+      # The name this skill is added under. Every subclass MUST override this — the
+      # base raises rather than inventing a name.
+      #
+      # @return [String]
+      # @raise [NotImplementedError] when a subclass has not overridden it
       def name = raise(NotImplementedError, "#{self.class}#name")
+      # Human-readable summary of what the skill does. Every subclass MUST override
+      # this — the base raises rather than inventing one.
+      #
+      # @return [String]
+      # @raise [NotImplementedError] when a subclass has not overridden it
       def description = raise(NotImplementedError, "#{self.class}#description")
       # This skill's own version, independent of the SDK's.
       #
       # @return [String] '1.0.0'
       def version = '1.0.0'
+      # The environment variables this skill needs set before it can run; checked by
+      # {#validate_env_vars}. Empty by default.
+      #
+      # @return [Array<String>]
       def required_env_vars = []
       # The gem names this skill needs loadable before it can run;
       # consumed by {#validate_packages}.

@@ -156,6 +156,9 @@ module SignalWire
             definition
           end
 
+          # @api private — add the optional SWAIG fields that were supplied:
+          # `fillers` (only when a non-empty Hash), `wait_file`, `wait_file_loops`,
+          # `webhook_url`, and `is_typed_handler` only when true.
           def apply_optional_fields(definition, opts)
             definition['fillers'] = opts[:fillers] if opts[:fillers].is_a?(Hash) && !opts[:fillers].empty?
             %i[wait_file wait_file_loops webhook_url].each do |key|
@@ -164,6 +167,8 @@ module SignalWire
             definition['is_typed_handler'] = true if opts[:is_typed_handler]
           end
 
+          # @api private — merge caller-supplied extra SWAIG fields over the definition,
+          # stringifying their keys. A non-Hash is ignored.
           def merge_swaig_fields(definition, swaig_fields)
             return unless swaig_fields.is_a?(Hash)
 
@@ -179,6 +184,11 @@ module SignalWire
             schema.merge('required' => (existing + required).uniq)
           end
 
+          # @api private — a schema that already declares `type: object` passes through;
+          # a bare property map is wrapped as `{type: object, properties: …}`, and nil
+          # becomes an empty object schema.
+          #
+          # @return [Hash]
           def object_schema(parameters)
             return parameters if parameters.is_a?(Hash) && parameters['type'] == 'object'
 
