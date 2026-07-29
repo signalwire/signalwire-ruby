@@ -14,12 +14,17 @@ require_relative 'call'
 require_relative 'message'
 require_relative '../error'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Relay — the RELAY realtime (WebSocket / JSON-RPC 2.0) client surface.
   module Relay
     # Raised for RELAY JSON-RPC errors.
     class RelayError < SignalWire::Error
       attr_reader :code, :error_message
 
+      # @param code [Integer, String] the JSON-RPC error code the server returned
+      # @param message [String] the server's error text; also readable via
+      #   {#error_message} separately from the composed exception message
       def initialize(code, message)
         @code          = code
         @error_message = message
@@ -105,6 +110,9 @@ module SignalWire
       # Back-compat-only connection config, set once during initialize.
       attr_reader :space
 
+      # @api private — resolve project / token / host from the explicit kwargs,
+      # falling back to SIGNALWIRE_PROJECT_ID / SIGNALWIRE_API_TOKEN /
+      # SIGNALWIRE_SPACE. `host:` and the legacy `space:` feed the same slot.
       def resolve_credentials(project, token, host, space)
         @project_id = value_or_env(project, 'SIGNALWIRE_PROJECT_ID')
         @token      = value_or_env(token, 'SIGNALWIRE_API_TOKEN')
@@ -112,6 +120,11 @@ module SignalWire
         @space      = value_or_env(host || space, 'SIGNALWIRE_SPACE')
       end
 
+      # @api private — the explicit value, else the named environment variable, else
+      # the empty string. Never nil, so callers can test emptiness rather than
+      # nil-ness (which is what the reference's truthiness checks amount to).
+      #
+      # @return [String]
       def value_or_env(explicit, env_key)
         explicit || ENV[env_key] || ''
       end
@@ -127,6 +140,12 @@ module SignalWire
         end
       end
 
+      # @api private — fail before connecting when a required credential is missing,
+      # naming both the credential and its environment variable so the error is
+      # self-diagnosing. A non-empty jwt_token is self-contained (the project id is
+      # inside the token), so it only requires the host.
+      #
+      # @raise [ArgumentError] naming the first missing credential
       def validate_credentials
         # JWT auth (env: SIGNALWIRE_JWT_TOKEN or the jwt_token: kwarg) is a
         # self-contained alternative to project/token — the project id lives
@@ -145,6 +164,9 @@ module SignalWire
         raise ArgumentError, 'host is required (set SIGNALWIRE_SPACE)' if space.empty?
       end
 
+      # @api private — initialise the four correlation maps and their mutexes:
+      # JSON-RPC id to pending request, call_id to {Call}, dial tag to pending dial,
+      # and message_id to {Message}.
       def init_correlation_state
         # Correlation mechanisms
         @pending       = {} # id -> { mutex:, cv:, result:, error: }
@@ -157,6 +179,9 @@ module SignalWire
         @messages_mutex = Mutex.new
       end
 
+      # @api private — initialise the session/transport state: the negotiated
+      # protocol, the re-auth blob, the server's session id, the socket and its
+      # connected/running flags, and the reconnect backoff.
       def init_session_state
         # Session state
         @protocol            = nil
@@ -181,6 +206,8 @@ module SignalWire
         init_handlers
       end
 
+      # @api private — clear the three user-supplied handler slots (on_call,
+      # on_message, on_event).
       def init_handlers
         @on_call_handler    = nil
         @on_message_handler = nil
@@ -370,6 +397,11 @@ module SignalWire
         execute('signalwire.receive', { 'contexts' => contexts })
       end
 
+      # Unsubscribe from RELAY contexts on the live connection, so this client stops
+      # receiving inbound calls and messages for them. Sends `signalwire.unreceive`.
+      #
+      # @param contexts [Array<String>] the context names to drop
+      # @return [Hash] the server's result
       def unreceive(contexts)
         execute('signalwire.unreceive', { 'contexts' => contexts })
       end
@@ -412,6 +444,9 @@ module SignalWire
         callback
       end
 
+      # @api private — run one connect-and-serve cycle, logging any raised error
+      # instead of propagating it. Swallowing here is what lets the reconnect loop
+      # keep retrying rather than dying on the first transport failure.
       def connect_and_run_guarded
         connect_and_run
       rescue StandardError => e
@@ -446,12 +481,23 @@ module SignalWire
         end
       end
 
+      # @api private — a message must carry a body, media, or both; an empty message
+      # would be rejected by the server after a round trip.
+      #
+      # @raise [ArgumentError] when both body and media are absent or empty
       def validate_message_payload(body, media)
         return unless (body.nil? || body.empty?) && (media.nil? || media.empty?)
 
         raise ArgumentError, 'body or media is required'
       end
 
+      # @api private — send the `calling.dial` request. On any failure the pending-
+      # dial entry is removed before re-raising, so a failed dial never leaves a tag
+      # waiting forever for an event that will not arrive.
+      #
+      # @param dial_tag [String] the correlation tag the dial events carry back
+      # @param devices [Array] the serialized device list to try
+      # @param max_duration [Integer, nil] seconds cap; omitted from the wire when nil
       def send_dial_rpc(dial_tag, devices, max_duration)
         params = { 'tag' => dial_tag, 'devices' => devices }
         params['max_duration'] = max_duration if max_duration
@@ -461,6 +507,10 @@ module SignalWire
         raise
       end
 
+      # @api private — build the `messaging.send` wire params. `context`, `to_number`
+      # and `from_number` are always present; the rest are emitted only when supplied.
+      #
+      # @return [Hash{String => Object}]
       def build_message_params(msg_context, to_number, from_number, body:, media:, tags:, region:)
         params = { 'context' => msg_context, 'to_number' => to_number, 'from_number' => from_number }
         params['body']   = body   if body
@@ -470,6 +520,11 @@ module SignalWire
         params
       end
 
+      # @api private — the local {Message} handle for a just-sent message, seeded
+      # with `direction: "outbound"` and `state: "queued"`. The real state arrives
+      # later on `messaging.state` events, which update this object.
+      #
+      # @return [Message]
       def build_outbound_message(message_id, msg_context, to_number, from_number, body:, media:, tags:)
         Message.new(
           message_id: message_id, context: msg_context, direction: 'outbound',
@@ -486,6 +541,10 @@ module SignalWire
         end
       end
 
+      # @api private — raise when a RELAY result carries a non-2xx `code`. The
+      # `signalwire.connect` handshake is exempt: its result has no code field.
+      #
+      # @raise [RelayError] carrying the server's code and message
       def check_result_code(method, result)
         return if method == METHOD_SIGNALWIRE_CONNECT
 
@@ -567,6 +626,11 @@ module SignalWire
         scheme.nil? || scheme.empty? ? 'wss' : scheme
       end
 
+      # @api private — the host to open the WebSocket against: SIGNALWIRE_RELAY_HOST
+      # when set (how the audit harness redirects the client to a loopback fixture),
+      # else the credential-resolved production host.
+      #
+      # @return [String]
       def relay_endpoint_host
         host_override = ENV.fetch('SIGNALWIRE_RELAY_HOST', nil)
         host_override.nil? || host_override.empty? ? host : host_override
@@ -585,11 +649,16 @@ module SignalWire
         end
       end
 
+      # @api private — run a WebSocket lifecycle hook (`on_ws_open` / `on_ws_close`)
+      # and then release whoever is blocked in {#open_websocket}, so a connection
+      # that opens OR closes both unblock the connect.
       def on_ws_lifecycle(hook, ready)
         send(hook)
         signal_ready(ready)
       end
 
+      # @api private — set the shared ready flag and signal its condition variable,
+      # waking {#open_websocket} out of its 15-second wait.
       def signal_ready(ready)
         ready[:mutex].synchronize do
           ready[:flag] = true
@@ -622,10 +691,19 @@ module SignalWire
         { verify_mode: OpenSSL::SSL::VERIFY_PEER, cert_store: store }
       end
 
+      # @api private — WebSocket open callback. The connected flag is set by
+      # {#connect_and_run} once {#open_websocket} returns, so there is nothing to do
+      # here; the hook exists so the open event still signals readiness via
+      # {#on_ws_lifecycle}.
       def on_ws_open
         # Connection opened
       end
 
+      # @api private — WebSocket message callback. Empty frames are ignored and a
+      # frame that is not valid JSON is warned about and dropped rather than raised,
+      # so one malformed frame cannot kill the read thread.
+      #
+      # @param data [String] the raw frame payload
       def on_ws_message(data)
         return if data.nil? || data.empty?
 
@@ -639,6 +717,8 @@ module SignalWire
         handle_message(msg)
       end
 
+      # @api private — WebSocket close callback: clear the connected flag so the
+      # connect loop in {#connect_and_run} falls through to reconnect.
       def on_ws_close
         @ws_mutex.synchronize { @connected = false }
       end
@@ -671,6 +751,10 @@ module SignalWire
         @session_id = result['sessionid'] if result['sessionid']
       end
 
+      # @api private — add the session-restore fields (`protocol`,
+      # `authorization_state`) to the connect params, so a reconnect resumes the
+      # existing session. Skipped when the server asked for a restart, which is
+      # explicitly a request for a FRESH session.
       def apply_session_restore(params)
         return if @should_restart
 
@@ -678,6 +762,10 @@ module SignalWire
         params['authorization_state'] = @authorization_state if @authorization_state
       end
 
+      # @api private — add the credentials to the connect params. A non-empty
+      # jwt_token wins; otherwise project/token go under `authentication` AND are
+      # repeated at the top level, because the reference emits them nested while the
+      # audit harness watches the top level.
       def apply_auth_credentials(params)
         # An unset jwt_token is the empty string (env fallback), not nil — and
         # in Ruby '' is truthy, so guard on emptiness to match Python's
@@ -695,6 +783,8 @@ module SignalWire
         params['token']   = token
       end
 
+      # @api private — drop the negotiated protocol, the re-auth blob and the restart
+      # flag, so the next connect handshake is a fresh session rather than a restore.
       def clear_restart_state
         @protocol = nil
         @authorization_state = nil
@@ -712,6 +802,10 @@ module SignalWire
         dispatch_method(msg)
       end
 
+      # @api private — route an inbound JSON-RPC REQUEST by method:
+      # `signalwire.event` to the event pipeline, `signalwire.ping` to an empty-result
+      # ack, `signalwire.disconnect` to the teardown. Any other method with an id
+      # also gets an empty-result ack so the server is never left waiting.
       def dispatch_method(msg)
         id = msg['id']
         case msg['method']
@@ -724,6 +818,9 @@ module SignalWire
         end
       end
 
+      # @api private — settle the pending request this RESPONSE frame belongs to,
+      # carrying either a {RelayError} built from the JSON-RPC `error` object or the
+      # `result`. A response for an unknown id is dropped.
       def handle_response(msg)
         id = msg['id']
         return unless id
@@ -739,6 +836,9 @@ module SignalWire
         end
       end
 
+      # @api private — store the outcome on a pending entry and wake its waiter. Each
+      # field is written only when supplied, so one call can settle a result, an
+      # error, or (for a dial) the resolved {Call}.
       def settle_pending(entry, result: nil, error: nil, call: nil)
         entry[:mutex].synchronize do
           entry[:result] = result unless result.nil?
@@ -790,6 +890,10 @@ module SignalWire
         end
       end
 
+      # @api private — dispatch the events whose handler takes the OUTER params hash
+      # (inbound call, dial, inbound message, message state).
+      #
+      # @return [Boolean] true when a handler ran and dispatch is complete
       def dispatch_outer_param_event(event_type, outer_params)
         handler = OUTER_PARAM_EVENT_HANDLERS[event_type]
         return false unless handler
@@ -798,6 +902,9 @@ module SignalWire
         true
       end
 
+      # @api private — on a `calling.call.state` event carrying a tag we are dialing,
+      # pre-register the outbound leg as a {Call} so events for it route correctly
+      # even before the dial resolves. Skipped when the call is already known.
       def maybe_register_dial_leg(event_params, call_id)
         tag = event_params['tag'] || ''
         return if tag.empty?
@@ -820,6 +927,9 @@ module SignalWire
         @calls_mutex.synchronize { @calls.delete(call_id) }
       end
 
+      # @api private — handle `signalwire.disconnect`: ack it, record whether the
+      # server asked for a restart (which makes the next connect skip session
+      # restore), and clear the connected flag so the reconnect loop takes over.
       def handle_disconnect(msg)
         id = msg['id']
         params = msg['params'] || {}
@@ -834,6 +944,11 @@ module SignalWire
         @ws_mutex.synchronize { @connected = false }
       end
 
+      # @api private — handle a `calling.call.receive` event: build the {Call},
+      # register it by call_id, and invoke the user's on_call handler on its own
+      # thread so a slow handler cannot stall the read loop. The call is DROPPED when
+      # the max_active_calls cap is reached. A raising handler is warned about, not
+      # propagated.
       def handle_inbound_call(payload)
         event_params = payload['params'] || {}
         return if max_active_calls_reached?
@@ -862,6 +977,11 @@ module SignalWire
         reached
       end
 
+      # @api private — build the inbound {Call} from a `calling.call.receive` event's
+      # params. `context` is read from `context`, falling back to the legacy
+      # `protocol` key.
+      #
+      # @return [Call]
       def build_inbound_call(event_params)
         kwargs = extract_fields(event_params, INBOUND_CALL_FIELDS)
         kwargs[:context] = event_params['context'] || event_params['protocol'] || ''
@@ -874,6 +994,9 @@ module SignalWire
         field_map.transform_values { |key, default| params[key] || default }
       end
 
+      # @api private — handle a `calling.call.dial` event: settle the pending dial
+      # for its tag with the answered {Call}, or with a failure. Other dial states are
+      # intermediate and leave the dial waiting.
       def handle_dial_event(payload)
         event_params = payload['params'] || {}
         tag = event_params['tag'] || ''
@@ -886,6 +1009,9 @@ module SignalWire
         end
       end
 
+      # @api private — resolve a pending dial that answered: reuse the already-
+      # registered {Call} for this call_id or build one, mark it answered, and hand
+      # it to the waiter.
       def dial_answered(entry, tag, call_info)
         call_id = call_info['call_id'] || ''
         call = @calls_mutex.synchronize { @calls[call_id] }
@@ -897,6 +1023,11 @@ module SignalWire
         settle_pending(entry, call: call)
       end
 
+      # @api private — build the {Call} for an answered outbound dial from the event's
+      # `call` object, falling back to the dial's own tag when the server did not
+      # echo one.
+      #
+      # @return [Call]
       def build_dialed_call(call_id, tag, call_info)
         Call.new(
           self,
@@ -910,6 +1041,9 @@ module SignalWire
         )
       end
 
+      # @api private — register an outbound leg discovered from a `calling.call.state`
+      # event, so subsequent events route to a real {Call}. A state event with no
+      # call_id is ignored.
       def register_dial_leg(tag, event_params)
         call_id = event_params['call_id'] || ''
         return if call_id.empty?
@@ -922,6 +1056,9 @@ module SignalWire
         @calls_mutex.synchronize { @calls[call_id] = call }
       end
 
+      # @api private — handle a `messaging.receive` event: build the {Message} and
+      # invoke the user's on_message handler on its own thread. A raising handler is
+      # warned about, not propagated.
       def handle_inbound_message(payload)
         msg = build_inbound_message(payload['params'] || {})
 
@@ -934,10 +1071,18 @@ module SignalWire
         end
       end
 
+      # @api private — build the inbound {Message} from a `messaging.receive` event's
+      # params, forcing `direction: "inbound"`.
+      #
+      # @return [Message]
       def build_inbound_message(event_params)
         Message.new(direction: 'inbound', **extract_fields(event_params, INBOUND_MESSAGE_FIELDS))
       end
 
+      # @api private — route a `messaging.state` event to the {Message} it belongs to
+      # so its state updates, then drop the message from the tracking map once it
+      # reaches a terminal delivery state. An event for an unknown message_id is
+      # ignored.
       def handle_message_state(payload)
         event_params = payload['params'] || {}
         message_id = event_params['message_id'] || ''
@@ -953,6 +1098,11 @@ module SignalWire
         @messages_mutex.synchronize { @messages.delete(message_id) }
       end
 
+      # @api private — fail every in-flight request and dial with +reason+ and clear
+      # both maps. Called on teardown so a lost connection surfaces as an error on
+      # each waiter rather than an indefinite hang.
+      #
+      # @param reason [String] the failure text carried to every waiter
       def reject_all_pending(reason)
         @pending_mutex.synchronize do
           @pending.each_value { |entry| reject_entry(entry, RelayError.new(-1, reason)) }
@@ -965,6 +1115,8 @@ module SignalWire
         end
       end
 
+      # @api private — record an error on a pending entry (first error wins) and wake
+      # its waiter.
       def reject_entry(entry, error)
         entry[:mutex].synchronize do
           entry[:error] ||= error
