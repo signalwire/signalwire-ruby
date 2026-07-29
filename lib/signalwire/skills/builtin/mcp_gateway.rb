@@ -32,7 +32,13 @@ module SignalWire
       # SERVER half (``signalwire.mcp_gateway.*`` — the subprocess + sandbox
       # daemon) is deliberately NOT ported; see PORT_PHILOSOPHY_RUBY.md.
       class MCPGatewaySkill < SkillBase
+        # The name this skill is added under (`agent.add_skill('mcp_gateway')`).
+        #
+        # @return [String]
         def name = 'mcp_gateway'
+        # Human-readable summary of what the skill does, for skill listings.
+        #
+        # @return [String]
         def description = 'Bridge MCP servers with SWAIG functions'
         # This skill's own version, independent of the SDK's.
         #
@@ -162,6 +168,9 @@ module SignalWire
           }
         end
 
+        # No extra gems are needed — the gateway is reached over plain Net::HTTP.
+        #
+        # @return [Array<String>] empty
         def required_packages = []
 
         # Lazily populate config ivars if #setup hasn't run yet, so the hook
@@ -181,6 +190,10 @@ module SignalWire
           @session_id = nil
         end
 
+        # @api private — read the gateway credentials (bearer token, or basic-auth
+        # user + password) and the gateway URL, each falling back to its
+        # `MCP_GATEWAY_*` environment variable. Trailing slashes are stripped off the
+        # URL so paths compose cleanly.
         def read_auth_config
           @auth_token    = get_param('auth_token', env_var: 'MCP_GATEWAY_AUTH_TOKEN')
           @auth_user     = get_param('auth_user', env_var: 'MCP_GATEWAY_AUTH_USER')
@@ -188,6 +201,11 @@ module SignalWire
           @gateway_url   = (get_param('gateway_url', default: '') || '').sub(%r{/+\z}, '')
         end
 
+        # @api private — read the service list, session timeout, tool-name prefix,
+        # retry count, request timeout and TLS-verification flag. `verify_ssl` is read
+        # STRAIGHT off the params rather than through `get_param`, because
+        # `false || default` would resurrect the default and silently re-enable
+        # verification the operator explicitly turned off.
         def read_connection_config
           @services        = normalize_services(@params['services'])
           @session_timeout = get_param('session_timeout', default: 300).to_i
@@ -202,6 +220,11 @@ module SignalWire
           @verify_ssl = @params.fetch('verify_ssl', true) != false
         end
 
+        # @api private — normalise the configured service list, stringifying the keys
+        # of each Hash entry so symbol- and string-keyed config both work. A non-Array
+        # yields an empty list.
+        #
+        # @return [Array]
         def normalize_services(services)
           return [] unless services.is_a?(Array)
 
@@ -223,6 +246,11 @@ module SignalWire
           false
         end
 
+        # @api private — the gateway URL must be present AND pass the SSRF validator,
+        # which is what stops a config value from pointing the skill at an internal
+        # address. Logs the specific reason before returning false.
+        #
+        # @return [Boolean]
         def valid_gateway_url?
           if @gateway_url.nil? || @gateway_url.empty?
             logger&.error('Missing required parameter: gateway_url')
@@ -283,6 +311,10 @@ module SignalWire
           tools.select { |t| filter.include?(t['name']) }
         end
 
+        # @api private — the configured entry for a service by name, tolerating both
+        # String and Symbol `name` keys.
+        #
+        # @return [Hash, nil]
         def service_config_for(service_name)
           @services.find { |s| s.is_a?(Hash) && (s['name'] || s[:name]) == service_name }
         end
@@ -337,6 +369,12 @@ module SignalWire
           Swaig::FunctionResult.new(dispatch_with_retry(service_name, tool_name, request_body))
         end
 
+        # @api private — proxy one MCP tool call through the gateway. Every failure —
+        # exhausted retries or an unexpected exception — is converted to a spoken
+        # failure STRING, so the model always receives something it can say rather than
+        # an exception escaping into the SWAIG response.
+        #
+        # @return [String] the gateway's result, or a failure message
         def dispatch_with_retry(service_name, tool_name, request_body)
           url = "#{@gateway_url}/services/#{service_name}/call"
           result, error = attempt_dispatch(url, request_body)
@@ -362,6 +400,10 @@ module SignalWire
           [nil, last_error]
         end
 
+        # @api private — only a 5xx is retried: a 4xx is the gateway rejecting the
+        # request itself, and retrying it would just repeat the rejection.
+        #
+        # @return [Boolean]
         def retryable?(resp, last_error, attempt)
           return false unless resp.is_a?(Net::HTTPServerError)
 
@@ -369,11 +411,20 @@ module SignalWire
           true
         end
 
+        # @api private — the session id sent to the gateway so it can correlate a
+        # conversation's tool calls: the agent's `mcp_call_id` global-data value, else
+        # the call id, else the literal `"unknown"`.
+        #
+        # @return [String]
         def resolve_session_id(raw_data)
           global = raw_data['global_data'] || raw_data[:global_data] || {}
           global['mcp_call_id'] || raw_data['call_id'] || 'unknown'
         end
 
+        # @api private — the gateway's `error` field when the body parses, else the
+        # bare HTTP status. Never raises on top of the failure it is reporting.
+        #
+        # @return [String]
         def error_message(resp)
           parsed = parse_json(resp&.body)
           parsed['error'] || "HTTP #{resp&.code}"
@@ -381,6 +432,10 @@ module SignalWire
           "HTTP #{resp&.code}"
         end
 
+        # @api private — parse a JSON body, yielding an empty Hash rather than raising
+        # on malformed input.
+        #
+        # @return [Hash]
         def parse_json(body)
           JSON.parse(body.to_s)
         rescue JSON::ParserError
@@ -392,6 +447,11 @@ module SignalWire
           @services.filter_map { |service| describe_service(service) }
         end
 
+        # @api private — one line describing a configured service for the prompt
+        # section: its name plus whether all of its tools or an explicit subset are
+        # exposed.
+        #
+        # @return [String]
         def describe_service(service)
           return service.to_s unless service.is_a?(Hash)
 
@@ -433,6 +493,11 @@ module SignalWire
         }.freeze
         private_constant :REQUEST_CLASSES
 
+        # @api private — build the Net::HTTP request for a gateway call, applying the
+        # configured auth and the JSON body.
+        #
+        # @raise [KeyError] for a method outside GET/POST/DELETE
+        # @return [Net::HTTPRequest]
         def build_request(method, uri, json)
           req = REQUEST_CLASSES.fetch(method.upcase).new(uri)
           apply_auth(req)
@@ -449,6 +514,8 @@ module SignalWire
           end
         end
 
+        # @api private — attach a JSON body and its content type. A nil +json+ leaves
+        # the request bodiless, which is what a GET wants.
         def apply_json_body(req, json)
           return unless json
 

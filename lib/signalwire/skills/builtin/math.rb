@@ -9,13 +9,23 @@ module SignalWire
   module Skills
     # Builtin — the skills that ship with the SDK, registered by name at load time.
     module Builtin
+      # Evaluate arithmetic expressions for the model, WITHOUT ever calling `eval`.
+      # The expression is tokenized against a character whitelist and evaluated by a
+      # hand-written recursive-descent parser, so a hostile string reaches no Ruby
+      # interpreter. Supports `+ - * / % **` and parentheses.
       class MathSkill < SkillBase
         EXPRESSION_DESCRIPTION = "Mathematical expression to evaluate (e.g., '2 + 3 * 4', '(10 + 5) / 3')"
         INVALID_EXPRESSION_MESSAGE =
           'Error: Invalid expression. Only numbers and basic math operators ' \
           '(+, -, *, /, %, **, parentheses) are allowed.'
 
+        # The name this skill is added under (`agent.add_skill('math')`).
+        #
+        # @return [String]
         def name = 'math'
+        # Human-readable summary of what the skill does, for skill listings.
+        #
+        # @return [String]
         def description = 'Perform basic mathematical calculations'
 
         # The math skill has no external packages or environment to
@@ -94,11 +104,18 @@ module SignalWire
       class MathTokenizer
         UNARY_PRECEDERS = %w[( + - * / % **].freeze
 
+        # @param expr [String] the arithmetic expression to tokenize
         def initialize(expr)
           @expr = expr
           @tokens = []
         end
 
+        # Tokenize the expression into number and operator tokens.
+        #
+        # @return [Array<String>] the token list
+        # @raise [RuntimeError] on a character outside digits, `.`, whitespace and the
+        #   supported operators — that whitelist is what makes evaluating
+        #   model-supplied input safe
         def tokens
           idx = 0
           idx = step(idx) while idx < @expr.length
@@ -107,6 +124,11 @@ module SignalWire
 
         private
 
+        # @api private — consume one token starting at +idx+ and return the next index.
+        # Whitespace is skipped; `**` is matched before `*` so exponentiation is not
+        # read as two multiplications.
+        #
+        # @raise [RuntimeError] on an unsupported character
         def step(idx)
           char = @expr[idx]
           if /\s/.match?(char) then idx + 1
@@ -117,15 +139,21 @@ module SignalWire
           end
         end
 
+        # @api private — append a token and return the index to continue from.
         def push_token(token, next_idx)
           @tokens << token
           next_idx
         end
 
+        # @api private — whether a character begins a number. A `-` counts only in
+        # UNARY position (at the start, or right after an operator or an open paren),
+        # so `3 - 2` is a subtraction while `-3` is a negative literal.
         def number_start?(char)
           char =~ /[\d.]/ || (char == '-' && (@tokens.empty? || UNARY_PRECEDERS.include?(@tokens.last)))
         end
 
+        # @api private — read a numeric literal (optionally sign-prefixed) starting at
+        # +idx+ and return the index after it.
         def read_number(idx)
           num_str = +''
           if @expr[idx] == '-'
@@ -146,11 +174,18 @@ module SignalWire
         ADD_OPS = %w[+ -].freeze
         MUL_OPS = %w[* / %].freeze
 
+        # @param expr [String] the arithmetic expression to evaluate
         def initialize(expr)
           @tokens = MathTokenizer.new(expr).tokens
           @pos = 0
         end
 
+        # Parse and evaluate the tokenized expression.
+        #
+        # @return [Numeric] the computed value
+        # @raise [RuntimeError] on a malformed expression, or when tokens remain after
+        #   a complete expression was parsed
+        # @raise [ZeroDivisionError] on division or modulo by zero
         def evaluate
           result = parse_expr
           raise 'Unexpected tokens after expression' unless @pos >= @tokens.length
@@ -160,6 +195,8 @@ module SignalWire
 
         private
 
+        # @api private — the lowest precedence level: terms joined by `+` / `-`,
+        # evaluated left to right.
         def parse_expr
           left = parse_term
           while @pos < @tokens.length && ADD_OPS.include?(@tokens[@pos])
@@ -171,6 +208,8 @@ module SignalWire
           left
         end
 
+        # @api private — powers joined by `*` / `/` / `%`, evaluated left to right
+        # (binding tighter than `+` / `-`).
         def parse_term
           left = parse_power
           while @pos < @tokens.length && MUL_OPS.include?(@tokens[@pos])
@@ -181,6 +220,10 @@ module SignalWire
           left
         end
 
+        # @api private — apply one multiplicative operator. `/` produces a Float, so
+        # integer division never silently truncates.
+        #
+        # @raise [ZeroDivisionError] when +right+ is zero for `/` or `%`
         def apply_mul_op(left, oper, right)
           case oper
           when '*' then left * right
@@ -195,6 +238,11 @@ module SignalWire
           end
         end
 
+        # @api private — exponentiation, which binds tighter than `*` and is RIGHT
+        # associative (`2 ** 3 ** 2` is `2 ** 9`). The exponent is capped at 1000 so a
+        # model-supplied expression cannot hang the process computing a huge power.
+        #
+        # @raise [RuntimeError] when the exponent exceeds 1000
         def parse_power
           base = parse_unary
           if @pos < @tokens.length && @tokens[@pos] == '**'
@@ -207,6 +255,7 @@ module SignalWire
           base
         end
 
+        # @api private — a leading unary `-` or `+` applied to an atom.
         def parse_unary
           if @pos < @tokens.length && @tokens[@pos] == '-'
             @pos += 1
@@ -219,6 +268,10 @@ module SignalWire
           end
         end
 
+        # @api private — the innermost level: a parenthesized expression or a numeric
+        # literal (Integer unless it contains a `.`).
+        #
+        # @raise [RuntimeError] on an unexpected token or a truncated expression
         def parse_atom
           raise 'Unexpected end of expression' if @pos >= @tokens.length
 
@@ -233,6 +286,9 @@ module SignalWire
           end
         end
 
+        # @api private — a parenthesized sub-expression, consuming both parens.
+        #
+        # @raise [RuntimeError] when the closing parenthesis is missing
         def parse_parenthesized
           @pos += 1
           val = parse_expr

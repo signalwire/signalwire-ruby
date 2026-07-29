@@ -18,6 +18,11 @@ module SignalWire
       module GoogleMapsHttp
         private
 
+        # @api private — call the Google Geocoding API for +address+. A non-2xx
+        # response yields an empty list rather than raising, so a Maps outage
+        # degrades to "address not found" instead of failing the call.
+        #
+        # @return [Array<Hash>] the API's `results`, possibly empty
         def geocode(address)
           resp = Net::HTTP.get_response(geocode_uri(address))
           return [] unless resp.is_a?(Net::HTTPSuccess)
@@ -25,6 +30,11 @@ module SignalWire
           JSON.parse(resp.body)['results'] || []
         end
 
+        # @api private — render one geocode result as the tool's spoken answer: the
+        # API's canonical `formatted_address` (falling back to what the caller said)
+        # plus its lat/lng.
+        #
+        # @return [Swaig::FunctionResult]
         def format_geocode_result(result, address)
           location = result.dig('geometry', 'location') || {}
           formatted = result['formatted_address'] || address
@@ -33,16 +43,29 @@ module SignalWire
           )
         end
 
+        # @api private — the Geocoding API URI with the address and the skill's API key
+        # as query parameters.
+        #
+        # @return [URI]
         def geocode_uri(address)
           uri = URI('https://maps.googleapis.com/maps/api/geocode/json')
           uri.query = URI.encode_www_form(address: address, key: @api_key)
           uri
         end
 
+        # @api private — the result returned when geocoding matched nothing. Asks the
+        # caller for a more specific address rather than reporting a failure, so the
+        # model keeps the conversation moving.
+        #
+        # @return [Swaig::FunctionResult]
         def geocode_not_found
           Swaig::FunctionResult.new("I couldn't find that address. Could you provide a more specific address?")
         end
 
+        # @api private — call the Google Routes API for a driving route between the two
+        # coordinate pairs.
+        #
+        # @return [Array<Hash>] the API's `routes`, possibly empty
         def fetch_routes(origin_lat, origin_lng, dest_lat, dest_lng)
           uri = URI('https://routes.googleapis.com/directions/v2:computeRoutes')
           http = Net::HTTP.new(uri.host, uri.port)
@@ -52,6 +75,11 @@ module SignalWire
           JSON.parse(http.request(request).body)['routes'] || []
         end
 
+        # @api private — the Routes API POST request: the API key header plus a field
+        # mask narrowing the response to distance and duration, which is all this skill
+        # reports.
+        #
+        # @return [Net::HTTP::Post]
         def build_route_request(uri, origin_lat, origin_lng, dest_lat, dest_lng)
           request = Net::HTTP::Post.new(uri.path)
           request['Content-Type']      = 'application/json'
@@ -61,6 +89,10 @@ module SignalWire
           request
         end
 
+        # @api private — the Routes API JSON body. Fixed at `DRIVE` with
+        # `TRAFFIC_AWARE` routing, so the reported duration reflects current traffic.
+        #
+        # @return [String] JSON
         def route_request_body(origin_lat, origin_lng, dest_lat, dest_lng)
           {
             origin: { location: { latLng: { latitude: origin_lat, longitude: origin_lng } } },
@@ -70,6 +102,10 @@ module SignalWire
           }.to_json
         end
 
+        # @api private — render one route as the tool's spoken answer, converting the
+        # API's metres to miles and its duration-in-seconds string to whole minutes.
+        #
+        # @return [Swaig::FunctionResult]
         def format_route(route)
           distance_mi  = (route['distanceMeters'] || 0) / 1609.344
           duration_min = (route['duration'] || '0s').to_s.delete('s').to_i / 60.0
@@ -79,6 +115,9 @@ module SignalWire
         end
       end
 
+      # Geocode addresses and compute driving routes through the Google Maps
+      # Geocoding and Routes APIs. Requires a `GOOGLE_MAPS_API_KEY` (or an `api_key`
+      # param); the skill refuses to load without one.
       class GoogleMapsSkill < SkillBase
         include GoogleMapsHttp
 
@@ -95,7 +134,13 @@ module SignalWire
           'dest_lng' => { 'type' => 'number', 'description' => 'Destination longitude' }
         }.freeze
 
+        # The name this skill is added under (`agent.add_skill('google_maps')`).
+        #
+        # @return [String]
         def name = 'google_maps'
+        # Human-readable summary of what the skill does, for skill listings.
+        #
+        # @return [String]
         def description = 'Validate addresses and compute driving routes using Google Maps'
 
         # Called once after construction. Return false to abort loading — the
@@ -159,6 +204,9 @@ module SignalWire
 
         private
 
+        # @api private — the prompt bullets, naming the skill's CONFIGURED tool names
+        # (which the caller may have renamed) so the model refers to the tools it will
+        # actually be offered.
         def prompt_bullets
           [
             "Use #{@lookup_tool} to validate and geocode addresses or business names",
@@ -168,6 +216,8 @@ module SignalWire
           ]
         end
 
+        # @api private — the address-lookup tool definition, under whatever name the
+        # `lookup_tool_name` param configured.
         def lookup_tool_def
           {
             name: @lookup_tool,
@@ -177,6 +227,8 @@ module SignalWire
           }
         end
 
+        # @api private — the route-computation tool definition, under whatever name the
+        # `route_tool_name` param configured.
         def route_tool_def
           {
             name: @route_tool,
@@ -186,6 +238,11 @@ module SignalWire
           }
         end
 
+        # @api private — the address-lookup handler. An empty address, no match, or a
+        # raised error each become a spoken FunctionResult rather than an exception, so
+        # the model always gets something it can say.
+        #
+        # @return [Swaig::FunctionResult]
         def handle_lookup(args, _raw_data)
           address = (args['address'] || '').strip
           return Swaig::FunctionResult.new('Please provide an address or business name to look up.') if address.empty?
@@ -198,6 +255,11 @@ module SignalWire
           Swaig::FunctionResult.new("Error looking up address: #{e.message}")
         end
 
+        # @api private — the route handler. All four coordinates are required; a
+        # missing one, an unroutable pair, or a raised error each become a spoken
+        # FunctionResult rather than an exception.
+        #
+        # @return [Swaig::FunctionResult]
         def handle_route(args, _raw_data)
           coords = %w[origin_lat origin_lng dest_lat dest_lng].map { |k| args[k] }
           if coords.any?(&:nil?)
