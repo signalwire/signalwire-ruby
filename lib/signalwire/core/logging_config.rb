@@ -72,9 +72,21 @@ module SignalWire
       # @return [Hash] the same hash with string values sanitised
       def strip_control_chars(event_dict)
         event_dict.each do |key, value|
-          event_dict[key] = value.gsub(CONTROL_CHAR_RE, '') if value.is_a?(String)
+          event_dict[key] = strip_control_chars_value(value) if value.is_a?(String)
         end
         event_dict
+      end
+
+      # Strip control characters from a SINGLE string.
+      #
+      # INTERNAL: the reference's public contract is the event-map form
+      # (strip_control_chars above); this is the per-value scrub that form is
+      # built out of, and the unit the emitter needs. Not port surface.
+      #
+      # @param value [String] the raw log string
+      # @return [String] the sanitised string
+      def strip_control_chars_value(value)
+        value.gsub(CONTROL_CHAR_RE, '')
       end
 
       # Configure the SDK logging system once, globally, based on the

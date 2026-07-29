@@ -64,7 +64,13 @@ module SignalWire
         return if LEVELS[level] < LEVELS[Logging.global_level]
 
         timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S')
-        @output.puts "[#{timestamp}] #{level.upcase} [#{@name}] #{msg}"
+        # Scrub control characters BEFORE emitting — log-injection defence, and the
+        # reason the reference registers strip_control_chars in both of its structlog
+        # processor chains. A port that merely EXPOSES the scrub without putting it on
+        # the emission path offers no protection at all: a caller-supplied "\u0000" or
+        # an "\e[" escape reaches the terminal verbatim and can forge log lines.
+        safe = Core::LoggingConfig.strip_control_chars_value(msg.to_s)
+        @output.puts "[#{timestamp}] #{level.upcase} [#{@name}] #{safe}"
       end
     end
 
