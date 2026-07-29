@@ -19,6 +19,17 @@ module SignalWire
                   :direction, :device, :segment_id
       attr_accessor :state
 
+      # @param client [Client] the RelayClient this call's RPCs are sent through
+      # @param call_id [String] the server's identifier for this call leg
+      # @param node_id [String] the RELAY node that owns the call; part of how the
+      #   platform addresses it
+      # @param project_id [String] the SignalWire project the call belongs to
+      # @param context [String] the context the call arrived on (inbound)
+      # @param tag [String] the caller-supplied correlation tag, when one was set
+      # @param direction [String] `"inbound"` or `"outbound"`
+      # @param device [Hash] the raw device descriptor for this leg
+      # @param state [String] the call's current state (see {CallState})
+      # @param segment_id [String] the call-segment identifier
       def initialize(client, call_id:, node_id:, project_id: '', context: '',
                      tag: '', direction: '', device: {}, state: '', segment_id: '')
         @client = client
@@ -170,6 +181,10 @@ module SignalWire
         end
       end
 
+      # Whether the call has reached its terminal state. Non-blocking, unlike the
+      # `wait_for_*` helpers.
+      #
+      # @return [Boolean]
       def ended?
         @ended
       end
@@ -325,10 +340,18 @@ module SignalWire
         _execute('answer', kwargs.empty? ? nil : kwargs.transform_keys(&:to_s))
       end
 
+      # End the call by sending the RELAY `calling.end` method.
+      #
+      # @param reason [String] why the call is ending, sent as the `reason` wire param
+      # @return [Hash] the server's result
       def hangup(reason: 'hangup')
         _execute('end', { 'reason' => reason })
       end
 
+      # Hand the call back to the platform's dial plan without answering it, so
+      # another consumer (or the next route) can take it. Sends `calling.pass`.
+      #
+      # @return [Hash] the server's result
       def pass_call
         _execute('pass')
       end
@@ -343,6 +366,10 @@ module SignalWire
         _execute('connect', params)
       end
 
+      # Tear down a peer connection established by {#connect}, leaving this leg up.
+      # Sends `calling.disconnect`.
+      #
+      # @return [Hash] the server's result
       def disconnect
         _execute('disconnect')
       end
@@ -355,6 +382,9 @@ module SignalWire
         _execute('hold')
       end
 
+      # Take the call off hold, resuming two-way media. Sends `calling.unhold`.
+      #
+      # @return [Hash] the server's result
       def unhold
         _execute('unhold')
       end
@@ -367,6 +397,9 @@ module SignalWire
         _execute('denoise')
       end
 
+      # Stop background-noise reduction on the call. Sends `calling.denoise.stop`.
+      #
+      # @return [Hash] the server's result
       def denoise_stop
         _execute('denoise.stop')
       end
@@ -391,6 +424,11 @@ module SignalWire
         _execute('join_conference', params)
       end
 
+      # Remove this call from a conference it joined. Sends
+      # `calling.leave_conference`.
+      #
+      # @param conference_id [String] the conference to leave
+      # @return [Hash] the server's result
       def leave_conference(conference_id:)
         _execute('leave_conference', { 'conference_id' => conference_id })
       end
@@ -413,6 +451,11 @@ module SignalWire
         _execute('bind_digit', params)
       end
 
+      # Remove every DTMF binding registered via {#bind_digit}, so digits stop
+      # triggering their bound behaviour. Sends `calling.clear_digit_bindings`.
+      #
+      # @param kwargs [Hash] extra wire params, keys stringified; omitted when empty
+      # @return [Hash] the server's result
       def clear_digit_bindings(**kwargs)
         _execute('clear_digit_bindings', kwargs.empty? ? nil : kwargs.transform_keys(&:to_s))
       end
@@ -428,6 +471,12 @@ module SignalWire
         _execute('queue.enter', params)
       end
 
+      # Remove the call from a queue it entered. Sends `calling.queue.leave`.
+      #
+      # @param queue_name [String] the queue to leave
+      # @param control_id [String, nil] correlation id; a fresh UUID is minted when omitted
+      # @param kwargs [Hash] extra wire params, keys stringified
+      # @return [Hash] the server's result
       def queue_leave(queue_name:, control_id: nil, **kwargs)
         cid = control_id || SecureRandom.uuid
         params = { 'control_id' => cid, 'queue_name' => queue_name }
@@ -466,6 +515,12 @@ module SignalWire
         _execute('live_transcribe', params)
       end
 
+      # Start, stop or reconfigure real-time translation on the call. Sends
+      # `calling.live_translate`.
+      #
+      # @param action [String] the operation to perform, sent as the `action` wire param
+      # @param kwargs [Hash] the translation configuration, keys stringified
+      # @return [Hash] the server's result
       def live_translate(action:, **kwargs)
         params = { 'action' => action }
         kwargs.each { |k, v| params[k.to_s] = v }
@@ -482,6 +537,9 @@ module SignalWire
         _execute('join_room', params)
       end
 
+      # Remove this call from a video room it joined. Sends `calling.leave_room`.
+      #
+      # @return [Hash] the server's result
       def leave_room
         _execute('leave_room')
       end
@@ -505,14 +563,28 @@ module SignalWire
         _execute('ai_message', kwargs.transform_keys(&:to_s))
       end
 
+      # Put the AI agent attached to this call on hold, so it stops responding while
+      # the leg stays up. Sends `calling.ai_hold`.
+      #
+      # @param kwargs [Hash] extra wire params, keys stringified; omitted when empty
+      # @return [Hash] the server's result
       def ai_hold(**kwargs)
         _execute('ai_hold', kwargs.empty? ? nil : kwargs.transform_keys(&:to_s))
       end
 
+      # Resume an AI agent that was held by {#ai_hold}. Sends `calling.ai_unhold`.
+      #
+      # @param kwargs [Hash] extra wire params, keys stringified; omitted when empty
+      # @return [Hash] the server's result
       def ai_unhold(**kwargs)
         _execute('ai_unhold', kwargs.empty? ? nil : kwargs.transform_keys(&:to_s))
       end
 
+      # Attach an Amazon Bedrock AI agent to the call. This is its own RELAY method
+      # (`calling.amazon_bedrock`), not `calling.ai` with an engine parameter.
+      #
+      # @param kwargs [Hash] the Bedrock agent configuration, keys stringified
+      # @return [Hash] the server's result
       def amazon_bedrock(**kwargs)
         _execute('amazon_bedrock', kwargs.transform_keys(&:to_s))
       end
@@ -611,6 +683,15 @@ module SignalWire
         start_action(action, 'play_and_collect', params, on_completed: on_completed)
       end
 
+      # Collect caller input WITHOUT playing a prompt first, for when the prompt was
+      # played separately. Sends `calling.collect` and returns immediately.
+      #
+      # @param collect_opts [Hash] the collect configuration (digits / speech rules),
+      #   merged into the wire params with its keys stringified
+      # @param control_id [String, nil] correlation id; a fresh UUID is minted when omitted
+      # @param on_completed [Proc, nil] invoked with the terminal event when the collect finishes
+      # @param kwargs [Hash] extra wire params, keys stringified
+      # @return [StandaloneCollectAction] a handle to wait on or stop
       def collect(collect_opts, control_id: nil, on_completed: nil, **kwargs)
         cid = control_id || SecureRandom.uuid
         params = { 'control_id' => cid }
@@ -725,6 +806,13 @@ module SignalWire
         start_action(action, 'send_fax', params, on_completed: on_completed)
       end
 
+      # Start receiving an inbound fax on this call. Sends `calling.receive_fax` and
+      # returns immediately.
+      #
+      # @param control_id [String, nil] correlation id; a fresh UUID is minted when omitted
+      # @param on_completed [Proc, nil] invoked with the terminal event when the fax finishes
+      # @param kwargs [Hash] extra wire params, keys stringified
+      # @return [FaxAction] a handle to wait on or stop
       def receive_fax(control_id: nil, on_completed: nil, **kwargs)
         cid = control_id || SecureRandom.uuid
         params = { 'control_id' => cid }
@@ -793,10 +881,18 @@ module SignalWire
         start_action(action, 'ai', params, on_completed: on_completed)
       end
 
+      # A short human-readable summary: the call id, its current state and its
+      # direction. Carries no credentials.
+      #
+      # @return [String]
       def to_s
         "Call(id=#{call_id}, state=#{@state}, direction=#{direction})"
       end
 
+      # Same as {#to_s} — the default `#inspect` would dump every ivar including the
+      # owning client.
+      #
+      # @return [String]
       def inspect
         to_s
       end

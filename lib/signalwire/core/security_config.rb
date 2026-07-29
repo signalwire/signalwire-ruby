@@ -161,12 +161,16 @@ module SignalWire
 
       private
 
+      # @api private — the memoized `security_config` logger.
       def logger
         return @logger if defined?(@logger)
 
         @logger = SignalWire::Logging.logger('security_config')
       end
 
+      # @api private — a one-line summary of the effective security settings for the
+      # startup log. Reports only WHETHER basic auth is configured — never the
+      # username or password.
       def config_summary
         has_basic_auth = !(basic_auth_user.nil? || basic_auth_password.nil?)
         "ssl_enabled=#{ssl_enabled} domain=#{domain.inspect} allowed_hosts=#{allowed_hosts.inspect} " \
@@ -174,6 +178,8 @@ module SignalWire
           "rate_limit=#{rate_limit} use_hsts=#{use_hsts} has_basic_auth=#{has_basic_auth}"
       end
 
+      # @api private — seed every setting from DEFAULTS (secure-by-default) before
+      # the environment and config file are layered on top. Basic auth starts unset.
       def set_defaults
         set_ssl_defaults
         set_host_defaults
@@ -183,6 +189,9 @@ module SignalWire
         self.basic_auth_password = nil
       end
 
+      # @api private — the host/limit defaults: allowed hosts and CORS origins both
+      # wide open (`*`), a 10 MiB request cap, 60 requests/minute, and a 30-second
+      # request timeout.
       def set_host_defaults
         self.allowed_hosts = parse_list(DEFAULTS[ALLOWED_HOSTS])
         self.cors_origins = parse_list(DEFAULTS[CORS_ORIGINS])
@@ -191,6 +200,8 @@ module SignalWire
         self.request_timeout = DEFAULTS[REQUEST_TIMEOUT]
       end
 
+      # @api private — the TLS defaults: disabled, no cert/key/domain, and
+      # CERT_REQUIRED verification for when it is turned on.
       def set_ssl_defaults
         self.ssl_enabled = DEFAULTS[SSL_ENABLED]
         self.ssl_cert_path = nil
@@ -199,6 +210,9 @@ module SignalWire
         self.ssl_verify_mode = DEFAULTS[SSL_VERIFY_MODE]
       end
 
+      # @api private — read the TLS settings from the environment. `ssl_enabled` is
+      # true only for an explicit `true`/`1`/`yes` (case-insensitive), so any other
+      # value leaves TLS OFF rather than accidentally enabling it.
       def load_ssl_from_env
         self.ssl_enabled = %w[true 1 yes].include?(ENV[SSL_ENABLED].to_s.downcase)
         self.ssl_cert_path = ENV.fetch(SSL_CERT_PATH, nil)
@@ -207,6 +221,9 @@ module SignalWire
         self.ssl_verify_mode = ENV.fetch(SSL_VERIFY_MODE, DEFAULTS[SSL_VERIFY_MODE])
       end
 
+      # @api private — read the host/limit settings from the environment, falling
+      # back to DEFAULTS for each unset variable. The three numeric limits are
+      # coerced with `to_i`.
       def load_hosts_from_env
         self.allowed_hosts = parse_list(env_or_default(ALLOWED_HOSTS))
         self.cors_origins = parse_list(env_or_default(CORS_ORIGINS))
@@ -215,16 +232,28 @@ module SignalWire
         self.request_timeout = env_or_default(REQUEST_TIMEOUT).to_i
       end
 
+      # @api private — the named environment variable, or its DEFAULTS entry.
+      #
+      # @param key [String] the environment variable name, which is also its DEFAULTS key
       def env_or_default(key)
         ENV.fetch(key, DEFAULTS[key])
       end
 
+      # @api private — read the HSTS settings from the environment. An unset
+      # `SWML_USE_HSTS` keeps the default (on); anything other than the literal
+      # `"false"` also leaves it on — HSTS is opt-OUT, not opt-in.
       def load_hsts_from_env
         use_hsts_env = ENV[USE_HSTS].to_s.downcase
         self.use_hsts = use_hsts_env.empty? ? DEFAULTS[USE_HSTS] : (use_hsts_env != 'false')
         self.hsts_max_age = ENV.fetch(HSTS_MAX_AGE, DEFAULTS[HSTS_MAX_AGE]).to_i
       end
 
+      # @api private — layer the config file's `security` section over the
+      # environment. Falls back to the service's discovered config file when none was
+      # passed; a missing file or an absent/empty section is a no-op.
+      #
+      # @param config_file [String, nil] explicit path, or nil to auto-discover
+      # @param service_name [String] used for config-file discovery
       def load_config_file(config_file, service_name)
         config_file ||= ConfigLoader.find_config_file(service_name)
         return unless config_file
@@ -238,6 +267,8 @@ module SignalWire
         apply_security_section(section)
       end
 
+      # @api private — apply the four sub-sections of a `security` config block:
+      # ssl, hosts/limits, hsts and auth.
       def apply_security_section(section)
         apply_ssl_section(section)
         apply_hosts_section(section)
@@ -245,6 +276,9 @@ module SignalWire
         apply_auth_section(section)
       end
 
+      # @api private — apply the TLS keys from a config section. Each is applied only
+      # when the key is PRESENT, so an explicit `false` overrides while an absent key
+      # leaves the environment-derived value alone.
       def apply_ssl_section(section)
         self.ssl_enabled = section['ssl_enabled'] if section.key?('ssl_enabled')
         self.ssl_cert_path = section['ssl_cert_path'] if section.key?('ssl_cert_path')
@@ -253,23 +287,31 @@ module SignalWire
         self.ssl_verify_mode = section['ssl_verify_mode'] if section.key?('ssl_verify_mode')
       end
 
+      # @api private — apply `allowed_hosts` / `cors_origins` (comma-separated string
+      # or list) from a config section, then the numeric limits.
       def apply_hosts_section(section)
         self.allowed_hosts = parse_list(section['allowed_hosts']) if section.key?('allowed_hosts')
         self.cors_origins = parse_list(section['cors_origins']) if section.key?('cors_origins')
         apply_int_section(section)
       end
 
+      # @api private — apply the numeric limits (`max_request_size`, `rate_limit`,
+      # `request_timeout`) from a config section, each coerced with `to_i`.
       def apply_int_section(section)
         self.max_request_size = section['max_request_size'].to_i if section.key?('max_request_size')
         self.rate_limit = section['rate_limit'].to_i if section.key?('rate_limit')
         self.request_timeout = section['request_timeout'].to_i if section.key?('request_timeout')
       end
 
+      # @api private — apply `use_hsts` / `hsts_max_age` from a config section.
       def apply_hsts_section(section)
         self.use_hsts = section['use_hsts'] if section.key?('use_hsts')
         self.hsts_max_age = section['hsts_max_age'].to_i if section.key?('hsts_max_age')
       end
 
+      # @api private — apply `security.auth.basic.user` / `.password` from a config
+      # section. A missing or non-Hash `auth`/`basic` block leaves the credentials
+      # unchanged rather than clearing them.
       def apply_auth_section(section)
         auth_config = section['auth']
         return unless auth_config.is_a?(Hash)
@@ -289,6 +331,11 @@ module SignalWire
         value.split(',').map(&:strip).reject(&:empty?)
       end
 
+      # @api private — warn ONCE that no basic-auth password was configured and a
+      # random one was generated. That password exists only in this process, so
+      # external callers get 401 unless they read it from this process's environment.
+      #
+      # @param username [String] the username the generated password pairs with
       def warn_basic_auth_autogen(username)
         return if @basic_auth_autogen_warned
 
