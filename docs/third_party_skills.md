@@ -84,7 +84,7 @@ class WeatherSkill < SignalWire::Skills::SkillBase
           'type' => 'string',
           'description' => 'City name or coordinates'
         }
-      }
+      }, handler: nil
     ) do |args, raw_data|
       handle_get_weather(args, raw_data)
     end
@@ -405,7 +405,7 @@ def register_tools
   define_tool(
     name: tool_name,
     description: "Get weather using #{service}",
-    parameters: { } # ...
+    parameters: { }, handler: nil # ...
   ) do |args, raw_data|
     handle_get_weather(args, raw_data)
   end

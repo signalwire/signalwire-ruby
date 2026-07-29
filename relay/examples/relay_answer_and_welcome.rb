@@ -12,7 +12,7 @@ require 'signalwire/relay/client'  # opt-in subsystem (Python: from signalwire.r
 
 client = SignalWire::Relay::Client.new(contexts: ['default'])
 
-client.on_call do |call|
+client.on_call(nil) do |call|
   puts "Incoming call: #{call.call_id}"
   call.answer
 

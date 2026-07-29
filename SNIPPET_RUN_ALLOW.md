@@ -26,5 +26,5 @@ themselves are exercised by EXAMPLES-RUN; here they each start a blocking server
 make a live REST call and so cannot run standalone under SNIPPET-RUN.
 
 - README.md:49 — quickstart_agent: ends with agent.run (blocking WEBrick server) (burn-ruby, 2026-07-09)
-- README.md:131 — quickstart_relay: client.run connects to a live RELAY WebSocket (burn-ruby, 2026-07-09; line re-synced 2026-07-15)
-- README.md:166 — quickstart_rest: makes live REST calls; base URL derives from the space host, no loopback-mock override; the #rest region also references call_id defined outside the region (burn-ruby, 2026-07-09; line re-synced 2026-07-15)
+- README.md:132 — quickstart_relay: client.run connects to a live RELAY WebSocket (burn-ruby, 2026-07-09; line re-synced 2026-07-15, 2026-07-29)
+- README.md:167 — quickstart_rest: makes live REST calls; base URL derives from the space host, no loopback-mock override; the #rest region also references call_id defined outside the region (burn-ruby, 2026-07-09; line re-synced 2026-07-15, 2026-07-29)

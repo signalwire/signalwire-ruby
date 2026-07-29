@@ -24,7 +24,7 @@ def tts(text)
   { 'type' => 'tts', 'params' => { 'text' => text } }
 end
 
-client.on_call do |call|
+client.on_call(nil) do |call|
   puts "Incoming call: #{call.call_id}"
   call.answer
 

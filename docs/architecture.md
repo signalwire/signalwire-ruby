@@ -362,7 +362,7 @@ The SDK is designed to be highly extensible:
      name: 'tool_name',
      description: 'Tool description',
      parameters: {},
-     secure: true
+     secure: true, handler: nil
    ) do |args, raw_data|
      # Tool implementation
      SignalWire::Swaig::FunctionResult.new('Done')
@@ -440,7 +440,7 @@ The SDK is designed to be highly extensible:
      def register_tools
        # Register tools with the agent using the wrapper method
        # This automatically includes swaig_fields
-       define_tool(name: 'my_tool', description: '...', parameters: {}) do |args, raw_data|
+       define_tool(name: 'my_tool', description: '...', parameters: {}, handler: nil) do |args, raw_data|
          SignalWire::Swaig::FunctionResult.new('...')
        end
      end
@@ -729,7 +729,7 @@ Key steps for creating custom prefabs:
    define_tool(
      name: 'specialized_function',
      description: 'Do something specialized',
-     parameters: {}
+     parameters: {}, handler: nil
    ) do |args, raw_data|
      # Implementation
      SignalWire::Swaig::FunctionResult.new('Function result')
@@ -1025,7 +1025,7 @@ define_tool(
       'type' => 'string',
       'description' => 'The city or location to get weather for'
     }
-  }
+  }, handler: nil
 ) do |args, raw_data|
   location = args.fetch('location', 'Unknown location')
   SignalWire::Swaig::FunctionResult.new("It's sunny and 72°F in #{location}.")

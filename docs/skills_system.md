@@ -348,7 +348,7 @@ class MyCustomSkill < SignalWire::Skills::SkillBase
           'type' => 'string',
           'description' => 'Input parameter'
         }
-      }
+      }, handler: nil
     ) do |args, raw_data|
       handle_my_function(args, raw_data)
     end
@@ -449,7 +449,7 @@ class WebSearchAgent < SignalWire::AgentBase
   def initialize
     super(name: "WebSearchAgent")
     # ... application-specific search setup ...
-    define_tool(name: "web_search", description: "...", parameters: {}) do |args, _raw|
+    define_tool(name: "web_search", description: "...", parameters: {}, handler: nil) do |args, _raw|
       # Lots of manual code...
     end
   end

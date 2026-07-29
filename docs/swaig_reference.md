@@ -643,7 +643,7 @@ result = SignalWire::Swaig::FunctionResult.new('Profile saved.')
 result.replace_in_history("I've saved your profile information.")
 
 # Practical example: data collection function that shouldn't clutter history
-agent.define_tool(name: 'save_answer', description: "Save the user's answer") do |args, raw_data|
+agent.define_tool(name: 'save_answer', description: "Save the user's answer", handler: nil) do |args, raw_data|
   answer = args['answer']
   result = SignalWire::Swaig::FunctionResult.new("Answer recorded: #{answer}")
   result.replace_in_history  # Keep history clean

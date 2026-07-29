@@ -47,7 +47,7 @@ agent.define_tool(
   description: 'Get weather',
   parameters:  {
     'city' => { 'type' => 'string', 'description' => 'The city to look up' }
-  }
+  }, handler: nil
 ) do |args, _raw_data|
   city = args['city']
   # ... fetch weather ...
@@ -88,7 +88,7 @@ agent.define_tool(
   description: 'Look up an order',
   parameters:  {
     'order_id' => { 'type' => 'string', 'description' => 'The order ID to look up' }
-  }
+  }, handler: nil
 ) do |args, _raw_data|
   order  = db.get(args['order_id'])
   result = SignalWire::Swaig::FunctionResult.new("Order #{order.id}: #{order.status}")
@@ -219,7 +219,7 @@ The `you_lost` step has zero functions and zero valid transitions. The game is o
 The tool handler demonstrates execution authority -- the model has no idea a step change is about to happen:
 
 ```ruby
-agent.define_tool(name: 'hit', description: 'Draw another card') do |_args, raw_data|
+agent.define_tool(name: 'hit', description: 'Draw another card', handler: nil) do |_args, raw_data|
   game = raw_data['global_data']['game_state']
   card = game['deck'].pop
   game['player_hand'] << card
@@ -311,7 +311,7 @@ One process, multiple agents, route-based dispatch. Each agent gets its own SWML
 ## Dynamic Configuration and Multi-Tenancy
 
 ```ruby
-agent.set_dynamic_config_callback do |_query_params, _body, headers, ephemeral|
+agent.set_dynamic_config_callback(nil) do |_query_params, _body, headers, ephemeral|
   tenant = headers['X-Tenant-ID'] || 'default'
   config = load_tenant_config(tenant)
   ephemeral.prompt_add_section('Company', config['company_info'])

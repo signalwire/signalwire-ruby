@@ -145,7 +145,7 @@ Function Call → Template Expansion → HTTP Request → Response Processing �
 define_tool(
   name: 'search_knowledge',
   description: 'Search the knowledge base',
-  parameters: { 'query' => { 'type' => 'string' } }
+  parameters: { 'query' => { 'type' => 'string' } }, handler: nil
 ) do |args, raw_data|
   # Custom HTTP request logic
   uri = URI('https://api.example.com/search')

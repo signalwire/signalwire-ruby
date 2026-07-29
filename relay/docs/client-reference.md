@@ -59,10 +59,10 @@ end
 
 ### `on_call(handler)`
 
-Register the inbound call handler by passing a block. The block receives a `Call` object.
+Register the inbound call handler. `handler` is a REQUIRED positional — pass a callable, or pass `nil` and supply a block. The block receives a `Call` object.
 
 ```ruby
-client.on_call do |call|
+client.on_call(nil) do |call|
   call.answer
 end
 ```
@@ -83,10 +83,10 @@ call = client.dial([
 
 ### `on_message(handler)`
 
-Register the inbound message handler by passing a block. The block receives a `Message` object.
+Register the inbound message handler. `handler` is a REQUIRED positional — pass a callable, or pass `nil` and supply a block. The block receives a `Message` object.
 
 ```ruby
-client.on_message do |message|
+client.on_message(nil) do |message|
   puts "SMS from #{message.from_number}: #{message.body}"
 end
 ```

@@ -15,7 +15,7 @@ client = SignalWire::Relay::Client.new(
   contexts: ['default']
 )
 
-client.on_call do |call|
+client.on_call(nil) do |call|
   call.answer
   action = call.play([{ 'type' => 'tts', 'params' => { 'text' => 'Welcome to SignalWire!' } }])
   action.wait
@@ -39,7 +39,7 @@ client.run
 ### Answer and Play TTS
 
 ```ruby
-client.on_call do |call|
+client.on_call(nil) do |call|
   call.answer
   action = call.play([{ 'type' => 'tts', 'params' => { 'text' => 'Hello!' } }])
   action.wait
@@ -62,7 +62,7 @@ call.hangup
 ### Collect DTMF
 
 ```ruby
-client.on_call do |call|
+client.on_call(nil) do |call|
   call.answer
   action = call.play_and_collect(
     [{ 'type' => 'tts', 'params' => { 'text' => 'Press 1 for sales, 2 for support.' } }],

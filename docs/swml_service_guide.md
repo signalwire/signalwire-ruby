@@ -258,7 +258,7 @@ You can use the `register_routing_callback` method to register a function that w
 # Example: Route based on a field in the request body. If the block returns a
 # string, the request is redirected to that URL with HTTP 307. Returning nil
 # causes the request to be processed normally by `on_request`.
-service.register_routing_callback("/customer") do |request_data|
+service.register_routing_callback(nil, "/customer") do |request_data|
   if request_data["customer_id"]
     next "/customer/#{request_data['customer_id']}"
   end
@@ -326,7 +326,7 @@ class MultiSectionService < SignalWire::SWML::Service
                                  { "url" => "say:Welcome to customer service!" })
     document.add_verb_to_section("customer_section", "hangup", {})
 
-    register_routing_callback("/customer") do |body|
+    register_routing_callback(nil, "/customer") do |body|
       puts "Processing request for customer ID: #{body['customer_id']}" if body["customer_id"]
       nil
     end
@@ -338,7 +338,7 @@ class MultiSectionService < SignalWire::SWML::Service
                                  { "url" => "say:Welcome to product support!" })
     document.add_verb_to_section("product_section", "hangup", {})
 
-    register_routing_callback("/product") do |body|
+    register_routing_callback(nil, "/product") do |body|
       puts "Processing request for product ID: #{body['product_id']}" if body["product_id"]
       nil
     end
