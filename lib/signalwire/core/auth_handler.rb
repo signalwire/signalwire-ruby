@@ -121,6 +121,10 @@ module SignalWire
 
       private
 
+      # @api private — build the enabled-auth-method table from the security config.
+      # Basic is ALWAYS enabled (the config always yields a pair); bearer and api_key
+      # are enabled only when the config actually carries a token/key. The API-key
+      # header defaults to `X-API-Key`.
       def setup_auth_methods
         @auth_methods = {}
         username, password = @security_config.get_basic_auth
@@ -136,6 +140,10 @@ module SignalWire
         @auth_methods['api_key'] = { 'enabled' => true, 'key' => api_key, 'header' => header }
       end
 
+      # @api private — read an optional attribute off the security config, or nil
+      # when the config object does not expose it. Lets any object with
+      # `get_basic_auth` serve as a config without having to declare the optional
+      # bearer/api-key readers.
       def config_attr(name)
         @security_config.respond_to?(name) ? @security_config.public_send(name) : nil
       end
@@ -150,6 +158,11 @@ module SignalWire
         nil
       end
 
+      # @api private — whether the request's `Authorization` header carries a valid
+      # bearer token. The scheme is compared case-INSENSITIVELY per RFC 7235 while
+      # being carried verbatim into the credential carrier.
+      #
+      # @return [Boolean]
       def bearer_env_ok?(env)
         return false unless @auth_methods.dig('bearer', 'enabled')
 
@@ -174,6 +187,11 @@ module SignalWire
         [scheme, param.strip]
       end
 
+      # @api private — whether the request carries a valid API key in the configured
+      # header (translated to its Rack `HTTP_*` env key). The comparison itself is
+      # timing-safe.
+      #
+      # @return [Boolean]
       def api_key_env_ok?(env)
         return false unless @auth_methods.dig('api_key', 'enabled')
 
@@ -182,6 +200,10 @@ module SignalWire
         !key.nil? && verify_api_key(key)
       end
 
+      # @api private — whether the request's `Authorization` header carries valid
+      # HTTP Basic credentials.
+      #
+      # @return [Boolean]
       def basic_env_ok?(env)
         return false unless @auth_methods.dig('basic', 'enabled')
 
@@ -191,6 +213,12 @@ module SignalWire
         verify_basic_auth(creds)
       end
 
+      # @api private — decode an `Authorization: Basic` header into credentials. The
+      # scheme is matched case-insensitively (RFC 7235), and a decoded payload with
+      # NO colon is rejected outright rather than defaulting the password to the
+      # empty string (RFC 7617). Malformed base64 also yields nil.
+      #
+      # @return [BasicCredentials, nil]
       def parse_basic_auth(header)
         scheme, param = split_authorization(header)
         # RFC 7235 case-insensitive scheme compare (reference:
@@ -209,35 +237,60 @@ module SignalWire
         nil
       end
 
+      # @api private — constant-time string comparison, so a wrong credential cannot
+      # be recovered by timing the response. Both sides are stringified first, so a
+      # nil compares as `""` rather than raising.
+      #
+      # @return [Boolean]
       def secure_compare(lhs, rhs)
         Rack::Utils.secure_compare(lhs.to_s, rhs.to_s)
       end
 
+      # @api private — the 401 Rack triple: a `Basic realm="SignalWire Service"`
+      # challenge and a plain-text body. Identical for every failure mode, so a probe
+      # cannot tell which auth method it got wrong.
+      #
+      # @return [Array(Integer, Hash, Array<String>)]
       def unauthorized_response
         [401,
          { 'content-type' => 'text/plain', 'www-authenticate' => 'Basic realm="SignalWire Service"' },
          ['Authentication required']]
       end
 
+      # @api private — log a failed authentication with the client address, method
+      # and path. The attempted credentials are deliberately NOT logged.
       def log_auth_failure(env)
         logger.warn("auth_failed ip=#{env['REMOTE_ADDR']} method=#{env['REQUEST_METHOD']} " \
                     "path=#{env['PATH_INFO']}")
       end
 
+      # @api private — the memoized `auth_handler` logger.
       def logger
         return @logger if defined?(@logger)
 
         @logger = SignalWire::Logging.logger('auth_handler')
       end
 
+      # @api private — the public description of basic auth: enabled plus the
+      # username. Never the password.
+      #
+      # @return [Hash]
       def basic_auth_info
         { 'enabled' => true, 'username' => @auth_methods['basic']['username'] }
       end
 
+      # @api private — the public description of bearer auth: enabled plus a usage
+      # hint. Never the token.
+      #
+      # @return [Hash]
       def bearer_auth_info
         { 'enabled' => true, 'hint' => 'Use Authorization: Bearer <token>' }
       end
 
+      # @api private — the public description of API-key auth: enabled plus which
+      # header to send it in. Never the key.
+      #
+      # @return [Hash]
       def api_key_info
         header = @auth_methods['api_key']['header']
         { 'enabled' => true, 'header' => header, 'hint' => "Use #{header}: <key>" }
@@ -249,6 +302,7 @@ module SignalWire
     class AuthError < SignalWire::Error
       attr_reader :response
 
+      # @param response [Array] the Rack 401 triple to return for this failure
       def initialize(response)
         @response = response
         super('Invalid authentication credentials')

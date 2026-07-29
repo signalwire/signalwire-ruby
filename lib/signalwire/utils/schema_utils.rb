@@ -214,6 +214,10 @@ module SignalWire
         [errors.empty?, errors]
       end
 
+      # @api private — the generated method body's trailing lines: fold any extra
+      # kwargs into the config, then add the verb.
+      #
+      # @return [Array<String>] Python source lines
       def method_body_kwargs_lines(verb_name)
         ['        # Add any additional parameters from kwargs',
          '        for key, value in kwargs.items():',
@@ -223,12 +227,20 @@ module SignalWire
          "        return self.add_verb('#{verb_name}', config)"]
       end
 
+      # @api private — the generated signature's parameter list: `self`, one entry
+      # per schema property (required ones without a default), then `**kwargs`.
+      #
+      # @return [Array<String>]
       def signature_param_parts(verb_name, params, keys)
         required = get_verb_required_properties(verb_name).to_set
         param_parts = keys.map { |name| format_signature_param(name, params[name], required) }
         ['self', *param_parts, '**kwargs']
       end
 
+      # @api private — one generated parameter. A required property is annotated
+      # bare; an optional one becomes `Optional[T] = None`.
+      #
+      # @return [String]
       def format_signature_param(name, defn, required)
         t = python_type_annotation(defn)
         return "#{name}: #{t}" if required.include?(name)
@@ -236,6 +248,11 @@ module SignalWire
         "#{name}: Optional[#{t}] = None"
       end
 
+      # @api private — the generated method's docstring: a summary line plus one
+      # `Args:` entry per property, carrying the schema's own description with
+      # newlines flattened.
+      #
+      # @return [String]
       def signature_docstring(verb_name, params, keys)
         doc = "\"\"\"\n        Add the #{verb_name} verb to the current document\n        \n"
         keys.each do |name|
@@ -249,21 +266,36 @@ module SignalWire
         doc
       end
 
+      # @api private — a verb entry's `definition.properties` block, or nil when the
+      # entry does not have that shape.
+      #
+      # @return [Hash, nil]
       def verb_definition_properties(verb_entry)
         verb_entry['definition']['properties']
       rescue StandardError
         nil
       end
 
+      # @api private — the bundled schema at `lib/signalwire/swml/schema.json`, used
+      # when the constructor was given no explicit path.
+      #
+      # @return [String]
       def default_schema_path
         # Bundled schema lives in lib/signalwire/swml/schema.json
         File.expand_path('../swml/schema.json', __dir__)
       end
 
+      # @api private — whether an environment value reads as true: `1`, `true` or
+      # `yes`, case- and whitespace-insensitive.
+      #
+      # @return [Boolean]
       def env_boolish(value)
         %w[1 true yes].include?(value.to_s.strip.downcase)
       end
 
+      # @api private — build the verb table by walking `$defs.SWMLMethod.anyOf`,
+      # which is the schema's registry of every verb. A schema missing that structure
+      # leaves the table empty rather than raising.
       def extract_verbs
         defs = @schema['$defs']
         return unless defs.is_a?(Hash)
@@ -277,6 +309,9 @@ module SignalWire
         any_of.each { |entry| register_verb_entry(entry, defs) }
       end
 
+      # @api private — resolve one `anyOf` `$ref` to its definition and record it
+      # under its ACTUAL verb name — the single key of the definition's `properties`
+      # block, which is not always the schema's own name.
       def register_verb_entry(entry, defs)
         schema_name = entry_schema_name(entry)
         return if schema_name.nil?
@@ -349,6 +384,11 @@ module SignalWire
         msg
       end
 
+      # @api private — the fallback validator used when json_schemer is unavailable:
+      # presence of every required property, and nothing deeper. Matches the
+      # reference's own lightweight path.
+      #
+      # @return [Array(Boolean, Array<String>)]
       def validate_verb_lightweight(verb_name, verb_config)
         errors = []
         get_verb_required_properties(verb_name).each do |prop|
@@ -385,6 +425,9 @@ module SignalWire
         errors
       end
 
+      # @api private — one error per `required` property absent from the config.
+      #
+      # @return [Array<String>]
       def missing_required_errors(verb_name, verb_config, schema)
         required = schema['required']
         return [] unless required.is_a?(Array)
@@ -393,6 +436,11 @@ module SignalWire
                 .map { |req| "Missing required property '#{req}' for verb '#{verb_name}'" }
       end
 
+      # @api private — one error per config key not declared in the schema's
+      # `properties`. Only called for a CLOSED schema; an open one legitimately
+      # accepts extras.
+      #
+      # @return [Array<String>]
       def unknown_key_errors(verb_name, verb_config, schema)
         props = schema['properties']
         allowed = props.is_a?(Hash) ? props.keys : []
@@ -411,6 +459,10 @@ module SignalWire
         schema['additionalProperties'] == false
       end
 
+      # @api private — the Python type annotation for a schema property, used by the
+      # codegen output. Anything not a known scalar or an array becomes `Any`.
+      #
+      # @return [String]
       def python_type_annotation(defn)
         return 'Any' unless defn.is_a?(Hash)
 
@@ -421,6 +473,10 @@ module SignalWire
         'Any'
       end
 
+      # @api private — `List[T]` for an array property, recursing into `items`; an
+      # array with no item schema becomes `List[Any]`.
+      #
+      # @return [String]
       def python_array_annotation(defn)
         item = defn['items'].is_a?(Hash) ? python_type_annotation(defn['items']) : 'Any'
         "List[#{item}]"

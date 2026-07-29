@@ -760,24 +760,37 @@ module SignalWire
         set_end_of_speech_timeout(value)
       end
 
+      # Attach arbitrary metadata to the result. Writer form of {#set_metadata};
+      # returns the assigned value, not self.
       def metadata=(value)
         set_metadata(value)
       end
 
+      # Whether the AI speaks its response BEFORE running this result's actions
+      # (true) or after. Writer form of {#set_post_process}.
       def post_process=(value)
         set_post_process(value)
       end
 
+      # The text the model receives as this tool's answer. Writer form of
+      # {#set_response}.
       def response=(value)
         set_response(value)
       end
 
+      # Milliseconds to wait for a speech event before proceeding. Writer form of
+      # {#set_speech_event_timeout}.
       def speech_event_timeout=(value)
         set_speech_event_timeout(value)
       end
 
       private
 
+      # @api private — reject a record_call whose format is not wav/mp3/mp4 or whose
+      # direction is not speak/listen/both, so a bad value fails here rather than
+      # being rejected mid-call by the server.
+      #
+      # @raise [ArgumentError] naming the offending field
       def validate_record_call!(format, direction)
         raise ArgumentError, "format must be 'wav', 'mp3', or 'mp4'" unless RecordFormat::ALL.include?(format)
         return if RecordDirection::ALL.include?(direction)
@@ -785,6 +798,10 @@ module SignalWire
         raise ArgumentError, "direction must be 'speak', 'listen', or 'both'"
       end
 
+      # @api private — reject a tap whose direction is not speak/hear/both, whose
+      # codec is not PCMU/PCMA, or whose packetization time is not positive.
+      #
+      # @raise [ArgumentError] naming the offending field
       def validate_tap!(direction, codec, rtp_ptime)
         raise ArgumentError, "direction must be 'speak', 'hear', or 'both'" unless TapDirection::ALL.include?(direction)
         raise ArgumentError, "codec must be 'PCMU' or 'PCMA'" unless Codec::ALL.include?(codec)
@@ -891,10 +908,16 @@ module SignalWire
         }
       end
 
+      # @api private — whether any action has been queued on this result.
+      #
+      # @return [Boolean]
       def actions?
         @action && !@action.empty?
       end
 
+      # @api private — whether a non-empty response text has been set.
+      #
+      # @return [Boolean]
       def response?
         @response && !@response.empty?
       end
@@ -905,6 +928,9 @@ module SignalWire
         value.nil? || (value.respond_to?(:empty?) && value.empty?)
       end
 
+      # @api private — the join_conference action. When every option is at its
+      # default the wire value collapses to the bare conference NAME rather than a
+      # params object, matching the reference's emitted shape.
       def join_conference_action(name, opts)
         validate_join_conference!(name, opts)
         join_params = if join_conference_all_defaults?(opts)
@@ -929,18 +955,30 @@ module SignalWire
         raise ArgumentError, 'name cannot be empty' if name.to_s.strip.empty?
       end
 
+      # @api private — the conference participant cap must be a positive Integer no
+      # greater than 250, which is the server's own limit.
+      #
+      # @raise [ArgumentError]
       def validate_max_participants!(max_participants)
         return if max_participants.is_a?(Integer) && max_participants.positive? && max_participants <= 250
 
         raise ArgumentError, 'max_participants must be a positive integer <= 250'
       end
 
+      # @api private — whether no join_conference option departs from its default,
+      # which is what lets the action emit the bare name instead of a params object.
+      #
+      # @return [Boolean]
       def join_conference_all_defaults?(opts)
         JOIN_CONFERENCE_PARAM_SPEC.none? do |_wire_key, opts_key, include_check|
           include_check.call(opts[opts_key])
         end
       end
 
+      # @api private — the join_conference params object: the name plus only those
+      # options that differ from their default, in the spec's declared wire-key order.
+      #
+      # @return [Hash{String => Object}]
       def build_join_conference_params(name, opts)
         params = { 'name' => name }
         JOIN_CONFERENCE_PARAM_SPEC.each do |wire_key, opts_key, include_check|
