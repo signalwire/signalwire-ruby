@@ -133,10 +133,6 @@ signalwire.relay.call.Call.send_fax: kwargs-collapse — Ruby keeps required arg
 signalwire.relay.call.Call.stream: kwargs-collapse — Ruby keeps required args explicit, optionals collapse into **kwargs
 signalwire.relay.call.Call.transcribe: kwargs-collapse — Ruby keeps required args explicit, optionals collapse into **kwargs
 
-# Single-case: kind 'keyword' vs 'var_keyword' (RelayClient.dial)
-
-signalwire.relay.client.RelayClient.dial: kwargs-spread — Ruby `dial_timeout:` keyword arg projects as keyword while Python collects late args via var_keyword
-
 # Prompt Object Model — Ruby keyword-arg idiom
 
 signalwire.pom.pom.PromptObjectModel.to_json: Ruby JSON convention — `to_json(*_args)` accepts the optional state argument that Ruby's JSON.generate forwards
@@ -162,7 +158,6 @@ signalwire.prefabs.info_gatherer.InfoGathererAgent.on_swml_request: kwargs-idiom
 # --- Ruby keyword-arg / **kwargs / block / classmethod idiom (kind & count) ---
 signalwire.relay.call.PlayAction.volume: untyped-idiom — Ruby is dynamically typed; the `volume` param carries no static type (untyped `any`) where Python types it `float`. Same value on the wire (`play.volume` with `volume` key); the type divergence is Ruby's runtime-typed idiom, not a wire difference.
 signalwire.relay.call.CollectAction.volume: untyped-idiom — Ruby is dynamically typed; the `volume` param carries no static type (untyped `any`) where Python types it `float`. Same value on the wire (`play_and_collect.volume` with `volume` key); the type divergence is Ruby's runtime-typed idiom, not a wire difference.
-signalwire.core.logging_config.strip_control_chars: Ruby structlog processor closure takes only `event_dict`; Python's (logger, method_name, event_dict) processor signature — same processor contract
 signalwire.core.pom_builder.PomBuilder.from_sections: classmethod idiom — Ruby `def self.` factory has no explicit `cls` receiver
 signalwire.core.skill_base.SkillBase.define_tool: Ruby explicit keyword args (`name:`, `description:`, `parameters:`, &handler) ≡ Python `**kwargs` — same define_tool contract as named Ruby kwargs
 signalwire.core.skill_manager.SkillManager.load_skill: Ruby SkillManager idiom — `load(key, skill)` takes a pre-built skill + instance key; Python `load_skill(skill_name, skill_class, params)` constructs it — same load contract, different split
