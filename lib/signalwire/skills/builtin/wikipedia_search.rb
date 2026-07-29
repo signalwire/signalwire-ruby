@@ -7,8 +7,11 @@ require 'uri'
 require_relative '../skill_base'
 require_relative '../skill_registry'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Skills — the modular capability framework: skill base, registry, manager, builtins.
   module Skills
+    # Builtin — the skills that ship with the SDK, registered by name at load time.
     module Builtin
       class WikipediaSearchSkill < SkillBase
         def name = 'wikipedia_search'
@@ -17,12 +20,22 @@ module SignalWire
         DEFAULT_NO_RESULTS_MSG = "I couldn't find any Wikipedia articles for that query. " \
                                  'Try rephrasing your search or using different keywords.'
 
+        # Called once after construction. Return false to abort loading — the
+        # agent then refuses to register this skill's tools.
+        #
+        # @return [Boolean] true when the skill is ready to run
         def setup
           @num_results    = [1, get_param('num_results', default: 1).to_i].max
           @no_results_msg = get_param('no_results_message', default: DEFAULT_NO_RESULTS_MSG)
           true
         end
 
+        # The SWAIG tool definitions this skill contributes to its agent. Each
+        # entry is a `{name:, description:, parameters:, handler:}` hash; the
+        # descriptions are what the model reads to decide when and how to call
+        # the tool.
+        #
+        # @return [Array<Hash>]
         def register_tools
           [
             {
@@ -39,6 +52,11 @@ module SignalWire
         # Returns [] — this skill ships no example hints.
         def get_hints = []
 
+        # The POM sections this skill contributes to the agent's prompt,
+        # teaching the model when to reach for the skill's tools. Returned as
+        # fresh copies, so a caller mutating them does not corrupt skill state.
+        #
+        # @return [Array<Hash>]
         def get_prompt_sections
           body = 'You can search Wikipedia for factual information using search_wiki. ' \
                  "This will return up to #{num_results} Wikipedia article summaries."
@@ -50,6 +68,10 @@ module SignalWire
           [{ 'title' => 'Wikipedia Search', 'body' => body, 'bullets' => bullets }]
         end
 
+        # The JSON-Schema description of this skill's configuration params, for
+        # GUI and validation consumers.
+        #
+        # @return [Hash]
         def get_parameter_schema
           {
             'num_results' => { 'type' => 'integer', 'default' => 1, 'min' => 1, 'max' => 5 },

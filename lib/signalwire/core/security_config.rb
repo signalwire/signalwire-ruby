@@ -13,7 +13,9 @@ require 'securerandom'
 require_relative 'config_loader'
 require_relative '../logging'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Core — internal building blocks shared by the agent, SWML and SWAIG layers.
   module Core
     # Unified security configuration for SignalWire services.
     #

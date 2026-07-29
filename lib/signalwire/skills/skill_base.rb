@@ -8,7 +8,9 @@
 require_relative '../swaig/function_result'
 require_relative '../logging'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Skills — the modular capability framework: skill base, registry, manager, builtins.
   module Skills
     # Base class for all skills. Subclasses override the metadata methods
     # and +register_tools+ to supply tool hashes.
@@ -23,12 +25,18 @@ module SignalWire
 
       def name = raise(NotImplementedError, "#{self.class}#name")
       def description = raise(NotImplementedError, "#{self.class}#description")
+      # This skill's own version, independent of the SDK's.
+      #
+      # @return [String] '1.0.0'
       def version = '1.0.0'
       def required_env_vars = []
       # The gem names this skill needs loadable before it can run;
       # consumed by {#validate_packages}.
       def required_packages = []
       private :required_packages # internal hook; not part of the public API
+      # Only one instance of this skill may be loaded per agent.
+      #
+      # @return [Boolean] false
       def supports_multiple_instances? = false
 
       # First positional arg is the owning AgentBase (or nil for

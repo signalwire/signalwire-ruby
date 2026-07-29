@@ -16,6 +16,7 @@
 # lib/signalwire/utils/serverless.rb.
 
 module SignalWire
+  # Core — internal building blocks shared by the agent, SWML and SWAIG layers.
   module Core
     module LoggingConfig
       module_function

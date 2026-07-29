@@ -9,7 +9,9 @@ require 'json'
 
 require_relative '../swaig/function_result'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Prefabs — ready-made agents assembled from the SDK's own building blocks.
   module Prefabs
     # @api private — per-question-type answer validation for Survey. Split out
     # of Survey so the class keeps only its public API + survey state; these

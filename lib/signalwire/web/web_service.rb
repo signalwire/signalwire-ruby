@@ -15,7 +15,9 @@ require_relative '../core/config_loader'
 require_relative '../core/security_config'
 require_relative '../logging'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Web — the HTTP serving layer shared by the agent and the multi-agent server.
   module Web
     # Static file serving service with an HTTP API.
     #

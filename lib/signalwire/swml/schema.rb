@@ -2,7 +2,9 @@
 
 require 'json'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # SWML — SWML document construction, rendering and serving.
   module SWML
     class Schema
       attr_reader :verbs

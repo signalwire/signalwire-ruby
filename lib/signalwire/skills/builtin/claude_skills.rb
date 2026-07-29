@@ -4,8 +4,11 @@ require 'yaml'
 require_relative '../skill_base'
 require_relative '../skill_registry'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Skills — the modular capability framework: skill base, registry, manager, builtins.
   module Skills
+    # Builtin — the skills that ship with the SDK, registered by name at load time.
     module Builtin
       # Loads Claude SKILL.md files as agent tools.
       #
@@ -18,8 +21,17 @@ module SignalWire
       class ClaudeSkillsSkill < SkillBase
         def name = 'claude_skills'
         def description = 'Load Claude SKILL.md files as agent tools'
+        # This skill may be loaded more than once on one agent — each instance
+        # is distinguished by its `prefix` param, which also namespaces its
+        # tools and its slice of `global_data`.
+        #
+        # @return [Boolean] true
         def supports_multiple_instances? = true
 
+        # Called once after construction. Return false to abort loading — the
+        # agent then refuses to register this skill's tools.
+        #
+        # @return [Boolean] true when the skill is ready to run
         def setup
           # Load-path validation (Python parity: validate_packages then the
           # skills_path exists/is-a-directory checks).
@@ -34,20 +46,39 @@ module SignalWire
 
         def instance_key = "claude_skills_#{@skills_path}"
 
+        # The SWAIG tool definitions this skill contributes to its agent. Each
+        # entry is a `{name:, description:, parameters:, handler:}` hash; the
+        # descriptions are what the model reads to decide when and how to call
+        # the tool.
+        #
+        # @return [Array<Hash>]
         def register_tools
           @discovered.map { |skill| skill_tool(skill) }
         end
 
+        # Speech-recognition hints this skill contributes to the AI verb, biasing
+        # the recognizer toward the vocabulary the skill's domain uses.
+        #
+        # @return [Array<String>]
         def get_hints
           @discovered.flat_map { |s| s[:name].split(/[-_]/) }.uniq
         end
 
+        # The POM sections this skill contributes to the agent's prompt,
+        # teaching the model when to reach for the skill's tools. Returned as
+        # fresh copies, so a caller mutating them does not corrupt skill state.
+        #
+        # @return [Array<Hash>]
         def get_prompt_sections
           @discovered.map do |skill|
             { 'title' => "Claude Skill: #{skill[:name]}", 'body' => skill[:body][0, 200] }
           end
         end
 
+        # The JSON-Schema description of this skill's configuration params, for
+        # GUI and validation consumers.
+        #
+        # @return [Hash]
         def get_parameter_schema
           {
             'skills_path' => { 'type' => 'string', 'required' => true },

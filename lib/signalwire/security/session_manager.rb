@@ -10,7 +10,9 @@ require 'securerandom'
 require 'base64'
 require 'time'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Security — webhook signature validation, session tokens and request hardening.
   module Security
     # Stateless HMAC-SHA256 session manager for secure SWAIG tool tokens.
     #

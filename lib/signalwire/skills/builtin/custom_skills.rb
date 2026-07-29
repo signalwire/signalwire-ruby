@@ -3,15 +3,27 @@
 require_relative '../skill_base'
 require_relative '../skill_registry'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Skills — the modular capability framework: skill base, registry, manager, builtins.
   module Skills
+    # Builtin — the skills that ship with the SDK, registered by name at load time.
     module Builtin
       # User-defined custom tools.
       class CustomSkillsSkill < SkillBase
         def name = 'custom_skills'
         def description = 'Register user-defined custom tools'
+        # This skill may be loaded more than once on one agent — each instance
+        # is distinguished by its `prefix` param, which also namespaces its
+        # tools and its slice of `global_data`.
+        #
+        # @return [Boolean] true
         def supports_multiple_instances? = true
 
+        # Called once after construction. Return false to abort loading — the
+        # agent then refuses to register this skill's tools.
+        #
+        # @return [Boolean] true when the skill is ready to run
         def setup
           @tools_config = get_param('tools')
           return false unless @tools_config.is_a?(Array)
@@ -24,6 +36,12 @@ module SignalWire
           "custom_skills_#{tool_name}"
         end
 
+        # The SWAIG tool definitions this skill contributes to its agent. Each
+        # entry is a `{name:, description:, parameters:, handler:}` hash; the
+        # descriptions are what the model reads to decide when and how to call
+        # the tool.
+        #
+        # @return [Array<Hash>]
         def register_tools
           (@tools_config || []).filter_map do |tool_def|
             next unless tool_def.is_a?(Hash) && tool_def['name']
@@ -32,6 +50,10 @@ module SignalWire
           end
         end
 
+        # The JSON-Schema description of this skill's configuration params, for
+        # GUI and validation consumers.
+        #
+        # @return [Hash]
         def get_parameter_schema
           {
             'tools' => { 'type' => 'array', 'required' => true }

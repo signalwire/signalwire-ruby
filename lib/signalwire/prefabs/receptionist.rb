@@ -7,7 +7,9 @@
 
 require_relative '../swaig/function_result'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Prefabs — ready-made agents assembled from the SDK's own building blocks.
   module Prefabs
     # Prefab agent for greeting callers and transferring them to departments.
     #

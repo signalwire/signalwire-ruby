@@ -3,8 +3,11 @@
 require_relative '../skill_base'
 require_relative '../skill_registry'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Skills — the modular capability framework: skill base, registry, manager, builtins.
   module Skills
+    # Builtin — the skills that ship with the SDK, registered by name at load time.
     module Builtin
       class DateTimeSkill < SkillBase
         TIMEZONE_DESCRIPTION = "Timezone name (e.g., 'America/New_York', 'Europe/London'). Defaults to UTC."
@@ -45,6 +48,12 @@ module SignalWire
           super
         end
 
+        # The SWAIG tool definitions this skill contributes to its agent. Each
+        # entry is a `{name:, description:, parameters:, handler:}` hash; the
+        # descriptions are what the model reads to decide when and how to call
+        # the tool.
+        #
+        # @return [Array<Hash>]
         def register_tools
           [get_current_time_tool, get_current_date_tool]
         end
@@ -53,6 +62,11 @@ module SignalWire
         # on the class so it appears on public_instance_methods(false).
         def get_hints = []
 
+        # The POM sections this skill contributes to the agent's prompt,
+        # teaching the model when to reach for the skill's tools. Returned as
+        # fresh copies, so a caller mutating them does not corrupt skill state.
+        #
+        # @return [Array<Hash>]
         def get_prompt_sections
           PROMPT_SECTIONS.map(&:dup)
         end

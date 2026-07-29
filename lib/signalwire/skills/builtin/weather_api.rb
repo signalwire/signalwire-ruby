@@ -4,8 +4,11 @@ require_relative '../skill_base'
 require_relative '../skill_registry'
 require_relative '../../datamap/data_map'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Skills — the modular capability framework: skill base, registry, manager, builtins.
   module Skills
+    # Builtin — the skills that ship with the SDK, registered by name at load time.
     module Builtin
       class WeatherApiSkill < SkillBase
         def name = 'weather_api'
@@ -21,6 +24,10 @@ module SignalWire
           @temp_unit = get_param('temperature_unit', default: 'fahrenheit')
         end
 
+        # Called once after construction. Return false to abort loading — the
+        # agent then refuses to register this skill's tools.
+        #
+        # @return [Boolean] true when the skill is ready to run
         def setup
           @api_key   = get_param('api_key', env_var: 'WEATHER_API_KEY')
           @tool_name = get_param('tool_name', default: 'get_weather')
@@ -43,6 +50,12 @@ module SignalWire
           ]
         end
 
+        # The SWAIG tool definitions this skill contributes to its agent. Each
+        # entry is a `{name:, description:, parameters:, handler:}` hash; the
+        # descriptions are what the model reads to decide when and how to call
+        # the tool.
+        #
+        # @return [Array<Hash>]
         def register_tools
           get_tools.map { |tool| { datamap: tool } }
         end
@@ -112,6 +125,10 @@ module SignalWire
 
         public
 
+        # The JSON-Schema description of this skill's configuration params, for
+        # GUI and validation consumers.
+        #
+        # @return [Hash]
         def get_parameter_schema
           {
             'api_key' => { 'type' => 'string', 'required' => true, 'hidden' => true,

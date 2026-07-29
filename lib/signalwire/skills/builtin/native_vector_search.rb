@@ -7,15 +7,27 @@ require 'uri'
 require_relative '../skill_base'
 require_relative '../skill_registry'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Skills — the modular capability framework: skill base, registry, manager, builtins.
   module Skills
+    # Builtin — the skills that ship with the SDK, registered by name at load time.
     module Builtin
       # Network/remote mode only (as per porting manifest).
       class NativeVectorSearchSkill < SkillBase
         def name = 'native_vector_search'
         def description = 'Search document indexes using vector similarity and keyword search (local or remote)'
+        # This skill may be loaded more than once on one agent — each instance
+        # is distinguished by its `prefix` param, which also namespaces its
+        # tools and its slice of `global_data`.
+        #
+        # @return [Boolean] true
         def supports_multiple_instances? = true
 
+        # Called once after construction. Return false to abort loading — the
+        # agent then refuses to register this skill's tools.
+        #
+        # @return [Boolean] true when the skill is ready to run
         def setup
           @remote_url  = get_param('remote_url')
           @index_name  = get_param('index_name')
@@ -38,17 +50,31 @@ module SignalWire
           'count' => { 'type' => 'integer', 'description' => 'Number of results to return' }
         }.freeze
 
+        # The SWAIG tool definitions this skill contributes to its agent. Each
+        # entry is a `{name:, description:, parameters:, handler:}` hash; the
+        # descriptions are what the model reads to decide when and how to call
+        # the tool.
+        #
+        # @return [Array<Hash>]
         def register_tools
           [{ name: @tool_name, description: @tool_desc,
              parameters: TOOL_PARAMETERS, handler: method(:handle_search) }]
         end
 
+        # Speech-recognition hints this skill contributes to the AI verb, biasing
+        # the recognizer toward the vocabulary the skill's domain uses.
+        #
+        # @return [Array<String>]
         def get_hints
           base = ['search', 'find', 'look up', 'documentation', 'knowledge base']
           base.concat(@custom_hints) if @custom_hints.is_a?(Array)
           base
         end
 
+        # The JSON-Schema description of this skill's configuration params, for
+        # GUI and validation consumers.
+        #
+        # @return [Hash]
         def get_parameter_schema
           {
             'remote_url' => { 'type' => 'string', 'required' => true },

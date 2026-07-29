@@ -11,7 +11,9 @@ require 'uri'
 
 require_relative '../logging'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Utils — small shared helpers with no dependency on the agent surface.
   module Utils
     # SSRF-prevention guard for user-supplied URLs.
     #

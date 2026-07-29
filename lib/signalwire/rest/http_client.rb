@@ -9,7 +9,9 @@ require_relative 'request_options'
 require_relative '../version'
 require_relative '../error'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # REST — the synchronous REST client and its per-namespace resources.
   module REST
     # Raised when the SignalWire REST API returns a non-2xx response.
     #

@@ -3,7 +3,9 @@
 require 'json'
 require_relative 'constants'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Relay — the RELAY realtime (WebSocket / JSON-RPC 2.0) client surface.
   module Relay
     # JSON serialization, Ruby pattern-matching, and value-equality for
     # {Message}. Extracted into a mixin so {Message} itself stays focused on

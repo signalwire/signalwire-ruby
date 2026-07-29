@@ -15,7 +15,9 @@
 
 require_relative 'function_result'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Swaig — the SWAIG function-call surface: results, actions and typed payloads.
   module Swaig
     # Represents a SWAIG function — a tool the AI model can call.
     class SWAIGFunction

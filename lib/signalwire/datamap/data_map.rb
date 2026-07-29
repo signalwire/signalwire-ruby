@@ -7,6 +7,7 @@
 
 require_relative '../swaig/function_result'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
   # Fluent builder for server-side DataMap tools.
   #

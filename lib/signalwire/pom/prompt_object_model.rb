@@ -5,7 +5,9 @@ require 'yaml'
 
 require_relative 'section'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # POM — the Prompt Object Model: structured prompt sections rendered to markdown.
   module POM
     # A structured data format for composing, organising, and rendering
     # prompt instructions for large language models.

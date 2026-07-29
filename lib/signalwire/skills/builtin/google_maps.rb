@@ -7,8 +7,11 @@ require 'uri'
 require_relative '../skill_base'
 require_relative '../skill_registry'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Skills — the modular capability framework: skill base, registry, manager, builtins.
   module Skills
+    # Builtin — the skills that ship with the SDK, registered by name at load time.
     module Builtin
       # Private HTTP/formatting helpers for {GoogleMapsSkill}, extracted to
       # keep the skill class small. Not part of the public skill surface.
@@ -95,6 +98,10 @@ module SignalWire
         def name = 'google_maps'
         def description = 'Validate addresses and compute driving routes using Google Maps'
 
+        # Called once after construction. Return false to abort loading — the
+        # agent then refuses to register this skill's tools.
+        #
+        # @return [Boolean] true when the skill is ready to run
         def setup
           @api_key         = get_param('api_key', env_var: 'GOOGLE_MAPS_API_KEY')
           @lookup_tool     = get_param('lookup_tool_name', default: 'lookup_address')
@@ -104,14 +111,29 @@ module SignalWire
           true
         end
 
+        # The SWAIG tool definitions this skill contributes to its agent. Each
+        # entry is a `{name:, description:, parameters:, handler:}` hash; the
+        # descriptions are what the model reads to decide when and how to call
+        # the tool.
+        #
+        # @return [Array<Hash>]
         def register_tools
           [lookup_tool_def, route_tool_def]
         end
 
+        # Speech-recognition hints this skill contributes to the AI verb, biasing
+        # the recognizer toward the vocabulary the skill's domain uses.
+        #
+        # @return [Array<String>]
         def get_hints
           %w[address location route directions miles distance]
         end
 
+        # The POM sections this skill contributes to the agent's prompt,
+        # teaching the model when to reach for the skill's tools. Returned as
+        # fresh copies, so a caller mutating them does not corrupt skill state.
+        #
+        # @return [Array<Hash>]
         def get_prompt_sections
           [
             {
@@ -122,6 +144,10 @@ module SignalWire
           ]
         end
 
+        # The JSON-Schema description of this skill's configuration params, for
+        # GUI and validation consumers.
+        #
+        # @return [Hash]
         def get_parameter_schema
           {
             'api_key' => { 'type' => 'string', 'required' => true, 'hidden' => true,

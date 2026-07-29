@@ -10,7 +10,9 @@ require 'json'
 require 'stringio'
 require 'uri'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Serverless — adapters that run an agent under Lambda / CGI / GCF / Azure.
   module Serverless
     # Private mixin: translates a Rack response triple into the Lambda
     # response-hash shape. Extracted from {LambdaHandler} purely to keep that

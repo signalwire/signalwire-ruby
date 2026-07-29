@@ -37,7 +37,9 @@
 require 'rack'
 require_relative 'webhook_validator'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Security — webhook signature validation, session tokens and request hardening.
   module Security
     # Rack middleware that rejects webhook requests with bad signatures.
     #

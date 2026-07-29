@@ -3,8 +3,11 @@
 require_relative '../skill_base'
 require_relative '../skill_registry'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Skills — the modular capability framework: skill base, registry, manager, builtins.
   module Skills
+    # Builtin — the skills that ship with the SDK, registered by name at load time.
     module Builtin
       class ApiNinjasTriviaSkill < SkillBase
         VALID_CATEGORIES = {
@@ -26,6 +29,11 @@ module SignalWire
 
         def name = 'api_ninjas_trivia'
         def description = 'Get trivia questions from API Ninjas'
+        # This skill may be loaded more than once on one agent — each instance
+        # is distinguished by its `prefix` param, which also namespaces its
+        # tools and its slice of `global_data`.
+        #
+        # @return [Boolean] true
         def supports_multiple_instances? = true
 
         # Extracts the configuration (tool_name / api_key / categories) off
@@ -38,6 +46,10 @@ module SignalWire
           @categories = get_param('categories') || VALID_CATEGORIES.keys
         end
 
+        # Called once after construction. Return false to abort loading — the
+        # agent then refuses to register this skill's tools.
+        #
+        # @return [Boolean] true when the skill is ready to run
         def setup
           @api_key    = get_param('api_key', env_var: 'API_NINJAS_KEY')
           @tool_name  = get_param('tool_name', default: 'get_trivia')
@@ -64,10 +76,20 @@ module SignalWire
           ]
         end
 
+        # The SWAIG tool definitions this skill contributes to its agent. Each
+        # entry is a `{name:, description:, parameters:, handler:}` hash; the
+        # descriptions are what the model reads to decide when and how to call
+        # the tool.
+        #
+        # @return [Array<Hash>]
         def register_tools
           get_tools.map { |tool| { datamap: tool } }
         end
 
+        # The JSON-Schema description of this skill's configuration params, for
+        # GUI and validation consumers.
+        #
+        # @return [Hash]
         def get_parameter_schema
           {
             'api_key' => { 'type' => 'string', 'required' => true, 'hidden' => true, 'env_var' => 'API_NINJAS_KEY' },

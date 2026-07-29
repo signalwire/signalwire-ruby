@@ -13,7 +13,9 @@ require 'rack'
 require_relative '../logging'
 require_relative '../error'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Core — internal building blocks shared by the agent, SWML and SWAIG layers.
   module Core
     # Unified authentication handler supporting multiple auth methods.
     #

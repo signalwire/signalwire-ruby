@@ -14,6 +14,7 @@
 # PHP SignalWire\SWML\SWMLBuilder.
 
 module SignalWire
+  # SWML — SWML document construction, rendering and serving.
   module SWML
     # Fluent builder for SWML documents.
     #

@@ -29,7 +29,9 @@ require 'openssl'
 require 'rack/utils'
 require 'uri'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Security — webhook signature validation, session tokens and request hardening.
   module Security
     # Stateless validator for SignalWire-signed webhook requests.
     #

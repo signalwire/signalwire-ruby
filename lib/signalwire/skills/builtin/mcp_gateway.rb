@@ -13,8 +13,11 @@ require_relative '../skill_base'
 require_relative '../skill_registry'
 require_relative '../../utils/url_validator'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Skills — the modular capability framework: skill base, registry, manager, builtins.
   module Skills
+    # Builtin — the skills that ship with the SDK, registered by name at load time.
     module Builtin
       # MCP Gateway skill — bridges MCP (Model Context Protocol) servers with
       # SWAIG functions.
@@ -31,6 +34,9 @@ module SignalWire
       class MCPGatewaySkill < SkillBase
         def name = 'mcp_gateway'
         def description = 'Bridge MCP servers with SWAIG functions'
+        # This skill's own version, independent of the SDK's.
+        #
+        # @return [String] '1.0.0'
         def version = '1.0.0'
 
         # Validate configuration and connectivity. Returns +true+ when the skill

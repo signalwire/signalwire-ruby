@@ -14,7 +14,9 @@
 
 require_relative 'swml_builder'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # SWML — SWML document construction, rendering and serving.
   module SWML
     # Renders SWML documents for SignalWire AI Agents with AI and SWAIG
     # components, built on top of the SWML::Service document model.

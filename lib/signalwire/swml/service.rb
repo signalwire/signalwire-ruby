@@ -8,7 +8,9 @@ require_relative '../logging'
 require_relative 'document'
 require_relative 'schema'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # SWML — SWML document construction, rendering and serving.
   module SWML
     # rubocop:disable Metrics/ClassLength -- one Python class (SWMLService): the
     # full public surface (tool registry, auth helpers, verb auto-vivification,

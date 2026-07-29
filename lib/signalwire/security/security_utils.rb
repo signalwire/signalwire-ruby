@@ -14,6 +14,7 @@
 # hostname validation -- are available in every port.
 
 module SignalWire
+  # Security — webhook signature validation, session tokens and request hardening.
   module Security
     # Stateless security hygiene helpers exposed as module functions.
     #

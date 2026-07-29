@@ -8,6 +8,7 @@ require_relative '../core/logging_config'
 # environment (i.e. not 'server').
 
 module SignalWire
+  # Utils — small shared helpers with no dependency on the agent surface.
   module Utils
     module_function
 

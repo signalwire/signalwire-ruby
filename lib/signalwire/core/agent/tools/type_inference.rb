@@ -8,8 +8,11 @@
 # Reflection-based schema inference for SWAIG tool functions.
 
 module SignalWire
+  # Core — internal building blocks shared by the agent, SWML and SWAIG layers.
   module Core
+    # Agent — the agent internals: prompt management and tool registration.
     module Agent
+      # Tools — SWAIG tool registration and parameter type inference.
       module Tools
         # Infer a JSON Schema for a SWAIG tool's parameters from a Ruby
         # callable's signature, and wrap a typed handler so it can be

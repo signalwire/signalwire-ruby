@@ -15,7 +15,9 @@
 
 require_relative '../agent/agent_base'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Agents — agent variants built on top of AgentBase.
   module Agents
     # Agent implementation for the Amazon Bedrock voice-to-voice model.
     #

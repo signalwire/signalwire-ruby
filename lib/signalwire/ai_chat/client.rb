@@ -14,6 +14,7 @@ require 'base64'
 require_relative '../version'
 require_relative '../error'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
   # Namespace holding the AI Chat client's error family and response models.
   #

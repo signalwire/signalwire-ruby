@@ -2,7 +2,9 @@
 
 require 'json'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Relay — the RELAY realtime (WebSocket / JSON-RPC 2.0) client surface.
   module Relay
     # A typed RELAY +collect+ configuration: the known-shape options object the
     # input-collection wrappers ({Call#collect}, {Call#play_and_collect},

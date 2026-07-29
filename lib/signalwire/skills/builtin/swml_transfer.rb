@@ -4,8 +4,11 @@ require_relative '../skill_base'
 require_relative '../skill_registry'
 require_relative '../../datamap/data_map'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Skills — the modular capability framework: skill base, registry, manager, builtins.
   module Skills
+    # Builtin — the skills that ship with the SDK, registered by name at load time.
     module Builtin
       class SwmlTransferSkill < SkillBase
         PARAMETER_SCHEMA = {
@@ -18,8 +21,17 @@ module SignalWire
 
         def name = 'swml_transfer'
         def description = 'Transfer calls between agents based on pattern matching'
+        # This skill may be loaded more than once on one agent — each instance
+        # is distinguished by its `prefix` param, which also namespaces its
+        # tools and its slice of `global_data`.
+        #
+        # @return [Boolean] true
         def supports_multiple_instances? = true
 
+        # Called once after construction. Return false to abort loading — the
+        # agent then refuses to register this skill's tools.
+        #
+        # @return [Boolean] true when the skill is ready to run
         def setup
           @transfers = get_param('transfers')
           return false unless @transfers.is_a?(Hash) && !@transfers.empty?
@@ -31,6 +43,12 @@ module SignalWire
 
         def instance_key = "swml_transfer_#{@tool_name}"
 
+        # The SWAIG tool definitions this skill contributes to its agent. Each
+        # entry is a `{name:, description:, parameters:, handler:}` hash; the
+        # descriptions are what the model reads to decide when and how to call
+        # the tool.
+        #
+        # @return [Array<Hash>]
         def register_tools
           dm = build_transfer_data_map
 
@@ -45,12 +63,21 @@ module SignalWire
           [{ datamap: dm.to_swaig_function }]
         end
 
+        # Speech-recognition hints this skill contributes to the AI verb, biasing
+        # the recognizer toward the vocabulary the skill's domain uses.
+        #
+        # @return [Array<String>]
         def get_hints
           hints = []
           @transfers&.each_key { |pattern| hints.concat(pattern_hints(pattern)) }
           hints.push('transfer', 'connect', 'speak to', 'talk to')
         end
 
+        # The POM sections this skill contributes to the agent's prompt,
+        # teaching the model when to reach for the skill's tools. Returned as
+        # fresh copies, so a caller mutating them does not corrupt skill state.
+        #
+        # @return [Array<Hash>]
         def get_prompt_sections
           return [] unless @transfers && !@transfers.empty?
 
@@ -62,6 +89,10 @@ module SignalWire
           [transferring_section(bullets), transfer_instructions_section]
         end
 
+        # The JSON-Schema description of this skill's configuration params, for
+        # GUI and validation consumers.
+        #
+        # @return [Hash]
         def get_parameter_schema
           PARAMETER_SCHEMA
         end

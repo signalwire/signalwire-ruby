@@ -7,8 +7,11 @@ require 'uri'
 require_relative '../skill_base'
 require_relative '../skill_registry'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Skills — the modular capability framework: skill base, registry, manager, builtins.
   module Skills
+    # Builtin — the skills that ship with the SDK, registered by name at load time.
     module Builtin
       # Private mixin: {WebSearchSkill}'s search orchestration + scrape loop.
       # Extracted purely to keep the skill class within the size budget; every
@@ -381,9 +384,21 @@ module SignalWire
 
         def name = 'web_search'
         def description = 'Search the web for information using Google Custom Search API'
+        # This skill's own version, independent of the SDK's.
+        #
+        # @return [String] '2.0.0'
         def version = '2.0.0'
+        # This skill may be loaded more than once on one agent — each instance
+        # is distinguished by its `prefix` param, which also namespaces its
+        # tools and its slice of `global_data`.
+        #
+        # @return [Boolean] true
         def supports_multiple_instances? = true
 
+        # Called once after construction. Return false to abort loading — the
+        # agent then refuses to register this skill's tools.
+        #
+        # @return [Boolean] true when the skill is ready to run
         def setup
           read_core_params
           read_latency_params
@@ -396,6 +411,12 @@ module SignalWire
 
         def instance_key = "web_search_#{tool_name}"
 
+        # The SWAIG tool definitions this skill contributes to its agent. Each
+        # entry is a `{name:, description:, parameters:, handler:}` hash; the
+        # descriptions are what the model reads to decide when and how to call
+        # the tool.
+        #
+        # @return [Array<Hash>]
         def register_tools
           [
             {
@@ -410,10 +431,19 @@ module SignalWire
         # Returns [] — this skill ships no example hints.
         def get_hints = []
 
+        # Data this skill merges into the agent's `global_data`, so its prompts
+        # and tools can reference the values as `${global_data.*}`.
+        #
+        # @return [Hash]
         def get_global_data
           { 'web_search_enabled' => true, 'search_provider' => 'Google Custom Search', 'quality_filtering' => true }
         end
 
+        # The POM sections this skill contributes to the agent's prompt,
+        # teaching the model when to reach for the skill's tools. Returned as
+        # fresh copies, so a caller mutating them does not corrupt skill state.
+        #
+        # @return [Array<Hash>]
         def get_prompt_sections
           [
             {
@@ -424,6 +454,10 @@ module SignalWire
           ]
         end
 
+        # The JSON-Schema description of this skill's configuration params, for
+        # GUI and validation consumers.
+        #
+        # @return [Hash]
         def get_parameter_schema
           core_parameter_schema.merge(latency_parameter_schema)
         end

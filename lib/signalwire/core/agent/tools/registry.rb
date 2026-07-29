@@ -8,8 +8,11 @@
 # Tool registration and management.
 
 module SignalWire
+  # Core — internal building blocks shared by the agent, SWML and SWAIG layers.
   module Core
+    # Agent — the agent internals: prompt management and tool registration.
     module Agent
+      # Tools — SWAIG tool registration and parameter type inference.
       module Tools
         # Manages SWAIG function registration.
         #

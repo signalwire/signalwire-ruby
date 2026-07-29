@@ -10,9 +10,13 @@
 require_relative '../../../pom/prompt_object_model'
 require_relative '../../../contexts/context_builder'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Core — internal building blocks shared by the agent, SWML and SWAIG layers.
   module Core
+    # Agent — the agent internals: prompt management and tool registration.
     module Agent
+      # Prompt — prompt construction and management.
       module Prompt
         # Manages prompt building and configuration for an agent.
         #

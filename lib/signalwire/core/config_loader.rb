@@ -10,7 +10,9 @@
 require 'json'
 require 'yaml'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Core — internal building blocks shared by the agent, SWML and SWAIG layers.
   module Core
     # Configuration loader with environment variable substitution.
     #

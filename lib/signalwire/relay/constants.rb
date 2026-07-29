@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module SignalWire
+  # Relay — the RELAY realtime (WebSocket / JSON-RPC 2.0) client surface.
   module Relay
     # Protocol version sent during signalwire.connect
     PROTOCOL_VERSION = { 'major' => 2, 'minor' => 0, 'revision' => 0 }.freeze

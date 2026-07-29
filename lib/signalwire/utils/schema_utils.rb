@@ -8,7 +8,9 @@
 require 'json'
 require_relative '../error'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Utils — small shared helpers with no dependency on the agent surface.
   module Utils
     # SchemaValidationError — Ruby port of
     # signalwire.utils.schema_utils.SchemaValidationError.

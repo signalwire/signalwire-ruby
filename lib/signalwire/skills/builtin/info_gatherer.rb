@@ -3,8 +3,11 @@
 require_relative '../skill_base'
 require_relative '../skill_registry'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Skills — the modular capability framework: skill base, registry, manager, builtins.
   module Skills
+    # Builtin — the skills that ship with the SDK, registered by name at load time.
     module Builtin
       # Private helpers for {InfoGathererSkill}. Extracted to a mixin so the
       # skill class stays focused on its public surface (the audit reads the
@@ -138,8 +141,17 @@ module SignalWire
 
         def name = 'info_gatherer'
         def description = 'Gather answers to a configurable list of questions'
+        # This skill may be loaded more than once on one agent — each instance
+        # is distinguished by its `prefix` param, which also namespaces its
+        # tools and its slice of `global_data`.
+        #
+        # @return [Boolean] true
         def supports_multiple_instances? = true
 
+        # Called once after construction. Return false to abort loading — the
+        # agent then refuses to register this skill's tools.
+        #
+        # @return [Boolean] true when the skill is ready to run
         def setup
           @questions = get_param('questions')
           return false unless valid_questions?(@questions)
@@ -155,14 +167,29 @@ module SignalWire
           prefix && !prefix.to_s.empty? ? "info_gatherer_#{prefix}" : 'info_gatherer'
         end
 
+        # The SWAIG tool definitions this skill contributes to its agent. Each
+        # entry is a `{name:, description:, parameters:, handler:}` hash; the
+        # descriptions are what the model reads to decide when and how to call
+        # the tool.
+        #
+        # @return [Array<Hash>]
         def register_tools
           [start_tool_definition, submit_tool_definition]
         end
 
+        # Data this skill merges into the agent's `global_data`, so its prompts
+        # and tools can reference the values as `${global_data.*}`.
+        #
+        # @return [Hash]
         def get_global_data
           { @namespace => { 'questions' => @questions, 'question_index' => 0, 'answers' => [] } }
         end
 
+        # The POM sections this skill contributes to the agent's prompt,
+        # teaching the model when to reach for the skill's tools. Returned as
+        # fresh copies, so a caller mutating them does not corrupt skill state.
+        #
+        # @return [Array<Hash>]
         def get_prompt_sections
           [
             {
@@ -174,6 +201,10 @@ module SignalWire
           ]
         end
 
+        # The JSON-Schema description of this skill's configuration params, for
+        # GUI and validation consumers.
+        #
+        # @return [Hash]
         def get_parameter_schema
           { 'questions' => { 'type' => 'array', 'required' => true },
             'prefix' => { 'type' => 'string' },

@@ -6,7 +6,9 @@ require_relative 'constants'
 require_relative 'device'
 require_relative 'collect_config'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Relay — the RELAY realtime (WebSocket / JSON-RPC 2.0) client surface.
   module Relay
     # Represents a live RELAY call.
     #

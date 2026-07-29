@@ -6,7 +6,9 @@ require_relative 'pagination'
 require_relative 'phone_call_handler'
 require_relative 'namespaces/generated'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # REST — the synchronous REST client and its per-namespace resources.
   module REST
     # REST client for the SignalWire platform APIs.
     #

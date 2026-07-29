@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module SignalWire
+  # REST — the synchronous REST client and its per-namespace resources.
   module REST
     # Iterates items across paginated API responses.
     #

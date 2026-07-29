@@ -14,6 +14,7 @@
 # AIVerbHandler, VerbHandlerRegistry}.
 
 module SignalWire
+  # SWML — SWML document construction, rendering and serving.
   module SWML
     # Base interface for SWML verb handlers.
     #

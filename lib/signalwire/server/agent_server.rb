@@ -8,6 +8,7 @@
 require 'json'
 require_relative '../logging'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
   # Multi-agent hosting on a single Rack application.
   #

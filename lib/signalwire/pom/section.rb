@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module SignalWire
+  # POM — the Prompt Object Model: structured prompt sections rendered to markdown.
   module POM
     # Represents a section in the Prompt Object Model.
     #

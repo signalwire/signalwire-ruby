@@ -11,7 +11,9 @@
 
 require_relative '../pom/prompt_object_model'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Core — internal building blocks shared by the agent, SWML and SWAIG layers.
   module Core
     # Builder class for creating structured prompts using the Prompt Object
     # Model.

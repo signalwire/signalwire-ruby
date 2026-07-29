@@ -6,12 +6,20 @@ require 'uri'
 require_relative '../skill_base'
 require_relative '../skill_registry'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Skills — the modular capability framework: skill base, registry, manager, builtins.
   module Skills
+    # Builtin — the skills that ship with the SDK, registered by name at load time.
     module Builtin
       class SpiderSkill < SkillBase
         def name = 'spider'
         def description = 'Fast web scraping and crawling capabilities'
+        # This skill may be loaded more than once on one agent — each instance
+        # is distinguished by its `prefix` param, which also namespaces its
+        # tools and its slice of `global_data`.
+        #
+        # @return [Boolean] true
         def supports_multiple_instances? = true
 
         # Default user-agent.
@@ -55,6 +63,10 @@ module SignalWire
           @remove_xpaths = DEFAULT_REMOVE_XPATHS.dup
         end
 
+        # Called once after construction. Return false to abort loading — the
+        # agent then refuses to register this skill's tools.
+        #
+        # @return [Boolean] true when the skill is ready to run
         def setup
           @max_text_length = get_param('max_text_length', default: 10_000).to_i
           @timeout         = get_param('timeout', default: 5).to_i
@@ -83,14 +95,28 @@ module SignalWire
           "spider_#{get_param('tool_name', default: 'spider')}"
         end
 
+        # The SWAIG tool definitions this skill contributes to its agent. Each
+        # entry is a `{name:, description:, parameters:, handler:}` hash; the
+        # descriptions are what the model reads to decide when and how to call
+        # the tool.
+        #
+        # @return [Array<Hash>]
         def register_tools
           [scrape_tool, crawl_tool, extract_tool]
         end
 
+        # Speech-recognition hints this skill contributes to the AI verb, biasing
+        # the recognizer toward the vocabulary the skill's domain uses.
+        #
+        # @return [Array<String>]
         def get_hints
           ['scrape', 'crawl', 'extract', 'web page', 'website', 'spider']
         end
 
+        # The JSON-Schema description of this skill's configuration params, for
+        # GUI and validation consumers.
+        #
+        # @return [Hash]
         def get_parameter_schema
           {
             'timeout' => { 'type' => 'integer', 'default' => 5 },
