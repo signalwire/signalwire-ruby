@@ -12,8 +12,18 @@ module SignalWire
   module Skills
     # Builtin — the skills that ship with the SDK, registered by name at load time.
     module Builtin
+      # Fetch a web page and hand its text to the model. Strips HTML down to text,
+      # caps the result at `max_text_length`, and caches per URL for the life of the
+      # skill instance. `SPIDER_BASE_URL` redirects every fetch through a configured
+      # host for testing.
       class SpiderSkill < SkillBase
+        # The name this skill is added under (`agent.add_skill('spider')`).
+        #
+        # @return [String]
         def name = 'spider'
+        # Human-readable summary of what the skill does, for skill listings.
+        #
+        # @return [String]
         def description = 'Fast web scraping and crawling capabilities'
         # This skill may be loaded more than once on one agent — each instance
         # is distinguished by its `prefix` param, which also namespaces its
@@ -91,6 +101,10 @@ module SignalWire
           nil
         end
 
+        # The key this instance is tracked under — `spider_<tool_name>` — so several
+        # instances can coexist on one agent without colliding.
+        #
+        # @return [String]
         def instance_key
           "spider_#{get_param('tool_name', default: 'spider')}"
         end
@@ -127,6 +141,7 @@ module SignalWire
 
         private
 
+        # @api private — the single-page scrape tool definition, prefixed with this instance's tool prefix.
         def scrape_tool
           {
             name: "#{@tool_prefix}scrape_url",
@@ -137,6 +152,7 @@ module SignalWire
           }
         end
 
+        # @api private — the crawl tool definition, prefixed with this instance's tool prefix.
         def crawl_tool
           {
             name: "#{@tool_prefix}crawl_site",
@@ -147,6 +163,7 @@ module SignalWire
           }
         end
 
+        # @api private — the structured-extract tool definition, prefixed with this instance's tool prefix.
         def extract_tool
           {
             name: "#{@tool_prefix}extract_structured_data",
@@ -157,6 +174,11 @@ module SignalWire
           }
         end
 
+        # @api private — the scrape handler: fetch the URL's text and hand it to the
+        # model with a character count. A missing URL, an unreachable page, or a raised
+        # error each become a spoken FunctionResult rather than an exception.
+        #
+        # @return [Swaig::FunctionResult]
         def handle_scrape(args, _raw_data)
           url = (args['url'] || '').strip
           return Swaig::FunctionResult.new('Please provide a URL to scrape') if url.empty?
@@ -169,6 +191,10 @@ module SignalWire
           Swaig::FunctionResult.new("Error scraping #{url}: #{e.message}")
         end
 
+        # @api private — the crawl handler. This implementation fetches the START page
+        # only and reports it as a one-page crawl; it does not follow links.
+        #
+        # @return [Swaig::FunctionResult]
         def handle_crawl(args, _raw_data)
           url = (args['start_url'] || '').strip
           return Swaig::FunctionResult.new('Please provide a starting URL for the crawl') if url.empty?
@@ -181,12 +207,21 @@ module SignalWire
           Swaig::FunctionResult.new("Error crawling #{url}: #{e.message}")
         end
 
+        # @api private — the crawl report: the host, the page and its length, plus the
+        # first 500 characters as a summary.
+        #
+        # @return [String]
         def crawl_summary(url, text)
           summary = text.length > 500 ? "#{text[0, 500]}..." : text
           "Crawled 1 page from #{URI(url).host}:\n\n" \
             "1. #{url} (#{text.length} chars)\n   Summary: #{summary}"
         end
 
+        # @api private — the structured-extract handler. Despite the tool's
+        # "selectors" description it applies none: it returns the page's first 2000
+        # characters of text and lets the model do the extraction.
+        #
+        # @return [Swaig::FunctionResult]
         def handle_extract(args, _raw_data)
           url = (args['url'] || '').strip
           return Swaig::FunctionResult.new('Please provide a URL') if url.empty?
@@ -199,6 +234,11 @@ module SignalWire
           Swaig::FunctionResult.new("Error extracting data: #{e.message}")
         end
 
+        # @api private — the cached fetch: resolve any `SPIDER_BASE_URL` redirect,
+        # return the cached body when present, else fetch, strip to text, truncate to
+        # `max_text_length` and cache. Any failure yields nil rather than raising.
+        #
+        # @return [String, nil]
         def fetch_text(url)
           url = redirect_url(url)
           return @cache[url] if cache_hit?(url)
@@ -213,6 +253,10 @@ module SignalWire
           nil
         end
 
+        # @api private — whether this URL is already cached. Guards on the cache
+        # existing, so a lookup after {#cleanup} is a miss rather than an error.
+        #
+        # @return [Boolean]
         def cache_hit?(url)
           defined?(@cache) && @cache&.key?(url)
         end

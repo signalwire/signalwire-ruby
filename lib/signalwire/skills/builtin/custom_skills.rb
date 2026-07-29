@@ -11,7 +11,13 @@ module SignalWire
     module Builtin
       # User-defined custom tools.
       class CustomSkillsSkill < SkillBase
+        # The name this skill is added under (`agent.add_skill('custom_skills')`).
+        #
+        # @return [String]
         def name = 'custom_skills'
+        # Human-readable summary of what the skill does, for skill listings.
+        #
+        # @return [String]
         def description = 'Register user-defined custom tools'
         # This skill may be loaded more than once on one agent — each instance
         # is distinguished by its `prefix` param, which also namespaces its
@@ -31,6 +37,10 @@ module SignalWire
           true
         end
 
+        # The key this instance is tracked under — `custom_skills_<tool_name>` — so several
+        # instances can coexist on one agent without colliding.
+        #
+        # @return [String]
         def instance_key
           tool_name = get_param('tool_name', default: 'custom')
           "custom_skills_#{tool_name}"
@@ -62,6 +72,11 @@ module SignalWire
 
         private
 
+        # @api private — one SWAIG tool from a `tools` config entry. The handler
+        # ignores its arguments and returns the entry's fixed `response` string, so
+        # these are canned-answer tools, not computed ones.
+        #
+        # @return [Hash]
         def build_custom_tool(tool_def)
           {
             name: tool_def['name'],

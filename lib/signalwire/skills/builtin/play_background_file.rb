@@ -9,8 +9,17 @@ module SignalWire
   module Skills
     # Builtin — the skills that ship with the SDK, registered by name at load time.
     module Builtin
+      # Let the model start and stop background audio during a call. Emitted as a
+      # DataMap whose expressions match the chosen action, so playback is controlled
+      # server-side with no webhook back to this agent.
       class PlayBackgroundFileSkill < SkillBase
+        # The name this skill is added under (`agent.add_skill('play_background_file')`).
+        #
+        # @return [String]
         def name = 'play_background_file'
+        # Human-readable summary of what the skill does, for skill listings.
+        #
+        # @return [String]
         def description = 'Control background file playback'
         # This skill may be loaded more than once on one agent — each instance
         # is distinguished by its `prefix` param, which also namespaces its
@@ -41,6 +50,10 @@ module SignalWire
           true
         end
 
+        # The key this instance is tracked under — `play_background_file_<tool_name>` — so several
+        # instances can coexist on one agent without colliding.
+        #
+        # @return [String]
         def instance_key = "play_background_file_#{@tool_name}"
 
         # Returns the raw SWAIG tool DEFINITION hashes (the DataMap tool the
@@ -82,6 +95,11 @@ module SignalWire
 
         private
 
+        # @api private — the tool's JSON Schema: one required `action`, constrained to
+        # the enum of `start_<key>` values plus `stop`, so the model cannot name a file
+        # that was not configured.
+        #
+        # @return [Hash]
         def tool_parameters
           {
             'type' => 'object',
@@ -92,25 +110,48 @@ module SignalWire
           }
         end
 
+        # @api private — a usable file entry is a Hash carrying all three of `key`
+        # (how the action names it), `description` (what the model is told) and `url`
+        # (what is played).
+        #
+        # @return [Boolean]
         def valid_file?(file)
           file.is_a?(Hash) && file['key'] && file['description'] && file['url']
         end
 
+        # @api private — the action enum: `start_<key>` for each configured file, plus
+        # the single `stop`.
+        #
+        # @return [Array<String>]
         def enum_values
           @files.map { |f| "start_#{f['key']}" } + ['stop']
         end
 
+        # @api private — the action parameter's description, pairing each
+        # `start_<key>` with that file's description so the model can choose from the
+        # description alone.
+        #
+        # @return [String]
         def action_param_desc
           descriptions = @files.map { |f| "start_#{f['key']}: #{f['description']}" }
           descriptions << 'stop: Stop any currently playing background file'
           "Action to perform. Options: #{descriptions.join('; ')}"
         end
 
+        # @api private — the DataMap expressions: one start branch per configured file,
+        # then the stop branch.
+        #
+        # @return [Array<Hash>]
         def expressions
           exprs = @files.map { |f| start_expression(f) }
           exprs << stop_expression
         end
 
+        # @api private — the DataMap branch that starts one file. Matched
+        # case-insensitively against the action argument. `post_process` is set so the
+        # AI speaks its line BEFORE playback begins rather than over it.
+        #
+        # @return [Hash]
         def start_expression(file)
           result = Swaig::FunctionResult.new(
             "Tell the user you are now going to play #{file['description']} for them."
@@ -125,6 +166,10 @@ module SignalWire
           }
         end
 
+        # @api private — the DataMap branch that stops playback, matched
+        # case-insensitively against the action argument.
+        #
+        # @return [Hash]
         def stop_expression
           stop_result = Swaig::FunctionResult.new(
             'Tell the user you have stopped the background file playback.'

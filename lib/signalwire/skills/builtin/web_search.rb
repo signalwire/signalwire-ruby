@@ -176,6 +176,10 @@ module SignalWire
             'text_length' => length, 'query_relevance' => relevance }
         end
 
+        # @api private — the lower-cased host of a URL, or the empty string when it
+        # does not parse. Feeds the per-result quality scoring.
+        #
+        # @return [String]
         def url_domain(url)
           URI(url).host.to_s.downcase
         rescue StandardError
@@ -205,6 +209,10 @@ module SignalWire
           wrap_response(lines.join("\n").rstrip)
         end
 
+        # @api private — the numbered block for one snippet-only result: title, URL and
+        # the CSE snippet.
+        #
+        # @return [Array<String>]
         def snippet_result_lines(result, index)
           ["=== RESULT #{index + 1} ===",
            "Title: #{result['title']}",
@@ -227,6 +235,11 @@ module SignalWire
           Process.clock_gettime(Process::CLOCK_MONOTONIC)
         end
 
+        # @api private — call the Google Custom Search API and normalise each item to
+        # `{title, url, snippet}`. A non-2xx response yields an empty list rather than
+        # raising, so a search-API outage degrades to "no results".
+        #
+        # @return [Array<Hash>]
         def google_search(query, num)
           uri = google_search_uri(query, num)
           response = Net::HTTP.get_response(uri)
@@ -279,6 +292,8 @@ module SignalWire
                     :response_prefix, :response_postfix, :per_page_timeout,
                     :overall_deadline, :parallel_scrape, :snippets_only
 
+        # @api private — the prompt bullets, naming this instance's CONFIGURED tool
+        # name and telling the model that results are already quality-filtered.
         def prompt_section_bullets
           [
             "Use the #{tool_name} tool when users ask for information you need to look up",
@@ -288,6 +303,10 @@ module SignalWire
           ]
         end
 
+        # @api private — the schema for the credentials and result-shaping params. The
+        # API key and engine id are marked hidden and carry their env-var names.
+        #
+        # @return [Hash]
         def core_parameter_schema
           {
             'api_key' => { 'type' => 'string', 'required' => true, 'hidden' => true,
@@ -318,6 +337,10 @@ module SignalWire
           }
         end
 
+        # @api private — read the credentials (falling back to `GOOGLE_SEARCH_API_KEY`
+        # / `GOOGLE_SEARCH_ENGINE_ID`), the result count, tool name, quality-score
+        # floor, inter-request delay, no-results message and the optional
+        # prefix/postfix wrapped around every non-empty result.
         def read_core_params
           @api_key           = get_param('api_key', env_var: 'GOOGLE_SEARCH_API_KEY')
           @search_engine_id  = get_param('search_engine_id', env_var: 'GOOGLE_SEARCH_ENGINE_ID')
@@ -373,6 +396,11 @@ module SignalWire
         end
       end
 
+      # Search the web via Google Custom Search, scrape the resulting pages, score
+      # them for length and query relevance, and hand the model the high-quality
+      # ones. Bounded by per-page and overall deadlines so the handler finishes
+      # inside the platform's webhook timeout; falls back to CSE snippets when the
+      # deadline is hit or `snippets_only` is set.
       class WebSearchSkill < SkillBase
         include WebScraping
         include WebPageFetcher
@@ -382,7 +410,13 @@ module SignalWire
           'Search the web for high-quality information, automatically filtering low-quality results'
         QUERY_PARAM_DESC = 'The search query - what you want to find information about'
 
+        # The name this skill is added under (`agent.add_skill('web_search')`).
+        #
+        # @return [String]
         def name = 'web_search'
+        # Human-readable summary of what the skill does, for skill listings.
+        #
+        # @return [String]
         def description = 'Search the web for information using Google Custom Search API'
         # This skill's own version, independent of the SDK's.
         #
@@ -409,6 +443,10 @@ module SignalWire
           true
         end
 
+        # The key this instance is tracked under — `web_search_<tool_name>` — so several
+        # instances can coexist on one agent without colliding.
+        #
+        # @return [String]
         def instance_key = "web_search_#{tool_name}"
 
         # The SWAIG tool definitions this skill contributes to its agent. Each
@@ -464,6 +502,10 @@ module SignalWire
 
         private
 
+        # @api private — the search handler. An empty query or a raised error each
+        # become a spoken FunctionResult rather than an exception.
+        #
+        # @return [Swaig::FunctionResult]
         def handle_search(args, _raw_data)
           query = (args['query'] || '').strip
           if query.empty?

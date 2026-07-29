@@ -15,7 +15,13 @@ module SignalWire
     module Builtin
       # Network/remote mode only (as per porting manifest).
       class NativeVectorSearchSkill < SkillBase
+        # The name this skill is added under (`agent.add_skill('native_vector_search')`).
+        #
+        # @return [String]
         def name = 'native_vector_search'
+        # Human-readable summary of what the skill does, for skill listings.
+        #
+        # @return [String]
         def description = 'Search document indexes using vector similarity and keyword search (local or remote)'
         # This skill may be loaded more than once on one agent — each instance
         # is distinguished by its `prefix` param, which also namespaces its
@@ -43,6 +49,10 @@ module SignalWire
           true
         end
 
+        # The key this instance is tracked under — `native_vector_search_<tool_name>` — so several
+        # instances can coexist on one agent without colliding.
+        #
+        # @return [String]
         def instance_key = "native_vector_search_#{@tool_name}"
 
         TOOL_PARAMETERS = {
@@ -88,6 +98,11 @@ module SignalWire
 
         private
 
+        # @api private — the search handler. The per-call `count` argument overrides
+        # the configured default. An empty query, an unavailable service, or a raised
+        # error each become a spoken FunctionResult rather than an exception.
+        #
+        # @return [Swaig::FunctionResult]
         def handle_search(args, _raw_data)
           query = (args['query'] || '').strip
           return Swaig::FunctionResult.new('Please provide a search query.') if query.empty?
@@ -103,6 +118,11 @@ module SignalWire
           Swaig::FunctionResult.new("Error searching: #{e.message}")
         end
 
+        # @api private — POST the query, result count and similarity threshold to the
+        # search service's `/search` endpoint, adding `index_name` when one is
+        # configured.
+        #
+        # @return [Net::HTTPResponse]
         def post_search(query, count)
           # Python parity: POST to "<remote_base_url>/search" (the remote_url is
           # a base URL; the /search endpoint is appended).
@@ -122,6 +142,11 @@ module SignalWire
           "#{@remote_url.chomp('/')}/search"
         end
 
+        # @api private — the Net::HTTP transport for the search endpoint, with TLS on
+        # for an https scheme and 10s connect / 30s read timeouts so a hung index
+        # server cannot stall the SWAIG handler indefinitely.
+        #
+        # @return [Net::HTTP]
         def search_http(uri)
           http = Net::HTTP.new(uri.host, uri.port)
           http.use_ssl = (uri.scheme == 'https')
@@ -130,6 +155,12 @@ module SignalWire
           http
         end
 
+        # @api private — render the search response as numbered, delimited blocks.
+        # Results arrive under `results` or `chunks` depending on the backend, and each
+        # item's text under `text` or `content`, so both shapes are accepted; an
+        # unrecognised item falls back to its raw JSON rather than being dropped.
+        #
+        # @return [Swaig::FunctionResult]
         def format_results(data, query, count)
           results = data['results'] || data['chunks'] || []
           return Swaig::FunctionResult.new("No results found for '#{query}'.") if results.empty?

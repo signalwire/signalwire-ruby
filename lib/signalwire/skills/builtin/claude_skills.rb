@@ -19,7 +19,13 @@ module SignalWire
       # registered per discovered skill. A loose `.md` file that is NOT a
       # `SKILL.md` inside a skill directory is ignored.
       class ClaudeSkillsSkill < SkillBase
+        # The name this skill is added under (`agent.add_skill('claude_skills')`).
+        #
+        # @return [String]
         def name = 'claude_skills'
+        # Human-readable summary of what the skill does, for skill listings.
+        #
+        # @return [String]
         def description = 'Load Claude SKILL.md files as agent tools'
         # This skill may be loaded more than once on one agent — each instance
         # is distinguished by its `prefix` param, which also namespaces its
@@ -44,6 +50,10 @@ module SignalWire
           true
         end
 
+        # The key this instance is tracked under — `claude_skills_<skills_path>` — so
+        # one agent can load several skill directories without colliding.
+        #
+        # @return [String]
         def instance_key = "claude_skills_#{@skills_path}"
 
         # The SWAIG tool definitions this skill contributes to its agent. Each
@@ -105,6 +115,11 @@ module SignalWire
           @skills_path && !@skills_path.empty? && File.directory?(@skills_path)
         end
 
+        # @api private — one SWAIG tool per discovered SKILL.md. Calling the tool
+        # returns the skill file's BODY as the result: the model is handed the
+        # instructions to follow, not the output of running anything.
+        #
+        # @return [Hash]
         def skill_tool(skill)
           {
             name: "#{@tool_prefix}#{skill[:safe_name]}",

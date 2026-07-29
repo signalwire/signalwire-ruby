@@ -13,8 +13,17 @@ module SignalWire
   module Skills
     # Builtin — the skills that ship with the SDK, registered by name at load time.
     module Builtin
+      # Search Wikipedia and hand the model an article summary. Two upstream calls:
+      # a search for matching titles, then an intro-extract for each. Needs no
+      # credentials — the MediaWiki API is public.
       class WikipediaSearchSkill < SkillBase
+        # The name this skill is added under (`agent.add_skill('wikipedia_search')`).
+        #
+        # @return [String]
         def name = 'wikipedia_search'
+        # Human-readable summary of what the skill does, for skill listings.
+        #
+        # @return [String]
         def description = 'Search Wikipedia for information about a topic and get article summaries'
 
         DEFAULT_NO_RESULTS_MSG = "I couldn't find any Wikipedia articles for that query. " \
@@ -104,6 +113,10 @@ module SignalWire
           @num_results = 1
         end
 
+        # @api private — the message spoken when nothing matched, memoized from the
+        # config with a default so it is usable before {#setup} has run.
+        #
+        # @return [String]
         def no_results_msg
           return @no_results_msg if defined?(@no_results_msg) && @no_results_msg
 
@@ -146,6 +159,11 @@ module SignalWire
           "**#{title}**\n\n#{content}"
         end
 
+        # @api private — the plain-text intro extract for one article title. A non-2xx
+        # response or a body without `query.pages` yields nil, and the caller falls
+        # back to the search snippet.
+        #
+        # @return [String, nil]
         def wiki_extract(title)
           extract_uri = URI(
             "#{api_endpoint}?action=query&prop=extracts&exintro&explaintext&format=json" \
@@ -158,6 +176,10 @@ module SignalWire
           pages.values.first&.dig('extract')&.strip
         end
 
+        # @api private — the search handler. An empty query or a raised error each
+        # become a spoken FunctionResult rather than an exception.
+        #
+        # @return [Swaig::FunctionResult]
         def handle_search(args, _raw_data)
           query = (args['query'] || '').strip
           return Swaig::FunctionResult.new('Please provide a search query for Wikipedia.') if query.empty?

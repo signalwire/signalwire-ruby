@@ -10,11 +10,20 @@ module SignalWire
   module Skills
     # Builtin — the skills that ship with the SDK, registered by name at load time.
     module Builtin
+      # Fetch jokes from the API Ninjas joke API as a DataMap tool — the request runs
+      # ON SignalWire's servers, so there is no webhook back to this agent. Requires
+      # an `API_NINJAS_KEY` (or an `api_key` param).
       class JokeSkill < SkillBase
         FALLBACK_MESSAGE = 'Sorry, there is a problem with the joke service right now. ' \
                            'Please try again later.'
 
+        # The name this skill is added under (`agent.add_skill('joke')`).
+        #
+        # @return [String]
         def name = 'joke'
+        # Human-readable summary of what the skill does, for skill listings.
+        #
+        # @return [String]
         def description = 'Tell jokes using the API Ninjas joke API'
 
         # Called once after construction. Return false to abort loading — the
@@ -74,6 +83,8 @@ module SignalWire
           ]
         end
 
+        # @api private — the prompt bullets, naming this instance's CONFIGURED tool
+        # name (falling back to `get_joke`).
         def joke_telling_bullets
           [
             "Use #{tool_name || 'get_joke'} to tell jokes when users ask for humor",

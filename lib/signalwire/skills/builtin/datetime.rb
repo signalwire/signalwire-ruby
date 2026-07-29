@@ -9,6 +9,9 @@ module SignalWire
   module Skills
     # Builtin — the skills that ship with the SDK, registered by name at load time.
     module Builtin
+      # Tell the model the current date and time, optionally in a named timezone.
+      # Timezones are resolved through tzinfo rather than by mutating the process's
+      # `TZ`, so concurrent calls for different zones never interfere.
       class DateTimeSkill < SkillBase
         TIMEZONE_DESCRIPTION = "Timezone name (e.g., 'America/New_York', 'Europe/London'). Defaults to UTC."
         PROMPT_SECTIONS = [
@@ -23,7 +26,13 @@ module SignalWire
           }
         ].freeze
 
+        # The name this skill is added under (`agent.add_skill('datetime')`).
+        #
+        # @return [String]
         def name = 'datetime'
+        # Human-readable summary of what the skill does, for skill listings.
+        #
+        # @return [String]
         def description = 'Get current date, time, and timezone information'
 
         # Timezones are resolved through the ``tzinfo`` gem — a thread-safe,
@@ -73,6 +82,8 @@ module SignalWire
 
         private
 
+        # @api private — the current-time tool definition. The timezone parameter is
+        # optional and defaults to UTC.
         def get_current_time_tool
           {
             name: 'get_current_time',
@@ -82,6 +93,8 @@ module SignalWire
           }
         end
 
+        # @api private — the current-date tool definition. The timezone parameter is
+        # optional and defaults to UTC.
         def get_current_date_tool
           {
             name: 'get_current_date',
@@ -93,6 +106,11 @@ module SignalWire
           }
         end
 
+        # @api private — the time handler, formatting as 12-hour time with the zone
+        # abbreviation. An unknown timezone yields a spoken error naming it rather than
+        # silently falling back to UTC.
+        #
+        # @return [Swaig::FunctionResult]
         def handle_get_time(args, _raw_data)
           tz_name = (args['timezone'] || 'UTC').strip
           now = resolve_time(tz_name)
@@ -104,6 +122,10 @@ module SignalWire
           end
         end
 
+        # @api private — the date handler, formatting as "Weekday, Month DD, YYYY"
+        # so TTS reads it naturally. An unknown timezone yields a spoken error.
+        #
+        # @return [Swaig::FunctionResult]
         def handle_get_date(args, _raw_data)
           tz_name = (args['timezone'] || 'UTC').strip
           now = resolve_time(tz_name)
@@ -115,6 +137,10 @@ module SignalWire
           end
         end
 
+        # @api private — the current time in +tz_name+. `UTC` short-circuits; anything
+        # else goes through tzinfo.
+        #
+        # @return [Time, nil] nil when the timezone is unknown
         def resolve_time(tz_name)
           return Time.now.utc if tz_name.upcase == 'UTC'
 
