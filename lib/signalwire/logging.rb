@@ -69,7 +69,11 @@ module SignalWire
         # processor chains. A port that merely EXPOSES the scrub without putting it on
         # the emission path offers no protection at all: a caller-supplied "\u0000" or
         # an "\e[" escape reaches the terminal verbatim and can forge log lines.
-        safe = Core::LoggingConfig.strip_control_chars_value(msg.to_s)
+        # Route through the reference's event-map contract rather than a second
+        # public helper: a port-only `strip_control_chars_value` would be surface
+        # the reference does not have, and the surface gate reports it as an
+        # invented addition. One key in, one key out.
+        safe = Core::LoggingConfig.strip_control_chars('event' => msg.to_s)['event']
         @output.puts "[#{timestamp}] #{level.upcase} [#{@name}] #{safe}"
       end
     end
