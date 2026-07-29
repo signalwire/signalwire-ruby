@@ -1631,7 +1631,12 @@ def emit_methodless_class(module_segments: list, rb_name: str, properties: dict,
     port-side state accessors (zero-arg, ``any`` return)."""
     indent = ""
     lines: list[str] = []
-    for seg in module_segments:
+    for depth, seg in enumerate(module_segments):
+        # Every module segment carries a doc comment: this file's namespace nesting is
+        # public surface and the DOC-SURFACE gate reads the nearest preceding comment.
+        if depth:
+            lines.append(f"{indent}# {'::'.join(module_segments[:depth + 1])} — "
+                         f"namespace for this generated data-class tree.")
         lines.append(f"{indent}module {seg}")
         indent += "  "
     kind = "data type" if not emit_readers else "read-side payload"

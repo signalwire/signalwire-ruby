@@ -9,7 +9,9 @@
 # schema.json $defs schema 'JoinRoom'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
       # JoinRoom — generated read-side payload (schema.json $defs schema 'JoinRoom').
       #

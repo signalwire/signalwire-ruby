@@ -9,7 +9,9 @@
 # schema.json $defs schema 'AiSidecar'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
       # AiSidecar — generated read-side payload (schema.json $defs schema 'AiSidecar').
       #

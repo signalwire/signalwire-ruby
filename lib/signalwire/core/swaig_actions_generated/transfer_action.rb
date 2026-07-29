@@ -9,7 +9,9 @@
 # swaig-response action 'transfer' value object
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwaigActionsGenerated — namespace for this generated data-class tree.
     module SwaigActionsGenerated
       # TransferAction — generated data type (swaig-response action 'transfer' value object).
       #

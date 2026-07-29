@@ -9,7 +9,9 @@
 # schema.json $defs schema 'Section'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
       # Section — generated read-side payload (schema.json $defs schema 'Section').
       #

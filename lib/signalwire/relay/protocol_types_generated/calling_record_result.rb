@@ -9,7 +9,9 @@
 # RELAY method 'calling.record', result
 
 module SignalWire
+  # SignalWire::Relay — namespace for this generated data-class tree.
   module Relay
+    # SignalWire::Relay::ProtocolTypesGenerated — namespace for this generated data-class tree.
     module ProtocolTypesGenerated
       # CallingRecordResult — generated data type (RELAY method 'calling.record', result).
       #

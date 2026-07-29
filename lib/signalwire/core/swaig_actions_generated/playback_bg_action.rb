@@ -9,7 +9,9 @@
 # swaig-response action 'playback_bg' value object
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwaigActionsGenerated — namespace for this generated data-class tree.
     module SwaigActionsGenerated
       # PlaybackBgAction — generated data type (swaig-response action 'playback_bg' value object).
       #

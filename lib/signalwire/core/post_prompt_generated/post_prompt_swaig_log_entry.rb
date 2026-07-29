@@ -10,7 +10,9 @@
 # post-prompt components/schemas 'PostPromptSwaigLogEntry'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::PostPromptGenerated — namespace for this generated data-class tree.
     module PostPromptGenerated
       # PostPromptSwaigLogEntry — generated read-side payload (post-prompt components/schemas 'PostPromptSwaigLogEntry').
       #

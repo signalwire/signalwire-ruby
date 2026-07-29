@@ -10,7 +10,9 @@
 # schema.json $defs schema 'PickPropertiesHangUpHookSWAIGFunctionPickedSWAIGFunctionProps'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
       # PickPropertiesHangUpHookSWAIGFunctionPickedSWAIGFunctionProps — generated read-side payload (schema.json $defs schema 'PickPropertiesHangUpHookSWAIGFunctionPickedSWAIGFunctionProps').
       #

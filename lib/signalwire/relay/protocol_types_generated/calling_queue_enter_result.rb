@@ -9,7 +9,9 @@
 # RELAY method 'calling.queue.enter', result
 
 module SignalWire
+  # SignalWire::Relay — namespace for this generated data-class tree.
   module Relay
+    # SignalWire::Relay::ProtocolTypesGenerated — namespace for this generated data-class tree.
     module ProtocolTypesGenerated
       # CallingQueueEnterResult — generated data type (RELAY method 'calling.queue.enter', result).
       #

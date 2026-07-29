@@ -9,7 +9,9 @@
 # RELAY method 'calling.bind_digit', result
 
 module SignalWire
+  # SignalWire::Relay — namespace for this generated data-class tree.
   module Relay
+    # SignalWire::Relay::ProtocolTypesGenerated — namespace for this generated data-class tree.
     module ProtocolTypesGenerated
       # CallingBindDigitResult — generated data type (RELAY method 'calling.bind_digit', result).
       #

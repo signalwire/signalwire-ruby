@@ -10,7 +10,9 @@
 # RELAY method 'calling.collect.start_input_timers', params
 
 module SignalWire
+  # SignalWire::Relay — namespace for this generated data-class tree.
   module Relay
+    # SignalWire::Relay::ProtocolTypesGenerated — namespace for this generated data-class tree.
     module ProtocolTypesGenerated
       # CallingCollectStartInputTimersParams — generated data type (RELAY method 'calling.collect.start_input_timers', params).
       #

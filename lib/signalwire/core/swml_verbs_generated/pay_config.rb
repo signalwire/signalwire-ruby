@@ -10,7 +10,9 @@
 # flattened SWMLMethod verb 'pay' config
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
       # PayConfig — generated read-side payload (flattened SWMLMethod verb 'pay' config).
       #

@@ -10,7 +10,9 @@
 # swaig-request `SwaigRequest` schema
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwaigRequestGenerated — namespace for this generated data-class tree.
     module SwaigRequestGenerated
       # SwaigRequest — generated read-side payload (swaig-request `SwaigRequest` schema).
       #

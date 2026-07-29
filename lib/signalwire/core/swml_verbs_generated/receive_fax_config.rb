@@ -9,7 +9,9 @@
 # flattened SWMLMethod verb 'receive_fax' config
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
       # ReceiveFaxConfig — generated read-side payload (flattened SWMLMethod verb 'receive_fax' config).
       #

@@ -9,7 +9,9 @@
 # inline swaig-request `argument` object
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwaigRequestGenerated — namespace for this generated data-class tree.
     module SwaigRequestGenerated
       # SwaigArgument — generated read-side payload (inline swaig-request `argument` object).
       #

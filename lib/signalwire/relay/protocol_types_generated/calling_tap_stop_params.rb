@@ -9,7 +9,9 @@
 # RELAY method 'calling.tap.stop', params
 
 module SignalWire
+  # SignalWire::Relay — namespace for this generated data-class tree.
   module Relay
+    # SignalWire::Relay::ProtocolTypesGenerated — namespace for this generated data-class tree.
     module ProtocolTypesGenerated
       # CallingTapStopParams — generated data type (RELAY method 'calling.tap.stop', params).
       #

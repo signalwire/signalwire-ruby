@@ -10,7 +10,9 @@
 # schema.json $defs schema 'HangUpHookSWAIGFunction'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
       # HangUpHookSWAIGFunction — generated read-side payload (schema.json $defs schema 'HangUpHookSWAIGFunction').
       #

@@ -10,7 +10,9 @@
 # schema.json $defs schema 'ConnectDeviceSingle'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
       # ConnectDeviceSingle — generated read-side payload (schema.json $defs schema 'ConnectDeviceSingle').
       #

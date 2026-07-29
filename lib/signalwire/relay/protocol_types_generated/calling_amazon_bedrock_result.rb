@@ -9,7 +9,9 @@
 # RELAY method 'calling.amazon_bedrock', result
 
 module SignalWire
+  # SignalWire::Relay — namespace for this generated data-class tree.
   module Relay
+    # SignalWire::Relay::ProtocolTypesGenerated — namespace for this generated data-class tree.
     module ProtocolTypesGenerated
       # CallingAmazonBedrockResult — generated data type (RELAY method 'calling.amazon_bedrock', result).
       #

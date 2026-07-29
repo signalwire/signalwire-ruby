@@ -9,7 +9,9 @@
 # flattened SWMLMethod verb 'goto' config
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
       # GotoConfig — generated read-side payload (flattened SWMLMethod verb 'goto' config).
       #

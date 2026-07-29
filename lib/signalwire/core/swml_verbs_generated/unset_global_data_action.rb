@@ -9,7 +9,9 @@
 # schema.json $defs schema 'UnsetGlobalDataAction'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
       # UnsetGlobalDataAction — generated read-side payload (schema.json $defs schema 'UnsetGlobalDataAction').
       #

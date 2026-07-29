@@ -10,7 +10,9 @@
 # schema.json $defs schema 'BedrockParams'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
       # BedrockParams — generated read-side payload (schema.json $defs schema 'BedrockParams').
       #

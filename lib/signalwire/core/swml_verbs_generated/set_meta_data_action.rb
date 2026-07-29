@@ -9,7 +9,9 @@
 # schema.json $defs schema 'SetMetaDataAction'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
       # SetMetaDataAction — generated read-side payload (schema.json $defs schema 'SetMetaDataAction').
       #

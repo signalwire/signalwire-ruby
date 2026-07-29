@@ -9,7 +9,9 @@
 # RELAY method 'signalwire.execute', result
 
 module SignalWire
+  # SignalWire::Relay — namespace for this generated data-class tree.
   module Relay
+    # SignalWire::Relay::ProtocolTypesGenerated — namespace for this generated data-class tree.
     module ProtocolTypesGenerated
       # SignalwireExecuteResult — generated data type (RELAY method 'signalwire.execute', result).
       #

@@ -9,7 +9,9 @@
 # flattened SWMLMethod verb 'live_transcribe' config
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
       # LiveTranscribeConfig — generated read-side payload (flattened SWMLMethod verb 'live_transcribe' config).
       #

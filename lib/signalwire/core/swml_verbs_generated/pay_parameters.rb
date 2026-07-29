@@ -9,7 +9,9 @@
 # schema.json $defs schema 'PayParameters'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
       # PayParameters — generated read-side payload (schema.json $defs schema 'PayParameters').
       #

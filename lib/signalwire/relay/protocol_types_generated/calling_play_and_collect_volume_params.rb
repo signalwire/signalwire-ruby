@@ -10,7 +10,9 @@
 # RELAY method 'calling.play_and_collect.volume', params
 
 module SignalWire
+  # SignalWire::Relay — namespace for this generated data-class tree.
   module Relay
+    # SignalWire::Relay::ProtocolTypesGenerated — namespace for this generated data-class tree.
     module ProtocolTypesGenerated
       # CallingPlayAndCollectVolumeParams — generated data type (RELAY method 'calling.play_and_collect.volume', params).
       #

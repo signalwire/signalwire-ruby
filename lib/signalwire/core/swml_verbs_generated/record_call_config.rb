@@ -10,7 +10,9 @@
 # flattened SWMLMethod verb 'record_call' config
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
       # RecordCallConfig — generated read-side payload (flattened SWMLMethod verb 'record_call' config).
       #

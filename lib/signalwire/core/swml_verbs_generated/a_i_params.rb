@@ -10,7 +10,9 @@
 # schema.json $defs schema 'AIParams'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
       # AIParams — generated read-side payload (schema.json $defs schema 'AIParams').
       #

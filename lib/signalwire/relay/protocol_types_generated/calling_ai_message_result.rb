@@ -9,7 +9,9 @@
 # RELAY method 'calling.ai_message', result
 
 module SignalWire
+  # SignalWire::Relay — namespace for this generated data-class tree.
   module Relay
+    # SignalWire::Relay::ProtocolTypesGenerated — namespace for this generated data-class tree.
     module ProtocolTypesGenerated
       # CallingAiMessageResult — generated data type (RELAY method 'calling.ai_message', result).
       #

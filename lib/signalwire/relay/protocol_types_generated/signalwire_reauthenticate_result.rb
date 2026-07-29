@@ -9,7 +9,9 @@
 # RELAY method 'signalwire.reauthenticate', result
 
 module SignalWire
+  # SignalWire::Relay — namespace for this generated data-class tree.
   module Relay
+    # SignalWire::Relay::ProtocolTypesGenerated — namespace for this generated data-class tree.
     module ProtocolTypesGenerated
       # SignalwireReauthenticateResult — generated data type (RELAY method 'signalwire.reauthenticate', result).
       #

@@ -9,7 +9,9 @@
 # flattened SWMLMethod verb 'transfer' config
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
       # TransferConfig — generated read-side payload (flattened SWMLMethod verb 'transfer' config).
       #

@@ -9,7 +9,9 @@
 # post-prompt components/schemas 'PostPromptEntity'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::PostPromptGenerated — namespace for this generated data-class tree.
     module PostPromptGenerated
       # PostPromptEntity — generated read-side payload (post-prompt components/schemas 'PostPromptEntity').
       #
