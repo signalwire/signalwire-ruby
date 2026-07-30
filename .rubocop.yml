@@ -23,34 +23,15 @@ AllCops:
   TargetRubyVersion: 3.2
   SuggestExtensions: false
   Exclude:
-    # Demo programs, not library surface — excluded from the blocking gate the way
-    # signalwire-go tags its examples //go:build ignore. They are not part of the
-    # audited public surface and are free to read as tutorial-style code.
-    - 'examples/**/*'
-    - 'relay/examples/**/*'
-    - 'rest/examples/**/*'
+    # THIRD-PARTY code we do not own. This is the ONLY directory-level carve-out.
+    # Everything else in this repo — lib/, tests/, examples/, relay/examples/,
+    # rest/examples/, bin/ (including the *-dump programs), scripts/ — is linted
+    # and formatted at the SAME bar as the shipped library. Owner ruling
+    # 2026-07-30: "examples and tests are shipping code too ... all at the levels
+    # the shipping code gets." The prior "tutorial-style / not audited public
+    # surface" rationale was about PUBLIC-SURFACE AUDITING, not about whether the
+    # code should be well-formed; it is not a reason to hold it below the bar.
     - 'vendor/**/*'
-    # Layer-D cross-port dump programs (bin/*-dump) — the per-surface behavioral
-    # differ tooling, mirroring the Go reference's cmd/*-dump. Tutorial-style
-    # port-native dispatch programs, not audited library surface; same rationale
-    # as examples/ above and go's //go:build ignore dumps.
-    - 'bin/wire-dump'
-    - 'bin/swml-dump'
-    - 'bin/state-dump'
-    - 'bin/http-dump'
-    - 'bin/envelope-dump'
-    - 'bin/wire-relay-dump'
-    - 'bin/wait-liveness-dump'
-    - 'bin/secure-default-dump'
-    - 'bin/relay-liveness-dump'
-    - 'bin/pagination-dump'
-    - 'bin/secret-scrub-dump'
-    - 'bin/ai-chat-dump'
-    # Cross-port gate fixture-replay tooling, same category as the bin/*-dump
-    # programs above: doc_wire_runner.rb only DRIVES the documented REST calls
-    # against the DOC-WIRE flag-mode mock so it journals the wire shape. Not
-    # audited library surface.
-    - 'scripts/doc_wire_runner.rb'
     # NOTE: the machine-generated trees (REST resource layer, READ-SIDE typed
     # payload trees, and the full-mock REST wire-test suite) are DELIBERATELY NOT
     # excluded here — generated code is linted like hand-written code so a
