@@ -261,10 +261,6 @@ def build_default_index
   index = {}
   Dir[File.join(__dir__, '..', 'lib', '**', '*.rb')].each do |path|
     sexp = parse_file(path)
-    # A file Ripper cannot parse contributes no defaults; its params then stay
-    # null, i.e. honestly unrecovered rather than wrong.
-    next if sexp.nil?
-
     real = File.realpath(path)
     walk_sexp(sexp) do |node|
       line, params_node = def_node_parts(node)
@@ -277,10 +273,27 @@ def build_default_index
   index
 end
 
+# Parse one lib/ file to a Ripper sexp. FAILS LOUD, naming the file.
+#
+# This used to `rescue StandardError; nil` and let build_default_index `next` on
+# the nil. That silence was the whole problem: every file under lib/ is valid
+# Ruby by construction (the FMT, LINT and TEST gates all parse the tree), so a
+# parse failure here never means "not Ruby" -- it means the file is truncated,
+# unreadable, or the reader is broken. Skipping it still produced a dump that
+# exited 0 and looked well-formed; it was just SHORTER. The defaults that file
+# would have contributed came back null, and the cross-port DRIFT gate then
+# compared the port against a silently-shrunken surface. A tool that feeds a
+# gate must never fail successfully.
+#
+# Ripper.sexp returns nil on a syntax error rather than raising, so BOTH the
+# nil-return and the exception paths have to be turned into a loud failure.
 def parse_file(path)
-  Ripper.sexp(File.read(path))
-rescue StandardError
-  nil
+  sexp = Ripper.sexp(File.read(path))
+  raise "signature_dump: Ripper could not parse #{path} (syntax error?)" if sexp.nil?
+
+  sexp
+rescue SystemCallError, IOError => e
+  raise "signature_dump: cannot read #{path}: #{e.class}: #{e.message}"
 end
 
 # [def_line, params_node] for a ``def``/``def self.`` node, or [nil, nil].
