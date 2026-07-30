@@ -9,6 +9,11 @@ require_relative '../lib/signalwire/swaig/function_result'
 module DataMapTestAliases
   FR = SignalWire::Swaig::FunctionResult
   DM = SignalWire::DataMap
+
+  # The ten properties schema.json $defs/Webhook permits, under
+  # +unevaluatedProperties: {"not": {}}+ — everything else is forbidden.
+  WEBHOOK_SCHEMA_KEYS = %w[error_keys expressions foreach headers input_args_as_params
+                           method output params require_args url].freeze
 end
 
 class DataMapTest < Minitest::Test
@@ -398,19 +403,50 @@ class DataMapFactoryTest < Minitest::Test
     assert_equal 'Weather: ${response.temp}', wh['output']['response']
   end
 
-  def test_create_simple_api_tool_with_body
-    dm = DM.create_simple_api_tool(
-      name: 'post_data',
-      url: 'https://example.com/api',
-      response_template: 'Done: ${response.id}',
-      method: 'POST',
-      body: { 'data' => '${args.payload}' }
-    )
+  # +create_simple_api_tool+ has no +body:+ keyword.
+  #
+  # +body+ is not a valid webhook key: porting-sdk/schema.json $defs/Webhook
+  # declares exactly ten properties (error_keys, expressions, foreach, headers,
+  # input_args_as_params, method, output, params, require_args, url) under
+  # +unevaluatedProperties: {"not": {}}+, and neither engine reader
+  # (mod_openai/actions.c parse_webhook, mod_openai/bedrock.c
+  # bedrock_parse_webhook) looks up "body". Accepting the argument and
+  # discarding it into an unread key silently lost the caller's data.
+  def test_create_simple_api_tool_rejects_body
+    assert_raises(ArgumentError) do
+      DM.create_simple_api_tool(
+        name: 'post_data',
+        url: 'https://example.com/api',
+        response_template: 'Done: ${response.id}',
+        method: 'POST',
+        body: { 'data' => '${args.payload}' }
+      )
+    end
+  end
 
-    wh = dm.to_swaig_function['data_map']['webhooks'].first
+  # The webhook a POST-shaped +create_simple_api_tool+ emits.
+  def post_tool_webhook
+    DM.create_simple_api_tool(
+      name: 'post_data', url: 'https://example.com/api',
+      response_template: 'Done: ${response.id}',
+      parameters: { 'payload' => { 'type' => 'string', 'description' => 'Payload' } },
+      method: 'POST', headers: { 'Authorization' => 'Bearer TOKEN' }, error_keys: %w[error]
+    ).to_swaig_function['data_map']['webhooks'].first
+  end
+
+  # The EMITTED webhook payload carries no +body+ key.
+  def test_create_simple_api_tool_emits_no_body_key
+    wh = post_tool_webhook
 
     assert_equal 'POST', wh['method']
-    assert_equal({ 'data' => '${args.payload}' }, wh['body'])
+    refute_includes wh.keys, 'body', "webhook carries a body key: #{wh.inspect}"
+  end
+
+  # Every emitted webhook key is one schema.json $defs/Webhook permits.
+  def test_create_simple_api_tool_emits_only_schema_keys
+    extra = post_tool_webhook.keys - WEBHOOK_SCHEMA_KEYS
+
+    assert_empty extra, "webhook has keys outside schema.json $defs/Webhook: #{extra.sort.inspect}"
   end
 
   def test_create_simple_api_tool_minimal

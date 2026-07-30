@@ -4219,13 +4219,6 @@
               "default": null
             },
             {
-              "name": "body",
-              "type": "optional<dict<string,any>>",
-              "kind": "keyword",
-              "required": false,
-              "default": null
-            },
-            {
               "name": "error_keys",
               "type": "optional<list<string>>",
               "kind": "keyword",

@@ -156,6 +156,13 @@ module SignalWire
     end
 
     # Set request params for the most-recently-added webhook.
+    #
+    # This is NOT an alias for +body+: the two write different webhook keys
+    # (+params+ vs +body+), and only +params+ is part of the webhook contract —
+    # schema.json +$defs/Webhook+ lists +params+ among its ten permitted
+    # properties and forbids everything else, and the engine's webhook readers
+    # look up +params+ and never +body+. Use this method for POST/PUT request
+    # data.
     def params(data)
       raise ArgumentError, 'Must add webhook before setting params' if @webhooks.empty?
 
@@ -237,15 +244,13 @@ module SignalWire
     # @param parameters [Hash, nil] name => { "type" => ..., "description" => ..., "required" => bool }
     # @param method [String] HTTP method (default GET)
     # @param headers [Hash, nil]
-    # @param body [Hash, nil]
     # @param error_keys [Array<String>, nil]
     # @return [DataMap]
     def self.create_simple_api_tool(name:, url:, response_template:, parameters: nil,
-                                    method: 'GET', headers: nil, body: nil, error_keys: nil)
+                                    method: 'GET', headers: nil, error_keys: nil)
       dm = new(name)
       add_parameters(dm, parameters)
       dm.webhook(method, url, headers: headers)
-      dm.body(body) if body
       dm.error_keys(error_keys) if error_keys
       dm.output(Swaig::FunctionResult.new(response_template))
       dm

@@ -2677,7 +2677,7 @@ search_tool = SignalWire::DataMap.new('search_knowledge')
     'https://api.company.com/search',
     headers: { 'Authorization' => 'Bearer TOKEN' }
   )
-  .body({
+  .params({
     'query' => '${args.query}',
     'category' => '${args.category}',
     'limit' => 5
@@ -2743,7 +2743,7 @@ agent.register_swaig_function(swaig_function)
 
 The SDK provides helper class methods for common DataMap patterns:
 
-##### `DataMap.create_simple_api_tool(name:, url:, response_template:, parameters: nil, method: "GET", headers: nil, body: nil, error_keys: nil) -> DataMap`
+##### `DataMap.create_simple_api_tool(name:, url:, response_template:, parameters: nil, method: "GET", headers: nil, error_keys: nil) -> DataMap`
 
 Create a simple API integration tool.
 
@@ -2754,7 +2754,6 @@ Create a simple API integration tool.
 - `parameters` (Hash, optional): Parameter definitions
 - `method` (String): HTTP method (default: "GET")
 - `headers` (Hash, optional): HTTP headers
-- `body` (Hash, optional): Request body
 - `error_keys` (Array<String>, optional): Error field names
 
 **Usage:**
