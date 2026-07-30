@@ -242,9 +242,12 @@ class MCPServersInSwmlTest < Minitest::Test
     ai_verb = agent.render_swml['sections']['main'].find { |v| v.key?('ai') }
 
     refute_nil ai_verb, 'expected ai verb'
-    servers = ai_verb['ai']['mcp_servers']
+    # mcp_servers lives inside the SWAIG object, not at the ai verb's top level
+    # (reference core/agent_base.py:1153) -- the ai schema is closed and would
+    # reject a top-level key.
+    servers = ai_verb.dig('ai', 'SWAIG', 'mcp_servers')
 
-    refute_nil servers, 'expected mcp_servers in AI config'
+    refute_nil servers, 'expected mcp_servers in the SWAIG config'
     assert_equal 1, servers.length
     assert_equal 'https://mcp.example.com/tools', servers[0]['url']
   end

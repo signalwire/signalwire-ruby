@@ -42,8 +42,7 @@ module SignalWire
         config = {}
         config['max_duration'] = max_duration unless max_duration.nil?
         config['codecs'] = codecs unless codecs.nil?
-        @service.document.add_verb('answer', config)
-        self
+        add_verb('answer', config)
       end
 
       # Add a 'hangup' verb to the main section.
@@ -53,8 +52,7 @@ module SignalWire
       def hangup(reason: nil)
         config = {}
         config['reason'] = reason unless reason.nil?
-        @service.document.add_verb('hangup', config)
-        self
+        add_verb('hangup', config)
       end
 
       # Add an 'ai' verb to the main section.
@@ -101,8 +99,7 @@ module SignalWire
         config['say_gender'] = say_gender unless say_gender.nil?
         config['auto_answer'] = auto_answer unless auto_answer.nil?
 
-        @service.document.add_verb('play', config)
-        self
+        add_verb('play', config)
       end
 
       # Add a 'play' verb with a +say:+ prefix for text-to-speech.
@@ -160,11 +157,10 @@ module SignalWire
         return super unless SWML.schema.valid_verb?(verb)
 
         if verb == 'sleep'
-          @service.document.add_verb('sleep', sleep_duration(args, kwargs))
+          add_verb('sleep', sleep_duration(args, kwargs))
         else
-          @service.document.add_verb(verb, SWML._verb_config(verb, args, kwargs))
+          add_verb(verb, SWML._verb_config(verb, args, kwargs))
         end
-        self
       end
 
       # Report the auto-vivified verbs as respondable (Ruby analog of Python's
@@ -181,8 +177,15 @@ module SignalWire
       end
 
       # Add a verb to the underlying document and return self for chaining.
+      #
+      # Every builder verb funnels through here and through the *validating*
+      # Service#add_verb — never the raw Document entry point. The raw path
+      # writes whatever it is handed, which is how schema-invalid configs
+      # (a +play+ with a +text+ key, a +hangup+ with a reason outside the
+      # closed +hangup|busy|decline+ enum) shipped unnoticed. A rejected
+      # config now raises SchemaValidationError at build time.
       def add_verb(name, config)
-        @service.document.add_verb(name, config)
+        @service.add_verb(name, config)
         self
       end
 

@@ -225,13 +225,19 @@ module SignalWire
       #
       # For most verbs the config is a keyword-args Hash.
       # The +sleep+ verb is special: it also accepts a bare Integer.
+      #
+      # This is the target of the {#method_missing} verb auto-vivification
+      # (+service.play(url: ...)+), so it goes through the *validating*
+      # {#add_verb} rather than the raw document entry point — a caller
+      # reaching a method on the Service cannot tell which they got, and a
+      # raw one silently accepts configs the schema rejects.
       def execute_verb(verb_name, args = [], kwargs = {})
         verb_name = verb_name.to_s
 
         if verb_name == 'sleep'
-          @document.add_verb(verb_name, sleep_duration(args, kwargs))
+          add_verb(verb_name, sleep_duration(args, kwargs))
         else
-          @document.add_verb(verb_name, SWML._verb_config(verb_name, args, kwargs))
+          add_verb(verb_name, SWML._verb_config(verb_name, args, kwargs))
         end
       end
 

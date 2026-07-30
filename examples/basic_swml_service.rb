@@ -68,7 +68,11 @@ transfer = SignalWire::SWML::Service.new(
 
 transfer.answer
 transfer.play(url: "say:Thank you for calling. We'll connect you with the next available agent.")
+# `connect` needs a destination -- one of `to` / `serial` / `parallel` /
+# `serial_parallel`. Without one the document is schema-invalid and the call
+# never dials anywhere.
 transfer.connect(
+  to:               '+15559876543',
   from:             '+15551234567',
   timeout:          30,
   answer_on_bridge: true

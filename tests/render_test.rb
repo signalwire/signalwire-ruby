@@ -103,7 +103,7 @@ class Render5PhaseOrderingTest < Minitest::Test
   def five_phase_agent
     agent = SignalWire::AgentBase.new(record_call: true)
     agent.add_pre_answer_verb('set', { 'x' => '1' })
-    agent.add_post_answer_verb('play', { 'url' => 'welcome.mp3' })
+    agent.add_post_answer_verb('play', { 'url' => 'https://example.com/welcome.mp3' })
     agent.add_post_ai_verb('hangup', {})
     agent
   end
@@ -148,7 +148,10 @@ class RenderEdgeCasesTest < Minitest::Test
     swml = agent.render_swml
     ai = ai_section(swml)
 
-    assert ai.key?('contexts'), 'Expected contexts in AI config'
-    assert ai['contexts'].key?('default')
+    # contexts lives inside the prompt object (reference
+    # core/swml_handler.py:191) -- the ai schema is closed and would reject a
+    # top-level key.
+    assert ai['prompt'].key?('contexts'), 'Expected contexts in the AI prompt config'
+    assert ai['prompt']['contexts'].key?('default')
   end
 end

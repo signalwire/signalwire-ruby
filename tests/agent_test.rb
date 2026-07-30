@@ -793,7 +793,7 @@ class AgentVerbTest < Minitest::Test
   end
 
   def test_clear_pre_answer_verbs
-    @agent.add_pre_answer_verb('play', { 'url' => 'ring.mp3' })
+    @agent.add_pre_answer_verb('play', { 'url' => 'https://example.com/ring.mp3' })
     @agent.clear_pre_answer_verbs
     swml = @agent.render_swml
     main = swml['sections']['main']
@@ -802,7 +802,7 @@ class AgentVerbTest < Minitest::Test
   end
 
   def test_post_answer_verbs
-    @agent.add_post_answer_verb('play', { 'url' => 'welcome.mp3' })
+    @agent.add_post_answer_verb('play', { 'url' => 'https://example.com/welcome.mp3' })
     swml = @agent.render_swml
     main = swml['sections']['main']
     # After answer, before AI
@@ -873,11 +873,14 @@ class AgentContextsTest < Minitest::Test
     agent = SignalWire::AgentBase.new
     ctx = agent.define_contexts.add_context('default')
     ctx.add_step('greeting').set_text('Say hello')
-    swml = agent.render_swml
-    ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
+    main = agent.render_swml['sections']['main']
+    # contexts lives inside the prompt object (reference
+    # core/swml_handler.py:191) -- the ai schema is closed and would reject a
+    # top-level key.
+    contexts = main.find { |v| v.key?('ai') }.dig('ai', 'prompt', 'contexts')
 
-    assert ai.key?('contexts'), 'Expected contexts in AI config'
-    assert ai['contexts'].key?('default')
+    refute_nil contexts, 'Expected contexts in the AI prompt config'
+    assert contexts.key?('default')
   end
 end
 
@@ -1003,7 +1006,7 @@ class AgentRenderSwmlTest < Minitest::Test
   def five_phase_agent
     agent = SignalWire::AgentBase.new(record_call: true)
     agent.add_pre_answer_verb('set', { 'x' => '1' })
-    agent.add_post_answer_verb('play', { 'url' => 'welcome.mp3' })
+    agent.add_post_answer_verb('play', { 'url' => 'https://example.com/welcome.mp3' })
     agent.add_post_ai_verb('hangup', {})
     agent
   end

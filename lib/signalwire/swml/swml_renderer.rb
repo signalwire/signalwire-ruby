@@ -62,8 +62,12 @@ module SignalWire
       end
 
       # Add the record_call verb with its exact wire keys (format + stereo).
+      #
+      # Goes through the validating Service#add_verb rather than the raw
+      # document entry point, so a config the schema rejects fails loudly here
+      # instead of shipping an invalid document.
       def self.add_record_call(service, record_format, record_stereo)
-        service.document.add_verb('record_call', { 'format' => record_format, 'stereo' => record_stereo })
+        service.add_verb('record_call', { 'format' => record_format, 'stereo' => record_stereo })
       end
 
       # Emit the ai verb on the builder from the renderer's inputs.

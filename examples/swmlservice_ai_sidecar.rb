@@ -33,11 +33,13 @@ class SalesSidecar < SignalWire::SWML::Service
       port:  port
     )
 
-    # 1. Emit any SWML -- including ai_sidecar. Document#add_verb_to_section
-    #    accepts arbitrary verb dicts, so new platform verbs work without
-    #    an SDK release.
+    # 1. Emit any SWML -- including ai_sidecar. Service#add_verb_to_section
+    #    validates the config against the SWML schema, so a typo'd key or an
+    #    out-of-enum value fails here instead of shipping an invalid document.
+    #    (Document#add_verb_to_section is the raw path and skips that check --
+    #    do not reach for it.)
     answer
-    document.add_verb_to_section(
+    add_verb_to_section(
       'main',
       'ai_sidecar',
       {

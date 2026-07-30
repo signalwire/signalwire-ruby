@@ -2411,6 +2411,13 @@ module SignalWire
     end
 
     # Assemble the ordered SWML "main" section entries.
+    #
+    # The reference routes every one of these through the validating
+    # ``SWMLService.add_verb`` (python core/agent_base.py:1194-1216, 1367-1418).
+    # This assembly builds the section directly, so each entry is put through
+    # the same schema validation here — otherwise the caller-supplied configs
+    # of #add_pre_answer_verb / #add_post_answer_verb / #add_post_ai_verb reach
+    # the wire completely unchecked.
     def build_main_section
       sections_main = []
       sections_main.concat(verb_entries(@pre_answer_verbs)) # PHASE 1: pre-answer verbs
@@ -2419,7 +2426,19 @@ module SignalWire
       sections_main.concat(verb_entries(@post_answer_verbs)) # PHASE 3b: post-answer verbs
       sections_main << { 'ai' => build_ai_config } # PHASE 4: AI verb
       sections_main.concat(verb_entries(@post_ai_verbs)) # PHASE 5: post-AI verbs
-      sections_main
+      sections_main.each { |entry| validate_section_entry(entry) }
+    end
+
+    # Validate one assembled {verb_name => config} entry against the SWML
+    # schema, exactly as Service#add_verb would. Raises SchemaValidationError
+    # on an invalid config; a bare Integer +sleep+ is a valid direct value and
+    # is passed through, matching Service#add_verb's sleep handling.
+    def validate_section_entry(entry)
+      verb_name, config = entry.first
+      return entry if verb_name == 'sleep' && config.is_a?(Integer)
+
+      __send__(:verb_config_valid!, verb_name, config)
+      entry
     end
 
     # Map a [[verb_name, config], ...] list into [{verb_name => config}, ...].
@@ -2484,7 +2503,6 @@ module SignalWire
       add_ai_params(ai)
       ai['global_data'] = @global_data.dup unless @global_data.empty?
       add_ai_contexts(ai)
-      ai['mcp_servers'] = @mcp_servers.map(&:dup) unless @mcp_servers.empty?
       ai
     end
 
@@ -2520,13 +2538,19 @@ module SignalWire
     # @api private — render the AI verb's `SWAIG` object: the default webhook URL,
     # plus `functions` / `native_functions` / `includes` / `internal_fillers` when
     # non-empty. The whole key is dropped when there is nothing but the defaults.
+    # `mcp_servers` lives INSIDE this SWAIG object, not at the ai verb's top
+    # level (reference core/agent_base.py:1150-1153 — `swaig_obj["mcp_servers"]`).
+    # The ai verb's schema is closed, so a top-level `mcp_servers` is a key the
+    # platform rejects; it only ever shipped because this assembly bypassed the
+    # validating add_verb.
     def add_ai_swaig(config)
       functions = build_functions_array
       swaig = { 'defaults' => { 'web_hook_url' => swaig_default_url } }
-      swaig['functions']        = functions          unless functions.empty?
-      swaig['native_functions'] = @native_functions  unless @native_functions.empty?
-      swaig['includes']         = @function_includes unless @function_includes.empty?
-      swaig['internal_fillers'] = @internal_fillers  unless @internal_fillers.empty?
+      { 'functions' => functions, 'native_functions' => @native_functions,
+        'includes' => @function_includes, 'internal_fillers' => @internal_fillers,
+        'mcp_servers' => @mcp_servers.map(&:dup) }.each do |key, value|
+        swaig[key] = value unless value.empty?
+      end
       config['SWAIG'] = swaig unless swaig.keys == ['defaults'] && functions.empty?
     end
 
@@ -2567,10 +2591,20 @@ module SignalWire
     # @api private — render the AI verb's `contexts` from the context builder. An
     # invalid context configuration is skipped rather than raised, so a broken
     # contexts block degrades to a context-free agent instead of failing the render.
+    #
+    # `contexts` belongs INSIDE the prompt object (`ai.prompt.contexts`), not at
+    # the ai verb's top level — the reference builds it that way
+    # (core/swml_handler.py:191 `prompt_config["contexts"]`) and this port's own
+    # AiVerbHandler#build_prompt_config already agrees. The ai verb's schema is
+    # closed, so a top-level `contexts` is a key the platform rejects; it only
+    # ever shipped because this assembly bypassed the validating add_verb.
     def add_ai_contexts(config)
       return unless @context_builder
 
-      config['contexts'] = @context_builder.to_h
+      prompt = config['prompt']
+      return unless prompt.is_a?(Hash)
+
+      prompt['contexts'] = @context_builder.to_h
     rescue ArgumentError
       # invalid context config — skip silently
     end

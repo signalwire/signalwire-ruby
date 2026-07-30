@@ -354,10 +354,10 @@ class ServiceTest < Minitest::Test
   # A positional Hash and kwargs merge (kwargs win on a key collision).
   def test_verb_positional_hash_merges_with_kwargs
     svc = SignalWire::SWML::Service.new(name: 'test')
-    svc.play({ 'url' => 'a.mp3', 'volume' => 1 }, volume: 5)
+    svc.play({ 'url' => 'https://ex.com/a.mp3', 'volume' => 1 }, volume: 5)
     verbs = svc.document.get_verbs
 
-    assert_equal({ 'play' => { 'url' => 'a.mp3', 'volume' => 5 } }, verbs.first)
+    assert_equal({ 'play' => { 'url' => 'https://ex.com/a.mp3', 'volume' => 5 } }, verbs.first)
   end
 
   # A misshapen positional (a non-Hash, or more than one) must RAISE loudly, not

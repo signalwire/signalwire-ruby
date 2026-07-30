@@ -93,11 +93,14 @@ class SwmlRendererTest < Minitest::Test
   end
 
   def test_render_swml_params_merged_into_ai
+    # `params:` merges at the ai verb's TOP level (parity with the reference's
+    # `**(params or {})`), so its keys must be ones the closed ai schema
+    # declares -- LLM knobs like `temperature` belong under `ai.params`.
     doc = render_and_parse(
-      prompt: 'hi', service: new_service, params: { 'temperature' => 0.3 }
+      prompt: 'hi', service: new_service, params: { 'params' => { 'temperature' => 0.3 } }
     )
 
-    assert_in_delta 0.3, doc['sections']['main'].first['ai']['temperature']
+    assert_in_delta 0.3, doc['sections']['main'].first['ai']['params']['temperature']
   end
 
   def test_render_swml_yaml_format
@@ -157,11 +160,15 @@ class SwmlRendererFunctionResponseTest < Minitest::Test
   # Actions route through the validating Service#add_verb too (matching the
   # reference), so a schema-invalid action config raises instead of silently
   # landing in the document.
+  #
+  # Note the example is an UNKNOWN KEY, not an out-of-enum `reason`:
+  # `hangup.reason` carries `x-sdk-widen: true`, so any string is accepted
+  # there and would NOT make a usable negative case.
   def test_function_response_rejects_schema_invalid_action
     assert_raises(SignalWire::Utils::SchemaValidationError) do
       SignalWire::SWML::SwmlRenderer.render_function_response_swml(
         response_text: 'bye', service: new_service,
-        actions: [{ 'hangup' => { 'reason' => 'not-a-valid-reason' } }]
+        actions: [{ 'hangup' => { 'not_a_hangup_key' => 'x' } }]
       )
     end
   end
