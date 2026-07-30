@@ -1127,7 +1127,7 @@ FABRIC_BASES = """# frozen_string_literal: true
 #   python3 scripts/generate_rest.py
 #
 # Generated Fabric base classes: CRUD + list_addresses (the FabricResource
-# method-set, §2), differing only by the update HTTP verb (PATCH vs PUT).
+# method-set), differing only by the update HTTP verb (PATCH vs PUT).
 
 module SignalWire
   module REST
@@ -1308,7 +1308,8 @@ def emit_container(container: str, members: list[tuple[str, str]]) -> str:
     lines.append("  module REST")
     lines.append("    module Namespaces")
     lines.append("      module Generated")
-    lines.append(f"        # {cls} — generated container grouping the {container} namespace resources (§8).")
+    lines.append(f"        # {cls} — groups the {container} namespace resources; each is exposed")
+    lines.append("        # as a memoized reader on this container.")
     lines.append(f"        class {cls}")
     accs = [a for a, _ in members]
     lines.append(f"          attr_reader {', '.join(':' + a for a in accs)}")
@@ -1322,7 +1323,7 @@ def emit_container(container: str, members: list[tuple[str, str]]) -> str:
     lines.append("    end")
     lines.append("  end")
     lines.append("end")
-    return GEN_HEADER.format(desc=f"Generated REST client container for the {container} namespace (§8).") + "\n" + "\n".join(lines) + "\n"
+    return GEN_HEADER.format(desc=f"Generated REST client container for the {container} namespace.") + "\n" + "\n".join(lines) + "\n"
 
 
 def emit_resource_tree(placed) -> str:
@@ -1366,7 +1367,7 @@ def emit_resource_tree(placed) -> str:
     lines.append("    end")
     lines.append("  end")
     lines.append("end")
-    return GEN_HEADER.format(desc="Generated REST resource tree module the hand RestClient includes (§8).") + "\n" + "\n".join(lines) + "\n"
+    return GEN_HEADER.format(desc="Generated REST resource tree module that RestClient includes.") + "\n" + "\n".join(lines) + "\n"
 
 
 # ---------------------------------------------------------------------------
@@ -1495,8 +1496,8 @@ def emit_type_class(ns_mod: str, raw_name: str, node: dict, ns_key: str,
     lines.append("            #")
     lines.append("            # Method-less data DTO: the frozen FIELDS constant maps each snake wire")
     lines.append("            # key to its JSON type symbol. No reader/writer methods and no")
-    lines.append("            # initialize — the reference records this as a method-less type")
-    lines.append("            # definition, so the surface enumerator surfaces the bare class name.")
+    lines.append("            # initialize — the class is a bare namespace for its FIELDS map,")
+    lines.append("            # describing the wire shape rather than wrapping a payload.")
     lines.append(f"            class {rb_name}")
     # SDK-surface policy from the single overlay (rest-apis/x-sdk-overlay.yaml), keyed by
     # the SPEC schema name (raw_name, the components/schemas key — NOT the emitted Ruby
@@ -1551,7 +1552,7 @@ def emit_type_enum(ns_mod: str, enum_name: str, values: list, ns_key: str, raw_n
     lines.append(f"            # {enum_name} — public closed-set for {raw_name!r}")
     lines.append(f"            # ({ns_key!r} API). Frozen string constants whose value IS the wire")
     lines.append("            # string (the idiomatic Ruby closed set — not a static enum type),")
-    lines.append("            # grouped into a frozen ALL. Method-less, records [] like the reference.")
+    lines.append("            # grouped into a frozen ALL. Method-less: constants only, no instance methods.")
     lines.append(f"            class {enum_name}")
     used: set[str] = set()
     consts: list[str] = []
@@ -1644,11 +1645,11 @@ def emit_methodless_class(module_segments: list, rb_name: str, properties: dict,
     lines.append(f"{indent}#")
     lines.append(f"{indent}# Frozen FIELDS maps each snake wire key to its JSON type symbol.")
     if emit_readers:
-        lines.append(f"{indent}# A zero-arg reader per field mirrors the reference's recorded")
-        lines.append(f"{indent}# accessors (dropped on the SURFACE by the enumerator — method-less there).")
+        lines.append(f"{indent}# Each field also has a zero-arg reader, so a decoded payload can be")
+        lines.append(f"{indent}# accessed by name rather than by wire key.")
     else:
-        lines.append(f"{indent}# No reader/writer methods and no initialize — a method-less type the")
-        lines.append(f"{indent}# reference records method-less on both surface and signatures.")
+        lines.append(f"{indent}# No reader/writer methods and no initialize — the class is a bare")
+        lines.append(f"{indent}# namespace for its FIELDS map, describing the wire shape only.")
     lines.append(f"{indent}class {rb_name}")
     inner = indent + "  "
     # SDK-surface policy from the single overlay (rest-apis/x-sdk-overlay.yaml), keyed

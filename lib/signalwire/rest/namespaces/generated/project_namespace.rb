@@ -9,13 +9,14 @@
 # AUTO-GENERATED from the SignalWire REST API specifications — regenerate with:
 #   python3 scripts/generate_rest.py
 #
-# Generated REST client container for the project namespace (§8).
+# Generated REST client container for the project namespace.
 
 module SignalWire
   module REST
     module Namespaces
       module Generated
-        # ProjectNamespace — generated container grouping the project namespace resources (§8).
+        # ProjectNamespace — groups the project namespace resources; each is exposed
+        # as a memoized reader on this container.
         class ProjectNamespace
           attr_reader :tokens
 

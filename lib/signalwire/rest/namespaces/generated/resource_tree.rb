@@ -9,7 +9,7 @@
 # AUTO-GENERATED from the SignalWire REST API specifications — regenerate with:
 #   python3 scripts/generate_rest.py
 #
-# Generated REST resource tree module the hand RestClient includes (§8).
+# Generated REST resource tree module that RestClient includes.
 
 module SignalWire
   module REST

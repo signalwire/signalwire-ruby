@@ -10,13 +10,14 @@
 # AUTO-GENERATED from the SignalWire REST API specifications — regenerate with:
 #   python3 scripts/generate_rest.py
 #
-# Generated REST client container for the fabric namespace (§8).
+# Generated REST client container for the fabric namespace.
 
 module SignalWire
   module REST
     module Namespaces
       module Generated
-        # FabricNamespace — generated container grouping the fabric namespace resources (§8).
+        # FabricNamespace — groups the fabric namespace resources; each is exposed
+        # as a memoized reader on this container.
         class FabricNamespace
           attr_reader :addresses, :resources, :ai_agents, :call_flows, :conference_rooms, :cxml_applications, :cxml_scripts, :cxml_webhooks, :freeswitch_connectors, :relay_applications, :sip_endpoints, :sip_gateways, :subscribers, :swml_scripts, :swml_webhooks, :tokens
 

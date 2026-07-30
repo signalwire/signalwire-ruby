@@ -16,8 +16,8 @@ module SignalWire
       # PlaybackBgAction — generated data type (swaig-response action 'playback_bg' value object).
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
-      # No reader/writer methods and no initialize — a method-less type the
-      # reference records method-less on both surface and signatures.
+      # No reader/writer methods and no initialize — the class is a bare
+      # namespace for its FIELDS map, describing the wire shape only.
       class PlaybackBgAction
         FIELDS = {
           'file' => :any,

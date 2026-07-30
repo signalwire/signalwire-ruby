@@ -9,13 +9,14 @@
 # AUTO-GENERATED from the SignalWire REST API specifications — regenerate with:
 #   python3 scripts/generate_rest.py
 #
-# Generated REST client container for the video namespace (§8).
+# Generated REST client container for the video namespace.
 
 module SignalWire
   module REST
     module Namespaces
       module Generated
-        # VideoNamespace — generated container grouping the video namespace resources (§8).
+        # VideoNamespace — groups the video namespace resources; each is exposed
+        # as a memoized reader on this container.
         class VideoNamespace
           attr_reader :conference_tokens, :conferences, :room_recordings, :room_sessions, :room_tokens, :rooms, :streams
 
