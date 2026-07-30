@@ -84,15 +84,14 @@ module SignalWire
       apply_log_level(@logger, @log_level)
     end
 
-    # Map a Python-style log level string to the underlying logger's
-    # threshold. Mirrors Python's ``log_level`` mapping in AgentServer
-    # so callers get equivalent verbosity controls.
+    # Apply a lowercase level-name String (see {#map_log_level}) to the
+    # underlying logger's threshold.
     #
     # The SignalWire stdlib logger doesn't expose a per-instance
     # ``level=``; we attach a ``@level`` ivar to the underlying
     # ``Logger`` so introspection-style tests can check it. The
     # ``::Logger`` constant from Ruby's stdlib (``require 'logger'``)
-    # exposes DEBUG/INFO/WARN/ERROR/FATAL constants we mirror.
+    # supplies the DEBUG/INFO/WARN/ERROR/FATAL constants used here.
     # @api private
     def apply_log_level(logger, level)
       require 'logger'
@@ -120,7 +119,8 @@ module SignalWire
       end
     end
 
-    # Map a Python-style log level string to a ::Logger constant.
+    # Map a lowercase level-name String ('debug', 'info', 'warning'/'warn',
+    # 'error', 'critical'/'fatal') to a ::Logger constant.
     # 'info' and the else fallback both map to INFO; the explicit 'info' arm
     # documents it as a known level rather than an unrecognized default.
     # @api private
@@ -201,10 +201,9 @@ module SignalWire
     # @param callback_fn [#call, nil] the routing callback (Proc/lambda)
     # @param path [String] the path to register the callback at
     # @return [self]
-    # ``callback_fn`` and ``path`` are both REQUIRED, matching the reference
-    # (``register_global_routing_callback(callback_fn, path)``). The block is the
-    # idiomatic spelling of ``callback_fn``; pass ``nil`` in its slot when using
-    # the block form.
+    # ``callback_fn`` and ``path`` are both REQUIRED positionals. The block is
+    # the idiomatic spelling of ``callback_fn``; pass ``nil`` in its slot when
+    # using the block form.
     def register_global_routing_callback(callback_fn, path, &block)
       callback = block || callback_fn
       raise ArgumentError, 'a callback (block or callable) is required' if callback.nil?
@@ -255,8 +254,7 @@ module SignalWire
       self
     end
 
-    # Universal run method — mirrors Python's
-    # ``AgentServer.run(event=None, context=None, host=None, port=None)``.
+    # Universal run method. All four keywords are optional and default to nil.
     #
     # Detects execution mode and routes appropriately:
     #
@@ -540,8 +538,8 @@ module SignalWire
     end
 
     # Internal helpers (formerly leading-underscore by convention). Not part of
-    # the public/Python surface — declared private so the cross-port surface
-    # enumerator continues to exclude them.
+    # the public surface — declared private so the surface enumerator continues
+    # to exclude them.
     private :apply_log_level, :set_logger_level, :map_log_level,
             :run_server, :build_webrick, :handle_cgi_request, :format_cgi_response,
             :body_to_string, :handle_lambda_request, :lambda_env, :lambda_path,

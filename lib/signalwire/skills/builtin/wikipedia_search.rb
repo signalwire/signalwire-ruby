@@ -125,8 +125,8 @@ module SignalWire
 
         # Default to en.wikipedia.org host; WIKIPEDIA_BASE_URL overrides
         # for tests and the audit fixture. The env var is the *host*; the
-        # `/w/api.php` path is appended so audit_skills_dispatch can match
-        # on `api.php` in req.path.
+        # The `/w/api.php` path is appended so the skills-dispatch audit can
+        # match on `api.php` in the request path.
         def api_endpoint
           "#{resolved_base_url('WIKIPEDIA_BASE_URL', 'https://en.wikipedia.org')}/w/api.php"
         end

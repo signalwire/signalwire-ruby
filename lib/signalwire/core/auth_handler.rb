@@ -19,9 +19,8 @@ module SignalWire
   module Core
     # Unified authentication handler supporting multiple auth methods.
     #
-    # Mirrors Python's ``signalwire.core.auth_handler.AuthHandler``. Provides a
-    # clean pattern for handling Basic Auth, Bearer tokens, and API keys across
-    # all SignalWire services. All credential comparisons are timing-safe
+    # Provides a clean pattern for handling Basic Auth, Bearer tokens, and API
+    # keys across all SignalWire services. All credential comparisons are timing-safe
     # (``Rack::Utils.secure_compare``).
     #
     # Two Rack-native entry points are provided: (a) +rack_middleware+ -- a
@@ -37,7 +36,7 @@ module SignalWire
       # header is split on the FIRST space: the first part is the +scheme+
       # ("Bearer"), the second the +credentials+ (the token itself). Per RFC
       # 7235 the scheme token is compared case-INSENSITIVELY but carried
-      # VERBATIM here, mirroring the reference's HTTPAuthorizationCredentials.
+      # VERBATIM here.
       BasicCredentials = Struct.new(:username, :password)
       BearerCredentials = Struct.new(:scheme, :credentials)
 
@@ -76,7 +75,7 @@ module SignalWire
         secure_compare(api_key, @auth_methods['api_key']['key'])
       end
 
-      # Native Rack equivalent of Python's FastAPI dependency. Returns a
+      # Rack-native auth dependency. Returns a
       # callable (lambda) that takes a Rack +env+ and returns an auth-result
       # Hash ``{ 'authenticated' => Boolean, 'method' => String|nil }``. When
       # +optional+ is false and authentication fails, the callable raises
@@ -93,7 +92,7 @@ module SignalWire
       end
       alias get_fastapi_dependency rack_dependency
 
-      # Native Rack equivalent of Python's Flask decorator. Given a Rack app
+      # Rack-native auth middleware. Given a Rack app
       # (any object responding to +call(env)+), returns a wrapping app that
       # enforces authentication: authenticated requests pass through, others
       # get an HTTP 401 with a WWW-Authenticate challenge.
@@ -168,17 +167,15 @@ module SignalWire
 
         scheme, credentials = split_authorization(env['HTTP_AUTHORIZATION'])
         # RFC 7235: the auth-scheme token is case-INSENSITIVE, so compare it
-        # folded (the reference does `scheme.lower() != "bearer"`) while
-        # carrying the scheme VERBATIM into the carrier.
+        # folded while carrying the scheme VERBATIM into the carrier.
         return false unless scheme.downcase == 'bearer' && !credentials.empty?
 
         verify_bearer_token(BearerCredentials.new(scheme, credentials))
       end
 
       # Split an Authorization header on the FIRST space into
-      # +[scheme, credentials]+, mirroring the reference's
-      # +get_authorization_scheme_param+ (partition on ' ', strip the param).
-      # A nil/blank header yields +['', '']+.
+      # +[scheme, credentials]+, stripping surrounding whitespace from the
+      # credentials. A nil/blank header yields +['', '']+.
       def split_authorization(header)
         value = header.to_s
         return ['', ''] if value.empty?
@@ -221,13 +218,13 @@ module SignalWire
       # @return [BasicCredentials, nil]
       def parse_basic_auth(header)
         scheme, param = split_authorization(header)
-        # RFC 7235 case-insensitive scheme compare (reference:
-        # `scheme.lower() != "basic"`).
+        # RFC 7235 case-insensitive scheme compare: "Basic", "basic" and
+        # "BASIC" are all accepted.
         return nil unless scheme.downcase == 'basic'
 
         decoded = Base64.decode64(param)
         user, separator, pass = decoded.partition(':')
-        # RFC 7617 / reference: `if not separator: raise`. A decoded payload
+        # RFC 7617: a decoded payload
         # with NO colon is NOT a credential pair -- reject it outright rather
         # than defaulting the password to ''.
         return nil if separator.empty?

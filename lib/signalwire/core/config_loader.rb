@@ -16,7 +16,6 @@ module SignalWire
   module Core
     # Configuration loader with environment variable substitution.
     #
-    # Mirrors Python's ``signalwire.core.config_loader.ConfigLoader``.
     # Supports ``${VAR|default}`` syntax for referencing environment variables
     # within JSON (or YAML) configuration files. This provides a clean pattern
     # for configuration across all SignalWire services.
@@ -29,10 +28,8 @@ module SignalWire
                        File.expand_path('~/.swml/config.json'), '/etc/swml/config.json'].freeze
 
       # @return [Array<String>] the search paths in use — the caller-supplied
-      #   list, or {DEFAULT_PATHS} when none was given. The reference exposes the
-      #   same resolved attribute (`self.config_paths = config_paths or
-      #   self._get_default_paths()`, core/config_loader.py:37), so which paths a
-      #   loader is actually consulting is readable back either way.
+      #   list, or {DEFAULT_PATHS} when none was given. Reading this back tells
+      #   you which paths a loader is actually consulting.
       attr_reader :config_paths
 
       # Initialize the config loader.

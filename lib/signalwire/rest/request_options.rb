@@ -79,9 +79,8 @@ module SignalWire
       # built-in floor. +nil+ on any field inherits the next level down; the
       # result has every field concrete. Returns an {EffectiveOptions}.
       #
-      # A module-level operation (mirrors the reference's module function
-      # +signalwire.rest._request_options.resolve+); exposed as a class method so
-      # the Ruby call site reads +RequestOptions.resolve(...)+.
+      # A stateless operation, exposed as a class method so the call site
+      # reads +RequestOptions.resolve(...)+.
       def self.resolve(client_default, per_request)
         merged = (client_default || RequestOptions.new).merge(per_request)
         EffectiveOptions.new(
@@ -94,10 +93,9 @@ module SignalWire
       end
 
       # Whether an HTTP +status+ for +method+ should trigger a retry, given the
-      # resolved +opts+ ({EffectiveOptions}). A module-level operation (mirrors
-      # the reference's module function
-      # +signalwire.rest._request_options.status_is_retryable+); delegates to the
-      # resolved options so the idempotency asymmetry lives in one place.
+      # resolved +opts+ ({EffectiveOptions}). A stateless operation; delegates
+      # to the resolved options so the idempotency asymmetry lives in one
+      # place.
       def self.status_is_retryable(method, status, opts)
         opts.status_retryable?(method, status)
       end

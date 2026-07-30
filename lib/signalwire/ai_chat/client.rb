@@ -27,12 +27,9 @@ module SignalWire
   # A +chat+ call awaits a full LLM round trip (seconds, not milliseconds). The
   # service streams keepalive whitespace ahead of a slow response body (proxy
   # read-timeout protection), so liveness is byte-driven rather than wall-clock:
-  # there is no total-request timeout an idle turn could trip — only a per-read
-  # idle timeout, mirroring the python reference's
-  # +aiohttp.ClientTimeout(total=None, connect=10, sock_read=60)+. Leading
-  # whitespace is valid JSON, so the buffered +JSON.parse+ is unaffected.
-  #
-  # Mirrors the python reference +signalwire.ai_chat.AIChatClient+.
+  # there is no total-request timeout an idle turn could trip — only a bounded
+  # connect timeout and a per-read idle timeout. Leading whitespace is valid
+  # JSON, so the buffered +JSON.parse+ is unaffected.
   #
   #   require 'signalwire/ai_chat'
   #
@@ -44,14 +41,13 @@ module SignalWire
     # Default endpoint path appended to a +space+-derived base URL.
     DEFAULT_PATH = '/api/ai/chat'
 
-    # Connect timeout (seconds) — a bounded TCP/TLS handshake. Mirrors the python
-    # reference's +connect=10+.
+    # Connect timeout (seconds) — a bounded TCP/TLS handshake.
     DEFAULT_CONNECT_TIMEOUT_SECONDS = 10
 
     # Idle read timeout (seconds) for a single request. The service streams
     # keepalive whitespace roughly every 10s, so this bounds true byte-silence (a
-    # dead connection), NOT total turn length — mirroring the python reference's
-    # +sock_read=60+. Net::HTTP's +read_timeout+ is per-read (it resets on each
+    # dead connection), NOT total turn length. Net::HTTP's +read_timeout+ is
+    # per-read (it resets on each
     # received chunk), so the streaming proxy's heartbeat keeps a live-but-slow
     # turn alive while a truly dead connection is severed after this many seconds
     # of silence. A total wall-clock cap is deliberately absent — a slow-but-live
@@ -196,11 +192,10 @@ module SignalWire
             'or provide space: / SIGNALWIRE_SPACE.'
     end
 
-    # Release any client-held resources. The reference closes its persistent
-    # aiohttp session here; Ruby's AIChatClient opens a fresh Net::HTTP
+    # Release any client-held resources. AIChatClient opens a fresh Net::HTTP
     # connection per request and owns no long-lived session, so there is nothing
     # to release — this is a well-defined no-op that completes the lifecycle
-    # contract (mirrors the reference #close). Safe to call any number of times.
+    # contract. Safe to call any number of times.
     def close; end
 
     # ── API methods ──────────────────────────────────────────────────
@@ -310,7 +305,7 @@ module SignalWire
     # Success/failure is decided by the JSON-RPC BODY, not the HTTP status: the
     # service's keepalive heartbeat commits +200+ before the turn's outcome is
     # known, so a slow error can arrive as +200 + {"error": …}+. Never gate on the
-    # HTTP status here (mirrors the python reference).
+    # HTTP status here.
     #
     # Raises {AIChat::AIChatError} (or a typed subclass) when the body carries
     # +error+.

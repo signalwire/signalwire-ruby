@@ -37,9 +37,9 @@ module SignalWire
 
         # Elements whose *entire subtree* is dropped before text extraction —
         # boilerplate that would otherwise pollute the extracted text. Spelled
-        # as XPath expressions to match the reference; {#strip_html} compiles
-        # each to the equivalent tag-with-content regex (Ruby has no bundled
-        # HTML tree parser, so there is no lxml-style +drop_tree+ to call).
+        # as XPath expressions; {#strip_html} compiles each to the equivalent
+        # tag-with-content regex (Ruby has no bundled HTML tree parser, so
+        # there is no tree-level drop to call).
         DEFAULT_REMOVE_XPATHS = [
           '//script',
           '//style',
@@ -84,8 +84,8 @@ module SignalWire
           @tool_prefix     = get_param('tool_name', default: '')
           @tool_prefix     = "#{@tool_prefix}_" unless @tool_prefix.empty?
           @cache_enabled   = get_param('cache_enabled', default: true) != false
-          # Response cache, mirroring Python's per-instance fetch cache. Held as
-          # state so #cleanup has something concrete to tear down.
+          # Per-instance fetch cache. Held as state so #cleanup has something
+          # concrete to tear down.
           @cache = @cache_enabled ? {} : nil
           true
         end
@@ -262,7 +262,7 @@ module SignalWire
         end
 
         # SPIDER_BASE_URL redirects every fetch through a configured host
-        # (used by audit_skills_dispatch.py to point the skill at a loopback
+        # (used by the skills-dispatch audit to point the skill at a loopback
         # fixture). The path/query of the user-supplied URL is preserved so
         # the audit can match on it.
         def redirect_url(url)

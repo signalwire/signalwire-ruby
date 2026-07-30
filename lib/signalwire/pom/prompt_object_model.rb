@@ -17,10 +17,9 @@ module SignalWire
     # can include a title, body text, bullet points, and arbitrarily
     # nested subsections.
     #
-    # Mirrors Python's ``signalwire.pom.pom.PromptObjectModel``. The
-    # rendered output (Markdown / XML / JSON / YAML) is byte-for-byte
-    # identical to the Python reference so cross-language POM documents
-    # interoperate.
+    # The rendered output (Markdown / XML / JSON / YAML) is a stable,
+    # byte-exact wire format, so POM documents interoperate with every other
+    # SignalWire SDK.
     class PromptObjectModel
       attr_accessor :sections, :debug
 
@@ -33,9 +32,7 @@ module SignalWire
 
       # Build a PromptObjectModel from JSON.
       #
-      # +json_data+ may be either a JSON string or an already-parsed
-      # Array. Mirrors Python's
-      # ``PromptObjectModel.from_json(json_data: Union[str, dict])``.
+      # +json_data+ may be either a JSON string or an already-parsed Array.
       def self.from_json(json_data)
         data = json_data.is_a?(String) ? JSON.parse(json_data) : json_data
         _from_array(data)
@@ -43,17 +40,14 @@ module SignalWire
 
       # Build a PromptObjectModel from YAML.
       #
-      # +yaml_data+ may be either a YAML string or an already-parsed
-      # Array. Mirrors Python's
-      # ``PromptObjectModel.from_yaml(yaml_data: Union[str, dict])``.
+      # +yaml_data+ may be either a YAML string or an already-parsed Array.
       def self.from_yaml(yaml_data)
         data = yaml_data.is_a?(String) ? YAML.safe_load(yaml_data) : yaml_data
         _from_array(data)
       end
 
       # Internal: build a PromptObjectModel from a raw Array of Hash
-      # section descriptors. Mirrors Python's ``_from_dict`` (which
-      # confusingly takes a list, not a dict).
+      # section descriptors.
       def self._from_array(data)
         pom = new
         data = [] if data.nil?
@@ -97,21 +91,19 @@ module SignalWire
         recurse.call(@sections)
       end
 
-      # Convert the model to a JSON string. Output matches Python's
-      # ``json.dumps(..., indent=2)`` byte-for-byte, with one
-      # special case: an empty model serializes to ``"[]"`` (Ruby's
-      # default ``JSON.pretty_generate([])`` emits ``"[\n\n]"``).
+      # Convert the model to a JSON string, 2-space indented. One special
+      # case: an empty model serializes to ``"[]"``, because Ruby's default
+      # ``JSON.pretty_generate([])`` emits ``"[\n\n]"``, which is not the
+      # wire format.
       def to_json(*_args)
         return '[]' if @sections.empty?
 
         JSON.pretty_generate(@sections.map(&:to_h))
       end
 
-      # Convert the model to a YAML string. Output matches Python's
-      # ``yaml.dump(..., default_flow_style=False, sort_keys=False)``
-      # byte-for-byte. Ruby's ``YAML.dump`` prepends ``---\n``; we strip
-      # it. The empty-list case (Ruby emits ``--- []\n``) is normalised
-      # to Python's ``[]\n``.
+      # Convert the model to a YAML string: block style, keys in insertion
+      # order. Ruby's ``YAML.dump`` prepends ``---\n``; we strip it. The
+      # empty-list case (Ruby emits ``--- []\n``) is normalised to ``[]\n``.
       def to_yaml
         return "[]\n" if @sections.empty?
 
@@ -120,14 +112,11 @@ module SignalWire
       end
 
       # Convert the model to an Array of Hash section descriptors.
-      # Mirrors Python's ``PromptObjectModel.to_dict`` (Ruby idiom uses
-      # ``to_h``).
       def to_h
         @sections.map(&:to_h)
       end
 
-      # Render the entire model as Markdown. Output is byte-for-byte
-      # identical to Python's ``PromptObjectModel.render_markdown``.
+      # Render the entire model as Markdown.
       def render_markdown
         any_section_numbered = @sections.any?(&:numbered)
         SectionBuilder.debug_header(@sections, any_section_numbered) if @debug
@@ -141,8 +130,7 @@ module SignalWire
         md.join("\n")
       end
 
-      # Render the entire model as XML. Output is byte-for-byte identical
-      # to Python's ``PromptObjectModel.render_xml``.
+      # Render the entire model as XML.
       def render_xml
         xml = ['<?xml version="1.0" encoding="UTF-8"?>', '<prompt>']
         any_section_numbered = @sections.any?(&:numbered)
@@ -161,8 +149,6 @@ module SignalWire
       # Add another PromptObjectModel as a subsection of an existing
       # section identified either by title or by Section reference.
       #
-      # Mirrors Python's
-      # ``PromptObjectModel.add_pom_as_subsection(target, pom_to_add)``.
       def add_pom_as_subsection(target, pom_to_add)
         target_section = resolve_target_section(target)
         pom_to_add.sections.each do |section|
@@ -194,8 +180,7 @@ module SignalWire
     end
 
     # Internal: validates raw section Hashes and builds Section trees from
-    # them. Mirrors Python's ``build_section`` inner helper. Not part of the
-    # public POM surface.
+    # them. Not part of the public POM surface.
     module SectionBuilder
       module_function
 
@@ -289,8 +274,8 @@ module SignalWire
         kwargs
       end
 
-      # Compute the [section_number, counter] pair for one section, mirroring
-      # the Python numbering logic. Untitled sections get an empty number and
+      # Compute the [section_number, counter] pair for one section. Untitled
+      # sections get an empty number and
       # don't advance the counter.
       def section_number(section, counter, any_section_numbered)
         return [[], counter] if section.title.nil?

@@ -19,7 +19,6 @@ module SignalWire
   module Core
     # Unified security configuration for SignalWire services.
     #
-    # Mirrors Python's ``signalwire.core.security_config.SecurityConfig``.
     # Provides centralized security settings (SSL, allowed hosts, CORS,
     # security headers, basic auth) that are consumed by the web/agent
     # services, ensuring consistent behavior.
@@ -92,9 +91,8 @@ module SignalWire
       # Get native TLS options for binding a WEBrick HTTPS server. Returns an
       # empty Hash when SSL is disabled or the configuration fails validation.
       #
-      # Ruby idiom note: Python returns uvicorn ``ssl_certfile``/``ssl_keyfile``
-      # kwargs; Ruby returns WEBrick/OpenSSL option keys (:SSLEnable,
-      # :SSLCertificate, :SSLPrivateKey) ready to merge into a WEBrick config.
+      # The returned Hash uses WEBrick/OpenSSL option keys (:SSLEnable,
+      # :SSLCertificate, :SSLPrivateKey), ready to merge into a WEBrick config.
       def get_ssl_context_kwargs
         return {} unless ssl_enabled
 

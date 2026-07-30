@@ -97,9 +97,8 @@ module SignalWire
 
       # Register an event listener for this call.
       #
-      # The handler is REQUIRED, matching the reference
-      # (``on(self, event_type: str, handler: EventHandler)``). Ruby's block IS
-      # the handler; supplying neither registers nothing and raises.
+      # The handler is REQUIRED. Ruby's block IS the handler; supplying neither
+      # registers nothing and raises.
       def on(event_type, handler, &block)
         callback = block || handler
         raise ArgumentError, 'on requires a handler (block or callable)' if callback.nil?
@@ -191,10 +190,10 @@ module SignalWire
 
       # Block until the call reaches +target+, returning immediately if the
       # call is already at or past that state. Backs the typed +wait_for_*+
-      # helpers below. Mirrors Python's +Call._wait_for_state+: states are
-      # ordered created < ringing < answered < ending < ended, and a call
-      # already at/past the target resolves with a synthetic state event
-      # (matching the legacy SDK's short-circuit).
+      # helpers below. States are ordered
+      # created < ringing < answered < ending < ended, and a call already
+      # at/past the target resolves with a synthetic state event (the legacy
+      # SDK's short-circuit).
       def _wait_for_state(target, timeout)
         return synthetic_state_event if state_rank(@state) >= state_rank(target)
 
@@ -219,22 +218,19 @@ module SignalWire
       end
 
       # Wait until the call is answered (immediate if already answered or past
-      # it). Typed wait over #wait_for. Mirrors Python's
-      # +Call.wait_for_answered(timeout)+.
+      # it). Typed wait over #wait_for.
       def wait_for_answered(timeout: nil)
         _wait_for_state(CALL_STATE_ANSWERED, timeout)
       end
 
       # Wait until the call is ringing (immediate if already ringing or past
-      # it). Typed wait over #wait_for. Mirrors Python's
-      # +Call.wait_for_ringing(timeout)+.
+      # it). Typed wait over #wait_for.
       def wait_for_ringing(timeout: nil)
         _wait_for_state(CALL_STATE_RINGING, timeout)
       end
 
       # Wait until the call is ending (immediate if already ending or past
-      # it). Typed wait over #wait_for. Mirrors Python's
-      # +Call.wait_for_ending(timeout)+.
+      # it). Typed wait over #wait_for.
       def wait_for_ending(timeout: nil)
         _wait_for_state(CALL_STATE_ENDING, timeout)
       end
@@ -609,8 +605,6 @@ module SignalWire
       #
       # Restores the legacy +call.play_tts(text)+ ergonomics so callers don't
       # hand-build the +{ 'type' => 'tts', 'params' => {...} }+ media shape.
-      # Mirrors Python's +Call.play_tts(text, *, language, gender, voice,
-      # volume, on_completed)+.
       #
       # Wire shape: play [{ 'type' => 'tts', 'params' => { 'text', language?,
       # gender?, voice? } }] with an optional top-level +volume+.
@@ -625,7 +619,6 @@ module SignalWire
       end
 
       # Play an audio file from a URL. Typed convenience over #play.
-      # Mirrors Python's +Call.play_audio(url, *, volume, on_completed)+.
       #
       # Wire shape: play [{ 'type' => 'audio', 'params' => { 'url' } }] with an
       # optional top-level +volume+.
@@ -635,7 +628,6 @@ module SignalWire
       end
 
       # Play silence for +duration+ seconds. Typed convenience over #play.
-      # Mirrors Python's +Call.play_silence(duration, *, on_completed)+.
       #
       # Wire shape: play [{ 'type' => 'silence', 'params' => { 'duration' } }].
       def play_silence(duration, on_completed: nil)
@@ -644,8 +636,6 @@ module SignalWire
       end
 
       # Play a named ringtone by country code. Typed convenience over #play.
-      # Mirrors Python's +Call.play_ringtone(name, *, duration, volume,
-      # on_completed)+.
       #
       # Wire shape: play [{ 'type' => 'ringtone', 'params' => { 'name',
       # duration? } }] with an optional top-level +volume+.
@@ -702,8 +692,6 @@ module SignalWire
       end
 
       # Play TTS then collect input. Typed media over #play_and_collect.
-      # Mirrors Python's +Call.prompt_tts(text, collect, *, language, gender,
-      # voice, volume, on_completed)+.
       #
       # Wire shape: play_and_collect [{ 'type' => 'tts', 'params' => { 'text',
       # language?, gender?, voice? } }] with the given +collect+ object and an
@@ -719,8 +707,7 @@ module SignalWire
       end
 
       # Play an audio file then collect input. Typed media over
-      # #play_and_collect. Mirrors Python's +Call.prompt_audio(url, collect,
-      # *, volume, on_completed)+.
+      # #play_and_collect.
       #
       # Wire shape: play_and_collect [{ 'type' => 'audio', 'params' =>
       # { 'url' } }] with the given +collect+ object and an optional top-level
@@ -745,8 +732,6 @@ module SignalWire
       end
 
       # Detect DTMF digits. Typed convenience over #detect.
-      # Mirrors Python's +Call.detect_digit(*, digits, timeout,
-      # on_completed)+.
       #
       # Wire shape: detect { 'type' => 'digit', 'params' => { digits? } } with
       # an optional top-level +timeout+.
@@ -758,10 +743,7 @@ module SignalWire
       end
 
       # Detect human vs answering machine (AMD). Typed convenience over
-      # #detect. Mirrors Python's +Call.detect_answering_machine(*,
-      # initial_timeout, end_silence_timeout, machine_voice_threshold,
-      # machine_words_threshold, detect_interruptions, detect_message_end,
-      # timeout, on_completed)+.
+      # #detect.
       #
       # Wire shape: detect { 'type' => 'machine', 'params' => { ...only the
       # provided fields... } } with an optional top-level +timeout+.
@@ -783,7 +765,6 @@ module SignalWire
       end
 
       # Detect a fax tone (CED/CNG). Typed convenience over #detect.
-      # Mirrors Python's +Call.detect_fax(*, tone, timeout, on_completed)+.
       #
       # Wire shape: detect { 'type' => 'fax', 'params' => { tone? } } with an
       # optional top-level +timeout+.
@@ -901,7 +882,7 @@ module SignalWire
       attr_reader :client
 
       # Internal helpers (formerly leading-underscore by convention). Not part of
-      # the public/Python surface — declared private so the cross-port surface
+      # the public surface — declared private so it stays
       # enumerator continues to exclude them. _execute / _dispatch_event /
       # _wait_for_state stay public+underscored: they are invoked cross-instance
       # (Action, RelayClient, and the test suite call them with an explicit

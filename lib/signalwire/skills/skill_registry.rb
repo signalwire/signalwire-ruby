@@ -100,12 +100,8 @@ module SignalWire
       # `SIGNALWIRE_SKILL_PATHS` environment variable (colon-separated,
       # deduped, registered paths first).
       #
-      # Mirrors the Python reference `SkillRegistry`, which appends
-      # `os.environ["SIGNALWIRE_SKILL_PATHS"]` (split on `os.pathsep`) to its
-      # registered `_external_paths` when resolving/discovering skills
-      # (`registry.py` `_load_skill_on_demand` + `get_all_skills_schema`). The
-      # env var is read on every call so a value set after construction still
-      # takes effect, matching Python's search-time read.
+      # The env var is read on every call, so a value set after construction
+      # still takes effect.
       #
       # @return [Array<String>]
       def external_paths
@@ -116,10 +112,8 @@ module SignalWire
 
       # Add a directory to search for skills.
       #
-      # Mirrors Python's `SkillRegistry.add_skill_directory`: validate
-      # that the path exists and is a directory, then append it
-      # (de-duplicated) to `@external_paths`. Raises `ArgumentError`
-      # (the Ruby analog of Python's `ValueError`) for invalid input.
+      # Validates that the path exists and is a directory, then appends it
+      # (de-duplicated) to `@external_paths`.
       #
       # @param path [String] absolute or relative path to a directory
       # @return [void]
@@ -136,13 +130,10 @@ module SignalWire
 
       # Get complete schema for all registered skills (instance form).
       #
-      # Mirrors Python's instance-method
-      # ``SkillRegistry.get_all_skills_schema()`` — returns a hash keyed
-      # by skill name, each value containing parameter metadata. Ruby
-      # skills don't carry rich Python-style parameter introspection in
-      # v1, so the value defaults to a minimal shape with the skill
-      # name; built-ins that expose ``parameter_schema`` get richer
-      # detail.
+      # Returns a hash keyed by skill name, each value containing parameter
+      # metadata. Skills are not introspected for their parameters, so the
+      # value defaults to a minimal shape carrying just the skill name;
+      # built-ins that expose ``parameter_schema`` get richer detail.
       #
       # @return [Hash{String => Hash}]
       def get_all_skills_schema = self.class.get_all_skills_schema
@@ -258,7 +249,7 @@ module SignalWire
         # available.
         # @api private
         def list_skills_full
-          register_builtins! # parity: Python auto-discovers builtins (idempotent)
+          register_builtins! # builtins are auto-discovered here (idempotent)
           @mutex.synchronize { @factories.keys.sort.map { |skill_name| skill_summary(skill_name) } }
         end
 
@@ -273,11 +264,8 @@ module SignalWire
         # Directories named by the `SIGNALWIRE_SKILL_PATHS` environment variable
         # (path-separator-delimited, empty entries dropped).
         #
-        # Mirrors the Python reference, which reads
-        # `os.environ.get("SIGNALWIRE_SKILL_PATHS", "").split(os.pathsep)` and
-        # folds those directories into the skill search path (`registry.py:59`
-        # and `:387`). Read fresh on every call so a var set after startup still
-        # takes effect, matching Python's search-time read.
+        # These are folded into the skill search path. Read fresh on every
+        # call, so a var set after startup still takes effect.
         #
         # @return [Array<String>]
         def env_skill_paths
@@ -300,7 +288,7 @@ module SignalWire
         # named set can never silently drift from what gets registered.
         # @return [Array<String>]
         def builtin_skill_names = SkillName::ALL.dup
-        # Internal helper — not part of the Python surface; reached via
+        # Internal helpers — not part of the public surface; reached via
         # discover_skills / list_all_skill_sources.
         private :builtin_skill_names, :list_skills_full, :env_skill_paths
 
@@ -339,17 +327,15 @@ module SignalWire
 
         # Get complete schema for all registered skills.
         #
-        # Mirrors Python's
-        # ``SkillRegistry.get_all_skills_schema()`` — returns a hash
-        # keyed by skill name, with each value containing parameter
-        # metadata. Ruby skills don't carry rich Python-style parameter
-        # introspection in v1, so the value defaults to a minimal shape
-        # with the skill name; built-in skills that expose
-        # ``parameter_schema`` get richer detail.
+        # Returns a hash keyed by skill name, with each value containing
+        # parameter metadata. Skills are not introspected for their
+        # parameters, so the value defaults to a minimal shape carrying just
+        # the skill name; built-in skills that expose ``parameter_schema``
+        # get richer detail.
         #
         # @return [Hash{String => Hash}]
         def get_all_skills_schema
-          register_builtins! # parity: Python auto-discovers builtins here (idempotent)
+          register_builtins! # builtins are auto-discovered here (idempotent)
           @mutex.synchronize do
             @factories.keys.sort.to_h { |name| [name, skill_schema_entry(name)] }
           end

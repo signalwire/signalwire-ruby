@@ -37,12 +37,11 @@ module SignalWire
     # value stays a bare String everywhere (the events carry +call_state+ as a
     # String, +Call#state+ is a String), and the flat +CALL_STATE_*+ constants
     # above remain the single source of the literals. This module wraps them
-    # with the Wave-A/Tier-1 idiom — a frozen +ALL+ ordered list, a frozen
+    # with a frozen +ALL+ ordered list, a frozen
     # +TERMINAL+ set, and a +terminal?+ predicate — so callers can ask
     # +CallState.terminal?(state)+ instead of hard-coding +== "ended"+.
     #
-    # Grounded in +signalwire/relay/constants.py+ (+CALL_STATES+) — the same
-    # closed, server-emitted lifecycle the Python reference enumerates. +ended+
+    # The set is closed — these are the only states the server emits. +ended+
     # is the one terminal state (the call is gone; {Call#wait_for_ended}
     # resolves on it).
     module CallState
@@ -93,13 +92,11 @@ module SignalWire
     DIAL_STATE_ANSWERED = 'answered'
     DIAL_STATE_FAILED   = 'failed'
 
-    # Named, frozen view over the outbound-dial vocabulary. Unlike call/message
-    # states, the reference exposes *no* flat dial-state constants — the values
-    # are grounded in +signalwire/relay/client.py+'s
-    # +_handle_dial_event+ docstring ("``dial_state`` — ``dialing`` |
-    # ``answered`` | ``failed``") and the mock dial-dance. This module names
-    # them (+DIAL_STATE_*+ above are the single source) and adds +ALL+ +
-    # +TERMINAL+ + +terminal?+.
+    # Named, frozen view over the outbound-dial vocabulary. The +dial_state+
+    # field on a +calling.call.dial+ event carries exactly one of +dialing+,
+    # +answered+ or +failed+. This module names them (+DIAL_STATE_*+ above are
+    # the single source of the literals) and adds +ALL+ + +TERMINAL+ +
+    # +terminal?+.
     #
     # Both +answered+ and +failed+ are terminal: {Client#dial} resolves to a
     # {Call} on +answered+ and raises {RelayError} on +failed+; +dialing+ is
@@ -182,9 +179,9 @@ module SignalWire
     # source of the literals) with +ALL+ + +TERMINAL+ + +terminal?+, so callers
     # can ask +MessageState.terminal?(state)+ instead of re-deriving the set.
     #
-    # Grounded in +signalwire/relay/constants.py+: the terminal set is
-    # +MESSAGE_TERMINAL_STATES+ ({delivered, undelivered, failed}) — the same
-    # set the Python reference uses to resolve a sent message's final outcome.
+    # The terminal set is +MESSAGE_TERMINAL_STATES+ ({delivered, undelivered,
+    # failed}) — reaching any of the three resolves a sent message's final
+    # outcome.
     module MessageState
       QUEUED      = MESSAGE_STATE_QUEUED
       INITIATED   = MESSAGE_STATE_INITIATED

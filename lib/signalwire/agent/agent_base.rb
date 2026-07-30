@@ -257,8 +257,8 @@ module SignalWire
 
       @context_builder   = nil
 
-      # Python parity: SkillManager(agent) keeps a back-pointer so loaded
-      # skills can attach SWAIG tools and prompt sections via the manager.
+      # SkillManager(agent) keeps a back-pointer so loaded skills can attach
+      # SWAIG tools and prompt sections via the manager.
       @skill_manager     = Skills::SkillManager.new(self)
       @loaded_skills     = {} # skill_name => SkillBase
     end
@@ -365,12 +365,12 @@ module SignalWire
     end
 
     # @api private — build one POM section hash from the {#prompt_add_section}
-    # arguments. `body` is omitted when nil or empty (Ruby's `''` is truthy where
-    # the reference's is falsy, so a bare truth test would emit `"body": ""`);
-    # the flags are emitted only when true.
+    # arguments. `body` is omitted when nil or empty — Ruby's `''` is TRUTHY, so
+    # a bare truth test here would wrongly emit `"body": ""`. The flags are
+    # emitted only when true.
     def build_section(title, body, **opts)
       section = { 'title' => title }
-      # See prompt_add_subsection: `''` is truthy in Ruby, falsy in python.
+      # See prompt_add_subsection: `''` is TRUTHY in Ruby, so guard on empty.
       section['body']             = body              unless body.nil? || body.empty?
       section['bullets']          = opts[:bullets]    if opts[:bullets]
       section['numbered']         = true              if opts[:numbered]
@@ -410,7 +410,7 @@ module SignalWire
     # **Backwards compat:** the original Ruby signature was
     # ``prompt_add_to_section(title, text)``. When called with two
     # positional arguments the second becomes ``body``; this preserves
-    # existing call sites while still supporting Python's keyword form.
+    # existing call sites while still supporting the keyword form.
     def prompt_add_to_section(title, body_arg = nil, body: nil, bullet: nil, bullets: nil)
       effective_body = body || body_arg
       sec = find_or_create_section(title)
@@ -446,10 +446,9 @@ module SignalWire
       parent = find_or_create_section(parent_title)
       parent['subsections'] ||= []
       sub = { 'title' => title }
-      # An EMPTY body is omitted, not emitted as "". Ruby's `''` is truthy where
-      # python's is falsy, so a bare `if body` would emit `"body": ""` for the
-      # default where the reference (`if self.body:` in pom.Section.to_dict)
-      # omits the key entirely.
+      # An EMPTY body is omitted, not emitted as "". Ruby's `''` is TRUTHY, so a
+      # bare `if body` would emit `"body": ""` for the default instead of
+      # omitting the key entirely.
       sub['body']    = body    unless body.nil? || body.empty?
       sub['bullets'] = bullets if bullets
       parent['subsections'] << sub
@@ -536,11 +535,9 @@ module SignalWire
     # ==================================================================
     #  Idiomatic Ruby accessors (PROTOTYPE — see RUBY_ERGONOMICS_MIGRATION.md)
     # ==================================================================
-    # Additive aliases layered over the Python-named originals above. The
-    # `get_`/`set_` methods stay (the cross-port audit matches them 1:1);
-    # these give Ruby callers the native shape: `agent.post_prompt = "..."`
-    # and `agent.prompt`. Every alias is recorded in PORT_ADDITIONS.md as a
-    # port-only symbol. This block prototypes the pattern on the prompt
+    # Additive aliases layered over the `get_`/`set_` originals above, which
+    # stay; these give Ruby callers the native shape: `agent.post_prompt =
+    # "..."` and `agent.prompt`. This block prototypes the pattern on the prompt
     # accessors only; the full rollout is described in the migration doc.
 
     # Reader: the effective prompt (string in text mode, POM array otherwise).
@@ -775,7 +772,7 @@ module SignalWire
     # @param handler [Proc, nil] explicit handler (alternative to a
     #   block); kept for backward compat
     # @param secure [Boolean] require token validation. Defaults to
-    #   ``true`` (fleet-wide, matching Python): a tool defined without an
+    #   ``true``: a tool defined without an
     #   explicit ``secure:`` requires SWAIG token validation. Pass
     #   ``secure: false`` to opt a tool out.
     # @param fillers [Hash, nil] language-keyed filler phrases
@@ -793,8 +790,7 @@ module SignalWire
     # @yield [args, raw_data] tool handler body (takes precedence over an
     #   explicit ``handler:``, which must still be supplied — pass ``nil``)
     #
-    # ``parameters:`` and ``handler:`` are REQUIRED, matching the reference
-    # (``define_tool(name, description, parameters, handler, ...)``). They
+    # ``parameters:`` and ``handler:`` are REQUIRED. They
     # previously defaulted to ``{}`` / ``nil``, so a call that named no
     # parameters and registered no handler was silently accepted here while every
     # other port rejected it. A tool with no parameters states ``parameters: {}``
@@ -957,7 +953,7 @@ module SignalWire
     end
 
     # @api private — the `__token` credential from a Rack env's query string.
-    # `token` is accepted as a legacy alias, matching the reference.
+    # `token` is accepted as a legacy alias.
     def swaig_request_token(env)
       qs = env.is_a?(Hash) ? (env['QUERY_STRING'] || '') : ''
       params = URI.decode_www_form(qs).to_h
@@ -978,7 +974,7 @@ module SignalWire
 
     # Coerce a handler return into a wire Hash: Hash passes through, a
     # FunctionResult-like object is to_h'd, anything else is wrapped (with a
-    # warning) — matching Python's web/serverless/tool mixin behaviour.
+    # warning).
     def coerce_function_result(name, result)
       return result if result.is_a?(Hash)
       return result.to_h if !result.nil? && result.respond_to?(:to_h)
@@ -1024,13 +1020,11 @@ module SignalWire
 
     # Add a complex (pattern-matched) hint.
     #
-    # ``hint``, ``pattern`` and ``replace`` are REQUIRED, matching the reference
-    # (``add_pattern_hint(hint, pattern, replace, ignore_case=False)``). The
-    # legacy ``add_pattern_hint(pattern, hint:, language:)`` overload was removed:
-    # it had no reference counterpart AND emitted a different wire shape
+    # ``hint``, ``pattern`` and ``replace`` are REQUIRED (``ignore_case``
+    # defaults to false). The legacy ``add_pattern_hint(pattern, hint:,
+    # language:)`` overload was removed: it emitted a different wire shape
     # (``{pattern, hint, language}`` instead of
-    # ``{hint, pattern, replace, ignore_case}``), so it was port-invented surface
-    # rather than an idiomatic spelling of the reference call.
+    # ``{hint, pattern, replace, ignore_case}``).
     #
     # @param hint [String] hint to match
     # @param pattern [String] regex pattern
@@ -1044,12 +1038,10 @@ module SignalWire
 
     # Add a language configuration.
     #
-    # ``name``, ``code`` and ``voice`` are REQUIRED, matching the reference
-    # (``add_language(name, code, voice, ...)``). The preformed-hash shapes this
-    # method used to also accept (``add_language(config_hash)`` and the braceless
-    # ``add_language('name' => …, 'code' => …)``) had no reference counterpart —
-    # the reference spells that capability #set_languages, which takes the list of
-    # config hashes — so they were removed rather than kept as port-only surface.
+    # ``name``, ``code`` and ``voice`` are all REQUIRED. The preformed-hash
+    # shapes this method used to also accept (``add_language(config_hash)`` and
+    # the braceless ``add_language('name' => …, 'code' => …)``) were removed:
+    # use #set_languages, which takes a list of config hashes, for that.
     #
     # Voice argument can be either a simple voice id (``"en-US-Neural2-F"``)
     # or a combined ``"engine.voice:model"`` string
@@ -1376,7 +1368,7 @@ module SignalWire
     end
 
     # An include is valid when it is a Hash carrying a truthy +url+ and a
-    # +functions+ array (mirrors TS setFunctionIncludes' per-entry filter).
+    # +functions+ array; anything else is dropped.
     def valid_function_include?(inc)
       inc.is_a?(Hash) && inc['url'] && inc['functions'].is_a?(Array)
     end
@@ -1496,11 +1488,9 @@ module SignalWire
     # @param contexts [SignalWire::Contexts::ContextBuilder, Hash, nil]
     #   optional override
     # @return [SignalWire::Contexts::ContextBuilder] the active builder
-    # ``contexts`` is OPTIONAL here, matching the reference's AgentBase-facing
-    # ``PromptMixin.define_contexts(contexts=None)`` — the no-argument call is the
-    # documented "get or create the builder" shape. The reference's OTHER
-    # ``define_contexts``, on PromptManager, does require it; Ruby's
-    # PromptManager#define_contexts matches that separately.
+    # ``contexts`` is OPTIONAL here — the no-argument call is the documented
+    # "get or create the builder" shape. PromptManager#define_contexts is a
+    # separate method that DOES require its argument.
     def define_contexts(contexts = nil)
       return (@context_builder = attach_context_builder(contexts)) if contexts.is_a?(Contexts::ContextBuilder)
       return (@context_builder = build_context_builder_from_hash(contexts)) if contexts.is_a?(Hash)
@@ -1574,9 +1564,9 @@ module SignalWire
       factory = Skills::SkillRegistry.get_factory(skill_name)
       raise ArgumentError, "Unknown skill: '#{skill_name}'" unless factory
 
-      # The default is `nil` to match the reference (`params: dict | None = None`),
-      # but every registered factory is a block that INDEXES the params hash, so
-      # the nil is normalised here rather than pushed onto each factory.
+      # The default is `nil`, but every registered factory is a block that
+      # INDEXES the params hash, so the nil is normalised here rather than
+      # pushed onto each factory.
       skill = factory.call(params || {})
       @skill_manager.load(skill.instance_key, skill)
       @loaded_skills[skill_name] = skill
@@ -1667,9 +1657,8 @@ module SignalWire
     # Web / HTTP configuration
     # ==================================================================
 
-    # The callback is REQUIRED, matching the reference
-    # (``set_dynamic_config_callback(self, callback)``); the block is the
-    # idiomatic spelling of the same slot and passing neither raises.
+    # The callback is REQUIRED; the block form is the idiomatic spelling of the
+    # same slot, and passing neither raises.
     def set_dynamic_config_callback(callable, &block)
       callback = callable || block
       raise ArgumentError, 'set_dynamic_config_callback requires a callback (block or callable)' if callback.nil?
@@ -1690,33 +1679,26 @@ module SignalWire
     end
 
     # ------------------------------------------------------------------
-    # Web / routing surface (Python WebMixin parity — item I). Several of
-    # these delegate to the inherited SWMLService implementation; explicit
-    # overrides make them part of AgentBase's own public surface (Python
-    # composes them via mixins, so the reference records them on AgentBase).
+    # Web / routing surface. Several of these delegate to the inherited
+    # SWMLService implementation; the explicit overrides make them part of
+    # AgentBase's own public surface.
     # ------------------------------------------------------------------
 
     # The Rack application for this agent (deployment adapters mount this).
-    # Mirrors Python WebMixin.get_app (which returns the FastAPI app).
     def get_app
       rack_app
     end
 
-    # A Rack-mountable router/app for this agent. Mirrors WebMixin.as_router
-    # (Python returns a FastAPI APIRouter; Ruby returns the Rack app).
+    # A Rack-mountable router/app for this agent — the Rack app itself.
     def as_router
       rack_app
     end
 
     # NOTE: register_routing_callback / on_request / on_swml_request /
-    # validate_basic_auth are inherited from SWMLService. The reference records
-    # them on WebMixin/AuthMixin (which Python's AgentBase composes); the Ruby
-    # surface enumerator projects them onto those mixins from the base
-    # SWML::Service via SURFACE_METHOD_DONORS, so no useless super-only
-    # override is defined here.
+    # validate_basic_auth are inherited from SWMLService unchanged, so no
+    # super-only override is defined here.
 
     # Install SIGTERM/SIGINT handlers for graceful shutdown (Kubernetes).
-    # Mirrors WebMixin.setup_graceful_shutdown.
     def setup_graceful_shutdown
       %w[TERM INT].each do |sig|
         Signal.trap(sig) do
@@ -1730,16 +1712,16 @@ module SignalWire
       self
     end
 
-    # Handle a serverless-environment request (CGI / Lambda / Cloud Functions).
-    # Mirrors ServerlessMixin.handle_serverless_request — routes to the normal
-    # run() entry point with the serverless event/context/mode.
+    # Handle a serverless-environment request (CGI / Lambda / Cloud Functions)
+    # by routing to the normal run() entry point with the serverless
+    # event/context/mode.
     def handle_serverless_request(event: nil, context: nil, mode: nil)
       run(event: event, context: context, force_mode: mode)
     end
 
     # Configure ASR-driven multilingual mode (Mode B). Emits a top-level
-    # ``multilingual`` object on the AI verb. Mirrors
-    # AIConfigMixin.set_multilingual — mutually exclusive with set_languages.
+    # ``multilingual`` object on the AI verb. Mutually exclusive with
+    # set_languages.
     def set_multilingual(config)
       @multilingual_config = config
       self
@@ -1803,13 +1785,13 @@ module SignalWire
       @sip_auto_map        = auto_map
       @sip_path            = path
 
-      # Python parity (AgentBase.enable_sip_routing): register a routing
-      # callback at +path+ so the served +/sip+ endpoint actually CONSULTS the
+      # Register a routing callback at +path+ so the served +/sip+ endpoint
+      # actually CONSULTS the
       # SIP mapping. Previously the mapping was stored but never wired into
       # dispatch (a stored-but-unconsulted mapping). The callback extracts the
       # SIP username from the request body and returns nil (matched → this agent
       # handles the call so dispatch renders SWML; unmatched → routing
-      # continues) — exactly Python's sip_routing_callback.
+      # continues).
       register_routing_callback(nil, path) { |body, _headers| sip_routing_callback(body) }
 
       auto_map_sip_usernames if auto_map
@@ -2090,10 +2072,8 @@ module SignalWire
     #    ``on_summary(summary, raw_data = nil)``. Default implementation
     #    calls the registered block (if any) and otherwise no-ops.
     #
-    # ``summary`` is REQUIRED, matching the reference
-    # (``on_summary(self, summary: PostPromptData | None, raw_data=None)``): the
-    # slot is nullABLE, not omittABLE, so a caller states `nil` explicitly rather
-    # than relying on a port-invented default the other nine ports do not have.
+    # ``summary`` is REQUIRED: the slot is nullABLE, not omittABLE, so a caller
+    # states `nil` explicitly rather than relying on a default.
     #
     # @param summary [Hash, nil] the post-prompt summary
     # @param raw_data [Hash, nil] the complete raw POST data
@@ -2108,9 +2088,8 @@ module SignalWire
       nil
     end
 
-    # Register the debug-event handler. REQUIRED, matching the reference
-    # (``on_debug_event(self, handler)``); the block is the idiomatic spelling of
-    # the same slot and passing neither raises.
+    # Register the debug-event handler. REQUIRED; the block form is the
+    # idiomatic spelling of the same slot, and passing neither raises.
     def on_debug_event(handler, &block)
       callback = block || handler
       raise ArgumentError, 'on_debug_event requires a handler (block or callable)' if callback.nil?
@@ -2119,9 +2098,7 @@ module SignalWire
       self
     end
 
-    # Universal run method — mirrors Python's
-    # ``WebMixin.run(event=None, context=None, force_mode=None,
-    # host=None, port=None)``.
+    # Universal run method.
     #
     # Detects execution mode (server / lambda / cgi) and routes
     # accordingly. ``force_mode`` overrides auto-detection.
@@ -2351,7 +2328,7 @@ module SignalWire
         Logger: WEBrick::Log.new($stderr, WEBrick::Log::WARN),
         AccessLog: []
       }
-      # WebMixin parity: serve HTTPS when SSL is configured (via the SWML_SSL_*
+      # Serve HTTPS when SSL is configured (via the SWML_SSL_*
       # env vars read in SWMLService#initialize, or a config file). Shares the
       # helper with SWMLService#serve. No-op when SSL is off → plain HTTP.
       _apply_webrick_ssl!(opts)
@@ -2393,8 +2370,8 @@ module SignalWire
 
     # Framework-free request-dispatch core for AgentBase — overrides
     # {SWMLService#handle_request} so the primitive dispatch surface renders SWML
-    # via the agent's {#render_swml} (mirroring the Rack +handle_main_request+
-    # path) instead of the base +render_document+. Performs proxy detection,
+    # via the agent's {#render_swml} (the same result the Rack
+    # +handle_main_request+ path produces) instead of the base +render_document+. Performs proxy detection,
     # basic-auth, the routing-callback check, and the +on_swml_request+
     # modification hook over plain primitives, returning a
     # +[status, headers, body_string]+ triple with the 401-auth and 307-redirect
@@ -2465,7 +2442,7 @@ module SignalWire
     # +call_id+ (optional) is the active call's id. When present, each SECURE
     # tool's rendered SWAIG webhook carries a per-tool ``__token`` (minted via
     # the SessionManager) so the platform can validate the callback — the wire
-    # manifestation of ``secure`` (mirrors python agent_base.py:1040/1096-1100).
+    # manifestation of ``secure``.
     def _render_swml_internal(call_id: nil)
       @render_call_id = call_id
       { 'version' => '1.0.0', 'sections' => { 'main' => build_main_section } }
@@ -2475,10 +2452,9 @@ module SignalWire
 
     # Assemble the ordered SWML "main" section entries.
     #
-    # The reference routes every one of these through the validating
-    # ``SWMLService.add_verb`` (python core/agent_base.py:1194-1216, 1367-1418).
-    # This assembly builds the section directly, so each entry is put through
-    # the same schema validation here — otherwise the caller-supplied configs
+    # This assembly builds the section directly rather than going through the
+    # validating ``SWMLService.add_verb``, so each entry is put through the same
+    # schema validation here — otherwise the caller-supplied configs
     # of #add_pre_answer_verb / #add_post_answer_verb / #add_post_ai_verb reach
     # the wire completely unchecked.
     def build_main_section
@@ -2617,7 +2593,7 @@ module SignalWire
     # plus `functions` / `native_functions` / `includes` / `internal_fillers` when
     # non-empty. The whole key is dropped when there is nothing but the defaults.
     # `mcp_servers` lives INSIDE this SWAIG object, not at the ai verb's top
-    # level (reference core/agent_base.py:1150-1153 — `swaig_obj["mcp_servers"]`).
+    # level.
     # The ai verb's schema is closed, so a top-level `mcp_servers` is a key the
     # platform rejects; it only ever shipped because this assembly bypassed the
     # validating add_verb.
@@ -2671,9 +2647,8 @@ module SignalWire
     # contexts block degrades to a context-free agent instead of failing the render.
     #
     # `contexts` belongs INSIDE the prompt object (`ai.prompt.contexts`), not at
-    # the ai verb's top level — the reference builds it that way
-    # (core/swml_handler.py:191 `prompt_config["contexts"]`) and this port's own
-    # AiVerbHandler#build_prompt_config already agrees. The ai verb's schema is
+    # the ai verb's top level — AiVerbHandler#build_prompt_config already
+    # builds it that way. The ai verb's schema is
     # closed, so a top-level `contexts` is a key the platform rejects; it only
     # ever shipped because this assembly bypassed the validating add_verb.
     def add_ai_contexts(config)
@@ -2703,7 +2678,7 @@ module SignalWire
       # A SECURE tool rendered with an active call_id gets a per-tool ``__token``
       # appended to its webhook URL (minted via the SessionManager) so the
       # platform validates the callback — the wire manifestation of ``secure``
-      # (mirrors python agent_base.py:1040/1096-1100). Absent a call_id (or for
+      # credential. Absent a call_id (or for
       # an insecure tool) it falls back to the query-param webhook, if any.
       qp = @swaig_query_params.dup
       if tool[:secure] && @render_call_id && !@render_call_id.to_s.empty?
@@ -2730,7 +2705,7 @@ module SignalWire
 
     # Compute the base URL for webhook construction.
     #
-    # Precedence (matches the Python SDK):
+    # Precedence:
     #   1. +SWML_PROXY_URL_BASE+ or a call to +manual_set_proxy_url+
     #      (an explicit override always wins)
     #   2. AWS Lambda-derived URL when execution mode is +:lambda+
@@ -3015,8 +2990,7 @@ module SignalWire
       @logger.error "Post-prompt callback error: #{e.message}"
     end
 
-    # Locate the summary in the post-prompt payload. Mirrors the extraction
-    # order used by the Python and TS ports:
+    # Locate the summary in the post-prompt payload, in this order:
     #   1. top-level "summary" key
     #   2. post_prompt_data["parsed"][0] (when parsed is a non-empty array)
     #   3. post_prompt_data["raw"] (JSON-parsed when possible, else raw)
@@ -3167,11 +3141,10 @@ module SignalWire
 
       # @api private — the 401 challenge: a `Basic realm="SignalWire Agent"`
       # www-authenticate header and a JSON `{"error":"Unauthorized"}` body (not
-      # plain text), matching the reference's auth challenges.
+      # plain text).
       def unauthorized
-        # Python parity (AuthMixin._send_lambda_auth_challenge / the CGI + server
-        # challenges): a JSON {"error":"Unauthorized"} body with a JSON
-        # content-type, not a plain-text "Unauthorized".
+        # A JSON {"error":"Unauthorized"} body with a JSON content-type, not a
+        # plain-text "Unauthorized".
         [
           401,
           {
@@ -3184,8 +3157,8 @@ module SignalWire
     end
 
     # Internal helpers extracted during the lint burndown (Metrics cops) for
-    # locality, but they are implementation details with no Python-reference
-    # counterpart. Declared private here at the end of the class — after every
+    # locality; they are implementation details, not public API. Declared
+    # private here at the end of the class — after every
     # one is defined — so they stay off the audited public surface (restoring the
     # encapsulation the pre-extraction inline code had). Placed last because the
     # methods span multiple public/private regions above.
@@ -3199,10 +3172,9 @@ module SignalWire
     private :matches_env_auth?, :mcp_input_schema, :mcp_tool_entry, :merge_skill_hints_and_data
     private :merge_skill_prompt_sections, :optional_tool_fields, :rack_env, :register_no_vowels_variation
     private :register_skill_tools, :sanitize_sip_username, :section_pom_kwargs
-    # swaig_pre_dispatch / swaig_validate_token are PRIVATE, mirroring the
-    # reference's `_swaig_pre_dispatch` / `_swaig_validate_token` (both
-    # underscore-private). Service invokes the hook with an implicit receiver, so
-    # private visibility is sufficient and the override adds no public surface.
+    # swaig_pre_dispatch / swaig_validate_token are internal SWAIG dispatch
+    # plumbing, not agent-author API. Service invokes the hook with an implicit
+    # receiver, so private visibility is sufficient.
     private :swaig_pre_dispatch, :swaig_validate_token, :swaig_request_token, :swaig_call_id
     private :sym_or_str, :verb_entries, :warn_unexpected_function_result
     private :warn_unknown_filler_name, :warn_unknown_filler_names, :webrick_opts
@@ -3210,8 +3182,7 @@ module SignalWire
     private :valid_function_include?, :warn_dropped_function_include, :find_summary_in_post_data
     private :summary_from_post_prompt_data
     # Formerly leading-underscore-by-convention internals; underscore dropped in
-    # the idiom pass. Declared private so the cross-port surface enumerator keeps
-    # excluding them (unchanged public surface).
+    # the idiom pass. Declared private so they stay off the public surface.
     private :agent_on_swml_request, :agent_render_triple, :apply_env_headers,
             :extract_http_request, :extract_path_and_query, :handle_debug_events,
             :handle_mcp_endpoint, :handle_post_prompt, :mcp_default_response,

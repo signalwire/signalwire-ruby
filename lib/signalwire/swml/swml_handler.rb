@@ -7,11 +7,10 @@
 #
 # SWML Verb Handlers - Interface and implementations for SWML verb handling.
 #
-# This module defines the base interface for SWML verb handlers and provides
-# implementations for specific verbs that require special handling. Mirrors the
-# Python reference signalwire.core.swml_handler (SWMLVerbHandler / AIVerbHandler
-# / VerbHandlerRegistry) and the PHP SignalWire\SWML\{SWMLVerbHandler,
-# AIVerbHandler, VerbHandlerRegistry}.
+# This module defines the base interface for SWML verb handlers
+# (SWMLVerbHandler) and provides implementations for specific verbs that
+# require special handling (AIVerbHandler), along with the lookup registry
+# that maps a verb name to its handler (VerbHandlerRegistry).
 
 module SignalWire
   # SWML — SWML document construction, rendering and serving.
@@ -113,7 +112,8 @@ module SignalWire
         config['post_prompt_url'] = post_prompt_url unless post_prompt_url.nil?
         config['SWAIG'] = swaig unless swaig.nil?
 
-        # Match Python behaviour: always initialise the params dict.
+        # +params+ is always initialised, so the key is present on the wire
+        # even when no extra keyword routed into it.
         config['params'] = {}
         route_extra_kwargs(config, kwargs)
         config

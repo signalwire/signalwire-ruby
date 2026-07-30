@@ -64,7 +64,7 @@ module SignalWire
         end
         @agent  = agent
         @params = (params || {}).transform_keys(&:to_s)
-        # Python: pop swaig_fields out of params for separate access.
+        # swaig_fields is removed from params and held separately.
         @swaig_fields = @params.delete('swaig_fields') || {}
         @logger = ::SignalWire::Logging.logger("signalwire.skills.#{logger_name_segment}")
       end
@@ -78,8 +78,7 @@ module SignalWire
 
       # Define a SWAIG tool on the owning agent, automatically merging any
       # swaig_fields configured for this skill. Skills should use this instead
-      # of calling agent.define_tool directly. Mirrors Python
-      # SkillBase.define_tool(**kwargs).
+      # of calling agent.define_tool directly.
       #
       # @param name [String] tool name
       # @param description [String] tool description

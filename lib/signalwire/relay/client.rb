@@ -44,12 +44,9 @@ module SignalWire
     class Client
       attr_reader :project_id, :protocol, :host, :max_active_calls
 
-      # Caller-supplied connection config, readable back. The reference exposes
-      # every one of these as a public attribute set from the same-named
-      # constructor param (relay/client.py:171-175), so a Ruby caller that can
-      # PASS `token:`/`jwt_token:`/`contexts:` must be able to read them; they
-      # were behind `private` until now, which took the read-back capability away
-      # from Ruby callers only. (`space` stays private — it is a back-compat
+      # Caller-supplied connection config, readable back: a caller that can PASS
+      # `token:`/`jwt_token:`/`contexts:` can also read them. (`space` stays
+      # private — it is a back-compat
       # alias for `host:` with no reference counterpart.)
       attr_reader :token, :jwt_token, :contexts
 
@@ -116,13 +113,13 @@ module SignalWire
       def resolve_credentials(project, token, host, space)
         @project_id = value_or_env(project, 'SIGNALWIRE_PROJECT_ID')
         @token      = value_or_env(token, 'SIGNALWIRE_API_TOKEN')
-        # Accept either `host:` (Python parity) or legacy `space:`.
+        # Accept either `host:` or the legacy `space:`.
         @space      = value_or_env(host || space, 'SIGNALWIRE_SPACE')
       end
 
       # @api private — the explicit value, else the named environment variable, else
       # the empty string. Never nil, so callers can test emptiness rather than
-      # nil-ness (which is what the reference's truthiness checks amount to).
+      # nil-ness.
       #
       # @return [String]
       def value_or_env(explicit, env_key)
@@ -149,16 +146,15 @@ module SignalWire
       def validate_credentials
         # JWT auth (env: SIGNALWIRE_JWT_TOKEN or the jwt_token: kwarg) is a
         # self-contained alternative to project/token — the project id lives
-        # inside the token, so only the host is still required. Mirrors the
-        # Python reference's truthiness check (an empty jwt_token is no token).
+        # inside the token, so only the host is still required. An EMPTY
+        # jwt_token counts as no token.
         unless jwt_token.empty?
           raise ArgumentError, 'host is required (set SIGNALWIRE_SPACE)' if space.empty?
 
           return
         end
         # Per-variable actionable pre-connect errors (A6): each names the missing
-        # credential AND its env var so a failure is self-diagnosing. Mirrors the
-        # python reference (client.py project-is-required / token-is-required).
+        # credential AND its env var so a failure is self-diagnosing.
         raise ArgumentError, 'project is required (set SIGNALWIRE_PROJECT_ID)' if project_id.empty?
         raise ArgumentError, 'token or jwt_token is required (set SIGNALWIRE_API_TOKEN)' if token.empty?
         raise ArgumentError, 'host is required (set SIGNALWIRE_SPACE)' if space.empty?
@@ -188,12 +184,10 @@ module SignalWire
         @authorization_state = nil
         # Server-assigned session id from the connect handshake. Kept off the
         # public surface (single-underscore reader, like +_set_protocol+ and
-        # +_authorization_state+, so the surface oracle excludes it) and never
-        # widens the developer-facing API. Test-harness support only: the
-        # mock-relay tests read it (via +_session_id+) to scope the shared
-        # mock's journal to their own connection. This mirrors the frozen
-        # TypeScript port's private +_sessionId+ capture; Python's RelayClient
-        # doesn't surface it either, so no public-surface parity is affected.
+        # +_authorization_state+) and never widens the developer-facing API.
+        # Test-harness support only: the mock-relay tests read it (via
+        # +_session_id+) to scope the shared mock's journal to their own
+        # connection.
         @session_id          = nil
         @ws                  = nil
         @running             = false
@@ -230,8 +224,7 @@ module SignalWire
 
       # Register inbound call handler.
       #
-      # ``handler`` is REQUIRED, matching the reference
-      # (``on_call(self, handler: CallHandler)``) and every other port. Ruby
+      # ``handler`` is REQUIRED. Ruby
       # cannot let a block satisfy a required positional, so the callable is
       # passed explicitly — ``client.on_call(->(call) { ... })``. A block is still
       # accepted and takes precedence when both are given, which keeps
@@ -264,8 +257,7 @@ module SignalWire
       end
 
       # Return the current call_id -> Call registry (a snapshot copy).
-      # Test/audit-only surface for asserting on internal routing state;
-      # the Python reference exposes the same via +RelayClient._calls+.
+      # Test/audit-only surface for asserting on internal routing state.
       def _calls_snapshot
         @calls_mutex.synchronize { @calls.dup }
       end
@@ -273,7 +265,7 @@ module SignalWire
       # Test/reconnect surface: stamp a previously issued protocol
       # string before calling +run+ so the next signalwire.connect frame
       # carries it (the production server replies with
-      # +session_restored: true+). Mirrors Python's +RelayClient._relay_protocol = ...+.
+      # +session_restored: true+).
       def _set_protocol(value)
         @protocol = value
       end
@@ -315,8 +307,8 @@ module SignalWire
       end
 
       # Establish the RELAY connection without entering the blocking reconnect
-      # loop. Mirrors Python RelayClient.connect — brings the socket up and
-      # returns; use run() for the blocking, auto-reconnecting event loop and
+      # loop: brings the socket up and
+      # returns. Use run() for the blocking, auto-reconnecting event loop and
       # disconnect()/stop() to tear down.
       def connect
         @running = true
@@ -324,8 +316,7 @@ module SignalWire
         self
       end
 
-      # Graceful shutdown. Also exposed as +disconnect+ (Python name) via the
-      # surface enumerator alias.
+      # Graceful shutdown. Also exposed as +disconnect+.
       def stop
         @running = false
         # Snapshot under the mutex, close outside it. The websocket-client
@@ -345,11 +336,10 @@ module SignalWire
       # ------------------------------------------------------------------
 
       # Dial outbound call(s). Returns a Call object.
-      # Keyword names and defaults mirror the reference
-      # (``tag=None, max_duration=None, dial_timeout=None``): ``dial_timeout``
-      # defaults to nil and the 120s fallback is applied at the wait, exactly
-      # where python applies it (`dial_timeout if dial_timeout is not None else
-      # 120.0`). ``max_duration`` is an explicit keyword, not a **kwargs
+      # ``tag``, ``max_duration`` and ``dial_timeout`` all default to nil.
+      # ``dial_timeout``'s 120-second fallback is applied at the WAIT, not at
+      # the call, so an explicit nil is not the same as omitting it.
+      # ``max_duration`` is an explicit keyword, not a **kwargs
       # passenger, and reaches the wire only when truthy.
       def dial(devices, tag: nil, max_duration: nil, dial_timeout: nil)
         dial_tag = tag || SecureRandom.uuid
@@ -372,8 +362,8 @@ module SignalWire
 
       # Send an SMS/MMS message. Returns a Message object.
       #
-      # Mirrors Python's RelayClient.send_message keyword-only signature
-      # exactly. At least one of body: or media: is required.
+      # Every argument is keyword-only. At least one of body: or media: is
+      # required.
       def send_message(to_number:, from_number:, context: nil, body: nil,
                        media: nil, tags: nil, region: nil, on_completed: nil)
         validate_message_payload(body, media)
@@ -417,7 +407,7 @@ module SignalWire
         entry = { mutex: Mutex.new, cv: ConditionVariable.new, result: nil, error: nil }
         @pending_mutex.synchronize { @pending[id] = entry }
 
-        # Python parity: params are sent VERBATIM. The protocol is only carried
+        # Params are sent VERBATIM. The protocol is only carried
         # on the signalwire.connect handshake (see apply_session_restore), NOT
         # injected into every calling.*/messaging.* frame.
         _send_json('jsonrpc' => '2.0', 'id' => id, 'method' => method,
@@ -434,9 +424,9 @@ module SignalWire
       private
 
       # The handler slot for a ``on_*`` registration: the block if one was given,
-      # else the explicit callable. Raises when neither is supplied — the
-      # reference declares the handler REQUIRED, so a registration that registers
-      # nothing must fail loudly rather than leave a silently-dead callback.
+      # else the explicit callable. Raises when neither is supplied — the handler
+      # is REQUIRED, so a registration that registers nothing must fail loudly
+      # rather than leave a silently-dead callback.
       def require_handler(handler, block, method_name)
         callback = block || handler
         raise ArgumentError, "#{method_name} requires a handler (block or callable)" if callback.nil?
@@ -746,8 +736,7 @@ module SignalWire
         @protocol = result['protocol'] if result['protocol']
         # Capture the server-assigned session id from the ConnectResult. Stays
         # internal (test-harness only, via +_session_id+) to scope the shared
-        # mock relay's journal to this connection for parallel-safe tests;
-        # mirrors the frozen TypeScript port's +_sessionId+ capture.
+        # mock relay's journal to this connection for parallel-safe tests.
         @session_id = result['sessionid'] if result['sessionid']
       end
 
@@ -764,21 +753,19 @@ module SignalWire
 
       # @api private — add the credentials to the connect params. A non-empty
       # jwt_token wins; otherwise project/token go under `authentication` AND are
-      # repeated at the top level, because the reference emits them nested while the
-      # audit harness watches the top level.
+      # repeated at the top level, because Blade-aware servers accept either
+      # placement.
       def apply_auth_credentials(params)
         # An unset jwt_token is the empty string (env fallback), not nil — and
-        # in Ruby '' is truthy, so guard on emptiness to match Python's
-        # truthiness check (`if self.jwt_token:`).
+        # in Ruby '' is TRUTHY, so guard on emptiness rather than truth.
         unless jwt_token.empty?
           params['authentication'] = { 'jwt_token' => jwt_token }
           return
         end
 
         params['authentication'] = { 'project' => project_id, 'token' => token }
-        # Audit fixtures and Blade-aware servers also accept the credentials at
-        # the top level. Python's RELAY emits them in `authentication`; the audit
-        # harness watches the top level. Emit both to satisfy both consumers.
+        # Blade-aware servers also accept the credentials at the top level.
+        # Emit both placements to satisfy every consumer.
         params['project'] = project_id
         params['token']   = token
       end
@@ -967,7 +954,6 @@ module SignalWire
 
       # True when the configured max_active_calls cap is reached, so the N+1th
       # inbound call is DROPPED (not silently accepted). nil cap = unlimited.
-      # Mirrors python client.py _handle_inbound_call (len(_calls) >= cap).
       def max_active_calls_reached?
         cap = @max_active_calls
         return false if cap.nil?
@@ -1125,8 +1111,8 @@ module SignalWire
       end
 
       # Internal helpers (formerly leading-underscore by convention). Not part
-      # of the public/Python surface -- declared private so the cross-port
-      # surface enumerator continues to exclude them. _send_json / _connected? /
+      # of the public surface -- declared private so they stay off it.
+      # _send_json / _connected? /
       # _calls_snapshot / _set_protocol / _authorization_state / _session_id stay
       # public+underscored (invoked cross-instance by tests / the send_json wrapper).
       private :apply_auth_credentials, :apply_session_restore, :authenticate, :await_dial,

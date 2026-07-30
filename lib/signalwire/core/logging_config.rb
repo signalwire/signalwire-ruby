@@ -1,9 +1,10 @@
 # frozen_string_literal: true
 
-# Cross-language SDK contract for serverless / deployment-mode detection.
+# Serverless / deployment-mode detection.
 #
-# Mirrors signalwire.core.logging_config.get_execution_mode in the Python
-# reference. Order of precedence (FIRST match wins):
+# {SignalWire::Core::LoggingConfig.get_execution_mode} reads the environment
+# and reports which platform the process is running on. Order of precedence
+# (FIRST match wins):
 #
 #   1. GATEWAY_INTERFACE                                           -> 'cgi'
 #   2. AWS_LAMBDA_FUNCTION_NAME or LAMBDA_TASK_ROOT                -> 'lambda'
@@ -76,14 +77,13 @@ module SignalWire
       end
       private_class_method :env_set?
 
-      # Control characters that could be used for log injection. Mirrors the
-      # Python reference's _CONTROL_CHAR_RE (C0/C1 controls minus \t\n\r).
+      # Control characters that could be used for log injection: the C0/C1
+      # controls minus \t, \n and \r.
       CONTROL_CHAR_RE = Regexp.new("[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]")
 
       # Strip control characters from every string value of a log event hash,
-      # preventing log-injection. Mirrors
-      # signalwire.core.logging_config.strip_control_chars — a structlog
-      # processor in Python; here it is a plain hash transformer.
+      # preventing log-injection. A plain hash transformer: one hash in, the
+      # same hash out.
       #
       # @param event_dict [Hash] the log event
       # @return [Hash] the same hash with string values sanitised
@@ -96,8 +96,8 @@ module SignalWire
 
       # Configure the SDK logging system once, globally, based on the
       # SIGNALWIRE_LOG_MODE / SIGNALWIRE_LOG_LEVEL environment variables.
-      # Mirrors signalwire.core.logging_config.configure_logging: idempotent —
-      # a second call is a no-op unless reset_logging_configuration ran first.
+      # Idempotent — a second call is a no-op unless
+      # reset_logging_configuration ran first.
       def configure_logging
         return if @logging_configured
 
@@ -107,16 +107,14 @@ module SignalWire
 
       # Reset the one-time configuration guard so configure_logging can run
       # again (used when environment variables change after initial setup).
-      # Mirrors signalwire.core.logging_config.reset_logging_configuration.
       def reset_logging_configuration
         @logging_configured = false
         SignalWire::Logging.reset! if SignalWire::Logging.respond_to?(:reset!)
         nil
       end
 
-      # Return a named logger. Mirrors
-      # signalwire.core.logging_config.get_logger — ensures logging is
-      # configured, then returns a logger bound to +name+.
+      # Return a named logger: ensures logging is configured, then returns a
+      # logger bound to +name+.
       #
       # @param name [String] the logger name
       # @return [Object] a logger instance

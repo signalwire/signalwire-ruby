@@ -7,10 +7,8 @@
 #
 # SWML document rendering utilities for SignalWire AI Agents.
 #
-# Mirrors the Python reference signalwire.core.swml_renderer.SwmlRenderer (two
-# staticmethod-like helpers) and the PHP SignalWire\SWML\SwmlRenderer. Both
-# helpers are module functions in Ruby (def self.) since the reference methods
-# are static.
+# Two stateless helpers, exposed as module functions (def self.) — there is
+# nothing to instantiate.
 
 require_relative 'swml_builder'
 

@@ -141,7 +141,7 @@ module SignalWire
         end
 
         # Fills in default fields on a transfer config. Returns false when the
-        # config is invalid (mirrors the Python validation that fails setup).
+        # config is invalid, which fails skill setup.
         def normalize_transfer_config(config)
           return false unless config.is_a?(Hash)
           return false unless config.key?('url') || config.key?('address')

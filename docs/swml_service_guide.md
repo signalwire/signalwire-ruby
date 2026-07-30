@@ -189,7 +189,7 @@ document.add_verb("play", { "invalid_param" => "value" })
 
 ### Custom Verb Handlers
 
-In the Ruby port, verb validation is handled uniformly by
+In the Ruby SDK, verb validation is handled uniformly by
 `SignalWire::SWML::Schema`. Per-verb custom handlers are not exposed — if you
 need custom behavior for a specific verb, subclass `SignalWire::SWML::Service`
 and override `execute_verb` (or call `add_verb`/`add_verb_to_section` directly

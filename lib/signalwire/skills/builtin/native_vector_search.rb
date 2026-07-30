@@ -13,7 +13,8 @@ module SignalWire
   module Skills
     # Builtin — the skills that ship with the SDK, registered by name at load time.
     module Builtin
-      # Network/remote mode only (as per porting manifest).
+      # Vector search against a remote search service. Network/remote mode
+      # only — there is no local-index mode.
       class NativeVectorSearchSkill < SkillBase
         # The name this skill is added under (`agent.add_skill('native_vector_search')`).
         #
@@ -124,8 +125,8 @@ module SignalWire
         #
         # @return [Net::HTTPResponse]
         def post_search(query, count)
-          # Python parity: POST to "<remote_base_url>/search" (the remote_url is
-          # a base URL; the /search endpoint is appended).
+          # POST to "<remote_base_url>/search" — the configured remote_url is a
+          # BASE url; the /search endpoint is appended.
           uri = URI(search_endpoint)
           params = { query: query, count: count, similarity_threshold: @threshold }
           params[:index_name] = @index_name if @index_name

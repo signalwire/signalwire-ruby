@@ -410,7 +410,7 @@ The CLI tool will automatically detect external webhook functions and make HTTP 
 
 > **Ruby note:** the Python reference SDK can infer a function's JSON Schema from
 > type hints, the docstring, and `Literal`/`Optional` annotations. Ruby has no
-> equivalent type-hint reflection, so the Ruby port does not auto-infer
+> equivalent type-hint reflection, so the Ruby SDK does not auto-infer
 > schemas — you always pass an explicit `parameters:` hash to `define_tool`.
 > The block always receives `|args, raw_data|`, so there is no special "typed
 > handler" signature to learn.
@@ -542,8 +542,9 @@ The SDK implements an automated security mechanism for SWAIG functions to ensure
 
 #### Token-Based Security
 
-Pass `secure: true` to a function to enable token-based security (the Ruby port
-defaults `secure:` to `false`, so opt in explicitly per function that needs it):
+Token-based security is ON BY DEFAULT: `define_tool` defaults `secure:` to
+`true`, so every function requires a valid per-call token unless you explicitly
+pass `secure: false` to opt out.
 
 ```ruby
 agent.define_tool(
@@ -559,8 +560,11 @@ end
 When a function is marked as secure:
 
 1. The SDK automatically generates a secure token for each function when rendering the SWML document
-2. The token is added to the function's URL as a query parameter: `?token=X2FiY2RlZmcuZ2V0X3RpbWUuMTcxOTMxNDI1...`
-3. When the function is called, the token is validated before executing the function
+2. The token is added to the function's URL as a query parameter: `?__token=X2FiY2RlZmcuZ2V0X3RpbWUuMTcxOTMxNDI1...`
+3. When the function is called, the token is validated before executing the
+   function. A missing, expired, or forged token REFUSES the call: the function
+   does not run, and the SDK returns a normal 200 whose body explains that the
+   action could not be executed.
 
 These security tokens have important properties:
 - **Completely stateless**: The system doesn't need to store tokens or track sessions
@@ -581,7 +585,7 @@ The token system secures both SWAIG functions and post-prompt endpoints:
 - Post-prompt requests for receiving conversation summaries
 
 You can leave token security off for functions that expose only public data
-(this is the default in the Ruby port):
+(this is the default in the Ruby SDK):
 
 ```ruby
 agent.define_tool(
@@ -796,7 +800,7 @@ agent.add_skill('datasphere', {
 
 #### Native Vector Search Skill (`native_vector_search`)
 Provides document search via a remote search server using vector similarity and
-keyword search. The Ruby port implements **remote (network) mode only**: it POSTs
+keyword search. The Ruby SDK implements **remote (network) mode only**: it POSTs
 queries to a search server over HTTP using the Ruby standard library (`net/http`).
 The Python reference's local/offline `.swsearch` index mode and the `sw-search`
 index-building CLI are not part of the Ruby gem.
@@ -2215,7 +2219,7 @@ Prefab agents are pre-configured agent implementations designed for specific use
 The SDK includes several built-in prefab agents.
 
 > **Ruby note:** in the Python reference SDK each prefab *is* an `AgentBase`
-> subclass you serve directly. The Ruby port models prefabs as configuration
+> subclass you serve directly. The Ruby SDK models prefabs as configuration
 > helpers under `SignalWire::Prefabs::` — you construct the prefab, then apply
 > its `prompt_sections`, `global_data`, and tool handlers to a plain
 > `SignalWire::AgentBase`. The constructor keywords also differ from Python
@@ -2633,7 +2637,7 @@ my-prefab-agents/
 - Readers: `agent.prompt`, `agent.post_prompt`, `agent.prompt_text`
 
 > The Python `setPersonality` / `setGoal` / `setInstructions` camelCase
-> convenience methods are not part of the Ruby port — call `prompt_add_section`
+> convenience methods are not part of the Ruby SDK — call `prompt_add_section`
 > with the relevant title directly.
 
 ### SWAIG Methods
@@ -2645,7 +2649,7 @@ my-prefab-agents/
 - Predicate/readers: `agent.function?(name)`, `agent.get_function(name)`, `agent.all_functions`, `agent.list_tool_names`
 
 > The Python `add_native_function` / `remove_native_function` helpers are not in
-> the Ruby port — assign the full list via `set_native_functions` /
+> the Ruby SDK — assign the full list via `set_native_functions` /
 > `agent.native_functions =`.
 
 ### Configuration Methods
@@ -2662,7 +2666,7 @@ my-prefab-agents/
 Per-call state is managed internally by the agent's `SessionManager` (used for
 SWAIG token minting/validation). The Python `get_state` / `set_state` /
 `update_state` / `clear_state` / `cleanup_expired_state` helpers are not exposed
-as public `AgentBase` methods in the Ruby port; persist your own session data in
+as public `AgentBase` methods in the Ruby SDK; persist your own session data in
 a captured Hash or external store (see [Session Lifecycle Hooks](#session-lifecycle-hooks)).
 
 ### SIP Routing Methods
@@ -2670,8 +2674,8 @@ a captured Hash or external store (see [Session Lifecycle Hooks](#session-lifecy
 - `enable_sip_routing(auto_map: true, path: '/sip')`: Enable SIP routing for an agent
 - `register_sip_username(username)`: Register a SIP username for an agent
 
-> The Python `auto_map_sip_usernames()` helper is not separately exposed in the
-> Ruby port — auto-mapping happens via `enable_sip_routing(auto_map: true)`.
+> There is no separate `auto_map_sip_usernames()` helper — auto-mapping happens
+> via `enable_sip_routing(auto_map: true)`.
 
 #### AgentServer SIP Methods
 
@@ -2711,7 +2715,7 @@ the AWS Lambda handler adapter, and **in-process file mode**
 (`--file PATH --list-tools`). The actions are `--dump-swml`, `--list-tools`, and
 `--exec NAME` (with repeatable `--param KEY=VALUE`).
 
-> **Ruby note:** the Ruby port implements only the flags listed above (plus
+> **Ruby note:** the Ruby SDK implements only the flags listed above (plus
 > `--env` / `--env-file` for the Lambda simulation, `--raw`, and `--verbose`).
 > The larger Python `swaig-test` surface — multi-agent selection
 > (`--list-agents` / `--agent-class` / `--route`), CGI / Cloud Functions / Azure

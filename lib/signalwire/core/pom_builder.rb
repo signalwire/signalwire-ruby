@@ -18,10 +18,9 @@ module SignalWire
     # Builder class for creating structured prompts using the Prompt Object
     # Model.
     #
-    # Mirrors Python's ``signalwire.core.pom_builder.PomBuilder``. A flexible
-    # wrapper around {SignalWire::POM::PromptObjectModel} that allows for
-    # dynamic creation of sections on demand, adding content to existing
-    # sections, nesting subsections, and rendering to Markdown or XML.
+    # A flexible wrapper around {SignalWire::POM::PromptObjectModel} that
+    # allows for dynamic creation of sections on demand, adding content to
+    # existing sections, nesting subsections, and rendering to Markdown or XML.
     #
     # There are no predefined section types -- you can create any section
     # structure that fits your needs. All mutator methods return +self+ for
@@ -119,8 +118,6 @@ module SignalWire
       end
 
       # Create a PomBuilder from an Array of section Hashes.
-      #
-      # Mirrors Python's ``PomBuilder.from_sections`` classmethod.
       def self.from_sections(sections)
         builder = new
         builder.instance_variable_set(:@pom, SignalWire::POM::PromptObjectModel.from_json(sections))

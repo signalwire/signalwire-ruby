@@ -724,7 +724,7 @@ Add a modular skill to the agent.
 - `math`: Mathematical calculations
 - `web_search`: Google Custom Search integration
 - `datasphere`: SignalWire DataSphere search
-- `native_vector_search`: Document search over a remote search server (the Ruby port does not ship the offline/embedded backend)
+- `native_vector_search`: Document search over a remote search server (the Ruby SDK does not ship the offline/embedded backend)
 
 **Usage:**
 ```ruby
@@ -3045,7 +3045,7 @@ agent.add_skill("datasphere", {
 
 #### `native_vector_search` Skill
 Document search against a remote search server using vector similarity and keyword
-search. The Ruby port supports **remote (network) mode only** -- it POSTs queries to
+search. The Ruby SDK supports **remote (network) mode only** -- it POSTs queries to
 the server at `remote_url`. Local `.swsearch` index files are not supported.
 
 **Parameters:**
@@ -3139,7 +3139,7 @@ Built-in skills are automatically discovered from the `lib/signalwire/skills/bui
 
 ### SWAIG Functions
 
-The Ruby port does not ship a dedicated `SWAIGFunction` wrapper class (see
+The Ruby SDK does not ship a dedicated `SWAIGFunction` wrapper class (see
 [PORT_OMISSIONS.md](../PORT_OMISSIONS.md)); SWAIG functions are registered as
 plain Hashes directly with the agent. Use `AgentBase#define_tool` for the
 conventional case, or `AgentBase#register_swaig_function` for manual hashes:

@@ -58,7 +58,8 @@ module SignalWire
           #   ``[parameters, required, description, is_typed, has_raw_data]``:
           #   - parameters: name => property Hash (string keys)
           #   - required: required parameter names
-          #   - description: always nil (Ruby has no docstrings to parse)
+          #   - description: always nil (there is no comment text to introspect
+          #     at runtime; pass +descriptions:+ to supply one)
           #   - is_typed: true if the callable takes named parameters
           #     (i.e. it is NOT the old-style ``(args, raw_data)`` handler)
           #   - has_raw_data: true if the callable accepts ``raw_data``
@@ -110,10 +111,10 @@ module SignalWire
             [[:args], %i[args raw_data]].include?(names)
           end
 
-          # Parameter kinds that indicate a splat (``*args`` / ``**kwargs``).
+          # Parameter kinds that indicate a splat (``*rest`` / ``**keyrest``).
           SPLAT_KINDS = %i[rest keyrest].freeze
 
-          # A callable with a splat (``*args`` / ``**kwargs``) can't be
+          # A callable with a splat (``*rest`` / ``**keyrest``) can't be
           # introspected into a fixed schema — fall back to old style.
           def splat_present?(params)
             params.any? { |kind, _name| SPLAT_KINDS.include?(kind) }
@@ -165,8 +166,8 @@ module SignalWire
             args.each_with_object({}) { |(k, v), acc| acc[k.to_sym] = v }
           end
 
-          # Internal helpers — the reference exposes only infer_schema and
-          # create_typed_handler_wrapper at the module level.
+          # Internal helpers — only infer_schema and
+          # create_typed_handler_wrapper are public.
           private_class_method :callable_parameters, :legacy_handler?,
                                :splat_present?, :build_schema, :property_for,
                                :schema_type, :required_kind?, :symbolize_args

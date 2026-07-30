@@ -9,9 +9,7 @@
 #
 # Provides a fluent builder API for creating SWML documents by chaining method
 # calls. It delegates to an underlying SWML::Service instance for the actual
-# document creation, mirroring the Python reference
-# signalwire.core.swml_builder.SWMLBuilder (which wraps an SWMLService) and the
-# PHP SignalWire\SWML\SWMLBuilder.
+# document creation.
 
 module SignalWire
   # SWML — SWML document construction, rendering and serving.
@@ -20,8 +18,7 @@ module SignalWire
     #
     # The explicit verb helpers (#answer, #hangup, #play, #ai, #say) cover the
     # common verbs; every other schema verb is auto-vivified through
-    # #method_missing (e.g. +builder.denoise.goto(...)+), the Ruby analog of the
-    # Python reference's runtime +__getattr__+ verb dispatch.
+    # #method_missing (e.g. +builder.denoise.goto(...)+).
     class SWMLBuilder
       # Initialize with a SWML::Service instance to delegate to.
       #
@@ -74,7 +71,7 @@ module SignalWire
         config['prompt'] = ai_prompt(prompt_text, prompt_pom) unless prompt_text.nil? && prompt_pom.nil?
         config['post_prompt'] = { 'text' => post_prompt } unless post_prompt.nil?
         put(config, 'post_prompt_url' => post_prompt_url, 'SWAIG' => swaig)
-        # Merge any additional kwargs (parity with Python's config.update(kwargs)).
+        # Merge any additional kwargs into the config, stringifying their keys.
         kwargs.each { |key, value| config[key.to_s] = value }
 
         add_verb('ai', config)
@@ -148,10 +145,9 @@ module SignalWire
 
       # Auto-vivify SWML verb methods from the schema.
       #
-      # This is the Ruby analog of the Python reference's +__getattr__+ runtime
-      # verb dispatch: any schema verb name not covered by an explicit method
-      # above is dispatched to the underlying document, returning +self+ for
-      # chaining (e.g. +builder.denoise.record+, +builder.sleep(2000)+).
+      # Any schema verb name not covered by an explicit method above is
+      # dispatched to the underlying document, returning +self+ for chaining
+      # (e.g. +builder.denoise.record+, +builder.sleep(2000)+).
       def method_missing(method_name, *args, **kwargs)
         verb = method_name.to_s
         return super unless SWML.schema.valid_verb?(verb)
@@ -163,8 +159,8 @@ module SignalWire
         end
       end
 
-      # Report the auto-vivified verbs as respondable (Ruby analog of Python's
-      # +__getattr__+ making verb names look like real attributes).
+      # Report the auto-vivified verbs as respondable, so +respond_to?+ answers
+      # true for any valid schema verb name.
       def respond_to_missing?(method_name, include_private = false)
         SWML.schema.valid_verb?(method_name.to_s) || super
       end

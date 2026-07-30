@@ -34,7 +34,7 @@ module SignalWire
 
           processed = scrape_candidates(query, results, deadline_at)
           # Time ran out or every page was below quality threshold: fall back to
-          # snippet-only results so we return SOMETHING useful (Python parity).
+          # snippet-only results so we return SOMETHING useful.
           return format_snippet_results(query, results, num_results) if processed.empty?
 
           wrap_response(format_scraped_results(query, processed))
@@ -100,8 +100,7 @@ module SignalWire
         end
 
         # Fetch + score one candidate. Returns an enriched hash or nil (empty
-        # page / below the quality threshold / past the deadline). Mirrors
-        # Python's _scrape_one closure.
+        # page / below the quality threshold / past the deadline).
         def scrape_one(query, result, deadline_at)
           return nil if monotonic_now >= deadline_at
 
@@ -127,7 +126,7 @@ module SignalWire
 
         # Fetch a page and extract meaningful text, bounded by per_page_timeout
         # (Net::HTTP open_timeout/read_timeout). Returns the text, or nil on any
-        # failure. Mirrors Python's GoogleSearchScraper.extract_text_from_url.
+        # failure.
         def extract_text_from_url(url)
           uri = URI(url)
           return nil unless uri.is_a?(URI::HTTP) || uri.is_a?(URI::HTTPS)
@@ -163,9 +162,9 @@ module SignalWire
               .strip
         end
 
-        # Lightweight content-quality heuristic. Mirrors the spirit of Python's
-        # _calculate_content_quality: longer, query-relevant text scores higher.
-        # Returns a hash with at least 'quality_score' and 'domain'.
+        # Lightweight content-quality heuristic: longer, query-relevant text
+        # scores higher. Returns a hash with at least 'quality_score' and
+        # 'domain'.
         def calculate_content_quality(text, url, query)
           length = text.length
           # Length component: saturates around ~2000 chars.
@@ -199,7 +198,7 @@ module SignalWire
         # when snippets_only is true, or as a graceful fallback when page
         # scraping is abandoned by the overall_deadline. Always non-empty when
         # CSE returned anything at all, so the kernel never sees a webhook
-        # timeout. Mirrors Python's _format_snippet_results.
+        # timeout.
         def format_snippet_results(query, results, num_results)
           return no_results_msg if results.empty?
 
@@ -252,9 +251,9 @@ module SignalWire
         end
 
         # Build the Google CSE request URI. WEB_SEARCH_BASE_URL overrides the
-        # host for tests and the audit fixture (matches the Rust SDK — env var
-        # is the *host*, the `/customsearch/v1` path is appended so the audit
-        # can match on `customsearch` in req.path).
+        # host for tests and the audit fixture. The env var is the *host*; the
+        # `/customsearch/v1` path is appended, so a fixture can match on
+        # `customsearch` in req.path.
         def google_search_uri(query, num)
           base = resolved_base_url('WEB_SEARCH_BASE_URL', 'https://www.googleapis.com')
           uri = URI("#{base}/customsearch/v1")
@@ -267,13 +266,14 @@ module SignalWire
 
       # Private mixin: {WebSearchSkill}'s param parsing + SWAIG parameter-schema
       # builders + prompt-section bullets. The description constants are
-      # wire-load-bearing (match the Python reference). Extracted to keep the
-      # skill class within the size budget.
+      # wire-load-bearing — they ship in the SWAIG schema the model reads, so
+      # editing them changes agent behaviour. Extracted to keep the skill class
+      # within the size budget.
       module WebSearchConfig
         DEFAULT_NO_RESULTS_MESSAGE =
           "I couldn't find quality results for that query. Try rephrasing your search."
 
-        # SWAIG parameter-schema descriptions (wire-load-bearing — match Python).
+        # SWAIG parameter-schema descriptions (wire-load-bearing).
         PER_PAGE_TIMEOUT_DESC = 'Maximum seconds to wait on a single page scrape.'
         OVERALL_DEADLINE_DESC =
           'Wall-clock budget in seconds for the whole tool call. In-flight scrapes are ' \
@@ -352,14 +352,13 @@ module SignalWire
           # Optional prefix/postfix wrapped around every non-empty search
           # result. Use these to give the calling agent a mechanical cue
           # (e.g. "tell the user this came from a public web search")
-          # without needing prompt-side rules. Mirrors Python parity.
+          # without needing prompt-side rules.
           @response_prefix   = get_param('response_prefix',  default: '')
           @response_postfix  = get_param('response_postfix', default: '')
         end
 
         # Latency-control parameters. The SignalWire kernel times out webhook
         # responses around 55s, so the handler MUST finish under that.
-        # Mirrors Python's web_search/skill.py (51101da + 295745b).
         #   per_page_timeout: max seconds to wait on a single page scrape
         #     (Net::HTTP open_timeout/read_timeout).
         #   overall_deadline: wall-clock budget for the whole tool call. Once

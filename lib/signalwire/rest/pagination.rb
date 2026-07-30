@@ -5,17 +5,17 @@ module SignalWire
   module REST
     # Iterates items across paginated API responses.
     #
-    # Mirrors the Python PaginatedIterator (signalwire.rest._pagination):
-    # the constructor records http/path/params/data_key without fetching;
-    # iteration walks pages by following the +links.next+ cursor.
+    # The constructor records http/path/params/data_key without fetching; the
+    # first page is only requested when iteration begins. Iteration walks pages
+    # by following the +links.next+ cursor.
     #
     # Usage:
     #   iter = SignalWire::REST::PaginatedIterator.new(http, '/api/path',
     #                                                  params: {}, data_key: 'data')
     #   iter.each { |item| ... }
     #
-    # The iterator is single-pass (matching Python's __next__ semantics);
-    # use #to_a to collect every item across all pages.
+    # The iterator is single-pass — once consumed it does not rewind; use
+    # #to_a to collect every item across all pages.
     class PaginatedIterator
       include Enumerable
 
@@ -36,7 +36,7 @@ module SignalWire
         @data_key = data_key
         # Per-request options (timeout / connect_timeout / headers) forwarded to
         # every page fetch, so pagination honors the same request contract as a
-        # single call. Mirrors Python _pagination.py's +request_options+ thread.
+        # single call.
         @request_options = request_options
         @items    = []
         @index    = 0
@@ -44,8 +44,7 @@ module SignalWire
         # Cycle guard: +links.next+ cursors already followed. A server that keeps
         # returning the SAME +next+ would otherwise loop forever (the empty-page
         # fix terminates only on an ABSENT next link, so a repeating next became
-        # an infinite loop). Seeing a repeat terminates iteration. Mirrors the
-        # python reference (_pagination.py _seen_next).
+        # an infinite loop). Seeing a repeat terminates iteration.
         @seen_next = {}
       end
 
@@ -65,21 +64,18 @@ module SignalWire
         end
       end
 
-      # Python iterator-protocol parity. Python's PaginatedIterator exposes
-      # +__iter__+ (returns self) and +__next__+ (advances one item, raising
-      # +StopIteration+ when exhausted). Ruby's idiomatic surface is +#each+ /
-      # +#next_item+, but we expose these thin aliases so the protocol shape
-      # matches the Python reference one-to-one.
+      # +__iter__+ / +__next__+ are thin compatibility aliases over the
+      # idiomatic +#each+ / +#next_item+ surface, for callers driving the
+      # iterator one step at a time by that spelling. Prefer +#each+.
 
-      # Equivalent of Python's +__iter__+: returns the iterator itself.
+      # Returns the iterator itself.
       def __iter__
         self
       end
 
-      # Equivalent of Python's +__next__+: returns the next item across pages,
-      # raising +StopIteration+ when the iterator is exhausted (mirroring
-      # Python's raise-StopIteration contract rather than the +:__stop__+
-      # sentinel used internally by +#each+).
+      # Returns the next item across pages, raising +StopIteration+ when the
+      # iterator is exhausted — as opposed to the +:__stop__+ sentinel
+      # {#next_item} returns and +#each+ uses internally.
       def __next__
         item = next_item
         raise StopIteration if item == :__stop__
@@ -87,9 +83,10 @@ module SignalWire
         item
       end
 
-      # Equivalent of Python's __next__. Returns the sentinel +:__stop__+
-      # when exhausted (Ruby has no StopIteration error idiom for plain
-      # Enumerable), but the public surface is +#each+.
+      # Advance one item, fetching the next page when the buffered one runs
+      # out. Returns the sentinel +:__stop__+ when exhausted rather than
+      # raising, so a plain Enumerable loop can test for it. The public
+      # surface is +#each+.
       def next_item
         while @index >= @items.length
           return :__stop__ if @done
@@ -118,14 +115,13 @@ module SignalWire
         # +links.next+ (more pages exist) while returning zero items on THIS
         # page — e.g. a filtered page that matches nothing here. The old
         # +next_url && !data.empty?+ condition stopped on such a page and
-        # silently dropped every subsequent page. Mirrors the Python reference
-        # fix (_pagination.py, #58).
+        # silently dropped every subsequent page.
         advance_or_finish((resp['links'] || {})['next'])
       end
 
       # Advance to the next page, or terminate. A +next+ we have already followed
       # (repeating cursor) or an absent +next+ both terminate — the cycle guard
-      # prevents an infinite re-fetch loop. Mirrors python _pagination.py _seen_next.
+      # prevents an infinite re-fetch loop.
       def advance_or_finish(next_url)
         if next_url && !@seen_next.key?(next_url)
           @seen_next[next_url] = true

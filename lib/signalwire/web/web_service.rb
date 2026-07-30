@@ -21,12 +21,11 @@ module SignalWire
   module Web
     # Static file serving service with an HTTP API.
     #
-    # Mirrors Python's ``signalwire.web.web_service.WebService``. Maps URL route
-    # prefixes to local directories and serves their files over HTTP with
-    # security headers, extension filtering, and optional basic auth.
+    # Maps URL route prefixes to local directories and serves their files over
+    # HTTP with security headers, extension filtering, and optional basic auth.
     #
-    # Ruby idiom note: Python builds a FastAPI/uvicorn app; Ruby uses WEBrick.
-    # {#start} launches the server in a background thread (non-blocking) so it is
+    # The server is WEBrick. {#start} launches it in a background thread
+    # (non-blocking) so it is
     # safe to start and {#stop} in tests without hanging; pass +block: true+ to
     # {#start} to run in the foreground.
     class WebService
@@ -97,9 +96,8 @@ module SignalWire
       # foreground. +port+ 0 binds an ephemeral port.
       #
       # +host+ defaults to '0.0.0.0' -- the INTENDED server default: listen on all
-      # interfaces so a containerised or remote-hosted agent is reachable. This
-      # matches the reference (signalwire/web/web_service.py, which carries the same
-      # deliberate-choice marker). It is not an oversight; do NOT "harden" it back to
+      # interfaces so a containerised or remote-hosted agent is reachable. It is
+      # a deliberate choice, not an oversight; do NOT "harden" it back to
       # '127.0.0.1' -- pass +host: '127.0.0.1'+ explicitly for loopback-only binding.
       def start(host: '0.0.0.0', port: nil, ssl_cert: nil, ssl_key: nil, block: false)
         bind_port = port || @port
@@ -246,14 +244,14 @@ module SignalWire
       # @return [Boolean] true when both halves match
       def credentials_match?(req, user, pass)
         # Split on the FIRST space and compare the scheme case-INSENSITIVELY
-        # (RFC 7235; the reference does `scheme.lower() != "basic"`).
+        # (RFC 7235): "Basic", "basic" and "BASIC" are all accepted.
         scheme, _sep, param = req['Authorization'].to_s.partition(' ')
         return false unless scheme.downcase == 'basic'
 
         decoded = Base64.decode64(param.strip)
         input_user, separator, input_pass = decoded.partition(':')
-        # RFC 7617 / the reference's `if not separator: raise` -- a payload with
-        # NO colon is not a credential pair; never default the password to ''.
+        # RFC 7617 -- a payload with NO colon is not a credential pair; reject
+        # it rather than defaulting the password to ''.
         return false if separator.empty?
 
         Rack::Utils.secure_compare(user.to_s, input_user) && Rack::Utils.secure_compare(pass.to_s, input_pass)

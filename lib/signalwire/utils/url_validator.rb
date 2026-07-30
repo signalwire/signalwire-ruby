@@ -17,18 +17,13 @@ module SignalWire
   module Utils
     # SSRF-prevention guard for user-supplied URLs.
     #
-    # Mirrors Python's signalwire.utils.url_validator.validate_url:
-    # rejects non-http(s) schemes, missing hostnames, and any URL whose
-    # hostname resolves to a private / loopback / link-local / cloud-
-    # metadata IP.  When +allow_private+ is true, OR the
+    # {.validate_url} rejects non-http(s) schemes, missing hostnames, and any
+    # URL whose hostname resolves to a private / loopback / link-local /
+    # cloud-metadata IP.  When +allow_private+ is true, OR the
     # +SWML_ALLOW_PRIVATE_URLS+ env var is set to "1", "true" or "yes"
     # (case-insensitive), the IP-blocklist check is skipped.
-    #
-    # The method UrlValidator.validate_url projects onto the Python free
-    # function signalwire.utils.url_validator.validate_url via
-    # scripts/enumerate_signatures.py.
     module UrlValidator
-      # Cross-port SSRF block list.  Order matches the Python reference.
+      # SSRF block list, checked in this order.
       BLOCKED_NETWORKS = %w[
         10.0.0.0/8
         172.16.0.0/12
@@ -44,9 +39,9 @@ module SignalWire
       LOG = SignalWire::Logging.logger('signalwire.url_validator')
 
       # Pluggable resolver hook. Tests inject a lambda to keep the suite
-      # hermetic; production calls Resolv.getaddresses. Underscore prefix
-      # keeps it out of the public surface inventory — the Python
-      # reference only exposes ``validate_url`` at this module level.
+      # hermetic; production calls Resolv.getaddresses. The underscore prefix
+      # keeps it out of the public surface inventory — {.validate_url} is the
+      # only public entry point on this module.
       def self._resolver
         @_resolver
       end

@@ -21,9 +21,8 @@ module SignalWire
   module Agents
     # Agent implementation for the Amazon Bedrock voice-to-voice model.
     #
-    # Mirrors Python's ``signalwire.agents.bedrock.BedrockAgent`` and the
-    # PHP ``SignalWire\Agents\BedrockAgent``. It renders the same base
-    # SWML as {SignalWire::AgentBase} and then transforms the ``ai`` verb
+    # It renders the same base SWML as {SignalWire::AgentBase} and then
+    # transforms the ``ai`` verb
     # into an ``amazon_bedrock`` verb whose object carries voice and
     # inference parameters inside its prompt config, per the SWML
     # ``amazon_bedrock`` schema (keys: ``prompt``, ``SWAIG``, ``params``,
@@ -166,8 +165,7 @@ module SignalWire
 
       # Build the amazon_bedrock verb object from the base ``ai`` config.
       # Voice + inference params live inside the prompt config; only
-      # non-nil keys are emitted (matches the Python reference and the
-      # amazon_bedrock schema).
+      # non-nil keys are emitted, per the amazon_bedrock schema.
       def build_bedrock_object(ai_config)
         object = {
           'prompt' => add_voice_to_prompt(ai_config['prompt'] || {}),

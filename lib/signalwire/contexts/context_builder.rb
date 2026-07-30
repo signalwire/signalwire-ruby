@@ -113,7 +113,7 @@ module SignalWire
       # +isolated+ is the default for every question in this gather: when
       # true, each question is asked with the sibling Q&A hidden from the
       # model. A question's own +isolated:+ overrides this default. Held
-      # privately, matching the reference's `self._isolated`.
+      # privately — read it through the questions it seeds, not directly.
       def initialize(output_key: nil, completion_action: nil, prompt: nil, isolated: false)
         @output_key        = output_key
         @completion_action = completion_action
@@ -522,9 +522,9 @@ module SignalWire
     class Context
       attr_reader :name
 
-      # rubocop:disable Metrics/AbcSize -- a flat field-initialization list for
-      # one Python class (Context): every line is a distinct default assignment,
-      # not branching logic. Splitting it would only hide the data shape.
+      # rubocop:disable Metrics/AbcSize -- a flat field-initialization list:
+      # every line is a distinct default assignment, not branching logic.
+      # Splitting it would only hide the data shape.
       def initialize(name)
         @name = name
         @steps = {} # name => Step

@@ -136,8 +136,7 @@ module SignalWire
 
       # REST client User-Agent. The product token stays stable at
       # `signalwire-ruby`; the version segment is the real SDK version so it can
-      # never drift from a hardcoded literal. Mirrors the Python reference fix
-      # (rest/_base.py `_user_agent`) — SDK_BUG_LEDGER P1: the old
+      # never drift from a hardcoded literal. The old
       # `signalwire-agents-ruby-rest/1.0` was both the wrong product token and a
       # stale `/1.0` while the package was at 3.x.
       USER_AGENT = "signalwire-ruby/#{SignalWire::VERSION}".freeze
@@ -274,7 +273,7 @@ module SignalWire
       # -> http://; every other host is the real platform over https://. This lets
       # a shipped example run verbatim against a local mock without a separate
       # base_url knob, and a dev host:port never mangles into
-      # "myspace:8917.signalwire.com". Mirrors python rest/_base.py.
+      # "myspace:8917.signalwire.com".
       def derive_base_url(space, base_url)
         base_url = ENV.fetch('SIGNALWIRE_REST_BASE_URL', nil) if base_url.nil? || base_url.empty?
         return base_url.sub(%r{/$}, '') if base_url && !base_url.empty?
@@ -526,9 +525,8 @@ module SignalWire
       end
     end
 
-    # Read-only resource with get/list. Mirrors Python's
-    # +signalwire.rest._base.ReadResource+: the read half of the CRUD surface,
-    # extended by CrudResource with create/update/delete.
+    # Read-only resource with get/list — the read half of the CRUD surface,
+    # extended by {CrudResource} with create/update/delete.
     class ReadResource < BaseResource
       # List this resource's collection — ONE raw page, exactly as the server
       # returned it. Use {#paginate} to walk every page.
@@ -551,7 +549,7 @@ module SignalWire
       # Wires the resource layer to the tested +PaginatedIterator+ (which walks
       # +resp["data"]+ and follows +resp["links"]["next"]+), so callers no
       # longer hand-construct the path + token loop. Returns an Enumerable
-      # +PaginatedIterator+ — the Ruby idiom for Python's returned iterator.
+      # +PaginatedIterator+.
       def paginate(request_options: nil, **params)
         PaginatedIterator.new(@http, @base_path, params.empty? ? nil : params, 'data',
                               request_options)
@@ -575,8 +573,7 @@ module SignalWire
       # (CallFlowsResource, ConferenceRoomsResource, CxmlApplicationsResource,
       # SubscribersResource) would otherwise fall back to 'PATCH' and send the
       # wrong verb to PUT-only routes. Walk the ancestor chain so the nearest
-      # ancestor that set it wins — mirroring Python's inherited class attribute
-      # `_update_method`.
+      # ancestor that set it wins.
       def self.update_method
         return @update_method if defined?(@update_method) && @update_method
 
@@ -624,8 +621,7 @@ module SignalWire
     end
 
     # CRUD resource that also supports listing the addresses bound to a
-    # resource. Mirrors Python's +signalwire.rest._base.CrudWithAddresses+:
-    # it adds a single +list_addresses+ helper on top of the standard
+    # resource. It adds a single +list_addresses+ helper on top of the standard
     # list/create/get/update/delete surface, issuing
     # +GET {base_path}/{resource_id}/addresses+.
     class CrudWithAddresses < CrudResource

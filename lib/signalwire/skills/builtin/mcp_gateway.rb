@@ -27,10 +27,9 @@ module SignalWire
       # services + tools, and registers each MCP tool as a SWAIG function whose
       # handler proxies the call back through the gateway.
       #
-      # Mirrors the Python reference
-      # (``signalwire.skills.mcp_gateway.skill.MCPGatewaySkill``). The Python-only
-      # SERVER half (``signalwire.mcp_gateway.*`` — the subprocess + sandbox
-      # daemon) is deliberately NOT ported; see PORT_PHILOSOPHY_RUBY.md.
+      # This SDK ships the client half only. Running the gateway service itself
+      # (the subprocess + sandbox daemon that hosts MCP servers) is out of
+      # scope here; point this skill at an already-running gateway.
       class MCPGatewaySkill < SkillBase
         # The name this skill is added under (`agent.add_skill('mcp_gateway')`).
         #
@@ -50,10 +49,8 @@ module SignalWire
         # for basic auth, plus a gateway_url that passes SSRF validation and a
         # reachable ``/health`` endpoint.
         #
-        # Mirrors the Python reference, which has NO constructor override — all
-        # config is read here (and lazily by the hook accessors via
-        # {#ensure_config}), so the port carries no ``__init__`` the reference
-        # lacks.
+        # There is no constructor override: all config is read here, and lazily
+        # by the hook accessors via {#ensure_config}.
         def setup
           read_config
           return false unless valid_auth?
@@ -112,7 +109,7 @@ module SignalWire
           [integration_prompt_section(descriptions)]
         end
 
-        # Config schema for GUI / validation. Mirrors the Python reference.
+        # Config schema for GUI / validation.
         def get_parameter_schema
           auth_params_schema
             .merge(services_param_schema)
@@ -182,7 +179,7 @@ module SignalWire
 
         # Read every config param off @params (with defaults). Called from
         # #setup and (lazily) from the hook accessors so the ivars are always
-        # populated. Matches the Python reference, which reads config in setup().
+        # populated.
         def read_config
           @config_read = true
           read_auth_config

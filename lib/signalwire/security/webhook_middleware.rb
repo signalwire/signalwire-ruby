@@ -139,9 +139,9 @@ module SignalWire
         env[RAW_BODY_ENV_KEY] = raw_body
 
         url = reconstruct_url(env)
-        # Delegate the pass/reject decision to the framework-free decomposed
-        # core (the cross-port contract). It returns nil to pass or a Rack
-        # [status, headers, body] triple to reject.
+        # Delegate the pass/reject decision to the framework-free {validate}
+        # core. It returns nil to pass, or a Rack [status, headers, body]
+        # triple to reject.
         rejection = self.class.validate(
           env['REQUEST_METHOD'].to_s, url, rack_signature_headers(env), raw_body,
           signing_key: @signing_key

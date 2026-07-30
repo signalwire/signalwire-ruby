@@ -20,9 +20,7 @@ module SignalWire
       module Prompt
         # Manages prompt building and configuration for an agent.
         #
-        # Mirrors Python's
-        # ``signalwire.core.agent.prompt.manager.PromptManager`` and the
-        # TypeScript ``PromptManager`` class. It manages a POM-backed
+        # Manages a POM-backed
         # prompt (via {SignalWire::POM::PromptObjectModel}), an optional
         # raw prompt text, a post-prompt, and a contexts configuration
         # (via {SignalWire::Contexts::ContextBuilder}).
@@ -36,9 +34,8 @@ module SignalWire
           attr_reader :pom
 
           # @return [Object, nil] the parent AgentBase back-reference this
-          #   manager was constructed with. The reference exposes the same
-          #   attribute (core/agent/prompt/manager.py), so a caller that passes
-          #   an agent can read it back.
+          #   manager was constructed with, so a caller that passes an agent
+          #   can read it back.
           attr_reader :agent
 
           # @param agent [Object, nil] optional parent AgentBase instance
@@ -73,8 +70,6 @@ module SignalWire
 
           # Set the prompt from a POM array (list of section Hashes).
           #
-          # Mirrors Python's ``set_prompt_pom(pom)``.
-          #
           # @param pom [Array<Hash>] POM section descriptors
           # @return [self]
           def set_prompt_pom(pom)
@@ -84,10 +79,6 @@ module SignalWire
           end
 
           # Add a section to the prompt.
-          #
-          # Mirrors Python's ``prompt_add_section(title, body="",
-          # bullets=None, numbered=False, numbered_bullets=False,
-          # subsections=None)``.
           #
           # @param title [String] section title
           # @param body [String] optional body text
@@ -107,9 +98,6 @@ module SignalWire
 
           # Add content to an existing section (creating it if needed).
           #
-          # Mirrors Python's ``prompt_add_to_section(title, body=None,
-          # bullet=None, bullets=None)``.
-          #
           # @param title [String] section title
           # @param body [String, nil] text to append to the section body
           # @param bullet [String, nil] single bullet to add
@@ -124,9 +112,6 @@ module SignalWire
 
           # Add a subsection to an existing section (creating the parent if
           # needed).
-          #
-          # Mirrors Python's ``prompt_add_subsection(parent_title, title,
-          # body="", bullets=None)``.
           #
           # @param parent_title [String] parent section title
           # @param title [String] subsection title
@@ -149,8 +134,8 @@ module SignalWire
 
           # Define contexts for the agent.
           #
-          # Mirrors Python's ``define_contexts(contexts)`` which accepts a
-          # ``ContextBuilder`` (materialised via ``to_h``) or a raw Hash.
+          # Accepts a {SignalWire::Contexts::ContextBuilder} (materialised via
+          # +to_h+) or a raw Hash.
           #
           # @param contexts [SignalWire::Contexts::ContextBuilder, Hash]
           # @raise [ArgumentError] if not a ContextBuilder or Hash

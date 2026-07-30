@@ -15,13 +15,12 @@ module SignalWire
     # Closed-set vocabularies for SWAIG verbs.
     #
     # Each constant's value IS the wire string, so a caller may pass the
-    # bare string (parity with the Python reference, which takes a plain
-    # +str+) or the named constant interchangeably — they are literally
+    # bare string or the named constant interchangeably — they are literally
     # the same object. The +FunctionResult+ validators below reference
     # these +ALL+ arrays directly, so the named set and the validated set
     # can never drift apart (single source of truth).
     #
-    # Idiom note: this mirrors +SignalWire::Relay+'s constants module
+    # Idiom note: these follow +SignalWire::Relay+'s constants module
     # (flat +NAME = 'value'+ string constants grouped into a frozen +ALL+
     # array). These are SWAIG (SWML-verb) vocabularies and are deliberately
     # kept DISTINCT from the RELAY codecs/directions — see the warnings on
@@ -41,8 +40,8 @@ module SignalWire
     # Channel selection for the +record_call+ verb.
     #
     # DISTINCT from {TapDirection}: record uses +listen+, tap uses +hear+.
-    # Never share a constant between the two — Python validates two
-    # different lists, and conflating them is a known bug generator.
+    # Never share a constant between the two — each verb is validated against
+    # its OWN list, and conflating them is a known bug generator.
     module RecordDirection
       SPEAK  = 'speak'
       LISTEN = 'listen'
@@ -93,12 +92,13 @@ module SignalWire
     #
     class FunctionResult
       # Default +ai_response+ for +pay+ (extracted to keep the signature line
-      # within length limits; value is wire-load-bearing — mirrors Python).
+      # within length limits; the value is wire-load-bearing).
       PAY_DEFAULT_AI_RESPONSE =
         'The payment status is ${pay_result}, do not mention anything else ' \
         'about collecting payment if successful.'
 
-      # Enum validations for +join_conference+, in Python's raise order.
+      # Enum validations for +join_conference+, in the order they are checked:
+      # the FIRST invalid value in this order is the one that raises.
       # Each entry: [opts_key, allowed_values, error_message].
       JOIN_CONFERENCE_ENUMS = [
         [:beep, %w[true false onEnter onExit],
@@ -115,8 +115,8 @@ module SignalWire
 
       # Spec for the non-default conference params, in exact wire-key order.
       # Each entry: [wire_key, opts_key, ->(value) { include? }]. Driving the
-      # build off this table keeps key insertion order byte-identical to the
-      # Python reference while staying flat (one loop, not 18 branches).
+      # build off this table pins the emitted key insertion order while staying
+      # flat (one loop, not 18 branches).
       JOIN_CONFERENCE_PARAM_SPEC = [
         ['muted',            :muted,            ->(v) { v }],
         ['beep',             :beep,             ->(v) { v != 'true' }],
@@ -815,9 +815,9 @@ module SignalWire
         target
       end
 
-      # Build the object-form +context_switch+ payload (key order matches
-      # the Python reference: system_prompt, user_prompt, consolidate,
-      # full_reset, isolated).
+      # Build the object-form +context_switch+ payload. Key order is
+      # wire-load-bearing: system_prompt, user_prompt, consolidate,
+      # full_reset, isolated.
       def build_context_switch_data(system_prompt, user_prompt, consolidate, full_reset, isolated)
         context_data = {}
         context_data['system_prompt'] = system_prompt if system_prompt
@@ -843,8 +843,7 @@ module SignalWire
       end
 
       # Build the +pay+ verb params. Key order (the fixed block, then
-      # postal_code, then the optional tail) is wire-load-bearing and
-      # identical to the Python reference.
+      # postal_code, then the optional tail) is wire-load-bearing.
       def build_pay_params(payment_connector_url:, input_method:, payment_method:, timeout:,
                            max_attempts:, security_code:, min_postal_code_length:, token_type:,
                            currency:, language:, voice:, valid_card_types:, postal_code:,
@@ -900,7 +899,7 @@ module SignalWire
 
       # Wrap a single SWAIG verb + params in the standard SWML envelope.
       # Key order (version, sections → main → [{verb => params}]) is
-      # wire-load-bearing and identical to the Python reference.
+      # wire-load-bearing.
       def swml_envelope(verb, params)
         {
           'version' => '1.0.0',
@@ -922,15 +921,16 @@ module SignalWire
         @response && !@response.empty?
       end
 
-      # nil, or responds to #empty? and is empty (mirrors the Python
-      # truthiness checks used by +send_sms+).
+      # The blank test +send_sms+ applies to its arguments: nil, or responds to
+      # #empty? and is empty. (An empty String is truthy in Ruby, so a plain
+      # truthiness check would not do.)
       def sms_blank?(value)
         value.nil? || (value.respond_to?(:empty?) && value.empty?)
       end
 
       # @api private — the join_conference action. When every option is at its
       # default the wire value collapses to the bare conference NAME rather than a
-      # params object, matching the reference's emitted shape.
+      # params object.
       def join_conference_action(name, opts)
         validate_join_conference!(name, opts)
         join_params = if join_conference_all_defaults?(opts)
@@ -941,14 +941,13 @@ module SignalWire
         execute_swml(swml_envelope('join_conference', join_params))
       end
 
-      # Validation order + message text mirror the Python reference
-      # (core/function_result.py::join_conference). Python renders its
-      # valid-value lists via an f-string over a Python list literal, i.e.
-      # "one of ['a', 'b']"; we reproduce that exact form.
+      # Validation order and message text are both load-bearing. Each
+      # valid-value list renders bracketed with single-quoted, comma-separated
+      # members — "one of ['a', 'b']" — so the message a caller sees is stable.
       def validate_join_conference!(name, opts)
         JOIN_CONFERENCE_ENUMS.each do |opts_key, allowed, message|
-          # max_participants is validated immediately after beep, mirroring
-          # the Python reference's raise order.
+          # max_participants is validated immediately after beep, before
+          # record — the order decides which error a caller sees first.
           validate_max_participants!(opts[:max_participants]) if opts_key == :record
           raise ArgumentError, message unless allowed.include?(opts[opts_key])
         end

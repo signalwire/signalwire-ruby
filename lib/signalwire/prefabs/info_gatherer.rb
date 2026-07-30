@@ -19,8 +19,8 @@ module SignalWire
     # +global_data+ so the served SWML actually drives the question flow. The
     # +submit_answer+ tool is a real state machine — it reads the current
     # +question_index+/+answers+ from the request's +global_data+, records the
-    # answer, advances the index, and returns the next question (or completion),
-    # mirroring the Python +InfoGathererAgent+.
+    # answer, advances the index, and returns the next question (or
+    # completion).
     #
     #   agent = InfoGatherer.new(
     #     questions: [
@@ -31,7 +31,7 @@ module SignalWire
     #
     class InfoGatherer < AgentBase
       # Fallback questions used in dynamic mode when no callback is registered
-      # or the callback raises (mirrors Python's fallback list).
+      # or the callback raises.
       FALLBACK_QUESTIONS = [
         { 'key_name' => 'name',    'question_text' => 'What is your name?' },
         { 'key_name' => 'message', 'question_text' => 'How can I help you today?' }
@@ -199,9 +199,10 @@ module SignalWire
         set_params('end_of_speech_timeout' => 800, 'speech_event_timeout' => 1000)
       end
 
-      # Pull the question-flow state out of a SWAIG request's global_data, with
-      # the same defaults Python uses. Accepts both the flat seed shape
-      # ({questions,question_index,answers}) and a nil/empty raw_data.
+      # Pull the question-flow state out of a SWAIG request's global_data,
+      # defaulting to the constructor's questions, index 0 and no answers.
+      # Accepts both the flat seed shape ({questions,question_index,answers})
+      # and a nil/empty raw_data.
       def request_global_data(raw_data)
         gd = (raw_data.is_a?(Hash) ? raw_data['global_data'] : nil) || {}
         {
@@ -256,7 +257,7 @@ module SignalWire
       end
 
       # Invoke the per-request question callback, normalizing keys to strings.
-      # Falls back to FALLBACK_QUESTIONS on any error (matching Python).
+      # Falls back to FALLBACK_QUESTIONS on any error.
       def resolve_dynamic_questions(request_data, request)
         query_params = request_attr(request, :query_params)
         headers      = request_attr(request, :headers)

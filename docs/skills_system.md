@@ -111,7 +111,7 @@ Perform mathematical calculations.
 
 ### Native Vector Search (`native_vector_search`)
 Search document indexes via a remote search server using vector similarity and
-keyword search. The Ruby port implements **remote (network) mode only**: it POSTs
+keyword search. The Ruby SDK implements **remote (network) mode only**: it POSTs
 queries to a search server over HTTP using the Ruby standard library (`net/http`).
 The Python reference's local/offline `.swsearch` index mode and the `sw-search`
 index-building CLI are not part of the Ruby gem.
@@ -134,7 +134,7 @@ index-building CLI are not part of the Ruby gem.
 
 **Usage examples:**
 ```ruby
-# Remote mode (the only supported mode in the Ruby port)
+# Remote mode (the only supported mode in the Ruby SDK)
 agent.add_skill('native_vector_search', {
   'remote_url' => 'http://localhost:8001',
   'index_name' => 'knowledge'

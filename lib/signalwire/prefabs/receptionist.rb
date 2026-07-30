@@ -27,9 +27,8 @@ module SignalWire
       attr_reader :departments, :name, :route, :greeting
 
       # @param voice [String] voice ID the agent speaks with. Configures the
-      #   agent's English language entry (mirrors Python's
-      #   +add_language(name="English", code="en-US", voice=voice)+); like the
-      #   reference it is held privately, not exposed as public surface.
+      #   agent's English language entry (name "English", code "en-US", this
+      #   voice); it is held privately, not exposed as public surface.
       def initialize(departments:, name: 'receptionist', route: '/receptionist',
                      greeting: 'Thank you for calling. How can I help you today?',
                      voice: DEFAULT_VOICE, **_opts)
@@ -91,8 +90,7 @@ module SignalWire
       # Lifecycle hook: on_summary.
       #
       # No-op extension point: the base receptionist does not process the
-      # transfer summary. Subclasses override this to handle the summary
-      # (mirrors Python's ``def on_summary(...): pass``).
+      # transfer summary. Subclasses override this to handle the summary.
       #
       # @param _summary [Hash, String, nil] conversation summary
       # @param _raw_data [Hash, nil] full raw POST data
@@ -103,9 +101,8 @@ module SignalWire
 
       private
 
-      # Configure the agent's language with the requested voice. Mirrors the
-      # reference's `_configure_agent_settings(voice)` → `add_language(...)`;
-      # the resulting list is private state (`self._languages` in Python).
+      # Configure the agent's language with the requested voice. The resulting
+      # language list is private state, not public surface.
       def configure_agent_settings(voice)
         @voice = voice
         @languages = [{ 'name' => 'English', 'code' => 'en-US', 'voice' => voice }]

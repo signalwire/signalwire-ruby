@@ -22,19 +22,17 @@ module SignalWire
     #   )
     #
     class Concierge
-      # The reference's default when the caller supplies no hours
-      # (prefabs/concierge.py:78). It always renders an Hours of Operation
-      # section, so the default has to exist rather than the section vanishing.
+      # The hours used when the caller supplies none. The agent always renders
+      # an Hours of Operation section, so the default has to exist rather than
+      # the section vanishing.
       DEFAULT_HOURS = { 'default' => '9 AM - 5 PM' }.freeze
 
       attr_reader :venue_name, :services, :amenities, :name, :route
 
       # @return [Hash{String=>String}] operating hours per label — the
-      #   caller-supplied map or {DEFAULT_HOURS}. Reference attribute
-      #   `self.hours_of_operation` (prefabs/concierge.py:78).
+      #   caller-supplied map or {DEFAULT_HOURS}.
       # @return [Array<String>] +special_instructions+: extra instruction
-      #   bullets appended to the agent's Instructions. Reference attribute
-      #   `self.special_instructions` (prefabs/concierge.py:79).
+      #   bullets appended to the agent's Instructions.
       attr_reader :hours_of_operation, :special_instructions
 
       # @param venue_name [String] the venue the agent represents, used throughout its prompt
@@ -52,9 +50,9 @@ module SignalWire
         @venue_name     = venue_name
         @services       = services || []
         @amenities      = (amenities || {}).transform_keys(&:to_s)
-        # The reference takes a per-label MAP (`dict[str, str]`); normalise a
-        # bare String to the default label so both shapes reach the prompt and
-        # `global_data` always carries a map, as every other port does.
+        # Hours are a per-label map of String => String; normalise a bare
+        # String to the default label so both shapes reach the prompt and
+        # `global_data` always carries a map.
         @hours_of_operation = normalize_hours(hours_of_operation)
         @special_instructions = special_instructions || []
         @welcome = welcome_message || "Welcome to #{venue_name}! How can I assist you today?"
@@ -83,8 +81,8 @@ module SignalWire
           }
         ]
         sections << instructions_section unless @special_instructions.empty?
-        # Always emitted — the reference renders this section unconditionally
-        # from a defaulted map, so hours are never silently absent.
+        # Always emitted — rendered unconditionally from a defaulted map, so
+        # hours are never silently absent.
         sections << hours_section
         sections
       end
@@ -202,9 +200,9 @@ module SignalWire
         info.is_a?(Hash) ? info.map { |k, v| "#{k}: #{v}" }.join(', ') : info.to_s
       end
 
-      # Normalise the caller's hours to the reference's per-label map shape. A
-      # bare String is accepted for convenience and filed under the default
-      # label; nil falls back to DEFAULT_HOURS.
+      # Normalise the caller's hours to the per-label map shape. A bare String
+      # is accepted for convenience and filed under the default label; nil
+      # falls back to DEFAULT_HOURS.
       def normalize_hours(hours)
         return DEFAULT_HOURS.dup if hours.nil?
         return { 'default' => hours.to_s } unless hours.is_a?(Hash)
@@ -213,17 +211,15 @@ module SignalWire
       end
 
       # The "Hours of Operation" prompt section. One "Label: value" line per
-      # entry, labels title-cased and newline-joined, matching the reference
-      # (`"\n".join(f"{k.title()}: {v}" ...)`, prefabs/concierge.py:133-135).
+      # entry, labels title-cased and newline-joined.
       def hours_section
         body = @hours_of_operation.map { |k, v| "#{k.to_s.split(/\s+/).map(&:capitalize).join(' ')}: #{v}" }
                                   .join("\n")
         { 'title' => 'Hours of Operation', 'body' => body }
       end
 
-      # The extra instruction bullets the caller supplied. The reference appends
-      # these to its Instructions section (prefabs/concierge.py:106); before this
-      # they were stored and never reached the prompt at all.
+      # The extra instruction bullets the caller supplied, appended to the
+      # agent's Instructions section.
       def instructions_section
         { 'title' => 'Instructions', 'bullets' => @special_instructions.map(&:to_s) }
       end

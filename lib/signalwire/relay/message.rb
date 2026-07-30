@@ -104,9 +104,9 @@ module SignalWire
 
       # Register an event listener for state changes.
       #
-      # The handler is REQUIRED, matching the reference
-      # (``Message.on(self, handler: Callable[[RelayEvent], Any])``). Ruby's
-      # block IS the handler; supplying neither registers nothing and raises.
+      # A handler is REQUIRED: pass a callable taking the {RelayEvent}, or a
+      # block, which IS the handler. Supplying neither registers nothing and
+      # raises ArgumentError.
       def on_event(handler, &block)
         callback = block || handler
         raise ArgumentError, 'on_event requires a handler (block or callable)' if callback.nil?
