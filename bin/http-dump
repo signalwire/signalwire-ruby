@@ -59,21 +59,19 @@ end
 
 # observe_response reduces a (status, headers, body) triple to a comparable
 # artifact — the Ruby mirror of diff_port_http._observe_response.
+# Parse a body as JSON, falling back to the raw string when it is not JSON.
+def parse_json_or_raw(body_str)
+  JSON.parse(body_str)
+rescue JSON::ParserError
+  body_str
+end
+
 def observe_response(status, headers, body_str, kind)
   out = { 'status' => status, 'header_keys' => headers.keys.sort }
   out['location'] = headers['Location'] if headers.key?('Location')
   out['www_authenticate'] = headers['WWW-Authenticate'] if headers.key?('WWW-Authenticate')
   if kind == 'response_full'
-    out['body'] =
-      if body_str.nil? || body_str.empty?
-        ''
-      else
-        begin
-          JSON.parse(body_str)
-        rescue JSON::ParserError
-          body_str
-        end
-      end
+    out['body'] = body_str.nil? || body_str.empty? ? '' : parse_json_or_raw(body_str)
   end
   out
 end
@@ -105,16 +103,7 @@ end
 # parsed as JSON — mirroring the oracle's serverless_result observer.
 def reduce_lambda(resp)
   body = resp['body']
-  parsed =
-    if body.is_a?(String) && !body.empty?
-      begin
-        JSON.parse(body)
-      rescue JSON::ParserError
-        body
-      end
-    else
-      body
-    end
+  parsed = body.is_a?(String) && !body.empty? ? parse_json_or_raw(body) : body
   { 'status' => resp['statusCode'], 'body' => parsed }
 end
 

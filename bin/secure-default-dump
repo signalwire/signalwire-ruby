@@ -119,23 +119,28 @@ def emit(tool_name)
   { 'secure_default_true' => recorded_secure, 'rendered' => redact_entry(entry) }
 end
 
-def main
-  out = {}
-
-  # A1 (a): a tool defined with NO explicit secure: must default to SECURE →
-  # its rendered entry carries its own web_hook_url with a __token query param.
-  out['define_tool_default_is_secure'] = emit('sd_default_secure') do |a|
+# A1 (a): a tool defined with NO explicit secure: must default to SECURE → its
+# rendered entry carries its own web_hook_url with a __token query param.
+def default_secure_case
+  emit('sd_default_secure') do |a|
     a.define_tool(name: 'sd_default_secure', description: 'A default-secure tool',
                   parameters: { 'q' => { 'type' => 'string' } }, handler: nil) { |_args, _raw| nil }
   end
+end
 
-  # A1 (b): a tool defined with secure: false must be INSECURE → NO per-tool
-  # web_hook_url key at all (it falls back to SWAIG.defaults.web_hook_url).
-  out['define_tool_explicit_insecure'] = emit('sd_explicit_insecure') do |a|
+# A1 (b): a tool defined with secure: false must be INSECURE → NO per-tool
+# web_hook_url key at all (it falls back to SWAIG.defaults.web_hook_url).
+def explicit_insecure_case
+  emit('sd_explicit_insecure') do |a|
     a.define_tool(name: 'sd_explicit_insecure', description: 'An explicitly-insecure tool',
-                  parameters: { 'q' => { 'type' => 'string' } }, secure: false, handler: nil) { |_args, _raw| nil }
+                  parameters: { 'q' => { 'type' => 'string' } }, secure: false,
+                  handler: nil) { |_args, _raw| nil }
   end
+end
 
+def main
+  out = { 'define_tool_default_is_secure' => default_secure_case,
+          'define_tool_explicit_insecure' => explicit_insecure_case }
   REAL_STDOUT.puts(JSON.generate(out))
   REAL_STDOUT.flush
   0
