@@ -60,11 +60,12 @@ puts
 
 puts '=== Multi-Tap ==='
 multi = SignalWire::Swaig::FunctionResult.new('Initialising multi-stream monitoring')
-                                         .tap('wss://compliance.company.com/stream', control_id: 'compliance_stream', direction: 'both')
-                                         .tap('rtp://analytics.company.com:5006',    control_id: 'analytics_stream',  codec: 'PCMA')
-                                         .tap('wss://quality.company.com/monitoring', control_id: 'quality_stream', direction: 'speak')
-                                         .update_global_data(
-                                           'active_streams' => %w[compliance analytics quality],
-                                           'monitoring_level' => 'comprehensive'
-                                         )
+multi
+  .tap('wss://compliance.company.com/stream', control_id: 'compliance_stream', direction: 'both')
+  .tap('rtp://analytics.company.com:5006',    control_id: 'analytics_stream',  codec: 'PCMA')
+  .tap('wss://quality.company.com/monitoring', control_id: 'quality_stream', direction: 'speak')
+  .update_global_data(
+    'active_streams' => %w[compliance analytics quality],
+    'monitoring_level' => 'comprehensive'
+  )
 puts JSON.pretty_generate(multi.to_h)

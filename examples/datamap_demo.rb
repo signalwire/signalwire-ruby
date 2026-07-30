@@ -35,10 +35,11 @@ agent.register_swaig_function(weather.to_swaig_function)
 # --- DataMap Tool 2: Expression-based calculator ---
 
 calculator = SignalWire::DataMap.new('simple_math')
-                                .purpose('Evaluate a simple math expression')
-                                .parameter('expression', 'string', 'A math expression like "add", "subtract"', required: true)
-                                .parameter('a', 'number', 'First number', required: true)
-                                .parameter('b', 'number', 'Second number', required: true)
+calculator
+  .purpose('Evaluate a simple math expression')
+  .parameter('expression', 'string', 'A math expression like "add", "subtract"', required: true)
+  .parameter('a', 'number', 'First number', required: true)
+  .parameter('b', 'number', 'Second number', required: true)
 
 calculator.expression(
   '${args.expression}',

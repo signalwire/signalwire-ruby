@@ -90,7 +90,8 @@ def example_using_ai
   service.answer
   service.ai(
     'prompt' => {
-      'text' => 'You are a friendly receptionist. Greet the caller, ask how you can help, and answer questions about our company.'
+      'text' => 'You are a friendly receptionist. Greet the caller, ask how ' \
+                'you can help, and answer questions about our company.'
     },
     'params' => { 'temperature' => 0.7 },
     'languages' => [

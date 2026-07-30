@@ -12,9 +12,10 @@ require 'json'
 # --- Expression-based command processor ---
 
 command_processor = SignalWire::DataMap.new('command_processor')
-                                       .purpose('Process user commands with pattern matching')
-                                       .parameter('command', 'string', 'User command to process', required: true)
-                                       .parameter('target', 'string', 'Optional target for the command', required: false)
+command_processor
+  .purpose('Process user commands with pattern matching')
+  .parameter('command', 'string', 'User command to process', required: true)
+  .parameter('target', 'string', 'Optional target for the command', required: false)
 
 command_processor.expression(
   '${args.command}', '^start',
@@ -35,31 +36,32 @@ command_processor.expression(
 # --- Advanced webhook tool ---
 
 advanced_api = SignalWire::DataMap.new('advanced_api_tool')
-                                  .purpose('API tool with advanced webhook features')
-                                  .parameter('action', 'string', 'Action to perform', required: true)
-                                  .parameter('data', 'string', 'Data to send', required: false)
-                                  .webhook(
-                                    'POST', 'https://api.example.com/advanced',
-                                    headers: {
-                                      'Authorization' => 'Bearer ${token}',
-                                      'User-Agent' => 'SignalWire-Agent/1.0'
-                                    },
-                                    input_args_as_params: true,
-                                    require_args: ['action'],
-                                    form_param: 'payload'
-                                  )
-                                  .webhook_expressions([
-                                                         {
-                                                           'string' => '${response.status}',
-                                                           'pattern' => '^success$',
-                                                           'output' => { 'response' => 'Operation completed successfully' }
-                                                         },
-                                                         {
-                                                           'string' => '${response.error_code}',
-                                                           'pattern' => '^(404|500)$',
-                                                           'output' => { 'response' => 'API Error: ${response.error_message}' }
-                                                         }
-                                                       ])
+advanced_api
+  .purpose('API tool with advanced webhook features')
+  .parameter('action', 'string', 'Action to perform', required: true)
+  .parameter('data', 'string', 'Data to send', required: false)
+  .webhook(
+    'POST', 'https://api.example.com/advanced',
+    headers: {
+      'Authorization' => 'Bearer ${token}',
+      'User-Agent' => 'SignalWire-Agent/1.0'
+    },
+    input_args_as_params: true,
+    require_args: ['action'],
+    form_param: 'payload'
+  )
+  .webhook_expressions([
+                         {
+                           'string' => '${response.status}',
+                           'pattern' => '^success$',
+                           'output' => { 'response' => 'Operation completed successfully' }
+                         },
+                         {
+                           'string' => '${response.error_code}',
+                           'pattern' => '^(404|500)$',
+                           'output' => { 'response' => 'API Error: ${response.error_message}' }
+                         }
+                       ])
 
 # Fallback webhook
 advanced_api.webhook(

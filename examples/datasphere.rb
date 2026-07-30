@@ -32,14 +32,15 @@ example_config = {
 
 # Instance 1: Drinks knowledge
 begin
-  agent.add_skill('datasphere', example_config.merge(
-                                  'document_id' => 'drinks-doc-123',
-                                  'tool_name' => 'search_drinks_knowledge',
-                                  'tags' => %w[Drinks Bar Cocktails],
-                                  'count' => 2,
-                                  'distance' => 5.0,
-                                  'no_results_message' => "I couldn't find drink info about '{query}'. Try a different cocktail."
-                                ))
+  drinks = example_config.merge(
+    'document_id' => 'drinks-doc-123',
+    'tool_name' => 'search_drinks_knowledge',
+    'tags' => %w[Drinks Bar Cocktails],
+    'count' => 2,
+    'distance' => 5.0,
+    'no_results_message' => "I couldn't find drink info about '{query}'. Try a different cocktail."
+  )
+  agent.add_skill('datasphere', drinks)
   puts 'Added drinks knowledge (tool: search_drinks_knowledge)'
 rescue StandardError => e
   puts "Drinks DataSphere: #{e.message}"
@@ -47,14 +48,15 @@ end
 
 # Instance 2: Food knowledge
 begin
-  agent.add_skill('datasphere', example_config.merge(
-                                  'document_id' => 'food-doc-456',
-                                  'tool_name' => 'search_food_knowledge',
-                                  'tags' => %w[Food Recipes Cooking],
-                                  'count' => 3,
-                                  'distance' => 4.0,
-                                  'no_results_message' => "I couldn't find recipes about '{query}'. Try a different dish."
-                                ))
+  food = example_config.merge(
+    'document_id' => 'food-doc-456',
+    'tool_name' => 'search_food_knowledge',
+    'tags' => %w[Food Recipes Cooking],
+    'count' => 3,
+    'distance' => 4.0,
+    'no_results_message' => "I couldn't find recipes about '{query}'. Try a different dish."
+  )
+  agent.add_skill('datasphere', food)
   puts 'Added food knowledge (tool: search_food_knowledge)'
 rescue StandardError => e
   puts "Food DataSphere: #{e.message}"

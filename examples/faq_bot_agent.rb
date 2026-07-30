@@ -57,7 +57,8 @@ end
 
 # Post-prompt for conversation summary
 agent.post_prompt =
-  'Provide a JSON summary: {"question_type": "CATEGORY", "answered_from_kb": true/false, "follow_up_needed": true/false}'
+  'Provide a JSON summary: {"question_type": "CATEGORY", ' \
+  '"answered_from_kb": true/false, "follow_up_needed": true/false}'
 
 agent.on_summary(nil) do |summary, _raw_data|
   puts "FAQ Bot summary: #{summary.inspect}"
