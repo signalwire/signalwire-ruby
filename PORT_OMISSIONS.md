@@ -129,7 +129,6 @@ signalwire.relay.client.RelayClient.relay_protocol: impossible: Python property 
 signalwire.relay.message.Message.__repr__: impossible: Python object-repr dunder; Ruby provides the equivalent via the shared MessageSerialization module's inspect/to_s, but the __repr__ NAME itself has no standalone Ruby form (mirrors Call.__repr__; TS/PHP omit identically)
 signalwire.skills.native_vector_search.skill.NativeVectorSearchSkill.cleanup: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
 signalwire.skills.native_vector_search.skill.NativeVectorSearchSkill.get_global_data: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
-signalwire.skills.native_vector_search.skill.NativeVectorSearchSkill.get_prompt_sections: approved: Python-only RAG/vector-search subsystem, not ported to any SDK — user, 2026-07 pass (§I.1)
 signalwire.skills.registry.SkillRegistry.get_skill_class: Ruby SignalWire::Skills::SkillRegistry#get_factory returns class-or-factory - different name
 
 <!-- B1 composition-attribute enrichment (porting-sdk) surfaced Python composition

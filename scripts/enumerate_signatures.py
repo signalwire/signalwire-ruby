@@ -172,6 +172,36 @@ if not _REF_SIG_PATH.is_file():
     )
 _REF_SIG_RAW = json.loads(_REF_SIG_PATH.read_text())
 
+# The SURFACE oracle, read for one narrow purpose: per-class DECLARATION fidelity
+# (see ``fold_skill_base_hooks``). The two oracles are not interchangeable —
+# ``python_signatures.json`` deliberately SKIPS a subclass override whose
+# signature is identical to the base's, so on the signature axis "recorded on the
+# base but not on the subclass" is true of every base-identical override and is
+# far too broad to gate a fold on. ``python_surface.json`` records what each
+# class genuinely DECLARES, which is exactly the question the fold asks. Fails
+# loud on absence for the same reason ``_REF_SIG_PATH`` does.
+_REF_SURFACE_PATH = PSDK / "python_surface.json"
+if not _REF_SURFACE_PATH.is_file():
+    raise SystemExit(
+        f"porting-sdk surface oracle not found: {_REF_SURFACE_PATH}\n"
+        "  Set $PORTING_SDK to the porting-sdk checkout, or clone it as a "
+        "sibling of this repo. Refusing to emit a degraded snapshot."
+    )
+_REF_SURFACE_RAW = json.loads(_REF_SURFACE_PATH.read_text())
+
+
+def _build_ref_surface_member_index() -> dict:
+    """``(module, class) -> {member, ...}`` from the SURFACE oracle — what each
+    reference class genuinely declares."""
+    return {
+        (mod, cls): set(members or [])
+        for mod, me in _REF_SURFACE_RAW.get("modules", {}).items()
+        for cls, members in me.get("classes", {}).items()
+    }
+
+
+REF_SURFACE_MEMBERS = _build_ref_surface_member_index()
+
 
 def _build_ref_param_type_index() -> dict:
     """(module, class_or_None, method) -> {param_name: type} for every
@@ -467,6 +497,73 @@ def _sig_aliases_for(mod: str, cls: str) -> dict[str, str]:
         merged.update(table)
         return merged
     return table
+
+
+SIG_SKILL_BASE_REF = ("signalwire.core.skill_base", "SkillBase")
+
+
+def fold_skill_base_hooks(out_modules: dict) -> None:
+    """Fold a built-in skill subclass's override of an INHERITED ``SkillBase``
+    member back into the base, when the oracle records that member on
+    ``SkillBase`` but NOT on the subclass. In place.
+
+    MIRRORS ``enumerate_surface.rb``'s ``fold_skill_base_hooks``, and exists for
+    the same reason the ``instance_key`` alias had to be mirrored: the two
+    enumerators project the SAME Ruby skill classes onto the SAME reference
+    modules, so a projection rule that lives on only one side leaves the other
+    reporting the same Ruby method as un-folded surface.
+
+    ORACLE-GATED, never a hand-kept name list. The reference made
+    ``SkillBase.get_prompt_sections()`` a FINAL template method carrying the
+    ``skip_prompt`` guard and delegating to a PROTECTED ``_get_prompt_sections()``
+    hook, so the oracle now records the public member on the BASE ONLY while
+    every skill overrides the protected one. Ruby still overrides the public
+    method on 12 skill classes; an override of a base member is INHERITANCE, not
+    new surface.
+
+    Why the SIGNATURE side needed this even though DRIFT was green: it was green
+    only by ACCIDENT. ``get_prompt_sections`` is a zero-arg reader, so
+    ``diff_port_signatures.py`` swept all 12 into ``excused`` under the
+    ``port-side state accessor (no Python counterpart)`` leniency — a rule about
+    ports exposing state as properties, which has nothing to do with a template
+    method. The divergence was real and simply invisible on this axis. Folding it
+    here makes both axes agree for the same stated reason instead of one of them
+    passing on an unrelated exemption.
+
+    BOTH SIDES OF THE TEST READ THE SURFACE ORACLE, not the signature oracle.
+    ``python_signatures.json`` deliberately SKIPS a subclass override whose
+    signature is identical to the base's, so asking IT "does the subclass record
+    this member?" answers no for EVERY base-identical override. Measured: gating
+    on the signature oracle folded 33 members instead of 12 — it would have
+    deleted ``setup`` / ``register_tools`` / ``get_instance_key`` /
+    ``get_parameter_schema`` / ``cleanup`` / ``get_hints`` from ApiNinjasTrivia,
+    PlayBackgroundFile, Spider, WeatherApi and WikipediaSearch, all of which the
+    port genuinely implements and the reference genuinely declares. That is a
+    capability deletion, not a fold. ``python_surface.json`` records what each
+    class DECLARES, which is the question the fold actually asks, so it is the
+    authority here. With it: exactly 12 members fold, all ``get_prompt_sections``,
+    matching enumerate_surface.rb member for member.
+
+    Self-correcting in both directions: the oracle dropping a member from a
+    subclass folds the port's override with no hand edit; the oracle STARTING to
+    record it on a subclass stands the fold down, because the rule tests the
+    subclass, not just the base. Scoped to ``signalwire.skills.*.skill`` classes;
+    ``__init__`` is exempt (construction shape is recorded per class, never
+    inherited). An empty/unresolvable base set leaves the methods alone rather
+    than folding against nothing (the oracle path already fails loud on absence).
+    """
+    base = REF_SURFACE_MEMBERS.get(SIG_SKILL_BASE_REF, set())
+    if not base:
+        return
+    for mod, me in out_modules.items():
+        if not (mod.startswith("signalwire.skills.") and mod.endswith(".skill")):
+            continue
+        for cls, ce in me.get("classes", {}).items():
+            recorded = REF_SURFACE_MEMBERS.get((mod, cls), set())
+            methods = ce.get("methods", {})
+            for name in [m for m in methods if m != "__init__"]:
+                if name in base and name not in recorded:
+                    methods.pop(name, None)
 
 
 def apply_sig_method_aliases(out_modules: dict) -> None:
@@ -1611,6 +1708,7 @@ def collect(raw: dict) -> dict:
     # reference identifier, THEN re-attach reference-documented concrete param
     # types onto hand-written params reflection recorded as bare ``any``.
     apply_sig_method_aliases(out_modules)
+    fold_skill_base_hooks(out_modules)
     apply_sig_method_donors(out_modules)
     apply_sig_free_function_projections(out_modules)
     synth_ai_chat_struct_inits(out_modules)

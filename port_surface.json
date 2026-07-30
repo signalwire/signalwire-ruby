@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 895087fb0358df325842c324fc267bb12f114bb1",
+  "generated_from": "signalwire-ruby @ ada5e3e1230a7c2e1d5c2371c10a0a964cc688b7",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -3473,7 +3473,6 @@
           "get_hints",
           "get_instance_key",
           "get_parameter_schema",
-          "get_prompt_sections",
           "name",
           "register_tools",
           "setup",
@@ -3491,7 +3490,6 @@
           "get_hints",
           "get_instance_key",
           "get_parameter_schema",
-          "get_prompt_sections",
           "name",
           "register_tools",
           "setup",
@@ -3508,7 +3506,6 @@
           "get_hints",
           "get_instance_key",
           "get_parameter_schema",
-          "get_prompt_sections",
           "name",
           "register_tools",
           "setup",
@@ -3523,7 +3520,6 @@
           "description",
           "get_hints",
           "get_parameter_schema",
-          "get_prompt_sections",
           "name",
           "register_tools",
           "setup"
@@ -3537,7 +3533,6 @@
           "description",
           "get_hints",
           "get_parameter_schema",
-          "get_prompt_sections",
           "name",
           "register_tools",
           "setup"
@@ -3552,7 +3547,6 @@
           "get_global_data",
           "get_instance_key",
           "get_parameter_schema",
-          "get_prompt_sections",
           "name",
           "register_tools",
           "setup",
@@ -3568,7 +3562,6 @@
           "get_global_data",
           "get_hints",
           "get_parameter_schema",
-          "get_prompt_sections",
           "name",
           "register_tools",
           "setup"
@@ -3582,7 +3575,6 @@
           "description",
           "get_hints",
           "get_parameter_schema",
-          "get_prompt_sections",
           "name",
           "register_tools",
           "setup"
@@ -3597,7 +3589,6 @@
           "get_global_data",
           "get_hints",
           "get_parameter_schema",
-          "get_prompt_sections",
           "name",
           "register_tools",
           "setup",
@@ -3691,7 +3682,6 @@
           "get_hints",
           "get_instance_key",
           "get_parameter_schema",
-          "get_prompt_sections",
           "name",
           "register_tools",
           "setup",
@@ -3722,7 +3712,6 @@
           "get_hints",
           "get_instance_key",
           "get_parameter_schema",
-          "get_prompt_sections",
           "name",
           "register_tools",
           "setup",
@@ -3738,7 +3727,6 @@
           "description",
           "get_hints",
           "get_parameter_schema",
-          "get_prompt_sections",
           "name",
           "register_tools",
           "search_wiki",

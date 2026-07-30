@@ -1109,6 +1109,7 @@ def process_class(mod, name, modules, python_index, oracle_generated_members)
   methods = project_free_functions(name, methods, modules)
   methods = apply_method_aliases(target_mod, cls, methods)
   methods = drop_idiom_members(target_mod, cls, methods)
+  methods = fold_skill_base_hooks(target_mod, cls, methods)
   modules[target_mod]['classes'][cls] = methods
 end
 
@@ -1143,13 +1144,75 @@ def drop_idiom_members(target_mod, cls, methods)
   methods - effective
 end
 
+# The reference module/class the built-in skills inherit from. Its oracle-recorded
+# member set is the base contract every `signalwire.skills.<name>.skill` subclass
+# inherits.
+SKILL_BASE_REF = ['signalwire.core.skill_base', 'SkillBase'].freeze
+
+# Fold a built-in skill subclass's override of an INHERITED SkillBase member back
+# into the base, when the oracle records that member on `SkillBase` but NOT on the
+# subclass.
+#
+# ORACLE-GATED, not list-gated — the rule is a question asked of the LIVE oracle
+# every regen, never a hand-kept name list that goes stale the moment the
+# reference moves a member. It just did: the reference made
+# `SkillBase.get_prompt_sections()` a FINAL template method carrying the
+# `skip_prompt` guard and delegating to a PROTECTED `_get_prompt_sections()` hook
+# (signalwire-python core/skill_base.py:89-96). Every skill now overrides the
+# protected hook, so the oracle records the PUBLIC member on the base ONLY. Ruby
+# still overrides the public method on 12 skill classes, and a reflective dump
+# reports each override as new public surface — 10 phantom `missing-reference`
+# additions plus 1 omission that had gone dead.
+#
+# An override of a base member is INHERITANCE, not new surface: the capability is
+# already published by the base the reference records it on. So the fold is exact
+# and self-correcting in both directions:
+#   * the oracle stops recording a member on the subclass -> the port's override
+#     folds into the base on the next regen, with no hand edit;
+#   * the oracle STARTS recording it on the subclass (a genuine per-class
+#     override in the reference) -> the port MUST emit its own, and the fold
+#     stands down. That is why the rule tests the subclass, not just the base.
+# Measured: exactly 12 members fold, all of them `get_prompt_sections`. Nothing
+# else in the skills family is a base member the oracle declines to re-record, so
+# the port's real per-class additions (`name`, `description`, `version`,
+# `supports_multiple_instances?`) are untouched.
+#
+# Scoped to `signalwire.skills.*.skill` classes so it can never reach a class
+# outside the built-in skill family. `__init__` is exempt: construction shape is
+# recorded per class, never inherited.
+#
+# Fail-safe: an unresolvable/empty oracle leaves the methods alone rather than
+# folding on an empty base set. Dropping members because the oracle failed to
+# load would read as a mass deletion of real port surface; ORACLE_ALL_MEMBERS is
+# primed from a file whose absence already aborts LOUD
+# (abort_missing_python_surface), so this is belt-and-braces.
+def fold_skill_base_hooks(target_mod, cls, methods)
+  return methods unless builtin_skill_module?(target_mod)
+
+  base = ORACLE_ALL_MEMBERS[SKILL_BASE_REF]
+  return methods if base.nil? || base.empty?
+
+  recorded = ORACLE_ALL_MEMBERS[[target_mod, cls]] || Set.new
+  methods.reject { |m| inherited_base_hook?(m, base, recorded) }
+end
+
+# True when `name` is a SkillBase member the subclass does not re-declare in the
+# reference — i.e. an inherited hook, not new subclass surface. `__init__` is
+# exempt: construction shape is recorded per class, never inherited.
+def inherited_base_hook?(name, base, recorded)
+  name != '__init__' && base.include?(name) && !recorded.include?(name)
+end
+
+# A reference module of the built-in skills family (`signalwire.skills.<n>.skill`).
+def builtin_skill_module?(target_mod)
+  target_mod.start_with?('signalwire.skills.') && target_mod.end_with?('.skill')
+end
+
 # Apply the per-[module, class] Ruby-idiom -> reference method-name aliases,
 # plus the by-prefix skills alias (instance_key -> get_instance_key).
 def apply_method_aliases(target_mod, cls, methods)
   table = SURFACE_METHOD_ALIASES[[target_mod, cls]] || {}
-  if target_mod.start_with?('signalwire.skills.') && target_mod.end_with?('.skill')
-    table = SKILLS_MODULE_METHOD_ALIASES.merge(table)
-  end
+  table = SKILLS_MODULE_METHOD_ALIASES.merge(table) if builtin_skill_module?(target_mod)
   return methods if table.empty?
 
   methods.map { |m| table.fetch(m, m) }.uniq.sort

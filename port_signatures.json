@@ -38144,15 +38144,6 @@
               ],
               "returns": "any"
             },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "name": {
               "params": [
                 {
@@ -38251,15 +38242,6 @@
               ],
               "returns": "any"
             },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "name": {
               "params": [
                 {
@@ -38349,15 +38331,6 @@
               ],
               "returns": "any"
             },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "name": {
               "params": [
                 {
@@ -38438,15 +38411,6 @@
               ],
               "returns": "any"
             },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "name": {
               "params": [
                 {
@@ -38509,15 +38473,6 @@
               ],
               "returns": "any"
             },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "name": {
               "params": [
                 {
@@ -38572,15 +38527,6 @@
               "returns": "any"
             },
             "get_parameter_schema": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "get_prompt_sections": {
               "params": [
                 {
                   "name": "self",
@@ -38678,15 +38624,6 @@
               ],
               "returns": "any"
             },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "name": {
               "params": [
                 {
@@ -38741,15 +38678,6 @@
               "returns": "any"
             },
             "get_parameter_schema": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "get_prompt_sections": {
               "params": [
                 {
                   "name": "self",
@@ -38821,15 +38749,6 @@
               "returns": "any"
             },
             "get_parameter_schema": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "get_prompt_sections": {
               "params": [
                 {
                   "name": "self",
@@ -39382,15 +39301,6 @@
               ],
               "returns": "any"
             },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "name": {
               "params": [
                 {
@@ -39563,15 +39473,6 @@
               ],
               "returns": "any"
             },
-            "get_prompt_sections": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "name": {
               "params": [
                 {
@@ -39653,15 +39554,6 @@
               "returns": "any"
             },
             "get_parameter_schema": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
-            "get_prompt_sections": {
               "params": [
                 {
                   "name": "self",
