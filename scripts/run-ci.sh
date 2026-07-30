@@ -205,11 +205,30 @@ sched_gate ENV-VAR-CONSISTENCY desc="REST base-url override present + custom-CA 
 # for every port. This port's workflows are verified valid (live-smoke.yml gates on a
 # JOB-level env, not a step-level secrets.* in if:); actionlint is clean here.
 
-sched_gate FMT defer=1 desc="run-format.sh (local: apply; CI: --check)" \
+# FMT + LINT cover the WHOLE Ruby tree at ONE bar. .rubocop.yml's AllCops/Exclude
+# was cut to vendor/ alone on 2026-07-30 (owner: "examples and tests are shipping
+# code too, all at the levels the shipping code gets"), so these two gates now
+# reach examples/, relay/examples/, rest/examples/, the bin/*-dump programs and
+# scripts/doc_wire_runner.rb as well as lib/ + tests/ + the generated trees.
+# Both invoke bare rubocop from the repo root, so that widening needed no new
+# gate here -- do NOT add a second one, it would double-lint the same files.
+sched_gate FMT defer=1 desc="run-format.sh (whole repo minus vendor/; local: apply; CI: --check)" \
     -- bash scripts/run-format.sh ${CI:+--check}
 
-sched_gate LINT defer=1 desc="run-lint.sh (rubocop zero offenses)" \
+sched_gate LINT defer=1 desc="run-lint.sh (rubocop zero offenses, whole repo minus vendor/)" \
     -- bash scripts/run-lint.sh
+
+# PY-LINT / PY-FMT — the hand-written PYTHON under scripts/ (the 5 code
+# generators, the surface enumerator, and _gen_format.py, which is part of the
+# format toolchain itself). rubocop cannot see a .py file, so this tooling was
+# linted and format-checked by NOTHING until 2026-07-30; ruff.toml mirrors the
+# reference's rule selection so it is the same bar, not a looser one.
+# Wired once the burn reached ZERO (58 -> 0), so the gate never lands red.
+sched_gate PY-LINT defer=1 desc="run-py-lint.sh (ruff check, zero findings over scripts/*.py)" \
+    -- bash scripts/run-py-lint.sh
+
+sched_gate PY-FMT defer=1 desc="run-py-format.sh (ruff format over scripts/*.py; local: apply; CI: --check)" \
+    -- bash scripts/run-py-format.sh ${CI:+--check}
 
 # ROUTE-COLLISION is intentionally NOT wired (kept out of the SURFACE suite for ruby):
 # with ruby's route_registry.rb it fails on a SPEC-FAITHFUL route-split — the fabric

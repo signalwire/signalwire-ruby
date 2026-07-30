@@ -51,10 +51,44 @@ _sw_bootstrap_rubocop() {
 }
 
 # sw_rubocop <rubocop-args…> — run rubocop via bundler from the repo root.
-# Bootstraps on first call. Path scope (which dirs are linted, and the generated /
-# examples excludes) lives in .rubocop.yml, so callers pass MODE flags only
-# (nothing, or -a) and let the config decide the tree.
+# Bootstraps on first call. Path scope lives in .rubocop.yml — which as of
+# 2026-07-30 excludes ONLY vendor/, so this covers lib/, tests/, examples/,
+# relay/examples/, rest/examples/, bin/, scripts/ and the generated trees at one
+# bar. Callers pass MODE flags only (nothing, or -a) and let the config decide.
 sw_rubocop() {
     _sw_bootstrap_rubocop || return 1
     (cd "$REPO_ROOT" && bundle exec rubocop "$@")
+}
+
+# The hand-written PYTHON in scripts/ (the 5 code generators, the surface
+# enumerator, _gen_format.py) is linted + format-checked by ruff, configured in
+# ruff.toml. rubocop cannot see a .py file, so this is a SEPARATE tool with its
+# own gates (PY-LINT / PY-FMT in run-ci.sh); it is not a second, looser bar --
+# ruff.toml mirrors the reference implementation's rule selection exactly.
+SW_PY_DIRS=("scripts")
+
+# ruff is a NATIVE binary (not a gem), so it is declared here rather than in the
+# Gemfile: `python3 -m ruff` when the module is importable, else the `ruff`
+# binary on PATH, else fail loud with an install hint. Same shape as the rubocop
+# bootstrap above -- never a silent skip, which would let the gate pass vacuously.
+_sw_ruff_cmd() {
+    if python3 -c 'import ruff' >/dev/null 2>&1; then
+        echo "python3 -m ruff"
+        return 0
+    fi
+    if command -v ruff >/dev/null 2>&1; then
+        echo "ruff"
+        return 0
+    fi
+    echo "FATAL: ruff not found (needed to lint/format the Python under scripts/)." >&2
+    echo "       Install it with: python3 -m pip install ruff   (or: brew install ruff)" >&2
+    return 1
+}
+
+# sw_ruff <ruff-args…> — run ruff from the repo root, however it resolves.
+sw_ruff() {
+    local cmd
+    cmd="$(_sw_ruff_cmd)" || return 1
+    # shellcheck disable=SC2086 # $cmd is our own 1-or-3 word command, intentionally split
+    (cd "$REPO_ROOT" && $cmd "$@")
 }

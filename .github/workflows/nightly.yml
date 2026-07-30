@@ -119,6 +119,13 @@ jobs:
           pip install -e porting-sdk/test_harness/mock_relay
           pip install -e porting-sdk/test_harness/mock_signalwire
 
+      # ruff backs the PY-LINT / PY-FMT gates over the hand-written Python in
+      # scripts/ (the 5 code generators, the surface enumerator, _gen_format.py).
+      # scripts/_env.sh fails LOUD when ruff is absent rather than skipping, so
+      # the gate cannot pass vacuously on a runner that lacks it.
+      - name: Install ruff (PY-LINT / PY-FMT gates)
+        run: pip install ruff
+
       # EMISSION needs `import signalwire` (the oracle). Install from the
       # adjacent checkout only if not already importable.
       - name: Install signalwire-python (EMISSION oracle) if not importable
@@ -196,6 +203,13 @@ jobs:
         run: |
           pip install -e porting-sdk/test_harness/mock_relay
           pip install -e porting-sdk/test_harness/mock_signalwire
+
+      # ruff backs the PY-LINT / PY-FMT gates over the hand-written Python in
+      # scripts/ (the 5 code generators, the surface enumerator, _gen_format.py).
+      # scripts/_env.sh fails LOUD when ruff is absent rather than skipping, so
+      # the gate cannot pass vacuously on a runner that lacks it.
+      - name: Install ruff (PY-LINT / PY-FMT gates)
+        run: pip install ruff
 
       # A clean-bundle require + the full suite on the forward Ruby: -w surfaces any
       # deprecation warning from a stdlib gem that was extracted from the defaults.
