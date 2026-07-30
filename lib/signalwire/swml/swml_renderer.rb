@@ -83,14 +83,20 @@ module SignalWire
       # Generate a SWML document for a function response — a +play+ of the
       # response text followed by any provided actions.
       #
+      # The SWML +play+ verb has no +text+ key: its config is PlayWithURL /
+      # PlayWithURLS, and spoken text goes through the +say:+ URL scheme. Verbs
+      # are added through the validating Service#add_verb (not the raw document
+      # entry point), so a config the schema rejects fails loudly here rather
+      # than shipping an invalid document.
+      #
       # @param response_text [String] text response to include in the document
       # @param service [SignalWire::SWML::Service] service to build with
       # @param actions [Array<Hash>, nil] optional list of actions to perform
       # @param format [String] output format ("json" or "yaml")
       # @return [String] SWML document as a string
       def self.render_function_response_swml(response_text:, service:, actions: nil, format: 'json')
-        service.document.reset
-        service.document.add_verb('play', { 'text' => response_text }) if response_text && !response_text.empty?
+        service.reset_document
+        service.add_verb('play', { 'url' => "say:#{response_text}" }) if response_text && !response_text.empty?
         (actions || []).each { |action| add_response_action(service, action) }
 
         format.to_s.downcase == 'yaml' ? render_yaml(service.document.to_h) : service.render
@@ -99,7 +105,7 @@ module SignalWire
       # Add the first recognised action verb from an action hash to the document.
       def self.add_response_action(service, action)
         verb = RESPONSE_ACTION_VERBS.find { |v| action.key?(v) }
-        service.document.add_verb(verb, action[verb]) if verb
+        service.add_verb(verb, action[verb]) if verb
       end
 
       # Build the SWAIG function list, prepending startup/hangup hooks and
