@@ -2433,6 +2433,10 @@ module SignalWire
     # schema, exactly as Service#add_verb would. Raises SchemaValidationError
     # on an invalid config; a bare Integer +sleep+ is a valid direct value and
     # is passed through, matching Service#add_verb's sleep handling.
+    #
+    # Private: this is internal render plumbing, not agent-author surface. A
+    # subclass that rewrites the rendered document (BedrockAgent) reaches it via
+    # __send__ to re-validate what it substitutes.
     def validate_section_entry(entry)
       verb_name, config = entry.first
       return entry if verb_name == 'sleep' && config.is_a?(Integer)
@@ -2440,6 +2444,7 @@ module SignalWire
       __send__(:verb_config_valid!, verb_name, config)
       entry
     end
+    private :validate_section_entry
 
     # Map a [[verb_name, config], ...] list into [{verb_name => config}, ...].
     def verb_entries(verbs)

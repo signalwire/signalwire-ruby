@@ -82,7 +82,8 @@ module SignalWire
           # schema check at all. `build_bedrock_object` copies a fixed key set,
           # and a key the schema does not accept (or one it requires and the
           # copy dropped) is exactly the class of defect that silence hides.
-          validate_section_entry(entry)
+          # validate_section_entry is private render plumbing on the base class.
+          __send__(:validate_section_entry, entry)
           main[idx] = entry
         end
 

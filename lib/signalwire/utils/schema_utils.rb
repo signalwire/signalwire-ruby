@@ -55,9 +55,9 @@ module SignalWire
         'boolean' => 'bool', 'object' => 'Dict[str, Any]'
       }.freeze
 
-      # Keywords stripped from an `x-sdk-widen: true` property before the full
-      # validator is built — the ones that pin it to a fixed value set. See
-      # {#apply_sdk_widen}.
+      # Keywords stripped from a property whose value set is advisory, before
+      # the full validator is built — the ones that pin it to a fixed set of
+      # values. See {#apply_sdk_widen}.
       WIDEN_STRIPPED_KEYS = %w[anyOf oneOf enum const x-sdk-enum-literal].freeze
 
       # @return [Hash{String=>Object}] parsed JSON Schema document
@@ -362,15 +362,16 @@ module SignalWire
         @full_validator = nil
       end
 
-      # `x-sdk-widen: true` declares that a property's `enum`/`const` union is
-      # only a HINT and the platform accepts any value of the base scalar type
-      # (porting-sdk REST_GENERATOR_RULES.md §5: "a schema enum/const is only a
-      # hint, so widen to the base scalar — e.g. `hangup.reason` const-union →
-      # `str`; the platform accepts any string"). Validating against the raw
-      # const-union would make this SDK reject documents the platform accepts,
-      # so drop the constraint on marked properties before building the
-      # validator. Returns a widened deep copy; @schema itself is untouched, so
-      # code-gen callers still see the enum hint.
+      # Some schema properties mark their `enum`/`const` union as advisory: the
+      # listed values are the documented ones, but the platform accepts any
+      # value of the same base scalar type. `hangup.reason` is the standing
+      # example — the `hangup|busy|decline` union is a hint, and any string is
+      # valid on the wire.
+      #
+      # Validating against the raw union would make this SDK reject documents
+      # the platform accepts, so the constraint is dropped on marked properties
+      # before the validator is built. Returns a widened copy; the schema itself
+      # is untouched, so callers reading it still see the documented values.
       #
       # @return [Hash, Array, Object]
       def apply_sdk_widen(node)
