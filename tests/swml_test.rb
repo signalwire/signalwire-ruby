@@ -625,3 +625,50 @@ class TimingSafeAuthTest < Minitest::Test
     refute Rack::Utils.secure_compare('short', 'longer_string')
   end
 end
+
+# `x-sdk-widen: true` declares that a property's enum/const union is only a HINT
+# and the platform accepts any value of the base scalar type. Validating against
+# the raw union would make the SDK reject documents the platform accepts.
+class SchemaWidenTest < Minitest::Test
+  def setup
+    @svc = SignalWire::SWML::Service.new(name: 'widen')
+  end
+
+  # hangup.reason carries the marker: any string must pass, in-union or not.
+  def test_widened_enum_accepts_out_of_union_string
+    assert @svc.add_verb('hangup', { 'reason' => 'done' })
+    assert @svc.add_verb('hangup', { 'reason' => 'busy' })
+  end
+
+  # Widening drops the value set, NOT the base type -- a non-string still fails.
+  def test_widened_enum_still_enforces_base_type
+    assert_raises(SignalWire::Utils::SchemaValidationError) do
+      @svc.add_verb('hangup', { 'reason' => 123 })
+    end
+  end
+
+  # Widening one property must not open the verb to unknown keys.
+  def test_widened_verb_still_rejects_unknown_keys
+    assert_raises(SignalWire::Utils::SchemaValidationError) do
+      @svc.add_verb('hangup', { 'bogus_key' => 'x' })
+    end
+  end
+
+  # A property WITHOUT the marker keeps its constraint: play.urls entries must
+  # be real play URLs, so a bare filename is still rejected.
+  def test_unwidened_property_keeps_its_constraint
+    assert_raises(SignalWire::Utils::SchemaValidationError) do
+      @svc.add_verb('play', { 'urls' => ['a.mp3'] })
+    end
+  end
+
+  # The marker is a VALIDATION-time widening only; the raw schema keeps the
+  # union so code-gen still sees the hint.
+  def test_raw_schema_keeps_the_enum_hint_for_codegen
+    reason = SignalWire::Utils::SchemaUtils.new.schema
+                                           .dig('$defs', 'Hangup', 'properties', 'hangup', 'properties', 'reason')
+
+    assert reason['x-sdk-widen'], 'expected the widen marker on hangup.reason'
+    assert_equal(%w[hangup busy decline], reason['anyOf'].map { |b| b['const'] })
+  end
+end
