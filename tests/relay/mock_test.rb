@@ -337,11 +337,22 @@ module RelayMockTest
     end
 
     # Resolve ports, build the Harness, and probe-or-spawn the server.
+    #
+    # SIGNALWIRE_RELAY_SCHEME / SIGNALWIRE_RELAY_HOST are set HERE, exactly
+    # once, inside the `@mu`-guarded one-time startup -- not per-client in
+    # build_sdk_client. Those two are the SDK's only redirect channel (no
+    # kwarg exists, client.rb:615/:625), so they must be process-global; what
+    # must not be global is the WRITE. Setting them per-client meant every
+    # `parallelize_me!` relay test re-wrote a process-global from its own
+    # thread on every client build. Writing them once, before any parallel
+    # suite starts, makes them read-only for the rest of the run.
     def start_harness
       @ws_port   = resolve_port('MOCK_RELAY_PORT')
       @http_port = resolve_port('MOCK_RELAY_HTTP_PORT')
       @host      = '127.0.0.1'
       @harness   = Harness.new(host: @host, ws_port: @ws_port, http_port: @http_port)
+      ENV['SIGNALWIRE_RELAY_SCHEME'] = 'ws'
+      ENV['SIGNALWIRE_RELAY_HOST']   = @harness.relay_host
 
       return @harness if probe_health(@harness)
 
@@ -507,10 +518,10 @@ module RelayMockTest
     { client: sdk_client, run_thread: run_thread, mock: mock }
   end
 
-  # Force the SDK to dial ws://host:ws_port (not wss://{space}) and build it.
+  # Build the SDK client. The ws:// redirect env is already in place from the
+  # one-time Lifecycle.start_harness (see the note there) -- this method makes
+  # no process-global writes, so it is safe to call from parallel threads.
   def build_sdk_client(harness, project, token, jwt_token, contexts)
-    ENV['SIGNALWIRE_RELAY_SCHEME'] = 'ws'
-    ENV['SIGNALWIRE_RELAY_HOST']   = harness.relay_host
     SignalWire::Relay::Client.new(
       project: project, token: token, jwt_token: jwt_token,
       space: harness.relay_host, contexts: contexts
