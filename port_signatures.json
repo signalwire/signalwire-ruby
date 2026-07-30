@@ -6315,6 +6315,15 @@
                 }
               ],
               "returns": "any"
+            },
+            "contexts": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
             }
           }
         }

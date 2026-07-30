@@ -554,6 +554,14 @@ SURFACE_METHOD_ALIASES = {
   ['signalwire.core.swml_service', 'SWMLService'] => { 'method_missing' => '__getattr__' },
   ['signalwire.core.swaig_function', 'SWAIGFunction'] => { 'call' => '__call__' },
   ['signalwire.agents.bedrock', 'BedrockAgent'] => { 'inspect' => '__repr__' },
+  # The reference exposes the context tree on PromptMixin as a bare `contexts`
+  # PROPERTY; Ruby spells the same read `get_contexts`. Same value, same source,
+  # different accessor spelling -- idiom, so it folds here (Rule 2) rather than
+  # being carried as a paired omission (`PromptMixin.contexts`) + addition
+  # (`agentbase-family.get_contexts`). Keyed on PromptMixin only: the reference
+  # ALSO declares a real `get_contexts` on PromptManager, which Ruby matches by
+  # that name outright and must not be renamed.
+  ['signalwire.core.mixins.prompt_mixin', 'PromptMixin'] => { 'get_contexts' => 'contexts' },
   ['signalwire.core.skill_base', 'SkillBase'] => { 'instance_key' => 'get_instance_key' },
   ['signalwire.core.skill_manager', 'SkillManager'] => {
     'load' => 'load_skill', 'unload' => 'unload_skill', 'get' => 'get_skill',

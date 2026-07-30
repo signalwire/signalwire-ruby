@@ -165,7 +165,6 @@ signalwire.core.mixins.web_mixin.WebMixin.register_routing_callback: Ruby block 
 
 # --- Reference accessors/properties hosted under a different Ruby idiom ---
 signalwire.agent_server.AgentServer.agents: Ruby AgentServer holds registered agents in an internal ivar (no public `agents` reader); Python exposes an `agents` property — surface-reconciled
-signalwire.core.mixins.prompt_mixin.PromptMixin.contexts: Ruby exposes contexts via `define_contexts`/internal state, not a bare `contexts` accessor; Python property — surface-reconciled (PORT_ADDITIONS)
 signalwire.core.mixins.prompt_mixin.PromptMixin.set_prompt_pom: Ruby PromptMixin sets the POM via `prompt_add_section`/POM builder, not a `set_prompt_pom(pom)` setter — surface-reconciled (PORT_ADDITIONS)
 signalwire.core.mixins.tool_mixin.ToolMixin.define_tools: Ruby ToolMixin defines tools one at a time via `define_tool`; Python's plural `define_tools` batch helper folds into the singular — surface-reconciled
 signalwire.core.skill_manager.SkillManager.loaded_skills: Ruby exposes a single `list_loaded_skills` accessor (aliased from `loaded_keys`); Python has both `loaded_skills` (property) and `list_loaded_skills` — same list, one Ruby accessor

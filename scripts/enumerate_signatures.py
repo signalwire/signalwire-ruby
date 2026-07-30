@@ -409,6 +409,16 @@ SIG_METHOD_ALIASES: dict[tuple, dict[str, str]] = {
         "handle_start": "start_questions",
         "handle_submit": "submit_answer",
     },
+    # The reference exposes the context tree on PromptMixin as a bare
+    # ``contexts`` PROPERTY; Ruby spells the same read ``get_contexts``. Same
+    # value, same source, different accessor spelling -- idiom, so it folds here
+    # (Rule 2) rather than being carried as an omission. Keyed on PromptMixin
+    # only: the reference ALSO declares a real ``get_contexts`` on PromptManager,
+    # which Ruby matches by that name outright and must not be renamed. MIRRORS
+    # enumerate_surface.rb's SURFACE_METHOD_ALIASES entry.
+    ("signalwire.core.mixins.prompt_mixin", "PromptMixin"): {
+        "get_contexts": "contexts"
+    },
     ("signalwire.core.skill_base", "SkillBase"): {"instance_key": "get_instance_key"},
     ("signalwire.core.skill_manager", "SkillManager"): {
         "load": "load_skill",
@@ -1087,6 +1097,11 @@ MIXIN_PROJECTIONS = {
     ],
     ("signalwire.core.mixins.prompt_mixin", "PromptMixin"): [
         "define_contexts",
+        # Ruby's ``get_contexts`` is the reference's ``contexts`` PROPERTY under
+        # a different accessor spelling. Projected here so SIG_METHOD_ALIASES
+        # can rename it (the alias runs after projection; a name that never
+        # arrives can never be renamed).
+        "get_contexts",
         "get_post_prompt",
         "get_prompt",
         "prompt_add_section",
