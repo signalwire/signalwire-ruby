@@ -208,11 +208,15 @@ class SwaigTestCLIIntegrationTest < Minitest::Test
     agent
   end
 
+  # secure: false — the CLI cases assert swaig-test's --exec plumbing against a
+  # live agent, not the `secure` token contract (swaig_token_enforcement_test.rb).
+  # The CLI has no call in scope, so it cannot mint a token.
   def define_greet_tool(agent)
     agent.define_tool(
       name: 'greet',
       description: 'Greet someone by name',
-      parameters: { 'name' => { 'type' => 'string', 'description' => 'Person name' } }, handler: nil
+      parameters: { 'name' => { 'type' => 'string', 'description' => 'Person name' } },
+      secure: false, handler: nil
     ) do |args, _raw|
       SignalWire::Swaig::FunctionResult.new("Hello, #{args['name']}!")
     end

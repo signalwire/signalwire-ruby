@@ -170,9 +170,14 @@ class LambdaHandlerTestBase < Minitest::Test
     @handler = SignalWire::Serverless::LambdaHandler.new(@agent.rack_app)
   end
 
+  # secure: false — the lambda-adapter cases assert the ENVELOPE translation
+  # (payload v1/v2, base64 bodies, header mapping), not the `secure` token
+  # contract, which has its own per-transport suite in
+  # swaig_token_enforcement_test.rb.
   def _define_echo_tool(agent)
     agent.define_tool(name: 'echo', description: 'Echo back a message',
-                      parameters: { 'message' => { 'type' => 'string' } }, handler: nil) do |args, _raw|
+                      parameters: { 'message' => { 'type' => 'string' } },
+                      secure: false, handler: nil) do |args, _raw|
       SignalWire::Swaig::FunctionResult.new("echo: #{args['message']}")
     end
   end

@@ -891,10 +891,13 @@ module SignalWire
     end
 
     # Dispatch a function call to the registered handler.
+    #
+    # `secure` enforcement does NOT live here — it lives in
+    # {#swaig_validate_token}, invoked from {#swaig_pre_dispatch} before dispatch
+    # ever reaches this method, so every transport shares one decision.
     def on_function_call(name, args, raw_data = nil)
       tool = @tools[name]
       return { 'response' => "Function '#{name}' not found" } unless tool
-      return { 'response' => 'Invalid or expired token' } unless secure_token_ok?(name, tool, raw_data)
 
       coerce_function_result(name, tool[:handler].call(args, raw_data))
     rescue StandardError => e
@@ -902,15 +905,75 @@ module SignalWire
       { 'response' => "Error executing '#{name}': #{e.message}" }
     end
 
-    # True unless this is a secure tool with a present-but-invalid token.
-    def secure_token_ok?(name, tool, raw_data)
-      return true unless tool[:secure]
+    # The refusal a `secure` SWAIG tool returns when its `__token` is absent,
+    # forged, or unvalidatable. A 200 + FunctionResult body, never an HTTP error
+    # status: the engine has no handling for a SWAIG refusal status, so the tool
+    # reports that it cannot execute and the model relays it.
+    SECURE_REFUSAL_RESPONSE = 'I\'m sorry, the security token for this function is invalid ' \
+                              'or expired. I cannot execute this action.'
 
-      call_id = raw_data && (raw_data['call_id'] || raw_data.dig('call', 'call_id'))
-      token   = raw_data && raw_data['meta_data_token']
-      return true unless call_id && token
+    # Enforce `secure: true` for one SWAIG call, independent of transport.
+    #
+    # A tool registered with `secure: true` (define_tool's default) REQUIRES a
+    # valid `__token`. An ABSENT token is refused exactly like a forged one --
+    # omitting the credential must never be weaker than presenting a wrong one,
+    # or `secure` would be a flag that permits anonymous calls. A token can only
+    # be validated against a call_id, so a missing call_id is likewise treated as
+    # unvalidated rather than as a bypass.
+    #
+    # Three nullable strings in, a nullable Hash out: no framework types, so the
+    # HTTP handler and every serverless adapter share one decision.
+    #
+    # @param function_name [String] the SWAIG function being invoked
+    # @param token [String, nil] the `__token` credential from the query string
+    # @param call_id [String, nil] the call id from the POST body
+    # @return [Hash, nil] nil to proceed, or the refusal body to return instead
+    def swaig_validate_token(function_name, token, call_id)
+      tool = @tools[function_name]
+      return nil unless tool && tool[:secure]
 
-      @session_manager.validate_token(name, token, call_id)
+      return nil if token && call_id && validate_tool_token(function_name, token, call_id)
+
+      @logger.warn "secure_function_refused: function=#{function_name.inspect} token_present=#{!token.nil?}"
+      SignalWire::Swaig::FunctionResult.new(SECURE_REFUSAL_RESPONSE).to_h
+    end
+
+    # Extension-point override: validate the per-call `__token` and apply
+    # ephemeral dynamic config before POST /swaig dispatch.
+    #
+    # The credential rides the QUERY STRING (`__token`) and the call_id rides the
+    # POST BODY (`call_id`) -- the same split on every transport, because the
+    # serverless adapters translate their invocation event into the same Rack env
+    # this hook reads.
+    #
+    # @return [Array(Object, Hash), Array(Object, nil)] `[target, short_circuit]`
+    def swaig_pre_dispatch(request_data, func_name, env)
+      call_id = swaig_call_id(request_data)
+      refusal = swaig_validate_token(func_name, swaig_request_token(env), call_id)
+      return [self, refusal] if refusal
+
+      target = @dynamic_config_callback ? apply_dynamic_config(request_data, Rack::Request.new(env)) : self
+      [target, nil]
+    end
+
+    # @api private — the `__token` credential from a Rack env's query string.
+    # `token` is accepted as a legacy alias, matching the reference.
+    def swaig_request_token(env)
+      qs = env.is_a?(Hash) ? (env['QUERY_STRING'] || '') : ''
+      params = URI.decode_www_form(qs).to_h
+      t = params['__token'] || params['token']
+      t unless t.nil? || t.empty?
+    rescue StandardError
+      nil
+    end
+
+    # @api private — the call id a SWAIG POST body carries, accepting both the
+    # flat `call_id` and the nested `call.call_id` shape.
+    def swaig_call_id(request_data)
+      return nil unless request_data.is_a?(Hash)
+
+      cid = request_data['call_id'] || request_data.dig('call', 'call_id')
+      cid unless cid.nil? || cid.to_s.empty?
     end
 
     # Coerce a handler return into a wire Hash: Hash passes through, a
@@ -3136,7 +3199,12 @@ module SignalWire
     private :matches_env_auth?, :mcp_input_schema, :mcp_tool_entry, :merge_skill_hints_and_data
     private :merge_skill_prompt_sections, :optional_tool_fields, :rack_env, :register_no_vowels_variation
     private :register_skill_tools, :sanitize_sip_username, :section_pom_kwargs
-    private :secure_token_ok?, :sym_or_str, :verb_entries, :warn_unexpected_function_result
+    # swaig_pre_dispatch / swaig_validate_token are PRIVATE, mirroring the
+    # reference's `_swaig_pre_dispatch` / `_swaig_validate_token` (both
+    # underscore-private). Service invokes the hook with an implicit receiver, so
+    # private visibility is sufficient and the override adds no public surface.
+    private :swaig_pre_dispatch, :swaig_validate_token, :swaig_request_token, :swaig_call_id
+    private :sym_or_str, :verb_entries, :warn_unexpected_function_result
     private :warn_unknown_filler_name, :warn_unknown_filler_names, :webrick_opts
     private :answer_entry, :record_call_entry, :webrick_handler
     private :valid_function_include?, :warn_dropped_function_include, :find_summary_in_post_data

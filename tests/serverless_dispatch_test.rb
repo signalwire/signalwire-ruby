@@ -31,8 +31,12 @@ class ServerlessDispatchTest < Minitest::Test
   def build_agent
     agent = SignalWire::AgentBase.new(name: 'sless', route: '/', basic_auth: %w[u p])
     agent.set_prompt_text('Hello from serverless')
+    # secure: false — these cases assert that each serverless MODE reaches the
+    # dispatcher at all; the `secure` token contract is covered per-transport in
+    # swaig_token_enforcement_test.rb.
     agent.define_tool(name: 'echo', description: 'echo',
-                      parameters: { 'message' => { 'type' => 'string' } }, handler: nil) do |args, _raw|
+                      parameters: { 'message' => { 'type' => 'string' } },
+                      secure: false, handler: nil) do |args, _raw|
       SignalWire::Swaig::FunctionResult.new("echo: #{args['message']}")
     end
     agent

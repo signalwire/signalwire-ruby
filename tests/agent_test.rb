@@ -1127,7 +1127,12 @@ class AgentRackTest < Minitest::Test
   def app
     @agent = SignalWire::AgentBase.new(basic_auth: %w[testuser testpass])
     @agent.set_prompt_text('Hello')
-    @agent.define_tool(name: 'echo', description: 'Echo', parameters: {}, handler: nil) do |args, _raw|
+    # secure: false — these cases exercise Rack ROUTING, not the `secure` token
+    # contract (which has its own suite in swaig_token_enforcement_test.rb). A
+    # secure tool would rightly refuse an untokened POST and mask the routing
+    # assertion.
+    @agent.define_tool(name: 'echo', description: 'Echo', parameters: {},
+                       secure: false, handler: nil) do |args, _raw|
       SignalWire::Swaig::FunctionResult.new("Echo: #{args['msg']}")
     end
     @agent.on_summary(nil) do |summary, _raw|
@@ -1646,7 +1651,10 @@ class AgentAsRouterTest < Minitest::Test
   def build_agent
     agent = SignalWire::AgentBase.new(basic_auth: %w[testuser testpass])
     agent.set_prompt_text('Hello')
-    agent.define_tool(name: 'echo', description: 'Echo', parameters: {}, handler: nil) do |args, _raw|
+    # secure: false — this fixture exercises the AgentServer router, not the
+    # `secure` token contract (see swaig_token_enforcement_test.rb).
+    agent.define_tool(name: 'echo', description: 'Echo', parameters: {},
+                      secure: false, handler: nil) do |args, _raw|
       SignalWire::Swaig::FunctionResult.new("Echo: #{args['msg']}")
     end
     agent
