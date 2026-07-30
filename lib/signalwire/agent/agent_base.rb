@@ -2437,9 +2437,19 @@ module SignalWire
     # Private: this is internal render plumbing, not agent-author surface. A
     # subclass that rewrites the rendered document (BedrockAgent) reaches it via
     # __send__ to re-validate what it substitutes.
+    #
+    # The `ai` verb is EXEMPT for now. The bundled schema's AIObject declares
+    # nine properties and is closed; the engine accepts fifteen
+    # (agent, prompt, post_prompt, engine, voice, post_prompt_url,
+    # post_prompt_auth_user, post_prompt_auth_password, languages, multilingual,
+    # pronounce, global_data, SWAIG, params, hints). The bundled copy is a
+    # strict subset with no extras, so validating `ai` against it would reject
+    # six keys the platform accepts — `multilingual` among them, which this SDK
+    # emits. Re-enable once the schema is regenerated from the engine.
     def validate_section_entry(entry)
       verb_name, config = entry.first
       return entry if verb_name == 'sleep' && config.is_a?(Integer)
+      return entry if verb_name == 'ai'
 
       __send__(:verb_config_valid!, verb_name, config)
       entry
