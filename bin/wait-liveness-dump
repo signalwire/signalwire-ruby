@@ -154,7 +154,7 @@ def run_case(handle, kase)
   begin
     event = action.wait(timeout: DEADLINE_S)
     t_return = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    completed_state = (event && event.params ? event.params['state'].to_s : '')
+    completed_state = event&.params ? event.params['state'].to_s : ''
   rescue SignalWire::Relay::ActionTimeoutError, Timeout::Error
     timed_out = true
   end

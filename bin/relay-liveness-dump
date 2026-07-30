@@ -63,6 +63,10 @@ AUTH_REQUIRED_CODE = -32_002
 # outgoing) so it needs no async runtime.
 # ======================================================================
 class ControllableWsServer
+  # Frame types read_ws_message treats as a message payload. Hoisted out of the
+  # read loop so the array literal is allocated once, not once per frame.
+  DATA_FRAME_TYPES = %i[text binary].freeze
+
   attr_reader :port
 
   # fault: :auth_reject | :dead_peer | :black_hole | :reconnect
@@ -184,11 +188,14 @@ class ControllableWsServer
     loop do
       @frame_parser << sock.readpartial(4096)
       while (frame = @frame_parser.next)
-        return frame.to_s if %i[text binary].include?(frame.type)
+        return frame.to_s if DATA_FRAME_TYPES.include?(frame.type)
         return nil if frame.type == :close
       end
     end
-  rescue EOFError, IOError, Errno::ECONNRESET
+  # EOFError is an IOError subclass, so the previous `rescue EOFError, IOError`
+  # had a dead first arm. Errno::ECONNRESET is a SystemCallError, NOT an
+  # IOError, so it must stay listed.
+  rescue IOError, Errno::ECONNRESET
     nil
   end
 

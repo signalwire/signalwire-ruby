@@ -64,7 +64,7 @@ end
 def pick(frag, keys)
   return frag unless frag.is_a?(Hash)
 
-  keys.each_with_object({}) { |k, acc| acc[k] = frag[k] }
+  keys.to_h { |k| [k, frag[k]] }
 end
 
 # swaig_field selects one SWAIG function by name from a functions list, then

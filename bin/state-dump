@@ -53,16 +53,11 @@ end
 # to the observable delta (mirrors diff_port_state submit_answer_delta): the
 # set_global_data action's question_index + answers, plus a `done` flag derived
 # from the completion message.
-def submit_answer_delta(ig, args, raw_data)
-  result = ig.handle_submit(args, raw_data)
-  h = result.to_h
-  gd = {}
-  Array(h['action']).each do |action|
-    if action.is_a?(Hash) && action.key?('set_global_data')
-      gd = action['set_global_data']
-      break
-    end
-  end
+def submit_answer_delta(gatherer, args, raw_data)
+  h = gatherer.handle_submit(args, raw_data).to_h
+  gd = Array(h['action'])
+       .find { |action| action.is_a?(Hash) && action.key?('set_global_data') }
+       &.fetch('set_global_data') || {}
   {
     'question_index' => gd['question_index'],
     'answers' => gd['answers'],

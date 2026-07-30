@@ -47,7 +47,7 @@ agent.set_dynamic_config_callback(nil) do |query_params, _body_params, headers, 
 
   # Customise based on a header
   lang = headers['accept-language']
-  ephemeral.add_language('Spanish', 'es-US', 'elevenlabs.antonio') if lang && lang.start_with?('es')
+  ephemeral.add_language('Spanish', 'es-US', 'elevenlabs.antonio') if lang&.start_with?('es')
 end
 
 # Define a tool that uses global_data set by the dynamic config
