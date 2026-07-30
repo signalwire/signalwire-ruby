@@ -14,10 +14,10 @@ require 'signalwire'
 port = Integer(ENV.fetch('PORT', 8080))
 
 agent = SignalWire::AgentBase.new(
-  name:  'k8s-agent',
+  name: 'k8s-agent',
   route: '/',
-  host:  '0.0.0.0',
-  port:  port
+  host: '0.0.0.0',
+  port: port
 )
 
 agent.add_language('English', 'en-US', 'elevenlabs.rachel')
@@ -29,9 +29,9 @@ agent.prompt_add_section(
 )
 
 agent.define_tool(
-  name:        'health_status',
+  name: 'health_status',
   description: 'Get the health status of this agent',
-  parameters:  {}, handler: nil
+  parameters: {}, handler: nil
 ) do |_args, _raw_data|
   SignalWire::Swaig::FunctionResult.new(
     "Agent '#{agent.name}' is healthy, running on port #{agent.port} in Kubernetes."

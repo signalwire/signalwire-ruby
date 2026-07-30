@@ -6,20 +6,20 @@
 # custom greeting, and caller info collection.
 
 require 'signalwire'
-require 'signalwire/prefabs/receptionist'  # opt-in subsystem (Python: from signalwire.prefabs import ...)
+require 'signalwire/prefabs/receptionist' # opt-in subsystem (Python: from signalwire.prefabs import ...)
 
 departments = [
-  { 'name' => 'sales',   'description' => 'Product inquiries and pricing',     'number' => '+15551235555' },
+  { 'name' => 'sales',   'description' => 'Product inquiries and pricing', 'number' => '+15551235555' },
   { 'name' => 'support', 'description' => 'Technical assistance and bug reports', 'number' => '+15551236666' },
-  { 'name' => 'billing', 'description' => 'Payment questions and invoices',    'number' => '+15551237777' },
-  { 'name' => 'general', 'description' => 'All other inquiries',              'number' => '+15551238888' }
+  { 'name' => 'billing', 'description' => 'Payment questions and invoices', 'number' => '+15551237777' },
+  { 'name' => 'general', 'description' => 'All other inquiries', 'number' => '+15551238888' }
 ]
 
 receptionist = SignalWire::Prefabs::Receptionist.new(
   departments: departments,
-  name:        'acme-receptionist',
-  route:       '/reception',
-  greeting:    'Hello, thank you for calling ACME Corporation. How may I direct your call today?'
+  name: 'acme-receptionist',
+  route: '/reception',
+  greeting: 'Hello, thank you for calling ACME Corporation. How may I direct your call today?'
 )
 
 agent = SignalWire::AgentBase.new(name: receptionist.name, route: receptionist.route)
@@ -41,9 +41,9 @@ agent.global_data = receptionist.global_data
 
 # Register transfer tool
 agent.define_tool(
-  name:        'transfer_to_department',
+  name: 'transfer_to_department',
   description: 'Transfer the caller to a specific department',
-  parameters:  {
+  parameters: {
     'department' => { 'type' => 'string', 'description' => 'Department name' }
   }, handler: nil
 ) do |args, raw_data|

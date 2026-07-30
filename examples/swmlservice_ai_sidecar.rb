@@ -27,10 +27,10 @@ class SalesSidecar < SignalWire::SWML::Service
   def initialize(public_url: 'https://your-host.example.com/sales-sidecar',
                  host: '0.0.0.0', port: nil)
     super(
-      name:  'sales-sidecar',
+      name: 'sales-sidecar',
       route: '/sales-sidecar',
-      host:  host,
-      port:  port
+      host: host,
+      port: port
     )
 
     # 1. Emit any SWML -- including ai_sidecar. Service#add_verb_to_section
@@ -43,17 +43,17 @@ class SalesSidecar < SignalWire::SWML::Service
       'main',
       'ai_sidecar',
       {
-        'prompt'    => 'You are a real-time sales copilot. Listen to the ' \
-                       'call and surface competitor pricing comparisons ' \
-                       'when relevant.',
-        'lang'      => 'en-US',
+        'prompt' => 'You are a real-time sales copilot. Listen to the ' \
+                    'call and surface competitor pricing comparisons ' \
+                    'when relevant.',
+        'lang' => 'en-US',
         'direction' => %w[remote-caller local-caller],
         # Where the sidecar POSTs lifecycle/transcription events.
         # Optional -- skip if you don't need an event sink.
-        'url'       => "#{public_url}/events",
+        'url' => "#{public_url}/events",
         # Where the sidecar's LLM POSTs SWAIG tool calls. This service's
         # /swaig route answers them. SWAIG hash key is UPPERCASE per spec.
-        'SWAIG'     => {
+        'SWAIG' => {
           'defaults' => { 'web_hook_url' => "#{public_url}/swaig" }
         }
       }
@@ -63,12 +63,12 @@ class SalesSidecar < SignalWire::SWML::Service
     # 2. Register tools the sidecar's LLM can call. Same `define_tool`
     #    you'd use on AgentBase -- it lives on SWML::Service.
     define_tool(
-      name:        'lookup_competitor',
+      name: 'lookup_competitor',
       description: 'Look up competitor pricing by company name. The sidecar ' \
                    'should call this whenever the caller mentions a competitor.',
-      parameters:  {
+      parameters: {
         'competitor' => {
-          'type'        => 'string',
+          'type' => 'string',
           'description' => "The competitor's company name, e.g. 'ACME'."
         }
       },
@@ -92,6 +92,4 @@ class SalesSidecar < SignalWire::SWML::Service
   end
 end
 
-if __FILE__ == $PROGRAM_NAME
-  SalesSidecar.new.serve
-end
+SalesSidecar.new.serve if __FILE__ == $PROGRAM_NAME

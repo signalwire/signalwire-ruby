@@ -14,15 +14,15 @@ precise = SignalWire::AgentBase.new(name: 'precise-assistant', route: '/precise'
 
 precise.prompt_add_section('Role', 'You are a precise technical assistant.')
 precise.prompt_add_section('Instructions', nil, bullets: [
-  'Provide accurate, factual information.',
-  'Be concise and direct.',
-  'If uncertain, say so clearly.'
-])
+                             'Provide accurate, factual information.',
+                             'Be concise and direct.',
+                             'If uncertain, say so clearly.'
+                           ])
 
 precise.set_prompt_llm_params(
-  temperature:       0.2,
-  top_p:             0.85,
-  presence_penalty:  0.0,
+  temperature: 0.2,
+  top_p: 0.85,
+  presence_penalty: 0.0,
   frequency_penalty: 0.1
 )
 
@@ -43,15 +43,15 @@ creative = SignalWire::AgentBase.new(name: 'creative-assistant', route: '/creati
 
 creative.prompt_add_section('Role', 'You are a creative writing assistant.')
 creative.prompt_add_section('Instructions', nil, bullets: [
-  'Be imaginative and creative.',
-  'Use varied vocabulary.',
-  'Encourage creative thinking.'
-])
+                              'Be imaginative and creative.',
+                              'Use varied vocabulary.',
+                              'Encourage creative thinking.'
+                            ])
 
 creative.set_prompt_llm_params(
-  temperature:       0.8,
-  top_p:             0.95,
-  presence_penalty:  0.2,
+  temperature: 0.8,
+  top_p: 0.95,
+  presence_penalty: 0.2,
   frequency_penalty: 0.3
 )
 
@@ -65,8 +65,8 @@ creative.define_tool(
   theme = args['theme'] || 'adventure'
   prompts = {
     'adventure' => 'A map that only appears during thunderstorms',
-    'mystery'   => 'A photograph where people keep disappearing',
-    'default'   => 'An ordinary object with extraordinary powers'
+    'mystery' => 'A photograph where people keep disappearing',
+    'default' => 'An ordinary object with extraordinary powers'
   }
   SignalWire::Swaig::FunctionResult.new(
     "Story prompt for #{theme}: #{prompts.fetch(theme.downcase, prompts['default'])}"
@@ -79,15 +79,15 @@ support = SignalWire::AgentBase.new(name: 'customer-service', route: '/support')
 
 support.prompt_add_section('Role', 'You are a professional customer service representative.')
 support.prompt_add_section('Guidelines', nil, bullets: [
-  'Always be polite and empathetic.',
-  'Listen carefully to customer concerns.',
-  'Provide clear, helpful solutions.'
-])
+                             'Always be polite and empathetic.',
+                             'Listen carefully to customer concerns.',
+                             'Provide clear, helpful solutions.'
+                           ])
 
 support.set_prompt_llm_params(
-  temperature:       0.4,
-  top_p:             0.9,
-  presence_penalty:  0.1,
+  temperature: 0.4,
+  top_p: 0.9,
+  presence_penalty: 0.1,
   frequency_penalty: 0.1
 )
 

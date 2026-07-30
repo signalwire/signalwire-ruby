@@ -10,7 +10,7 @@ require 'signalwire'
 require 'json'
 
 service = SignalWire::SWML::Service.new(
-  name:  'dynamic-greeting',
+  name: 'dynamic-greeting',
   route: '/greeting'
 )
 
@@ -37,13 +37,14 @@ end
 service.register_routing_callback(nil, '/new') do |_request_data|
   doc = SignalWire::SWML::Document.new
   doc.add_verb('answer', {})
-  doc.add_verb('play', { 'url' => 'say:Welcome to our service! Press 1 to learn about our products, 2 to speak with sales.' })
+  doc.add_verb('play',
+               { 'url' => 'say:Welcome to our service! Press 1 to learn about our products, 2 to speak with sales.' })
   doc.add_verb('hangup', {})
   doc.to_h
 end
 
 puts "Starting dynamic SWML service on port #{service.port}..."
-puts "  GET/POST /greeting     -- Default greeting"
-puts "  POST     /greeting/vip -- VIP greeting"
-puts "  POST     /greeting/new -- New customer greeting"
+puts '  GET/POST /greeting     -- Default greeting'
+puts '  POST     /greeting/vip -- VIP greeting'
+puts '  POST     /greeting/new -- New customer greeting'
 service.serve

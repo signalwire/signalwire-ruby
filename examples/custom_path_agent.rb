@@ -10,8 +10,8 @@
 require 'signalwire'
 
 agent = SignalWire::AgentBase.new(
-  name:        'Chat Assistant',
-  route:       '/chat',
+  name: 'Chat Assistant',
+  route: '/chat',
   record_call: true
 )
 
@@ -40,9 +40,9 @@ agent.set_dynamic_config_callback(nil) do |query_params, _body, _headers, epheme
   ephemeral.prompt_add_section('Communication Style', style)
 
   ephemeral.set_global_data(
-    'user_name'    => user_name,
-    'topic'        => topic,
-    'mood'         => mood,
+    'user_name' => user_name,
+    'topic' => topic,
+    'mood' => mood,
     'session_type' => 'chat'
   )
 

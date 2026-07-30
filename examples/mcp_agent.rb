@@ -43,8 +43,8 @@ agent.add_mcp_server(
 
 # -- Agent Configuration ------------------------------------------------------
 agent.prompt_add_section('Role',
-  'You are a helpful customer support agent. ' \
-  'Use the available tools to look up information and assist the caller.')
+                         'You are a helpful customer support agent. ' \
+                         'Use the available tools to look up information and assist the caller.')
 
 agent.params = { 'attention_timeout' => 15_000 }
 
@@ -64,7 +64,7 @@ agent.define_tool(
   name: 'create_ticket',
   description: 'Create a support ticket for the customer',
   parameters: {
-    'subject'     => { 'type' => 'string', 'description' => 'Ticket subject' },
+    'subject' => { 'type' => 'string', 'description' => 'Ticket subject' },
     'description' => { 'type' => 'string', 'description' => 'Detailed description' }
   }, handler: nil
 ) do |args, _raw|

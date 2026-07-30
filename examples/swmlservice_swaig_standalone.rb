@@ -30,10 +30,10 @@ require 'signalwire'
 class StandaloneSwaig < SignalWire::SWML::Service
   def initialize(host: '0.0.0.0', port: nil)
     super(
-      name:  'standalone-swaig',
+      name: 'standalone-swaig',
       route: '/standalone',
-      host:  host,
-      port:  port
+      host: host,
+      port: port
     )
 
     # 1. Build a minimal SWML document. Any verbs are fine -- the SWAIG
@@ -45,12 +45,12 @@ class StandaloneSwaig < SignalWire::SWML::Service
     #    not just AgentBase. The handler block receives parsed arguments
     #    plus the raw POST body.
     define_tool(
-      name:        'lookup_competitor',
+      name: 'lookup_competitor',
       description: 'Look up competitor pricing by company name. Use this ' \
                    "when the user asks how a competitor's price compares to ours.",
-      parameters:  {
+      parameters: {
         'competitor' => {
-          'type'        => 'string',
+          'type' => 'string',
           'description' => "The competitor's company name, e.g. 'ACME'."
         }
       },
@@ -62,6 +62,4 @@ class StandaloneSwaig < SignalWire::SWML::Service
   end
 end
 
-if __FILE__ == $PROGRAM_NAME
-  StandaloneSwaig.new.serve
-end
+StandaloneSwaig.new.serve if __FILE__ == $PROGRAM_NAME

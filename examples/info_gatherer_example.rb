@@ -6,31 +6,31 @@
 # a structured set of questions, confirms answers, and collects results.
 
 require 'signalwire'
-require 'signalwire/prefabs/info_gatherer'  # opt-in subsystem (Python: from signalwire.prefabs import ...)
+require 'signalwire/prefabs/info_gatherer' # opt-in subsystem (Python: from signalwire.prefabs import ...)
 
 # Create the InfoGatherer prefab
 gatherer = SignalWire::Prefabs::InfoGatherer.new(
   questions: [
     {
-      'key_name'      => 'full_name',
+      'key_name' => 'full_name',
       'question_text' => 'What is your full name?'
     },
     {
-      'key_name'      => 'email',
+      'key_name' => 'email',
       'question_text' => 'What is your email address?',
-      'confirm'       => true
+      'confirm' => true
     },
     {
-      'key_name'      => 'phone',
+      'key_name' => 'phone',
       'question_text' => 'What is the best phone number to reach you?',
-      'confirm'       => true
+      'confirm' => true
     },
     {
-      'key_name'      => 'reason',
+      'key_name' => 'reason',
       'question_text' => 'In a few words, what is the reason for your call today?'
     }
   ],
-  name:  'intake_form',
+  name: 'intake_form',
   route: '/intake'
 )
 
@@ -47,17 +47,17 @@ agent.global_data = gatherer.global_data
 
 # Register the prefab's tool handlers
 agent.define_tool(
-  name:        'start_questions',
+  name: 'start_questions',
   description: 'Start the question sequence',
-  parameters:  {}, handler: nil
+  parameters: {}, handler: nil
 ) do |args, raw_data|
   gatherer.handle_start(args, raw_data)
 end
 
 agent.define_tool(
-  name:        'submit_answer',
+  name: 'submit_answer',
   description: 'Submit an answer to the current question',
-  parameters:  {
+  parameters: {
     'answer' => { 'type' => 'string', 'description' => "The caller's answer" }
   }, handler: nil
 ) do |args, raw_data|

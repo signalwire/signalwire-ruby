@@ -19,10 +19,10 @@ AGENT.add_language('English', 'en-US', 'elevenlabs.rachel')
 AGENT.prompt_add_section('Role', 'You are a helpful assistant.')
 
 AGENT.define_tool(
-  name:        'get_time',
+  name: 'get_time',
   description: 'Get the current time',
-  parameters:  {},
-  handler:     nil # the block below is the handler
+  parameters: {},
+  handler: nil # the block below is the handler
 ) do |_args, _raw_data|
   SignalWire::Swaig::FunctionResult.new("The time is #{Time.now.strftime('%H:%M:%S')}")
 end

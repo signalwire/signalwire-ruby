@@ -58,7 +58,7 @@ CYCLE_WATCHDOG_S = 8.0
 # optional 'next' cursor URL.
 def push_page(mock, data, links)
   mock.push_scenario(LIST_ENDPOINT_ID, status: 200,
-                                        response: { 'data' => data, 'links' => links })
+                                       response: { 'data' => data, 'links' => links })
 end
 
 def new_iterator(client)

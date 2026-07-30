@@ -33,11 +33,11 @@ greeting.functions = %w[check_claim_status]
 new_claim = ctx.add_step('new_claim')
 new_claim.add_section('Instructions', 'Collect the following information for the new claim:')
 new_claim.add_bullets('Required Fields', [
-  'Type of claim (auto, home, health)',
-  'Date of incident',
-  'Brief description of what happened',
-  'Estimated damage amount'
-])
+                        'Type of claim (auto, home, health)',
+                        'Date of incident',
+                        'Brief description of what happened',
+                        'Estimated damage amount'
+                      ])
 new_claim.set_step_criteria(
   'All four required fields have been collected and confirmed with the caller.'
 )
@@ -67,9 +67,9 @@ review.set_end(true)
 # --- Tools ---
 
 agent.define_tool(
-  name:        'check_claim_status',
+  name: 'check_claim_status',
   description: 'Look up the status of an existing insurance claim',
-  parameters:  {
+  parameters: {
     'claim_number' => { 'type' => 'string', 'description' => 'The claim number to look up' }
   }, handler: nil
 ) do |args, _raw_data|
@@ -81,13 +81,13 @@ agent.define_tool(
 end
 
 agent.define_tool(
-  name:        'submit_claim',
+  name: 'submit_claim',
   description: 'Submit a new insurance claim',
-  parameters:  {
-    'type'        => { 'type' => 'string', 'description' => 'Claim type: auto, home, or health' },
-    'date'        => { 'type' => 'string', 'description' => 'Date of incident (YYYY-MM-DD)' },
+  parameters: {
+    'type' => { 'type' => 'string', 'description' => 'Claim type: auto, home, or health' },
+    'date' => { 'type' => 'string', 'description' => 'Date of incident (YYYY-MM-DD)' },
     'description' => { 'type' => 'string', 'description' => 'Description of the incident' },
-    'amount'      => { 'type' => 'number', 'description' => 'Estimated damage amount in USD' }
+    'amount' => { 'type' => 'number', 'description' => 'Estimated damage amount in USD' }
   }, handler: nil
 ) do |args, _raw_data|
   claim_num = "CLM-#{rand(100_000..999_999)}"

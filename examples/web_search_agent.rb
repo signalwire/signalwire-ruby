@@ -8,8 +8,8 @@
 
 require 'signalwire'
 
-api_key   = ENV['GOOGLE_SEARCH_API_KEY']
-engine_id = ENV['GOOGLE_SEARCH_ENGINE_ID']
+api_key   = ENV.fetch('GOOGLE_SEARCH_API_KEY', nil)
+engine_id = ENV.fetch('GOOGLE_SEARCH_ENGINE_ID', nil)
 
 unless api_key && engine_id
   puts 'Missing required environment variables:'
@@ -31,19 +31,19 @@ agent.prompt_add_section(
 )
 
 agent.prompt_add_section('Instructions', nil, bullets: [
-  'Always introduce yourself as Franklin.',
-  'Use web search to find current information.',
-  'Present results clearly with source URLs.'
-])
+                           'Always introduce yourself as Franklin.',
+                           'Use web search to find current information.',
+                           'Present results clearly with source URLs.'
+                         ])
 
 agent.add_skill('web_search', {
-  'api_key'          => api_key,
-  'search_engine_id' => engine_id,
-  'num_results'      => 1,
-  'delay'            => 0,
-  'max_content_length' => 3000,
-  'no_results_message' => "I couldn't find anything about '{query}'. Try rephrasing?"
-})
+                  'api_key' => api_key,
+                  'search_engine_id' => engine_id,
+                  'num_results' => 1,
+                  'delay' => 0,
+                  'max_content_length' => 3000,
+                  'no_results_message' => "I couldn't find anything about '{query}'. Try rephrasing?"
+                })
 
 puts "Loaded skills: #{agent.list_skills.join(', ')}"
 puts "Starting Web Search agent on port #{agent.port}..."

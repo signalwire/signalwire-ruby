@@ -10,7 +10,7 @@ require 'signalwire'
 require 'json'
 
 service = SignalWire::SWML::Service.new(
-  name:  'routing-example',
+  name: 'routing-example',
   route: '/main'
 )
 
@@ -50,7 +50,7 @@ service.register_routing_callback(nil, '/product') do |request_data|
 end
 
 puts "Starting routing example on port #{service.port}..."
-puts "  /main          -- Default greeting"
-puts "  /main/customer -- Customer service"
-puts "  /main/product  -- Product info"
+puts '  /main          -- Default greeting'
+puts '  /main/customer -- Customer service'
+puts '  /main/product  -- Product info'
 service.serve

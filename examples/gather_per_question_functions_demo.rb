@@ -30,7 +30,7 @@ require 'json'
 require 'signalwire'
 
 agent = SignalWire::AgentBase.new(
-  name:  'gather_per_question_functions_demo',
+  name: 'gather_per_question_functions_demo',
   route: '/'
 )
 
@@ -38,36 +38,36 @@ agent = SignalWire::AgentBase.new(
 # questioning, they're all locked out unless they appear in a question's
 # `functions` whitelist.
 agent.define_tool(
-  name:        'validate_email',
+  name: 'validate_email',
   description: 'Validate that an email address is well-formed and deliverable',
-  parameters:  { 'email' => { 'type' => 'string' } }, handler: nil
+  parameters: { 'email' => { 'type' => 'string' } }, handler: nil
 ) { |_args, _raw| { 'response' => 'valid' } }
 
 agent.define_tool(
-  name:        'geocode_zip',
+  name: 'geocode_zip',
   description: 'Look up the city/state for a US ZIP code',
-  parameters:  { 'zip' => { 'type' => 'string' } }, handler: nil
+  parameters: { 'zip' => { 'type' => 'string' } }, handler: nil
 ) { |_args, _raw| { 'response' => '{"city":"...","state":"..."}' } }
 
 agent.define_tool(
-  name:        'check_age_eligibility',
+  name: 'check_age_eligibility',
   description: 'Verify the customer is old enough for the product',
-  parameters:  { 'age' => { 'type' => 'integer' } }, handler: nil
+  parameters: { 'age' => { 'type' => 'integer' } }, handler: nil
 ) { |_args, _raw| { 'response' => 'eligible' } }
 
 # These tools are NOT whitelisted on any gather question. They are
 # registered on the agent and active outside the gather, but during the
 # gather they cannot be called — gather mode locks them out.
 agent.define_tool(
-  name:        'escalate_to_human',
+  name: 'escalate_to_human',
   description: 'Transfer the conversation to a live agent',
-  parameters:  {}, handler: nil
+  parameters: {}, handler: nil
 ) { |_args, _raw| { 'response' => 'transferred' } }
 
 agent.define_tool(
-  name:        'lookup_existing_account',
+  name: 'lookup_existing_account',
   description: 'Search for an existing account by email',
-  parameters:  { 'email' => { 'type' => 'string' } }, handler: nil
+  parameters: { 'email' => { 'type' => 'string' } }, handler: nil
 ) { |_args, _raw| { 'response' => 'not found' } }
 
 # Build a single-context agent with one onboarding step.
@@ -75,21 +75,21 @@ ctx = agent.define_contexts.add_context('default')
 
 onboard = ctx.add_step('onboard')
 onboard.set_text(
-  "Onboard a new customer by collecting their details. Use " \
-  "gather_info to ask one question at a time. Each question may " \
-  "unlock a specific validation tool — only that tool and " \
-  "gather_submit are callable while answering it."
+  'Onboard a new customer by collecting their details. Use ' \
+  'gather_info to ask one question at a time. Each question may ' \
+  'unlock a specific validation tool — only that tool and ' \
+  'gather_submit are callable while answering it.'
 )
 onboard.set_functions(%w[
-  escalate_to_human
-  lookup_existing_account
-])
+                        escalate_to_human
+                        lookup_existing_account
+                      ])
 # Outside of the gather (which is the entire step here), these would be
 # available. During the gather they are forcibly hidden in favor of the
 # per-question whitelists.
 
 onboard.set_gather_info(
-  output_key:        'customer',
+  output_key: 'customer',
   completion_action: 'next_step',
   prompt: "I'll need to collect a few details to set up your " \
           "account. I'll ask one question at a time."
@@ -97,24 +97,24 @@ onboard.set_gather_info(
 
 # Question 1: email — only validate_email + gather_submit callable.
 onboard.add_gather_question(
-  key:       'email',
-  question:  "What's your email address?",
-  confirm:   true,
+  key: 'email',
+  question: "What's your email address?",
+  confirm: true,
   functions: %w[validate_email]
 )
 
 # Question 2: zip — only geocode_zip + gather_submit callable.
 onboard.add_gather_question(
-  key:       'zip',
-  question:  "What's your ZIP code?",
+  key: 'zip',
+  question: "What's your ZIP code?",
   functions: %w[geocode_zip]
 )
 
 # Question 3: age — only check_age_eligibility + gather_submit callable.
 onboard.add_gather_question(
-  key:       'age',
-  question:  'How old are you?',
-  type:      'integer',
+  key: 'age',
+  question: 'How old are you?',
+  type: 'integer',
   functions: %w[check_age_eligibility]
 )
 
@@ -122,15 +122,15 @@ onboard.add_gather_question(
 # callable. The model cannot validate, lookup, escalate — nothing. This
 # is the right pattern when a question needs no tools.
 onboard.add_gather_question(
-  key:      'referral_source',
+  key: 'referral_source',
   question: 'How did you hear about us?'
 )
 
 # A simple confirmation step the gather auto-advances into.
 ctx.add_step('confirm')
    .set_text(
-     "Read the collected info back to the customer and confirm " \
-     "everything is correct."
+     'Read the collected info back to the customer and confirm ' \
+     'everything is correct.'
    )
    .set_functions([])
    .set_end(true)

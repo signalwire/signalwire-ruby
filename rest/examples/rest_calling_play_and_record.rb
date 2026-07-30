@@ -12,7 +12,7 @@
 #   SIGNALWIRE_SPACE        - your SignalWire space (e.g. example.signalwire.com)
 
 require 'signalwire'
-require 'signalwire/rest/rest_client'  # opt-in subsystem (Python: from signalwire.rest import Client)
+require 'signalwire/rest/rest_client' # opt-in subsystem (Python: from signalwire.rest import Client)
 
 client = SignalWire::REST::RestClient.new
 
@@ -21,8 +21,8 @@ puts 'Dialing outbound call...'
 begin
   call = client.calling.dial(
     from: '+15559876543',
-    to:    '+15551234567',
-    url:   'https://example.com/call-handler'
+    to: '+15551234567',
+    url: 'https://example.com/call-handler'
   )
   call_id = call.fetch('id', 'demo-call-id')
   puts "  Call initiated: #{call_id}"
@@ -51,12 +51,10 @@ play_ctl = 'demo-play-control-id'
   ['Volume +2dB', -> { client.calling.play_volume(call_id, control_id: play_ctl, volume: 2.0) }],
   ['Stop',        -> { client.calling.play_stop(call_id, control_id: play_ctl) }]
 ].each do |label, action|
-  begin
-    action.call
-    puts "  #{label}: OK"
-  rescue SignalWire::REST::SignalWireRestError => e
-    puts "  #{label}: failed (#{e.status_code})"
-  end
+  action.call
+  puts "  #{label}: OK"
+rescue SignalWire::REST::SignalWireRestError => e
+  puts "  #{label}: failed (#{e.status_code})"
 end
 
 # 4. Record the call
@@ -77,12 +75,10 @@ record_ctl = 'demo-record-control-id'
   ['Resume', -> { client.calling.record_resume(call_id, control_id: record_ctl) }],
   ['Stop',   -> { client.calling.record_stop(call_id, control_id: record_ctl) }]
 ].each do |label, action|
-  begin
-    action.call
-    puts "  #{label}: OK"
-  rescue SignalWire::REST::SignalWireRestError => e
-    puts "  #{label}: failed (#{e.status_code})"
-  end
+  action.call
+  puts "  #{label}: OK"
+rescue SignalWire::REST::SignalWireRestError => e
+  puts "  #{label}: failed (#{e.status_code})"
 end
 
 # 6. Transcribe the call

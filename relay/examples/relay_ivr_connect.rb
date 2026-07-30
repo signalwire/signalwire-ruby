@@ -14,7 +14,7 @@
 #   SIGNALWIRE_SPACE        - your SignalWire space
 
 require 'signalwire'
-require 'signalwire/relay/client'  # opt-in subsystem (Python: from signalwire.relay import RelayClient)
+require 'signalwire/relay/client' # opt-in subsystem (Python: from signalwire.relay import RelayClient)
 
 AGENT_NUMBER = '+19184238080'
 
@@ -69,9 +69,9 @@ client.on_call(nil) do |call|
       devices: [[{
         'type' => 'phone',
         'params' => {
-          'to_number'   => AGENT_NUMBER,
+          'to_number' => AGENT_NUMBER,
           'from_number' => from_number,
-          'timeout'     => 30
+          'timeout' => 30
         }
       }]],
       ringback: [tts('Please wait while we connect your call.')]

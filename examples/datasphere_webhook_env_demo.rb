@@ -8,7 +8,7 @@
 require 'signalwire'
 
 def require_env(name)
-  value = ENV[name]
+  value = ENV.fetch(name, nil)
   abort("Error: Required environment variable #{name} is not set.") unless value && !value.empty?
   value
 end
@@ -29,18 +29,18 @@ agent.prompt_add_section(
 begin
   agent.add_skill('datetime')
   agent.add_skill('math')
-rescue => e
+rescue StandardError => e
   puts "Skill warning: #{e.message}"
 end
 
 begin
   agent.add_skill('datasphere',
-    'document_id' => document_id,
-    'count'       => count,
-    'distance'    => distance,
-    'mode'        => 'webhook')
+                  'document_id' => document_id,
+                  'count' => count,
+                  'distance' => distance,
+                  'mode' => 'webhook')
   puts 'Added DataSphere webhook skill'
-rescue => e
+rescue StandardError => e
   puts "DataSphere error: #{e.message}"
 end
 

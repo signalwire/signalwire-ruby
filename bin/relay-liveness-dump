@@ -54,7 +54,7 @@ require_relative '../lib/signalwire'
 require_relative '../lib/signalwire/relay/client'
 
 # The RELAY error code a server sends to reject connect credentials.
-AUTH_REQUIRED_CODE = -32002
+AUTH_REQUIRED_CODE = -32_002
 
 # ======================================================================
 # ControllableWsServer — a minimal single-connection WebSocket server that
@@ -104,7 +104,7 @@ class ControllableWsServer
     return unless ws_handshake(sock)
 
     @mutex.synchronize { @connects += 1 }
-    drop_after_auth = (@fault == :reconnect && connect_count == 1)
+    drop_after_auth = @fault == :reconnect && connect_count == 1
     serve_frames(sock, drop_after_auth)
   rescue StandardError
     nil
@@ -234,7 +234,7 @@ def drive_cred_missing(omit, expect_contains)
     failed = false
   end
   actionable = expect_contains.all? { |w| msg.include?(w) }
-  { 'failed_preconnect_on_missing' => (failed && actionable) }
+  { 'failed_preconnect_on_missing' => failed && actionable }
 end
 
 # cred_auth_reject: a 401-class connect rejection must RAISE the server message,

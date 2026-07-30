@@ -10,9 +10,9 @@ require 'signalwire'
 require 'signalwire/relay/client'
 
 client = SignalWire::Relay::Client.new(
-  project:  'your-project-id',
-  token:    'your-api-token',
-  space:    'example.signalwire.com',
+  project: 'your-project-id',
+  token: 'your-api-token',
+  space: 'example.signalwire.com',
   contexts: ['default']
 )
 

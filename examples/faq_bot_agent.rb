@@ -6,27 +6,27 @@
 # pre-defined knowledge base and logs conversation summaries.
 
 require 'signalwire'
-require 'signalwire/prefabs/faq_bot'  # opt-in subsystem (Python: from signalwire.prefabs import ...)
+require 'signalwire/prefabs/faq_bot' # opt-in subsystem (Python: from signalwire.prefabs import ...)
 
 faqs = [
   {
     'question' => 'What is SignalWire?',
-    'answer'   => 'SignalWire is a communications platform providing APIs for voice, video, and messaging.'
+    'answer' => 'SignalWire is a communications platform providing APIs for voice, video, and messaging.'
   },
   {
     'question' => 'How do I create an AI Agent?',
-    'answer'   => 'Use the SignalWire AI Agent SDK to build and deploy conversational AI agents.'
+    'answer' => 'Use the SignalWire AI Agent SDK to build and deploy conversational AI agents.'
   },
   {
     'question' => 'What is SWML?',
-    'answer'   => 'SWML (SignalWire Markup Language) is a markup language for defining communications workflows.'
+    'answer' => 'SWML (SignalWire Markup Language) is a markup language for defining communications workflows.'
   }
 ]
 
 faq_bot = SignalWire::Prefabs::FaqBot.new(
-  faqs:    faqs,
-  name:    'signalwire_faq',
-  route:   '/faq',
+  faqs: faqs,
+  name: 'signalwire_faq',
+  route: '/faq',
   persona: 'You are a helpful FAQ assistant for SignalWire.'
 )
 
@@ -38,17 +38,17 @@ faq_bot.prompt_sections.each do |section|
 end
 
 agent.prompt_add_section('Instructions', nil, bullets: [
-  'Only answer questions if the information is in the FAQ knowledge base.',
-  'If you do not know the answer, politely say so and offer to help with something else.',
-  'Be concise and direct in your responses.'
-])
+                           'Only answer questions if the information is in the FAQ knowledge base.',
+                           'If you do not know the answer, politely say so and offer to help with something else.',
+                           'Be concise and direct in your responses.'
+                         ])
 
 agent.global_data = faq_bot.global_data
 
 agent.define_tool(
-  name:        'search_faq',
+  name: 'search_faq',
   description: 'Search the FAQ knowledge base',
-  parameters:  {
+  parameters: {
     'query' => { 'type' => 'string', 'description' => 'Search query' }
   }, handler: nil
 ) do |args, raw_data|

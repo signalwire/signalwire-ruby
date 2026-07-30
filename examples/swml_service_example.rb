@@ -27,10 +27,10 @@ def example_using_service
   puts '=== Example using SWMLService directly ==='
 
   service = SignalWire::SWML::Service.new(
-    name:  'simple-swml-service',
+    name: 'simple-swml-service',
     route: '/simple',
-    host:  '0.0.0.0',
-    port:  3001
+    host: '0.0.0.0',
+    port: 3001
   )
 
   # Build the SWML document by calling auto-vivified verb methods.
@@ -53,10 +53,10 @@ def example_using_builder
   puts '=== Example using auto-vivified verb methods ==='
 
   service = SignalWire::SWML::Service.new(
-    name:  'fluent-swml-service',
+    name: 'fluent-swml-service',
     route: '/fluent',
-    host:  '0.0.0.0',
-    port:  3002
+    host: '0.0.0.0',
+    port: 3002
   )
 
   # Each verb method appends to the document. The 38 verbs from the
@@ -81,10 +81,10 @@ def example_using_ai
   puts '=== Example using AI verb ==='
 
   service = SignalWire::SWML::Service.new(
-    name:  'ai-swml-service',
+    name: 'ai-swml-service',
     route: '/ai',
-    host:  '0.0.0.0',
-    port:  3003
+    host: '0.0.0.0',
+    port: 3003
   )
 
   service.answer

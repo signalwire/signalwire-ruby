@@ -8,7 +8,7 @@
 #   SIGNALWIRE_SPACE        - your SignalWire space (e.g. example.signalwire.com)
 
 require 'signalwire'
-require 'signalwire/rest/rest_client'  # opt-in subsystem (Python: from signalwire.rest import Client)
+require 'signalwire/rest/rest_client' # opt-in subsystem (Python: from signalwire.rest import Client)
 
 client = SignalWire::REST::RestClient.new
 
@@ -61,7 +61,7 @@ end
 
 # 5. Create a number group
 puts "\nCreating number group..."
-group_id = nil
+nil
 group = safe('Create group') { client.number_groups.create(name: 'Sales Pool') }
 group_id = group && group['id']
 
@@ -122,18 +122,18 @@ end
 
 # 11. Create an address
 puts "\nCreating address..."
-addr_id = nil
+nil
 addr = safe('Create address') do
   client.addresses.create(
-    label:         'HQ Address',
-    country:       'US',
-    first_name:    'Jane',
-    last_name:     'Doe',
+    label: 'HQ Address',
+    country: 'US',
+    first_name: 'Jane',
+    last_name: 'Doe',
     street_number: '123',
-    street_name:   'Main St',
-    city:          'Austin',
-    state:         'TX',
-    postal_code:   '78701'
+    street_name: 'Main St',
+    city: 'Austin',
+    state: 'TX',
+    postal_code: '78701'
   )
 end
 addr_id = addr && addr['id']

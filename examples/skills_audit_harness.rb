@@ -39,13 +39,13 @@ require 'net/http'
 require 'signalwire/skills/skill_registry'
 require 'signalwire/swaig/function_result'
 
-skill_name = ENV['SKILL_NAME']
+skill_name = ENV.fetch('SKILL_NAME', nil)
 if skill_name.nil? || skill_name.empty?
   warn 'skills_audit_harness: SKILL_NAME required'
   exit 1
 end
 
-args_raw = ENV['SKILL_HANDLER_ARGS']
+args_raw = ENV.fetch('SKILL_HANDLER_ARGS', nil)
 args_raw = '{}' if args_raw.nil? || args_raw.empty?
 begin
   args = JSON.parse(args_raw)
@@ -154,8 +154,8 @@ def execute_datamap(tool_defs, tool_name, args)
     exit 1
   end
 
-  url     = expand_template(webhook['url']    || webhook[:url],    args)
-  method  = (webhook['method']  || webhook[:method]  || 'GET').upcase
+  url     = expand_template(webhook['url'] || webhook[:url], args)
+  method  = (webhook['method'] || webhook[:method] || 'GET').upcase
   headers = webhook['headers'] || webhook[:headers] || {}
 
   uri = URI(url)
@@ -175,10 +175,10 @@ def execute_datamap(tool_defs, tool_name, args)
 
   resp = http.request(req)
   body = begin
-           JSON.parse(resp.body || '')
-         rescue JSON::ParserError
-           resp.body
-         end
+    JSON.parse(resp.body || '')
+  rescue JSON::ParserError
+    resp.body
+  end
   { 'status' => resp.code.to_i, 'url' => url, 'body' => body }
 end
 

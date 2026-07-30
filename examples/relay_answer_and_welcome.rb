@@ -12,7 +12,7 @@
 #   SIGNALWIRE_SPACE        - your SignalWire space
 
 require 'signalwire'
-require 'signalwire/relay/client'  # opt-in subsystem (Python: from signalwire.relay import RelayClient)
+require 'signalwire/relay/client' # opt-in subsystem (Python: from signalwire.relay import RelayClient)
 
 client = SignalWire::Relay::Client.new(contexts: ['default'])
 
@@ -27,9 +27,10 @@ client.on_call(nil) do |call|
 
   # Play a welcome message
   action = call.play([
-    { 'type' => 'tts', 'params' => { 'text' => 'Hello! Welcome to the SignalWire RELAY demo.' } },
-    { 'type' => 'tts', 'params' => { 'text' => 'This call is being handled by the Ruby RELAY client.' } }
-  ])
+                       { 'type' => 'tts', 'params' => { 'text' => 'Hello! Welcome to the SignalWire RELAY demo.' } },
+                       { 'type' => 'tts',
+                         'params' => { 'text' => 'This call is being handled by the Ruby RELAY client.' } }
+                     ])
   action.wait
 
   # Record a short message
@@ -43,8 +44,9 @@ client.on_call(nil) do |call|
 
   # Play goodbye
   bye_action = call.play([
-    { 'type' => 'tts', 'params' => { 'text' => 'Thank you for trying the RELAY demo. Goodbye!' } }
-  ])
+                           { 'type' => 'tts',
+                             'params' => { 'text' => 'Thank you for trying the RELAY demo. Goodbye!' } }
+                         ])
   bye_action.wait
 
   # Hang up

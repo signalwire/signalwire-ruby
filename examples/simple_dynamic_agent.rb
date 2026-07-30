@@ -17,7 +17,7 @@ agent.prompt_add_section('Role', 'You are a helpful assistant.')
 # Register a dynamic config callback.
 # This runs for every incoming SWML request, receiving an ephemeral copy
 # of the agent that you can safely modify.
-agent.set_dynamic_config_callback(nil) do |query_params, body_params, headers, ephemeral|
+agent.set_dynamic_config_callback(nil) do |query_params, _body_params, headers, ephemeral|
   # Customise based on query parameters
   tenant = query_params['tenant'] || 'default'
 
@@ -47,16 +47,14 @@ agent.set_dynamic_config_callback(nil) do |query_params, body_params, headers, e
 
   # Customise based on a header
   lang = headers['accept-language']
-  if lang && lang.start_with?('es')
-    ephemeral.add_language('Spanish', 'es-US', 'elevenlabs.antonio')
-  end
+  ephemeral.add_language('Spanish', 'es-US', 'elevenlabs.antonio') if lang && lang.start_with?('es')
 end
 
 # Define a tool that uses global_data set by the dynamic config
 agent.define_tool(
-  name:        'get_company_info',
+  name: 'get_company_info',
   description: 'Get information about the company',
-  parameters:  {}, handler: nil
+  parameters: {}, handler: nil
 ) do |_args, _raw_data|
   # In production, global_data would be populated per-request
   SignalWire::Swaig::FunctionResult.new(

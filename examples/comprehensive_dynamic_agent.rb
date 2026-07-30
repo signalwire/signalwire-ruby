@@ -9,21 +9,21 @@
 require 'signalwire'
 
 VOICE_OPTIONS = {
-  'standard'   => %w[elevenlabs.rachel elevenlabs.adam],
-  'premium'    => %w[elevenlabs.rachel elevenlabs.adam elevenlabs.josh],
+  'standard' => %w[elevenlabs.rachel elevenlabs.adam],
+  'premium' => %w[elevenlabs.rachel elevenlabs.adam elevenlabs.josh],
   'enterprise' => %w[elevenlabs.rachel elevenlabs.adam elevenlabs.josh elevenlabs.bella]
 }.freeze
 
 INDUSTRY_CONFIGS = {
-  'healthcare' => { 'compliance' => 'high',   'style' => 'professional' },
-  'finance'    => { 'compliance' => 'high',   'style' => 'formal' },
-  'retail'     => { 'compliance' => 'medium', 'style' => 'friendly' },
-  'general'    => { 'compliance' => 'standard', 'style' => 'conversational' }
+  'healthcare' => { 'compliance' => 'high', 'style' => 'professional' },
+  'finance' => { 'compliance' => 'high', 'style' => 'formal' },
+  'retail' => { 'compliance' => 'medium', 'style' => 'friendly' },
+  'general' => { 'compliance' => 'standard', 'style' => 'conversational' }
 }.freeze
 
 agent = SignalWire::AgentBase.new(
-  name:        'comprehensive_dynamic',
-  route:       '/dynamic',
+  name: 'comprehensive_dynamic',
+  route: '/dynamic',
   record_call: true
 )
 
@@ -74,22 +74,22 @@ agent.set_dynamic_config_callback(nil) do |query_params, _body, _headers, epheme
   case industry
   when 'healthcare'
     ephemeral.prompt_add_section('Healthcare Guidelines',
-      'Follow HIPAA compliance standards. Never provide medical diagnoses.',
-      bullets: ['Protect patient privacy', 'Direct medical questions to providers'])
+                                 'Follow HIPAA compliance standards. Never provide medical diagnoses.',
+                                 bullets: ['Protect patient privacy', 'Direct medical questions to providers'])
   when 'finance'
     ephemeral.prompt_add_section('Financial Guidelines',
-      'Adhere to financial regulations and maintain strict confidentiality.',
-      bullets: ['Never provide investment advice', 'Protect financial information'])
+                                 'Adhere to financial regulations and maintain strict confidentiality.',
+                                 bullets: ['Never provide investment advice', 'Protect financial information'])
   when 'retail'
     ephemeral.prompt_add_section('Customer Service',
-      'Focus on customer satisfaction and sales support.',
-      bullets: ['Maintain friendly demeanor', 'Handle complaints with empathy'])
+                                 'Focus on customer satisfaction and sales support.',
+                                 bullets: ['Maintain friendly demeanor', 'Handle complaints with empathy'])
   end
 
   if %w[premium enterprise].include?(tier)
     ephemeral.prompt_add_section('Enhanced Capabilities',
-      "As a #{tier} service, you have access to advanced features:",
-      bullets: ['Extended memory', 'Priority processing', 'Specialised knowledge bases'])
+                                 "As a #{tier} service, you have access to advanced features:",
+                                 bullets: ['Extended memory', 'Priority processing', 'Specialised knowledge bases'])
   end
 
   # --- Global data ---
@@ -98,9 +98,9 @@ agent.set_dynamic_config_callback(nil) do |query_params, _body, _headers, epheme
   features += %w[custom_integration dedicated_support] if tier == 'enterprise'
 
   ephemeral.set_global_data(
-    'service_tier'     => tier,
-    'industry_focus'   => industry,
-    'test_group'       => test_group,
+    'service_tier' => tier,
+    'industry_focus' => industry,
+    'test_group' => test_group,
     'features_enabled' => features,
     'compliance_level' => config['compliance']
   )
@@ -108,8 +108,8 @@ agent.set_dynamic_config_callback(nil) do |query_params, _body, _headers, epheme
   # --- Debug ---
   if debug_mode
     ephemeral.prompt_add_section('Debug Mode',
-      'Debug mode is enabled. Show reasoning and feature availability.',
-      bullets: ['Include global data references', 'Explain tier-based features'])
+                                 'Debug mode is enabled. Show reasoning and feature availability.',
+                                 bullets: ['Include global data references', 'Explain tier-based features'])
     ephemeral.add_hints(%w[debug verbose reasoning tier])
   end
 
@@ -117,8 +117,8 @@ agent.set_dynamic_config_callback(nil) do |query_params, _body, _headers, epheme
   if test_group == 'B'
     ephemeral.add_hints(%w[enhanced personalised proactive])
     ephemeral.prompt_add_section('Enhanced Style',
-      'Use an enhanced conversation style:',
-      bullets: ['Ask clarifying questions', 'Offer proactive suggestions'])
+                                 'Use an enhanced conversation style:',
+                                 bullets: ['Ask clarifying questions', 'Offer proactive suggestions'])
   end
 end
 
