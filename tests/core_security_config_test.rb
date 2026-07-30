@@ -149,9 +149,8 @@ class CoreSecurityConfigSslTest < Minitest::Test
 
   private
 
-  # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
-  def write_self_signed(dir)
-    key = OpenSSL::PKey::RSA.new(2048)
+  # A throwaway self-signed cert for the TLS-config tests, valid for one hour.
+  def build_self_signed(key)
     cert = OpenSSL::X509::Certificate.new
     cert.version = 2
     cert.serial = 1
@@ -160,11 +159,16 @@ class CoreSecurityConfigSslTest < Minitest::Test
     cert.not_before = Time.now
     cert.not_after = Time.now + 3600
     cert.sign(key, OpenSSL::Digest.new('SHA256'))
+    cert
+  end
+
+  # Write that cert + its key into +dir+; returns [cert_path, key_path].
+  def write_self_signed(dir)
+    key = OpenSSL::PKey::RSA.new(2048)
     cert_path = File.join(dir, 'cert.pem')
     key_path = File.join(dir, 'key.pem')
-    File.write(cert_path, cert.to_pem)
+    File.write(cert_path, build_self_signed(key).to_pem)
     File.write(key_path, key.to_pem)
     [cert_path, key_path]
   end
-  # rubocop:enable Metrics/MethodLength, Metrics/AbcSize
 end
