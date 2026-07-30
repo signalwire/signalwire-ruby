@@ -43,14 +43,16 @@ end
 # extract walks a dotted path into a rendered SWML doc. "ai.prompt" means: find
 # the ai verb in sections.main, then index into it — the Ruby mirror of
 # diff_port_swml._extract.
-def extract(doc, path)
-  ai = nil
+def ai_verb(doc)
   sections = doc['sections']
   main = sections.is_a?(Hash) ? sections['main'] : nil
-  if main.is_a?(Array)
-    found = main.find { |sec| sec.is_a?(Hash) && sec.key?('ai') }
-    ai = found['ai'] if found
-  end
+  return nil unless main.is_a?(Array)
+
+  main.find { |sec| sec.is_a?(Hash) && sec.key?('ai') }&.fetch('ai', nil)
+end
+
+def extract(doc, path)
+  ai = ai_verb(doc)
   node = ai.nil? ? doc : { 'ai' => ai }
   path.split('.').each do |part|
     return nil unless node.is_a?(Hash)

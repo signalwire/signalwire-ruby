@@ -85,19 +85,19 @@ VERB_METHOD = {
 
 # Derive the deterministic liveness classification from the measured instants.
 # Mirrors classify_liveness() in the differ byte-for-byte.
+TIMED_OUT_CLASSIFICATION = {
+  'blocked_until_event' => false,
+  'returned_after_event' => false,
+  'completed_state' => '',
+  'timed_out' => true
+}.freeze
+
 def classify(delay_ms, t_wait_start, t_return, completed_state, timed_out)
-  if timed_out || t_return.nil?
-    return {
-      'blocked_until_event' => false,
-      'returned_after_event' => false,
-      'completed_state' => '',
-      'timed_out' => true
-    }
-  end
+  return TIMED_OUT_CLASSIFICATION.dup if timed_out || t_return.nil?
+
   elapsed_ms = (t_return - t_wait_start) * 1000.0
-  blocked = elapsed_ms >= (delay_ms - BLOCK_TOL_MS)
   {
-    'blocked_until_event' => blocked,
+    'blocked_until_event' => elapsed_ms >= (delay_ms - BLOCK_TOL_MS),
     'returned_after_event' => true,
     'completed_state' => completed_state,
     'timed_out' => false
@@ -117,66 +117,75 @@ def start_action(call, verb, kwargs)
   end
 end
 
-# Drive ONE liveness case against the real mock and return its classification.
-def run_case(handle, kase)
-  client = handle[:client]
-  mock   = handle[:mock]
-  delay_ms = kase['delay_ms'].to_i
-  terminal = kase['terminal']
-  verb     = kase['verb']
-  method   = VERB_METHOD.fetch(verb)
-
-  # Establish an answered inbound call (mirrors RelayActionsTestBase helper).
-  captured = Queue.new
-  done = Queue.new
+# Answer the next inbound call, pushing it onto +captured+ once answered.
+def arm_answerer(client, captured, done)
   client.on_call(nil) do |call|
     captured.push(call)
     call.answer
     done.push(true)
   end
+end
+
+# Establish an answered inbound call (mirrors RelayActionsTestBase helper).
+def answered_call(client, mock, verb)
+  captured = Queue.new
+  done = Queue.new
+  arm_answerer(client, captured, done)
   mock.inbound_call(call_id: "live-#{verb}", auto_states: ['created'])
   Timeout.timeout(DEADLINE_S) { done.pop }
-  call = Timeout.timeout(DEADLINE_S) { captured.pop }
-  call.state = 'answered'
+  Timeout.timeout(DEADLINE_S) { captured.pop }.tap { |call| call.state = 'answered' }
+end
+
+# Block on +action+, returning [t_return_or_nil, completing_event_or_nil].
+def await_action(action)
+  event = action.wait(timeout: DEADLINE_S)
+  [Process.clock_gettime(Process::CLOCK_MONOTONIC), event]
+rescue SignalWire::Relay::ActionTimeoutError, Timeout::Error
+  [nil, nil]
+end
+
+# Block on +action+ and report [t_wait_start, t_return, completed_state,
+# timed_out] — the four measured instants classify() consumes.
+def measure_wait(action)
+  t_wait_start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+  t_return, event = await_action(action)
+  # A wait() that returns nil (no event) within the deadline is a no-op / hung
+  # equivalent: treat a nil return as timed_out so the classification is honest.
+  timed_out = t_return.nil? || event.nil?
+  [t_wait_start, t_return, event&.params ? event.params['state'].to_s : '', timed_out]
+end
+
+# Drive ONE liveness case against the real mock and return its classification.
+def run_case(handle, kase)
+  verb     = kase['verb']
+  delay_ms = kase['delay_ms'].to_i
+  call     = answered_call(handle[:client], handle[:mock], verb)
 
   # Arm the DEFERRED completing event: the mock emits {state: terminal.state}
   # for this method after delay_ms, delivered through the SDK's real socket-read
   # event-dispatch path. A no-op / non-pumping wait() cannot observe it.
-  mock.arm_method(method, [{ 'emit' => { 'state' => terminal['state'] }, 'delay_ms' => delay_ms }])
+  handle[:mock].arm_method(
+    VERB_METHOD.fetch(verb),
+    [{ 'emit' => { 'state' => kase['terminal']['state'] }, 'delay_ms' => delay_ms }]
+  )
 
   action = start_action(call, verb, kase['kwargs'] || {})
+  classify(delay_ms, *measure_wait(action))
+end
 
-  t_wait_start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-  timed_out = false
-  t_return = nil
-  completed_state = ''
-  event = nil
+# A fresh client/session per case so a scoped scenario/journal never crosses
+# between cases (mirrors the per-test client isolation in actions_mock_test.rb).
+def run_case_isolated(kase)
+  handle = RelayMockTest.client
   begin
-    event = action.wait(timeout: DEADLINE_S)
-    t_return = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    completed_state = event&.params ? event.params['state'].to_s : ''
-  rescue SignalWire::Relay::ActionTimeoutError, Timeout::Error
-    timed_out = true
+    run_case(handle, kase)
+  ensure
+    RelayMockTest.shutdown_client(handle) if handle
   end
-  # A wait() that returns nil (no event) within the deadline is a no-op / hung
-  # equivalent: treat a nil return as timed_out so the classification is honest.
-  timed_out = true if t_return && event.nil?
-
-  classify(delay_ms, t_wait_start, t_return, completed_state, timed_out)
 end
 
 def main
-  out = {}
-  # A fresh client/session per case so a scoped scenario/journal never crosses
-  # between cases (mirrors the per-test client isolation in actions_mock_test.rb).
-  CORPUS.each do |kase|
-    handle = RelayMockTest.client
-    begin
-      out[kase['id']] = run_case(handle, kase)
-    ensure
-      RelayMockTest.shutdown_client(handle) if handle
-    end
-  end
+  out = CORPUS.to_h { |kase| [kase['id'], run_case_isolated(kase)] }
   REAL_STDOUT.puts(JSON.generate(out))
   0
 end
