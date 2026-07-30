@@ -94,84 +94,88 @@ unless tool_defs.is_a?(Array) && !tool_defs.empty?
   exit 1
 end
 
+# Read a key that may be present in either the String or the Symbol spelling
+# (the tool-def / DataMap tree mixes both depending on how the skill built it).
+def either(hash, key)
+  hash[key.to_s] || hash[key.to_sym]
+end
+
+# +value+, or a fatal "skills_audit_harness: <what>" exit when it is absent.
+def require_present(value, what)
+  return value if value
+
+  warn "skills_audit_harness: #{what}"
+  exit 1
+end
+
 # Dispatch logic differs for handler-based vs DataMap-based skills.
 def dispatch_handler(tool_defs, tool_name, args)
-  td = tool_defs.find { |t| (t[:name] || t['name']) == tool_name }
-  unless td
-    warn "skills_audit_harness: tool '#{tool_name}' not registered"
-    exit 1
-  end
-  handler = td[:handler] || td['handler']
-  unless handler
-    warn "skills_audit_harness: tool '#{tool_name}' has no handler"
-    exit 1
-  end
+  td = require_present(tool_defs.find { |t| either(t, :name) == tool_name },
+                       "tool '#{tool_name}' not registered")
+  handler = require_present(either(td, :handler),
+                            "tool '#{tool_name}' has no handler")
   handler.call(args, {})
 end
 
+# Substitute one `%{args.NAME}` placeholder starting at +idx+. Returns
+# [text_to_append, next_index], or nil when +idx+ does not open a placeholder.
+def expand_placeholder(template, args, idx)
+  return nil unless template[idx] == '%' && template[idx + 1] == '{'
+
+  close = template.index('}', idx + 2)
+  return nil unless close
+
+  key = template[(idx + 2)...close]
+  return [template[idx..close], close + 1] unless key.start_with?('args.')
+
+  # A falsy arg expands to the empty string (the original `<< v.to_s if v`),
+  # so `%{args.missing}` disappears rather than becoming "" / "false".
+  value = args[key.sub('args.', '')]
+  [value ? value.to_s : '', close + 1]
+end
+
 def expand_template(template, args)
-  out = String.new
+  out = +''
   i = 0
   while i < template.length
-    if template[i] == '%' && template[i + 1] == '{'
-      close = template.index('}', i + 2)
-      if close
-        key = template[(i + 2)...close]
-        if key.start_with?('args.')
-          v = args[key.sub('args.', '')]
-          out << v.to_s if v
-        else
-          out << template[i..close]
-        end
-        i = close + 1
-        next
-      end
-    end
-    out << template[i]
-    i += 1
+    expansion = expand_placeholder(template, args, i)
+    text, i = expansion || [template[i], i + 1]
+    out << text
   end
   out
 end
 
-def execute_datamap(tool_defs, tool_name, args)
-  # DataMap skills register definitions under :datamap (Ruby) — find
-  # the matching one, extract its first webhook URL, and execute the
-  # request the same way the SignalWire platform would.
-  td = tool_defs.find do |t|
-    dm = t[:datamap] || t['datamap']
-    dm && (dm['function'] == tool_name || dm[:function] == tool_name)
-  end
-  unless td
-    warn "skills_audit_harness: DataMap tool '#{tool_name}' not registered"
-    exit 1
-  end
-  dm = td[:datamap] || td['datamap']
+# Locate the registered DataMap for +tool_name+ and return its first webhook.
+def datamap_webhook(tool_defs, tool_name)
+  td = require_present(
+    tool_defs.find { |t| (dm = either(t, :datamap)) && either(dm, :function) == tool_name },
+    "DataMap tool '#{tool_name}' not registered"
+  )
+  data_map = either(either(td, :datamap), :data_map) || {}
+  require_present(either(data_map, :webhooks)&.first,
+                  "DataMap tool '#{tool_name}' has no webhook")
+end
 
-  webhook = (dm['data_map'] || dm[:data_map] || {})['webhooks']&.first ||
-            (dm['data_map'] || dm[:data_map] || {})[:webhooks]&.first
-  unless webhook
-    warn "skills_audit_harness: DataMap tool '#{tool_name}' has no webhook"
-    exit 1
-  end
-
-  url     = expand_template(webhook['url'] || webhook[:url], args)
-  method  = (webhook['method'] || webhook[:method] || 'GET').upcase
-  headers = webhook['headers'] || webhook[:headers] || {}
-
-  uri = URI(url)
-  http = Net::HTTP.new(uri.host, uri.port)
-  http.use_ssl = (uri.scheme == 'https')
-
+# Build the Net::HTTP request the SignalWire platform would issue for +webhook+.
+def datamap_request(webhook, url, method)
   req = case method
-        when 'GET'  then Net::HTTP::Get.new(uri)
-        when 'POST' then Net::HTTP::Post.new(uri)
+        when 'GET'  then Net::HTTP::Get.new(URI(url))
+        when 'POST' then Net::HTTP::Post.new(URI(url))
         else
           warn "skills_audit_harness: unsupported method '#{method}'"
           exit 1
         end
 
-  headers.each { |k, v| req[k.to_s] = v.to_s }
+  (either(webhook, :headers) || {}).each { |k, v| req[k.to_s] = v.to_s }
   req.body = '' if method == 'POST'
+  req
+end
+
+# Issue +req+ to +url+ and return [status, parsed-or-raw body].
+def datamap_fetch(url, req)
+  uri  = URI(url)
+  http = Net::HTTP.new(uri.host, uri.port)
+  http.use_ssl = uri.scheme == 'https'
 
   resp = http.request(req)
   body = begin
@@ -179,7 +183,19 @@ def execute_datamap(tool_defs, tool_name, args)
   rescue JSON::ParserError
     resp.body
   end
-  { 'status' => resp.code.to_i, 'url' => url, 'body' => body }
+  [resp.code.to_i, body]
+end
+
+def execute_datamap(tool_defs, tool_name, args)
+  # DataMap skills register definitions under :datamap (Ruby) — find
+  # the matching one, extract its first webhook URL, and execute the
+  # request the same way the SignalWire platform would.
+  webhook = datamap_webhook(tool_defs, tool_name)
+  url     = expand_template(either(webhook, :url), args)
+  method  = (either(webhook, :method) || 'GET').upcase
+
+  status, body = datamap_fetch(url, datamap_request(webhook, url, method))
+  { 'status' => status, 'url' => url, 'body' => body }
 end
 
 result =
