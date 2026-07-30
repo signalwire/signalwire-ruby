@@ -439,12 +439,49 @@ SIG_METHOD_ALIASES: dict[tuple, dict[str, str]] = {
 }
 
 
+# Built-in skill classes rename their Ruby ``instance_key`` OVERRIDE to the
+# reference's ``get_instance_key`` — the same rename SIG_METHOD_ALIASES already
+# does for the SkillBase declaration, applied by MODULE PREFIX so each per-skill
+# override compares equal without one table row per skill. MIRRORS
+# enumerate_surface.rb's SKILLS_MODULE_METHOD_ALIASES, which has always applied
+# it surface-side.
+#
+# Why this was invisible until now: before porting-sdk 8496c77 the signature
+# oracle enumerated only 7 of 18 skill modules (a per-method skip emptied classes
+# whose every method was a base-identical override, and an emptied class was
+# dropped outright). None of the 7 declared an override, so the base-only rename
+# sufficed. With all 18 modules enumerated the oracle records the override on 7
+# skill subclasses, and the un-renamed Ruby ``instance_key`` drifted twice per
+# class (missing-port for the reference name + missing-reference for the Ruby
+# one).
+SIG_SKILLS_MODULE_METHOD_ALIASES: dict[str, str] = {"instance_key": "get_instance_key"}
+
+
+def _sig_aliases_for(mod: str, cls: str) -> dict[str, str]:
+    """The effective Ruby->reference method aliases for one class: the explicit
+    per-[module, class] table, plus the by-prefix skills alias on every
+    ``signalwire.skills.*.skill`` module."""
+    table = dict(SIG_METHOD_ALIASES.get((mod, cls), {}))
+    if mod.startswith("signalwire.skills.") and mod.endswith(".skill"):
+        merged = dict(SIG_SKILLS_MODULE_METHOD_ALIASES)
+        merged.update(table)
+        return merged
+    return table
+
+
 def apply_sig_method_aliases(out_modules: dict) -> None:
-    """Rename Ruby-idiom methods to their reference name (see SIG_METHOD_ALIASES).
-    Only fires when the port has the Ruby-named method and does NOT already carry
-    the reference name (so it never clobbers a real reference-named method). In
-    place."""
-    for (mod, cls), aliases in SIG_METHOD_ALIASES.items():
+    """Rename Ruby-idiom methods to their reference name (see SIG_METHOD_ALIASES
+    and SIG_SKILLS_MODULE_METHOD_ALIASES). Only fires when the port has the
+    Ruby-named method and does NOT already carry the reference name (so it never
+    clobbers a real reference-named method). In place."""
+    keys = set(SIG_METHOD_ALIASES)
+    for mod, me in out_modules.items():
+        for cls in me.get("classes", {}):
+            keys.add((mod, cls))
+    for mod, cls in keys:
+        aliases = _sig_aliases_for(mod, cls)
+        if not aliases:
+            continue
         ce = out_modules.get(mod, {}).get("classes", {}).get(cls)
         if not ce:
             continue

@@ -37993,15 +37993,6 @@
               ],
               "returns": "any"
             },
-            "instance_key": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "name": {
               "params": [
                 {
@@ -38030,6 +38021,15 @@
               "returns": "any"
             },
             "supports_multiple_instances": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "get_instance_key": {
               "params": [
                 {
                   "name": "self",
@@ -38153,15 +38153,6 @@
               ],
               "returns": "any"
             },
-            "instance_key": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "name": {
               "params": [
                 {
@@ -38190,6 +38181,15 @@
               "returns": "any"
             },
             "supports_multiple_instances": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "get_instance_key": {
               "params": [
                 {
                   "name": "self",
@@ -38260,15 +38260,6 @@
               ],
               "returns": "any"
             },
-            "instance_key": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "name": {
               "params": [
                 {
@@ -38297,6 +38288,15 @@
               "returns": "any"
             },
             "supports_multiple_instances": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "get_instance_key": {
               "params": [
                 {
                   "name": "self",
@@ -38358,15 +38358,6 @@
               ],
               "returns": "any"
             },
-            "instance_key": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "name": {
               "params": [
                 {
@@ -38395,6 +38386,15 @@
               "returns": "any"
             },
             "supports_multiple_instances": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "get_instance_key": {
               "params": [
                 {
                   "name": "self",
@@ -38589,15 +38589,6 @@
               ],
               "returns": "any"
             },
-            "instance_key": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "name": {
               "params": [
                 {
@@ -38626,6 +38617,15 @@
               "returns": "any"
             },
             "supports_multiple_instances": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "get_instance_key": {
               "params": [
                 {
                   "name": "self",
@@ -38909,15 +38909,6 @@
               ],
               "returns": "any"
             },
-            "instance_key": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "name": {
               "params": [
                 {
@@ -38946,6 +38937,15 @@
               "returns": "any"
             },
             "supports_multiple_instances": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "get_instance_key": {
               "params": [
                 {
                   "name": "self",
@@ -39010,15 +39010,6 @@
               ],
               "returns": "any"
             },
-            "instance_key": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "name": {
               "params": [
                 {
@@ -39047,6 +39038,15 @@
               "returns": "any"
             },
             "supports_multiple_instances": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "get_instance_key": {
               "params": [
                 {
                   "name": "self",
@@ -39293,15 +39293,6 @@
               ],
               "returns": "any"
             },
-            "instance_key": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "name": {
               "params": [
                 {
@@ -39339,6 +39330,15 @@
               "returns": "any"
             },
             "supports_multiple_instances": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "get_instance_key": {
               "params": [
                 {
                   "name": "self",
@@ -39391,15 +39391,6 @@
               ],
               "returns": "any"
             },
-            "instance_key": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "name": {
               "params": [
                 {
@@ -39428,6 +39419,15 @@
               "returns": "any"
             },
             "supports_multiple_instances": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "get_instance_key": {
               "params": [
                 {
                   "name": "self",
@@ -39572,15 +39572,6 @@
               ],
               "returns": "any"
             },
-            "instance_key": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "name": {
               "params": [
                 {
@@ -39618,6 +39609,15 @@
               "returns": "any"
             },
             "version": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "get_instance_key": {
               "params": [
                 {
                   "name": "self",
