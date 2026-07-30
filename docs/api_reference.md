@@ -2393,32 +2393,6 @@ data_map.webhook(
 )
 ```
 
-##### `body(data) -> DataMap`
-Set the JSON body for POST/PUT requests.
-
-**Parameters:**
-- `data` (Hash): JSON body data (supports `${variable}` substitution)
-
-**Usage:**
-```ruby
-# Static body with parameter substitution
-data_map.body({
-  'query' => '${args.search_term}',
-  'limit' => 5,
-  'filters' => {
-    'category' => '${args.category}',
-    'active' => true
-  }
-})
-
-# Body with call-related data (NOT sensitive info)
-data_map.body({
-  'customer_id' => '${global_data.customer_id}',
-  'request_id' => '${meta_data.call_id}',
-  'search' => '${args.query}'
-})
-```
-
 ##### `params(data) -> DataMap`
 Set URL query parameters.
 

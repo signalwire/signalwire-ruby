@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 3245faec9432e7d397c8d63000254a6ff7e9d0c8",
+  "generated_from": "signalwire-ruby @ 91c5ba3a013803def5ddf50e2abc7170cd37fcce",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -334,7 +334,6 @@
       "classes": {
         "DataMap": [
           "__init__",
-          "body",
           "description",
           "error_keys",
           "expression",

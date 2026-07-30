@@ -130,30 +130,27 @@ class DataMapTest < Minitest::Test
   end
 
   # ----------------------------------------------------------------
-  # Webhook body and params
+  # Webhook params
   # ----------------------------------------------------------------
 
-  def test_webhook_body_and_params
+  # Was +test_webhook_body_and_params+, which called +body+ AND +params+ and then
+  # asserted +wh['body']+ — pinning a schema-forbidden key as correct. It now
+  # asserts only the contract key and that +body+ is absent.
+  def test_webhook_params
     dm = DM.new('func')
            .webhook('POST', 'https://example.com')
-           .body({ 'query' => '${args.q}' })
-           .params({ 'limit' => 10 })
+           .params({ 'query' => '${args.q}', 'limit' => 10 })
            .output(FR.new('ok'))
 
     wh = dm.to_swaig_function['data_map']['webhooks'].first
 
-    assert_equal({ 'query' => '${args.q}' }, wh['body'])
-    assert_equal({ 'limit' => 10 }, wh['params'])
+    assert_equal({ 'query' => '${args.q}', 'limit' => 10 }, wh['params'])
+    refute wh.key?('body')
   end
 
   # ----------------------------------------------------------------
-  # body/params/output/foreach without webhook raises
+  # params/output/foreach without webhook raises
   # ----------------------------------------------------------------
-
-  def test_body_without_webhook_raises
-    dm = DM.new('func')
-    assert_raises(ArgumentError) { dm.body({}) }
-  end
 
   def test_params_without_webhook_raises
     dm = DM.new('func')
@@ -245,7 +242,7 @@ class DataMapExpressionTest < Minitest::Test
       .parameter('limit', 'number', 'Max results')
       .webhook('POST', 'https://api.docs.com/search',
                headers: { 'Authorization' => 'Bearer TOKEN' })
-      .body({ 'query' => '${query}', 'limit' => 3 })
+      .params({ 'query' => '${query}', 'limit' => 3 })
       .output(FR.new('Found: ${response.results[0].title}'))
       .to_swaig_function
   end
@@ -511,7 +508,7 @@ class DataMapFactoryTest < Minitest::Test
     [
       [:purpose, 'test'], [:description, 'test'], [:parameter, 'x', 'string', 'desc'],
       [:expression, '${x}', 'pat', FR.new('y')], [:webhook, 'GET', 'https://example.com'],
-      [:body, {}], [:params, {}],
+      [:params, {}],
       [:foreach, { 'input_key' => 'a', 'output_key' => 'b', 'append' => 'c' }],
       [:output, FR.new('ok')], [:fallback_output, FR.new('fail')],
       [:error_keys, %w[e]], [:global_error_keys, %w[e]], [:webhook_expressions, []]
@@ -524,5 +521,43 @@ class DataMapFactoryTest < Minitest::Test
     fluent_calls.each do |meth, *args|
       assert_same dm, dm.public_send(meth, *args), "#{meth} must return self for chaining"
     end
+  end
+end
+
+# +DataMap#body+ is GONE — the key it wrote is invalid, not merely ignored.
+#
+# Owner-ruled 2026-07-29, extending the earlier ruling ("if the server doesn't
+# read them, remove them") from the +create_simple_api_tool+ PARAMETER to the
+# public BUILDER METHOD. The same three sources condemn both:
+#
+# * +porting-sdk/schema.json+ +$defs/Webhook+ declares exactly ten properties
+#   under +unevaluatedProperties: {"not": {}}+ — +body+ is not among them, so
+#   emitting it is a SCHEMA VIOLATION.
+# * +mod_openai/actions.c:735-739+ and +bedrock.c:4920-4926+ read url, method,
+#   form_param, +params+ and +headers+ and nothing else; +grep -n '"body"'+
+#   across both returns ZERO matches.
+# * So the method's only possible effect was producing an invalid document while
+#   silently discarding the caller's payload.
+#
+# +params+ is the correct method for POST/PUT request data — it writes the
+# +params+ key, which IS in the contract and IS read.
+class DataMapBodyBuilderRemovedTest < Minitest::Test
+  include DataMapTestAliases
+
+  def test_body_method_is_gone
+    refute_respond_to DM.new('t'), :body,
+                      'DataMap#body must be removed — it writes a schema-forbidden key ' \
+                      'that no engine reader consumes; use params instead'
+  end
+
+  # The replacement must keep working — this is the positive control.
+  def test_params_still_writes_the_contract_key
+    wh = DM.new('t')
+           .webhook('POST', 'https://x.test')
+           .params({ 'q' => '${query}' })
+           .to_swaig_function['data_map']['webhooks'].first
+
+    assert_equal({ 'q' => '${query}' }, wh['params'])
+    refute wh.key?('body')
   end
 end

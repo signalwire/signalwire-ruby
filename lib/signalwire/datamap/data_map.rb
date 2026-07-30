@@ -147,22 +147,13 @@ module SignalWire
       self
     end
 
-    # Set the request body for the most-recently-added webhook (POST / PUT).
-    def body(data)
-      raise ArgumentError, 'Must add webhook before setting body' if @webhooks.empty?
-
-      @webhooks.last['body'] = data
-      self
-    end
-
     # Set request params for the most-recently-added webhook.
     #
-    # This is NOT an alias for +body+: the two write different webhook keys
-    # (+params+ vs +body+), and only +params+ is part of the webhook contract —
-    # schema.json +$defs/Webhook+ lists +params+ among its ten permitted
-    # properties and forbids everything else, and the engine's webhook readers
-    # look up +params+ and never +body+. Use this method for POST/PUT request
-    # data.
+    # This is the method for POST/PUT request data. It writes the +params+
+    # webhook key, which schema.json +$defs/Webhook+ lists among its ten
+    # permitted properties and which the engine's webhook readers look up. The
+    # former +body+ builder wrote a +body+ key that the schema forbids and no
+    # engine reader consumes — it was removed 2026-07-29; use this instead.
     def params(data)
       raise ArgumentError, 'Must add webhook before setting params' if @webhooks.empty?
 
