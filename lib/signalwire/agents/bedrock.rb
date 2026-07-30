@@ -75,7 +75,16 @@ module SignalWire
         return swml unless main.is_a?(Array)
 
         idx = main.index { |verb| verb.is_a?(Hash) && verb.key?('ai') }
-        main[idx] = { 'amazon_bedrock' => build_bedrock_object(main[idx]['ai']) } if idx
+        if idx
+          entry = { 'amazon_bedrock' => build_bedrock_object(main[idx]['ai']) }
+          # This rewrite happens AFTER the base render has validated the `ai`
+          # verb, so the substituted verb would otherwise reach the wire with no
+          # schema check at all. `build_bedrock_object` copies a fixed key set,
+          # and a key the schema does not accept (or one it requires and the
+          # copy dropped) is exactly the class of defect that silence hides.
+          validate_section_entry(entry)
+          main[idx] = entry
+        end
 
         swml
       end
