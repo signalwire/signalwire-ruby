@@ -122,18 +122,39 @@ end
 # agent is built at route "/" so the event's root-relative "/swaig" path routes
 # correctly — matching Python's serverless dispatch, which treats rawPath as
 # agent-relative (the Go reference does the same).
-def serverless_swaig
+def serverless_swaig_agent
   a = SignalWire::AgentBase.new(name: 'demo', route: '/', basic_auth: [USER, PASSWORD])
   a.define_tool(name: 'say_hello', description: 'greet', parameters: {}, handler: nil) do |_args, _raw|
     SignalWire::Swaig::FunctionResult.new('hello there')
   end
-  event = {
+  a
+end
+
+def serverless_swaig_event
+  {
     'version' => '2.0',
     'rawPath' => '/swaig',
     'headers' => { 'authorization' => basic_auth(USER, PASSWORD), 'content-type' => 'application/json' },
     'requestContext' => { 'http' => { 'method' => 'POST' } },
     'body' => '{"function":"say_hello","argument":{"parsed":[{}]},"call_id":"c1"}'
   }
+end
+
+def serverless_swaig
+  a = serverless_swaig_agent
+  reduce_lambda(a.handle_serverless_request(event: serverless_swaig_event, mode: 'lambda'))
+end
+
+# The POSITIVE half of the serverless token contract: identical to
+# +serverless_swaig+ except that the lambda query string carries a GENUINELY
+# MINTED __token, so the secure tool RUNS. The token is HMAC-signed by the
+# agent's own per-process SessionManager secret and expires, so it can only be
+# minted from the SAME agent instance the case drives — never a corpus literal.
+# It rides the query string; the call_id rides the POST body.
+def serverless_swaig_valid_token
+  a = serverless_swaig_agent
+  event = serverless_swaig_event
+  event['queryStringParameters'] = { '__token' => a.create_tool_token('say_hello', 'c1') }
   reduce_lambda(a.handle_serverless_request(event: event, mode: 'lambda'))
 end
 
@@ -205,6 +226,7 @@ out['http_webhook_validate_twilio_alias'] = webhook_decision(
 
 # ---- serverless (lambda) ----
 out['http_serverless_lambda_swaig'] = serverless_swaig
+out['http_serverless_lambda_swaig_valid_token'] = serverless_swaig_valid_token
 out['http_serverless_lambda_noauth_401'] = serverless_noauth
 
 REAL_STDOUT.puts(JSON.generate(out))
