@@ -55,10 +55,10 @@ AGENT.add_language('English', 'en-US', 'elevenlabs.rachel')
 AGENT.prompt_add_section('Role', 'You are a helpful assistant.')
 
 AGENT.define_tool(
-  name:        'get_time',
+  name: 'get_time',
   description: 'Get the current time',
-  parameters:  {},
-  handler:     nil # the block below is the handler
+  parameters: {},
+  handler: nil # the block below is the handler
 ) do |_args, _raw_data|
   SignalWire::Swaig::FunctionResult.new("The time is #{Time.now.strftime('%H:%M:%S')}")
 end
@@ -134,9 +134,9 @@ require 'signalwire'
 require 'signalwire/relay/client'
 
 client = SignalWire::Relay::Client.new(
-  project:  'your-project-id',
-  token:    'your-api-token',
-  space:    'example.signalwire.com',
+  project: 'your-project-id',
+  token: 'your-api-token',
+  space: 'example.signalwire.com',
   contexts: ['default']
 )
 
@@ -170,8 +170,8 @@ require 'signalwire/rest/rest_client'
 
 client = SignalWire::REST::RestClient.new(
   project: 'your-project-id',
-  token:   'your-api-token',
-  host:    'example.signalwire.com'
+  token: 'your-api-token',
+  host: 'example.signalwire.com'
 )
 
 client.fabric.ai_agents.create(name: 'Support Bot', prompt: { 'text' => 'You are helpful.' })

@@ -62,9 +62,9 @@ sw_rubocop() {
 
 # The hand-written PYTHON in scripts/ (the 5 code generators, the surface
 # enumerator, _gen_format.py) is linted + format-checked by ruff, configured in
-# ruff.toml. rubocop cannot see a .py file, so this is a SEPARATE tool with its
-# own gates (PY-LINT / PY-FMT in run-ci.sh); it is not a second, looser bar --
-# ruff.toml mirrors the reference implementation's rule selection exactly.
+# eng/ruff.toml. rubocop cannot see a .py file, so this is a SEPARATE tool with
+# its own gates (PY-LINT / PY-FMT in run-ci.sh); it is not a second, looser bar
+# -- eng/ruff.toml mirrors the reference implementation's rule selection exactly.
 SW_PY_DIRS=("scripts")
 
 # ruff is a NATIVE binary (not a gem), so it is declared here rather than in the
@@ -85,10 +85,21 @@ _sw_ruff_cmd() {
     return 1
 }
 
-# sw_ruff <ruff-args…> — run ruff from the repo root, however it resolves.
+# sw_ruff <subcommand> <ruff-args…> — run ruff from the repo root with the repo
+# config PINNED.
+#
+# --config is load-bearing, not decoration: ruff.toml lives at eng/ruff.toml (the
+# ROOT-HYGIENE gate keeps tool config out of a public port's root), and ruff only
+# auto-discovers a config from the TARGET's directory upward. Without the flag it
+# would silently fall back to its BUILT-IN defaults. Measured on a probe file
+# using shell=True plus an unnecessary .keys() iteration: the built-in defaults
+# find 0, this config finds 4. A gate running the wrong ruleset passes vacuously,
+# which is worse than no gate.
 sw_ruff() {
-    local cmd
+    local cmd sub
     cmd="$(_sw_ruff_cmd)" || return 1
+    sub="$1"
+    shift
     # shellcheck disable=SC2086 # $cmd is our own 1-or-3 word command, intentionally split
-    (cd "$REPO_ROOT" && $cmd "$@")
+    (cd "$REPO_ROOT" && $cmd "$sub" --config "$REPO_ROOT/eng/ruff.toml" "$@")
 }
