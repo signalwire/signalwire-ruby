@@ -18,9 +18,6 @@ module SignalWire
         # callable's signature, and wrap a typed handler so it can be
         # invoked with the standard SWAIG calling convention.
         #
-        # Mirrors Python's
-        # ``signalwire.core.agent.tools.type_inference`` module-level
-        # functions ``infer_schema`` and ``create_typed_handler_wrapper``.
         # Ruby has no static type annotations, so the schema is inferred
         # from the callable's parameter list via reflection
         # (``Method#parameters`` / ``Proc#parameters``). Each keyword or
@@ -47,9 +44,8 @@ module SignalWire
           # Inspect a callable's signature to infer a JSON Schema for
           # SWAIG tool parameters.
           #
-          # Mirrors Python's ``infer_schema`` return contract. The
-          # ``raw_data`` parameter (Ruby: ``:raw_data``) is treated as the
-          # SWAIG raw-payload channel and excluded from the schema.
+          # A parameter named ``:raw_data`` is treated as the SWAIG
+          # raw-payload channel and excluded from the schema.
           #
           # @param func [Method, Proc] the callable to inspect
           # @param types [Hash{Symbol,String => Class,String}, nil]
@@ -82,10 +78,9 @@ module SignalWire
           # Wrap a typed handler so it can be invoked with the standard
           # SWAIG calling convention ``(args, raw_data)``.
           #
-          # Mirrors Python's ``create_typed_handler_wrapper``. The wrapper
-          # explodes the +args+ Hash into keyword arguments for the wrapped
-          # callable, passing +raw_data+ as a keyword only when the handler
-          # declared it.
+          # The wrapper explodes the +args+ Hash into keyword arguments for
+          # the wrapped callable, passing +raw_data+ as a keyword only when
+          # the handler declared it.
           #
           # @param func [Method, Proc] the typed handler
           # @param has_raw_data [Boolean] pass raw_data as a keyword
