@@ -67,7 +67,6 @@ port surface; the diff tool will fail the build on unexcused drift.
   `signalwire.skills.web_search.skill_improved.*`,
   `signalwire.skills.web_search.skill_original.*`): vector search /
   indexing omitted per porting-sdk Phase 7 "What to Skip".
-- **Bedrock** (9 symbols under `signalwire.agents.bedrock.*`): omitted.
 - **LiveKit shim** (~65 symbols under `signalwire.livewire.*`): deferred
   per PORTING_GUIDE.md "LiveKit Compatibility Shim" — added once core
   port stabilises.

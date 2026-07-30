@@ -172,17 +172,8 @@ signalwire.core.swml_service.SWMLService.security: Ruby SWMLService keeps securi
 signalwire.web.web_service.WebService.app: Ruby WebService wraps a Rack app via `rack_app`; Python exposes a Flask `.app` attribute — no direct equivalent (matches AgentServer.app / PORT_OMISSIONS)
 
 # --- Reference signature-oracle gaps (reference surface HAS the symbol) ---
-signalwire.agents.bedrock.BedrockAgent.set_inference_params: reference-oracle gap — the signature oracle omits `signalwire.agents.bedrock`, but the reference SURFACE records the full BedrockAgent surface and the port implements it (SURFACE-DIFF PASS)
-signalwire.agents.bedrock.BedrockAgent.set_llm_model: reference-oracle gap — the signature oracle omits `signalwire.agents.bedrock`, but the reference SURFACE records the full BedrockAgent surface and the port implements it (SURFACE-DIFF PASS)
-signalwire.agents.bedrock.BedrockAgent.set_llm_temperature: reference-oracle gap — the signature oracle omits `signalwire.agents.bedrock`, but the reference SURFACE records the full BedrockAgent surface and the port implements it (SURFACE-DIFF PASS)
-signalwire.agents.bedrock.BedrockAgent.set_post_prompt_llm_params: reference-oracle gap — the signature oracle omits `signalwire.agents.bedrock`, but the reference SURFACE records the full BedrockAgent surface and the port implements it (SURFACE-DIFF PASS)
-signalwire.agents.bedrock.BedrockAgent.set_prompt_llm_params: reference-oracle gap — the signature oracle omits `signalwire.agents.bedrock`, but the reference SURFACE records the full BedrockAgent surface and the port implements it (SURFACE-DIFF PASS)
-signalwire.agents.bedrock.BedrockAgent.set_voice: reference-oracle gap — the signature oracle omits `signalwire.agents.bedrock`, but the reference SURFACE records the full BedrockAgent surface and the port implements it (SURFACE-DIFF PASS)
 signalwire.core.agent_base.AgentBase.handle_request: reference-oracle gap — the reference SURFACE records AgentBase.handle_request (the AgentBase override of the decomposed dispatch core) and the port implements it, but the signature oracle enumerates handle_request only on SWMLService, not the AgentBase override (SURFACE-DIFF PASS). Same signature as SWMLService.handle_request(method, url, headers, body) -> [status, headers, body_string], rendering agent SWML.
 signalwire.core.swml_handler.AIVerbHandler.validate_config: reference-oracle gap — the reference surface records AIVerbHandler.validate_config but the signature oracle omits it (SURFACE-DIFF PASS)
-signalwire.skills.api_ninjas_trivia.skill.ApiNinjasTriviaSkill.__init__: reference-oracle gap — the reference surface records this skill class but the signature oracle omits its `__init__` (SURFACE-DIFF PASS)
-signalwire.skills.play_background_file.skill.PlayBackgroundFileSkill.__init__: reference-oracle gap — the reference surface records this skill class but the signature oracle omits its `__init__` (SURFACE-DIFF PASS)
-signalwire.skills.weather_api.skill.WeatherApiSkill.__init__: reference-oracle gap — the reference surface records this skill class but the signature oracle omits its `__init__` (SURFACE-DIFF PASS)
 
 # --- True Ruby-only additions (absent from reference surface too) ---
 signalwire.core.swaig_function.SWAIGFunction.call: reference-oracle gap — port `call` is Ruby's callable primitive (surface reconciles it to `__call__`, which the reference surface records but the signature oracle omits) (SURFACE-DIFF PASS)
