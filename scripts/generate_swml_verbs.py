@@ -38,6 +38,7 @@ Usage:
     python3 scripts/generate_swml_verbs.py --check    # GEN-FRESH: fail if stale
     python3 scripts/generate_swml_verbs.py --out DIR  # scratch: emit into DIR
 """
+
 from __future__ import annotations
 
 import argparse
@@ -48,12 +49,14 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _gen_format import rubocop_format, wrap_spec_derived_disables  # noqa: E402
+from _gen_format import rubocop_format, wrap_spec_derived_disables
 
 
 def _load_rest_generator():
     here = Path(__file__).resolve().parent
-    spec = importlib.util.spec_from_file_location("generate_rest", here / "generate_rest.py")
+    spec = importlib.util.spec_from_file_location(
+        "generate_rest", here / "generate_rest.py"
+    )
     if spec is None or spec.loader is None:  # pragma: no cover
         raise SystemExit("generate_swml_verbs.py: cannot load generate_rest.py")
     mod = importlib.util.module_from_spec(spec)
@@ -132,7 +135,9 @@ def build_outputs(psdk: Path) -> dict:
     outs: dict = {}
     emitted_names: set = set()
 
-    def emit(rb_name: str, props: dict, desc: str, spec_schema_name: "str | None" = None) -> None:
+    def emit(
+        rb_name: str, props: dict, desc: str, spec_schema_name: str | None = None
+    ) -> None:
         if rb_name in emitted_names:
             return
         emitted_names.add(rb_name)
@@ -141,16 +146,26 @@ def build_outputs(psdk: Path) -> dict:
         # emit_methodless_class can consult x-sdk-overlay.yaml (hidden/deprecated). Scoped
         # by the spec name, NOT the emitted Ruby class name. Synthetic <Verb>Config classes
         # have no spec name (None) — the overlay's AIParams-scoped rules never match them.
-        outs[fn] = GR.emit_methodless_class(SWML_VERBS_MODULE, rb_name, props, desc,
-                                            emit_readers=True,
-                                            spec_schema_name=spec_schema_name, psdk=psdk)
+        outs[fn] = GR.emit_methodless_class(
+            SWML_VERBS_MODULE,
+            rb_name,
+            props,
+            desc,
+            emit_readers=True,
+            spec_schema_name=spec_schema_name,
+            psdk=psdk,
+        )
 
     # 1. One data class per OBJECT $defs schema.
     for raw_name, node in defs.items():
         if not isinstance(node, dict) or not GR.is_object_schema(node):
             continue
-        emit(GR.type_name(raw_name), node.get("properties") or {},
-             f"schema.json $defs schema {raw_name!r}", spec_schema_name=raw_name)
+        emit(
+            GR.type_name(raw_name),
+            node.get("properties") or {},
+            f"schema.json $defs schema {raw_name!r}",
+            spec_schema_name=raw_name,
+        )
 
     # 2. One <Verb>Config class per flattenable SWMLMethod.anyOf verb.
     sm = defs.get("SWMLMethod")
@@ -172,15 +187,20 @@ def build_outputs(psdk: Path) -> dict:
             props = _flatten_union(defs, inner)
             if not props:
                 continue
-            emit(GR.type_name(_pascal(verb) + "Config"), props,
-                 f"flattened SWMLMethod verb {verb!r} config")
+            emit(
+                GR.type_name(_pascal(verb) + "Config"),
+                props,
+                f"flattened SWMLMethod verb {verb!r} config",
+            )
 
     return outs
 
 
 def main(argv: list) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--check", action="store_true", help="GEN-FRESH: exit non-zero if stale")
+    ap.add_argument(
+        "--check", action="store_true", help="GEN-FRESH: exit non-zero if stale"
+    )
     ap.add_argument("--out", default="", help="scratch: emit into this dir")
     args = ap.parse_args(argv)
 
@@ -189,15 +209,16 @@ def main(argv: list) -> int:
 
     if args.out:
         out_dir = Path(args.out)
-        prefix = ""
     else:
         out_dir = repo_root() / "lib" / "signalwire"
-        prefix = ""
         # Format-on-emit (see _gen_format): wrap each file's body in the spec-derived
         # disable pair, then run the repo rubocop safe-autocorrect, so the committed tree
         # is both GEN-FRESH clean and FMT/LINT clean (no generated-tree Exclude needed).
         rel_base = out_dir.relative_to(repo_root()).as_posix()
-        wrapped = {f"{rel_base}/{fn}": wrap_spec_derived_disables(src) for fn, src in outs.items()}
+        wrapped = {
+            f"{rel_base}/{fn}": wrap_spec_derived_disables(src)
+            for fn, src in outs.items()
+        }
         formatted = rubocop_format(wrapped)
         outs = {fn: formatted[f"{rel_base}/{fn}"] for fn in outs}
 
@@ -215,11 +236,15 @@ def main(argv: list) -> int:
                 if rel not in expected:
                     stale.append(f"{p} (leftover — not in generator output)")
         if stale:
-            sys.stderr.write("GEN-FRESH FAIL: %d generated SWML-verb file(s) stale:\n" % len(stale))
+            sys.stderr.write(
+                f"GEN-FRESH FAIL: {len(stale)} generated SWML-verb file(s) stale:\n"
+            )
             for s in stale:
-                sys.stderr.write("  - %s\n" % s)
+                sys.stderr.write(f"  - {s}\n")
             return 1
-        print("GEN-FRESH: generated SWML-verb files match porting-sdk/schema.json ($defs).")
+        print(
+            "GEN-FRESH: generated SWML-verb files match porting-sdk/schema.json ($defs)."
+        )
         return 0
 
     for fn, src in outs.items():

@@ -38,6 +38,7 @@ Usage:
     python3 scripts/generate_relay_protocol.py --check    # GEN-FRESH: fail if stale
     python3 scripts/generate_relay_protocol.py --out DIR  # scratch: emit into DIR
 """
+
 from __future__ import annotations
 
 import argparse
@@ -48,12 +49,14 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _gen_format import rubocop_format, wrap_spec_derived_disables  # noqa: E402
+from _gen_format import rubocop_format, wrap_spec_derived_disables
 
 
 def _load_rest_generator():
     here = Path(__file__).resolve().parent
-    spec = importlib.util.spec_from_file_location("generate_rest", here / "generate_rest.py")
+    spec = importlib.util.spec_from_file_location(
+        "generate_rest", here / "generate_rest.py"
+    )
     if spec is None or spec.loader is None:  # pragma: no cover
         raise SystemExit("generate_relay_protocol.py: cannot load generate_rest.py")
     mod = importlib.util.module_from_spec(spec)
@@ -103,8 +106,11 @@ def build_outputs(psdk: Path) -> dict:
             emitted_names.add(rb_name)
             fn = "/".join(RELAY_SUBDIR) + f"/{GR.snake(rb_name)}.rb"
             outs[fn] = GR.emit_methodless_class(
-                RELAY_MODULE, rb_name, node.get("properties") or {},
-                f"RELAY method {method!r}, {phase}", emit_readers=False,
+                RELAY_MODULE,
+                rb_name,
+                node.get("properties") or {},
+                f"RELAY method {method!r}, {phase}",
+                emit_readers=False,
             )
 
     return outs
@@ -112,7 +118,9 @@ def build_outputs(psdk: Path) -> dict:
 
 def main(argv: list) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--check", action="store_true", help="GEN-FRESH: exit non-zero if stale")
+    ap.add_argument(
+        "--check", action="store_true", help="GEN-FRESH: exit non-zero if stale"
+    )
     ap.add_argument("--out", default="", help="scratch: emit into this dir")
     args = ap.parse_args(argv)
 
@@ -125,7 +133,10 @@ def main(argv: list) -> int:
         # Format-on-emit (see _gen_format): wrap the spec-derived disable pair, then run the
         # repo rubocop safe-autocorrect so the committed tree is GEN-FRESH + FMT/LINT clean.
         rel_base = out_dir.relative_to(repo_root()).as_posix()
-        wrapped = {f"{rel_base}/{fn}": wrap_spec_derived_disables(src) for fn, src in outs.items()}
+        wrapped = {
+            f"{rel_base}/{fn}": wrap_spec_derived_disables(src)
+            for fn, src in outs.items()
+        }
         formatted = rubocop_format(wrapped)
         outs = {fn: formatted[f"{rel_base}/{fn}"] for fn in outs}
 
@@ -143,11 +154,15 @@ def main(argv: list) -> int:
                 if rel not in expected:
                     stale.append(f"{p} (leftover — not in generator output)")
         if stale:
-            sys.stderr.write("GEN-FRESH FAIL: %d generated RELAY-protocol file(s) stale:\n" % len(stale))
+            sys.stderr.write(
+                f"GEN-FRESH FAIL: {len(stale)} generated RELAY-protocol file(s) stale:\n"
+            )
             for s in stale:
-                sys.stderr.write("  - %s\n" % s)
+                sys.stderr.write(f"  - {s}\n")
             return 1
-        print("GEN-FRESH: generated RELAY-protocol files match porting-sdk/relay-protocol/.")
+        print(
+            "GEN-FRESH: generated RELAY-protocol files match porting-sdk/relay-protocol/."
+        )
         return 0
 
     for fn, src in outs.items():
