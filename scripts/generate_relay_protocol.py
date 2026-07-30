@@ -17,9 +17,30 @@ Class name = PascalCase(``x-method``, fallback filename base) + phase suffix:
 Emit/drop rule = the shared ``is_object_schema`` test: an OBJECT schema WITH
 properties -> a method-less Ruby data class; empty-object / scalar / union
 placeholder -> NOT surfaced (the reference records those as a module-level
-``TypeAlias = dict[str, Any]`` its enumerator drops). 126 params/result files -
-3 empty-object placeholders = 123 == the oracle exactly (0/0). (The 2 ``.event``
+``TypeAlias = dict[str, Any]`` its enumerator drops). 128 params/result files -
+5 property-less placeholders = 123 == the oracle exactly (0/0). (The 2 ``.event``
 files are a different phase, not part of this params/result module.)
+
+The 5 dropped placeholders, and why the count is STABLE as the server grows:
+
+  calling.call.{params,result}         x-permissive, additionalProperties
+  calling.conference.{params,result}   x-permissive, additionalProperties
+  signalwire.disconnect.result         empty ``properties: {}``
+
+The two ``calling.conference`` files arrived with porting-sdk be7a34f, extracted
+after mod_infrastructure 9755ef7 registered a second protocol method
+(``swclt_sess_register_protocol_method(..., "conference", ...)``, relay.c:18915).
+The extractor is unchanged — this is NEW SERVER SURFACE, not drift. They are
+permissive placeholders (``type: object``, ``additionalProperties: true``, no
+``properties``) because the method is registered on the FreeSWITCH side without a
+switchblade Params/Result class to extract a shape from, so there is no typed
+surface to emit. Dropping them is the parity-correct outcome, not a miss: the
+reference records exactly this kind of placeholder as a module-level
+``TypeAlias = dict[str, Any]``, which its own enumerator drops — so emitting a
+Ruby data class for one would ADD surface the reference does not publish. A port
+whose generator globs ``*.{params,result}.json`` with no permissive filter gains
+two open type aliases here; ruby's filter is why its emitted count did not move
+and GEN-FRESH-RELAY stayed green across be7a34f.
 
 These are NOT recorded in the SIGNATURE oracle (the reference class carries no
 class-typed field the sig enumerator keeps), so they are emitted METHOD-LESS on
