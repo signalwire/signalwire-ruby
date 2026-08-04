@@ -103,7 +103,11 @@ _sw_ruff_cmd() {
         return 0
     fi
     echo "FATAL: ruff not found (needed to lint/format the Python under scripts/)." >&2
-    echo "       Install it with: python3 -m pip install ruff   (or: brew install ruff)" >&2
+    # Hint the PINNED install, not a bare one: a bare `pip install ruff` (or
+    # `brew install ruff`, which has no version selection at all) lands whatever
+    # is newest, which _sw_assert_ruff_version then rejects — sending someone
+    # round the loop twice.
+    echo "       Install it with: python3 -m pip install ruff==$SW_RUFF_VERSION" >&2
     return 1
 }
 
