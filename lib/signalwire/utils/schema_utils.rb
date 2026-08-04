@@ -474,7 +474,7 @@ module SignalWire
         props = schema['properties']
         allowed = props.is_a?(Hash) ? props.keys : []
         verb_config.keys.reject { |key| allowed.include?(key) }
-                        .map { |key| "Unknown property '#{key}' for verb '#{verb_name}'" }
+                   .map { |key| "Unknown property '#{key}' for verb '#{verb_name}'" }
       end
 
       # Whether a schema disallows unlisted properties (closed), via either the

@@ -2821,7 +2821,7 @@ module SignalWire
       return {} unless request.respond_to?(:env)
 
       request.env.select { |k, _| k.start_with?('HTTP_') }
-                 .transform_keys { |k| k.sub('HTTP_', '').downcase.tr('_', '-') }
+             .transform_keys { |k| k.sub('HTTP_', '').downcase.tr('_', '-') }
     rescue StandardError
       {}
     end

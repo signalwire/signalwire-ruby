@@ -832,7 +832,7 @@ end
 # caller via `surface_method?`, exactly as for declared methods.
 def composed_module_methods(klass)
   klass.included_modules.select { |mod| composed_module?(mod.name) }
-                        .flat_map { |mod| liftable_module_methods(mod) }
+       .flat_map { |mod| liftable_module_methods(mod) }
 end
 
 # A module whose members are lifted onto its includers: SignalWire-owned AND
