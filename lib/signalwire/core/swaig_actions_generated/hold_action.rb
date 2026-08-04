@@ -20,7 +20,7 @@ module SignalWire
       # namespace for its FIELDS map, describing the wire shape only.
       class HoldAction
         FIELDS = {
-          'timeout' => :integer
+          'timeout' => :number
         }.freeze
       end
     end

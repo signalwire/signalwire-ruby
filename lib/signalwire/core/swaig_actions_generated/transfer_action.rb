@@ -20,7 +20,7 @@ module SignalWire
       # namespace for its FIELDS map, describing the wire shape only.
       class TransferAction
         FIELDS = {
-          'dest' => :any,
+          'dest' => :string,
           'summarize' => :boolean
         }.freeze
       end

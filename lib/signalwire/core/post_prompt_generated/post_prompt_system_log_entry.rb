@@ -28,13 +28,10 @@ module SignalWire
           'lang' => :string,
           'tokens' => :integer,
           'content_type' => :string,
-          'metadata' => :object,
-          'context' => :string,
-          'step' => :string,
-          'step_index' => :integer
+          'metadata' => :object
         }.freeze
 
-        attr_reader :role, :content, :timestamp, :action, :lang, :tokens, :content_type, :metadata, :context, :step, :step_index
+        attr_reader :role, :content, :timestamp, :action, :lang, :tokens, :content_type, :metadata
       end
     end
   end

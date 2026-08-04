@@ -20,7 +20,7 @@ module SignalWire
       # namespace for its FIELDS map, describing the wire shape only.
       class PlaybackBgAction
         FIELDS = {
-          'file' => :any,
+          'file' => :string,
           'wait' => :boolean
         }.freeze
       end

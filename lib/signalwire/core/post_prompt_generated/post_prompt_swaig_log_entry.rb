@@ -32,8 +32,8 @@ module SignalWire
           'delayed_post_response' => :object,
           'mcp_url' => :string,
           'mcp_tool' => :string,
-          'mcp_response' => :object,
-          'mcp_error' => :string
+          'mcp_response' => :string,
+          'mcp_error' => :boolean
         }.freeze
 
         attr_reader :command_name, :command_arg, :epoch_time, :native, :active_count, :url, :post_data, :post_response, :delayed_post_response, :mcp_url, :mcp_tool, :mcp_response, :mcp_error

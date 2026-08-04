@@ -20,12 +20,12 @@ module SignalWire
       # namespace for its FIELDS map, describing the wire shape only.
       class ContextSwitchAction
         FIELDS = {
-          'system_prompt' => :any,
-          'user_prompt' => :any,
-          'system_pom' => :any,
-          'user_pom' => :any,
           'consolidate' => :boolean,
-          'full_reset' => :boolean
+          'full_reset' => :boolean,
+          'system_pom' => :any,
+          'system_prompt' => :string,
+          'user_pom' => :any,
+          'user_prompt' => :string
         }.freeze
       end
     end
