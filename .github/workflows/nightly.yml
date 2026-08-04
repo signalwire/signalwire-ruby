@@ -123,8 +123,19 @@ jobs:
       # scripts/ (the 5 code generators, the surface enumerator, _gen_format.py).
       # scripts/_env.sh fails LOUD when ruff is absent rather than skipping, so
       # the gate cannot pass vacuously on a runner that lacks it.
+      #
+      # VERSION PINNED, in lockstep with SW_RUFF_VERSION in scripts/_env.sh.
+      # A bare `pip install ruff` resolved the newest release at CI time while a
+      # contributor ran whatever they installed months ago, so a ruff that adds a
+      # rule or changes a format heuristic reds PY-LINT/PY-FMT on code that never
+      # changed — and no local run reproduces it. _env.sh asserts the same version
+      # at gate time, so a pin that silently did not take is caught rather than
+      # quietly producing a different verdict.
       - name: Install ruff (PY-LINT / PY-FMT gates)
-        run: pip install ruff
+        run: |
+          pip install ruff==0.15.21
+          ruff --version
+          ruff --version | grep -qw '0\.15\.21' || { echo "FATAL: ruff is not the pinned 0.15.21" >&2; exit 1; }
 
       # EMISSION needs `import signalwire` (the oracle). Install from the
       # adjacent checkout only if not already importable.
@@ -208,8 +219,19 @@ jobs:
       # scripts/ (the 5 code generators, the surface enumerator, _gen_format.py).
       # scripts/_env.sh fails LOUD when ruff is absent rather than skipping, so
       # the gate cannot pass vacuously on a runner that lacks it.
+      #
+      # VERSION PINNED, in lockstep with SW_RUFF_VERSION in scripts/_env.sh.
+      # A bare `pip install ruff` resolved the newest release at CI time while a
+      # contributor ran whatever they installed months ago, so a ruff that adds a
+      # rule or changes a format heuristic reds PY-LINT/PY-FMT on code that never
+      # changed — and no local run reproduces it. _env.sh asserts the same version
+      # at gate time, so a pin that silently did not take is caught rather than
+      # quietly producing a different verdict.
       - name: Install ruff (PY-LINT / PY-FMT gates)
-        run: pip install ruff
+        run: |
+          pip install ruff==0.15.21
+          ruff --version
+          ruff --version | grep -qw '0\.15\.21' || { echo "FATAL: ruff is not the pinned 0.15.21" >&2; exit 1; }
 
       # A clean-bundle require + the full suite on the forward Ruby: -w surfaces any
       # deprecation warning from a stdlib gem that was extracted from the defaults.
