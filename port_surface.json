@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ ada5e3e1230a7c2e1d5c2371c10a0a964cc688b7",
+  "generated_from": "signalwire-ruby @ 4d38e247ed0b6e0fd87b3cea5ab0efe91e558408",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -577,7 +577,9 @@
         "PostPromptEot": [],
         "PostPromptStampsUs": [],
         "PostPromptSwaigLogEntry": [
-          "post_data"
+          "delayed_post_response",
+          "post_data",
+          "post_response"
         ],
         "PostPromptSystemEntry": [],
         "PostPromptSystemLogEntry": [],
@@ -722,6 +724,8 @@
         "ContextSwitchAction": [],
         "HoldAction": [],
         "PlaybackBgAction": [],
+        "SwaigAction": [],
+        "SwaigResponse": [],
         "TransferAction": []
       },
       "functions": []

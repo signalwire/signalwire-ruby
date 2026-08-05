@@ -6,27 +6,26 @@
 
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
-# swaig-response action 'context_switch' value object
+# swaig-response components/schemas 'SwaigResponse'
 
 module SignalWire
   # SignalWire::Core — namespace for this generated data-class tree.
   module Core
     # SignalWire::Core::SwaigActionsGenerated — namespace for this generated data-class tree.
     module SwaigActionsGenerated
-      # ContextSwitchAction — generated data type (swaig-response action 'context_switch' value object).
+      # SwaigResponse — generated read-side payload (swaig-response components/schemas 'SwaigResponse').
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
-      # No reader/writer methods and no initialize — the class is a bare
-      # namespace for its FIELDS map, describing the wire shape only.
-      class ContextSwitchAction
+      # Each field also has a zero-arg reader, so a decoded payload can be
+      # accessed by name rather than by wire key.
+      class SwaigResponse
         FIELDS = {
-          'consolidate' => :boolean,
-          'full_reset' => :boolean,
-          'system_pom' => :object,
-          'system_prompt' => :string,
-          'user_pom' => :object,
-          'user_prompt' => :string
+          'response' => :string,
+          'action' => :object,
+          'post_process' => :boolean
         }.freeze
+
+        attr_reader :response, :action, :post_process
       end
     end
   end
