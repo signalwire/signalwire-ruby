@@ -3,7 +3,7 @@
 # Spec-derived generated surface: wire keys, folded schema constants, and per-schema
 # CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
 # generator's rubocop pass to exactly those that fire.
-# rubocop:disable Layout/LineLength
+# rubocop:disable Layout/LineLength, Naming/MethodName
 
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
@@ -21,6 +21,7 @@ module SignalWire
       # accessed by name rather than by wire key.
       class SwaigAction
         FIELDS = {
+          'SWML' => :object,
           'add_dynamic_hints' => :array,
           'back_to_back_functions' => :object,
           'change_context' => :string,
@@ -50,9 +51,9 @@ module SignalWire
           'wait_for_user' => :object
         }.freeze
 
-        attr_reader :add_dynamic_hints, :back_to_back_functions, :change_context, :change_step, :clear_dynamic_hints, :context_switch, :end_of_speech_timeout, :extensive_data, :functions_on_speaker_timeout, :hangup, :hold, :playback_bg, :replace_in_history, :say, :set_global_data, :set_meta_data, :settings, :speech_event_timeout, :stop, :stop_playback_bg, :toggle_functions, :transfer, :unset_global_data, :unset_meta_data, :user_event, :user_input, :wait_for_user
+        attr_reader :SWML, :add_dynamic_hints, :back_to_back_functions, :change_context, :change_step, :clear_dynamic_hints, :context_switch, :end_of_speech_timeout, :extensive_data, :functions_on_speaker_timeout, :hangup, :hold, :playback_bg, :replace_in_history, :say, :set_global_data, :set_meta_data, :settings, :speech_event_timeout, :stop, :stop_playback_bg, :toggle_functions, :transfer, :unset_global_data, :unset_meta_data, :user_event, :user_input, :wait_for_user
       end
     end
   end
 end
-# rubocop:enable Layout/LineLength
+# rubocop:enable Layout/LineLength, Naming/MethodName
