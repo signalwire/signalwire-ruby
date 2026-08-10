@@ -1404,6 +1404,18 @@ def strip_meta(obj)
   obj.except(*META_FIELDS)
 end
 
+# Exit codes, kept DISTINCT on purpose. An argument-validation failure must never
+# share a code with a real verdict: `--check` documents "exit 1 on drift", so if a
+# malformed invocation also exited 1 the operator reads a usage error as "the
+# surface is stale" and regenerates an oracle to chase a typo. 2 is reserved for
+# "you called me wrong" — nothing about the surface was measured.
+EXIT_OK    = 0
+EXIT_DRIFT = 1
+EXIT_USAGE = 2
+
+# Raised when argv is malformed. Carries no verdict — the surface is never built.
+class UsageError < StandardError; end
+
 def parse_options(argv)
   options = {
     output: nil,
@@ -1412,13 +1424,17 @@ def parse_options(argv)
   }
   option_parser(options).parse!(argv)
   options
+rescue OptionParser::ParseError => e
+  # OptionParser's default is an uncaught exception -> exit 1, which collides
+  # with EXIT_DRIFT. Convert it to the usage code.
+  raise UsageError, e.message
 end
 
 def option_parser(options)
   OptionParser.new do |o|
     o.banner = 'Usage: ruby scripts/enumerate_surface.rb [options]'
     o.on('--output PATH', 'Write JSON to this path (default: stdout)') { |v| options[:output] = Pathname.new(v) }
-    o.on('--check', 'Compare against --output; exit 1 on drift') { options[:check] = true }
+    o.on('--check', 'Compare against --output; exit 1 on drift (2 on a usage error)') { options[:check] = true }
     o.on('--python-surface PATH', 'Path to python_surface.json') { |v| options[:python_surface] = Pathname.new(v) }
     o.on('-h', '--help', 'Show this help') do
       puts o
@@ -1428,34 +1444,34 @@ def option_parser(options)
 end
 
 # Compare the freshly rendered surface against the on-disk --output file.
-# Returns a process exit code (0 fresh, 1 missing/stale).
+# Returns a process exit code (EXIT_OK fresh, EXIT_DRIFT missing/stale).
 def run_check(output_path, rendered)
   unless output_path.file?
     warn "error: #{output_path} does not exist"
-    return 1
+    return EXIT_DRIFT
   end
 
   existing = JSON.parse(output_path.read)
   actual   = JSON.parse(rendered)
-  return 0 if strip_meta(existing) == strip_meta(actual)
+  return EXIT_OK if strip_meta(existing) == strip_meta(actual)
 
   warn 'DRIFT: port_surface.json is stale relative to lib/.'
   warn '  Regenerate: ruby scripts/enumerate_surface.rb --output port_surface.json'
-  1
+  EXIT_DRIFT
 end
 
 def main(argv)
   options = parse_options(argv)
-  if options[:check] && options[:output].nil?
-    warn 'error: --check requires --output'
-    return 2
-  end
+  raise UsageError, '--check requires --output' if options[:check] && options[:output].nil?
 
   rendered = "#{JSON.pretty_generate(deep_sort(build_snapshot(options[:python_surface])))}\n"
   return run_check(options[:output], rendered) if options[:check]
 
   emit(options[:output], rendered)
-  0
+  EXIT_OK
+rescue UsageError => e
+  warn "error: #{e.message}"
+  EXIT_USAGE
 end
 
 def emit(output_path, rendered)
