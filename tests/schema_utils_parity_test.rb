@@ -6,6 +6,7 @@
 # See LICENSE file in the project root for full license information.
 
 require 'minitest/autorun'
+require 'fileutils'
 require 'json'
 
 ENV['SIGNALWIRE_LOG_MODE'] = 'off'
@@ -136,6 +137,16 @@ class SchemaUtilsParityTest < Minitest::Test
 
     assert_kind_of SchemaUtils, su
     refute_empty su.get_all_verb_names
+  end
+
+  def test_healthy_validator_still_rejects_and_accepts_correctly
+    su = SchemaUtils.new
+
+    assert_predicate su, :full_validation_available?
+    valid, = su.validate_verb('answer', 'max_duration' => 30, 'zzz_forbidden_key' => 'nope')
+
+    refute valid, 'healthy validator must still reject a forbidden key'
+    assert_equal [true, []], su.validate_verb('answer', 'max_duration' => 30)
   end
 
   def test_schema_validation_error

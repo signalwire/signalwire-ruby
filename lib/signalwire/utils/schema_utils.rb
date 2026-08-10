@@ -38,10 +38,18 @@ module SignalWire
     #
     # Full JSON Schema validation (Draft 2020-12, including closed-key
     # `unevaluatedProperties` and type checking) is performed via the
-    # `json_schemer` gem: a verb config is wrapped in a minimal SWML document
-    # and validated against the bundled schema.json. When json_schemer is
-    # unavailable this falls back to a lightweight validator that checks verb
-    # existence and required properties only.
+    # `json_schemer` gem, mirroring Python's jsonschema-rs validator: a verb
+    # config is wrapped in a minimal SWML document and validated against the
+    # bundled schema.json.
+    #
+    # The lightweight validator (verb existence + required-property check) has
+    # the same BODY as Python's _validate_verb_lightweight(), but it is reached
+    # only under the same CONDITION Python reaches it: a partial/mocked schema
+    # that has no full document structure to validate against. A json_schemer
+    # load or compile FAILURE is not that condition — it means validation did not
+    # happen, and validate_verb refuses (returns valid=false naming the reason)
+    # rather than degrading to a check that would report a forbidden key as
+    # valid. See init_full_validator.
     class SchemaUtils
       # JSON-schema scalar type → Python type-annotation string (codegen).
       PYTHON_SCALAR_TYPES = {
@@ -72,6 +80,10 @@ module SignalWire
         @schema = load_schema
         @verbs = {}
         @full_validator = nil
+        # Set only when the validator could not be BUILT (load/compile failure),
+        # never when full validation simply does not apply. See
+        # init_full_validator for why the two cases must stay distinguishable.
+        @validator_unavailable_reason = nil
         extract_verbs
         init_full_validator if @validation_enabled && !@schema.empty?
       end
@@ -135,11 +147,10 @@ module SignalWire
 
         return [false, ["Unknown verb: #{verb_name}"]] unless @verbs.key?(verb_name)
 
-        if @full_validator
-          validate_verb_full(verb_name, verb_config)
-        else
-          validate_verb_lightweight(verb_name, verb_config)
-        end
+        return validate_verb_full(verb_name, verb_config) if @full_validator
+        return validator_unavailable_refusal(verb_name) if @validator_unavailable_reason
+
+        validate_verb_lightweight(verb_name, verb_config)
       end
 
       # Validate a complete SWML document by running the full JSON Schema
@@ -331,18 +342,60 @@ module SignalWire
       end
 
       # Wire the json_schemer full validator (Draft 2020-12) over the loaded
-      # schema. Leaves
-      # @full_validator nil (lightweight fallback) if json_schemer is not
-      # installed or the schema lacks the full document structure — so a
-      # partial/test schema without a 'sections' property never crashes here.
+      # schema, mirroring Python's jsonschema-rs Draft202012Validator.
+      #
+      # There are TWO reasons @full_validator can end up nil, and they are NOT
+      # interchangeable:
+      #
+      #   (a) NOTHING TO FULL-VALIDATE — the schema is partial/mocked and lacks
+      #       the full document structure (no properties.sections). The
+      #       lightweight required-props check is the intended, documented
+      #       behaviour here; this is the only case Python's
+      #       _validate_verb_lightweight() is reachable in.
+      #   (b) THE VALIDATOR COULD NOT BE BUILT — json_schemer failed to load, or
+      #       failed to compile this schema. Validation did NOT happen. Routing
+      #       this to the lightweight check reports `valid: true` for a config
+      #       nobody validated, i.e. a false clean bill of health.
+      #
+      # This method used to fuse both into a bare `rescue LoadError,
+      # StandardError => @full_validator = nil`, so ANY load/compile failure
+      # silently disabled closed-key validation for EVERY verb. Instead, record
+      # why the validator is absent (@validator_unavailable_reason) so
+      # validate_verb can refuse loudly for (b) while preserving (a). Same shape
+      # the TypeScript port landed on in d8cfe4c for the identical fail-open bug,
+      # and consistent with Python, whose _init_full_validator has no rescue at
+      # all — there, a compile failure propagates out of the constructor.
       def init_full_validator
         return unless @schema.is_a?(Hash) && @schema.dig('properties', 'sections')
+        return unless require_json_schemer
 
+        compile_full_validator
+      end
+
+      # Load the json_schemer gem. Returns true on success; on LoadError records
+      # the reason and returns false. json_schemer is a hard runtime dependency
+      # (signalwire-sdk.gemspec: `s.add_dependency 'json_schemer'`), so this only
+      # fires on a broken/partial install — it is NOT an optional-feature signal.
+      def require_json_schemer
         require 'json_schemer'
+        true
+      rescue LoadError => e
+        @validator_unavailable_reason =
+          "the json_schemer gem could not be loaded (#{e.message}); it is a required " \
+          'runtime dependency of this SDK — reinstall the gem to restore validation'
+        @full_validator = nil
+        false
+      end
+
+      # Compile the loaded schema. A compile throw means validation cannot run,
+      # so record why rather than degrading to the lightweight check.
+      def compile_full_validator
         @full_validator = JSONSchemer.schema(
           apply_sdk_widen(@schema), meta_schema: 'https://json-schema.org/draft/2020-12/schema'
         )
-      rescue LoadError, StandardError
+      rescue StandardError => e
+        @validator_unavailable_reason =
+          "the JSON Schema failed to compile (#{e.class}: #{e.message})"
         @full_validator = nil
       end
 
@@ -394,7 +447,7 @@ module SignalWire
       # and validate the whole doc, so the schema's closed-key
       # (`unevaluatedProperties`) and type rules apply to the verb config.
       def validate_verb_full(verb_name, verb_config)
-        return validate_verb_lightweight(verb_name, verb_config) if @full_validator.nil?
+        return validate_verb_no_full_validator(verb_name, verb_config) if @full_validator.nil?
 
         minimal_doc = {
           'version' => '1.0.0',
@@ -407,8 +460,28 @@ module SignalWire
         [false, ["Schema validation error for '#{verb_name}': #{detail}"]]
       end
 
-      # Build a concise error string from json_schemer's error records,
-      # truncated to 500 characters.
+      # The validator could not be BUILT, so this config was never validated.
+      # Refuse instead of handing back a pass: a failure to evaluate must never
+      # read as an affirmative answer. Mirrors validate_document's existing
+      # 'Schema validator not initialized' refusal — which already fails closed
+      # in this same class, an asymmetry validate_verb used to break.
+      def validator_unavailable_refusal(verb_name)
+        [false, ["Schema validation unavailable for '#{verb_name}': " \
+                 "#{@validator_unavailable_reason}. The config was NOT validated; " \
+                 'this is not a pass. Set schema_validation: false (or ' \
+                 'SWML_SKIP_SCHEMA_VALIDATION=1) to intentionally skip validation.']]
+      end
+
+      # No full validator: refuse if it could not be BUILT, otherwise fall back to
+      # the lightweight check (the legitimate partial-schema case).
+      def validate_verb_no_full_validator(verb_name, verb_config)
+        return validator_unavailable_refusal(verb_name) if @validator_unavailable_reason
+
+        validate_verb_lightweight(verb_name, verb_config)
+      end
+
+      # Build a concise error string from json_schemer's error records, capped
+      # like Python's 500-char truncation.
       def schema_error_detail(_verb_name, errors)
         msg = errors.filter_map { |e| e['error'] || e['type'] }.join('; ')
         msg = "#{msg[0, 500]}..." if msg.length > 500
