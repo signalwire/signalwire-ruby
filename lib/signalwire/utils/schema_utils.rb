@@ -201,16 +201,17 @@ module SignalWire
       # them. params is open by construction — this check
       # never looks inside it.
       #
+      # A no-op when validation is disabled or when the verb genuinely has no
+      # enumerable closed key-set (an open object such as `set`, or a union with
+      # no object branch such as `unset`).
+      #
       # @return [Array(Boolean, Array<String>)] (valid, errors) tuple.
       def validate_verb_top_level_keys(verb_name, verb_config)
         return [true, []] unless @validation_enabled
         return [false, ["Unknown verb: #{verb_name}"]] unless @verbs.key?(verb_name)
         return [true, []] unless verb_config.is_a?(Hash)
 
-        schema = resolved_verb_schema(verb_name)
-        return [true, []] if schema.nil?
-
-        errors = top_level_key_errors(verb_name, verb_config, schema)
+        errors = top_level_key_errors(verb_name, verb_config)
         [errors.empty?, errors]
       end
 
@@ -500,54 +501,126 @@ module SignalWire
         [errors.empty?, errors]
       end
 
-      # Resolve a verb's own object schema (following a single top-level $ref,
-      # e.g. the ai verb -> #/$defs/AIObject), returning the Hash schema whose
-      # `properties` + `required` + closed-key flag define the verb's top level,
-      # or nil when it can't be resolved.
-      def resolved_verb_schema(verb_name)
+      # Bounds $ref / union following in closed_key_set so a schema with a
+      # self-referential $ref cannot spin the resolver. Eight levels is well past
+      # anything the SWML schema needs (verb body -> $ref -> union branch ->
+      # $ref).
+      MAX_SCHEMA_RESOLVE_DEPTH = 8
+      private_constant :MAX_SCHEMA_RESOLVE_DEPTH
+
+      # Resolve a verb's own schema node to the set of KNOWN top-level property
+      # names it closes over, following a single top-level $ref (e.g. the ai verb
+      # -> #/$defs/AIObject) and UNIONING the branches of an anyOf/oneOf union.
+      # Returns nil only when there is genuinely no enumerable closed key-set, so
+      # no shallow check applies.
+      def verb_top_level_property_names(verb_name)
         node = get_verb_properties(verb_name)
-        return node unless node.is_a?(Hash)
+        return nil unless node.is_a?(Hash)
 
-        ref = node['$ref']
-        return node unless ref.is_a?(String)
-
-        prefix = '#/$defs/'
-        return node unless ref.start_with?(prefix)
-
-        target = @schema.dig('$defs', ref[prefix.length..])
-        target.is_a?(Hash) ? target : node
+        closed_key_set(node, 0)
       end
 
-      # Closed-key + required-key errors at the verb's own level. A key not in
-      # the schema's declared `properties` is rejected only when the schema is
-      # closed (unevaluatedProperties / additionalProperties disallow extras).
-      def top_level_key_errors(verb_name, verb_config, schema)
-        errors = missing_required_errors(verb_name, verb_config, schema)
-        errors.concat(unknown_key_errors(verb_name, verb_config, schema)) if schema_closed?(schema)
+      # Resolve ONE schema node to the set of top-level property names it closes
+      # over, returning nil when the node has no such enumerable closed key-set.
+      #
+      # Three node shapes are handled, and the union case is the one that matters:
+      #
+      #   - `$ref` — followed into $defs and resolved recursively (ai -> AIObject).
+      #   - `anyOf` / `oneOf` — resolved BRANCH BY BRANCH and UNIONED. Without
+      #     this the resolver returned the union node itself, which carries no
+      #     `properties` and no closed-key flag of its own (the BRANCHES carry
+      #     both), so schema_closed? answered false and the closed-key check
+      #     silently DISENGAGED: validate_verb_top_level_keys reported valid for
+      #     any key whatsoever. Five verbs in the shipped schema are union-shaped
+      #     — connect, play, send_sms, sleep, unset — so the check was doing
+      #     nothing for all of them. A union's known-key set is the union of its
+      #     object branches' keys: a config satisfying the union satisfies SOME
+      #     branch, so a key belonging to no branch belongs to no valid document.
+      #     Non-object branches (sleep's bare `integer`, SWMLVar) contribute no
+      #     keys and are skipped — they constrain the config to not be an object
+      #     at all, a different question from which keys an object config may
+      #     carry.
+      #   - a plain closed object — its own `properties`.
+      def closed_key_set(node, depth)
+        return nil unless node.is_a?(Hash) && depth <= MAX_SCHEMA_RESOLVE_DEPTH
+
+        ref = node['$ref']
+        return closed_key_set(resolve_ref(ref), depth + 1) if ref.is_a?(String)
+
+        branches = node['anyOf']
+        branches = node['oneOf'] unless branches.is_a?(Array)
+        return union_key_set(branches, depth) if branches.is_a?(Array)
+
+        closed_object_key_set(node)
+      end
+
+      # Follow a '#/$defs/<name>' ref into the schema's $defs, or nil.
+      def resolve_ref(ref)
+        prefix = '#/$defs/'
+        return nil unless ref.start_with?(prefix)
+
+        @schema.dig('$defs', ref[prefix.length..])
+      end
+
+      # The UNION of every branch that itself yields a closed key-set. nil when
+      # no branch is a closed object (e.g. unset: string | array-of-string) —
+      # there is no key-set to enforce and the deep validator owns that shape.
+      def union_key_set(branches, depth)
+        sets = branches.filter_map { |branch| closed_key_set(branch, depth + 1) }
+        return nil if sets.empty?
+
+        sets.reduce([]) { |acc, keys| acc | keys }
+      end
+
+      # A plain object node's declared property names — but only when the schema
+      # itself CLOSES the object, since an open object has no enforceable
+      # key-set.
+      def closed_object_key_set(node)
+        return nil unless node['type'] == 'object'
+
+        props = node['properties']
+        return nil unless props.is_a?(Hash) && schema_closed?(node)
+
+        props.keys
+      end
+
+      # Closed-key + required-key errors at the verb's own level. A key outside
+      # the resolved known-key set is rejected only when that set exists — i.e.
+      # when the schema genuinely closes the verb's top level — matching the
+      # reference's closed-verb contract.
+      def top_level_key_errors(verb_name, verb_config)
+        errors = missing_required_errors(verb_name, verb_config)
+        known = verb_top_level_property_names(verb_name)
+        errors.concat(unknown_key_errors(verb_name, verb_config, known)) unless known.nil?
         errors
       end
 
       # @api private — one error per `required` property absent from the config.
       #
+      # Required properties come from the verb's own resolved node. A union node
+      # declares no `required` of its own (each branch does), so this stays a
+      # no-op there and the branch-specific requirements remain the deep
+      # validator's business.
+      #
       # @return [Array<String>]
-      def missing_required_errors(verb_name, verb_config, schema)
-        required = schema['required']
+      def missing_required_errors(verb_name, verb_config)
+        node = get_verb_properties(verb_name)
+        node = resolve_ref(node['$ref']) if node.is_a?(Hash) && node['$ref'].is_a?(String)
+        required = node.is_a?(Hash) ? node['required'] : nil
         return [] unless required.is_a?(Array)
 
         required.reject { |req| verb_config.key?(req) }
                 .map { |req| "Missing required property '#{req}' for verb '#{verb_name}'" }
       end
 
-      # @api private — one error per config key not declared in the schema's
-      # `properties`. Only called for a CLOSED schema; an open one legitimately
-      # accepts extras.
+      # @api private — one error per config key outside the resolved known-key
+      # set. Only called when that set exists (the verb's top level genuinely
+      # closes); an open object legitimately accepts extras.
       #
       # @return [Array<String>]
-      def unknown_key_errors(verb_name, verb_config, schema)
-        props = schema['properties']
-        allowed = props.is_a?(Hash) ? props.keys : []
-        verb_config.keys.reject { |key| allowed.include?(key) }
-                   .map { |key| "Unknown property '#{key}' for verb '#{verb_name}'" }
+      def unknown_key_errors(verb_name, verb_config, known)
+        unknown = verb_config.keys.reject { |key| known.include?(key) }
+        unknown.map { |key| "Unknown property '#{key}' for verb '#{verb_name}'" }
       end
 
       # Whether a schema disallows unlisted properties (closed), via either the
