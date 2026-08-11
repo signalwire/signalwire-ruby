@@ -1056,6 +1056,12 @@ end
 # `ChatLog.new(messages:, call_timeline:)` works. This mirrors what
 # enumerate_signatures.py already does for the same five classes
 # (synth_positional_struct_inits / synth_ai_chat_struct_inits).
+#
+# Provenance: the synthesized `__init__` entered the oracle in porting-sdk
+# 8828dd2 ("surface must record a synthesized __init__, not just a `def` one"),
+# which is the commit from which every @dataclass / Struct-shaped model started
+# carrying one — i.e. the point at which a reader-set comparison began aborting
+# enumerations that had no port drift at all.
 def oracle_gated_field_accessors(klass, target_mod, cls, oracle_generated_members)
   wanted = oracle_generated_members[[target_mod, cls]]
   return [] unless wanted
