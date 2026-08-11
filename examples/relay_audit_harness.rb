@@ -29,19 +29,19 @@ ENV['SIGNALWIRE_LOG_MODE'] ||= 'off'
 require 'signalwire/relay/client'
 require 'signalwire/relay/constants'
 
-project  = ENV['SIGNALWIRE_PROJECT_ID']
+project  = ENV.fetch('SIGNALWIRE_PROJECT_ID', nil)
 project  = 'audit' if project.nil? || project.empty?
-token    = ENV['SIGNALWIRE_API_TOKEN']
+token    = ENV.fetch('SIGNALWIRE_API_TOKEN', nil)
 token    = 'audit' if token.nil? || token.empty?
-host     = ENV['SIGNALWIRE_RELAY_HOST']
+host     = ENV.fetch('SIGNALWIRE_RELAY_HOST', nil)
 host     = 'audit.host' if host.nil? || host.empty?
 contexts = (ENV['SIGNALWIRE_CONTEXTS'] || 'audit_ctx')
            .split(',').map(&:strip).reject(&:empty?)
 
 client = SignalWire::Relay::Client.new(
   project: project,
-  token:   token,
-  space:   host,
+  token: token,
+  space: host,
   contexts: contexts
 )
 
@@ -62,12 +62,12 @@ client.on_event do |event_type, event_params, _outer|
 
   client.send_json(
     'jsonrpc' => '2.0',
-    'id'      => "dispatched-#{event_type}",
-    'method'  => SignalWire::Relay::METHOD_SIGNALWIRE_EVENT,
-    'params'  => {
+    'id' => "dispatched-#{event_type}",
+    'method' => SignalWire::Relay::METHOD_SIGNALWIRE_EVENT,
+    'params' => {
       'dispatched' => true,
       'event_type' => event_type,
-      'echoed'     => event_params
+      'echoed' => event_params
     }
   )
 end
@@ -78,11 +78,9 @@ end
 # through to the reconnect loop, which is fine for the audit fixture
 # (the connection is supposed to succeed first try).
 run_thread = Thread.new do
-  begin
-    client.run
-  rescue => e
-    $stderr.puts "relay_audit_harness: client.run raised: #{e.message}"
-  end
+  client.run
+rescue StandardError => e
+  warn "relay_audit_harness: client.run raised: #{e.message}"
 end
 
 # Wait for the client to authenticate (signalwire.connect completed
@@ -96,16 +94,17 @@ sleep 0.05 until client.protocol || Time.now > deadline
 # `signalwire.receive`). The fixture replies with `{contexts}`.
 begin
   client.execute('signalwire.subscribe', { 'contexts' => contexts })
-rescue => e
-  $stderr.puts "relay_audit_harness: subscribe failed: #{e.message}"
+rescue StandardError => e
+  warn "relay_audit_harness: subscribe failed: #{e.message}"
 end
 
 # Wait up to 5 seconds for an inbound event to be dispatched.
 saw_event_mutex.synchronize do
   deadline = Time.now + 5
-  while !saw_event
+  until saw_event
     remaining = deadline - Time.now
     break if remaining <= 0
+
     saw_event_cv.wait(saw_event_mutex, remaining)
   end
 end
@@ -120,7 +119,7 @@ client.stop
 run_thread.join(2)
 
 unless got_event
-  $stderr.puts 'relay_audit_harness: no event arrived within 5s'
+  warn 'relay_audit_harness: no event arrived within 5s'
   exit 1
 end
 

@@ -10,7 +10,7 @@
 #   RELAY_TO_NUMBER     - destination to call
 
 require 'signalwire'
-require 'signalwire/relay/client'  # opt-in subsystem (Python: from signalwire.relay import RelayClient)
+require 'signalwire/relay/client' # opt-in subsystem (Python: from signalwire.relay import RelayClient)
 
 from_number = ENV.fetch('RELAY_FROM_NUMBER', '+15551230001')
 to_number   = ENV.fetch('RELAY_TO_NUMBER', '+15551230002')

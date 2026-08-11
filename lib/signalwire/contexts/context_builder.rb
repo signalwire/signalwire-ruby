@@ -6,6 +6,7 @@
 # See LICENSE file in the project root for full license information.
 
 module SignalWire
+  # Contexts — the multi-step / multi-context AI workflow builder surface.
   module Contexts
     MAX_CONTEXTS = 50
     MAX_STEPS_PER_CONTEXT = 100
@@ -86,6 +87,12 @@ module SignalWire
         @isolated  = isolated
       end
 
+      # Serialize this question to its wire shape. `key` and `question` are always
+      # present; the optional fields are emitted only when they differ from the
+      # runtime default, except `isolated`, which is emitted whenever it is set
+      # (including `false`) so a question can override an isolated gather.
+      #
+      # @return [Hash{String => Object}]
       def to_h
         h = { 'key' => @key, 'question' => @question }
         h['type']      = @type      if @type != 'string'
@@ -106,7 +113,7 @@ module SignalWire
       # +isolated+ is the default for every question in this gather: when
       # true, each question is asked with the sibling Q&A hidden from the
       # model. A question's own +isolated:+ overrides this default. Held
-      # privately, matching the reference's `self._isolated`.
+      # privately — read it through the questions it seeds, not directly.
       def initialize(output_key: nil, completion_action: nil, prompt: nil, isolated: false)
         @output_key        = output_key
         @completion_action = completion_action
@@ -129,6 +136,13 @@ module SignalWire
         self
       end
 
+      # Serialize this gather to its wire shape: the `questions` array plus any
+      # of `prompt` / `output_key` / `completion_action` that were set, and
+      # `isolated` only when true.
+      #
+      # @return [Hash{String => Object}]
+      # @raise [ArgumentError] if no question has been added — the runtime
+      #   rejects an empty gather
       def to_h
         raise ArgumentError, 'gather_info must have at least one question' if @questions.empty?
 
@@ -147,6 +161,11 @@ module SignalWire
     class Step
       attr_reader :name
 
+      # Create an empty step. Every field starts unset; use the `set_*` mutators
+      # (or the matching `x=` writers) to configure it.
+      #
+      # @param name [String] the step's name — how `valid_steps`, `initial_step`
+      #   and a gather's `completion_action` refer to it
       def initialize(name)
         @name = name
         @text = @step_criteria = @valid_steps = @valid_contexts = @gather_info = nil
@@ -187,6 +206,11 @@ module SignalWire
         self
       end
 
+      # Set the natural-language condition the model must satisfy before it may
+      # advance out of this step. Emitted as the step's `step_criteria`.
+      #
+      # @param criteria [String] the completion condition, e.g. "User has provided their account number"
+      # @return [Step] self, for chaining
       def set_step_criteria(criteria)
         @step_criteria = criteria
         self
@@ -228,11 +252,24 @@ module SignalWire
         self
       end
 
+      # Set which steps the model may navigate to from this step. Declaring this
+      # makes the runtime inject the native `next_step` tool with these names as
+      # its enum. The literal `"next"` is accepted and means the next step in
+      # declaration order.
+      #
+      # @param steps [Array<String>] step names within this context
+      # @return [Step] self, for chaining
       def set_valid_steps(steps)
         @valid_steps = steps
         self
       end
 
+      # Set which contexts the model may switch to from this step. Declaring this
+      # makes the runtime inject the native `change_context` tool with these names
+      # as its enum. Overrides the enclosing context's `valid_contexts`.
+      #
+      # @param contexts [Array<String>] context names known to the builder
+      # @return [Step] self, for chaining
       def set_valid_contexts(contexts)
         @valid_contexts = contexts
         self
@@ -255,11 +292,23 @@ module SignalWire
         self
       end
 
+      # Skip waiting for the user to speak when this step is entered — the model
+      # produces its turn immediately instead of listening first. Use it for a
+      # step whose whole job is to say something.
+      #
+      # @param skip [Boolean]
+      # @return [Step] self, for chaining
       def set_skip_user_turn(skip)
         @skip_user_turn = skip
         self
       end
 
+      # Advance out of this step without a model turn at all: the step's
+      # instructions are applied and the runtime immediately moves to the next
+      # step. Use it for a step that only mutates state.
+      #
+      # @param skip [Boolean]
+      # @return [Step] self, for chaining
       def set_skip_to_next_step(skip)
         @skip_to_next_step = skip
         self
@@ -348,26 +397,52 @@ module SignalWire
         self
       end
 
+      # Set the `system_prompt` of this step's `reset` object, replacing the
+      # system prompt when the reset fires.
+      #
+      # @param prompt [String]
+      # @return [Step] self, for chaining
       def set_reset_system_prompt(prompt)
         @reset_system_prompt = prompt
         self
       end
 
+      # Set the `user_prompt` of this step's `reset` object — the message injected
+      # as the user turn when the reset fires.
+      #
+      # @param prompt [String]
+      # @return [Step] self, for chaining
       def set_reset_user_prompt(prompt)
         @reset_user_prompt = prompt
         self
       end
 
+      # When true, the reset summarizes the prior conversation into a single
+      # message instead of dropping it. Emitted as `reset.consolidate`.
+      #
+      # @param val [Boolean]
+      # @return [Step] self, for chaining
       def set_reset_consolidate(val)
         @reset_consolidate = val
         self
       end
 
+      # When true, the reset discards the prior conversation outright rather than
+      # consolidating it. Emitted as `reset.full_reset`.
+      #
+      # @param val [Boolean]
+      # @return [Step] self, for chaining
       def set_reset_full_reset(val)
         @reset_full_reset = val
         self
       end
 
+      # Serialize this step to its wire shape: `name` and the rendered `text`,
+      # plus whichever of the navigation/behavior fields were set, a `reset`
+      # object when any reset field is set, and `gather_info` when configured.
+      #
+      # @return [Hash{String => Object}]
+      # @raise [ArgumentError] if the step has neither text nor POM sections
       def to_h
         step_h = { 'name' => @name, 'text' => render_text }
         add_step_fields(step_h)
@@ -378,6 +453,8 @@ module SignalWire
         step_h
       end
 
+      # @api private — add the criteria/functions/navigation/history fields to the
+      # step hash, each only when set, then delegate to {#add_step_flags}.
       def add_step_fields(step_h)
         step_h['step_criteria']  = @step_criteria if @step_criteria
         step_h['functions']      = @functions     unless @functions.nil?
@@ -388,6 +465,8 @@ module SignalWire
       end
       private :add_step_fields
 
+      # @api private — add the boolean behavior flags to the step hash. Each is
+      # emitted only when true; the runtime treats absence as false.
       def add_step_flags(step_h)
         step_h['end']               = true if @end
         step_h['skip_user_turn']    = true if @skip_user_turn
@@ -395,6 +474,9 @@ module SignalWire
       end
       private :add_step_flags
 
+      # @api private — build the step's `reset` object from the four reset fields,
+      # each included only when set. An empty Hash means "no reset" and the caller
+      # omits the key entirely.
       def reset_hash
         reset = {}
         reset['system_prompt'] = @reset_system_prompt if @reset_system_prompt
@@ -423,6 +505,10 @@ module SignalWire
 
       private
 
+      # @api private — the step's prompt text: the literal `set_text` value when
+      # one was given, otherwise the POM sections rendered to markdown.
+      #
+      # @raise [ArgumentError] if neither was supplied
       def render_text
         return @text if @text
 
@@ -436,9 +522,9 @@ module SignalWire
     class Context
       attr_reader :name
 
-      # rubocop:disable Metrics/AbcSize -- a flat field-initialization list for
-      # one Python class (Context): every line is a distinct default assignment,
-      # not branching logic. Splitting it would only hide the data shape.
+      # rubocop:disable Metrics/AbcSize -- a flat field-initialization list:
+      # every line is a distinct default assignment, not branching logic.
+      # Splitting it would only hide the data shape.
       def initialize(name)
         @name = name
         @steps = {} # name => Step
@@ -536,21 +622,42 @@ module SignalWire
         self
       end
 
+      # Set the default list of contexts the model may switch to from any step in
+      # this context. A step's own {Step#set_valid_contexts} overrides it.
+      #
+      # @param contexts [Array<String>] context names known to the builder
+      # @return [Context] self, for chaining
       def set_valid_contexts(contexts)
         @valid_contexts = contexts
         self
       end
 
+      # Set the default list of steps the model may navigate to from any step in
+      # this context. A step's own {Step#set_valid_steps} overrides it.
+      #
+      # @param steps [Array<String>] step names within this context
+      # @return [Context] self, for chaining
       def set_valid_steps(steps)
         @valid_steps = steps
         self
       end
 
+      # Set the post-prompt run after the conversation ends while this context is
+      # active — typically the summarization instruction.
+      #
+      # @param prompt [String]
+      # @return [Context] self, for chaining
       def set_post_prompt(prompt)
         @post_prompt = prompt
         self
       end
 
+      # Set the system prompt applied while this context is active, replacing the
+      # agent's base system prompt. Mutually exclusive with POM system sections.
+      #
+      # @param prompt [String]
+      # @return [Context] self, for chaining
+      # @raise [ArgumentError] if {#add_system_section} / {#add_system_bullets} was already used
       def set_system_prompt(prompt)
         if @system_prompt_sections.any?
           raise ArgumentError,
@@ -561,6 +668,12 @@ module SignalWire
         self
       end
 
+      # Set this context's prompt text directly. Mutually exclusive with the POM
+      # prompt sections added via {#add_section} / {#add_bullets}.
+      #
+      # @param prompt [String]
+      # @return [Context] self, for chaining
+      # @raise [ArgumentError] if POM prompt sections were already added
       def set_prompt(prompt)
         raise ArgumentError, 'Cannot use set_prompt when POM prompt sections exist' if @prompt_sections.any?
 
@@ -568,16 +681,32 @@ module SignalWire
         self
       end
 
+      # When true, entering this context summarizes the prior conversation into a
+      # single message rather than carrying it verbatim. Takes precedence over
+      # {#set_isolated}'s wipe.
+      #
+      # @param val [Boolean]
+      # @return [Context] self, for chaining
       def set_consolidate(val)
         @consolidate = val
         self
       end
 
+      # When true, entering this context discards the prior conversation outright.
+      # Takes precedence over {#set_isolated}'s wipe.
+      #
+      # @param val [Boolean]
+      # @return [Context] self, for chaining
       def set_full_reset(val)
         @full_reset = val
         self
       end
 
+      # Set the message injected as the user turn when this context is entered
+      # with a reset. Emitted as the context's `user_prompt`.
+      #
+      # @param prompt [String]
+      # @return [Context] self, for chaining
       def set_user_prompt(prompt)
         @user_prompt = prompt
         self
@@ -656,16 +785,35 @@ module SignalWire
         self
       end
 
+      # Replace the map of language code to filler phrases spoken while entering
+      # this context. A non-Hash or empty Hash is ignored, leaving the current
+      # value in place.
+      #
+      # @param fillers [Hash{String => Array<String>}] language code (e.g. "en-US") to phrases
+      # @return [Context] self, for chaining
       def set_enter_fillers(fillers)
         @enter_fillers = fillers if fillers.is_a?(Hash) && fillers.any?
         self
       end
 
+      # Replace the map of language code to filler phrases spoken while leaving
+      # this context. A non-Hash or empty Hash is ignored, leaving the current
+      # value in place.
+      #
+      # @param fillers [Hash{String => Array<String>}] language code (e.g. "en-US") to phrases
+      # @return [Context] self, for chaining
       def set_exit_fillers(fillers)
         @exit_fillers = fillers if fillers.is_a?(Hash) && fillers.any?
         self
       end
 
+      # Add or replace the enter fillers for a single language, keeping any other
+      # languages already configured. A blank code or a non-Array / empty phrase
+      # list is ignored.
+      #
+      # @param lang_code [String] e.g. "en-US"
+      # @param fillers [Array<String>] phrases spoken while entering this context
+      # @return [Context] self, for chaining
       def add_enter_filler(lang_code, fillers)
         if lang_code && fillers.is_a?(Array) && fillers.any?
           @enter_fillers = {} unless defined?(@enter_fillers) && @enter_fillers
@@ -674,6 +822,13 @@ module SignalWire
         self
       end
 
+      # Add or replace the exit fillers for a single language, keeping any other
+      # languages already configured. A blank code or a non-Array / empty phrase
+      # list is ignored.
+      #
+      # @param lang_code [String] e.g. "en-US"
+      # @param fillers [Array<String>] phrases spoken while leaving this context
+      # @return [Context] self, for chaining
       def add_exit_filler(lang_code, fillers)
         if lang_code && fillers.is_a?(Array) && fillers.any?
           @exit_fillers = {} unless defined?(@exit_fillers) && @exit_fillers
@@ -682,6 +837,12 @@ module SignalWire
         self
       end
 
+      # Serialize this context to its wire shape: the `steps` array in declaration
+      # order, plus the navigation, reset, prompt, filler and history fields that
+      # were set.
+      #
+      # @return [Hash{String => Object}]
+      # @raise [ArgumentError] if the context has no steps
       def to_h
         raise ArgumentError, "Context '#{@name}' has no steps defined" if @steps.empty?
 
@@ -719,6 +880,9 @@ module SignalWire
 
       private
 
+      # @api private — the context's system prompt: the literal `set_system_prompt`
+      # value when one was given, otherwise the POM system sections rendered to
+      # markdown, or nil when neither was supplied.
       def render_system_prompt
         return @system_prompt if @system_prompt
         return nil if @system_prompt_sections.empty?
@@ -726,6 +890,9 @@ module SignalWire
         Contexts._render_pom_sections(@system_prompt_sections)
       end
 
+      # @api private — add the navigation fields (`valid_contexts`, `valid_steps`,
+      # `initial_step`, `post_prompt`, `system_prompt`) to the context hash, each
+      # only when set.
       def add_navigation(ctx)
         ctx['valid_contexts'] = @valid_contexts if @valid_contexts
         ctx['valid_steps']    = @valid_steps    if @valid_steps
@@ -735,6 +902,8 @@ module SignalWire
         ctx['system_prompt'] = sys if sys
       end
 
+      # @api private — add the entry/reset fields (`consolidate`, `full_reset`,
+      # `user_prompt`, `isolated`) to the context hash, each only when set.
       def add_reset_flags(ctx)
         ctx['consolidate']  = @consolidate  if @consolidate
         ctx['full_reset']   = @full_reset   if @full_reset
@@ -742,6 +911,9 @@ module SignalWire
         ctx['isolated']     = @isolated     if @isolated
       end
 
+      # @api private — add the context prompt: POM sections under `pom` when any
+      # were added, else the literal text under `prompt`. Neither key is emitted
+      # when the context has no prompt of its own.
       def add_prompt(ctx)
         if @prompt_sections.any?
           ctx['pom'] = @prompt_sections
@@ -878,6 +1050,10 @@ module SignalWire
         raise ArgumentError, "When using a single context, it must be named 'default'"
       end
 
+      # Every context must declare at least one step — a context with none would
+      # render an empty flow the runtime cannot enter.
+      #
+      # @raise [ArgumentError] naming the offending context
       def validate_steps_present
         @contexts.each do |ctx_name, ctx|
           raise ArgumentError, "Context '#{ctx_name}' must have at least one step" if ctx._steps.empty?
@@ -897,6 +1073,11 @@ module SignalWire
         end
       end
 
+      # Every name in a step's `valid_steps` must resolve to a real step in the
+      # same context (or the literal `"next"`), so the injected `next_step` enum
+      # never offers a destination that does not exist.
+      #
+      # @raise [ArgumentError] naming the step and the unresolved reference
       def validate_valid_steps_refs
         @contexts.each do |ctx_name, ctx|
           ctx._steps.each do |step_name, step|
@@ -908,6 +1089,10 @@ module SignalWire
         end
       end
 
+      # @api private — one `valid_steps` entry. `"next"` is the literal
+      # advance-to-the-following-step token and always resolves.
+      #
+      # @raise [ArgumentError] if +ref+ is neither "next" nor a step in +ctx+
       def check_step_ref(ctx, ctx_name, step_name, ref)
         return if ref == 'next' || ctx._steps.key?(ref)
 
@@ -937,6 +1122,11 @@ module SignalWire
         end
       end
 
+      # @api private — one `set_functions` whitelist entry, checked against the
+      # known tool universe.
+      #
+      # @param known [Set<String>] registered SWAIG tool names plus the reserved native ones
+      # @raise [ArgumentError] if +func+ is not in +known+, listing the available names
       def check_step_function_ref(known, ctx_name, step_name, func)
         return if known.include?(func)
 
@@ -948,6 +1138,11 @@ module SignalWire
               "skill) or remove it from the step. Available: #{known.to_a.sort.inspect}"
       end
 
+      # Every name in a context's `valid_contexts` must resolve to a context the
+      # builder owns, so the injected `change_context` enum never offers a
+      # destination that does not exist.
+      #
+      # @raise [ArgumentError] naming the context and the unresolved reference
       def validate_context_level_refs
         @contexts.each do |ctx_name, ctx|
           valid = ctx.to_h['valid_contexts']
@@ -961,6 +1156,11 @@ module SignalWire
         end
       end
 
+      # Every name in a step's `valid_contexts` must resolve to a context the
+      # builder owns — the step-level override is checked the same way as the
+      # context-level list.
+      #
+      # @raise [ArgumentError] naming the step and the unresolved reference
       def validate_step_level_context_refs
         @contexts.each do |ctx_name, ctx|
           ctx._steps.each do |step_name, step|
@@ -972,6 +1172,10 @@ module SignalWire
         end
       end
 
+      # @api private — one `valid_contexts` entry, from either the context or the
+      # step level.
+      #
+      # @raise [ArgumentError] if +ref+ is not a context the builder owns
       def check_context_ref(ctx_name, step_name, ref)
         return if @contexts.key?(ref)
 
@@ -985,6 +1189,10 @@ module SignalWire
     module GatherInfoValidation
       private
 
+      # Check every step's gather_info: its questions are well-formed and its
+      # completion action resolves. Steps without a gather are skipped.
+      #
+      # @raise [ArgumentError] on the first problem found
       def validate_gather_infos
         @contexts.each do |ctx_name, ctx|
           ctx._steps.each do |step_name, step|
@@ -997,6 +1205,11 @@ module SignalWire
         end
       end
 
+      # @api private — a gather must ask at least one question, and its keys must
+      # be unique (a duplicate key would silently overwrite the earlier answer in
+      # the output object).
+      #
+      # @raise [ArgumentError] naming the step and context
       def validate_gather_questions(gather, ctx_name, step_name)
         questions = gather['questions'] || []
         if questions.empty?
@@ -1007,6 +1220,10 @@ module SignalWire
         check_duplicate_keys(questions, ctx_name, step_name)
       end
 
+      # @api private — reject a repeated `key` across a gather's questions; the
+      # answers are collected into one object, so a duplicate key loses data.
+      #
+      # @raise [ArgumentError] naming the duplicated key
       def check_duplicate_keys(questions, ctx_name, step_name)
         keys_seen = Set.new
         questions.each do |q|
@@ -1019,6 +1236,11 @@ module SignalWire
         end
       end
 
+      # @api private — a gather's `completion_action` must be either the literal
+      # `"next_step"` or the name of a step in the same context. nil (stay put) is
+      # the default and needs no check.
+      #
+      # @raise [ArgumentError] via {#validate_next_step_action} or {#raise_unknown_completion_action}
       def validate_gather_completion(gather, ctx, ctx_name, step_name)
         action = gather['completion_action']
         return unless action
@@ -1030,6 +1252,10 @@ module SignalWire
         end
       end
 
+      # @api private — `completion_action="next_step"` needs a following step to
+      # advance to, so it is invalid on the last step of a context.
+      #
+      # @raise [ArgumentError] spelling out the three ways to fix it
       def validate_next_step_action(ctx, ctx_name, step_name)
         idx = ctx._step_order.index(step_name)
         return if idx < ctx._step_order.size - 1
@@ -1043,6 +1269,10 @@ module SignalWire
               "(default) to stay in '#{step_name}' after gathering completes."
       end
 
+      # @api private — raise for a `completion_action` that names neither
+      # `"next_step"` nor an existing step, listing the valid options.
+      #
+      # @raise [ArgumentError] always
       def raise_unknown_completion_action(ctx, ctx_name, step_name, action)
         available = ctx._steps.keys.sort
         raise ArgumentError,

@@ -86,7 +86,7 @@ ruby bin/sw-search ./docs --output knowledge.swsearch
 #### Agent Creation
 Agents inherit from `SignalWire::AgentBase` and define:
 - Prompt Object Model (POM) sections via `prompt_add_section`
-- SWAIG functions via `define_tool` with block handlers
+- SWAIG functions via `define_tool` (`handler:` is a required keyword; pass `handler: nil` to use a block)
 - Skills integration via `add_skill` method
 - All configuration methods return `self` for chaining
 
@@ -97,7 +97,8 @@ agent.define_tool(
   description: 'Get current weather',
   parameters: {
     'city' => { 'type' => 'string', 'description' => 'City name' }
-  }
+  },
+  handler: nil
 ) do |args, raw_data|
   SignalWire::Swaig::FunctionResult.new("Weather in #{args['city']}: 72F")
 end

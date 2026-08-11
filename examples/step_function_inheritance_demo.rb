@@ -38,28 +38,28 @@ require 'json'
 require 'signalwire'
 
 agent = SignalWire::AgentBase.new(
-  name:  'step_function_inheritance_demo',
+  name: 'step_function_inheritance_demo',
   route: '/'
 )
 
 # Register three SWAIG tools so we have something to whitelist.
 # In a real agent these would call out to webhooks; here they're stubs.
 agent.define_tool(
-  name:        'lookup_account',
+  name: 'lookup_account',
   description: 'Look up customer account details by account number',
-  parameters:  { 'account_number' => { 'type' => 'string' } }
+  parameters: { 'account_number' => { 'type' => 'string' } }, handler: nil
 ) { |_args, _raw| { 'response' => 'looked up' } }
 
 agent.define_tool(
-  name:        'process_payment',
+  name: 'process_payment',
   description: 'Process a payment for the current customer',
-  parameters:  { 'amount' => { 'type' => 'number' } }
+  parameters: { 'amount' => { 'type' => 'number' } }, handler: nil
 ) { |_args, _raw| { 'response' => 'payment processed' } }
 
 agent.define_tool(
-  name:        'send_receipt',
+  name: 'send_receipt',
   description: 'Email a receipt to the customer',
-  parameters:  { 'email' => { 'type' => 'string' } }
+  parameters: { 'email' => { 'type' => 'string' } }, handler: nil
 ) { |_args, _raw| { 'response' => 'sent' } }
 
 # Build the contexts.
@@ -69,8 +69,8 @@ ctx = agent.define_contexts.add_context('default')
 # `lookup_account` is the only tool active in this step.
 ctx.add_step('step_lookup')
    .set_text(
-     "Greet the customer and ask for their account number. " \
-     "Use lookup_account to fetch their details."
+     'Greet the customer and ask for their account number. ' \
+     'Use lookup_account to fetch their details.'
    )
    .set_functions(%w[lookup_account])
    .valid_steps = %w[step_inherit]
@@ -84,7 +84,7 @@ ctx.add_step('step_lookup')
 ctx.add_step('step_inherit')
    .set_text(
      "Confirm the customer's identity. (No set_functions here, so " \
-     "lookup_account is still active — this is the inheritance trap.)"
+     'lookup_account is still active — this is the inheritance trap.)'
    )
    .valid_steps = %w[step_explicit]
 
@@ -94,7 +94,7 @@ ctx.add_step('step_inherit')
 ctx.add_step('step_explicit')
    .set_text(
      "Take the customer's payment. Use process_payment. " \
-     "lookup_account is no longer available."
+     'lookup_account is no longer available.'
    )
    .set_functions(%w[process_payment])
    .valid_steps = %w[step_disabled]
@@ -104,8 +104,8 @@ ctx.add_step('step_explicit')
 # navigation tools (next_step) are unaffected.
 ctx.add_step('step_disabled')
    .set_text(
-     "Thank the customer and wrap up. No tools are needed here, so " \
-     "we lock everything down with set_functions([])."
+     'Thank the customer and wrap up. No tools are needed here, so ' \
+     'we lock everything down with set_functions([]).'
    )
    .set_functions([])
    .set_end(true)

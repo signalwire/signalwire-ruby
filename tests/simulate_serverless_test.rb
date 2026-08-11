@@ -52,13 +52,18 @@ module SimulateServerlessTestHelpers
     RUBY
   end
 
+  # secure: false — these cases assert that --simulate-serverless reaches the
+  # dispatcher under each platform's ENV/event shape, not the `secure` token
+  # contract (covered per-transport in swaig_token_enforcement_test.rb). The
+  # simulator has no call in scope, so it cannot mint a token.
   def tool_source(tool)
     <<~RUBY
 
       AGENT.define_tool(
         name:        #{tool[:name].inspect},
         description: #{tool[:description].inspect},
-        parameters:  #{tool.fetch(:parameters, {}).inspect}
+        parameters:  #{tool.fetch(:parameters, {}).inspect},
+        secure:      false, handler: nil
       ) do |args, raw|
         #{tool.fetch(:body, "SignalWire::Swaig::FunctionResult.new('ok')")}
       end

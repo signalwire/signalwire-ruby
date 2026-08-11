@@ -9,9 +9,11 @@
 
 require 'signalwire'
 
-api_key = ENV['API_NINJAS_KEY']
-abort("Error: API_NINJAS_KEY environment variable is required.\n" \
-      "Get your free API key from https://api.api-ninjas.com/") unless api_key
+api_key = ENV.fetch('API_NINJAS_KEY', nil)
+unless api_key
+  abort("Error: API_NINJAS_KEY environment variable is required.\n" \
+        'Get your free API key from https://api.api-ninjas.com/')
+end
 
 agent = SignalWire::AgentBase.new(name: 'joke-skill-demo', route: '/joke-skill')
 
@@ -23,10 +25,10 @@ agent.prompt_add_section(
 )
 
 agent.prompt_add_section('Instructions', nil, bullets: [
-  'When users ask for jokes, use your joke functions to provide them',
-  'Be enthusiastic and fun in your responses',
-  'You can tell both regular jokes and dad jokes'
-])
+                           'When users ask for jokes, use your joke functions to provide them',
+                           'Be enthusiastic and fun in your responses',
+                           'You can tell both regular jokes and dad jokes'
+                         ])
 
 agent.add_skill('joke', 'api_key' => api_key)
 

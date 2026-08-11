@@ -10,13 +10,15 @@
 # schema.json $defs schema 'PickPropertiesUserSWAIGFunctionPickedSWAIGFunctionProps'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
       # PickPropertiesUserSWAIGFunctionPickedSWAIGFunctionProps — generated read-side payload (schema.json $defs schema 'PickPropertiesUserSWAIGFunctionPickedSWAIGFunctionProps').
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
-      # A zero-arg reader per field mirrors the reference's recorded
-      # accessors (dropped on the SURFACE by the enumerator — method-less there).
+      # Each field also has a zero-arg reader, so a decoded payload can be
+      # accessed by name rather than by wire key.
       class PickPropertiesUserSWAIGFunctionPickedSWAIGFunctionProps
         FIELDS = {
           'description' => :string,

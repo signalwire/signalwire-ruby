@@ -2,7 +2,9 @@
 
 require 'json'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Relay — the RELAY realtime (WebSocket / JSON-RPC 2.0) client surface.
   module Relay
     # A typed RELAY +collect+ configuration: the known-shape options object the
     # input-collection wrappers ({Call#collect}, {Call#play_and_collect},
@@ -126,6 +128,9 @@ module SignalWire
         [self.class, to_h].hash
       end
 
+      # A human-readable summary showing only the fields that are SET, in wire order.
+      #
+      # @return [String]
       def to_s
         "CollectConfig(#{to_h.inspect})"
       end
@@ -148,6 +153,8 @@ module SignalWire
         }.compact.to_a
       end
 
+      # @api private — stringify a Hash's top-level keys, matching the wire frame's
+      # string-keyed top level. A non-Hash passes through unchanged.
       def stringify(hash)
         return hash unless hash.is_a?(Hash)
 

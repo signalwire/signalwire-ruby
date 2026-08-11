@@ -9,7 +9,7 @@
 require 'signalwire'
 
 def require_env(name)
-  value = ENV[name]
+  value = ENV.fetch(name, nil)
   abort("Error: Required environment variable #{name} is not set.") unless value && !value.empty?
   value
 end
@@ -31,27 +31,27 @@ agent.prompt_add_section(
 begin
   agent.add_skill('datetime')
   agent.add_skill('math')
-rescue => e
+rescue StandardError => e
   puts "Skill warning: #{e.message}"
 end
 
 config = {
   'document_id' => document_id,
-  'count'       => count,
-  'distance'    => distance
+  'count' => count,
+  'distance' => distance
 }
 
-tags_str = ENV['DATASPHERE_TAGS']
+tags_str = ENV.fetch('DATASPHERE_TAGS', nil)
 config['tags'] = tags_str.split(',').map(&:strip) if tags_str && !tags_str.empty?
 
 begin
   agent.add_skill('datasphere', config)
   puts 'Added DataSphere serverless skill'
-rescue => e
+rescue StandardError => e
   puts "DataSphere error: #{e.message}"
 end
 
-puts "DataSphere Serverless Environment Demo"
+puts 'DataSphere Serverless Environment Demo'
 puts "  Document: #{document_id}"
 puts "  Count: #{count}, Distance: #{distance}"
 puts "Starting agent on port #{agent.port}..."

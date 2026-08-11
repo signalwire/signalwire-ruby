@@ -28,42 +28,62 @@ def build_client(base_url)
   )
 end
 
-def main
+CALL_ID = 'call-doc-wire'
+
+def tts(text)
+  [{ 'type' => 'tts', 'params' => { 'text' => text } }]
+end
+
+# README.md + examples/quickstart_rest.rb (region: rest), then rest/README.md +
+# rest/docs/namespaces.md phone-number search.
+def replay_quickstart(client)
+  client.fabric.ai_agents.create(name: 'Support Bot', prompt: { 'text' => 'You are helpful.' })
+  client.calling.play(CALL_ID, play: tts('Hello!'))
+  client.phone_numbers.search(areacode: '512')
+  client.datasphere.documents.search(query_string: 'billing policy')
+  client.phone_numbers.search(areacode: '512', number_type: 'local')
+end
+
+# rest/docs/calling.md play (nested params:{text}), then
+# rest/examples/rest_calling_play_and_record.rb + ivr_and_ai.rb.
+def replay_play(client)
+  client.calling.play(CALL_ID, play: tts('Hello!'), volume: 5.0)
+  client.calling.play(CALL_ID, play: tts('Welcome to SignalWire.'))
+  client.calling.play(CALL_ID, play: tts('Enter your PIN followed by pound.'))
+end
+
+# rest/README.md end + rest/docs/calling.md end/record, then live transcribe &
+# translate (action:{start:{}}).
+def replay_record_end_and_live(client)
+  client.calling.record(CALL_ID, audio: { 'format' => 'mp3', 'beep' => true })
+  client.calling.end(CALL_ID, reason: 'hangup')
+  client.calling.live_transcribe(CALL_ID, action: { 'start' => { 'lang' => 'en-US' } })
+  client.calling.live_translate(CALL_ID,
+                                action: { 'start' => { 'from_lang' => 'en-US',
+                                                       'to_lang' => 'es-ES' } })
+end
+
+# The mock's base URL, or nil when the gate did not export a port.
+def mock_base_url
   port = ENV.fetch('MOCK_SIGNALWIRE_PORT', nil)
-  if port.nil? || port.empty?
+  return nil if port.nil? || port.empty?
+
+  ENV.fetch('SIGNALWIRE_MOCK_URL', "http://127.0.0.1:#{port}")
+end
+
+def replay_all(client)
+  replay_quickstart(client)
+  replay_play(client)
+  replay_record_end_and_live(client)
+end
+
+def main
+  base_url = mock_base_url
+  if base_url.nil?
     warn 'doc_wire_runner: MOCK_SIGNALWIRE_PORT not set'
     return 2
   end
-  base_url = ENV.fetch('SIGNALWIRE_MOCK_URL', "http://127.0.0.1:#{port}")
-  client = build_client(base_url)
-
-  call_id = 'call-doc-wire'
-
-  # --- README.md + examples/quickstart_rest.rb (region: rest) ----------------
-  client.fabric.ai_agents.create(name: 'Support Bot', prompt: { 'text' => 'You are helpful.' })
-  client.calling.play(call_id, play: [{ 'type' => 'tts', 'params' => { 'text' => 'Hello!' } }])
-  client.phone_numbers.search(areacode: '512')
-  client.datasphere.documents.search(query_string: 'billing policy')
-
-  # --- rest/README.md + rest/docs/namespaces.md phone-number search ----------
-  client.phone_numbers.search(areacode: '512', number_type: 'local')
-
-  # --- rest/docs/calling.md play (nested params:{text}) ----------------------
-  client.calling.play(call_id, play: [{ 'type' => 'tts', 'params' => { 'text' => 'Hello!' } }], volume: 5.0)
-
-  # --- rest/examples/rest_calling_play_and_record.rb + ivr_and_ai.rb ---------
-  client.calling.play(call_id, play: [{ 'type' => 'tts', 'params' => { 'text' => 'Welcome to SignalWire.' } }])
-  client.calling.play(call_id,
-                      play: [{ 'type' => 'tts', 'params' => { 'text' => 'Enter your PIN followed by pound.' } }])
-
-  # --- rest/README.md end + rest/docs/calling.md end/record ------------------
-  client.calling.record(call_id, audio: { 'format' => 'mp3', 'beep' => true })
-  client.calling.end(call_id, reason: 'hangup')
-
-  # --- rest/docs/calling.md live transcribe & translate (action:{start:{}}) --
-  client.calling.live_transcribe(call_id, action: { 'start' => { 'lang' => 'en-US' } })
-  client.calling.live_translate(call_id, action: { 'start' => { 'from_lang' => 'en-US', 'to_lang' => 'es-ES' } })
-
+  replay_all(build_client(base_url))
   puts 'doc_wire_runner: replayed documented REST fixtures against the mock'
   0
 end

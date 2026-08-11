@@ -7,6 +7,7 @@
 
 require_relative '../swaig/function_result'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
   # Fluent builder for server-side DataMap tools.
   #
@@ -25,6 +26,7 @@ module SignalWire
   class DataMap
     attr_reader :function_name
 
+    # @param function_name [String] the SWAIG function name this DataMap defines
     def initialize(function_name)
       @function_name = function_name
       @purpose_text = ''
@@ -145,15 +147,13 @@ module SignalWire
       self
     end
 
-    # Set the request body for the most-recently-added webhook (POST / PUT).
-    def body(data)
-      raise ArgumentError, 'Must add webhook before setting body' if @webhooks.empty?
-
-      @webhooks.last['body'] = data
-      self
-    end
-
     # Set request params for the most-recently-added webhook.
+    #
+    # This is the method for POST/PUT request data. It writes the +params+
+    # webhook key, which schema.json +$defs/Webhook+ lists among its ten
+    # permitted properties and which the engine's webhook readers look up. The
+    # former +body+ builder wrote a +body+ key that the schema forbids and no
+    # engine reader consumes — it was removed 2026-07-29; use this instead.
     def params(data)
       raise ArgumentError, 'Must add webhook before setting params' if @webhooks.empty?
 
@@ -235,15 +235,13 @@ module SignalWire
     # @param parameters [Hash, nil] name => { "type" => ..., "description" => ..., "required" => bool }
     # @param method [String] HTTP method (default GET)
     # @param headers [Hash, nil]
-    # @param body [Hash, nil]
     # @param error_keys [Array<String>, nil]
     # @return [DataMap]
     def self.create_simple_api_tool(name:, url:, response_template:, parameters: nil,
-                                    method: 'GET', headers: nil, body: nil, error_keys: nil)
+                                    method: 'GET', headers: nil, error_keys: nil)
       dm = new(name)
       add_parameters(dm, parameters)
       dm.webhook(method, url, headers: headers)
-      dm.body(body) if body
       dm.error_keys(error_keys) if error_keys
       dm.output(Swaig::FunctionResult.new(response_template))
       dm
@@ -279,10 +277,18 @@ module SignalWire
 
     private
 
+    # @api private — convert a value to a Hash when it can be (a FunctionResult
+    # typically), else pass it through, so both typed builders and raw Hashes can
+    # be used as outputs.
     def to_h_if_possible(value)
       value.respond_to?(:to_h) ? value.to_h : value
     end
 
+    # @api private — the tool's JSON Schema from the declared parameters, adding
+    # `required` only when at least one parameter was marked required. No
+    # parameters yields an empty object schema.
+    #
+    # @return [Hash]
     def build_param_schema
       return { 'type' => 'object', 'properties' => {} } unless @parameters.any?
 
@@ -291,6 +297,10 @@ module SignalWire
       schema
     end
 
+    # @api private — the `data_map` object: expressions, webhooks, the fallback
+    # output and the global error keys, each included only when non-empty.
+    #
+    # @return [Hash]
     def build_data_map
       data_map = {}
       data_map['expressions'] = @expressions          if @expressions.any?

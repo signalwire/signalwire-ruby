@@ -6,6 +6,7 @@
 # See LICENSE file in the project root for full license information.
 
 module SignalWire
+  # Skills — the modular capability framework: skill base, registry, manager, builtins.
   module Skills
     # Named constants for the skills that ship built in with this gem.
     #

@@ -2,11 +2,17 @@
 
 require 'json'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # SWML — SWML document construction, rendering and serving.
   module SWML
+    # The SWML verb registry, loaded from the bundled `schema.json`. Backs the
+    # dynamic verb dispatch on {Service}: a method name is a verb exactly when this
+    # schema knows it.
     class Schema
       attr_reader :verbs
 
+      # Load the bundled schema and build the verb table.
       def initialize
         @verbs = {}
         load_schema
@@ -34,6 +40,10 @@ module SignalWire
 
       private
 
+      # @api private — build the verb table by walking `$defs.SWMLMethod.anyOf`, the
+      # schema's registry of every verb.
+      #
+      # @raise [RuntimeError] when the bundled schema.json is missing
       def load_schema
         schema_path = File.join(__dir__, 'schema.json')
         raise "SWML schema.json not found at #{schema_path}" unless File.exist?(schema_path)
@@ -75,7 +85,7 @@ module SignalWire
 
     # Normalize a vivified verb's positional args + kwargs into its config Hash
     # (string-keyed). This is the strict-render contract for the auto-vivified
-    # (method_missing / __getattr__-analog) verb path, shared by SWMLService and
+    # (+method_missing+) verb path, shared by SWMLService and
     # SWMLBuilder so both behave identically:
     #
     #   verb(k: v)                 -> {"k" => v}          (kwargs)
@@ -89,10 +99,9 @@ module SignalWire
     #
     # Silently dropping a positional Hash (the previous behavior) produced an
     # empty verb — e.g. `svc.play({'url'=>...})` rendered `{"play":{}}` with no
-    # warning (ruby_R5 N2). A misshapen call now fails loudly instead.
-    # Underscore-prefixed: an internal helper shared by SWMLService + SWMLBuilder,
-    # not part of the public reference surface (the enumerator skips single-`_`
-    # names).
+    # warning. A misshapen call now fails loudly instead.
+    # Underscore-prefixed: an internal helper shared by SWMLService +
+    # SWMLBuilder, not part of the public surface.
     def self._verb_config(verb_name, args, kwargs)
       kw = kwargs.transform_keys(&:to_s)
       positional = _positional_config!(verb_name, args)

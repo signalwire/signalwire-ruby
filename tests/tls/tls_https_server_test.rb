@@ -172,3 +172,53 @@ class TlsHttpsServerTest < Minitest::Test
     assert_untrusted_rejected(base)
   end
 end
+
+# The resolved TLS configuration is READABLE off the service (ssl_enabled,
+# ssl_cert_path, ssl_key_path, domain) — a caller can inspect the effective TLS
+# posture without re-deriving it from the environment. No certs needed: this
+# pins the config derivation + override, not a live handshake.
+class TlsConfigReadbackTest < Minitest::Test
+  SSL_ENV = %w[SWML_SSL_ENABLED SWML_SSL_CERT_PATH SWML_SSL_KEY_PATH SWML_DOMAIN].freeze
+
+  def setup
+    @saved = SSL_ENV.to_h { |k| [k, ENV.fetch(k, nil)] }
+    SSL_ENV.each { |k| ENV.delete(k) }
+  end
+
+  def teardown
+    @saved.each { |k, v| v.nil? ? ENV.delete(k) : ENV[k] = v }
+  end
+
+  def test_defaults_to_ssl_off_with_no_paths
+    svc = SignalWire::SWML::Service.new(name: 'plain')
+
+    refute svc.ssl_enabled
+    assert_nil svc.ssl_cert_path
+    assert_nil svc.ssl_key_path
+    assert_nil svc.domain
+  end
+
+  def test_reads_the_env_derived_tls_config
+    ENV['SWML_SSL_ENABLED']   = 'true'
+    ENV['SWML_SSL_CERT_PATH'] = '/etc/ssl/x.crt'
+    ENV['SWML_SSL_KEY_PATH']  = '/etc/ssl/x.key'
+    ENV['SWML_DOMAIN']        = 'agent.example.com'
+    svc = SignalWire::SWML::Service.new(name: 'tls')
+
+    assert svc.ssl_enabled
+    assert_equal '/etc/ssl/x.crt', svc.ssl_cert_path
+    assert_equal '/etc/ssl/x.key', svc.ssl_key_path
+    assert_equal 'agent.example.com', svc.domain
+  end
+
+  def test_serve_kwargs_override_the_env_derived_config
+    svc = SignalWire::SWML::Service.new(name: 'override')
+    svc.send(:apply_ssl_overrides, ssl_cert: '/o.crt', ssl_key: '/o.key',
+                                   ssl_enabled: true, domain: 'override.example')
+
+    assert svc.ssl_enabled
+    assert_equal '/o.crt', svc.ssl_cert_path
+    assert_equal '/o.key', svc.ssl_key_path
+    assert_equal 'override.example', svc.domain
+  end
+end

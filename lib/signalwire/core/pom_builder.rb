@@ -11,15 +11,16 @@
 
 require_relative '../pom/prompt_object_model'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Core — internal building blocks shared by the agent, SWML and SWAIG layers.
   module Core
     # Builder class for creating structured prompts using the Prompt Object
     # Model.
     #
-    # Mirrors Python's ``signalwire.core.pom_builder.PomBuilder``. A flexible
-    # wrapper around {SignalWire::POM::PromptObjectModel} that allows for
-    # dynamic creation of sections on demand, adding content to existing
-    # sections, nesting subsections, and rendering to Markdown or XML.
+    # A flexible wrapper around {SignalWire::POM::PromptObjectModel} that
+    # allows for dynamic creation of sections on demand, adding content to
+    # existing sections, nesting subsections, and rendering to Markdown or XML.
     #
     # There are no predefined section types -- you can create any section
     # structure that fits your needs. All mutator methods return +self+ for
@@ -117,8 +118,6 @@ module SignalWire
       end
 
       # Create a PomBuilder from an Array of section Hashes.
-      #
-      # Mirrors Python's ``PomBuilder.from_sections`` classmethod.
       def self.from_sections(sections)
         builder = new
         builder.instance_variable_set(:@pom, SignalWire::POM::PromptObjectModel.from_json(sections))
@@ -130,6 +129,8 @@ module SignalWire
 
       private
 
+      # @api private — append body text to a section, separating it from existing
+      # text with a blank line. An empty existing body is replaced outright.
       def append_body(section, body)
         section.body = if section.body && !section.body.empty?
                          "#{section.body}\n\n#{body}"
@@ -138,6 +139,8 @@ module SignalWire
                        end
       end
 
+      # @api private — index a section by title, so a later append can find it
+      # instead of creating a duplicate.
       def register_section(title, section)
         @sections[title] = section
       end

@@ -11,7 +11,7 @@ require 'signalwire'
 # --- Voicemail service ---
 
 voicemail = SignalWire::SWML::Service.new(
-  name:  'voicemail',
+  name: 'voicemail',
   route: '/voicemail'
 )
 
@@ -20,9 +20,9 @@ voicemail.play(url: "say:Hello, you've reached the voicemail service. Please lea
 voicemail.sleep(1000)
 voicemail.play(url: 'https://example.com/beep.wav')
 voicemail.record(
-  format:     'mp3',
-  stereo:     false,
-  beep:       false,
+  format: 'mp3',
+  stereo: false,
+  beep: false,
   max_length: 120,
   terminators: '#'
 )
@@ -36,17 +36,17 @@ puts
 # --- Call recording service ---
 
 recording = SignalWire::SWML::Service.new(
-  name:  'recording',
+  name: 'recording',
   route: '/recording'
 )
 
 recording.answer
 recording.record_call(
   control_id: 'call_recording',
-  format:     'mp3',
-  stereo:     true,
-  direction:  'both',
-  beep:       true
+  format: 'mp3',
+  stereo: true,
+  direction: 'both',
+  beep: true
 )
 recording.play(url: 'say:This call is being recorded for quality and training purposes.')
 recording.play(url: 'say:Please tell us about your experience.')
@@ -62,15 +62,19 @@ puts
 # --- Call transfer service ---
 
 transfer = SignalWire::SWML::Service.new(
-  name:  'transfer',
+  name: 'transfer',
   route: '/transfer'
 )
 
 transfer.answer
 transfer.play(url: "say:Thank you for calling. We'll connect you with the next available agent.")
+# `connect` needs a destination -- one of `to` / `serial` / `parallel` /
+# `serial_parallel`. Without one the document is schema-invalid and the call
+# never dials anywhere.
 transfer.connect(
-  from:             '+15551234567',
-  timeout:          30,
+  to: '+15559876543',
+  from: '+15551234567',
+  timeout: 30,
   answer_on_bridge: true
 )
 transfer.play(url: 'say:We apologize, but all agents are busy. Please try again later.')

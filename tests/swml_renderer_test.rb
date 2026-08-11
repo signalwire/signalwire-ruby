@@ -6,9 +6,8 @@ ENV['SIGNALWIRE_LOG_MODE'] = 'off'
 
 require_relative '../lib/signalwire'
 
-# Tests for SwmlRenderer.render_swml / render_function_response_swml — render a
-# full SWML doc and assert its exact structure and wire keys.
-class SwmlRendererTest < Minitest::Test
+# Shared fixtures for the SwmlRenderer test classes.
+module SwmlRendererFixtures
   def new_service(name = 'renderer-test')
     SignalWire::SWML::Service.new(name: name)
   end
@@ -16,6 +15,12 @@ class SwmlRendererTest < Minitest::Test
   def render_and_parse(**)
     JSON.parse(SignalWire::SWML::SwmlRenderer.render_swml(**))
   end
+end
+
+# Tests for SwmlRenderer.render_swml — render a full SWML doc and assert its
+# exact structure and wire keys.
+class SwmlRendererTest < Minitest::Test
+  include SwmlRendererFixtures
 
   def test_render_swml_basic_text_prompt
     doc = render_and_parse(prompt: 'you are helpful', service: new_service)
@@ -88,11 +93,14 @@ class SwmlRendererTest < Minitest::Test
   end
 
   def test_render_swml_params_merged_into_ai
+    # `params:` merges at the ai verb's TOP level (parity with the reference's
+    # `**(params or {})`), so its keys must be ones the closed ai schema
+    # declares -- LLM knobs like `temperature` belong under `ai.params`.
     doc = render_and_parse(
-      prompt: 'hi', service: new_service, params: { 'temperature' => 0.3 }
+      prompt: 'hi', service: new_service, params: { 'params' => { 'temperature' => 0.3 } }
     )
 
-    assert_in_delta 0.3, doc['sections']['main'].first['ai']['temperature']
+    assert_in_delta 0.3, doc['sections']['main'].first['ai']['params']['temperature']
   end
 
   def test_render_swml_yaml_format
@@ -103,28 +111,66 @@ class SwmlRendererTest < Minitest::Test
 
     assert_equal 'ai', parsed['sections']['main'].first.keys.first
   end
+end
 
-  # ---- render_function_response_swml ----
+# Tests for SwmlRenderer.render_function_response_swml — the function-response
+# document (a +play+ of the response text plus any provided actions).
+class SwmlRendererFunctionResponseTest < Minitest::Test
+  include SwmlRendererFixtures
 
-  def test_function_response_plays_text
+  # The SWML +play+ verb has NO +text+ key — its config is PlayWithURL/
+  # PlayWithURLS and spoken text goes through the +say:+ URL scheme. Emitting
+  # {"text" => ...} produced a document the SWML schema rejects.
+  def test_function_response_plays_text_via_say_url
     out = SignalWire::SWML::SwmlRenderer.render_function_response_swml(
       response_text: 'All done', service: new_service
     )
     main = JSON.parse(out)['sections']['main']
 
-    assert_equal({ 'play' => { 'text' => 'All done' } }, main.first)
+    assert_equal({ 'play' => { 'url' => 'say:All done' } }, main.first)
+  end
+
+  # The emitted play config must survive the schema validator — i.e. the
+  # renderer routes through the validating Service#add_verb, not the raw
+  # document entry point that bypasses it.
+  def test_function_response_play_config_passes_schema_validation
+    service = new_service
+    SignalWire::SWML::SwmlRenderer.render_function_response_swml(
+      response_text: 'All done', service: service
+    )
+
+    probe = new_service
+    probe.reset_document
+
+    assert probe.add_verb('play', service.document.to_h['sections']['main'].first['play'])
   end
 
   def test_function_response_appends_actions
     out = SignalWire::SWML::SwmlRenderer.render_function_response_swml(
       response_text: 'bye', service: new_service,
-      actions: [{ 'hangup' => { 'reason' => 'done' } }, { 'transfer' => { 'dest' => 'sip:x@y' } }]
+      actions: [{ 'hangup' => { 'reason' => 'busy' } }, { 'transfer' => { 'dest' => 'sip:x@y' } }]
     )
     main = JSON.parse(out)['sections']['main']
 
-    assert_equal({ 'play' => { 'text' => 'bye' } }, main[0])
-    assert_equal({ 'hangup' => { 'reason' => 'done' } }, main[1])
+    assert_equal({ 'play' => { 'url' => 'say:bye' } }, main[0])
+    assert_equal({ 'hangup' => { 'reason' => 'busy' } }, main[1])
     assert_equal({ 'transfer' => { 'dest' => 'sip:x@y' } }, main[2])
+  end
+
+  # Actions route through the validating Service#add_verb too (matching the
+  # reference), so a schema-invalid action config raises instead of silently
+  # landing in the document.
+  #
+  # Note the example is an UNKNOWN KEY, not an out-of-enum `reason`:
+  # `hangup.reason` carries `x-sdk-widen: true`, so any string is accepted
+  # there and would NOT make a usable negative case.
+  def test_function_response_rejects_schema_invalid_action
+    assert_raises(SignalWire::Utils::SchemaValidationError) do
+      SignalWire::SWML::SwmlRenderer.render_function_response_swml(
+        response_text: 'bye', service: new_service,
+        actions: [{ 'hangup' => { 'not_a_hangup_key' => 'x' } }]
+      )
+    end
   end
 
   def test_function_response_empty_text_skips_play

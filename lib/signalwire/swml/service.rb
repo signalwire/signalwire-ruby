@@ -8,12 +8,13 @@ require_relative '../logging'
 require_relative 'document'
 require_relative 'schema'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # SWML — SWML document construction, rendering and serving.
   module SWML
-    # rubocop:disable Metrics/ClassLength -- one Python class (SWMLService): the
-    # full public surface (tool registry, auth helpers, verb auto-vivification,
-    # Rack serving) plus the two nested Rack middleware classes must live together;
-    # splitting breaks the 1:1 surface mapping to the reference.
+    # rubocop:disable Metrics/ClassLength -- the full public surface (tool
+    # registry, auth helpers, verb auto-vivification, Rack serving) plus the two
+    # nested Rack middleware classes must live together on one class.
     class Service
       # Attributes:
       # - ``name``, ``route``, ``host``, ``port`` — service identity and
@@ -24,8 +25,15 @@ module SignalWire
       # - ``schema_validation`` — boolean flag controlling out-bound SWML
       #   schema validation. ``SWML_SKIP_SCHEMA_VALIDATION=1`` env var
       #   forces this to false.
+      # - ``ssl_enabled``, ``ssl_cert_path``, ``ssl_key_path``, ``domain`` —
+      #   the resolved TLS configuration, derived in {#init_ssl_config} from
+      #   the ``SWML_SSL_*`` / ``SWML_DOMAIN`` env vars and overridable by the
+      #   matching {#serve} kwargs. Readable so a caller can inspect the
+      #   effective TLS posture (and the public URL scheme it implies) without
+      #   re-deriving it from the environment.
       attr_reader :name, :route, :host, :port,
-                  :schema_path, :config_file, :schema_validation
+                  :schema_path, :config_file, :schema_validation,
+                  :ssl_enabled, :ssl_cert_path, :ssl_key_path, :domain
 
       # @param name   [String]  Human-readable service name
       # @param route  [String]  HTTP path this service responds on (default "/")
@@ -35,6 +43,10 @@ module SignalWire
       # Maximum request body size enforced on /swaig and the main route (1 MB).
       SWAIG_FN_NAME = /\A[a-zA-Z_][a-zA-Z0-9_]*\z/
 
+      # @param schema_path [String, nil] path to a SWML schema.json; nil uses the bundled copy
+      # @param config_file [String, nil] explicit config path, or nil to auto-discover
+      # @param schema_validation [Boolean] validate each verb against the schema as it is added;
+      #   false accepts any verb config unchecked
       def initialize(name:, route: '/', host: '0.0.0.0', port: nil, basic_auth: nil,
                      schema_path: nil, config_file: nil, schema_validation: true)
         @name   = name
@@ -88,7 +100,7 @@ module SignalWire
 
       # Dispatch a function call to the registered handler. Default plain
       # implementation — AgentBase overrides with token validation.
-      def on_function_call(name, args, raw_data)
+      def on_function_call(name, args, raw_data = nil)
         tool = @tools[name]
         return nil unless tool && tool[:handler]
 
@@ -118,6 +130,11 @@ module SignalWire
       # def-wrappers (not alias_method) so placement is independent of where
       # the get_* target is defined in the class body.
       def all_functions = get_all_functions
+      # The basic-auth pair plus where it came from (`"environment"` /
+      # `"auto-generated"` / `"provided"`). Bare-noun form of
+      # {#get_basic_auth_credentials_with_source}.
+      #
+      # @return [Array(String, String, String)]
       def basic_auth_credentials_with_source = get_basic_auth_credentials_with_source
       # Ruby `?`-predicate form of has_function.
       def function?(name) = has_function(name)
@@ -194,6 +211,11 @@ module SignalWire
         end
       end
 
+      # Report every SWML verb name as a callable method, so `respond_to?(:play)` is
+      # true and the dynamic verb dispatch in {#method_missing} is discoverable
+      # rather than a silent trap.
+      #
+      # @return [Boolean]
       def respond_to_missing?(method_name, include_private = false)
         SWML.schema.valid_verb?(method_name.to_s) || super
       end
@@ -202,13 +224,19 @@ module SignalWire
       #
       # For most verbs the config is a keyword-args Hash.
       # The +sleep+ verb is special: it also accepts a bare Integer.
+      #
+      # This is the target of the {#method_missing} verb auto-vivification
+      # (+service.play(url: ...)+), so it goes through the *validating*
+      # {#add_verb} rather than the raw document entry point — a caller
+      # reaching a method on the Service cannot tell which they got, and a
+      # raw one silently accepts configs the schema rejects.
       def execute_verb(verb_name, args = [], kwargs = {})
         verb_name = verb_name.to_s
 
         if verb_name == 'sleep'
-          @document.add_verb(verb_name, sleep_duration(args, kwargs))
+          add_verb(verb_name, sleep_duration(args, kwargs))
         else
-          @document.add_verb(verb_name, SWML._verb_config(verb_name, args, kwargs))
+          add_verb(verb_name, SWML._verb_config(verb_name, args, kwargs))
         end
       end
 
@@ -272,16 +300,25 @@ module SignalWire
       # Register a routing callback at +path+. The path is normalized for
       # consistent lookup — trailing slash stripped, leading slash ensured
       # (so "/sip/" and "sip" both store as "/sip").
-      def register_routing_callback(path, &block)
+      #
+      # The CALLBACK comes first and is required; +path+ is second and defaults
+      # to ``"/sip"``. Ruby's block is
+      # the idiomatic spelling of ``callback_fn``, so
+      # ``register_routing_callback('/sip') { ... }`` would put the path in the
+      # callback slot — pass the path as the second argument
+      # (``register_routing_callback(nil, '/sip') { ... }``) or rely on the
+      # "/sip" default.
+      def register_routing_callback(callback_fn, path = '/sip', &block)
+        callback = block || callback_fn
+        raise ArgumentError, 'register_routing_callback requires a callback (block or callable)' if callback.nil?
+
         normalized = path.to_s.chomp('/')
         normalized = "/#{normalized}" unless normalized.start_with?('/')
-        @routing_callbacks[normalized] = block
+        @routing_callbacks[normalized] = callback
       end
 
       # Framework-free request-dispatch core — the primitive dispatch surface
-      # the SDK ports share (mirrors python
-      # ``SWMLService.handle_request(method, url, headers, body)`` and dotnet's
-      # ``(int, Dictionary, string) HandleRequest``). Performs proxy detection,
+      # every SignalWire SDK shares. Performs proxy detection,
       # basic-auth, the routing-callback check, and the ``on_request``
       # modification hook over plain primitives instead of the Rack ``env``,
       # returning a ``[status, headers, body_string]`` triple. The Rack path
@@ -406,15 +443,22 @@ module SignalWire
       def decode_basic_auth(auth)
         return [nil, nil] if auth.nil? || auth.empty?
 
-        scheme, credentials = auth.split(' ', 2)
-        return [nil, nil] unless scheme&.downcase == 'basic' && credentials
+        # FIRST-space split, case-INSENSITIVE scheme compare (RFC 7235).
+        scheme, _sep, credentials = auth.partition(' ')
+        return [nil, nil] unless scheme.downcase == 'basic' && !credentials.strip.empty?
 
         require 'base64'
-        Base64.decode64(credentials).split(':', 2)
+        username, separator, password = Base64.decode64(credentials.strip).partition(':')
+        # RFC 7617 -- a decoded
+        # payload with NO colon is not a credential pair; reject it at the parse
+        # rather than returning a 1-element split with a nil password.
+        return [nil, nil] if separator.empty?
+
+        [username, password]
       end
 
-      # Framework-free proxy detection over a URL + plain headers Hash, mirroring
-      # python's +detect_proxy_from_primitives+: honor an already-set proxy base,
+      # Framework-free proxy detection over a URL + plain headers Hash: honor an
+      # already-set proxy base,
       # else auto-configure +@proxy_url_base+ from X-Forwarded-* (then RFC-7239
       # Forwarded). No-op when neither is present.
       def detect_proxy_from_primitives(_url, headers)
@@ -491,6 +535,10 @@ module SignalWire
         @document.render
       end
 
+      # The current SWML document as indented, human-readable JSON. Same content as
+      # {#render}, formatted for reading rather than the wire.
+      #
+      # @return [String]
       def render_pretty
         @document.render_pretty
       end
@@ -499,30 +547,27 @@ module SignalWire
       attr_reader :document
 
       # ------------------------------------------------------------------
-      # Document accessors — parity with Python SWMLService (item I). Thin
-      # wrappers over the underlying Document so the reference method surface
-      # is present on the Service directly.
+      # Document accessors — thin wrappers over the underlying Document, so the
+      # whole document surface is reachable on the Service directly.
       # ------------------------------------------------------------------
 
-      # The current SWML document as a Hash. Mirrors get_document().
+      # The current SWML document as a Hash.
       def get_document
         @document.to_h
       end
 
-      # Render the current document as a compact JSON string. Mirrors
-      # render_document() (render() returns compact JSON already).
+      # Render the current document as a compact JSON string.
       def render_document
         @document.render
       end
 
-      # Reset the current document to an empty state. Mirrors reset_document().
+      # Reset the current document to an empty state.
       def reset_document
         @document.reset
         self
       end
 
-      # Add a verb to the main section of the current document. Mirrors
-      # Python SWMLService.add_verb(verb_name, config).
+      # Add a verb to the main section of the current document.
       #
       # The +sleep+ verb accepts a bare Integer; every other verb takes a
       # config Hash. Config is validated (specialized handler if registered,
@@ -537,22 +582,20 @@ module SignalWire
         @document.add_verb(verb_name, config)
       end
 
-      # Add a new (empty) section to the current document. Mirrors Python
-      # SWMLService.add_section(section_name). Returns false if it already
-      # exists, true otherwise.
+      # Add a new (empty) section to the current document. Returns false if it
+      # already exists, true otherwise.
       def add_section(section_name)
         @document.add_section(section_name.to_s)
       end
 
-      # Add a verb to a specific section. Mirrors Python
-      # SWMLService.add_verb_to_section(section_name, verb_name, config). The
+      # Add a verb to a specific section. The
       # +sleep+ verb accepts a bare Integer; other verbs take a config Hash
       # (validated as in {#add_verb}).
       def add_verb_to_section(section_name, verb_name, config)
         section_name = section_name.to_s
         verb_name    = verb_name.to_s
 
-        # Parity: Python auto-creates the section if it doesn't exist.
+        # The section is auto-created if it doesn't exist.
         @document.add_section(section_name) unless @document.has_section?(section_name)
 
         return @document.add_verb_to_section(section_name, verb_name, config) if sleep_direct?(verb_name, config)
@@ -561,8 +604,8 @@ module SignalWire
         @document.add_verb_to_section(section_name, verb_name, config)
       end
 
-      # Register a custom verb handler with this service's registry. Mirrors
-      # register_verb_handler(handler) — delegates to the VerbHandlerRegistry.
+      # Register a custom verb handler with this service's registry —
+      # delegates to the VerbHandlerRegistry.
       def register_verb_handler(handler)
         verb_registry.register_handler(handler)
         self
@@ -576,26 +619,23 @@ module SignalWire
       end
 
       # Whether full JSON-schema validation is active for this service.
-      # Mirrors full_validation_enabled().
       def full_validation_enabled
         @schema_validation && schema_utils.full_validation_available?
       end
 
       # Manually set/override the proxy URL base used for webhook callbacks.
-      # Mirrors manual_set_proxy_url(proxy_url).
       def manual_set_proxy_url(proxy_url)
         @proxy_url_base = proxy_url.chomp('/') if proxy_url && !proxy_url.empty?
         self
       end
 
       # Extract the SIP username from a parsed request body's call.to field.
-      # Mirrors the staticmethod extract_sip_username(request_body): parses a
-      # "sip:user@domain" (or "tel:") URI's user portion, or nil.
+      # Parses a "sip:user@domain" (or "tel:") URI's user portion, or nil.
       def self.extract_sip_username(request_body)
         to_field = request_body.dig('call', 'to') if request_body.is_a?(Hash)
         return nil unless to_field.is_a?(String)
 
-        # Python parity: sip: -> username before '@'; tel: -> the number;
+        # sip: -> username before '@'; tel: -> the number;
         # otherwise the whole 'to' field is returned.
         return to_field.delete_prefix('sip:').split('@', 2).first if to_field.start_with?('sip:')
         return to_field.delete_prefix('tel:') if to_field.start_with?('tel:')
@@ -605,16 +645,13 @@ module SignalWire
         nil
       end
 
-      # Build a Rack-mountable router (app) for this service. Mirrors
-      # as_router() (Python returns a FastAPI APIRouter; Ruby returns the
-      # equivalent Rack app so the service can be mounted in any Rack server).
+      # Build a Rack-mountable router (app) for this service, so it can be
+      # mounted in any Rack server.
       def as_router
         rack_app
       end
 
-      # SchemaUtils helper bound to this Service. Mirrors Python's
-      # self.schema_utils public instance attribute on SWMLService.
-      # Built lazily on first access.
+      # SchemaUtils helper bound to this Service. Built lazily on first access.
       def schema_utils
         return @schema_utils if defined?(@schema_utils)
 
@@ -672,14 +709,13 @@ module SignalWire
 
       # Static health/ready JSON triple. Class method so the no-auth lambdas in
       # +build_rack_app+ don't capture +self+. Underscore-prefixed to stay out of
-      # the surface inventory (no Python counterpart on SWMLService).
+      # the surface inventory.
       def self._status_response(status)
         [200, { 'content-type' => 'application/json' }, [JSON.generate({ status: status })]]
       end
 
       # Request-handling internals (formerly leading-underscore by convention).
-      # Not part of the public/Python surface — declared private so the
-      # cross-port surface enumerator continues to exclude them.
+      # Not part of the public surface — declared private so they stay off it.
       private :handle_request_core, :unauthorized_triple, :routing_redirect,
               :invoke_routing_callback, :render_dispatch_triple, :callback_path_for_url,
               :check_basic_auth_headers, :decode_basic_auth, :detect_proxy_from_primitives,
@@ -735,7 +771,7 @@ module SignalWire
         # false-reject legitimate renders the bundled schema doesn't fully
         # accept (empty prompt.pom, SWAIG defaults). ai.params stays open.
         # validate_verb_top_level_keys is an @api-private SchemaUtils helper
-        # (not part of the reference surface), so reach it via __send__.
+        # so reach it via __send__.
         schema_utils.__send__(:validate_verb_top_level_keys, verb_name, config)
       end
 
@@ -792,6 +828,11 @@ module SignalWire
         end
       end
 
+      # @api private — true when the active credentials came from
+      # SWML_BASIC_AUTH_USER / SWML_BASIC_AUTH_PASSWORD: both must be set,
+      # non-empty, and equal to what the service is using.
+      #
+      # @return [Boolean]
       def service_auth_from_env?(user, pass)
         env_user = ENV.fetch('SWML_BASIC_AUTH_USER', nil)
         env_pass = ENV.fetch('SWML_BASIC_AUTH_PASSWORD', nil)
@@ -908,6 +949,11 @@ module SignalWire
         end
       end
 
+      # @api private — the Rack router: `/health` and `/ready` unauthenticated, and
+      # the service's own route behind the security-header and timing-safe basic-auth
+      # middlewares.
+      #
+      # @return [Rack::Builder]
       def build_rack_app
         main_route = @route
         authenticated = build_authenticated_app
@@ -1040,10 +1086,15 @@ module SignalWire
           'cache-control' => 'no-store, no-cache, must-revalidate'
         }.freeze
 
+        # @param app [#call] the next Rack app in the stack
         def initialize(app)
           @app = app
         end
 
+        # Call the wrapped app and stamp the fixed security headers onto its response.
+        #
+        # @param env [Hash] the Rack env
+        # @return [Array] the Rack response triple, with HEADERS applied
         def call(env)
           status, headers, body = @app.call(env)
           HEADERS.each { |k, v| headers[k] = v }
@@ -1055,11 +1106,19 @@ module SignalWire
       # Middleware: timing-safe Basic-Auth
       # ------------------------------------------------------------------
       class TimingSafeBasicAuth
+        # @param app [#call] the next Rack app in the stack
+        # @param service [Service] the service whose credentials are the expected pair
         def initialize(app, service)
           @app     = app
           @service = service
         end
 
+        # Require valid basic auth before passing the request on. A missing or
+        # non-Basic Authorization header, or a credential mismatch, gets the same 401
+        # challenge — the response does not distinguish the two.
+        #
+        # @param env [Hash] the Rack env
+        # @return [Array] the Rack response triple
         def call(env)
           auth = Rack::Auth::Basic::Request.new(env)
           return unauthorized unless auth.provided? && auth.basic?
@@ -1076,8 +1135,11 @@ module SignalWire
           secure_compare(user, input_user) && secure_compare(pass, input_pass)
         end
 
+        # @api private — the 401 challenge: a `Basic realm="SignalWire SWML Service"`
+        # www-authenticate header and a JSON `{"error":"Unauthorized"}` body, not
+        # plain text.
         def unauthorized
-          # Python parity: a JSON {"error":"Unauthorized"} body (not plain text).
+          # A JSON {"error":"Unauthorized"} body, not plain text.
           [
             401,
             {

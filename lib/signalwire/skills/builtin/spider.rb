@@ -6,16 +6,54 @@ require 'uri'
 require_relative '../skill_base'
 require_relative '../skill_registry'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Skills — the modular capability framework: skill base, registry, manager, builtins.
   module Skills
+    # Builtin — the skills that ship with the SDK, registered by name at load time.
     module Builtin
+      # Fetch a web page and hand its text to the model. Strips HTML down to text,
+      # caps the result at `max_text_length`, and caches per URL for the life of the
+      # skill instance. `SPIDER_BASE_URL` redirects every fetch through a configured
+      # host for testing.
       class SpiderSkill < SkillBase
+        # The name this skill is added under (`agent.add_skill('spider')`).
+        #
+        # @return [String]
         def name = 'spider'
+        # Human-readable summary of what the skill does, for skill listings.
+        #
+        # @return [String]
         def description = 'Fast web scraping and crawling capabilities'
+        # This skill may be loaded more than once on one agent — each instance
+        # is distinguished by its `prefix` param, which also namespaces its
+        # tools and its slice of `global_data`.
+        #
+        # @return [Boolean] true
         def supports_multiple_instances? = true
 
         # Default user-agent.
         DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+
+        # Elements whose *entire subtree* is dropped before text extraction —
+        # boilerplate that would otherwise pollute the extracted text. Spelled
+        # as XPath expressions; {#strip_html} compiles each to the equivalent
+        # tag-with-content regex (Ruby has no bundled HTML tree parser, so
+        # there is no tree-level drop to call).
+        DEFAULT_REMOVE_XPATHS = [
+          '//script',
+          '//style',
+          '//nav',
+          '//header',
+          '//footer',
+          '//aside',
+          '//noscript'
+        ].freeze
+
+        # XPath expressions for the unwanted elements dropped by {#strip_html}.
+        # Prefilled with {DEFAULT_REMOVE_XPATHS}; mutable per instance so a
+        # caller can add or remove entries before scraping.
+        attr_reader :remove_xpaths
 
         # Extracts the performance / crawling / content-processing
         # configuration off ``params`` and allocates the per-instance
@@ -32,8 +70,13 @@ module SignalWire
           @tool_prefix     = "#{@tool_prefix}_" unless @tool_prefix.empty?
           @cache_enabled   = get_param('cache_enabled', default: true) != false
           @cache = @cache_enabled ? {} : nil
+          @remove_xpaths = DEFAULT_REMOVE_XPATHS.dup
         end
 
+        # Called once after construction. Return false to abort loading — the
+        # agent then refuses to register this skill's tools.
+        #
+        # @return [Boolean] true when the skill is ready to run
         def setup
           @max_text_length = get_param('max_text_length', default: 10_000).to_i
           @timeout         = get_param('timeout', default: 5).to_i
@@ -41,8 +84,8 @@ module SignalWire
           @tool_prefix     = get_param('tool_name', default: '')
           @tool_prefix     = "#{@tool_prefix}_" unless @tool_prefix.empty?
           @cache_enabled   = get_param('cache_enabled', default: true) != false
-          # Response cache, mirroring Python's per-instance fetch cache. Held as
-          # state so #cleanup has something concrete to tear down.
+          # Per-instance fetch cache. Held as state so #cleanup has something
+          # concrete to tear down.
           @cache = @cache_enabled ? {} : nil
           true
         end
@@ -58,18 +101,36 @@ module SignalWire
           nil
         end
 
+        # The key this instance is tracked under — `spider_<tool_name>` — so several
+        # instances can coexist on one agent without colliding.
+        #
+        # @return [String]
         def instance_key
           "spider_#{get_param('tool_name', default: 'spider')}"
         end
 
+        # The SWAIG tool definitions this skill contributes to its agent. Each
+        # entry is a `{name:, description:, parameters:, handler:}` hash; the
+        # descriptions are what the model reads to decide when and how to call
+        # the tool.
+        #
+        # @return [Array<Hash>]
         def register_tools
           [scrape_tool, crawl_tool, extract_tool]
         end
 
+        # Speech-recognition hints this skill contributes to the AI verb, biasing
+        # the recognizer toward the vocabulary the skill's domain uses.
+        #
+        # @return [Array<String>]
         def get_hints
           ['scrape', 'crawl', 'extract', 'web page', 'website', 'spider']
         end
 
+        # The JSON-Schema description of this skill's configuration params, for
+        # GUI and validation consumers.
+        #
+        # @return [Hash]
         def get_parameter_schema
           {
             'timeout' => { 'type' => 'integer', 'default' => 5 },
@@ -80,6 +141,7 @@ module SignalWire
 
         private
 
+        # @api private — the single-page scrape tool definition, prefixed with this instance's tool prefix.
         def scrape_tool
           {
             name: "#{@tool_prefix}scrape_url",
@@ -90,6 +152,7 @@ module SignalWire
           }
         end
 
+        # @api private — the crawl tool definition, prefixed with this instance's tool prefix.
         def crawl_tool
           {
             name: "#{@tool_prefix}crawl_site",
@@ -100,6 +163,7 @@ module SignalWire
           }
         end
 
+        # @api private — the structured-extract tool definition, prefixed with this instance's tool prefix.
         def extract_tool
           {
             name: "#{@tool_prefix}extract_structured_data",
@@ -110,6 +174,11 @@ module SignalWire
           }
         end
 
+        # @api private — the scrape handler: fetch the URL's text and hand it to the
+        # model with a character count. A missing URL, an unreachable page, or a raised
+        # error each become a spoken FunctionResult rather than an exception.
+        #
+        # @return [Swaig::FunctionResult]
         def handle_scrape(args, _raw_data)
           url = (args['url'] || '').strip
           return Swaig::FunctionResult.new('Please provide a URL to scrape') if url.empty?
@@ -122,6 +191,10 @@ module SignalWire
           Swaig::FunctionResult.new("Error scraping #{url}: #{e.message}")
         end
 
+        # @api private — the crawl handler. This implementation fetches the START page
+        # only and reports it as a one-page crawl; it does not follow links.
+        #
+        # @return [Swaig::FunctionResult]
         def handle_crawl(args, _raw_data)
           url = (args['start_url'] || '').strip
           return Swaig::FunctionResult.new('Please provide a starting URL for the crawl') if url.empty?
@@ -134,12 +207,21 @@ module SignalWire
           Swaig::FunctionResult.new("Error crawling #{url}: #{e.message}")
         end
 
+        # @api private — the crawl report: the host, the page and its length, plus the
+        # first 500 characters as a summary.
+        #
+        # @return [String]
         def crawl_summary(url, text)
           summary = text.length > 500 ? "#{text[0, 500]}..." : text
           "Crawled 1 page from #{URI(url).host}:\n\n" \
             "1. #{url} (#{text.length} chars)\n   Summary: #{summary}"
         end
 
+        # @api private — the structured-extract handler. Despite the tool's
+        # "selectors" description it applies none: it returns the page's first 2000
+        # characters of text and lets the model do the extraction.
+        #
+        # @return [Swaig::FunctionResult]
         def handle_extract(args, _raw_data)
           url = (args['url'] || '').strip
           return Swaig::FunctionResult.new('Please provide a URL') if url.empty?
@@ -152,6 +234,11 @@ module SignalWire
           Swaig::FunctionResult.new("Error extracting data: #{e.message}")
         end
 
+        # @api private — the cached fetch: resolve any `SPIDER_BASE_URL` redirect,
+        # return the cached body when present, else fetch, strip to text, truncate to
+        # `max_text_length` and cache. Any failure yields nil rather than raising.
+        #
+        # @return [String, nil]
         def fetch_text(url)
           url = redirect_url(url)
           return @cache[url] if cache_hit?(url)
@@ -166,12 +253,16 @@ module SignalWire
           nil
         end
 
+        # @api private — whether this URL is already cached. Guards on the cache
+        # existing, so a lookup after {#cleanup} is a miss rather than an error.
+        #
+        # @return [Boolean]
         def cache_hit?(url)
           defined?(@cache) && @cache&.key?(url)
         end
 
         # SPIDER_BASE_URL redirects every fetch through a configured host
-        # (used by audit_skills_dispatch.py to point the skill at a loopback
+        # (used by the skills-dispatch audit to point the skill at a loopback
         # fixture). The path/query of the user-supplied URL is preserved so
         # the audit can match on it.
         def redirect_url(url)
@@ -207,12 +298,18 @@ module SignalWire
           body
         end
 
+        # Drop each {#remove_xpaths} element together with its content, then
+        # flatten whatever tags remain to whitespace. Only the simple
+        # ``//tag`` form is compiled — anything more expressive would need a
+        # real XPath engine, so it is skipped rather than mis-applied.
         def strip_html(body)
-          body.gsub(%r{<script[^>]*>.*?</script>}mi, '')
-              .gsub(%r{<style[^>]*>.*?</style>}mi, '')
-              .gsub(/<[^>]+>/, ' ')
-              .gsub(/\s+/, ' ')
-              .strip
+          text = remove_xpaths.reduce(body) do |acc, xpath|
+            tag = xpath[%r{\A//([a-zA-Z][a-zA-Z0-9]*)\z}, 1]
+            next acc if tag.nil?
+
+            acc.gsub(%r{<#{tag}\b[^>]*>.*?</#{tag}>}mi, '')
+          end
+          text.gsub(/<[^>]+>/, ' ').gsub(/\s+/, ' ').strip
         end
 
         # Extract the path-and-query portion of a URL. Used by

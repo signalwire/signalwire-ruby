@@ -52,7 +52,7 @@ module RelayConvenienceHelpers
   def dial_call(tag:, call_id:, states: %w[created answered])
     @mock.arm_dial(tag: tag, winner_call_id: call_id, states: states,
                    node_id: 'node-mock-1', device: phone_device)
-    call = @client.dial([[phone_device]], tag: tag, timeout: 5)
+    call = @client.dial([[phone_device]], tag: tag, dial_timeout: 5)
 
     assert_kind_of SignalWire::Relay::Call, call
     assert_equal call_id, call.call_id

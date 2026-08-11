@@ -11,7 +11,7 @@
 #   SIGNALWIRE_SPACE        - your SignalWire space (e.g. example.signalwire.com)
 
 require 'signalwire'
-require 'signalwire/rest/rest_client'  # opt-in subsystem (Python: from signalwire.rest import Client)
+require 'signalwire/rest/rest_client' # opt-in subsystem (Python: from signalwire.rest import Client)
 
 client = SignalWire::REST::RestClient.new
 
@@ -29,15 +29,15 @@ puts 'Registering 10DLC brand...'
 brand = safe('Register brand') do
   client.registry.brands.create(
     {
-      name:                'Acme Brand',
-      company_name:        'Acme Corp',
-      contact_email:       'brand_info@acme.example.com',
-      contact_phone:       '+18995551212',
+      name: 'Acme Brand',
+      company_name: 'Acme Corp',
+      contact_email: 'brand_info@acme.example.com',
+      contact_phone: '+18995551212',
       ein_issuing_country: 'United States',
-      legal_entity_type:   'PRIVATE_PROFIT',
-      ein:                 '12-3456789',
-      company_address:     '123 Brand St, Hill Valley CA, 91905',
-      company_website:     'www.acme.example.com'
+      legal_entity_type: 'PRIVATE_PROFIT',
+      ein: '12-3456789',
+      company_address: '123 Brand St, Hill Valley CA, 91905',
+      company_website: 'www.acme.example.com'
     }
   )
 end
@@ -65,8 +65,8 @@ if brand_id
     client.registry.brands.create_campaign(
       brand_id,
       {
-        name:                   'Customer Notifications',
-        brand_id:               brand_id,
+        name: 'Customer Notifications',
+        brand_id: brand_id,
         csp_campaign_reference: 'C123456'
       }
     )

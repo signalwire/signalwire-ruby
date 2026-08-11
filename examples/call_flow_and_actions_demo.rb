@@ -8,9 +8,9 @@
 require 'signalwire'
 
 agent = SignalWire::AgentBase.new(
-  name:          'call_flow_agent',
-  route:         '/',
-  record_call:   true,
+  name: 'call_flow_agent',
+  route: '/',
+  record_call: true,
   record_format: 'mp3',
   record_stereo: true
 )
@@ -27,42 +27,42 @@ agent.prompt_add_section(
 
 # Play a whisper to the agent before connecting
 agent.add_pre_answer_verb('play', {
-  'url' => 'say:New inbound call arriving'
-})
+                            'url' => 'say:New inbound call arriving'
+                          })
 
 # --- Post-answer verbs (after answer, before AI starts) ---
 
 # Play hold music while AI initialises
 agent.add_post_answer_verb('play', {
-  'url'         => 'https://cdn.example.com/hold-music.mp3',
-  'max_length'  => 5
-})
+                             'url' => 'https://cdn.example.com/hold-music.mp3',
+                             'max_length' => 5
+                           })
 
 # --- Post-AI verbs (after AI conversation ends) ---
 
 # Play a closing message after the AI hangs up
 agent.add_post_ai_verb('play', {
-  'url' => 'say:Thank you for calling. Goodbye!'
-})
+                         'url' => 'say:Thank you for calling. Goodbye!'
+                       })
 
 # --- Debug events ---
 
-agent.enable_debug_events(2)  # Level 2 for detailed events
+agent.enable_debug_events(2) # Level 2 for detailed events
 
-agent.on_debug_event do |event_type, event_data|
+agent.on_debug_event(nil) do |event_type, event_data|
   puts "[DEBUG] #{event_type}: #{event_data.inspect}"
 end
 
 # --- Tools ---
 
 agent.define_tool(
-  name:        'check_availability',
+  name: 'check_availability',
   description: 'Check room availability for given dates',
-  parameters:  {
-    'check_in'  => { 'type' => 'string', 'description' => 'Check-in date (YYYY-MM-DD)' },
+  parameters: {
+    'check_in' => { 'type' => 'string', 'description' => 'Check-in date (YYYY-MM-DD)' },
     'check_out' => { 'type' => 'string', 'description' => 'Check-out date (YYYY-MM-DD)' },
     'room_type' => { 'type' => 'string', 'description' => 'Room type: standard, deluxe, suite' }
-  }
+  }, handler: nil
 ) do |args, _raw_data|
   SignalWire::Swaig::FunctionResult.new(
     "#{args['room_type']&.capitalize} room available from #{args['check_in']} " \
@@ -71,14 +71,14 @@ agent.define_tool(
 end
 
 agent.define_tool(
-  name:        'make_reservation',
+  name: 'make_reservation',
   description: 'Create a hotel reservation',
-  parameters:  {
+  parameters: {
     'guest_name' => { 'type' => 'string', 'description' => 'Guest full name' },
-    'check_in'   => { 'type' => 'string', 'description' => 'Check-in date (YYYY-MM-DD)' },
-    'check_out'  => { 'type' => 'string', 'description' => 'Check-out date (YYYY-MM-DD)' },
-    'room_type'  => { 'type' => 'string', 'description' => 'Room type' }
-  }
+    'check_in' => { 'type' => 'string', 'description' => 'Check-in date (YYYY-MM-DD)' },
+    'check_out' => { 'type' => 'string', 'description' => 'Check-out date (YYYY-MM-DD)' },
+    'room_type' => { 'type' => 'string', 'description' => 'Room type' }
+  }, handler: nil
 ) do |args, _raw_data|
   conf_num = "RES-#{rand(100_000..999_999)}"
   result = SignalWire::Swaig::FunctionResult.new(
@@ -91,9 +91,9 @@ agent.define_tool(
 end
 
 agent.define_tool(
-  name:        'transfer_to_front_desk',
+  name: 'transfer_to_front_desk',
   description: 'Transfer the call to the front desk',
-  parameters:  {}
+  parameters: {}, handler: nil
 ) do |_args, _raw_data|
   result = SignalWire::Swaig::FunctionResult.new(
     'Transferring you to the front desk now.'

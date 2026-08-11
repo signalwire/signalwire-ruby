@@ -44,7 +44,7 @@ class ParameterSchemaTestBase < Minitest::Test
   def handwritten(parameters, required: nil)
     agent = SignalWire::AgentBase.new
     agent.define_tool(name: 't', description: 'd',
-                      parameters: parameters, required: required) { |_, _| }
+                      parameters: parameters, required: required, handler: nil) { |_, _| }
     agent.define_tools[0]['parameters']
   end
 
@@ -276,7 +276,7 @@ class ParameterSchemaDefineToolIntegrationTest < Minitest::Test
 
   def _define_lookup_tool
     @agent.define_tool(name: 'lookup', description: 'Look up a service',
-                       parameters: @params) do |args, _raw|
+                       parameters: @params, handler: nil) do |args, _raw|
       @invoked_with = args
       SignalWire::Swaig::FunctionResult.new("Looked up #{args['service']}")
     end

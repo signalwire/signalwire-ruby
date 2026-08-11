@@ -9,21 +9,23 @@
 # swaig-response action 'context_switch' value object
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwaigActionsGenerated — namespace for this generated data-class tree.
     module SwaigActionsGenerated
       # ContextSwitchAction — generated data type (swaig-response action 'context_switch' value object).
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
-      # No reader/writer methods and no initialize — a method-less type the
-      # reference records method-less on both surface and signatures.
+      # No reader/writer methods and no initialize — the class is a bare
+      # namespace for its FIELDS map, describing the wire shape only.
       class ContextSwitchAction
         FIELDS = {
-          'system_prompt' => :any,
-          'user_prompt' => :any,
-          'system_pom' => :any,
-          'user_pom' => :any,
           'consolidate' => :boolean,
-          'full_reset' => :boolean
+          'full_reset' => :boolean,
+          'system_pom' => :object,
+          'system_prompt' => :string,
+          'user_pom' => :object,
+          'user_prompt' => :string
         }.freeze
       end
     end

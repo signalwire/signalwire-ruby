@@ -21,7 +21,7 @@ module SignalWire
             # PhoneCallHandler — public closed-set for 'PhoneNumberCallHandlerRequest'
             # ('relay_rest' API). Frozen string constants whose value IS the wire
             # string (the idiomatic Ruby closed set — not a static enum type),
-            # grouped into a frozen ALL. Method-less, records [] like the reference.
+            # grouped into a frozen ALL. Method-less: constants only, no instance methods.
             class PhoneCallHandler
               RELAY_CONTEXT = 'relay_context'
               RELAY_TOPIC = 'relay_topic'

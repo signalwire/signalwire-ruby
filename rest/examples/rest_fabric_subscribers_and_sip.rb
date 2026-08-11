@@ -8,7 +8,7 @@
 #   SIGNALWIRE_SPACE        - your SignalWire space (e.g. example.signalwire.com)
 
 require 'signalwire'
-require 'signalwire/rest/rest_client'  # opt-in subsystem (Python: from signalwire.rest import Client)
+require 'signalwire/rest/rest_client' # opt-in subsystem (Python: from signalwire.rest import Client)
 
 client = SignalWire::REST::RestClient.new
 
@@ -24,9 +24,9 @@ end
 # 1. Create a subscriber
 puts 'Creating subscriber...'
 subscriber = client.fabric.subscribers.create(
-  email:        'alice@example.com',
-  first_name:   'Alice',
-  last_name:    'Johnson',
+  email: 'alice@example.com',
+  first_name: 'Alice',
+  last_name: 'Johnson',
   display_name: 'Alice Johnson'
 )
 sub_id = subscriber['id']
@@ -58,11 +58,11 @@ puts "  Username: #{ep_detail.fetch('username', 'N/A')}"
 # 5. Create a standalone SIP gateway
 puts "\nCreating SIP gateway..."
 gateway = client.fabric.sip_gateways.create(
-  name:       'Office PBX Gateway',
-  uri:        'sip:pbx.example.com',
+  name: 'Office PBX Gateway',
+  uri: 'sip:pbx.example.com',
   encryption: 'required',
-  ciphers:    ['AES_256_CM_HMAC_SHA1_80'],
-  codecs:     %w[PCMU PCMA]
+  ciphers: ['AES_256_CM_HMAC_SHA1_80'],
+  codecs: %w[PCMU PCMA]
 )
 gw_id = gateway['id']
 puts "  Created SIP gateway: #{gw_id}"

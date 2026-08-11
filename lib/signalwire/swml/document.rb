@@ -2,11 +2,17 @@
 
 require 'json'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # SWML — SWML document construction, rendering and serving.
   module SWML
+    # A SWML document under construction: a version and an ordered list of verbs
+    # per section. Mutations are mutex-guarded, so a document can be built from
+    # more than one thread.
     class Document
       attr_reader :version, :sections
 
+      # Create an empty document at SWML version 1.0.0 with one empty `main` section.
       def initialize
         @version = '1.0.0'
         @sections = { 'main' => [] }

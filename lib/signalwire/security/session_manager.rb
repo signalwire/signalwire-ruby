@@ -10,7 +10,9 @@ require 'securerandom'
 require 'base64'
 require 'time'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Security — webhook signature validation, session tokens and request hardening.
   module Security
     # Stateless HMAC-SHA256 session manager for secure SWAIG tool tokens.
     #
@@ -23,27 +25,25 @@ module SignalWire
     #
     class SessionManager
       # When set true, {#debug_token} decodes token internals instead of
-      # returning +{ "error" => "debug mode not enabled" }+. Mirrors the
-      # Python reference's +_debug_mode+ attribute (off by default). Exposed
-      # as a writer only — there is no corresponding reader on the Python
-      # surface, so none is projected here.
+      # returning +{ "error" => "debug mode not enabled" }+. Off by default,
+      # and a writer only — the flag is deliberately not readable back.
       attr_writer :debug_mode
 
       # @return [String] the hex-encoded HMAC secret in use — the caller-supplied
       #   +secret_key:+, or the +SecureRandom.hex(32)+ value generated when none
-      #   was given. The reference exposes the same attribute
-      #   (`self.secret_key`, core/security/session_manager.py) and keys every
-      #   HMAC with this STRING's bytes, so reading it back is what lets a caller
-      #   verify or reproduce a token minted elsewhere (cross-port interop).
+      #   was given. Every HMAC is keyed with this STRING's bytes, so reading it
+      #   back is what lets a caller verify or reproduce a token minted
+      #   elsewhere.
       # @return [Integer] +token_expiry_secs+: the clamped lifetime tokens are
-      #   minted with. Also a public reference attribute; a caller that passes a
-      #   lifetime must be able to read the value actually in force (the clamp
-      #   means the stored value is not always the value passed).
+      #   minted with. A caller that passes a lifetime must be able to read the
+      #   value actually in force (the clamp means the stored value is not
+      #   always the value passed).
       attr_reader :secret_key, :token_expiry_secs
 
-      # @param token_expiry_secs [Integer] seconds until tokens expire (minimum 1)
+      # @param token_expiry_secs [Integer] seconds until tokens expire
+      #   (default: 900 — 15 minutes; minimum 1).
       # @param secret_key [String, nil] hex-encoded secret; generated if omitted
-      def initialize(token_expiry_secs: 3600, secret_key: nil)
+      def initialize(token_expiry_secs: 900, secret_key: nil)
         @token_expiry_secs = [token_expiry_secs, 1].max
         @secret_key = secret_key || SecureRandom.hex(32)
         @debug_mode = false
@@ -64,11 +64,18 @@ module SignalWire
         nonce     = SecureRandom.hex(8)
         signature = compute_hmac("#{call_id}:#{function_name}:#{expiry}:#{nonce}")
         token_raw = "#{call_id}.#{function_name}.#{expiry}.#{nonce}.#{signature}"
-        Base64.urlsafe_encode64(token_raw, padding: false)
+        # PADDED urlsafe Base64 — the '=' padding MUST be kept. A strict decoder
+        # raises on a stripped '=', so +padding: false+ here would make every
+        # token this SDK mints unusable to any such consumer even though the
+        # message and HMAC are correct. Ruby's own +urlsafe_decode64+ tolerates
+        # missing padding on urlsafe input, so {#validate_token} would still
+        # accept them — that asymmetry means round-tripping a token through this
+        # class cannot catch the bug. Do not "tidy" the padding away.
+        Base64.urlsafe_encode64(token_raw)
       end
 
-      alias generate_token create_token # Python-surface name for minting.
-      alias create_tool_token create_token # Python back-compat alias.
+      alias generate_token create_token # Alternate public name for minting.
+      alias create_tool_token create_token # Back-compat alias.
 
       # Validate a function-call token.
       #
@@ -98,35 +105,33 @@ module SignalWire
         false
       end
 
-      alias validate_tool_token validate_token # Python back-compat alias.
+      alias validate_tool_token validate_token # Back-compat alias.
 
       # Return the given +call_id+, or generate a new URL-safe session
       # identifier when none is supplied.
       #
-      # Matches the Python reference's stateless +create_session+: the SDK
-      # does not persist sessions, it just mints an identifier callers can
-      # thread through subsequent token operations.
+      # Stateless: the SDK does not persist sessions, it just mints an
+      # identifier callers can thread through subsequent token operations.
       #
       # @param call_id [String, nil] existing call ID to reuse
       # @return [String] the resolved call ID
       def create_session(call_id = nil)
         return call_id unless _blank?(call_id)
 
-        # token_urlsafe(16) in Python yields ~22 url-safe chars from 16 bytes.
+        # 16 random bytes, unpadded — ~22 url-safe characters.
         Base64.urlsafe_encode64(SecureRandom.bytes(16), padding: false)
       end
 
-      # Legacy lifecycle hook retained for API compatibility with the Python
-      # reference. The session manager is stateless with respect to
-      # activation, so this accepts the call ID and reports success.
+      # Legacy lifecycle hook retained for API compatibility. The session
+      # manager is stateless with respect to activation, so this accepts the
+      # call ID and reports success.
       #
       # @param _call_id [String]
       # @return [Boolean] always +true+
       def activate_session(_call_id) = true
 
-      # Legacy lifecycle hook retained for API compatibility with the Python
-      # reference. Clears any metadata accumulated for the session and
-      # reports success.
+      # Legacy lifecycle hook retained for API compatibility. Clears any
+      # metadata accumulated for the session and reports success.
       #
       # @param call_id [String]
       # @return [Boolean] always +true+
@@ -137,10 +142,9 @@ module SignalWire
 
       # Fetch the metadata hash stored for +call_id+.
       #
-      # The Python reference is stateless and always returns +{}+; this port
-      # keeps a real per-session store (matching the TypeScript port) so the
-      # getter/setter pair round-trips, but still returns an empty hash for
-      # unknown sessions — callers never get +nil+.
+      # A real per-session store backs this, so the getter/setter pair
+      # round-trips. An unknown session yields an empty hash — callers never
+      # get +nil+.
       #
       # @param call_id [String]
       # @return [Hash] the session's metadata, or +{}+ if none is stored
@@ -148,10 +152,8 @@ module SignalWire
       def get_session_metadata(call_id) = (@session_metadata[call_id] || {}).dup
 
       # Store a single +key+/+value+ pair in +call_id+'s metadata, merging
-      # with anything already recorded for that session.
-      #
-      # Signature mirrors the Python reference's
-      # +set_session_metadata(call_id, key, value)+.
+      # with anything already recorded for that session. All three arguments
+      # are positional.
       #
       # @param call_id [String]
       # @param key [String]
@@ -165,9 +167,8 @@ module SignalWire
       # Decode a token's components for inspection WITHOUT validating it.
       #
       # Requires {#debug_mode=} to have been set +true+; otherwise returns
-      # +{ "error" => "debug mode not enabled" }+, matching the Python
-      # reference. The returned structure mirrors Python's nested
-      # +components+/+status+ shape (call_id and signature truncated to
+      # +{ "error" => "debug mode not enabled" }+. The success shape is a
+      # nested +components+/+status+ pair (call_id and signature truncated to
       # 8 chars + "..." when longer).
       #
       # @param token [String]
@@ -185,11 +186,20 @@ module SignalWire
 
       private
 
+      # @api private — the debug report for a token that does not split into the
+      # expected number of parts: how many parts it had and how long it was. The
+      # token itself is never included.
+      #
+      # @return [Hash]
       def malformed_debug(token, parts)
         { 'valid_format' => false, 'parts_count' => parts.length,
           'token_length' => token ? token.length : 0 }
       end
 
+      # @api private — the debug report for a well-formed token: its components plus
+      # its expiry status relative to now.
+      #
+      # @return [Hash]
       def decoded_debug(_token, parts)
         status = expiry_status(parts[2], Time.now.to_i)
         {
@@ -199,6 +209,11 @@ module SignalWire
         }
       end
 
+      # @api private — the token's components for the debug report. The call id and
+      # the SIGNATURE are truncated — the signature is the secret-bearing part, so it
+      # is never reported in full.
+      #
+      # @return [Hash]
       def debug_components(parts, expiry_date)
         {
           'call_id' => truncate(parts[0]), 'function' => parts[1],
@@ -232,8 +247,8 @@ module SignalWire
         Integer(token_expiry) >= Time.now.to_i
       end
 
-      # Truncate +str+ to "first8..." when longer than 8 chars, mirroring the
-      # Python reference's debug-output redaction for call_id and signature.
+      # Truncate +str+ to "first8..." when longer than 8 chars — the
+      # debug-output redaction applied to call_id and signature.
       def truncate(str) = str.length > 8 ? "#{str[0, 8]}..." : str
 
       # Compute HMAC-SHA256 of +message+ using the instance secret key.

@@ -7,13 +7,13 @@
 #
 # SWML Verb Handlers - Interface and implementations for SWML verb handling.
 #
-# This module defines the base interface for SWML verb handlers and provides
-# implementations for specific verbs that require special handling. Mirrors the
-# Python reference signalwire.core.swml_handler (SWMLVerbHandler / AIVerbHandler
-# / VerbHandlerRegistry) and the PHP SignalWire\SWML\{SWMLVerbHandler,
-# AIVerbHandler, VerbHandlerRegistry}.
+# This module defines the base interface for SWML verb handlers
+# (SWMLVerbHandler) and provides implementations for specific verbs that
+# require special handling (AIVerbHandler), along with the lookup registry
+# that maps a verb name to its handler (VerbHandlerRegistry).
 
 module SignalWire
+  # SWML — SWML document construction, rendering and serving.
   module SWML
     # Base interface for SWML verb handlers.
     #
@@ -60,7 +60,8 @@ module SignalWire
       #
       # Checks that +prompt+ is present and an object, contains exactly one of
       # +text+ / +pom+ (mutually exclusive), that +prompt.contexts+ (if present)
-      # is an object, and that +SWAIG+ (if present) is an object.
+      # is an object, that +post_prompt+ (if present) is an object, and that
+      # +SWAIG+ (if present) is an object.
       #
       # @param config [Hash] the AI verb configuration
       # @return [Array(Boolean, Array<String>)] (is_valid, error_messages)
@@ -71,8 +72,18 @@ module SignalWire
         return [false, ["'prompt' must be an object"]] unless prompt.is_a?(Hash)
 
         errors = validate_base_prompt(prompt)
-        errors << "'prompt.contexts' must be an object" if prompt.key?('contexts') && !prompt['contexts'].is_a?(Hash)
-        errors << "'SWAIG' must be an object" if config.key?('SWAIG') && !config['SWAIG'].is_a?(Hash)
+        errors.concat(optional_object_errors(prompt, 'contexts', "'prompt.contexts'"))
+        # post_prompt is OPTIONAL, but when present the engine holds it to the
+        # SAME contract as prompt: mod_openai/app_config.c checks
+        # !cJSON_IsObject(assistant_prompt) at :3193 and !cJSON_IsObject(post_prompt)
+        # at :3219 -- same structure, same fatal:true calling.error, and both error
+        # payloads read "must be an object with 'text' or 'pom' field". Validating
+        # one and not the other reported configs VALID that abort the call on the
+        # wire; build_config has always emitted the right shape, so the hole was
+        # only reachable by a caller hand-assembling a config -- which is exactly
+        # how signalwire-go shipped a bare-string post_prompt (go 51934ec).
+        errors.concat(optional_object_errors(config, 'post_prompt', "'post_prompt'"))
+        errors.concat(optional_object_errors(config, 'SWAIG', "'SWAIG'"))
 
         [errors.empty?, errors]
       end
@@ -101,7 +112,8 @@ module SignalWire
         config['post_prompt_url'] = post_prompt_url unless post_prompt_url.nil?
         config['SWAIG'] = swaig unless swaig.nil?
 
-        # Match Python behaviour: always initialise the params dict.
+        # +params+ is always initialised, so the key is present on the wire
+        # even when no extra keyword routed into it.
         config['params'] = {}
         route_extra_kwargs(config, kwargs)
         config
@@ -111,6 +123,15 @@ module SignalWire
       TOP_LEVEL_AI_KEYS = %i[languages hints pronounce global_data].freeze
 
       private
+
+      # Errors for an OPTIONAL key that must be an object when present.
+      # Absence is never an error; present-but-not-a-Hash always is.
+      def optional_object_errors(container, key, label)
+        return [] unless container.key?(key)
+        return [] if container[key].is_a?(Hash)
+
+        ["#{label} must be an object"]
+      end
 
       # Base-prompt errors for validate_config (exactly one of text/pom required).
       def validate_base_prompt(prompt)

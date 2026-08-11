@@ -9,7 +9,9 @@ require_relative 'request_options'
 require_relative '../version'
 require_relative '../error'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # REST — the synchronous REST client and its per-namespace resources.
   module REST
     # Raised when the SignalWire REST API returns a non-2xx response.
     #
@@ -30,6 +32,14 @@ module SignalWire
         x-request-id x-signalwire-request-id request-id x-amzn-requestid
       ].freeze
 
+      # @param status_code [Integer, nil] the HTTP status, or nil for a transport
+      #   failure that never produced a response
+      # @param body [Object] the decoded error body, or the transport error's message
+      # @param url [String] the FULL request URL that failed — scheme, host, path and
+      #   query, exactly what went on the wire
+      # @param method_name [String] the HTTP method, e.g. "POST"
+      # @param headers [Hash, nil] the response headers, or nil for a transport error;
+      #   the platform request id is pulled from them into {#request_id}
       def initialize(status_code, body, url, method_name = 'GET', headers = nil)
         @status_code = status_code
         @body        = body
@@ -42,6 +52,10 @@ module SignalWire
 
       private
 
+      # @api private — compose the exception message. A nil status reads as "failed
+      # to reach the server" rather than a status line, and the platform request id
+      # is appended when one was found — that id is what support needs to trace the
+      # call server-side.
       def build_message
         base = if @status_code.nil?
                  "#{@method_name} #{@url} failed to reach the server: #{@body}"
@@ -72,6 +86,9 @@ module SignalWire
     # with one +rescue+, instead of a bare +Errno::ECONNREFUSED+ / +SocketError+
     # / +Net::OpenTimeout+ leaking out of the REST client.
     class SignalWireRestTransportError < SignalWireRestError
+      # @param body [String] the underlying transport error's message
+      # @param url [String] the full request URL that failed
+      # @param method_name [String] the HTTP method, e.g. "GET"
       def initialize(body, url, method_name = 'GET')
         super(nil, body, url, method_name)
       end
@@ -84,19 +101,30 @@ module SignalWire
     class Attempt
       attr_reader :value
 
+      # A completed attempt carrying the decoded success body.
+      #
+      # @param value [Object] the value {HttpClient#request} returns to the caller
+      # @return [Attempt]
       def self.done(value)
         new(true, value)
       end
 
+      # An attempt that should be retried. Backoff has ALREADY been slept by the
+      # time this is constructed, so the caller loops immediately.
+      #
+      # @return [Attempt]
       def self.retry
         new(false, nil)
       end
 
+      # @param done [Boolean] whether the retry loop is finished
+      # @param value [Object, nil] the success body when done, nil when retrying
       def initialize(done, value)
         @done  = done
         @value = value
       end
 
+      # @return [Boolean] true when the retry loop should stop and return {#value}
       def done?
         @done
       end
@@ -108,8 +136,7 @@ module SignalWire
 
       # REST client User-Agent. The product token stays stable at
       # `signalwire-ruby`; the version segment is the real SDK version so it can
-      # never drift from a hardcoded literal. Mirrors the Python reference fix
-      # (rest/_base.py `_user_agent`) — SDK_BUG_LEDGER P1: the old
+      # never drift from a hardcoded literal. The old
       # `signalwire-agents-ruby-rest/1.0` was both the wrong product token and a
       # stale `/1.0` while the package was at 3.x.
       USER_AGENT = "signalwire-ruby/#{SignalWire::VERSION}".freeze
@@ -172,22 +199,58 @@ module SignalWire
       end
       alias to_s inspect
 
+      # Issue a GET.
+      #
+      # @param path [String] path appended to the client's base URL
+      # @param params [Hash, nil] query parameters; omitted from the URL when nil or empty
+      # @param request_options [RequestOptions, nil] per-request overrides of the
+      #   client's timeout / retries / backoff / abort signal
+      # @return [Hash] the decoded JSON body, or `{}` for a 204 / empty body
+      # @raise [SignalWireRestError] on a non-2xx response or a transport failure
       def get(path, params = nil, request_options: nil)
         request('GET', path, params: params, request_options: request_options)
       end
 
+      # Issue a POST with a JSON body.
+      #
+      # @param path [String] path appended to the client's base URL
+      # @param body [Hash, nil] serialized as the JSON request body
+      # @param params [Hash, nil] query parameters
+      # @param request_options [RequestOptions, nil] per-request overrides
+      # @return [Hash] the decoded JSON body, or `{}` for a 204 / empty body
+      # @raise [SignalWireRestError] on a non-2xx response or a transport failure
       def post(path, body = nil, params: nil, request_options: nil)
         request('POST', path, body: body, params: params, request_options: request_options)
       end
 
+      # Issue a PUT with a JSON body — a full replacement of the resource.
+      #
+      # @param path [String] path appended to the client's base URL
+      # @param body [Hash, nil] serialized as the JSON request body
+      # @param request_options [RequestOptions, nil] per-request overrides
+      # @return [Hash] the decoded JSON body, or `{}` for a 204 / empty body
+      # @raise [SignalWireRestError] on a non-2xx response or a transport failure
       def put(path, body = nil, request_options: nil)
         request('PUT', path, body: body, request_options: request_options)
       end
 
+      # Issue a PATCH with a JSON body — a partial update of the resource.
+      #
+      # @param path [String] path appended to the client's base URL
+      # @param body [Hash, nil] serialized as the JSON request body
+      # @param request_options [RequestOptions, nil] per-request overrides
+      # @return [Hash] the decoded JSON body, or `{}` for a 204 / empty body
+      # @raise [SignalWireRestError] on a non-2xx response or a transport failure
       def patch(path, body = nil, request_options: nil)
         request('PATCH', path, body: body, request_options: request_options)
       end
 
+      # Issue a DELETE.
+      #
+      # @param path [String] path appended to the client's base URL
+      # @param request_options [RequestOptions, nil] per-request overrides
+      # @return [Hash] the decoded JSON body, or `{}` for a 204 / empty body
+      # @raise [SignalWireRestError] on a non-2xx response or a transport failure
       def delete(path, request_options: nil)
         request('DELETE', path, request_options: request_options)
       end
@@ -210,7 +273,7 @@ module SignalWire
       # -> http://; every other host is the real platform over https://. This lets
       # a shipped example run verbatim against a local mock without a separate
       # base_url knob, and a dev host:port never mangles into
-      # "myspace:8917.signalwire.com". Mirrors python rest/_base.py.
+      # "myspace:8917.signalwire.com".
       def derive_base_url(space, base_url)
         base_url = ENV.fetch('SIGNALWIRE_REST_BASE_URL', nil) if base_url.nil? || base_url.empty?
         return base_url.sub(%r{/$}, '') if base_url && !base_url.empty?
@@ -235,6 +298,13 @@ module SignalWire
         %w[127.0.0.1 localhost ::1 [::1]].include?(hostname)
       end
 
+      # @api private — the retry driver every verb funnels through. Composes the
+      # absolute URL, resolves the client-default and per-request options, then loops
+      # attempts until one is done. The abort signal is checked cooperatively before
+      # each attempt. Errors carry the FULL request URL, not the bare path.
+      #
+      # @return [Object] the decoded success body
+      # @raise [SignalWireRestError] terminal HTTP error, or {SignalWireRestTransportError}
       def request(method, path, body: nil, params: nil, request_options: nil)
         uri  = build_uri(path, params)
         opts = RequestOptions.resolve(@request_options, request_options)
@@ -283,6 +353,12 @@ module SignalWire
         raise SignalWireRestTransportError.new('request cancelled by abort_signal', url, method)
       end
 
+      # @api private — decide whether a TRANSPORT failure gets another attempt. A
+      # transport error means the request never reached the server, so it is retried
+      # regardless of method idempotency. Sleeps the exponential backoff before
+      # returning true, so the caller loops immediately.
+      #
+      # @return [Boolean] true when a retry was scheduled
       def retry_transport?(opts, attempt)
         return false unless attempt <= opts.retries
 
@@ -369,12 +445,19 @@ module SignalWire
         nil
       end
 
+      # @api private — compose the absolute request URI from the client's base URL
+      # and +path+, attaching +params+ as a form-encoded query string when non-empty.
+      #
+      # @return [URI]
       def build_uri(path, params)
         uri = URI("#{@base_url}#{path}")
         uri.query = URI.encode_www_form(params) if params && !params.empty?
         uri
       end
 
+      # @api private — the Net::HTTP request object for +method+.
+      #
+      # @raise [ArgumentError] for a method outside GET/POST/PUT/PATCH/DELETE
       def build_request(method, uri)
         klass = {
           'GET' => Net::HTTP::Get, 'POST' => Net::HTTP::Post, 'PUT' => Net::HTTP::Put,
@@ -385,6 +468,9 @@ module SignalWire
         klass.new(uri)
       end
 
+      # @api private — stamp the fixed request headers: the Basic-auth header built
+      # from the project id and token, JSON content/accept types, and the SDK's
+      # versioned User-Agent.
       def apply_headers(req)
         req['Authorization'] = @auth_header
         req['Content-Type']  = 'application/json'
@@ -392,6 +478,10 @@ module SignalWire
         req['User-Agent']    = USER_AGENT
       end
 
+      # @api private — enable TLS on the transport with VERIFY_PEER. There is no
+      # VERIFY_NONE path. When a CA bundle was configured (constructor arg or
+      # SIGNALWIRE_REST_CA_FILE) it is trusted IN ADDITION to the OpenSSL defaults,
+      # for private- or pinned-CA deployments.
       def configure_ssl(http)
         http.use_ssl = true
         # Always verify the server certificate. When an explicit CA bundle
@@ -408,6 +498,9 @@ module SignalWire
         http.cert_store = store
       end
 
+      # @api private — the error body as decoded JSON when it parses, else the raw
+      # response body string. An error response is not guaranteed to be JSON, so this
+      # never raises on top of the failure it is reporting.
       def parse_error_body(response)
         JSON.parse(response.body)
       rescue StandardError
@@ -417,6 +510,9 @@ module SignalWire
 
     # Base for all namespace/resource classes.
     class BaseResource
+      # @param http [HttpClient] the transport every request on this resource goes through
+      # @param base_path [String] the collection path this resource is anchored at,
+      #   e.g. "/api/fabric/resources/addresses"
       def initialize(http, base_path)
         @http      = http
         @base_path = base_path
@@ -429,10 +525,15 @@ module SignalWire
       end
     end
 
-    # Read-only resource with get/list. Mirrors Python's
-    # +signalwire.rest._base.ReadResource+: the read half of the CRUD surface,
-    # extended by CrudResource with create/update/delete.
+    # Read-only resource with get/list — the read half of the CRUD surface,
+    # extended by {CrudResource} with create/update/delete.
     class ReadResource < BaseResource
+      # List this resource's collection — ONE raw page, exactly as the server
+      # returned it. Use {#paginate} to walk every page.
+      #
+      # @param request_options [RequestOptions, nil] per-request overrides
+      # @param params [Hash] filter / paging query parameters; omitted when empty
+      # @return [Hash] the decoded page
       def list(request_options: nil, **params)
         @http.get(@base_path, params.empty? ? nil : params, request_options: request_options)
       end
@@ -448,12 +549,18 @@ module SignalWire
       # Wires the resource layer to the tested +PaginatedIterator+ (which walks
       # +resp["data"]+ and follows +resp["links"]["next"]+), so callers no
       # longer hand-construct the path + token loop. Returns an Enumerable
-      # +PaginatedIterator+ — the Ruby idiom for Python's returned iterator.
+      # +PaginatedIterator+.
       def paginate(request_options: nil, **params)
         PaginatedIterator.new(@http, @base_path, params.empty? ? nil : params, 'data',
                               request_options)
       end
 
+      # Fetch one item of this collection by id.
+      #
+      # @param resource_id [String] the item's identifier, appended to the base path
+      # @param request_options [RequestOptions, nil] per-request overrides
+      # @return [Hash] the decoded item
+      # @raise [SignalWireRestError] 404 when no such item exists
       def get(resource_id, request_options: nil)
         @http.get(_path(resource_id), request_options: request_options)
       end
@@ -466,8 +573,7 @@ module SignalWire
       # (CallFlowsResource, ConferenceRoomsResource, CxmlApplicationsResource,
       # SubscribersResource) would otherwise fall back to 'PATCH' and send the
       # wrong verb to PUT-only routes. Walk the ancestor chain so the nearest
-      # ancestor that set it wins — mirroring Python's inherited class attribute
-      # `_update_method`.
+      # ancestor that set it wins.
       def self.update_method
         return @update_method if defined?(@update_method) && @update_method
 
@@ -482,26 +588,50 @@ module SignalWire
         attr_writer :update_method
       end
 
+      # Create an item in this collection via POST.
+      #
+      # @param request_options [RequestOptions, nil] per-request overrides
+      # @param kwargs [Hash] the fields of the new item, sent as the JSON body
+      # @return [Hash] the decoded created item
       def create(request_options: nil, **kwargs)
         @http.post(@base_path, kwargs, request_options: request_options)
       end
 
+      # Update one item by id. The HTTP verb is the class's `update_method` — PATCH
+      # for most resources, PUT for the ones whose routes only accept a full
+      # replacement (see {CrudResource.update_method}).
+      #
+      # @param resource_id [String] the item's identifier
+      # @param request_options [RequestOptions, nil] per-request overrides
+      # @param kwargs [Hash] the fields to change, sent as the JSON body
+      # @return [Hash] the decoded updated item
       def update(resource_id, request_options: nil, **kwargs)
         m = self.class.update_method.downcase
         @http.send(m, _path(resource_id), kwargs, request_options: request_options)
       end
 
+      # Delete one item by id.
+      #
+      # @param resource_id [String] the item's identifier
+      # @param request_options [RequestOptions, nil] per-request overrides
+      # @return [Hash] the decoded body, or `{}` when the server answers 204
       def delete(resource_id, request_options: nil)
         @http.delete(_path(resource_id), request_options: request_options)
       end
     end
 
     # CRUD resource that also supports listing the addresses bound to a
-    # resource. Mirrors Python's +signalwire.rest._base.CrudWithAddresses+:
-    # it adds a single +list_addresses+ helper on top of the standard
+    # resource. It adds a single +list_addresses+ helper on top of the standard
     # list/create/get/update/delete surface, issuing
     # +GET {base_path}/{resource_id}/addresses+.
     class CrudWithAddresses < CrudResource
+      # List the addresses bound to one item of this collection, issuing
+      # `GET {base_path}/{resource_id}/addresses`.
+      #
+      # @param resource_id [String] the item whose addresses to list
+      # @param request_options [RequestOptions, nil] per-request overrides
+      # @param params [Hash] filter / paging query parameters; omitted when empty
+      # @return [Hash] the decoded page of addresses
       def list_addresses(resource_id, request_options: nil, **params)
         @http.get(_path(resource_id, 'addresses'), params.empty? ? nil : params,
                   request_options: request_options)

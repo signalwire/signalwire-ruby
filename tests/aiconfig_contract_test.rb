@@ -30,8 +30,7 @@ class AIConfigContractTest < Minitest::Test
   # Structured pattern hint: pattern + hint + replace(ment) + ignore_case all
   # survive as a HASH in ai.hints (a bare-string impl drops the structure).
   def test_pattern_hint_structure_survives_render
-    @agent.add_pattern_hint(hint: 'SignalWire', pattern: 'sw.*',
-                            replace: 'SignalWire', ignore_case: true)
+    @agent.add_pattern_hint('SignalWire', 'sw.*', 'SignalWire', ignore_case: true)
 
     hint = ai_block['hints'].find { |h| h.is_a?(Hash) }
 

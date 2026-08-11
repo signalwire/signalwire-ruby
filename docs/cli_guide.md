@@ -9,8 +9,8 @@ publicly reachable server.
 > `swaig-test` actually implements. The Python reference SDK ships a much larger
 > `swaig-test` surface (agent discovery, per-function argument flags, mock-request
 > injection, data overrides, and CGI / Cloud Functions / Azure serverless
-> simulation). Those are **not** implemented in the Ruby port. See
-> [Not implemented in the Ruby port](#not-implemented-in-the-ruby-port) at the
+> simulation). Those are **not** implemented in the Ruby SDK. See
+> [Not implemented in the Ruby SDK](#not-implemented-in-the-ruby-sdk) at the
 > end of this guide for the full list and follow-up status. Run
 > `swaig-test --help` to see the authoritative flag set for your installed
 > version.
@@ -130,8 +130,8 @@ up this way.
 
 > **Only `lambda` is supported.** Passing `cgi`, `cloud_function`,
 > `azure_function`, etc. is rejected with a clear "not implemented in this SDK
-> yet" error — the Ruby port has only shipped the Lambda handler adapter
-> (Phase 9). See [Not implemented in the Ruby port](#not-implemented-in-the-ruby-port).
+> yet" error — the Ruby SDK has only shipped the Lambda handler adapter
+> (Phase 9). See [Not implemented in the Ruby SDK](#not-implemented-in-the-ruby-sdk).
 
 ### List an agent's tools under Lambda simulation
 
@@ -296,16 +296,16 @@ swaig-test examples/lambda_agent.rb --simulate-serverless lambda --dump-swml --r
 
 ## Building search indexes
 
-The Ruby port does **not** ship a search-index-building CLI (Python's
+The Ruby SDK does **not** ship a search-index-building CLI (Python's
 `sw-search`). Document search is provided by the `native_vector_search` skill in
 **remote mode only** — it queries a remote search server over HTTP; it does not
 build a local index. See the
 [Skills System Guide](skills_system.md#native-vector-search-native_vector_search).
 
-## Not implemented in the Ruby port
+## Not implemented in the Ruby SDK
 
 The Python reference `swaig-test` documents a substantially larger CLI. The
-following are **not** implemented in the Ruby port and are intentionally absent
+following are **not** implemented in the Ruby SDK and are intentionally absent
 from the flag set above. They are listed here so you don't reach for a Python
 recipe that won't parse — and as a follow-up feature backlog.
 

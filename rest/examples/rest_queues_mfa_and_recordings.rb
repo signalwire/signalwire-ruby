@@ -8,7 +8,7 @@
 #   SIGNALWIRE_SPACE        - your SignalWire space (e.g. example.signalwire.com)
 
 require 'signalwire'
-require 'signalwire/rest/rest_client'  # opt-in subsystem (Python: from signalwire.rest import Client)
+require 'signalwire/rest/rest_client' # opt-in subsystem (Python: from signalwire.rest import Client)
 
 client = SignalWire::REST::RestClient.new
 
@@ -25,7 +25,7 @@ end
 
 # 1. Create a queue
 puts 'Creating call queue...'
-queue_id = nil
+nil
 queue = safe('Create queue') { client.queues.create(name: 'Support Queue', max_size: 50) }
 queue_id = queue && queue['id']
 
@@ -84,9 +84,9 @@ puts "\nSending MFA SMS code..."
 request_id = nil
 begin
   sms_result = client.mfa.sms(
-    to:           '+15551234567',
-    from:        '+15559876543',
-    message:      'Your code is {{code}}',
+    to: '+15551234567',
+    from: '+15559876543',
+    message: 'Your code is {{code}}',
     token_length: 6
   )
   request_id = sms_result['id'] || sms_result['request_id']
@@ -99,9 +99,9 @@ end
 puts "\nSending MFA voice code..."
 begin
   voice_result = client.mfa.call(
-    to:           '+15551234567',
-    from:        '+15559876543',
-    message:      'Your verification code is {{code}}',
+    to: '+15551234567',
+    from: '+15559876543',
+    message: 'Your verification code is {{code}}',
     token_length: 6
   )
   puts "  MFA call sent: #{voice_result['id'] || voice_result['request_id']}"

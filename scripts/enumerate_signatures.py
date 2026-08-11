@@ -88,10 +88,19 @@ GENERATED_PREFIX = "SignalWire::REST::Namespaces::Generated::"
 # the diff tool).
 GENERATED_TYPES_PREFIX = GENERATED_PREFIX + "Types::"
 GENERATED_TYPES_NS = {
-    "RelayRest": "relay_rest", "Fabric": "fabric", "Calling": "calling",
-    "Video": "video", "Datasphere": "datasphere", "Logs": "logs",
-    "Message": "message", "Voice": "voice", "Fax": "fax", "Project": "project",
-    "Chat": "chat", "PubSub": "pubsub", "SwmlWebhooks": "swml_webhooks",
+    "RelayRest": "relay_rest",
+    "Fabric": "fabric",
+    "Calling": "calling",
+    "Video": "video",
+    "Datasphere": "datasphere",
+    "Logs": "logs",
+    "Message": "message",
+    "Voice": "voice",
+    "Fax": "fax",
+    "Project": "project",
+    "Chat": "chat",
+    "PubSub": "pubsub",
+    "SwmlWebhooks": "swml_webhooks",
 }
 GENERATED_PAYLOAD_PREFIXES = {
     "SignalWire::Core::SwmlVerbsGenerated::": "signalwire.core.swml_verbs_generated",
@@ -163,6 +172,36 @@ if not _REF_SIG_PATH.is_file():
     )
 _REF_SIG_RAW = json.loads(_REF_SIG_PATH.read_text())
 
+# The SURFACE oracle, read for one narrow purpose: per-class DECLARATION fidelity
+# (see ``fold_skill_base_hooks``). The two oracles are not interchangeable —
+# ``python_signatures.json`` deliberately SKIPS a subclass override whose
+# signature is identical to the base's, so on the signature axis "recorded on the
+# base but not on the subclass" is true of every base-identical override and is
+# far too broad to gate a fold on. ``python_surface.json`` records what each
+# class genuinely DECLARES, which is exactly the question the fold asks. Fails
+# loud on absence for the same reason ``_REF_SIG_PATH`` does.
+_REF_SURFACE_PATH = PSDK / "python_surface.json"
+if not _REF_SURFACE_PATH.is_file():
+    raise SystemExit(
+        f"porting-sdk surface oracle not found: {_REF_SURFACE_PATH}\n"
+        "  Set $PORTING_SDK to the porting-sdk checkout, or clone it as a "
+        "sibling of this repo. Refusing to emit a degraded snapshot."
+    )
+_REF_SURFACE_RAW = json.loads(_REF_SURFACE_PATH.read_text())
+
+
+def _build_ref_surface_member_index() -> dict:
+    """``(module, class) -> {member, ...}`` from the SURFACE oracle — what each
+    reference class genuinely declares."""
+    return {
+        (mod, cls): set(members or [])
+        for mod, me in _REF_SURFACE_RAW.get("modules", {}).items()
+        for cls, members in me.get("classes", {}).items()
+    }
+
+
+REF_SURFACE_MEMBERS = _build_ref_surface_member_index()
+
 
 def _build_ref_param_type_index() -> dict:
     """(module, class_or_None, method) -> {param_name: type} for every
@@ -227,37 +266,91 @@ REF_METHODS = _build_ref_method_index()
 # would blind the slot). Keyed (py_module, py_class_or_None, method) ->
 # {ruby_param_name: reference_param_name}. Applied BEFORE the type projection.
 HAND_PARAM_RENAMES: dict[tuple, dict[str, str]] = {
-    ("signalwire.core.agent_base", "AgentBase", "register_sip_username"): {"username": "sip_username"},
+    ("signalwire.core.agent_base", "AgentBase", "register_sip_username"): {
+        "username": "sip_username"
+    },
     ("signalwire.core.auth_handler", "AuthHandler", "flask_decorator"): {"app": "f"},
-    ("signalwire.core.contexts", "Context", "add_enter_filler"): {"lang_code": "language_code"},
-    ("signalwire.core.contexts", "Context", "add_exit_filler"): {"lang_code": "language_code"},
+    ("signalwire.core.contexts", "Context", "add_enter_filler"): {
+        "lang_code": "language_code"
+    },
+    ("signalwire.core.contexts", "Context", "add_exit_filler"): {
+        "lang_code": "language_code"
+    },
     ("signalwire.core.contexts", "Context", "set_consolidate"): {"val": "consolidate"},
-    ("signalwire.core.contexts", "Context", "set_enter_fillers"): {"fillers": "enter_fillers"},
-    ("signalwire.core.contexts", "Context", "set_exit_fillers"): {"fillers": "exit_fillers"},
+    ("signalwire.core.contexts", "Context", "set_enter_fillers"): {
+        "fillers": "enter_fillers"
+    },
+    ("signalwire.core.contexts", "Context", "set_exit_fillers"): {
+        "fillers": "exit_fillers"
+    },
     ("signalwire.core.contexts", "Context", "set_full_reset"): {"val": "full_reset"},
     ("signalwire.core.contexts", "Context", "set_isolated"): {"val": "isolated"},
-    ("signalwire.core.contexts", "Context", "set_post_prompt"): {"prompt": "post_prompt"},
-    ("signalwire.core.contexts", "Context", "set_system_prompt"): {"prompt": "system_prompt"},
-    ("signalwire.core.contexts", "Context", "set_user_prompt"): {"prompt": "user_prompt"},
+    ("signalwire.core.contexts", "Context", "set_post_prompt"): {
+        "prompt": "post_prompt"
+    },
+    ("signalwire.core.contexts", "Context", "set_system_prompt"): {
+        "prompt": "system_prompt"
+    },
+    ("signalwire.core.contexts", "Context", "set_user_prompt"): {
+        "prompt": "user_prompt"
+    },
     ("signalwire.core.contexts", "Step", "set_end"): {"is_end": "end"},
-    ("signalwire.core.contexts", "Step", "set_reset_consolidate"): {"val": "consolidate"},
+    ("signalwire.core.contexts", "Step", "set_reset_consolidate"): {
+        "val": "consolidate"
+    },
     ("signalwire.core.contexts", "Step", "set_reset_full_reset"): {"val": "full_reset"},
-    ("signalwire.core.contexts", "Step", "set_reset_system_prompt"): {"prompt": "system_prompt"},
-    ("signalwire.core.contexts", "Step", "set_reset_user_prompt"): {"prompt": "user_prompt"},
+    ("signalwire.core.contexts", "Step", "set_reset_system_prompt"): {
+        "prompt": "system_prompt"
+    },
+    ("signalwire.core.contexts", "Step", "set_reset_user_prompt"): {
+        "prompt": "user_prompt"
+    },
     ("signalwire.core.data_map", "DataMap", "description"): {"desc": "description"},
     ("signalwire.core.data_map", "DataMap", "purpose"): {"desc": "description"},
-    ("signalwire.core.function_result", "FunctionResult", "set_post_process"): {"val": "post_process"},
-    ("signalwire.core.function_result", "FunctionResult", "set_response"): {"text": "response"},
-    ("signalwire.core.function_result", "FunctionResult", "toggle_functions"): {"toggles": "function_toggles"},
-    ("signalwire.core.mixins.ai_config_mixin", "AIConfigMixin", "add_internal_filler"): {"func_name": "function_name", "lang_code": "language_code"},
-    ("signalwire.core.mixins.ai_config_mixin", "AIConfigMixin", "set_internal_fillers"): {"fillers": "internal_fillers"},
-    ("signalwire.core.mixins.ai_config_mixin", "AIConfigMixin", "set_native_functions"): {"names": "function_names"},
-    ("signalwire.core.mixins.web_mixin", "WebMixin", "manual_set_proxy_url"): {"url": "proxy_url"},
-    ("signalwire.core.mixins.web_mixin", "WebMixin", "set_dynamic_config_callback"): {"callable": "callback"},
-    ("signalwire.core.security.session_manager", "SessionManager", "activate_session"): {"_call_id": "call_id"},
-    ("signalwire.pom.pom", "PromptObjectModel", "add_section"): {"numbered_bullets": "numberedBullets"},
-    ("signalwire.pom.pom", "Section", "__init__"): {"numbered_bullets": "numberedBullets"},
-    ("signalwire.pom.pom", "Section", "add_subsection"): {"numbered_bullets": "numberedBullets"},
+    ("signalwire.core.function_result", "FunctionResult", "set_post_process"): {
+        "val": "post_process"
+    },
+    ("signalwire.core.function_result", "FunctionResult", "set_response"): {
+        "text": "response"
+    },
+    ("signalwire.core.function_result", "FunctionResult", "toggle_functions"): {
+        "toggles": "function_toggles"
+    },
+    (
+        "signalwire.core.mixins.ai_config_mixin",
+        "AIConfigMixin",
+        "add_internal_filler",
+    ): {"func_name": "function_name", "lang_code": "language_code"},
+    (
+        "signalwire.core.mixins.ai_config_mixin",
+        "AIConfigMixin",
+        "set_internal_fillers",
+    ): {"fillers": "internal_fillers"},
+    (
+        "signalwire.core.mixins.ai_config_mixin",
+        "AIConfigMixin",
+        "set_native_functions",
+    ): {"names": "function_names"},
+    ("signalwire.core.mixins.web_mixin", "WebMixin", "manual_set_proxy_url"): {
+        "url": "proxy_url"
+    },
+    ("signalwire.core.mixins.web_mixin", "WebMixin", "set_dynamic_config_callback"): {
+        "callable": "callback"
+    },
+    (
+        "signalwire.core.security.session_manager",
+        "SessionManager",
+        "activate_session",
+    ): {"_call_id": "call_id"},
+    ("signalwire.pom.pom", "PromptObjectModel", "add_section"): {
+        "numbered_bullets": "numberedBullets"
+    },
+    ("signalwire.pom.pom", "Section", "__init__"): {
+        "numbered_bullets": "numberedBullets"
+    },
+    ("signalwire.pom.pom", "Section", "add_subsection"): {
+        "numbered_bullets": "numberedBullets"
+    },
     ("signalwire.relay.call", "Call", "play"): {"loop_count": "loop"},
     # DialEvent's ctor kwarg: the reference dataclass field is ``call``, Ruby
     # spells the same slot ``call_data`` (``call`` collides with nothing but
@@ -265,20 +358,39 @@ HAND_PARAM_RENAMES: dict[tuple, dict[str, str]] = {
     # ``params['call']`` (relay_event.rb:508, event.py:308) — so this is a
     # RENAME, not a missing configurable.
     ("signalwire.relay.event", "DialEvent", "__init__"): {"call_data": "call"},
-    ("signalwire.rest._base", "HttpClient", "__init__"): {"project_id": "project", "space": "host"},
-    ("signalwire.rest._base", "SignalWireRestError", "__init__"): {"method_name": "method"},
-    ("signalwire.rest._base", "SignalWireRestTransportError", "__init__"): {"method_name": "method"},
-    ("signalwire.skills.registry", "SkillRegistry", "register_skill"): {"skill_class_or_name": "skill_class"},
+    ("signalwire.rest._base", "HttpClient", "__init__"): {
+        "project_id": "project",
+        "space": "host",
+    },
+    ("signalwire.rest._base", "SignalWireRestError", "__init__"): {
+        "method_name": "method"
+    },
+    ("signalwire.rest._base", "SignalWireRestTransportError", "__init__"): {
+        "method_name": "method"
+    },
+    ("signalwire.skills.registry", "SkillRegistry", "register_skill"): {
+        "skill_class_or_name": "skill_class"
+    },
     # SkillManager get/unload take a Ruby ``key`` positional == the reference's
     # ``skill_identifier`` (method names reconciled via SIG_METHOD_ALIASES above).
-    ("signalwire.core.skill_manager", "SkillManager", "get_skill"): {"key": "skill_identifier"},
-    ("signalwire.core.skill_manager", "SkillManager", "unload_skill"): {"key": "skill_identifier"},
-    ("signalwire.core.skill_manager", "SkillManager", "has_skill"): {"key": "skill_identifier"},
+    ("signalwire.core.skill_manager", "SkillManager", "get_skill"): {
+        "key": "skill_identifier"
+    },
+    ("signalwire.core.skill_manager", "SkillManager", "unload_skill"): {
+        "key": "skill_identifier"
+    },
+    ("signalwire.core.skill_manager", "SkillManager", "has_skill"): {
+        "key": "skill_identifier"
+    },
     # SWMLService add_* are donated from SWML::Document (SIG_METHOD_DONORS); the
     # Document param names (``name``/``section``) reconcile to the reference's
     # ``section_name``.
-    ("signalwire.core.swml_service", "SWMLService", "add_section"): {"name": "section_name"},
-    ("signalwire.core.swml_service", "SWMLService", "add_verb_to_section"): {"section": "section_name"},
+    ("signalwire.core.swml_service", "SWMLService", "add_section"): {
+        "name": "section_name"
+    },
+    ("signalwire.core.swml_service", "SWMLService", "add_verb_to_section"): {
+        "section": "section_name"
+    },
 }
 
 
@@ -304,13 +416,17 @@ SIG_METHOD_ALIASES: dict[tuple, dict[str, str]] = {
     # wire key (pom.py:345,361,371 round-trip it unchanged); Ruby spells the
     # reader snake_case per its own idiom.
     ("signalwire.pom.pom", "Section"): {
-        "to_h": "to_dict", "numbered_bullets": "numberedBullets"},
+        "to_h": "to_dict",
+        "numbered_bullets": "numberedBullets",
+    },
     ("signalwire.core.function_result", "FunctionResult"): {"to_h": "to_dict"},
     ("signalwire.relay.event", "DialEvent"): {"call_data": "call"},
     ("signalwire.relay.call", "Call"): {"pass_call": "pass_", "tap_audio": "tap"},
     ("signalwire.relay.message", "Message"): {"on_event": "on"},
     ("signalwire.relay.client", "RelayClient"): {
-        "stop": "disconnect", "project_id": "project"},
+        "stop": "disconnect",
+        "project_id": "project",
+    },
     # Ruby cannot name these readers ``message``: ``Exception#message`` is
     # stdlib-defined and overriding it changes what raise/rescue and every logger
     # print. Likewise ``method`` is ``Object#method``, core reflection on every
@@ -320,20 +436,149 @@ SIG_METHOD_ALIASES: dict[tuple, dict[str, str]] = {
     ("signalwire.rest._base", "SignalWireRestError"): {"method_name": "method"},
     ("signalwire.prefabs.faq_bot", "FAQBotAgent"): {"handle_search": "search_faqs"},
     ("signalwire.prefabs.info_gatherer", "InfoGathererAgent"): {
-        "handle_start": "start_questions", "handle_submit": "submit_answer"},
+        "handle_start": "start_questions",
+        "handle_submit": "submit_answer",
+    },
+    # The reference exposes the context tree on PromptMixin as a bare
+    # ``contexts`` PROPERTY; Ruby spells the same read ``get_contexts``. Same
+    # value, same source, different accessor spelling -- idiom, so it folds here
+    # (Rule 2) rather than being carried as an omission. Keyed on PromptMixin
+    # only: the reference ALSO declares a real ``get_contexts`` on PromptManager,
+    # which Ruby matches by that name outright and must not be renamed. MIRRORS
+    # enumerate_surface.rb's SURFACE_METHOD_ALIASES entry.
+    ("signalwire.core.mixins.prompt_mixin", "PromptMixin"): {
+        "get_contexts": "contexts"
+    },
     ("signalwire.core.skill_base", "SkillBase"): {"instance_key": "get_instance_key"},
     ("signalwire.core.skill_manager", "SkillManager"): {
-        "load": "load_skill", "unload": "unload_skill", "get": "get_skill",
-        "loaded": "has_skill", "loaded_keys": "list_loaded_skills"},
+        "load": "load_skill",
+        "unload": "unload_skill",
+        "get": "get_skill",
+        "loaded": "has_skill",
+        "loaded_keys": "list_loaded_skills",
+    },
+    # Same lookup capability, Ruby spelling: given a skill name, return the
+    # instantiable handle for that skill or nil. Python hands back the CLASS
+    # (`type[SkillBase] | None`, instantiated `skill_class(agent, params)`);
+    # Ruby's registry stores factory lambdas rather than classes, so it hands
+    # back the Proc (`factory.call(params)`). Same argument, same nil-on-miss,
+    # same role at the single call site (skill_manager.py:48 /
+    # agent_base.rb:1303). MIRRORS enumerate_surface.rb's
+    # SURFACE_METHOD_ALIASES, which already renames this surface-side.
+    ("signalwire.skills.registry", "SkillRegistry"): {"get_factory": "get_skill_class"},
 }
 
 
+# Built-in skill classes rename their Ruby ``instance_key`` OVERRIDE to the
+# reference's ``get_instance_key`` — the same rename SIG_METHOD_ALIASES already
+# does for the SkillBase declaration, applied by MODULE PREFIX so each per-skill
+# override compares equal without one table row per skill. MIRRORS
+# enumerate_surface.rb's SKILLS_MODULE_METHOD_ALIASES, which has always applied
+# it surface-side.
+#
+# Why this was invisible until now: before porting-sdk 8496c77 the signature
+# oracle enumerated only 7 of 18 skill modules (a per-method skip emptied classes
+# whose every method was a base-identical override, and an emptied class was
+# dropped outright). None of the 7 declared an override, so the base-only rename
+# sufficed. With all 18 modules enumerated the oracle records the override on 7
+# skill subclasses, and the un-renamed Ruby ``instance_key`` drifted twice per
+# class (missing-port for the reference name + missing-reference for the Ruby
+# one).
+SIG_SKILLS_MODULE_METHOD_ALIASES: dict[str, str] = {"instance_key": "get_instance_key"}
+
+
+def _sig_aliases_for(mod: str, cls: str) -> dict[str, str]:
+    """The effective Ruby->reference method aliases for one class: the explicit
+    per-[module, class] table, plus the by-prefix skills alias on every
+    ``signalwire.skills.*.skill`` module."""
+    table = dict(SIG_METHOD_ALIASES.get((mod, cls), {}))
+    if mod.startswith("signalwire.skills.") and mod.endswith(".skill"):
+        merged = dict(SIG_SKILLS_MODULE_METHOD_ALIASES)
+        merged.update(table)
+        return merged
+    return table
+
+
+SIG_SKILL_BASE_REF = ("signalwire.core.skill_base", "SkillBase")
+
+
+def fold_skill_base_hooks(out_modules: dict) -> None:
+    """Fold a built-in skill subclass's override of an INHERITED ``SkillBase``
+    member back into the base, when the oracle records that member on
+    ``SkillBase`` but NOT on the subclass. In place.
+
+    MIRRORS ``enumerate_surface.rb``'s ``fold_skill_base_hooks``, and exists for
+    the same reason the ``instance_key`` alias had to be mirrored: the two
+    enumerators project the SAME Ruby skill classes onto the SAME reference
+    modules, so a projection rule that lives on only one side leaves the other
+    reporting the same Ruby method as un-folded surface.
+
+    ORACLE-GATED, never a hand-kept name list. The reference made
+    ``SkillBase.get_prompt_sections()`` a FINAL template method carrying the
+    ``skip_prompt`` guard and delegating to a PROTECTED ``_get_prompt_sections()``
+    hook, so the oracle now records the public member on the BASE ONLY while
+    every skill overrides the protected one. Ruby still overrides the public
+    method on 12 skill classes; an override of a base member is INHERITANCE, not
+    new surface.
+
+    Why the SIGNATURE side needed this even though DRIFT was green: it was green
+    only by ACCIDENT. ``get_prompt_sections`` is a zero-arg reader, so
+    ``diff_port_signatures.py`` swept all 12 into ``excused`` under the
+    ``port-side state accessor (no Python counterpart)`` leniency — a rule about
+    ports exposing state as properties, which has nothing to do with a template
+    method. The divergence was real and simply invisible on this axis. Folding it
+    here makes both axes agree for the same stated reason instead of one of them
+    passing on an unrelated exemption.
+
+    BOTH SIDES OF THE TEST READ THE SURFACE ORACLE, not the signature oracle.
+    ``python_signatures.json`` deliberately SKIPS a subclass override whose
+    signature is identical to the base's, so asking IT "does the subclass record
+    this member?" answers no for EVERY base-identical override. Measured: gating
+    on the signature oracle folded 33 members instead of 12 — it would have
+    deleted ``setup`` / ``register_tools`` / ``get_instance_key`` /
+    ``get_parameter_schema`` / ``cleanup`` / ``get_hints`` from ApiNinjasTrivia,
+    PlayBackgroundFile, Spider, WeatherApi and WikipediaSearch, all of which the
+    port genuinely implements and the reference genuinely declares. That is a
+    capability deletion, not a fold. ``python_surface.json`` records what each
+    class DECLARES, which is the question the fold actually asks, so it is the
+    authority here. With it: exactly 12 members fold, all ``get_prompt_sections``,
+    matching enumerate_surface.rb member for member.
+
+    Self-correcting in both directions: the oracle dropping a member from a
+    subclass folds the port's override with no hand edit; the oracle STARTING to
+    record it on a subclass stands the fold down, because the rule tests the
+    subclass, not just the base. Scoped to ``signalwire.skills.*.skill`` classes;
+    ``__init__`` is exempt (construction shape is recorded per class, never
+    inherited). An empty/unresolvable base set leaves the methods alone rather
+    than folding against nothing (the oracle path already fails loud on absence).
+    """
+    base = REF_SURFACE_MEMBERS.get(SIG_SKILL_BASE_REF, set())
+    if not base:
+        return
+    for mod, me in out_modules.items():
+        if not (mod.startswith("signalwire.skills.") and mod.endswith(".skill")):
+            continue
+        for cls, ce in me.get("classes", {}).items():
+            recorded = REF_SURFACE_MEMBERS.get((mod, cls), set())
+            methods = ce.get("methods", {})
+            for name in [m for m in methods if m != "__init__"]:
+                if name in base and name not in recorded:
+                    methods.pop(name, None)
+
+
 def apply_sig_method_aliases(out_modules: dict) -> None:
-    """Rename Ruby-idiom methods to their reference name (see SIG_METHOD_ALIASES).
-    Only fires when the port has the Ruby-named method and does NOT already carry
-    the reference name (so it never clobbers a real reference-named method). In
-    place."""
-    for (mod, cls), aliases in SIG_METHOD_ALIASES.items():
+    """Rename Ruby-idiom methods to their reference name (see SIG_METHOD_ALIASES
+    and SIG_SKILLS_MODULE_METHOD_ALIASES). Only fires when the port has the
+    Ruby-named method and does NOT already carry the reference name (so it never
+    clobbers a real reference-named method). In place."""
+    keys = set(SIG_METHOD_ALIASES)
+    for mod, me in out_modules.items():
+        for cls in me.get("classes", {}):
+            keys.add((mod, cls))
+    for mod, cls in keys:
+        aliases = _sig_aliases_for(mod, cls)
+        if not aliases:
+            continue
         ce = out_modules.get(mod, {}).get("classes", {}).get(cls)
         if not ce:
             continue
@@ -351,8 +596,11 @@ def apply_sig_method_aliases(out_modules: dict) -> None:
 # sees the method where the reference declares it.
 SIG_METHOD_DONORS: dict[tuple, list] = {
     ("signalwire.core.swml_service", "SWMLService"): [
-        ("signalwire.swml.document", "Document",
-         ["add_section", "add_verb", "add_verb_to_section", "reset"]),
+        (
+            "signalwire.swml.document",
+            "Document",
+            ["add_section", "add_verb", "add_verb_to_section", "reset"],
+        ),
     ],
 }
 
@@ -364,9 +612,13 @@ SIG_METHOD_DONORS: dict[tuple, list] = {
 # module's functions[].
 SIG_FREE_FUNCTION_PROJECTIONS: dict[tuple, tuple] = {
     ("signalwire.core.data_map", "DataMap"): (
-        "signalwire.core.data_map", ["create_expression_tool", "create_simple_api_tool"]),
+        "signalwire.core.data_map",
+        ["create_expression_tool", "create_simple_api_tool"],
+    ),
     ("signalwire.contexts", "Contexts"): (
-        "signalwire.core.contexts", ["create_simple_context"]),
+        "signalwire.core.contexts",
+        ["create_simple_context"],
+    ),
     # The decomposed framework-free webhook-validation core. Ruby ships it as a
     # ``def self.validate`` singleton method on the WebhookMiddleware class (the
     # natural home — the Rack #call wrapper delegates to it); the reference
@@ -376,13 +628,17 @@ SIG_FREE_FUNCTION_PROJECTIONS: dict[tuple, tuple] = {
     # (method/url/headers/body/signing_key) are re-attached from the oracle by
     # project_reference_param_types (runs after this).
     ("signalwire.core.security.webhook_middleware", "WebhookMiddleware"): (
-        "signalwire.core.security.webhook_middleware", ["validate"]),
+        "signalwire.core.security.webhook_middleware",
+        ["validate"],
+    ),
     # RequestOptions envelope: the reference exposes resolve + status_is_retryable
     # as MODULE-level functions; Ruby ships them as `def self.` methods on
     # RequestOptions. Project both to the module functions[] (mirrors
     # FREE_FUNCTION_PROJECTIONS in enumerate_surface.rb).
     ("signalwire.rest._request_options", "RequestOptions"): (
-        "signalwire.rest._request_options", ["resolve", "status_is_retryable"]),
+        "signalwire.rest._request_options",
+        ["resolve", "status_is_retryable"],
+    ),
 }
 
 
@@ -420,7 +676,11 @@ def apply_sig_free_function_projections(out_modules: dict) -> None:
                 sig = smethods.pop(m)
                 # A module free function has no receiver — drop the self param.
                 sig = dict(sig)
-                sig["params"] = [p for p in sig.get("params", []) if p.get("kind") not in ("self", "cls")]
+                sig["params"] = [
+                    p
+                    for p in sig.get("params", [])
+                    if p.get("kind") not in ("self", "cls")
+                ]
                 target.setdefault(m, sig)
 
 
@@ -437,8 +697,16 @@ def apply_sig_free_function_projections(out_modules: dict) -> None:
 # concrete field types by name. Keyed by (module, class) -> ordered field names
 # (Struct field order = the reference __init__ positional order).
 AI_CHAT_STRUCT_FIELDS: dict[tuple, list[str]] = {
-    ("signalwire.ai_chat.client", "ConversationInfo"): ["id", "status", "initial_message"],
-    ("signalwire.ai_chat.client", "ChatResponse"): ["text", "conversation_id", "user_event"],
+    ("signalwire.ai_chat.client", "ConversationInfo"): [
+        "id",
+        "status",
+        "initial_message",
+    ],
+    ("signalwire.ai_chat.client", "ChatResponse"): [
+        "text",
+        "conversation_id",
+        "user_event",
+    ],
     ("signalwire.ai_chat.client", "ChatLog"): ["messages", "call_timeline"],
 }
 
@@ -465,6 +733,62 @@ AI_CHAT_METHOD_DROPS: dict[tuple, set[str]] = {
 }
 
 
+# POSITIONAL ``Struct.new(:a, :b)`` value carriers — the counterpart of
+# AI_CHAT_STRUCT_FIELDS above, which handles the ``keyword_init: true`` form.
+#
+# Both forms hit the SAME reflection blind spot: a Struct's constructor params
+# are invisible to ``Method#parameters`` (``new`` reflects as ``*args``), the
+# fields surface only as zero-arg READERS, and Ruby auto-generates machinery
+# (``new`` / ``members`` / ``keyword_init?`` / ``inspect`` / ``[]``) plus a
+# WRITER per field that the reference class does not have. The difference is
+# only the ``__init__`` param KIND: a positional Struct's fields are positional
+# (canonical: no explicit ``kind``), matching how the oracle records this
+# dataclass — so these cannot ride AI_CHAT_STRUCT_FIELDS, which hard-codes
+# ``kind: keyword``.
+#
+# Unlike the keyword_init case, a positional Struct field IS required at the
+# oracle (the reference dataclass declares it with no default), and Ruby's
+# positional Struct does accept the same positional call — so ``required: True``
+# with no default is the accurate record here, not ``default: None``.
+#
+# Keyed (module, class) -> ordered field names (Struct field order = the
+# reference ``__init__`` positional order). The declared fields are VERIFIED
+# against the reflected readers, so a real field drop/rename still surfaces as
+# drift rather than being papered over by this table.
+POSITIONAL_STRUCT_FIELDS: dict[tuple, list[str]] = {
+    # The oracle's structural filler for FastAPI's HTTPBasicCredentials /
+    # HTTPAuthorizationCredentials (porting-sdk dcff742). FastAPI splits the
+    # Authorization header on the first space: scheme, then credentials.
+    ("signalwire.core.auth_handler", "BasicCredentials"): ["username", "password"],
+    ("signalwire.core.auth_handler", "BearerCredentials"): ["scheme", "credentials"],
+}
+
+
+def synth_positional_struct_inits(out_modules: dict) -> None:
+    """Rebuild each POSITIONAL Struct value carrier to the single ``__init__``
+    the reference records — params = the reflected field readers, positional and
+    required — keep the readers, and drop the Struct machinery and the Ruby
+    auto-generated ``field=`` writers. In place."""
+    for (mod, cls), fields in POSITIONAL_STRUCT_FIELDS.items():
+        entry = out_modules.get(mod, {}).get("classes", {}).get(cls)
+        if not entry:
+            continue
+        methods = entry.get("methods", {})
+        # Verify each declared field is present as a reflected zero-arg reader —
+        # a real Struct field drop/rename then re-surfaces as drift here.
+        readers = [
+            f for f in fields if f in methods and not _has_value_params(methods[f])
+        ]
+        params = [{"name": "self", "kind": "self"}] + [
+            {"name": f, "type": "any", "required": True} for f in readers
+        ]
+        new_methods = {"__init__": {"params": params, "returns": "void"}}
+        for f in readers:
+            new_methods[f] = methods[f]
+        entry["methods"] = new_methods
+        entry["dataclass"] = True
+
+
 def synth_ai_chat_struct_inits(out_modules: dict) -> None:
     """Rebuild the AI-Chat Struct value models to a single keyword ``__init__``
     (params = the reflected Struct field readers) and drop the Struct machinery;
@@ -478,11 +802,31 @@ def synth_ai_chat_struct_inits(out_modules: dict) -> None:
         # Verify each declared field is present as a reflected zero-arg reader —
         # a real Struct field drop/rename then re-surfaces as drift here.
         readers = [
-            f for f in fields
-            if f in methods and not _has_value_params(methods[f])
+            f for f in fields if f in methods and not _has_value_params(methods[f])
         ]
+        # DEFAULT VALUES ARE GENUINELY UNRECOVERABLE HERE, and not for the usual
+        # reflection reason. These models are ``Struct.new(..., keyword_init:
+        # true)``: a Struct declares FIELD NAMES only, so there is no per-field
+        # default EXPRESSION anywhere in the source for a parser to read. Every
+        # omitted field is nil by the Struct protocol itself. So unlike a ``def``
+        # parameter — whose default the Ripper pass in signature_dump.rb
+        # recovers from source — there is nothing here to recover, in any
+        # language-level sense.
+        #
+        # ``default: None`` is therefore the accurate record for a Struct field,
+        # not a placeholder. Note the reference oracle types some of these fields
+        # ``required: true`` with no default (the dataclass declares them without
+        # one); Ruby's Struct cannot express a required field, and that
+        # divergence is pre-existing and governed as before — it is NOT changed
+        # here, since this pass is additive to ``default`` only.
         params = [{"name": "self", "kind": "self"}] + [
-            {"name": f, "type": "any", "kind": "keyword", "required": False, "default": None}
+            {
+                "name": f,
+                "type": "any",
+                "kind": "keyword",
+                "required": False,
+                "default": None,
+            }
             for f in readers
         ]
         # The oracle records each dataclass field BOTH as an ``__init__`` param
@@ -518,6 +862,7 @@ def _has_value_params(sig: dict) -> bool:
 def apply_hand_param_renames(out_modules: dict) -> None:
     """Rewrite Ruby-idiom hand-written param identifiers to the reference name so
     the projection + diff compare EQUAL (see HAND_PARAM_RENAMES). In place."""
+
     def apply(key: tuple, sig: dict) -> None:
         rn = HAND_PARAM_RENAMES.get(key)
         if not rn:
@@ -556,7 +901,11 @@ REQUEST_OPTIONS_KEYWORD_AS_POSITIONAL = {
     ("signalwire.rest._base", "HttpClient", "delete"): {"request_options"},
     ("signalwire.rest.client", "RestClient", "__init__"): {"request_options"},
     ("signalwire.rest._request_options", "RequestOptions", "__init__"): {
-        "timeout", "retries", "retry_on_status", "retry_backoff", "abort_signal",
+        "timeout",
+        "retries",
+        "retry_on_status",
+        "retry_backoff",
+        "abort_signal",
     },
     # 6.6 error-observability: the reference's trailing optional ``headers=None``
     # ctor param (positional-or-keyword => canonical positional). Ruby spells a
@@ -571,7 +920,13 @@ def normalize_request_options_param_kind(out_modules: dict) -> None:
     Ruby keyword idiom compares EQUAL to the reference's positional-or-keyword
     params (see REQUEST_OPTIONS_KEYWORD_AS_POSITIONAL). In place."""
     for (mod, cls, meth), names in REQUEST_OPTIONS_KEYWORD_AS_POSITIONAL.items():
-        sig = out_modules.get(mod, {}).get("classes", {}).get(cls, {}).get("methods", {}).get(meth)
+        sig = (
+            out_modules.get(mod, {})
+            .get("classes", {})
+            .get(cls, {})
+            .get("methods", {})
+            .get(meth)
+        )
         if not sig:
             continue
         for prm in sig.get("params", []):
@@ -585,6 +940,7 @@ def project_reference_param_types(out_modules: dict) -> None:
     """Re-attach the reference-documented concrete type onto each hand-written
     port param that reflection recorded as bare ``any`` (see the block comment
     above). Mutates ``out_modules`` in place."""
+
     def apply(key: tuple, sig: dict) -> None:
         ref_types = REF_PARAM_TYPES.get(key)
         if not ref_types:
@@ -604,6 +960,7 @@ def project_reference_param_types(out_modules: dict) -> None:
                 apply((mod, cls, meth), sig)
         for fn, sig in me.get("functions", {}).items():
             apply((mod, None, fn), sig)
+
 
 # ADAPTER PARAM-RENAMES (renames, NOT omissions — the wire field is unchanged;
 # only the Ruby-side kwarg identifier differs from the reference-recorded name).
@@ -652,6 +1009,15 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
     # gates route these classes to the same reference module.
     "SignalWire::Swaig::SWAIGFunction": "signalwire.core.swaig_function",
     "SignalWire::Core::AuthHandler": "signalwire.core.auth_handler",
+    # The two credential carriers are nested INSIDE AuthHandler in Ruby, so the
+    # default namespace derivation would route them to the fabricated modules
+    # signalwire.core.auth_handler.basic_credentials / .bearer_credentials —
+    # which exist nowhere in the oracle, so every member silently failed to
+    # compare. The oracle publishes both as module-level classes of
+    # signalwire.core.auth_handler (porting-sdk dcff742, the structural filler
+    # for FastAPI's HTTPBasicCredentials / HTTPAuthorizationCredentials).
+    "SignalWire::Core::AuthHandler::BasicCredentials": "signalwire.core.auth_handler",
+    "SignalWire::Core::AuthHandler::BearerCredentials": "signalwire.core.auth_handler",
     "SignalWire::Core::ConfigLoader": "signalwire.core.config_loader",
     "SignalWire::Core::SecurityConfig": "signalwire.core.security_config",
     "SignalWire::Core::PomBuilder": "signalwire.core.pom_builder",
@@ -664,12 +1030,10 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
     "SignalWire::Agents::BedrockAgent": "signalwire.agents.bedrock",
     "SignalWire::Core::Agent::Prompt::PromptManager": "signalwire.core.agent.prompt.manager",
     "SignalWire::Core::Agent::Tools::ToolRegistry": "signalwire.core.agent.tools.registry",
-
     # Prompt Object Model: Ruby's SignalWire::POM::* classes mirror Python's
     # signalwire.pom.pom.* module exactly (PromptObjectModel + Section).
     "SignalWire::POM::PromptObjectModel": "signalwire.pom.pom",
     "SignalWire::POM::Section": "signalwire.pom.pom",
-
     "SignalWire::AgentServer": "signalwire.agent_server",
     "SignalWire::Security::SessionManager": "signalwire.core.security.session_manager",
     "SignalWire::Security::WebhookMiddleware": "signalwire.core.security.webhook_middleware",
@@ -823,11 +1187,6 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
     "SignalWire::REST::Namespaces::VideoConferences": "signalwire.rest.namespaces.video",
     "SignalWire::REST::Namespaces::VideoConferenceTokens": "signalwire.rest.namespaces.video",
     "SignalWire::REST::Namespaces::VideoStreams": "signalwire.rest.namespaces.video",
-    # Chat namespace
-    "SignalWire::REST::Namespaces::ChatResource": "signalwire.rest.namespaces.chat",
-    # Datasphere namespace
-    "SignalWire::REST::Namespaces::DatasphereDocuments": "signalwire.rest.namespaces.datasphere",
-    "SignalWire::REST::Namespaces::DatasphereNamespace": "signalwire.rest.namespaces.datasphere",
 }
 
 RUBY_TO_PYTHON_CLASS_ALIASES = {
@@ -845,22 +1204,46 @@ RUBY_TO_PYTHON_CLASS_ALIASES = {
 
 MIXIN_PROJECTIONS = {
     ("signalwire.core.mixins.ai_config_mixin", "AIConfigMixin"): [
-        "add_function_include", "add_hint", "add_hints", "add_internal_filler",
-        "add_language", "add_mcp_server", "add_pattern_hint", "add_pronunciation",
-        "enable_debug_events", "enable_mcp_server",
+        "add_function_include",
+        "add_hint",
+        "add_hints",
+        "add_internal_filler",
+        "add_language",
+        "add_mcp_server",
+        "add_pattern_hint",
+        "add_pronunciation",
+        "enable_debug_events",
+        "enable_mcp_server",
         "get_language_params",
-        "set_function_includes", "set_global_data", "set_internal_fillers",
+        "set_function_includes",
+        "set_global_data",
+        "set_internal_fillers",
         "set_language_params",
-        "set_languages", "set_multilingual", "set_native_functions",
-        "set_param", "set_params",
-        "set_post_prompt_llm_params", "set_prompt_llm_params",
-        "set_pronunciations", "update_global_data",
+        "set_languages",
+        "set_multilingual",
+        "set_native_functions",
+        "set_param",
+        "set_params",
+        "set_post_prompt_llm_params",
+        "set_prompt_llm_params",
+        "set_pronunciations",
+        "update_global_data",
     ],
     ("signalwire.core.mixins.prompt_mixin", "PromptMixin"): [
-        "define_contexts", "get_post_prompt", "get_prompt",
+        "define_contexts",
+        # Ruby's ``get_contexts`` is the reference's ``contexts`` PROPERTY under
+        # a different accessor spelling. Projected here so SIG_METHOD_ALIASES
+        # can rename it (the alias runs after projection; a name that never
+        # arrives can never be renamed).
+        "get_contexts",
+        "get_post_prompt",
+        "get_prompt",
         "prompt_add_section",
-        "prompt_add_subsection", "prompt_add_to_section",
-        "prompt_has_section", "reset_contexts", "set_post_prompt",
+        "prompt_add_subsection",
+        "prompt_add_to_section",
+        "prompt_has_section",
+        "reset_contexts",
+        "set_post_prompt",
         "set_prompt_text",
     ],
     # Python additionally extracted a ``PromptManager`` class that
@@ -869,30 +1252,54 @@ MIXIN_PROJECTIONS = {
     # AgentBase methods to PromptManager so the cross-language audit
     # treats both paths as covered.
     ("signalwire.core.agent.prompt.manager", "PromptManager"): [
-        "define_contexts", "get_contexts", "get_post_prompt", "get_prompt",
+        "define_contexts",
+        "get_contexts",
+        "get_post_prompt",
+        "get_prompt",
         "get_raw_prompt",
-        "prompt_add_section", "prompt_add_subsection", "prompt_add_to_section",
-        "prompt_has_section", "set_post_prompt", "set_prompt_pom",
+        "prompt_add_section",
+        "prompt_add_subsection",
+        "prompt_add_to_section",
+        "prompt_has_section",
+        "set_post_prompt",
+        "set_prompt_pom",
         "set_prompt_text",
     ],
     ("signalwire.core.mixins.skill_mixin", "SkillMixin"): [
-        "add_skill", "has_skill", "list_skills", "remove_skill",
+        "add_skill",
+        "has_skill",
+        "list_skills",
+        "remove_skill",
     ],
     ("signalwire.core.mixins.tool_mixin", "ToolMixin"): [
-        "define_tool", "on_function_call", "register_swaig_function",
+        "define_tool",
+        "on_function_call",
+        "register_swaig_function",
     ],
     ("signalwire.core.agent.tools.registry", "ToolRegistry"): [
-        "define_tool", "register_swaig_function",
-        "has_function", "get_function", "get_all_functions",
+        "define_tool",
+        "register_swaig_function",
+        "has_function",
+        "get_function",
+        "get_all_functions",
         "remove_function",
     ],
     ("signalwire.core.mixins.auth_mixin", "AuthMixin"): [
-        "validate_basic_auth", "get_basic_auth_credentials",
+        "validate_basic_auth",
+        "get_basic_auth_credentials",
     ],
     ("signalwire.core.mixins.web_mixin", "WebMixin"): [
-        "as_router", "enable_debug_routes", "get_app", "manual_set_proxy_url",
-        "on_request", "on_swml_request", "register_routing_callback", "run",
-        "serve", "set_dynamic_config_callback", "setup_graceful_shutdown",
+        "as_router",
+        "enable_debug_routes",
+        "get_app",
+        "manual_set_proxy_url",
+        "on_request",
+        "on_swml_request",
+        "register_routing_callback",
+        "run",
+        "serve",
+        "set_dynamic_config_callback",
+        "setup_graceful_shutdown",
     ],
     ("signalwire.core.mixins.mcp_server_mixin", "MCPServerMixin"): [
         "add_mcp_server",
@@ -989,6 +1396,13 @@ EXCLUDED_RUBY_CLASSES = {
     "SignalWire::POM::SectionBuilder",
     "SignalWire::Skills::SkillIntrospection",
     "SignalWire::Relay::MessageSerialization",
+    # Composition-only mixins whose members signature_dump.rb LIFTS onto the
+    # classes that `include` them (COMPOSED_MODULES there), so the enumerator
+    # records the surface a CALLER sees: RestClient's 22 resource accessors come
+    # from ResourceTree, Relay::Message's serialization from MessageSerialization.
+    # They must stay excluded HERE so a lifted module is not also recorded as its
+    # own symbol, which would double-count every member it contributes.
+    "SignalWire::REST::Namespaces::Generated::ResourceTree",
     # RequestOptions helpers mirroring the reference's PRIVATE
     # signalwire.rest._request_options._EffectiveOptions / _AbortSignal.
     "SignalWire::REST::EffectiveOptions",
@@ -1005,8 +1419,7 @@ _CAMEL_RE_2 = re.compile(r"([a-z0-9])([A-Z])")
 
 def snake_case(name: str) -> str:
     s = _CAMEL_RE_1.sub(r"\1_\2", name)
-    s = _CAMEL_RE_2.sub(r"\1_\2", s).lower()
-    return s
+    return _CAMEL_RE_2.sub(r"\1_\2", s).lower()
 
 
 def ruby_module_to_py(ns_parts: list[str]) -> str:
@@ -1025,7 +1438,7 @@ def resolve_class(full_name: str) -> tuple[str, str] | None:
     # over name-keyed lookup). Method-less, so they normally don't reach here; the
     # routing is kept for parity with the surface enumerator.
     if full_name.startswith(GENERATED_TYPES_PREFIX):
-        ns_mod = full_name[len(GENERATED_TYPES_PREFIX):].split("::", 1)[0]
+        ns_mod = full_name[len(GENERATED_TYPES_PREFIX) :].split("::", 1)[0]
         ns_key = GENERATED_TYPES_NS.get(ns_mod)
         if ns_key is None:
             raise SystemExit(
@@ -1053,7 +1466,7 @@ def resolve_class(full_name: str) -> tuple[str, str] | None:
     if full_name in RUBY_TO_PYTHON_MODULE_OVERRIDES:
         return RUBY_TO_PYTHON_MODULE_OVERRIDES[full_name], canonical_class
     # Default: derive Python module from Ruby namespace
-    return ruby_module_to_py(parts[:-1] + [short]), canonical_class
+    return ruby_module_to_py([*parts[:-1], short]), canonical_class
 
 
 # ---------------------------------------------------------------------------
@@ -1108,8 +1521,9 @@ def collect(raw: dict) -> dict:
             if as_class:
                 mod_path, class_name = as_class
             else:
-                mod_path = RUBY_MODULE_LEVEL_OVERRIDES.get(full) or \
-                    ruby_module_to_py(full.split("::"))
+                mod_path = RUBY_MODULE_LEVEL_OVERRIDES.get(full) or ruby_module_to_py(
+                    full.split("::")
+                )
             functions: dict = {}
             class_methods: dict = {}
             for m in type_entry.get("methods", []):
@@ -1118,7 +1532,9 @@ def collect(raw: dict) -> dict:
                 native = m.get("name", "")
                 if native.startswith("__") or native == "<init>":
                     continue
-                if native.endswith("=") or not re.match(r"^[A-Za-z_][A-Za-z0-9_]*[?!]?$", native):
+                if native.endswith("=") or not re.match(
+                    r"^[A-Za-z_][A-Za-z0-9_]*[?!]?$", native
+                ):
                     continue  # skip Ruby setters / operator methods
                 # Underscore-prefixed Ruby methods are private convention;
                 # skip them from the public surface.
@@ -1146,10 +1562,10 @@ def collect(raw: dict) -> dict:
             if class_methods:
                 out_modules.setdefault(mod_path, {})
                 out_modules[mod_path].setdefault("classes", {})
-                out_modules[mod_path]["classes"].setdefault(
-                    class_name, {"methods": {}}
+                out_modules[mod_path]["classes"].setdefault(class_name, {"methods": {}})
+                out_modules[mod_path]["classes"][class_name]["methods"].update(
+                    class_methods
                 )
-                out_modules[mod_path]["classes"][class_name]["methods"].update(class_methods)
             continue
 
         resolved = resolve_class(full)
@@ -1176,7 +1592,9 @@ def collect(raw: dict) -> dict:
                 # @property machinery and Python lists the property name
                 # only once. Operator methods (``[]``, ``==``, ``+``,
                 # etc.) likewise aren't part of the canonical surface.
-                if native.endswith("=") or not re.match(r"^[A-Za-z_][A-Za-z0-9_]*[?!]?$", native):
+                if native.endswith("=") or not re.match(
+                    r"^[A-Za-z_][A-Za-z0-9_]*[?!]?$", native
+                ):
                     continue
                 # Strip Ruby ?/! suffixes for the canonical name; Python
                 # signature inventory doesn't mark predicates / bangs.
@@ -1186,7 +1604,8 @@ def collect(raw: dict) -> dict:
             if method_canonical in methods_out:
                 continue
             sig = build_signature(
-                m, instance_method=not m.get("is_static") and native != "<init>",
+                m,
+                instance_method=not m.get("is_static") and native != "<init>",
             )
             # Filter out parameters with empty names (anonymous block / rest)
             sig["params"] = [p for p in sig["params"] if p.get("name")]
@@ -1203,7 +1622,8 @@ def collect(raw: dict) -> dict:
                 # same param SET the source method exposes — not an omission.
                 sidecar = (
                     REST_SIGNATURES.get(f"{canonical_class}::{clean}")
-                    if native != "<init>" else None
+                    if native != "<init>"
+                    else None
                 )
                 if sidecar is not None:
                     self_p = [p for p in sig["params"] if p.get("kind") == "self"]
@@ -1232,8 +1652,16 @@ def collect(raw: dict) -> dict:
     # so every method shows on AgentBase. Project canonical-Python mixin
     # methods onto their owning mixin module. Methods may also live on
     # SWMLService (parent class) — combine both for projection lookup.
-    ab_entry = out_modules.get("signalwire.core.agent_base", {}).get("classes", {}).get("AgentBase")
-    svc_entry = out_modules.get("signalwire.core.swml_service", {}).get("classes", {}).get("SWMLService")
+    ab_entry = (
+        out_modules.get("signalwire.core.agent_base", {})
+        .get("classes", {})
+        .get("AgentBase")
+    )
+    svc_entry = (
+        out_modules.get("signalwire.core.swml_service", {})
+        .get("classes", {})
+        .get("SWMLService")
+    )
     if ab_entry or svc_entry:
         ab_methods = ab_entry["methods"] if ab_entry else {}
         svc_methods = svc_entry["methods"] if svc_entry else {}
@@ -1246,7 +1674,28 @@ def collect(raw: dict) -> dict:
             out_modules.setdefault(target_mod, {})
             out_modules[target_mod].setdefault("classes", {})
             out_modules[target_mod]["classes"].setdefault(target_cls, {"methods": {}})
-            out_modules[target_mod]["classes"][target_cls]["methods"].update(present)
+            target_methods = out_modules[target_mod]["classes"][target_cls]["methods"]
+            # A projection FILLS a method the target class does not declare; it
+            # must never CLOBBER one the target really has. PromptManager is the
+            # case that proved it: Ruby declares its own
+            # ``PromptManager#define_contexts(contexts)`` — required, matching the
+            # reference's PromptManager — but the projection overwrote it with
+            # AgentBase's ``define_contexts(contexts = nil)``, whose reference
+            # counterpart (PromptMixin) is deliberately OPTIONAL. The two
+            # reference methods genuinely differ, so overwriting reported the
+            # correct Ruby method as a required-flip against a signature it does
+            # not have. Only project the names the target is actually missing.
+            target_methods.update(
+                {m: sig for m, sig in present.items() if m not in target_methods}
+            )
+            # The AgentBase donor copy is popped for EVERY name this projection
+            # CLAIMS -- both the ones it filled in and the ones the target already
+            # declared. Claiming is what says "this member's reference home is the
+            # target class, not AgentBase"; whether Ruby happened to also declare
+            # it on the target does not change where the reference records it.
+            # (Popping only the filled ones stranded ``set_prompt_pom`` on
+            # AgentBase, where the reference has no counterpart -> a bogus
+            # missing-reference drift.)
             projected.update(present)
         for n in projected:
             ab_methods.pop(n, None)
@@ -1259,9 +1708,11 @@ def collect(raw: dict) -> dict:
     # reference identifier, THEN re-attach reference-documented concrete param
     # types onto hand-written params reflection recorded as bare ``any``.
     apply_sig_method_aliases(out_modules)
+    fold_skill_base_hooks(out_modules)
     apply_sig_method_donors(out_modules)
     apply_sig_free_function_projections(out_modules)
     synth_ai_chat_struct_inits(out_modules)
+    synth_positional_struct_inits(out_modules)
     apply_hand_param_renames(out_modules)
     project_reference_param_types(out_modules)
     normalize_request_options_param_kind(out_modules)
@@ -1437,8 +1888,12 @@ def build_construction(modules: dict, superclasses: dict) -> dict:
         AND the reference flattens the same inheritance (see the docstring)."""
         params = dict(own.get(key, {}))
         parent = superclasses.get(key)
-        if (key in splats and parent and parent not in seen
-                and _oracle_flattens(key, parent)):
+        if (
+            key in splats
+            and parent
+            and parent not in seen
+            and _oracle_flattens(key, parent)
+        ):
             inherited = resolved(parent, seen | {key})
             for name, spec in inherited.items():
                 params.setdefault(name, spec)
@@ -1473,15 +1928,25 @@ def build_signature(method: dict, instance_method: bool) -> dict:
         # for the generated REST bodies' `**kwargs` forward-compat tail.)
         if ruby_kind in ("opt", "key", "block", "rest", "keyrest"):
             param["required"] = False
-            param["default"] = None
+            # The DEFAULT VALUE comes from signature_dump.rb's Ripper source
+            # parse (Method#parameters reports only that a default EXISTS, never
+            # what it IS -- see that script's block comment). ``has_default``
+            # marks a literal that was actually recovered, which is what lets a
+            # recovered literal ``nil`` (``def f(x = nil)``) stay distinct from
+            # "not statically recoverable" (``def f(x = SOME_CONST)``). Both
+            # emit ``default: None``, but only the former is a real match --
+            # they are recorded identically because the reference oracle has no
+            # third state either, so an unrecovered default is reported below
+            # rather than encoded here.
+            #
+            # A splat (*args/**kwargs) and a block have no default expression at
+            # all; they are optional by nature and keep ``default: None``.
+            param["default"] = p.get("default") if p.get("has_default") else None
         else:
             param["required"] = True
         params_out.append(param)
     name = method.get("name")
-    if name == "<init>":
-        returns = "void"
-    else:
-        returns = RETURN_TYPE_OVERRIDES.get(name, "any")
+    returns = "void" if name == "<init>" else RETURN_TYPE_OVERRIDES.get(name, "any")
     return {
         "params": params_out,
         "returns": returns,
@@ -1489,9 +1954,16 @@ def build_signature(method: dict, instance_method: bool) -> dict:
 
 
 def run_dump() -> dict:
-    cp = subprocess.run(
-        ["bundle", "exec", "ruby", str(HERE / "signature_dump.rb")],
-        cwd=PORT_ROOT, capture_output=True, text=True, timeout=300,
+    # S603/S607: fixed list-form arg vector under the default shell=False (no
+    # shell to interpolate into); the only non-literal element is this script's
+    # own sibling signature_dump.rb. S607's partial `bundle` path is the normal
+    # idiom for invoking the project's bundler off PATH.
+    cp = subprocess.run(  # noqa: S603
+        ["bundle", "exec", "ruby", str(HERE / "signature_dump.rb")],  # noqa: S607
+        cwd=PORT_ROOT,
+        capture_output=True,
+        text=True,
+        timeout=300,
     )
     if cp.returncode != 0:
         raise RuntimeError(f"signature_dump.rb failed:\n{cp.stderr}\n{cp.stdout}")
@@ -1511,11 +1983,18 @@ def main() -> int:
 
     canonical = collect(raw)
 
-    args.out.write_text(json.dumps(canonical, indent=2, sort_keys=False) + "\n", encoding="utf-8")
+    args.out.write_text(
+        json.dumps(canonical, indent=2, sort_keys=False) + "\n", encoding="utf-8"
+    )
     n_mods = len(canonical["modules"])
-    n_methods = sum(sum(len(c["methods"]) for c in m.get("classes", {}).values()) for m in canonical["modules"].values())
+    n_methods = sum(
+        sum(len(c["methods"]) for c in m.get("classes", {}).values())
+        for m in canonical["modules"].values()
+    )
     n_funcs = sum(len(m.get("functions", {})) for m in canonical["modules"].values())
-    print(f"enumerate_signatures: wrote {args.out} ({n_mods} modules, {n_methods} methods, {n_funcs} functions)")
+    print(
+        f"enumerate_signatures: wrote {args.out} ({n_mods} modules, {n_methods} methods, {n_funcs} functions)"
+    )
     return 0
 
 

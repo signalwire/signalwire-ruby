@@ -14,8 +14,8 @@ require 'signalwire/rest/rest_client'
 
 client = SignalWire::REST::RestClient.new(
   project: 'your-project-id',
-  token:   'your-api-token',
-  host:    'example.signalwire.com'
+  token: 'your-api-token',
+  host: 'example.signalwire.com'
 )
 
 client.fabric.ai_agents.create(name: 'Support Bot', prompt: { 'text' => 'You are helpful.' })

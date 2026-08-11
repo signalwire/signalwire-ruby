@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ c72a0b28a75aba8f75612d073ab81d769b955f84",
+  "generated_from": "signalwire-ruby @ 4d38e247ed0b6e0fd87b3cea5ab0efe91e558408",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -70,15 +70,18 @@
         "AuthenticationError": [],
         "ChatInProgressError": [],
         "ChatLog": [
+          "__init__",
           "call_timeline",
           "messages"
         ],
         "ChatResponse": [
+          "__init__",
           "conversation_id",
           "text",
           "user_event"
         ],
         "ConversationInfo": [
+          "__init__",
           "id",
           "initial_message",
           "status"
@@ -209,6 +212,16 @@
           "verify_api_key",
           "verify_basic_auth",
           "verify_bearer_token"
+        ],
+        "BasicCredentials": [
+          "__init__",
+          "password",
+          "username"
+        ],
+        "BearerCredentials": [
+          "__init__",
+          "credentials",
+          "scheme"
         ]
       },
       "functions": []
@@ -321,7 +334,6 @@
       "classes": {
         "DataMap": [
           "__init__",
-          "body",
           "description",
           "error_keys",
           "expression",
@@ -565,7 +577,9 @@
         "PostPromptEot": [],
         "PostPromptStampsUs": [],
         "PostPromptSwaigLogEntry": [
-          "post_data"
+          "delayed_post_response",
+          "post_data",
+          "post_response"
         ],
         "PostPromptSystemEntry": [],
         "PostPromptSystemLogEntry": [],
@@ -710,6 +724,8 @@
         "ContextSwitchAction": [],
         "HoldAction": [],
         "PlaybackBgAction": [],
+        "SwaigAction": [],
+        "SwaigResponse": [],
         "TransferAction": []
       },
       "functions": []
@@ -825,6 +841,7 @@
           "define_tool",
           "define_tools",
           "document",
+          "domain",
           "execute_verb",
           "extract_sip_username",
           "full_validation_enabled",
@@ -862,6 +879,9 @@
           "schema_utils",
           "schema_validation",
           "serve",
+          "ssl_cert_path",
+          "ssl_enabled",
+          "ssl_key_path",
           "stop",
           "swaig_pre_dispatch",
           "validate_basic_auth",
@@ -2045,11 +2065,33 @@
       "classes": {
         "RestClient": [
           "__init__",
+          "addresses",
+          "calling",
+          "chat",
+          "datasphere",
+          "fabric",
           "generated_http_client",
           "http",
+          "imported_numbers",
           "inspect",
+          "logs",
+          "lookup",
+          "messages",
+          "mfa",
+          "number_groups",
+          "phone_numbers",
+          "project",
           "project_id",
-          "to_s"
+          "projects",
+          "pubsub",
+          "queues",
+          "recordings",
+          "registry",
+          "short_codes",
+          "sip_profile",
+          "to_s",
+          "verified_callers",
+          "video"
         ]
       },
       "functions": []
@@ -3435,7 +3477,6 @@
           "get_hints",
           "get_instance_key",
           "get_parameter_schema",
-          "get_prompt_sections",
           "name",
           "register_tools",
           "setup",
@@ -3453,7 +3494,6 @@
           "get_hints",
           "get_instance_key",
           "get_parameter_schema",
-          "get_prompt_sections",
           "name",
           "register_tools",
           "setup",
@@ -3470,7 +3510,6 @@
           "get_hints",
           "get_instance_key",
           "get_parameter_schema",
-          "get_prompt_sections",
           "name",
           "register_tools",
           "setup",
@@ -3485,7 +3524,6 @@
           "description",
           "get_hints",
           "get_parameter_schema",
-          "get_prompt_sections",
           "name",
           "register_tools",
           "setup"
@@ -3499,7 +3537,6 @@
           "description",
           "get_hints",
           "get_parameter_schema",
-          "get_prompt_sections",
           "name",
           "register_tools",
           "setup"
@@ -3514,7 +3551,6 @@
           "get_global_data",
           "get_instance_key",
           "get_parameter_schema",
-          "get_prompt_sections",
           "name",
           "register_tools",
           "setup",
@@ -3530,7 +3566,6 @@
           "get_global_data",
           "get_hints",
           "get_parameter_schema",
-          "get_prompt_sections",
           "name",
           "register_tools",
           "setup"
@@ -3544,7 +3579,6 @@
           "description",
           "get_hints",
           "get_parameter_schema",
-          "get_prompt_sections",
           "name",
           "register_tools",
           "setup"
@@ -3559,7 +3593,6 @@
           "get_global_data",
           "get_hints",
           "get_parameter_schema",
-          "get_prompt_sections",
           "name",
           "register_tools",
           "setup",
@@ -3639,6 +3672,7 @@
           "get_parameter_schema",
           "name",
           "register_tools",
+          "remove_xpaths",
           "setup",
           "supports_multiple_instances?"
         ]
@@ -3652,7 +3686,6 @@
           "get_hints",
           "get_instance_key",
           "get_parameter_schema",
-          "get_prompt_sections",
           "name",
           "register_tools",
           "setup",
@@ -3683,7 +3716,6 @@
           "get_hints",
           "get_instance_key",
           "get_parameter_schema",
-          "get_prompt_sections",
           "name",
           "register_tools",
           "setup",
@@ -3699,7 +3731,6 @@
           "description",
           "get_hints",
           "get_parameter_schema",
-          "get_prompt_sections",
           "name",
           "register_tools",
           "search_wiki",

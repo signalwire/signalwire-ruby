@@ -8,7 +8,7 @@
 #   SIGNALWIRE_SPACE        - your SignalWire space (e.g. example.signalwire.com)
 
 require 'signalwire'
-require 'signalwire/rest/rest_client'  # opt-in subsystem (Python: from signalwire.rest import Client)
+require 'signalwire/rest/rest_client' # opt-in subsystem (Python: from signalwire.rest import Client)
 
 client = SignalWire::REST::RestClient.new
 
@@ -42,7 +42,7 @@ end
 puts "\nCreating cXML script..."
 cxml = client.fabric.cxml_scripts.create(
   display_name: 'Hold Music Script',
-  contents:     '<Response><Say>Please hold.</Say><Play>https://example.com/hold.mp3</Play></Response>'
+  contents: '<Response><Say>Please hold.</Say><Play>https://example.com/hold.mp3</Play></Response>'
 )
 cxml_id = cxml['id']
 puts "  Created cXML script: #{cxml_id}"

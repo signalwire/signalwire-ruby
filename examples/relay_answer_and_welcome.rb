@@ -12,12 +12,12 @@
 #   SIGNALWIRE_SPACE        - your SignalWire space
 
 require 'signalwire'
-require 'signalwire/relay/client'  # opt-in subsystem (Python: from signalwire.relay import RelayClient)
+require 'signalwire/relay/client' # opt-in subsystem (Python: from signalwire.relay import RelayClient)
 
 client = SignalWire::Relay::Client.new(contexts: ['default'])
 
 # Handle inbound calls
-client.on_call do |call|
+client.on_call(nil) do |call|
   puts "Incoming call from #{call.device.dig('params', 'from_number') || 'unknown'}"
   puts "  Call ID: #{call.call_id}"
   puts "  Direction: #{call.direction}"
@@ -27,9 +27,10 @@ client.on_call do |call|
 
   # Play a welcome message
   action = call.play([
-    { 'type' => 'tts', 'params' => { 'text' => 'Hello! Welcome to the SignalWire RELAY demo.' } },
-    { 'type' => 'tts', 'params' => { 'text' => 'This call is being handled by the Ruby RELAY client.' } }
-  ])
+                       { 'type' => 'tts', 'params' => { 'text' => 'Hello! Welcome to the SignalWire RELAY demo.' } },
+                       { 'type' => 'tts',
+                         'params' => { 'text' => 'This call is being handled by the Ruby RELAY client.' } }
+                     ])
   action.wait
 
   # Record a short message
@@ -43,8 +44,9 @@ client.on_call do |call|
 
   # Play goodbye
   bye_action = call.play([
-    { 'type' => 'tts', 'params' => { 'text' => 'Thank you for trying the RELAY demo. Goodbye!' } }
-  ])
+                           { 'type' => 'tts',
+                             'params' => { 'text' => 'Thank you for trying the RELAY demo. Goodbye!' } }
+                         ])
   bye_action.wait
 
   # Hang up
@@ -53,7 +55,7 @@ client.on_call do |call|
 end
 
 # Handle inbound messages (optional)
-client.on_message do |msg|
+client.on_message(nil) do |msg|
   puts "Incoming message from #{msg.from_number}: #{msg.body}"
 end
 

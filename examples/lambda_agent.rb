@@ -25,7 +25,7 @@
 require 'signalwire'
 
 AGENT = SignalWire::AgentBase.new(
-  name:  'lambda-agent',
+  name: 'lambda-agent',
   route: '/'
 )
 
@@ -37,26 +37,26 @@ AGENT.prompt_add_section(
 )
 
 AGENT.prompt_add_section('Instructions', nil, bullets: [
-  'Greet users warmly and offer help.',
-  'Use the greet_user function when asked to greet someone.',
-  'Use the get_time function when asked about the current time.'
-])
+                           'Greet users warmly and offer help.',
+                           'Use the greet_user function when asked to greet someone.',
+                           'Use the get_time function when asked about the current time.'
+                         ])
 
 AGENT.define_tool(
-  name:        'greet_user',
+  name: 'greet_user',
   description: 'Greet a user by name',
-  parameters:  {
+  parameters: {
     'name' => { 'type' => 'string', 'description' => 'Name to greet' }
-  }
+  }, handler: nil
 ) do |args, _raw_data|
   name = args['name'] || 'friend'
   SignalWire::Swaig::FunctionResult.new("Hello #{name}! I'm running in serverless mode!")
 end
 
 AGENT.define_tool(
-  name:        'get_time',
+  name: 'get_time',
   description: 'Get the current time',
-  parameters:  {}
+  parameters: {}, handler: nil
 ) do |_args, _raw_data|
   SignalWire::Swaig::FunctionResult.new("Current time: #{Time.now.iso8601}")
 end

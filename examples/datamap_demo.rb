@@ -18,27 +18,28 @@ agent.prompt_add_section(
 # --- DataMap Tool 1: Weather API ---
 
 weather = SignalWire::DataMap.new('get_weather')
-          .purpose('Get the current weather for a location')
-          .parameter('city', 'string', 'City name', required: true)
-          .parameter('units', 'string', 'Temperature units: metric or imperial', required: false)
-          .webhook('GET', 'https://api.weatherapi.com/v1/current.json?key=${global_data.weather_api_key}&q=${args.city}')
-          .output(
-            SignalWire::Swaig::FunctionResult.new(
-              'Current weather in ${args.city}: ${response.current.temp_f}F ' \
-              '(${response.current.temp_c}C), ${response.current.condition.text}. ' \
-              'Wind: ${response.current.wind_mph} mph.'
-            )
-          )
+                             .purpose('Get the current weather for a location')
+                             .parameter('city', 'string', 'City name', required: true)
+                             .parameter('units', 'string', 'Temperature units: metric or imperial', required: false)
+                             .webhook('GET', 'https://api.weatherapi.com/v1/current.json?key=${global_data.weather_api_key}&q=${args.city}')
+                             .output(
+                               SignalWire::Swaig::FunctionResult.new(
+                                 'Current weather in ${args.city}: ${response.current.temp_f}F ' \
+                                 '(${response.current.temp_c}C), ${response.current.condition.text}. ' \
+                                 'Wind: ${response.current.wind_mph} mph.'
+                               )
+                             )
 
 agent.register_swaig_function(weather.to_swaig_function)
 
 # --- DataMap Tool 2: Expression-based calculator ---
 
 calculator = SignalWire::DataMap.new('simple_math')
-             .purpose('Evaluate a simple math expression')
-             .parameter('expression', 'string', 'A math expression like "add", "subtract"', required: true)
-             .parameter('a', 'number', 'First number', required: true)
-             .parameter('b', 'number', 'Second number', required: true)
+calculator
+  .purpose('Evaluate a simple math expression')
+  .parameter('expression', 'string', 'A math expression like "add", "subtract"', required: true)
+  .parameter('a', 'number', 'First number', required: true)
+  .parameter('b', 'number', 'Second number', required: true)
 
 calculator.expression(
   '${args.expression}',
@@ -58,10 +59,10 @@ agent.register_swaig_function(calculator.to_swaig_function)
 # --- DataMap Tool 3: Simple API tool (class method shortcut) ---
 
 joke = SignalWire::DataMap.create_simple_api_tool(
-  name:              'get_joke',
-  url:               'https://official-joke-api.appspot.com/random_joke',
+  name: 'get_joke',
+  url: 'https://official-joke-api.appspot.com/random_joke',
   response_template: 'Here is a joke: ${response.setup} ... ${response.punchline}',
-  method:            'GET'
+  method: 'GET'
 )
 
 agent.register_swaig_function(joke.to_swaig_function)

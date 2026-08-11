@@ -10,7 +10,7 @@
 #   python3 scripts/generate_rest.py
 #
 # Generated Fabric base classes: CRUD + list_addresses (the FabricResource
-# method-set, §2), differing only by the update HTTP verb (PATCH vs PUT).
+# method-set), differing only by the update HTTP verb (PATCH vs PUT).
 
 module SignalWire
   module REST

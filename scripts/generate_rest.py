@@ -50,6 +50,7 @@ Usage:
     python3 scripts/generate_rest.py --check         # GEN-FRESH: fail if stale
     python3 scripts/generate_rest.py --out DIR       # scratch: emit flat into DIR
 """
+
 from __future__ import annotations
 
 import argparse
@@ -60,7 +61,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _gen_format import rubocop_format, wrap_spec_derived_disables  # noqa: E402
+from _gen_format import rubocop_format, wrap_spec_derived_disables
 
 try:
     import yaml
@@ -81,28 +82,33 @@ except ImportError:  # pragma: no cover
 #   - hidden:     DROP the field from the SDK surface entirely (still on the wire).
 #   - deprecated: EMIT the field but flag it deprecated (a `# deprecated:` comment).
 # _overlay_cache holds {"hidden": set, "deprecated": set} of (field, scope-or-None).
-_overlay_cache: "dict[str, set[tuple[str, str | None]]] | None" = None
+_overlay_cache: dict[str, set[tuple[str, str | None]]] | None = None
 
 
-def _load_overlay(psdk: Path) -> "dict[str, set[tuple[str, str | None]]]":
+def _load_overlay(psdk: Path) -> dict[str, set[tuple[str, str | None]]]:
     global _overlay_cache
     if _overlay_cache is None:
-        def rules(key: str, data: dict) -> "set[tuple[str, str | None]]":
+
+        def rules(key: str, data: dict) -> set[tuple[str, str | None]]:
             out: set[tuple[str, str | None]] = set()
             for entry in data.get(key) or []:
                 if isinstance(entry, dict) and entry.get("field"):
                     out.add((entry["field"], entry.get("scope")))
             return out
+
         path = psdk / "rest-apis" / "x-sdk-overlay.yaml"
         data = yaml.safe_load(path.read_text()) if path.is_file() else {}
         data = data or {}
-        _overlay_cache = {"hidden": rules("hidden", data),
-                          "deprecated": rules("deprecated", data)}
+        _overlay_cache = {
+            "hidden": rules("hidden", data),
+            "deprecated": rules("deprecated", data),
+        }
     return _overlay_cache
 
 
-def _overlay_match(rules: "set[tuple[str, str | None]]", field: str,
-                   schema_name: "str | None") -> bool:
+def _overlay_match(
+    rules: set[tuple[str, str | None]], field: str, schema_name: str | None
+) -> bool:
     # A rule matches when its field equals `field` AND (it is unscoped OR its scope
     # equals the containing SPEC schema name — the $defs / components.schemas key,
     # NOT the emitted Ruby class name).
@@ -112,11 +118,11 @@ def _overlay_match(rules: "set[tuple[str, str | None]]", field: str,
     return False
 
 
-def overlay_hidden(field: str, schema_name: "str | None", psdk: Path) -> bool:
+def overlay_hidden(field: str, schema_name: str | None, psdk: Path) -> bool:
     return _overlay_match(_load_overlay(psdk)["hidden"], field, schema_name)
 
 
-def overlay_deprecated(field: str, schema_name: "str | None", psdk: Path) -> bool:
+def overlay_deprecated(field: str, schema_name: str | None, psdk: Path) -> bool:
     return _overlay_match(_load_overlay(psdk)["deprecated"], field, schema_name)
 
 
@@ -147,9 +153,21 @@ def overlay_deprecated(field: str, schema_name: "str | None", psdk: Path) -> boo
 # never silently dropped. registry has no own dir (its resources live inside
 # relay-rest via namespace: registry).
 _NS_ORDER = [
-    "relay-rest", "fabric", "calling", "video", "datasphere",
-    "logs", "message", "messages", "voice", "fax", "project", "projects",
-    "chat", "pubsub", "swml-webhooks",
+    "relay-rest",
+    "fabric",
+    "calling",
+    "video",
+    "datasphere",
+    "logs",
+    "message",
+    "messages",
+    "voice",
+    "fax",
+    "project",
+    "projects",
+    "chat",
+    "pubsub",
+    "swml-webhooks",
 ]
 
 # Module-segment casing overrides — where mechanical PascalCase of the dir name
@@ -200,7 +218,7 @@ def _scan_namespaces(psdk: Path) -> tuple[list[str], list[tuple[str, str, str]]]
             isinstance(item, dict) and item.get("x-sdk-resource")
             for item in (doc.get("paths") or {}).values()
         )
-        has_schemas = bool(((doc.get("components") or {}).get("schemas")))
+        has_schemas = bool((doc.get("components") or {}).get("schemas"))
         has_servers = bool(doc.get("servers"))
         if has_resource:
             resource_dirs.append(name)
@@ -217,17 +235,54 @@ def _scan_namespaces(psdk: Path) -> tuple[list[str], list[tuple[str, str, str]]]
 # names collide only via the calling command-dispatch (handled by the command
 # name derivation, e.g. `calling.end` -> `end`, which IS a keyword — see below).
 RUBY_KEYWORDS = {
-    "BEGIN", "END", "alias", "and", "begin", "break", "case", "class", "def",
-    "defined?", "do", "else", "elsif", "end", "ensure", "false", "for", "if",
-    "in", "module", "next", "nil", "not", "or", "redo", "rescue", "retry",
-    "return", "self", "super", "then", "true", "undef", "unless", "until",
-    "when", "while", "yield", "__FILE__", "__LINE__", "__ENCODING__",
+    "BEGIN",
+    "END",
+    "alias",
+    "and",
+    "begin",
+    "break",
+    "case",
+    "class",
+    "def",
+    "defined?",
+    "do",
+    "else",
+    "elsif",
+    "end",
+    "ensure",
+    "false",
+    "for",
+    "if",
+    "in",
+    "module",
+    "next",
+    "nil",
+    "not",
+    "or",
+    "redo",
+    "rescue",
+    "retry",
+    "return",
+    "self",
+    "super",
+    "then",
+    "true",
+    "undef",
+    "unless",
+    "until",
+    "when",
+    "while",
+    "yield",
+    "__FILE__",
+    "__LINE__",
+    "__ENCODING__",
 }
 
 
 # ---------------------------------------------------------------------------
 # Resolution.
 # ---------------------------------------------------------------------------
+
 
 def resolve_porting_sdk() -> Path:
     env = os.environ.get("PORTING_SDK")
@@ -238,7 +293,9 @@ def resolve_porting_sdk() -> Path:
         cand = parent.parent / "porting-sdk"
         if (cand / "rest-apis").is_dir():
             return cand.resolve()
-    raise SystemExit("generate_rest.py: porting-sdk not found (set $PORTING_SDK or clone adjacent)")
+    raise SystemExit(
+        "generate_rest.py: porting-sdk not found (set $PORTING_SDK or clone adjacent)"
+    )
 
 
 def repo_root() -> Path:
@@ -249,12 +306,13 @@ def repo_root() -> Path:
 # Base loading (x-sdk-bases; §2) — validate cyclic/undefined extends (fail loud).
 # ---------------------------------------------------------------------------
 
+
 def load_bases(psdk: Path) -> dict[str, list[str]]:
     raw = yaml.safe_load((psdk / "rest-apis" / "x-sdk-bases.yaml").read_text())
     bases = dict(raw.get("x-sdk-bases") or {})
     fab = psdk / "rest-apis" / "fabric" / "x-sdk-bases.yaml"
     if fab.is_file():
-        bases.update((yaml.safe_load(fab.read_text()).get("x-sdk-bases") or {}))
+        bases.update(yaml.safe_load(fab.read_text()).get("x-sdk-bases") or {})
 
     def resolve(name: str, seen: set[str]) -> list[str]:
         if name in seen:
@@ -276,24 +334,35 @@ def load_bases(psdk: Path) -> dict[str, list[str]]:
 # Spec model.
 # ---------------------------------------------------------------------------
 
+
 class Spec:
     def __init__(self, name: str, doc: dict):
         self.name = name
         self.doc = doc
         self.server_path = _url_path(doc["servers"][0]["url"])
         if self.server_path != "/" and self.server_path.endswith("/"):
-            raise SystemExit(f"{name}: servers[0].url path {self.server_path!r} has a trailing slash")
+            raise SystemExit(
+                f"{name}: servers[0].url path {self.server_path!r} has a trailing slash"
+            )
         self.namespace_attr = (doc.get("x-sdk-namespace") or {}).get("attr") or ""
         self.ops: dict[str, tuple[str, str, bool]] = {}
-        self.op_body: dict[str, dict] = {}  # operationId -> requestBody JSON schema (or {})
+        self.op_body: dict[
+            str, dict
+        ] = {}  # operationId -> requestBody JSON schema (or {})
         for path, item in (doc.get("paths") or {}).items():
             for verb in ("get", "post", "put", "patch", "delete"):
                 o = item.get(verb)
                 if o and o.get("operationId"):
-                    self.ops[o["operationId"]] = (verb, path, bool(o.get("requestBody")))
+                    self.ops[o["operationId"]] = (
+                        verb,
+                        path,
+                        bool(o.get("requestBody")),
+                    )
                     body = o.get("requestBody") or {}
                     content = body.get("content") or {}
-                    media = content.get("application/json") or (next(iter(content.values())) if content else {})
+                    media = content.get("application/json") or (
+                        next(iter(content.values())) if content else {}
+                    )
                     self.op_body[o["operationId"]] = (media or {}).get("schema") or {}
         self.schemas = ((doc.get("components") or {}).get("schemas")) or {}
 
@@ -314,12 +383,15 @@ def _url_path(url: str) -> str:
 
 
 def load_spec(psdk: Path, ns: str) -> Spec:
-    return Spec(ns, yaml.safe_load((psdk / "rest-apis" / ns / "openapi.yaml").read_text()))
+    return Spec(
+        ns, yaml.safe_load((psdk / "rest-apis" / ns / "openapi.yaml").read_text())
+    )
 
 
 # ---------------------------------------------------------------------------
 # Path composition (§4).
 # ---------------------------------------------------------------------------
+
 
 def join_path(a: str, b: str) -> str:
     if not b:
@@ -346,7 +418,7 @@ def relative_tail(spec: Spec, anchor: str, markup: dict, op_path: str):
     full = join_path(spec.server_path, coll)
     absp = join_path(spec.server_path, op_path)
     if coll and absp.startswith(full + "/"):
-        return ([s for s in absp[len(full) + 1:].split("/") if s], False)
+        return ([s for s in absp[len(full) + 1 :].split("/") if s], False)
     if coll and absp == full:
         return ([], False)
     return ([s for s in absp.lstrip("/").split("/") if s], True)
@@ -355,6 +427,7 @@ def relative_tail(spec: Spec, anchor: str, markup: dict, op_path: str):
 # ---------------------------------------------------------------------------
 # Naming.
 # ---------------------------------------------------------------------------
+
 
 def escape_param(field: str) -> str:
     """A wire field name → a safe Ruby keyword-arg identifier. Ruby keyword-arg
@@ -377,12 +450,20 @@ def escape_param(field: str) -> str:
 
 
 PARAM_ARG_NAME = {
-    "id": "id", "queue_id": "queue_id", "NumberGroupId": "group_id",
-    "documentId": "document_id", "chunkId": "chunk_id",
-    "mfa_request_id": "request_id", "e164_number": "e164",
-    "fabric_subscriber_id": "subscriber_id", "ai_agent_id": "id",
-    "cxml_webhook_id": "id", "swml_webhook_id": "id", "token_id": "token_id",
-    "room_id": "room_id", "resource_id": "resource_id",
+    "id": "id",
+    "queue_id": "queue_id",
+    "NumberGroupId": "group_id",
+    "documentId": "document_id",
+    "chunkId": "chunk_id",
+    "mfa_request_id": "request_id",
+    "e164_number": "e164",
+    "fabric_subscriber_id": "subscriber_id",
+    "ai_agent_id": "id",
+    "cxml_webhook_id": "id",
+    "swml_webhook_id": "id",
+    "token_id": "token_id",
+    "room_id": "room_id",
+    "resource_id": "resource_id",
     "sip_endpoint_id": "sip_endpoint_id",
 }
 
@@ -442,28 +523,34 @@ RUBY_PARENT = {
 # Command-dispatch (§6).
 # ---------------------------------------------------------------------------
 
+
 def command_method_name(cmd: str) -> str:
     """Command string -> ruby snake_case method name (strip a leading `calling.`
     domain prefix, dots -> underscores). `calling.play.pause` -> `play_pause`,
     `dial` -> `dial`, `calling.end` -> `end` (a keyword, but a valid METHOD name
     in ruby — only PARAM/local-var identifiers need escaping)."""
-    s = cmd[len("calling."):] if cmd.startswith("calling.") else cmd
+    s = cmd[len("calling.") :] if cmd.startswith("calling.") else cmd
     return s.replace(".", "_")
 
 
 def discriminator_mapping(spec: Spec, schema_name: str) -> dict:
     sch = spec.schemas.get(schema_name)
     if sch is None:
-        raise SystemExit(f"command-dispatch request {schema_name!r} not in components.schemas")
+        raise SystemExit(
+            f"command-dispatch request {schema_name!r} not in components.schemas"
+        )
     mapping = (sch.get("discriminator") or {}).get("mapping")
     if not mapping:
-        raise SystemExit(f"command-dispatch request {schema_name!r} has no discriminator.mapping")
+        raise SystemExit(
+            f"command-dispatch request {schema_name!r} has no discriminator.mapping"
+        )
     return mapping
 
 
 # ---------------------------------------------------------------------------
 # Typed inputs (§5).
 # ---------------------------------------------------------------------------
+
 
 def resolve_schema(spec: Spec, schema: dict | None, seen=None) -> dict:
     if not schema:
@@ -480,7 +567,12 @@ def resolve_schema(spec: Spec, schema: dict | None, seen=None) -> dict:
         seen.add(leaf)
         return resolve_schema(spec, spec.schemas.get(leaf), seen)
     allof = schema.get("allOf")
-    if allof and len(allof) == 1 and not schema.get("properties") and not schema.get("type"):
+    if (
+        allof
+        and len(allof) == 1
+        and not schema.get("properties")
+        and not schema.get("type")
+    ):
         return resolve_schema(spec, allof[0], seen)
     return schema
 
@@ -501,7 +593,9 @@ def object_body_fields(spec: Spec, body_schema: dict) -> list[tuple[str, dict, b
     return [(name, psc, name in required) for name, psc in props.items()]
 
 
-def command_param_fields(spec: Spec, command_schema: dict) -> tuple[list[tuple[str, dict, bool]], bool]:
+def command_param_fields(
+    spec: Spec, command_schema: dict
+) -> tuple[list[tuple[str, dict, bool]], bool]:
     """§6 union-flatten: ([(wire_name, schema, required)], has_id). The command
     schema's `params` sub-schema may itself be anyOf/oneOf of variant param
     schemas; expose the UNION of variants' fields, a field required only if
@@ -542,7 +636,7 @@ def is_object_body(spec: Spec, body_schema: dict) -> bool:
         return False
     if resolved.get("properties") or resolved.get("allOf"):
         return True
-    return (resolved.get("type") == "object")
+    return resolved.get("type") == "object"
 
 
 def ordered_fields(fields):
@@ -575,7 +669,12 @@ def ordered_fields(fields):
 # gate correctly fails for a param the oracle types concretely; L14).
 # ---------------------------------------------------------------------------
 
-_SCALAR_CANON = {"string": "string", "integer": "int", "number": "float", "boolean": "bool"}
+_SCALAR_CANON = {
+    "string": "string",
+    "integer": "int",
+    "number": "float",
+    "boolean": "bool",
+}
 
 
 def _is_named_ref(schema: dict) -> bool:
@@ -587,7 +686,12 @@ def _is_named_ref(schema: dict) -> bool:
     if schema.get("$ref"):
         return True
     allof = schema.get("allOf")
-    if allof and len(allof) == 1 and not schema.get("properties") and not schema.get("type"):
+    if (
+        allof
+        and len(allof) == 1
+        and not schema.get("properties")
+        and not schema.get("type")
+    ):
         return _is_named_ref(allof[0])
     return False
 
@@ -640,8 +744,13 @@ REQUEST_OPTIONS_FWD = "request_options: request_options"
 
 
 def _request_options_record() -> dict:
-    return {"name": "request_options", "kind": "keyword",
-            "type": REQUEST_OPTIONS_TYPE, "required": False, "default": None}
+    return {
+        "name": "request_options",
+        "kind": "keyword",
+        "type": REQUEST_OPTIONS_TYPE,
+        "required": False,
+        "default": None,
+    }
 
 
 def schema_fields(spec: Spec, schema: dict, seen=None) -> set[str]:
@@ -668,6 +777,7 @@ def schema_fields(spec: Spec, schema: dict, seen=None) -> set[str]:
 # ---------------------------------------------------------------------------
 # Body-param emission (Ruby kwargs + extras + **kwargs — §B).
 # ---------------------------------------------------------------------------
+
 
 def kwarg_params_and_body(spec, fields, indent="        ", body_var="body"):
     """Build (kwarg_param_list, body_build_lines, sidecar_records, body_var) for a set of
@@ -703,23 +813,35 @@ def kwarg_params_and_body(spec, fields, indent="        ", body_var="body"):
     for wire_name, schema, required in ordered_fields(fields):
         ident = escape_param(wire_name)
         ct = canonical_type(spec, schema, required)
-        rec: dict = {"name": wire_name, "kind": "keyword", "type": ct, "required": required}
+        rec: dict = {
+            "name": wire_name,
+            "kind": "keyword",
+            "type": ct,
+            "required": required,
+        }
         if required:
             params.append(f"{ident}:")
             build.append(f"{indent}{body_var}[{rb_str(wire_name)}] = {ident}")
         else:
             params.append(f"{ident}: nil")
             rec["default"] = None
-            build.append(f"{indent}{body_var}[{rb_str(wire_name)}] = {ident} unless {ident}.nil?")
+            build.append(
+                f"{indent}{body_var}[{rb_str(wire_name)}] = {ident} unless {ident}.nil?"
+            )
         records.append(rec)
     params.append("extras: {}")
     params.append(REQUEST_OPTIONS_SIG)
     params.append("**kwargs")
     build.append(f"{indent}{body_var} = {body_var}.merge(extras).merge(kwargs)")
-    records.append({
-        "name": "extras", "kind": "keyword",
-        "type": "optional<dict<string,any>>", "required": False, "default": None,
-    })
+    records.append(
+        {
+            "name": "extras",
+            "kind": "keyword",
+            "type": "optional<dict<string,any>>",
+            "required": False,
+            "default": None,
+        }
+    )
     # §PY-7: the trailing sidecar slot is the keyword-only ``request_options`` (the
     # reference records it at the var_keyword position; the ``**kwargs`` forward-
     # compat splat stays in the physical signature but is not surfaced in the
@@ -786,8 +908,15 @@ GEN_HEADER = """# frozen_string_literal: true
 """
 
 
-def emit_method(spec: Spec, anchor: str, markup: dict, base: str,
-                method_snake: str, op_id: str, indent: str) -> list[str]:
+def emit_method(
+    spec: Spec,
+    anchor: str,
+    markup: dict,
+    base: str,
+    method_snake: str,
+    op_id: str,
+    indent: str,
+) -> list[str]:
     if op_id not in spec.ops:
         raise SystemExit(f"{markup['name']}.{method_snake}: op {op_id!r} not in spec")
     verb, op_path, has_body = spec.ops[op_id]
@@ -800,7 +929,10 @@ def emit_method(spec: Spec, anchor: str, markup: dict, base: str,
     cls = markup["name"]
     # Leading path-id params: the reference types every path/collection id
     # positional as ``string`` (a URL path segment). Record them so.
-    id_records = [{"name": a, "kind": "positional", "type": "string", "required": True} for a in id_args]
+    id_records = [
+        {"name": a, "kind": "positional", "type": "string", "required": True}
+        for a in id_args
+    ]
 
     ro_rec = _request_options_record()
     if write_verb and has_body:
@@ -809,11 +941,15 @@ def emit_method(spec: Spec, anchor: str, markup: dict, base: str,
             fields = object_body_fields(spec, body_schema)
             # kwarg_params_and_body already emits ``request_options: nil`` into the
             # signature (kw) and the request_options record into ``records``.
-            kw, build, records, bvar = kwarg_params_and_body(spec, fields, indent=indent + "  ")
+            kw, build, records, bvar = kwarg_params_and_body(
+                spec, fields, indent=indent + "  "
+            )
             sig = ", ".join(id_args + kw)
             lines.append(f"{indent}def {name}({sig})")
             lines.extend(build)
-            lines.append(f"{indent}  @http.{verb_fn}({path_expr}, {bvar}, {REQUEST_OPTIONS_FWD})")
+            lines.append(
+                f"{indent}  @http.{verb_fn}({path_expr}, {bvar}, {REQUEST_OPTIONS_FWD})"
+            )
             lines.append(f"{indent}end")
             _register_sidecar(cls, name, id_records + records)
         else:
@@ -825,41 +961,59 @@ def emit_method(spec: Spec, anchor: str, markup: dict, base: str,
             # ``gen:<Name>`` — ``canonical_type`` returns the folding
             # ``dict<string,any>`` for it; a bare inline union stays ``any``.
             body_type = canonical_type(spec, body_schema, True)
-            sig = ", ".join(id_args + ["body", REQUEST_OPTIONS_SIG])
+            sig = ", ".join([*id_args, "body", REQUEST_OPTIONS_SIG])
             lines.append(f"{indent}def {name}({sig})")
-            lines.append(f"{indent}  @http.{verb_fn}({path_expr}, body, {REQUEST_OPTIONS_FWD})")
+            lines.append(
+                f"{indent}  @http.{verb_fn}({path_expr}, body, {REQUEST_OPTIONS_FWD})"
+            )
             lines.append(f"{indent}end")
-            _register_sidecar(cls, name, id_records + [
-                {"name": "body", "kind": "positional", "type": body_type, "required": True},
-                ro_rec,
-            ])
+            _register_sidecar(
+                cls,
+                name,
+                [
+                    *id_records,
+                    {
+                        "name": "body",
+                        "kind": "positional",
+                        "type": body_type,
+                        "required": True,
+                    },
+                    ro_rec,
+                ],
+            )
     elif write_verb:
-        sig = ", ".join(id_args + [REQUEST_OPTIONS_SIG])
+        sig = ", ".join([*id_args, REQUEST_OPTIONS_SIG])
         lines.append(f"{indent}def {name}({sig})")
-        lines.append(f"{indent}  @http.{verb_fn}({path_expr}, {{}}, {REQUEST_OPTIONS_FWD})")
+        lines.append(
+            f"{indent}  @http.{verb_fn}({path_expr}, {{}}, {REQUEST_OPTIONS_FWD})"
+        )
         lines.append(f"{indent}end")
-        _register_sidecar(cls, name, id_records + [ro_rec])
+        _register_sidecar(cls, name, [*id_records, ro_rec])
     elif verb == "get":
         # §5.3 GET query door — a trailing keyword-splat `**params` map, plus the
         # keyword-only ``request_options:`` (extracted before the splat). The
         # reference enumerator records ONLY the path-ids + ``request_options`` for
         # a GET (the ``**params`` var_keyword is not surfaced), so the sidecar
         # mirrors that shape (drop ``params``, record ``request_options``).
-        sig = ", ".join(id_args + [REQUEST_OPTIONS_SIG, "**params"])
+        sig = ", ".join([*id_args, REQUEST_OPTIONS_SIG, "**params"])
         lines.append(f"{indent}def {name}({sig})")
-        lines.append(f"{indent}  @http.get({path_expr}, params.empty? ? nil : params, {REQUEST_OPTIONS_FWD})")
+        lines.append(
+            f"{indent}  @http.get({path_expr}, params.empty? ? nil : params, {REQUEST_OPTIONS_FWD})"
+        )
         lines.append(f"{indent}end")
-        _register_sidecar(cls, name, id_records + [ro_rec])
+        _register_sidecar(cls, name, [*id_records, ro_rec])
     else:  # delete
-        sig = ", ".join(id_args + [REQUEST_OPTIONS_SIG])
+        sig = ", ".join([*id_args, REQUEST_OPTIONS_SIG])
         lines.append(f"{indent}def {name}({sig})")
         lines.append(f"{indent}  @http.delete({path_expr}, {REQUEST_OPTIONS_FWD})")
         lines.append(f"{indent}end")
-        _register_sidecar(cls, name, id_records + [ro_rec])
+        _register_sidecar(cls, name, [*id_records, ro_rec])
     return lines
 
 
-def emit_crud_create_update(spec: Spec, anchor: str, markup: dict, base: str, indent: str) -> list[str]:
+def emit_crud_create_update(
+    spec: Spec, anchor: str, markup: dict, base: str, indent: str
+) -> list[str]:
     """Emit the OWN methods the oracle records for a full-CRUD resource, matching
     the Python enumerator's rule (`_emit_generic_inherited`): it walks the DIRECT
     generic base the resource subscripts and records that base's OWN members onto
@@ -877,11 +1031,12 @@ def emit_crud_create_update(spec: Spec, anchor: str, markup: dict, base: str, in
     own-set into the subclass body (delete for CrudResource, not for
     FabricResource) to reproduce the oracle."""
     lines: list[str] = []
-    coll = collection_segment(anchor, markup)
     # create: the collection-level POST (create_* operation).
     create_op = _find_op(spec, anchor, markup, verbs=("post",), item_level=False)
     update_verb = "put" if markup.get("update_method") == "PUT" else "patch"
-    update_op = _find_op(spec, anchor, markup, verbs=(update_verb, "put", "patch"), item_level=True)
+    update_op = _find_op(
+        spec, anchor, markup, verbs=(update_verb, "put", "patch"), item_level=True
+    )
 
     # NOTE: the plain-CRUD create/update/delete are NOT sidecar-registered. The
     # reference publishes them structurally (a CrudResource base), so the drift
@@ -892,33 +1047,51 @@ def emit_crud_create_update(spec: Spec, anchor: str, markup: dict, base: str, in
     # typed-input unfold.
     if create_op:
         _, _, cbody = create_op
-        fields = object_body_fields(spec, cbody) if is_object_body(spec, cbody) else None
+        fields = (
+            object_body_fields(spec, cbody) if is_object_body(spec, cbody) else None
+        )
         if fields is not None:
-            kw, build, _records, bvar = kwarg_params_and_body(spec, fields, indent=indent + "  ")
+            kw, build, _records, bvar = kwarg_params_and_body(
+                spec, fields, indent=indent + "  "
+            )
             lines.append(f"{indent}def create({', '.join(kw)})")
             lines.extend(build)
-            lines.append(f"{indent}  @http.post(@base_path, {bvar}, {REQUEST_OPTIONS_FWD})")
+            lines.append(
+                f"{indent}  @http.post(@base_path, {bvar}, {REQUEST_OPTIONS_FWD})"
+            )
             lines.append(f"{indent}end")
         else:
             lines.append(f"{indent}def create(body, {REQUEST_OPTIONS_SIG})")
-            lines.append(f"{indent}  @http.post(@base_path, body, {REQUEST_OPTIONS_FWD})")
+            lines.append(
+                f"{indent}  @http.post(@base_path, body, {REQUEST_OPTIONS_FWD})"
+            )
             lines.append(f"{indent}end")
 
     if update_op:
         uverb, _, ubody = update_op
-        fields = object_body_fields(spec, ubody) if is_object_body(spec, ubody) else None
+        fields = (
+            object_body_fields(spec, ubody) if is_object_body(spec, ubody) else None
+        )
         verb_fn = uverb
         if fields is not None:
-            kw, build, _records, bvar = kwarg_params_and_body(spec, fields, indent=indent + "  ")
+            kw, build, _records, bvar = kwarg_params_and_body(
+                spec, fields, indent=indent + "  "
+            )
             lines.append("")
             lines.append(f"{indent}def update(resource_id, {', '.join(kw)})")
             lines.extend(build)
-            lines.append(f"{indent}  @http.{verb_fn}(_path(resource_id), {bvar}, {REQUEST_OPTIONS_FWD})")
+            lines.append(
+                f"{indent}  @http.{verb_fn}(_path(resource_id), {bvar}, {REQUEST_OPTIONS_FWD})"
+            )
             lines.append(f"{indent}end")
         else:
             lines.append("")
-            lines.append(f"{indent}def update(resource_id, body, {REQUEST_OPTIONS_SIG})")
-            lines.append(f"{indent}  @http.{verb_fn}(_path(resource_id), body, {REQUEST_OPTIONS_FWD})")
+            lines.append(
+                f"{indent}def update(resource_id, body, {REQUEST_OPTIONS_SIG})"
+            )
+            lines.append(
+                f"{indent}  @http.{verb_fn}(_path(resource_id), body, {REQUEST_OPTIONS_FWD})"
+            )
             lines.append(f"{indent}end")
 
     # delete: a CrudResource OWN member → recorded on a plain CrudResource
@@ -927,7 +1100,9 @@ def emit_crud_create_update(spec: Spec, anchor: str, markup: dict, base: str, in
     if base == "CrudResource":
         lines.append("")
         lines.append(f"{indent}def delete(resource_id, {REQUEST_OPTIONS_SIG})")
-        lines.append(f"{indent}  @http.delete(_path(resource_id), {REQUEST_OPTIONS_FWD})")
+        lines.append(
+            f"{indent}  @http.delete(_path(resource_id), {REQUEST_OPTIONS_FWD})"
+        )
         lines.append(f"{indent}end")
     return lines
 
@@ -941,7 +1116,11 @@ def _find_op(spec: Spec, anchor: str, markup: dict, verbs, item_level: bool):
         full = join_path(spec.server_path, coll)
         this = join_path(spec.server_path, path)
         if item_level:
-            if not (path.startswith(coll + "/{") and path.count("/{") == 1 and path.endswith("}")):
+            if not (
+                path.startswith(coll + "/{")
+                and path.count("/{") == 1
+                and path.endswith("}")
+            ):
                 continue
         else:
             # collection-level: the anchor collection path exactly
@@ -952,7 +1131,9 @@ def _find_op(spec: Spec, anchor: str, markup: dict, verbs, item_level: bool):
             if o and o.get("operationId"):
                 body = o.get("requestBody") or {}
                 content = body.get("content") or {}
-                media = content.get("application/json") or (next(iter(content.values())) if content else {})
+                media = content.get("application/json") or (
+                    next(iter(content.values())) if content else {}
+                )
                 return (verb, path, (media or {}).get("schema") or {})
     return None
 
@@ -965,7 +1146,9 @@ def emit_read_list_get(spec: Spec, anchor: str, markup: dict, indent: str) -> li
     L4: only DECLARED GET methods carry a query tail, not the base list/get)."""
     lines: list[str] = []
     lines.append(f"{indent}def list({REQUEST_OPTIONS_SIG}, **params)")
-    lines.append(f"{indent}  @http.get(@base_path, params.empty? ? nil : params, {REQUEST_OPTIONS_FWD})")
+    lines.append(
+        f"{indent}  @http.get(@base_path, params.empty? ? nil : params, {REQUEST_OPTIONS_FWD})"
+    )
     lines.append(f"{indent}end")
     lines.append("")
     # paginate: the ReadResource base's page-walking iterator (oracle records
@@ -985,9 +1168,15 @@ def emit_read_list_get(spec: Spec, anchor: str, markup: dict, indent: str) -> li
     return lines
 
 
-def emit_set_method(spec: Spec, markup: dict, sm_name: str, sm: dict,
-                    update_schema_fields: set[str],
-                    update_field_schemas: dict[str, dict], indent: str) -> list[str]:
+def emit_set_method(
+    spec: Spec,
+    markup: dict,
+    sm_name: str,
+    sm: dict,
+    update_schema_fields: set[str],
+    update_field_schemas: dict[str, dict],
+    indent: str,
+) -> list[str]:
     handler = sm.get("handler")
     if not handler:
         raise SystemExit(f"{markup['name']}.{sm_name}: set_method missing handler")
@@ -1002,12 +1191,19 @@ def emit_set_method(spec: Spec, markup: dict, sm_name: str, sm: dict,
     # takes keyword args + an ``extra: {}`` / ``**kwargs`` pair; the sidecar unfold
     # projects the reference's positional/var_keyword kinds — wire-identical.
     records: list[dict] = [
-        {"name": "resource_id", "kind": "positional", "type": "string", "required": True},
+        {
+            "name": "resource_id",
+            "kind": "positional",
+            "type": "string",
+            "required": True,
+        },
     ]
     for arg_name, arg in args.items():
         field = arg.get("field")
         if not field:
-            raise SystemExit(f"{markup['name']}.{sm_name}: arg {arg_name!r} missing field")
+            raise SystemExit(
+                f"{markup['name']}.{sm_name}: arg {arg_name!r} missing field"
+            )
         if field not in update_schema_fields:
             raise SystemExit(
                 f"{markup['name']}.{sm_name}: arg field {field!r} not in update request schema"
@@ -1015,7 +1211,12 @@ def emit_set_method(spec: Spec, markup: dict, sm_name: str, sm: dict,
         ident = escape_param(arg_name)
         required = bool(arg.get("required"))
         ct = canonical_type(spec, update_field_schemas.get(field, {}), required)
-        rec: dict = {"name": arg_name, "kind": "positional", "type": ct, "required": required}
+        rec: dict = {
+            "name": arg_name,
+            "kind": "positional",
+            "type": ct,
+            "required": required,
+        }
         if required:
             params.append(f"{ident}:")
             required_lines.append(f"{indent}  body[{rb_str(field)}] = {ident}")
@@ -1039,26 +1240,46 @@ def emit_set_method(spec: Spec, markup: dict, sm_name: str, sm: dict,
     lines.extend(required_lines)
     for ident, field in optional_lines:
         lines.append(f"{indent}  body[{rb_str(field)}] = {ident} unless {ident}.nil?")
-    lines.append(f"{indent}  update(resource_id, {REQUEST_OPTIONS_FWD}, **body.transform_keys(&:to_sym), **extra, **kwargs)")
+    lines.append(
+        f"{indent}  update(resource_id, {REQUEST_OPTIONS_FWD}, **body.transform_keys(&:to_sym), **extra, **kwargs)"
+    )
     lines.append(f"{indent}end")
     return lines
 
 
 def update_request_fields(spec: Spec, anchor: str, markup: dict) -> set[str]:
-    op = _find_op(spec, anchor, markup,
-                  verbs=("put" if markup.get("update_method") == "PUT" else "patch", "put", "patch"),
-                  item_level=True)
+    op = _find_op(
+        spec,
+        anchor,
+        markup,
+        verbs=(
+            "put" if markup.get("update_method") == "PUT" else "patch",
+            "put",
+            "patch",
+        ),
+        item_level=True,
+    )
     if not op:
         return set()
     return schema_fields(spec, op[2])
 
 
-def update_request_field_schemas(spec: Spec, anchor: str, markup: dict) -> dict[str, dict]:
+def update_request_field_schemas(
+    spec: Spec, anchor: str, markup: dict
+) -> dict[str, dict]:
     """{ wire_field -> field_schema } for the update request body — used to type
     a set_method's args from their bound update field (§7 sidecar typing)."""
-    op = _find_op(spec, anchor, markup,
-                  verbs=("put" if markup.get("update_method") == "PUT" else "patch", "put", "patch"),
-                  item_level=True)
+    op = _find_op(
+        spec,
+        anchor,
+        markup,
+        verbs=(
+            "put" if markup.get("update_method") == "PUT" else "patch",
+            "put",
+            "patch",
+        ),
+        item_level=True,
+    )
     if not op:
         return {}
     return {name: sch for name, sch, _req in object_body_fields(spec, op[2])}
@@ -1083,7 +1304,7 @@ def emit_command_dispatch(spec: Spec, anchor: str, markup: dict) -> str:
     lines.append("    module Namespaces")
     lines.append("      module Generated")
     lines.append(f"        # {name} — command-dispatch resource ({spec.name} spec).")
-    lines.append(f"        #")
+    lines.append("        #")
     lines.append(f"        # Each method POSTs {{command, params, id?}} to {base}.")
     lines.append(f"        class {name} < SignalWire::REST::BaseResource")
     lines.append("          def initialize(http)")
@@ -1095,16 +1316,30 @@ def emit_command_dispatch(spec: Spec, anchor: str, markup: dict) -> str:
         cmd_leaf = cmd_ref.rsplit("/", 1)[-1] if cmd_ref else ""
         cmd_schema = spec.schemas.get(cmd_leaf, {})
         fields, with_id = command_param_fields(spec, cmd_schema)
-        kw, build, records, bvar = kwarg_params_and_body(spec, fields, indent="            ", body_var="params")
+        kw, build, records, bvar = kwarg_params_and_body(
+            spec, fields, indent="            ", body_var="params"
+        )
         id_params = ["call_id"] if with_id else []
         sig = ", ".join(id_params + kw)
-        id_records = ([{"name": "call_id", "kind": "positional", "type": "string",
-                        "required": True}] if with_id else [])
+        id_records = (
+            [
+                {
+                    "name": "call_id",
+                    "kind": "positional",
+                    "type": "string",
+                    "required": True,
+                }
+            ]
+            if with_id
+            else []
+        )
         _register_sidecar(name, mname, id_records + records)
         lines.append("")
         lines.append(f"          def {mname}({sig})")
         lines.extend(build)
-        lines.append(f"            body = {{ 'command' => {rb_str(cmd)}, 'params' => {bvar} }}")
+        lines.append(
+            f"            body = {{ 'command' => {rb_str(cmd)}, 'params' => {bvar} }}"
+        )
         if with_id:
             lines.append("            body['id'] = call_id if call_id")
         lines.append(f"            @http.post(@base_path, body, {REQUEST_OPTIONS_FWD})")
@@ -1114,7 +1349,14 @@ def emit_command_dispatch(spec: Spec, anchor: str, markup: dict) -> str:
     lines.append("    end")
     lines.append("  end")
     lines.append("end")
-    return GEN_HEADER.format(desc=f"Generated command-dispatch resource for the {spec.name!r} namespace.") + "\n" + "\n".join(lines) + "\n"
+    return (
+        GEN_HEADER.format(
+            desc=f"Generated command-dispatch resource for the {spec.name!r} namespace."
+        )
+        + "\n"
+        + "\n".join(lines)
+        + "\n"
+    )
 
 
 # The generated Fabric base classes (they only select the update verb). Emitted
@@ -1127,7 +1369,7 @@ FABRIC_BASES = """# frozen_string_literal: true
 #   python3 scripts/generate_rest.py
 #
 # Generated Fabric base classes: CRUD + list_addresses (the FabricResource
-# method-set, §2), differing only by the update HTTP verb (PATCH vs PUT).
+# method-set), differing only by the update HTTP verb (PATCH vs PUT).
 
 module SignalWire
   module REST
@@ -1161,18 +1403,27 @@ def emit_resource(spec: Spec, anchor: str, markup: dict) -> str:
         upd = markup.get("update_method")
         if not upd:
             raise SystemExit(f"{name}: {base} requires update_method")
-        item = spec.doc["paths"][anchor]
         # anchor is the collection path; the update op is item-level. Validate
         # the declared verb against the actual item-level update op.
+        # (A dead `item = spec.doc["paths"][anchor]` sat here: the leftover of
+        # the fleet-wide §9 trap where this check inspected the COLLECTION path
+        # for put/patch and therefore never fired. The item_level=True lookup
+        # below is the fix; the assignment was unused.)
         up = _find_op(spec, anchor, markup, verbs=("put", "patch"), item_level=True)
         if up:
             spec_verb = up[0].upper()
             if upd != spec_verb:
-                raise SystemExit(f"{name}: update_method {upd} != spec update verb {spec_verb}")
+                raise SystemExit(
+                    f"{name}: update_method {upd} != spec update verb {spec_verb}"
+                )
 
     # Resolve the Ruby parent class.
     if base == "FabricResource":
-        parent = "FabricResourcePUT" if markup.get("update_method") == "PUT" else "FabricResource"
+        parent = (
+            "FabricResourcePUT"
+            if markup.get("update_method") == "PUT"
+            else "FabricResource"
+        )
     else:
         parent = RUBY_PARENT[base]
 
@@ -1184,7 +1435,9 @@ def emit_resource(spec: Spec, anchor: str, markup: dict) -> str:
     lines.append("  module REST")
     lines.append("    module Namespaces")
     lines.append("      module Generated")
-    lines.append(f"        # {name} — REST resource for the {spec.name} API (base {base}).")
+    lines.append(
+        f"        # {name} — REST resource for the {spec.name} API (base {base})."
+    )
     lines.append(f"        class {name} < {parent}")
     # Constructor bakes the base path (§4).
     lines.append("          def initialize(http)")
@@ -1226,7 +1479,9 @@ def emit_resource(spec: Spec, anchor: str, markup: dict) -> str:
             else:
                 continue
         lines.append("")
-        lines.extend(emit_method(spec, anchor, markup, base, method_snake, op_id, indent))
+        lines.extend(
+            emit_method(spec, anchor, markup, base, method_snake, op_id, indent)
+        )
 
     # set_methods (§7): require a CRUD base.
     set_methods = markup.get("set_methods") or {}
@@ -1237,14 +1492,25 @@ def emit_resource(spec: Spec, anchor: str, markup: dict) -> str:
         upd_schemas = update_request_field_schemas(spec, anchor, markup)
         for sm_name, sm in set_methods.items():
             lines.append("")
-            lines.extend(emit_set_method(spec, markup, sm_name, sm, upd_fields, upd_schemas, indent))
+            lines.extend(
+                emit_set_method(
+                    spec, markup, sm_name, sm, upd_fields, upd_schemas, indent
+                )
+            )
 
     lines.append("        end")
     lines.append("      end")
     lines.append("    end")
     lines.append("  end")
     lines.append("end")
-    return GEN_HEADER.format(desc=f"Generated REST resource for the {spec.name!r} namespace.") + "\n" + "\n".join(lines) + "\n"
+    return (
+        GEN_HEADER.format(
+            desc=f"Generated REST resource for the {spec.name!r} namespace."
+        )
+        + "\n"
+        + "\n".join(lines)
+        + "\n"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1267,10 +1533,15 @@ CONTAINERS = {
 # doesn't match the canonical accessor the reference client tree exposes, the
 # override pins it. Reference FACTS (the accessor callers use).
 ATTR_OVERRIDE = {
-    "GenericResources": "resources", "FabricAddresses": "addresses",
-    "FabricTokens": "tokens", "DatasphereDocuments": "documents",
-    "ProjectTokens": "tokens", "PubSub": "pubsub",
-    "MessageLogs": "messages", "VoiceLogs": "voice", "FaxLogs": "fax",
+    "GenericResources": "resources",
+    "FabricAddresses": "addresses",
+    "FabricTokens": "tokens",
+    "DatasphereDocuments": "documents",
+    "ProjectTokens": "tokens",
+    "PubSub": "pubsub",
+    "MessageLogs": "messages",
+    "VoiceLogs": "voice",
+    "FaxLogs": "fax",
     "ConferenceLogs": "conferences",
 }
 
@@ -1281,7 +1552,7 @@ def container_accessor(markup: dict, name: str, container: str) -> str:
     if name in ATTR_OVERRIDE:
         return snake(ATTR_OVERRIDE[name])
     lead = container[:1].upper() + container[1:]
-    stem = name[len(lead):] if name.startswith(lead) else name
+    stem = name[len(lead) :] if name.startswith(lead) else name
     return snake(stem) if stem else snake(name)
 
 
@@ -1308,7 +1579,10 @@ def emit_container(container: str, members: list[tuple[str, str]]) -> str:
     lines.append("  module REST")
     lines.append("    module Namespaces")
     lines.append("      module Generated")
-    lines.append(f"        # {cls} — generated container grouping the {container} namespace resources (§8).")
+    lines.append(
+        f"        # {cls} — groups the {container} namespace resources; each is exposed"
+    )
+    lines.append("        # as a memoized reader on this container.")
     lines.append(f"        class {cls}")
     accs = [a for a, _ in members]
     lines.append(f"          attr_reader {', '.join(':' + a for a in accs)}")
@@ -1322,7 +1596,14 @@ def emit_container(container: str, members: list[tuple[str, str]]) -> str:
     lines.append("    end")
     lines.append("  end")
     lines.append("end")
-    return GEN_HEADER.format(desc=f"Generated REST client container for the {container} namespace (§8).") + "\n" + "\n".join(lines) + "\n"
+    return (
+        GEN_HEADER.format(
+            desc=f"Generated REST client container for the {container} namespace."
+        )
+        + "\n"
+        + "\n".join(lines)
+        + "\n"
+    )
 
 
 def emit_resource_tree(placed) -> str:
@@ -1331,7 +1612,7 @@ def emit_resource_tree(placed) -> str:
     flats: list[tuple[str, str]] = []
     containers_seen: list[str] = []
     seen_c: set[str] = set()
-    for spec, anchor, markup, container in placed:
+    for _spec, _anchor, markup, container in placed:
         name = markup["name"]
         if not container:
             flats.append((flat_accessor(name), name))
@@ -1345,9 +1626,15 @@ def emit_resource_tree(placed) -> str:
     lines.append("  module REST")
     lines.append("    module Namespaces")
     lines.append("      module Generated")
-    lines.append("        # ResourceTree — lazy accessors for every flat REST resource plus the")
-    lines.append("        # namespace containers. The RestClient includes this module and provides")
-    lines.append("        # `generated_http_client`; each accessor memoizes its resource on the")
+    lines.append(
+        "        # ResourceTree — lazy accessors for every flat REST resource plus the"
+    )
+    lines.append(
+        "        # namespace containers. The RestClient includes this module and provides"
+    )
+    lines.append(
+        "        # `generated_http_client`; each accessor memoizes its resource on the"
+    )
     lines.append("        # shared HTTP client.")
     lines.append("        module ResourceTree")
     for accessor, cls in flats:
@@ -1366,7 +1653,14 @@ def emit_resource_tree(placed) -> str:
     lines.append("    end")
     lines.append("  end")
     lines.append("end")
-    return GEN_HEADER.format(desc="Generated REST resource tree module the hand RestClient includes (§8).") + "\n" + "\n".join(lines) + "\n"
+    return (
+        GEN_HEADER.format(
+            desc="Generated REST resource tree module that RestClient includes."
+        )
+        + "\n"
+        + "\n".join(lines)
+        + "\n"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1457,7 +1751,11 @@ def is_object_schema(node: dict) -> bool:
         return False
     props = node.get("properties")
     t = _type_schema_type(node)
-    return (t == "object" or (t is None and props)) and isinstance(props, dict) and len(props) > 0
+    return (
+        (t == "object" or (t is None and props))
+        and isinstance(props, dict)
+        and len(props) > 0
+    )
 
 
 def _wire_field_type_symbol(psc: dict) -> str:
@@ -1476,8 +1774,9 @@ def _wire_field_type_symbol(psc: dict) -> str:
     return ":any"
 
 
-def emit_type_class(ns_mod: str, raw_name: str, node: dict, ns_key: str,
-                    psdk: "Path | None" = None) -> str:
+def emit_type_class(
+    ns_mod: str, raw_name: str, node: dict, ns_key: str, psdk: Path | None = None
+) -> str:
     """Emit one method-less Ruby data class for an object schema.
 
     ``raw_name`` is the SPEC schema name (the components/schemas key) — that, not the
@@ -1490,19 +1789,30 @@ def emit_type_class(ns_mod: str, raw_name: str, node: dict, ns_key: str,
     lines.append("      module Generated")
     lines.append("        module Types")
     lines.append(f"          module {ns_mod}")
-    lines.append(f"            # {rb_name} — generated wire type from the {ns_key!r} spec"
-                 f" (components/schemas {raw_name!r}).")
+    lines.append(
+        f"            # {rb_name} — generated wire type from the {ns_key!r} spec"
+        f" (components/schemas {raw_name!r})."
+    )
     lines.append("            #")
-    lines.append("            # Method-less data DTO: the frozen FIELDS constant maps each snake wire")
-    lines.append("            # key to its JSON type symbol. No reader/writer methods and no")
-    lines.append("            # initialize — the reference records this as a method-less type")
-    lines.append("            # definition, so the surface enumerator surfaces the bare class name.")
+    lines.append(
+        "            # Method-less data DTO: the frozen FIELDS constant maps each snake wire"
+    )
+    lines.append(
+        "            # key to its JSON type symbol. No reader/writer methods and no"
+    )
+    lines.append(
+        "            # initialize — the class is a bare namespace for its FIELDS map,"
+    )
+    lines.append(
+        "            # describing the wire shape rather than wrapping a payload."
+    )
     lines.append(f"            class {rb_name}")
     # SDK-surface policy from the single overlay (rest-apis/x-sdk-overlay.yaml), keyed by
     # the SPEC schema name (raw_name, the components/schemas key — NOT the emitted Ruby
     # class name): hidden fields dropped entirely, deprecated fields flagged.
     props = {
-        k: v for k, v in (node.get("properties") or {}).items()
+        k: v
+        for k, v in (node.get("properties") or {}).items()
         if not (psdk and overlay_hidden(k, raw_name, psdk))
     }
     if props:
@@ -1536,7 +1846,9 @@ def _enum_const_name(value: str) -> str:
     return s
 
 
-def emit_type_enum(ns_mod: str, enum_name: str, values: list, ns_key: str, raw_name: str) -> str:
+def emit_type_enum(
+    ns_mod: str, enum_name: str, values: list, ns_key: str, raw_name: str
+) -> str:
     """Emit a method-less Ruby class carrying frozen string constants (value ==
     wire string) grouped into a frozen ALL list — the port's closed-set idiom for
     an x-sdk-enum public enum (PORT_PHILOSOPHY_RUBY). Surfaced as a method-less
@@ -1549,9 +1861,15 @@ def emit_type_enum(ns_mod: str, enum_name: str, values: list, ns_key: str, raw_n
     lines.append("        module Types")
     lines.append(f"          module {ns_mod}")
     lines.append(f"            # {enum_name} — public closed-set for {raw_name!r}")
-    lines.append(f"            # ({ns_key!r} API). Frozen string constants whose value IS the wire")
-    lines.append("            # string (the idiomatic Ruby closed set — not a static enum type),")
-    lines.append("            # grouped into a frozen ALL. Method-less, records [] like the reference.")
+    lines.append(
+        f"            # ({ns_key!r} API). Frozen string constants whose value IS the wire"
+    )
+    lines.append(
+        "            # string (the idiomatic Ruby closed set — not a static enum type),"
+    )
+    lines.append(
+        "            # grouped into a frozen ALL. Method-less: constants only, no instance methods."
+    )
     lines.append(f"            class {enum_name}")
     used: set[str] = set()
     consts: list[str] = []
@@ -1603,10 +1921,15 @@ def _reader_name(wire_key: str) -> str:
     return s
 
 
-def emit_methodless_class(module_segments: list, rb_name: str, properties: dict,
-                          source_desc: str, emit_readers: bool = False,
-                          spec_schema_name: "str | None" = None,
-                          psdk: "Path | None" = None) -> str:
+def emit_methodless_class(
+    module_segments: list,
+    rb_name: str,
+    properties: dict,
+    source_desc: str,
+    emit_readers: bool = False,
+    spec_schema_name: str | None = None,
+    psdk: Path | None = None,
+) -> str:
     """Emit one generated Ruby data class under an ARBITRARY nested module path,
     carrying a frozen FIELDS constant that maps each snake wire key to its JSON
     type symbol. Shared by the REST wire-type emitter and the SWML-verbs /
@@ -1631,31 +1954,51 @@ def emit_methodless_class(module_segments: list, rb_name: str, properties: dict,
     port-side state accessors (zero-arg, ``any`` return)."""
     indent = ""
     lines: list[str] = []
-    for seg in module_segments:
+    for depth, seg in enumerate(module_segments):
+        # Every module segment carries a doc comment: this file's namespace nesting is
+        # public surface and the DOC-SURFACE gate reads the nearest preceding comment.
+        if depth:
+            lines.append(
+                f"{indent}# {'::'.join(module_segments[: depth + 1])} — "
+                f"namespace for this generated data-class tree."
+            )
         lines.append(f"{indent}module {seg}")
         indent += "  "
     kind = "data type" if not emit_readers else "read-side payload"
     lines.append(f"{indent}# {rb_name} — generated {kind} ({source_desc}).")
     lines.append(f"{indent}#")
-    lines.append(f"{indent}# Frozen FIELDS maps each snake wire key to its JSON type symbol.")
+    lines.append(
+        f"{indent}# Frozen FIELDS maps each snake wire key to its JSON type symbol."
+    )
     if emit_readers:
-        lines.append(f"{indent}# A zero-arg reader per field mirrors the reference's recorded")
-        lines.append(f"{indent}# accessors (dropped on the SURFACE by the enumerator — method-less there).")
+        lines.append(
+            f"{indent}# Each field also has a zero-arg reader, so a decoded payload can be"
+        )
+        lines.append(f"{indent}# accessed by name rather than by wire key.")
     else:
-        lines.append(f"{indent}# No reader/writer methods and no initialize — a method-less type the")
-        lines.append(f"{indent}# reference records method-less on both surface and signatures.")
+        lines.append(
+            f"{indent}# No reader/writer methods and no initialize — the class is a bare"
+        )
+        lines.append(
+            f"{indent}# namespace for its FIELDS map, describing the wire shape only."
+        )
     lines.append(f"{indent}class {rb_name}")
     inner = indent + "  "
+
     # SDK-surface policy from the single overlay (rest-apis/x-sdk-overlay.yaml), keyed
     # by the SPEC schema name (spec_schema_name) — hidden fields are dropped entirely
     # (FIELDS + reader), deprecated fields are emitted with a `# deprecated:` marker.
     # Only applied when the caller passes the spec name + psdk (swml-verbs does; the
     # relay-protocol / swaig-payload callers don't and are unaffected).
     def _hidden(k: str) -> bool:
-        return bool(spec_schema_name and psdk and overlay_hidden(k, spec_schema_name, psdk))
+        return bool(
+            spec_schema_name and psdk and overlay_hidden(k, spec_schema_name, psdk)
+        )
 
     def _deprecated(k: str) -> bool:
-        return bool(spec_schema_name and psdk and overlay_deprecated(k, spec_schema_name, psdk))
+        return bool(
+            spec_schema_name and psdk and overlay_deprecated(k, spec_schema_name, psdk)
+        )
 
     props_kept = {k: v for k, v in (properties or {}).items() if not _hidden(k)}
     if props_kept:
@@ -1676,15 +2019,16 @@ def emit_methodless_class(module_segments: list, rb_name: str, properties: dict,
                 used.add(r)
                 readers.append(r)
             lines.append("")
-            for r in readers:
-                lines.append(f"{inner}attr_reader :{r}")
+            lines.extend(f"{inner}attr_reader :{r}" for r in readers)
     else:
         lines.append(f"{inner}FIELDS = {{}}.freeze")
     lines.append(f"{indent}end")
     for _ in module_segments:
         indent = indent[:-2]
         lines.append(f"{indent}end")
-    return GENERIC_TYPES_HEADER.format(desc=source_desc) + "\n" + "\n".join(lines) + "\n"
+    return (
+        GENERIC_TYPES_HEADER.format(desc=source_desc) + "\n" + "\n".join(lines) + "\n"
+    )
 
 
 def _load_types_schemas(psdk: Path, spec_dir: str) -> dict:
@@ -1710,7 +2054,12 @@ def emit_types(psdk: Path, outs: dict, type_ns: list[tuple[str, str, str]]) -> N
                 fn = f"types/{ns_key}/{snake(enum_name)}.rb"
                 if fn not in outs:
                     outs[fn] = emit_type_enum(
-                        ns_mod, enum_name, list(node.get("enum") or []), ns_key, raw_name)
+                        ns_mod,
+                        enum_name,
+                        list(node.get("enum") or []),
+                        ns_key,
+                        raw_name,
+                    )
                 continue
             # Object schema → a method-less data class. (Non-object, non-x-sdk-enum
             # schemas — scalar/array/union aliases and plain inline enums — are NOT
@@ -1728,6 +2077,7 @@ def emit_types(psdk: Path, outs: dict, type_ns: list[tuple[str, str, str]]) -> N
 # Driver.
 # ---------------------------------------------------------------------------
 
+
 def generated_module(spec_name: str) -> str:
     """The oracle module a namespace's resource classes land in — the Python
     reference emits every generated resource of spec ``<ns>`` into
@@ -1737,7 +2087,11 @@ def generated_module(spec_name: str) -> str:
     generated ``SignalWire::REST::Namespaces::Generated::<Name>`` class onto the
     module this returns so the idiom-blind surface/signature diffs line up 1:1
     with the reference."""
-    return "signalwire.rest.namespaces." + spec_name.replace("-", "_") + "_resources_generated"
+    return (
+        "signalwire.rest.namespaces."
+        + spec_name.replace("-", "_")
+        + "_resources_generated"
+    )
 
 
 CLIENT_TREE_MODULE = "signalwire.rest.namespaces._client_tree_generated"
@@ -1771,8 +2125,7 @@ def build_rest_signatures_sidecar() -> dict:
     keyword params and this sidecar are BOTH derived from the same computed param
     lists in the generator, so they never diverge (GEN-FRESH covers the sidecar)."""
     methods = {
-        f"{cls}::{meth}": records
-        for (cls, meth), records in sorted(_SIDECAR.items())
+        f"{cls}::{meth}": records for (cls, meth), records in sorted(_SIDECAR.items())
     }
     return {
         "_comment": (
@@ -1801,7 +2154,7 @@ def build_outputs(psdk: Path) -> dict[str, str]:
     placed = resolve_placement(specs)
     by_container: dict[str, list[tuple[str, str]]] = {}
     order: list[str] = []
-    for spec, anchor, markup, container in placed:
+    for _spec, _anchor, markup, container in placed:
         if not container:
             continue
         if container not in by_container:
@@ -1811,7 +2164,9 @@ def build_outputs(psdk: Path) -> dict[str, str]:
         by_container[container].append((acc, markup["name"]))
     for container in order:
         if container not in CONTAINERS:
-            raise SystemExit(f"container attr {container!r} has no Ruby container class (add to CONTAINERS)")
+            raise SystemExit(
+                f"container attr {container!r} has no Ruby container class (add to CONTAINERS)"
+            )
         cls, _ = CONTAINERS[container]
         outs[snake(cls) + ".rb"] = emit_container(container, by_container[container])
     outs["resource_tree.rb"] = emit_resource_tree(placed)
@@ -1824,7 +2179,9 @@ def build_outputs(psdk: Path) -> dict[str, str]:
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--check", action="store_true", help="GEN-FRESH: exit non-zero if stale")
+    ap.add_argument(
+        "--check", action="store_true", help="GEN-FRESH: exit non-zero if stale"
+    )
     ap.add_argument("--out", default="", help="scratch: emit flat into this dir")
     args = ap.parse_args(argv)
 
@@ -1835,14 +2192,19 @@ def main(argv: list[str]) -> int:
     if scratch:
         out_dir = Path(args.out)
     else:
-        out_dir = repo_root() / "lib" / "signalwire" / "rest" / "namespaces" / "generated"
+        out_dir = (
+            repo_root() / "lib" / "signalwire" / "rest" / "namespaces" / "generated"
+        )
 
     # Format-on-emit: run the raw emit through the repo's rubocop safe-autocorrect so the
     # committed tree is both GEN-FRESH clean (regen reproduces it) and FMT/LINT clean
     # (needs no generated-tree Exclude in .rubocop.yml). Skipped for a --out scratch dump.
     if not scratch:
         rel_base = out_dir.relative_to(repo_root()).as_posix()
-        wrapped = {f"{rel_base}/{fn}": wrap_spec_derived_disables(src) for fn, src in outs.items()}
+        wrapped = {
+            f"{rel_base}/{fn}": wrap_spec_derived_disables(src)
+            for fn, src in outs.items()
+        }
         formatted = rubocop_format(wrapped)
         outs = {fn: formatted[f"{rel_base}/{fn}"] for fn in outs}
 
@@ -1857,7 +2219,9 @@ def main(argv: list[str]) -> int:
     # (§B / L10). Populated during build_outputs(psdk) above. Committed at the
     # repo root next to port_signatures.json.
     rest_sig_path = repo_root() / "rest_signatures.json"
-    rest_sig_src = json.dumps(build_rest_signatures_sidecar(), indent=2, sort_keys=True) + "\n"
+    rest_sig_src = (
+        json.dumps(build_rest_signatures_sidecar(), indent=2, sort_keys=True) + "\n"
+    )
 
     if args.check:
         stale = []
@@ -1870,14 +2234,20 @@ def main(argv: list[str]) -> int:
             rel = p.relative_to(out_dir).as_posix()
             if rel not in expected:
                 stale.append(f"{p} (leftover — not in generator output)")
-        if not scratch and (not sidecar_path.is_file() or sidecar_path.read_text() != sidecar_src):
+        if not scratch and (
+            not sidecar_path.is_file() or sidecar_path.read_text() != sidecar_src
+        ):
             stale.append(f"{sidecar_path} (surface-map sidecar stale)")
-        if not scratch and (not rest_sig_path.is_file() or rest_sig_path.read_text() != rest_sig_src):
+        if not scratch and (
+            not rest_sig_path.is_file() or rest_sig_path.read_text() != rest_sig_src
+        ):
             stale.append(f"{rest_sig_path} (typed-input sidecar stale)")
         if stale:
-            sys.stderr.write("GEN-FRESH FAIL: %d generated REST file(s) stale:\n" % len(stale))
+            sys.stderr.write(
+                f"GEN-FRESH FAIL: {len(stale)} generated REST file(s) stale:\n"
+            )
             for s in stale:
-                sys.stderr.write("  - %s\n" % s)
+                sys.stderr.write(f"  - {s}\n")
             return 1
         print("GEN-FRESH: generated REST files match the canonical specs.")
         return 0

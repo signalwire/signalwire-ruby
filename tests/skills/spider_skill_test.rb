@@ -49,6 +49,43 @@ class SpiderSkillDetailedTest < Minitest::Test
     assert_includes hints, 'crawl'
   end
 
+  def test_remove_xpaths_is_prefilled
+    factory = SignalWire::Skills::SkillRegistry.get_factory('spider')
+    skill = factory.call({})
+
+    assert_equal ['//script', '//style', '//nav', '//header', '//footer', '//aside', '//noscript'],
+                 skill.remove_xpaths
+  end
+
+  def test_strip_html_drops_every_remove_xpath_element_with_its_content
+    factory = SignalWire::Skills::SkillRegistry.get_factory('spider')
+    skill = factory.call({})
+    html = '<nav>MENU</nav><header>HEAD</header><script>CODE</script>' \
+           '<style>CSS</style><aside>SIDE</aside><noscript>NOJS</noscript>' \
+           '<p>keep me</p><footer>FOOT</footer>'
+    text = skill.send(:strip_html, html)
+
+    assert_equal 'keep me', text
+  end
+
+  def test_strip_html_honours_a_mutated_remove_xpaths
+    factory = SignalWire::Skills::SkillRegistry.get_factory('spider')
+    skill = factory.call({})
+    skill.remove_xpaths.delete('//nav')
+    text = skill.send(:strip_html, '<nav>MENU</nav><p>body</p>')
+
+    assert_equal 'MENU body', text
+  end
+
+  def test_strip_html_skips_non_simple_xpath_expressions
+    factory = SignalWire::Skills::SkillRegistry.get_factory('spider')
+    skill = factory.call({})
+    skill.remove_xpaths.replace(['//div[@class="ad"]'])
+    text = skill.send(:strip_html, '<div class="ad">AD</div><p>body</p>')
+
+    assert_equal 'AD body', text
+  end
+
   def test_scrape_empty_url
     factory = SignalWire::Skills::SkillRegistry.get_factory('spider')
     skill = factory.call({})

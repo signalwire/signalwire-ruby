@@ -160,7 +160,7 @@ out['relay_live_transcribe'] = c.frames.last
 # relay_live_translate (action MUST be wrapped as params.action; status_url sibling)
 c = new_call
 c.live_translate(action: { 'start' => { 'from_lang' => 'en', 'to_lang' => 'es' } },
-                  status_url: 'https://x/cb')
+                 status_url: 'https://x/cb')
 out['relay_live_translate'] = c.frames.last
 
 # ---- control-ops (Action methods) ----

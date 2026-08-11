@@ -15,13 +15,14 @@
 
 require_relative '../agent/agent_base'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Agents — agent variants built on top of AgentBase.
   module Agents
     # Agent implementation for the Amazon Bedrock voice-to-voice model.
     #
-    # Mirrors Python's ``signalwire.agents.bedrock.BedrockAgent`` and the
-    # PHP ``SignalWire\Agents\BedrockAgent``. It renders the same base
-    # SWML as {SignalWire::AgentBase} and then transforms the ``ai`` verb
+    # It renders the same base SWML as {SignalWire::AgentBase} and then
+    # transforms the ``ai`` verb
     # into an ``amazon_bedrock`` verb whose object carries voice and
     # inference parameters inside its prompt config, per the SWML
     # ``amazon_bedrock`` schema (keys: ``prompt``, ``SWAIG``, ``params``,
@@ -73,7 +74,17 @@ module SignalWire
         return swml unless main.is_a?(Array)
 
         idx = main.index { |verb| verb.is_a?(Hash) && verb.key?('ai') }
-        main[idx] = { 'amazon_bedrock' => build_bedrock_object(main[idx]['ai']) } if idx
+        if idx
+          entry = { 'amazon_bedrock' => build_bedrock_object(main[idx]['ai']) }
+          # This rewrite happens AFTER the base render has validated the `ai`
+          # verb, so the substituted verb would otherwise reach the wire with no
+          # schema check at all. `build_bedrock_object` copies a fixed key set,
+          # and a key the schema does not accept (or one it requires and the
+          # copy dropped) is exactly the class of defect that silence hides.
+          # validate_section_entry is private render plumbing on the base class.
+          __send__(:validate_section_entry, entry)
+          main[idx] = entry
+        end
 
         swml
       end
@@ -154,8 +165,7 @@ module SignalWire
 
       # Build the amazon_bedrock verb object from the base ``ai`` config.
       # Voice + inference params live inside the prompt config; only
-      # non-nil keys are emitted (matches the Python reference and the
-      # amazon_bedrock schema).
+      # non-nil keys are emitted, per the amazon_bedrock schema.
       def build_bedrock_object(ai_config)
         object = {
           'prompt' => add_voice_to_prompt(ai_config['prompt'] || {}),

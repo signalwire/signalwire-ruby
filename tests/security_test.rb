@@ -185,6 +185,23 @@ class SessionManagerTamperTest < Minitest::Test
   end
 
   # ------------------------------------------------------------------
+  # Default expiry
+  # ------------------------------------------------------------------
+
+  # The DEFAULT lifetime is 900s (15 minutes), matching the reference
+  # (core/security/session_manager.py __init__). A test that only checks an
+  # explicitly-passed value cannot catch a drifted default, which is how this
+  # port sat at 3600 while its own class docstring advertised 900.
+  def test_default_token_expiry_secs_is_900_seconds
+    assert_equal 900, SM.new.token_expiry_secs
+  end
+
+  # Passing a lifetime explicitly still wins over the default.
+  def test_explicit_token_expiry_secs_overrides_the_default
+    assert_equal 3600, SM.new(token_expiry_secs: 3600).token_expiry_secs
+  end
+
+  # ------------------------------------------------------------------
   # Minimum expiry
   # ------------------------------------------------------------------
 

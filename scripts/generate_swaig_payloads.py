@@ -13,17 +13,22 @@ Source: the vendored porting-sdk ``swaig-specs/*.yaml`` (from mod_openai):
   * ``post-prompt.yaml``    -> signalwire.core.post_prompt_generated    (14 classes)
         one class per components/schemas OBJECT schema; the oneOf alias
         ``PostPromptCallLogEntry`` is NOT surfaced (15 schemas - 1 alias = 14).
-  * ``swaig-response.yaml`` -> signalwire.core.swaig_actions_generated  (4 classes)
+  * ``swaig-response.yaml`` -> signalwire.core.swaig_actions_generated  (6 classes)
         one ``<Verb>Action`` class per action key whose value is an object-with-
-        properties (a bare object OR the object variant of a oneOf).
+        properties (a bare object OR the object variant of a oneOf), PLUS the two
+        envelope schemas ``SwaigAction`` and ``SwaigResponse`` — the module owns
+        swaig-response.yaml, which is what makes post-prompt.yaml's cross-file
+        ``swaig-response.yaml#/components/schemas/SwaigResponse`` $ref resolvable.
 
-  2 + 14 + 4 = 20 classes == the surface oracle EXACTLY (0 missing / 0 extra).
+  2 + 14 + 6 = 22 classes == the surface oracle EXACTLY (0 missing / 0 extra).
 
 post-prompt + swaig-request classes are in the SIGNATURE oracle WITH a zero-arg
 accessor per class-typed field (folded to gen-payload) — emitted with field
 READERS (``emit_readers=True``); the SURFACE enumerator drops those readers so
-they surface method-less. swaig-actions classes are NOT in the sig oracle —
-emitted method-less on both sides (``emit_readers=False``).
+they surface method-less. The per-verb ``<Verb>Action`` value objects have no
+class-typed field, so they are NOT in the sig oracle — emitted method-less on
+both sides (``emit_readers=False``). The two ENVELOPES do carry class-typed
+fields and ARE in the sig oracle, so they are emitted with readers.
 
 Output: one class per file under a per-module subdir
   lib/signalwire/core/post_prompt_generated/<snake>.rb   (SignalWire::Core::PostPromptGenerated)
@@ -38,6 +43,7 @@ Usage:
     python3 scripts/generate_swaig_payloads.py --check    # GEN-FRESH: fail if stale
     python3 scripts/generate_swaig_payloads.py --out DIR  # scratch: emit into DIR
 """
+
 from __future__ import annotations
 
 import argparse
@@ -47,12 +53,14 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _gen_format import rubocop_format, wrap_spec_derived_disables  # noqa: E402
+from _gen_format import rubocop_format, wrap_spec_derived_disables
 
 
 def _load_rest_generator():
     here = Path(__file__).resolve().parent
-    spec = importlib.util.spec_from_file_location("generate_rest", here / "generate_rest.py")
+    spec = importlib.util.spec_from_file_location(
+        "generate_rest", here / "generate_rest.py"
+    )
     if spec is None or spec.loader is None:  # pragma: no cover
         raise SystemExit("generate_swaig_payloads.py: cannot load generate_rest.py")
     mod = importlib.util.module_from_spec(spec)
@@ -87,7 +95,9 @@ def _load_yaml(path: Path) -> dict:
 
 def _emit(module_segs, subdir, rb_name, props, desc, emit_readers):
     fn = "/".join(subdir) + f"/{GR.snake(rb_name)}.rb"
-    src = GR.emit_methodless_class(module_segs, rb_name, props, desc, emit_readers=emit_readers)
+    src = GR.emit_methodless_class(
+        module_segs, rb_name, props, desc, emit_readers=emit_readers
+    )
     return fn, src
 
 
@@ -103,11 +113,23 @@ def _build_swaig_request(psdk: Path) -> dict:
     outs: dict = {}
     arg = props.get("argument")
     if isinstance(arg, dict) and arg.get("properties"):
-        fn, src = _emit(SR_MODULE, SR_SUBDIR, "SwaigArgument", arg["properties"],
-                        "inline swaig-request `argument` object", emit_readers=True)
+        fn, src = _emit(
+            SR_MODULE,
+            SR_SUBDIR,
+            "SwaigArgument",
+            arg["properties"],
+            "inline swaig-request `argument` object",
+            emit_readers=True,
+        )
         outs[fn] = src
-    fn, src = _emit(SR_MODULE, SR_SUBDIR, "SwaigRequest", props,
-                    "swaig-request `SwaigRequest` schema", emit_readers=True)
+    fn, src = _emit(
+        SR_MODULE,
+        SR_SUBDIR,
+        "SwaigRequest",
+        props,
+        "swaig-request `SwaigRequest` schema",
+        emit_readers=True,
+    )
     outs[fn] = src
     return outs
 
@@ -124,8 +146,14 @@ def _build_post_prompt(psdk: Path) -> dict:
         if rb_name in emitted:
             continue
         emitted.add(rb_name)
-        fn, src = _emit(PP_MODULE, PP_SUBDIR, rb_name, node.get("properties") or {},
-                        f"post-prompt components/schemas {raw_name!r}", emit_readers=True)
+        fn, src = _emit(
+            PP_MODULE,
+            PP_SUBDIR,
+            rb_name,
+            node.get("properties") or {},
+            f"post-prompt components/schemas {raw_name!r}",
+            emit_readers=True,
+        )
         outs[fn] = src
     return outs
 
@@ -135,7 +163,11 @@ def _build_swaig_actions(psdk: Path) -> dict:
     actions = spec["components"]["schemas"]["SwaigAction"]["properties"]
 
     def _is_obj(s) -> bool:
-        return isinstance(s, dict) and s.get("type") == "object" and bool(s.get("properties"))
+        return (
+            isinstance(s, dict)
+            and s.get("type") == "object"
+            and bool(s.get("properties"))
+        )
 
     outs: dict = {}
     emitted: set = set()
@@ -149,14 +181,52 @@ def _build_swaig_actions(psdk: Path) -> dict:
             if not _is_obj(b):
                 continue
             obj_i += 1
-            rb_name = GR.type_name(_pascal_verb(verb) + "Action" + ("" if obj_i == 1 else str(obj_i)))
+            rb_name = GR.type_name(
+                _pascal_verb(verb) + "Action" + ("" if obj_i == 1 else str(obj_i))
+            )
             if rb_name in emitted:
                 continue
             emitted.add(rb_name)
-            # swaig-actions are NOT in the sig oracle -> method-less both sides.
-            fn, src = _emit(SA_MODULE, SA_SUBDIR, rb_name, b.get("properties") or {},
-                            f"swaig-response action {verb!r} value object", emit_readers=False)
+            # The lifted per-verb <Verb>Action value objects have NO class-typed
+            # field, so griffe drops them from the reference SIGNATURE oracle and
+            # signature_dump.rb drops the Ruby ones — method-less on both sides.
+            fn, src = _emit(
+                SA_MODULE,
+                SA_SUBDIR,
+                rb_name,
+                b.get("properties") or {},
+                f"swaig-response action {verb!r} value object",
+                emit_readers=False,
+            )
             outs[fn] = src
+
+    # The response ENVELOPE types, mirroring generate_swaig_actions()'s trailing
+    # emit in the reference. SwaigAction is the action OBJECT (one or more action
+    # keys set at once) and SwaigResponse is the {response, action, post_process}
+    # body a handler returns. They belong to THIS module because it owns
+    # swaig-response.yaml — which is what makes post-prompt.yaml's cross-file
+    # `swaig-response.yaml#/components/schemas/SwaigResponse` $ref resolvable.
+    #
+    # Both carry class-typed fields (SwaigAction.context_switch/hold/playback_bg/
+    # transfer name the lifted <Verb>Action types; SwaigResponse.action names
+    # SwaigAction), so griffe DOES record them in the reference signature oracle —
+    # unlike the per-verb value objects above. emit_readers=True so the Ruby
+    # classes present the same accessors; the extra readers for the scalar fields
+    # the reference's class-typed filter drops are excused as port-side state
+    # accessors (zero-arg, `any` return). The SURFACE oracle records both classes
+    # method-less, and enumerate_surface.rb's ORACLE_FIELD_ACCESSOR_MODULES does
+    # not list swaig_actions_generated, so they surface method-less as required.
+    for env_name in ("SwaigAction", "SwaigResponse"):
+        env_schema = spec["components"]["schemas"][env_name]
+        fn, src = _emit(
+            SA_MODULE,
+            SA_SUBDIR,
+            GR.type_name(env_name),
+            env_schema.get("properties") or {},
+            f"swaig-response components/schemas {env_name!r}",
+            emit_readers=True,
+        )
+        outs[fn] = src
     return outs
 
 
@@ -175,7 +245,9 @@ def build_outputs(psdk: Path) -> dict:
 
 def main(argv: list) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--check", action="store_true", help="GEN-FRESH: exit non-zero if stale")
+    ap.add_argument(
+        "--check", action="store_true", help="GEN-FRESH: exit non-zero if stale"
+    )
     ap.add_argument("--out", default="", help="scratch: emit into this dir")
     args = ap.parse_args(argv)
 
@@ -188,7 +260,10 @@ def main(argv: list) -> int:
         # Format-on-emit (see _gen_format): wrap the spec-derived disable pair, then run the
         # repo rubocop safe-autocorrect so the committed tree is GEN-FRESH + FMT/LINT clean.
         rel_base = out_dir.relative_to(repo_root()).as_posix()
-        wrapped = {f"{rel_base}/{fn}": wrap_spec_derived_disables(src) for fn, src in outs.items()}
+        wrapped = {
+            f"{rel_base}/{fn}": wrap_spec_derived_disables(src)
+            for fn, src in outs.items()
+        }
         formatted = rubocop_format(wrapped)
         outs = {fn: formatted[f"{rel_base}/{fn}"] for fn in outs}
 
@@ -208,11 +283,15 @@ def main(argv: list) -> int:
                         if rel not in expected:
                             stale.append(f"{p} (leftover — not in generator output)")
         if stale:
-            sys.stderr.write("GEN-FRESH FAIL: %d generated SWAIG-payload file(s) stale:\n" % len(stale))
+            sys.stderr.write(
+                f"GEN-FRESH FAIL: {len(stale)} generated SWAIG-payload file(s) stale:\n"
+            )
             for s in stale:
-                sys.stderr.write("  - %s\n" % s)
+                sys.stderr.write(f"  - {s}\n")
             return 1
-        print("GEN-FRESH: generated SWAIG-payload files match porting-sdk/swaig-specs/.")
+        print(
+            "GEN-FRESH: generated SWAIG-payload files match porting-sdk/swaig-specs/."
+        )
         return 0
 
     for fn, src in outs.items():

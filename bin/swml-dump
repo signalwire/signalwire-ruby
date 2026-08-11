@@ -43,14 +43,16 @@ end
 # extract walks a dotted path into a rendered SWML doc. "ai.prompt" means: find
 # the ai verb in sections.main, then index into it — the Ruby mirror of
 # diff_port_swml._extract.
-def extract(doc, path)
-  ai = nil
+def ai_verb(doc)
   sections = doc['sections']
   main = sections.is_a?(Hash) ? sections['main'] : nil
-  if main.is_a?(Array)
-    found = main.find { |sec| sec.is_a?(Hash) && sec.key?('ai') }
-    ai = found['ai'] if found
-  end
+  return nil unless main.is_a?(Array)
+
+  main.find { |sec| sec.is_a?(Hash) && sec.key?('ai') }&.fetch('ai', nil)
+end
+
+def extract(doc, path)
+  ai = ai_verb(doc)
   node = ai.nil? ? doc : { 'ai' => ai }
   path.split('.').each do |part|
     return nil unless node.is_a?(Hash)
@@ -64,7 +66,7 @@ end
 def pick(frag, keys)
   return frag unless frag.is_a?(Hash)
 
-  keys.each_with_object({}) { |k, acc| acc[k] = frag[k] }
+  keys.to_h { |k| [k, frag[k]] }
 end
 
 # swaig_field selects one SWAIG function by name from a functions list, then
@@ -105,7 +107,7 @@ out['swml_add_language'] = extract(render(a), 'ai.languages')
 
 # swml_add_pattern_hint: structured hint into ai.hints.
 a = new_agent
-a.add_pattern_hint(hint: 'SignalWire', pattern: 'signal wire', replace: 'SignalWire', ignore_case: true)
+a.add_pattern_hint('SignalWire', 'signal wire', 'SignalWire', ignore_case: true)
 out['swml_add_pattern_hint'] = extract(render(a), 'ai.hints')
 
 # swml_add_hint: a plain string hint.
@@ -132,7 +134,7 @@ a = new_agent
 a.define_tool(name: 'lookup', description: 'Look up a thing',
               parameters: { 'type' => 'object',
                             'properties' => { 'q' => { 'type' => 'string' } },
-                            'required' => ['q'] }) { |_args, _raw| nil }
+                            'required' => ['q'] }, handler: nil) { |_args, _raw| nil }
 out['swml_define_tool_complete_schema'] =
   swaig_field(extract(render(a), 'ai.SWAIG.functions'), 'lookup', 'parameters')
 

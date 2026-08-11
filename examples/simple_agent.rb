@@ -30,11 +30,11 @@ agent.prompt_add_section(
 # --- Tools ---
 
 agent.define_tool(
-  name:        'get_weather',
+  name: 'get_weather',
   description: 'Get the current weather for a city',
-  parameters:  {
+  parameters: {
     'city' => { 'type' => 'string', 'description' => 'The city to look up' }
-  }
+  }, handler: nil
 ) do |args, _raw_data|
   city = args['city'] || 'unknown'
   # In production, call a real weather API here
@@ -44,11 +44,11 @@ agent.define_tool(
 end
 
 agent.define_tool(
-  name:        'get_forecast',
+  name: 'get_forecast',
   description: 'Get a 3-day forecast for a city',
-  parameters:  {
+  parameters: {
     'city' => { 'type' => 'string', 'description' => 'The city to look up' }
-  }
+  }, handler: nil
 ) do |args, _raw_data|
   city = args['city'] || 'unknown'
   SignalWire::Swaig::FunctionResult.new(

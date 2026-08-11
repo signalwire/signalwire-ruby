@@ -55,9 +55,10 @@ AGENT.add_language('English', 'en-US', 'elevenlabs.rachel')
 AGENT.prompt_add_section('Role', 'You are a helpful assistant.')
 
 AGENT.define_tool(
-  name:        'get_time',
+  name: 'get_time',
   description: 'Get the current time',
-  parameters:  {}
+  parameters: {},
+  handler: nil # the block below is the handler
 ) do |_args, _raw_data|
   SignalWire::Swaig::FunctionResult.new("The time is #{Time.now.strftime('%H:%M:%S')}")
 end
@@ -96,7 +97,7 @@ swaig-test my_agent.rb --simulate-serverless lambda \
 - **Call flow control** -- pre-answer, post-answer, and post-AI verb insertion
 - **Prefab agents** -- ready-to-use archetypes (InfoGatherer, Survey, FAQ, Receptionist, Concierge)
 - **Multi-agent hosting** -- serve multiple agents on a single server with `AgentServer`
-- **Document search** -- vector/keyword search over a remote index via the `native_vector_search` skill (remote HTTP mode; the Ruby port does not ship the offline/embedded backend)
+- **Document search** -- vector/keyword search over a remote index via the `native_vector_search` skill (remote HTTP mode; the Ruby SDK does not ship the offline/embedded backend)
 - **SIP routing** -- route SIP calls to agents based on usernames
 - **Session state** -- persistent conversation state with global data and post-prompt summaries
 - **Security** -- auto-generated basic auth, function-specific HMAC tokens, SSL support
@@ -133,13 +134,13 @@ require 'signalwire'
 require 'signalwire/relay/client'
 
 client = SignalWire::Relay::Client.new(
-  project:  'your-project-id',
-  token:    'your-api-token',
-  space:    'example.signalwire.com',
+  project: 'your-project-id',
+  token: 'your-api-token',
+  space: 'example.signalwire.com',
   contexts: ['default']
 )
 
-client.on_call do |call|
+client.on_call(nil) do |call|
   call.answer
   action = call.play([{ 'type' => 'tts', 'params' => { 'text' => 'Welcome!' } }])
   action.wait
@@ -169,8 +170,8 @@ require 'signalwire/rest/rest_client'
 
 client = SignalWire::REST::RestClient.new(
   project: 'your-project-id',
-  token:   'your-api-token',
-  host:    'example.signalwire.com'
+  token: 'your-api-token',
+  host: 'example.signalwire.com'
 )
 
 client.fabric.ai_agents.create(name: 'Support Bot', prompt: { 'text' => 'You are helpful.' })

@@ -29,7 +29,9 @@ require 'openssl'
 require 'rack/utils'
 require 'uri'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Security — webhook signature validation, session tokens and request hardening.
   module Security
     # Stateless validator for SignalWire-signed webhook requests.
     #
@@ -176,8 +178,12 @@ module SignalWire
         [403, { 'content-type' => 'text/plain' }, ['']]
       end
 
+      # @api private — hex-encoded HMAC-SHA1, one of the two signature encodings the
+      # platform emits.
       def self._hex_hmac_sha1(key, message) = OpenSSL::HMAC.hexdigest('SHA1', key.to_s, message.to_s)
 
+      # @api private — base64-encoded HMAC-SHA1, the other signature encoding the
+      # platform emits.
       def self._b64_hmac_sha1(key, message)
         Base64.strict_encode64(OpenSSL::HMAC.digest('SHA1', key.to_s, message.to_s))
       end
@@ -200,6 +206,8 @@ module SignalWire
         items.map { |pair| _concat_pair(pair) }.join
       end
 
+      # @api private — one `key + value` term of the signature base string. A nil
+      # value contributes the key alone, matching the platform's own concatenation.
       def self._concat_pair((key, value)) = "#{key}#{value unless value.nil?}"
 
       # @api private — normalize Hash / Array-of-pairs into [key, value] items;
@@ -211,12 +219,21 @@ module SignalWire
         nil
       end
 
+      # @api private — flatten a Hash of params into `[key, value]` items, expanding
+      # an Array value into one item per element so repeated keys each contribute a
+      # term to the signature.
+      #
+      # @return [Array<Array>]
       def self._hash_items(params)
         params.flat_map do |k, v|
           v.is_a?(Array) ? v.map { |vi| [k.to_s, vi] } : [[k.to_s, v]]
         end
       end
 
+      # @api private — normalise an Array of `[key, value]` pairs into signature
+      # items, ignoring entries that are not at least two-element Arrays.
+      #
+      # @return [Array<Array>]
       def self._pair_items(params)
         # Accept [k, v] pairs (the most common form).
         params.select { |pair| pair.is_a?(Array) && pair.length >= 2 }
@@ -270,6 +287,12 @@ module SignalWire
         # Else: non-standard explicit port — only try as-is (nil).
       end
 
+      # @api private — whether the parsed URL's port is its scheme's default. `URI`
+      # always populates `port`, so this is how an implicit default is told apart
+      # from one the sender actually wrote — the signature covers the URL string as
+      # SENT, so both spellings have to be tried.
+      #
+      # @return [Boolean]
       def self._implicit_default_port?(parsed)
         parsed.respond_to?(:default_port) && parsed.port == parsed.default_port
       end
@@ -299,6 +322,10 @@ module SignalWire
         "#{parsed.scheme}://#{userinfo}#{netloc_host}#{port_part}#{_build_url_rest(parsed)}"
       end
 
+      # @api private — the path, query and fragment portion of a reassembled URL,
+      # each appended only when present.
+      #
+      # @return [String]
       def self._build_url_rest(parsed)
         rest = +(parsed.path || '')
         rest << "?#{parsed.query}" if parsed.query

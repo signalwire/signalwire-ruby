@@ -8,35 +8,34 @@
 # Tool registration and management.
 
 module SignalWire
+  # Core — internal building blocks shared by the agent, SWML and SWAIG layers.
   module Core
+    # Agent — the agent internals: prompt management and tool registration.
     module Agent
+      # Tools — SWAIG tool registration and parameter type inference.
       module Tools
         # Manages SWAIG function registration.
         #
-        # Mirrors Python's
-        # ``signalwire.core.agent.tools.registry.ToolRegistry`` and the
-        # TypeScript ``ToolRegistry`` class. A registry holds SWAIG
-        # function definitions keyed by name. Two kinds of entries are
-        # supported:
+        # A registry holds SWAIG function definitions keyed by name. Two
+        # kinds of entries are supported:
         #
         # - definitions created via {#define_tool} (carry a +handler+), and
         # - raw SWAIG function dictionaries via {#register_swaig_function}
         #   (e.g. from a DataMap's ``to_swaig_function``) which execute on
         #   SignalWire's server and carry no handler.
         #
-        # Ruby has no dedicated ``SWAIGFunction`` value object (AgentBase
-        # stores plain Hashes on the wire), so the registry stores the
-        # built definition Hash with string keys, matching the wire shape.
+        # There is no dedicated value object for a function: entries are
+        # stored, and returned, as plain Hashes with String keys — the same
+        # shape that goes out on the wire.
         class ToolRegistry
-          # @return [Object, nil] the parent AgentBase back-reference this
-          #   registry was constructed with. The reference exposes the same
-          #   attribute (core/agent/tools/registry.py), so a caller that passes
-          #   an agent can read it back.
+          # @return [Object, nil] the parent AgentBase this registry was
+          #   constructed with, or nil if it was built standalone. Read-only:
+          #   the registry itself never calls back into the agent.
           attr_reader :agent
 
-          # @param agent [Object, nil] optional parent AgentBase instance
-          #   (kept as a back-reference for parity with the Python/TS
-          #   registries; may be nil for standalone use).
+          # @param agent [Object, nil] optional parent AgentBase instance,
+          #   kept as a back-reference and readable via {#agent}. Nil for
+          #   standalone use — the registry never calls back into it.
           def initialize(agent = nil)
             @agent = agent
             @swaig_functions = {} # name => definition Hash (string keys)
@@ -44,11 +43,11 @@ module SignalWire
 
           # Define a SWAIG function that the AI can call.
           #
-          # Python parity:
-          # ``define_tool(name, description, parameters, handler,
-          # secure=True, fillers=None, wait_file=None, wait_file_loops=None,
-          # webhook_url=None, required=None, is_typed_handler=False,
-          # **swaig_fields)``.
+          # ``name:``, ``description:``, ``parameters:`` and ``handler:`` are
+          # all REQUIRED keywords; every other keyword is optional. A tool that
+          # takes no arguments must still state ``parameters: {}`` explicitly,
+          # and one that runs entirely on SignalWire's server passes
+          # ``handler: nil``.
           #
           # @param name [String] function name (must be unique)
           # @param description [String] LLM-facing description
@@ -64,7 +63,7 @@ module SignalWire
           # @param swaig_fields [Hash, nil] extra fields merged into the def
           # @raise [ArgumentError] if the tool name already exists
           # @return [Hash] the stored definition
-          def define_tool(name:, description:, parameters: {}, handler: nil,
+          def define_tool(name:, description:, parameters:, handler:,
                           secure: true, fillers: nil,
                           wait_file: nil, wait_file_loops: nil,
                           webhook_url: nil, required: nil,
@@ -84,8 +83,9 @@ module SignalWire
           # Register a raw SWAIG function dictionary (e.g. from a DataMap's
           # ``to_swaig_function``).
           #
-          # Python parity: ``register_swaig_function(function_dict)`` —
-          # requires a ``function`` field and rejects duplicates.
+          # The dictionary must carry a ``function`` field naming the tool;
+          # a name already present in the registry is rejected rather than
+          # replaced.
           #
           # @param function_dict [Hash] complete SWAIG function definition
           # @raise [ArgumentError] if the name is missing or already exists
@@ -150,6 +150,9 @@ module SignalWire
             definition
           end
 
+          # @api private — add the optional SWAIG fields that were supplied:
+          # `fillers` (only when a non-empty Hash), `wait_file`, `wait_file_loops`,
+          # `webhook_url`, and `is_typed_handler` only when true.
           def apply_optional_fields(definition, opts)
             definition['fillers'] = opts[:fillers] if opts[:fillers].is_a?(Hash) && !opts[:fillers].empty?
             %i[wait_file wait_file_loops webhook_url].each do |key|
@@ -158,6 +161,8 @@ module SignalWire
             definition['is_typed_handler'] = true if opts[:is_typed_handler]
           end
 
+          # @api private — merge caller-supplied extra SWAIG fields over the definition,
+          # stringifying their keys. A non-Hash is ignored.
           def merge_swaig_fields(definition, swaig_fields)
             return unless swaig_fields.is_a?(Hash)
 
@@ -173,6 +178,11 @@ module SignalWire
             schema.merge('required' => (existing + required).uniq)
           end
 
+          # @api private — a schema that already declares `type: object` passes through;
+          # a bare property map is wrapped as `{type: object, properties: …}`, and nil
+          # becomes an empty object schema.
+          #
+          # @return [Hash]
           def object_schema(parameters)
             return parameters if parameters.is_a?(Hash) && parameters['type'] == 'object'
 

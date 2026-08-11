@@ -7,15 +7,16 @@
 #
 # SWAIGFunction class for defining and managing SWAIG function interfaces.
 #
-# Mirrors the Python reference signalwire.core.swaig_function.SWAIGFunction and
-# the PHP SignalWire\SWAIG\SwaigFunction. A SWAIGFunction is exactly the same
-# concept as a "tool" in native OpenAI / Anthropic tool calling: it holds a
+# A SWAIGFunction is exactly the same concept as a "tool" in native
+# OpenAI / Anthropic tool calling: it holds a
 # name/description/parameters/handler and renders into the tool schema sent to
 # the model.
 
 require_relative 'function_result'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Swaig — the SWAIG function-call surface: results, actions and typed payloads.
   module Swaig
     # Represents a SWAIG function — a tool the AI model can call.
     class SWAIGFunction
@@ -66,8 +67,7 @@ module SignalWire
 
       # Call the underlying handler function.
       #
-      # Ruby analog of the Python reference's +__call__+ (makes the object
-      # callable). +function.call(args, raw_data)+ invokes the handler.
+      # +function.call(args, raw_data)+ invokes the handler.
       #
       # @return [Object] the handler's return value
       def call(*, **)

@@ -9,13 +9,15 @@
 # RELAY method 'calling.denoise', params
 
 module SignalWire
+  # SignalWire::Relay — namespace for this generated data-class tree.
   module Relay
+    # SignalWire::Relay::ProtocolTypesGenerated — namespace for this generated data-class tree.
     module ProtocolTypesGenerated
       # CallingDenoiseParams — generated data type (RELAY method 'calling.denoise', params).
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
-      # No reader/writer methods and no initialize — a method-less type the
-      # reference records method-less on both surface and signatures.
+      # No reader/writer methods and no initialize — the class is a bare
+      # namespace for its FIELDS map, describing the wire shape only.
       class CallingDenoiseParams
         FIELDS = {
           'call_id' => :string,

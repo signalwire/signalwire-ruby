@@ -7,7 +7,9 @@
 
 require 'json'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Swaig — the SWAIG function-call surface: results, actions and typed payloads.
   module Swaig
     # ------------------------------------------------------------------
     # ParameterSchema — a typed, block-DSL builder for SWAIG tool
@@ -89,6 +91,7 @@ module SignalWire
         builder.to_h
       end
 
+      # Create an empty builder: no properties and nothing required yet.
       def initialize
         @properties = {}
         @required   = []

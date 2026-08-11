@@ -116,14 +116,25 @@ sched_gate TEST defer=1 desc="run-tests.sh (bundle exec rake test)" \
 sched_gate SURFACE desc="surface parity suite (SIGNATURES/DRIFT/SURFACE-FRESH/SURFACE-DIFF/SEMVER-DIFF/GEN-TYPE-DEGENERACY/GEN-IDIOM)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/surface.py" --port ruby --repo "$PORT_ROOT"
 
+# SIGNATURES-FRESH: the signatures analogue of SURFACE-FRESH. SURFACE-FRESH only
+# guards port_surface.json; NOTHING guarded port_signatures.json — yet that file is
+# DRIFT's INPUT, so a stale one makes the parity gate compare against a fiction and
+# pass. Standalone sched_gate rather than a _surface_commands.py table entry: only 8
+# of 10 run-ci scripts read that table, so a table entry is silently skipped where it
+# is not read. res=surface shares the mutex with SURFACE, which regenerates
+# port_signatures.json in place and git-restores it.
+sched_gate SIGNATURES-FRESH res=surface desc="committed port_signatures.json matches a fresh regen" \
+    -- python3 "$PORTING_SDK_DIR/scripts/suites/_signatures_fresh.py" \
+        --port ruby --repo "$PORT_ROOT" --porting-sdk "$PORTING_SDK_DIR"
+
 # TYPE-EROSION: a port may not erase a type the reference DECLARES. compare_param treats
 # `any` on EITHER side as matching anything, so a port emitting `any` silently satisfies
 # every reference declaration — an unlimited opt-out. ConciergeAgent.hours_of_operation is
 # declared optional<dict<string,string>> and go still shipped a bare string, with no gate
 # red. RATCHET, not a hard gate: dynamic languages cannot always express a type, so this
 # banks the current count and fails only on REGRESSION. Drive the number DOWN; never up.
-sched_gate TYPE-EROSION desc="port did not erase a reference-declared param type (ratchet 97)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_type_erosion.py" --port ruby --repo "$PORT_ROOT" --max 97
+sched_gate TYPE-EROSION desc="port did not erase a reference-declared param type (ratchet 16)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_type_erosion.py" --port ruby --repo "$PORT_ROOT" --max 16
 
 # GEN (regen-from-specs family): the 5 GEN-FRESH rules.
 sched_gate GEN defer=1 desc="generated-code freshness suite (GEN-FRESH/-TESTS/-RELAY/-SWAIG/-SWML)" \
@@ -131,13 +142,28 @@ sched_gate GEN defer=1 desc="generated-code freshness suite (GEN-FRESH/-TESTS/-R
 
 # BEHAVIORAL (one Layer-D pass per rule): the per-PR rules. WAIT-LIVENESS (nightly)
 # is the separate line below.
-sched_gate BEHAVIORAL defer=1 desc="behavioral suite (BEHAVIORAL-*/EMISSION/ERROR-ENVELOPE/PAGINATION-WIRED/PAGINATION-CORPUS/DOC-WIRE/REST-COVERAGE/SPEC-PARITY/SKILL-CONTRACT/SWAIG-COVERAGE/SWAIG-CLI/CA-VAR/SECURE-DEFAULT/SECRET-SCRUB)" \
+sched_gate BEHAVIORAL defer=1 desc="behavioral suite (BEHAVIORAL-*/EMISSION/ERROR-ENVELOPE/PAGINATION-WIRED/PAGINATION-CORPUS/DOC-WIRE/REST-COVERAGE/SPEC-PARITY/SKILL-CONTRACT/SWAIG-COVERAGE/SWAIG-CLI/CA-VAR/SECURE-DEFAULT/SECRET-SCRUB/TLS-VERIFY)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/behavioral.py" --port ruby --repo "$PORT_ROOT" \
-        --rules BEHAVIORAL-WIRE,BEHAVIORAL-SWML,BEHAVIORAL-STRICT-RENDER,BEHAVIORAL-STATE,BEHAVIORAL-HTTP,BEHAVIORAL-WIRE-RELAY,EMISSION,ERROR-ENVELOPE,PAGINATION-WIRED,PAGINATION-CORPUS,DOC-WIRE,REST-COVERAGE,SPEC-PARITY,SKILL-CONTRACT,SWAIG-COVERAGE,SWAIG-CLI,CA-VAR,SECURE-DEFAULT,SECRET-SCRUB
+        --rules BEHAVIORAL-WIRE,BEHAVIORAL-SWML,BEHAVIORAL-STRICT-RENDER,BEHAVIORAL-STATE,BEHAVIORAL-HTTP,BEHAVIORAL-WIRE-RELAY,EMISSION,ERROR-ENVELOPE,PAGINATION-WIRED,PAGINATION-CORPUS,DOC-WIRE,REST-COVERAGE,SPEC-PARITY,SKILL-CONTRACT,SWAIG-COVERAGE,SWAIG-CLI,CA-VAR,SECURE-DEFAULT,SECRET-SCRUB,TLS-VERIFY
 
 sched_gate BEHAVIORAL-NIGHTLY tier=nightly defer=1 desc="behavioral suite, nightly rules (WAIT-LIVENESS/RELAY-LIVENESS/SECRET-SCRUB-LIVE)" \
     -- python3 "$PORTING_SDK_DIR/scripts/suites/behavioral.py" --port ruby --repo "$PORT_ROOT" \
         --rules WAIT-LIVENESS,RELAY-LIVENESS,SECRET-SCRUB-LIVE
+
+# TOKEN-INTEROP — property 3 of the SWAIG tool-token contract: a token this port MINTS
+# must validate under the REFERENCE's own decoder. SECURE-DEFAULT proves a token is
+# minted and the fleet keying check proves the HMAC key; NEITHER sees the base64
+# ENVELOPE, so a port can ship correct-key correct-HMAC tokens that no other
+# implementation accepts — in production every secure tool call then fails auth. Six of
+# the ten ports shipped exactly that (an unpadded envelope), invisible to their own tests
+# because each port's DECODER tolerates missing padding while the reference's
+# urlsafe_b64decode RAISES on it — so round-tripping against ourselves could never catch
+# it. One mint + a pure-python validation → cheap, per-PR (a security property must not
+# wait for nightly). Its OWN line rather than a member of the BEHAVIORAL suite line,
+# which is defer=1 (heavy wave).
+sched_gate TOKEN-INTEROP desc="a token this port mints validates under the reference's decoder (padded urlsafe base64, ':'-signed / '.'-enveloped, hex HMAC keyed by the secret_key string)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/diff_port_token_interop.py" --port ruby \
+        --mint-cmd "bundle exec ruby $PORT_ROOT/bin/token-interop-mint"
 
 # DOC-TRUTH (one markdown walk): DOC-AUDIT/DOC-LINKS/DOC-LANG-PURITY/DOC-ENV/COUNT-CLAIM/
 # ACCESSOR-TRUTH/STATUS-CLAIM/README-INCLUDE. res=surface: DOC-AUDIT reads port_surface.json
@@ -179,11 +205,30 @@ sched_gate ENV-VAR-CONSISTENCY desc="REST base-url override present + custom-CA 
 # for every port. This port's workflows are verified valid (live-smoke.yml gates on a
 # JOB-level env, not a step-level secrets.* in if:); actionlint is clean here.
 
-sched_gate FMT defer=1 desc="run-format.sh (local: apply; CI: --check)" \
+# FMT + LINT cover the WHOLE Ruby tree at ONE bar. .rubocop.yml's AllCops/Exclude
+# was cut to vendor/ alone on 2026-07-30 (owner: "examples and tests are shipping
+# code too, all at the levels the shipping code gets"), so these two gates now
+# reach examples/, relay/examples/, rest/examples/, the bin/*-dump programs and
+# scripts/doc_wire_runner.rb as well as lib/ + tests/ + the generated trees.
+# Both invoke bare rubocop from the repo root, so that widening needed no new
+# gate here -- do NOT add a second one, it would double-lint the same files.
+sched_gate FMT defer=1 desc="run-format.sh (whole repo minus vendor/; local: apply; CI: --check)" \
     -- bash scripts/run-format.sh ${CI:+--check}
 
-sched_gate LINT defer=1 desc="run-lint.sh (rubocop zero offenses)" \
+sched_gate LINT defer=1 desc="run-lint.sh (rubocop zero offenses, whole repo minus vendor/)" \
     -- bash scripts/run-lint.sh
+
+# PY-LINT / PY-FMT — the hand-written PYTHON under scripts/ (the 5 code
+# generators, the surface enumerator, and _gen_format.py, which is part of the
+# format toolchain itself). rubocop cannot see a .py file, so this tooling was
+# linted and format-checked by NOTHING until 2026-07-30; ruff.toml mirrors the
+# reference's rule selection so it is the same bar, not a looser one.
+# Wired once the burn reached ZERO (58 -> 0), so the gate never lands red.
+sched_gate PY-LINT defer=1 desc="run-py-lint.sh (ruff check, zero findings over scripts/*.py)" \
+    -- bash scripts/run-py-lint.sh
+
+sched_gate PY-FMT defer=1 desc="run-py-format.sh (ruff format over scripts/*.py; local: apply; CI: --check)" \
+    -- bash scripts/run-py-format.sh ${CI:+--check}
 
 # ROUTE-COLLISION is intentionally NOT wired (kept out of the SURFACE suite for ruby):
 # with ruby's route_registry.rb it fails on a SPEC-FAITHFUL route-split — the fabric
@@ -226,11 +271,12 @@ sched_gate SNIPPET-RUN tier=nightly defer=1 desc="dynamic-port doc snippets run 
 sched_gate EXAMPLES-RUN tier=nightly defer=1 desc="shipped examples load/start against the mock (modulo EXAMPLES_RUN_ALLOW.md; STRICT-MOCKS: MOCK_RELAY_STRICT=1)" \
     -- env MOCK_RELAY_STRICT=1 python3 "$PORTING_SDK_DIR/scripts/examples_run.py" --port ruby --repo "$PORT_ROOT"
 
-# DOC-SURFACE (§6.3): public doc-comment (YARD `#`) coverage floor. Report-only
-# for now (--report-only never fails the run); the floor in .doc_surface_floor
-# ratchets up as coverage improves and never regresses.
-sched_gate DOC-SURFACE desc="public YARD doc-comment coverage holds the .doc_surface_floor ratchet (report-only)" \
-    -- python3 "$PORTING_SDK_DIR/scripts/doc_surface.py" --port ruby --repo "$PORT_ROOT" --report-only
+# DOC-SURFACE (§6.3): public doc-comment (YARD `#`) coverage floor.
+# BLOCKING. ruby is at 100.0% (2162/2162) as of the 2026-07-29 burn and .doc_surface_floor
+# is pinned there, so the next undocumented public method is a real regression with a
+# pinned number to prove it — it must red the run rather than print a line and pass.
+sched_gate DOC-SURFACE desc="public YARD doc-comment coverage holds the .doc_surface_floor ratchet (100% — blocking)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/doc_surface.py" --port ruby --repo "$PORT_ROOT"
 
 # WIRED-MODES (Part 1.6 / D7): guard that this run-ci still exports the
 # load-bearing strict-mode lines declared in WIRED_MODES.md (MOCK_RELAY_STRICT +

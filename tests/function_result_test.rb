@@ -905,3 +905,54 @@ class FunctionResultIdiomaticAccessorsTest < Minitest::Test
            "expected a set_meta_data action, got #{actions.inspect}")
   end
 end
+
+# DEFAULT VALUES that come from CONSTANT references in the source
+# (RecordFormat::WAV, TapDirection::BOTH, Codec::PCMU). scripts/signature_dump.rb
+# resolves those constants, so the enumerated default must equal the reference's
+# literal ("wav"/"both"/"PCMU") rather than being recorded as null.
+class FunctionResultConstantDefaultsTest < Minitest::Test
+  include FunctionResultTestHelpers
+
+  # Proven by equivalence: the wire produced when the params are OMITTED must
+  # equal the wire produced when they are passed EXPLICITLY as the default
+  # values, and must DIFFER for any other value. Asserting only the explicit
+  # call would not cover the default at all.
+  def test_tap_direction_and_codec_defaults_are_both_and_pcmu
+    omitted = swml_main_verb(FR.new.tap('rtp://10.0.0.1:9000'), 'tap')
+    explicit = swml_main_verb(
+      FR.new.tap('rtp://10.0.0.1:9000', direction: 'both', codec: 'PCMU'), 'tap'
+    )
+
+    assert_equal omitted, explicit
+
+    other = swml_main_verb(
+      FR.new.tap('rtp://10.0.0.1:9000', direction: 'speak', codec: 'PCMA'), 'tap'
+    )
+
+    refute_equal omitted, other
+  end
+
+  def test_record_call_format_and_direction_defaults_are_wav_and_both
+    omitted = swml_main_verb(FR.new.record_call, 'record_call')
+    explicit = swml_main_verb(FR.new.record_call(format: 'wav', direction: 'both'), 'record_call')
+
+    assert_equal omitted, explicit
+
+    other = swml_main_verb(FR.new.record_call(format: 'mp3', direction: 'speak'), 'record_call')
+
+    refute_equal omitted, other
+  end
+
+  # ai_response's DEFAULT (PAY_DEFAULT_AI_RESPONSE) IS emitted on the wire (the
+  # `set` verb), so the exact reference string is assertable directly — with
+  # ai_response NOT passed.
+  def test_pay_ai_response_default_matches_the_reference_string
+    main = swml_main_section(FR.new.pay(payment_connector_url: 'https://pay.example.com'))
+
+    assert_equal(
+      'The payment status is ${pay_result}, do not mention anything else ' \
+      'about collecting payment if successful.',
+      main[0]['set']['ai_response']
+    )
+  end
+end

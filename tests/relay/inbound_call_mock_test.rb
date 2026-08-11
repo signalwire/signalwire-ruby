@@ -67,7 +67,7 @@ module RelayInboundCallHelpers
   def receive_inbound(call_id:, **, &mapper)
     mapper ||= ->(call) { call }
     queue = Queue.new
-    @client.on_call { |call| queue.push(mapper.call(call)) }
+    @client.on_call(nil) { |call| queue.push(mapper.call(call)) }
     @mock.inbound_call(call_id: call_id, auto_states: ['created'], **)
     Timeout.timeout(TIMEOUT) { queue.pop }
   end
@@ -173,7 +173,7 @@ class RelayInboundCallMockTest < Minitest::Test
 
   def test_multiple_inbound_calls_in_sequence_each_unique_object
     seen_q = Queue.new
-    @client.on_call { |call| seen_q.push(call) }
+    @client.on_call(nil) { |call| seen_q.push(call) }
     fire_inbound('c-seq-1')
     sleep 0.1
     fire_inbound('c-seq-2')
@@ -213,7 +213,7 @@ class RelayInboundCallMockTest < Minitest::Test
   # answers it, and signals completion on the returned Queue.
   def register_answering_handler(store, mutex)
     pushed = Queue.new
-    @client.on_call do |call|
+    @client.on_call(nil) do |call|
       mutex.synchronize { store[call.call_id] = call }
       call.answer
       pushed.push(true)
@@ -264,7 +264,7 @@ class RelayInboundCallFlowMockTest < Minitest::Test
   # call, and wait for the handler to fire.
   def fire_handler_that_raises(call_id)
     fired_q = Queue.new
-    @client.on_call do |_call|
+    @client.on_call(nil) do |_call|
       fired_q.push(true)
       raise 'intentional from handler'
     end
@@ -293,7 +293,7 @@ class RelayInboundCallFlowMockTest < Minitest::Test
   def register_capturing_answer_handler
     captured_q = Queue.new
     started_q = Queue.new
-    @client.on_call do |call|
+    @client.on_call(nil) do |call|
       captured_q.push(call)
       call.answer
       started_q.push(true)

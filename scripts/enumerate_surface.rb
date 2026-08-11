@@ -181,6 +181,7 @@ ORACLE_FIELD_ACCESSOR_MODULES = %w[
   signalwire.core.post_prompt_generated
   signalwire.core.swaig_request_generated
   signalwire.ai_chat.client
+  signalwire.core.auth_handler
 ].freeze
 
 # Load the oracle's per-class recorded surface members for the generated-payload
@@ -260,6 +261,16 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
   # Item-I implemented subsystems: route the new Ruby classes to their
   # reference core modules (class name matches the reference leaf verbatim).
   'SignalWire::Core::AuthHandler' => 'signalwire.core.auth_handler',
+  # The two credential carriers are nested INSIDE AuthHandler in Ruby, so the
+  # default namespace derivation would route them to the fabricated modules
+  # signalwire.core.auth_handler.basic_credentials / .bearer_credentials, which
+  # exist nowhere in the oracle. The oracle publishes both as module-level
+  # classes of signalwire.core.auth_handler (porting-sdk dcff742, the structural
+  # filler for FastAPI's HTTPBasicCredentials / HTTPAuthorizationCredentials).
+  # Kept in lockstep with RUBY_TO_PYTHON_MODULE_OVERRIDES in
+  # scripts/enumerate_signatures.py.
+  'SignalWire::Core::AuthHandler::BasicCredentials' => 'signalwire.core.auth_handler',
+  'SignalWire::Core::AuthHandler::BearerCredentials' => 'signalwire.core.auth_handler',
   'SignalWire::Core::ConfigLoader' => 'signalwire.core.config_loader',
   'SignalWire::Core::SecurityConfig' => 'signalwire.core.security_config',
   'SignalWire::Core::PomBuilder' => 'signalwire.core.pom_builder',
@@ -442,8 +453,6 @@ RUBY_EXCLUDED_CLASSES = %w[
   SignalWire::Relay::MessageSerialization
   SignalWire::REST::Namespaces::Generated
   SignalWire::REST::Namespaces::Generated::ResourceTree
-  SignalWire::Core::AuthHandler::BasicCredentials
-  SignalWire::Core::AuthHandler::BearerCredentials
   SignalWire::REST::EffectiveOptions
   SignalWire::REST::AbortSignal
   SignalWire::REST::Attempt
@@ -545,6 +554,14 @@ SURFACE_METHOD_ALIASES = {
   ['signalwire.core.swml_service', 'SWMLService'] => { 'method_missing' => '__getattr__' },
   ['signalwire.core.swaig_function', 'SWAIGFunction'] => { 'call' => '__call__' },
   ['signalwire.agents.bedrock', 'BedrockAgent'] => { 'inspect' => '__repr__' },
+  # The reference exposes the context tree on PromptMixin as a bare `contexts`
+  # PROPERTY; Ruby spells the same read `get_contexts`. Same value, same source,
+  # different accessor spelling -- idiom, so it folds here (Rule 2) rather than
+  # being carried as a paired omission (`PromptMixin.contexts`) + addition
+  # (`agentbase-family.get_contexts`). Keyed on PromptMixin only: the reference
+  # ALSO declares a real `get_contexts` on PromptManager, which Ruby matches by
+  # that name outright and must not be renamed.
+  ['signalwire.core.mixins.prompt_mixin', 'PromptMixin'] => { 'get_contexts' => 'contexts' },
   ['signalwire.core.skill_base', 'SkillBase'] => { 'instance_key' => 'get_instance_key' },
   ['signalwire.core.skill_manager', 'SkillManager'] => {
     'load' => 'load_skill', 'unload' => 'unload_skill', 'get' => 'get_skill',
@@ -780,10 +797,81 @@ def raw_class_methods(klass)
   # Class methods (Python module-level "classmethod"/"staticmethod" show up as
   # methods on the class too).
   raw.concat(klass.singleton_methods(false).map(&:to_s))
+  # Methods the class COMPOSES via `include` from a non-surface module.
+  raw.concat(composed_module_methods(klass))
   # initialize is private by default — include it explicitly.
   raw << 'initialize' if klass.private_method_defined?(:initialize, false)
   raw
 end
+
+# Public instance methods a class reaches through `include`, lifted onto the
+# class so a reflective walk sees the surface a CALLER sees.
+#
+# The blind spot this closes: `public_instance_methods(false)` is
+# DECLARED-ONLY. `RestClient` composes its 22 flat-resource / namespace-container
+# accessors by including the generated `Namespaces::Generated::ResourceTree`
+# (rest/rest_client.rb:42) instead of writing 22 `def`s, so every one of them was
+# invisible to this enumerator — and reported as 22 missing symbols against a
+# reference that records them all on `RestClient`. They were never missing;
+# `client.calling` / `client.fabric` / `client.video` have always worked (pinned
+# by tests/rest/resource_tree_accessors_mock_test.rb). This is the Ruby analog of
+# `_wired_base_attributes` in porting-sdk's own reference enumerator, which lifts
+# members off a base the walker would otherwise miss.
+#
+# Scoped deliberately narrow, mirroring that precedent:
+#   * Only modules EXCLUDED from the surface scan (RUBY_EXCLUDED_CLASSES) are
+#     lifted. A module that is its own surface symbol already has its members
+#     enumerated on itself; lifting those onto every includer would duplicate
+#     real composition into flattened members. `ResourceTree` and `Generated`
+#     are both excluded, so nothing double-counts.
+#   * Only SignalWire-owned modules — never a stdlib/gem mixin (Comparable,
+#     Enumerable, Kernel), which are language idiom and not port surface.
+#   * `initialize` is skipped; the class's own constructor is handled above.
+#   * RUBY_PROTOCOL_METHODS are skipped — see that constant.
+# Filtering to the public surface (`_`-prefixed, `=` writers) happens in the
+# caller via `surface_method?`, exactly as for declared methods.
+def composed_module_methods(klass)
+  klass.included_modules.select { |mod| composed_module?(mod.name) }
+       .flat_map { |mod| liftable_module_methods(mod) }
+end
+
+# A module whose members are lifted onto its includers: SignalWire-owned AND
+# excluded from the surface scan (so lifting cannot double-count a module that is
+# its own surface symbol).
+def composed_module?(name)
+  return false if name.nil? || !name.start_with?('SignalWire')
+
+  RUBY_EXCLUDED_CLASSES.include?(name)
+end
+
+# The public instance methods of a composed module that count as lifted surface.
+def liftable_module_methods(mod)
+  mod.public_instance_methods(false).map(&:to_s).reject do |m|
+    m == 'initialize' || RUBY_PROTOCOL_METHODS.include?(m)
+  end
+end
+
+# Ruby LANGUAGE-PROTOCOL hooks: methods the interpreter (or a core protocol like
+# pattern matching / Hash keying / JSON) calls on an object, not methods a caller
+# invokes for a SignalWire capability. These are never port surface — the same
+# reasoning that already folds `AIChatClient#inspect`/`#to_s` in
+# SURFACE_MEMBER_DROPS ("token-redacting Ruby object hooks; the reference defines
+# no `__repr__`/`__str__`").
+#
+# Only consulted by `composed_module_methods`, i.e. for methods reached through an
+# `include`. A class that DECLARES one of these keeps its existing treatment, so
+# this cannot retroactively strip anything that was already emitted.
+#
+# Concretely: `MessageSerialization` (an excluded mixin, extracted from
+# `Relay::Message` so the class stays focused on lifecycle) contributes
+# to_s / to_json / hash / eql? / deconstruct / deconstruct_keys — Ruby's
+# JSON, equality, and Ruby-3 pattern-matching protocols. The reference `Message`
+# records none of them (it records `__repr__`, which is the Python side of the
+# same idiom), so lifting them would surface pure language idiom as 6 port
+# ADDITIONS. Folding them here is the emitter doing the idiom reconciliation.
+RUBY_PROTOCOL_METHODS = %w[
+  to_s to_json inspect hash eql? deconstruct deconstruct_keys
+].freeze
 
 # A method is part of the public surface unless it's a single-underscore
 # "private convention" name or an auto-generated writer (attr_writer/accessor);
@@ -850,6 +938,22 @@ AI_CHAT_METHODLESS_CLASSES = %w[
   SignalWire::AIChat::ConversationInfo
   SignalWire::AIChat::ChatResponse
   SignalWire::AIChat::ChatLog
+].freeze
+
+# The auth credential carriers are the same Struct idiom in the POSITIONAL form
+# (`Struct.new(:a, :b)` rather than `keyword_init: true`), so they take the same
+# oracle-gated-field-accessor path: emit exactly the readers the oracle records
+# (BasicCredentials {username, password} / BearerCredentials {scheme,
+# credentials} — porting-sdk dcff742's structural filler for FastAPI's
+# HTTPBasicCredentials / HTTPAuthorizationCredentials) and drop the rest of the
+# Struct machinery (`new` / `members` / `keyword_init?` / `inspect` / `[]`) and
+# the auto-generated `field=` writers. Emission covers the Struct idiom; no
+# PORT_ADDITIONS entry per accessor. The oracle gate in
+# oracle_gated_field_accessors aborts if a recorded field reader is missing, so a
+# real field drop still fails loud rather than silently shrinking the surface.
+AUTH_CREDENTIAL_STRUCT_CLASSES = %w[
+  SignalWire::Core::AuthHandler::BasicCredentials
+  SignalWire::Core::AuthHandler::BearerCredentials
 ].freeze
 
 # Per-[module, class] surface members to DROP: a Ruby-idiom accessor/method that
@@ -932,6 +1036,7 @@ SURFACE_MEMBER_DROPS = {
 def generated_methodless_class?(ruby_fqn)
   return true if ruby_fqn.start_with?(GENERATED_TYPES_PREFIX)
   return true if AI_CHAT_METHODLESS_CLASSES.include?(ruby_fqn)
+  return true if AUTH_CREDENTIAL_STRUCT_CLASSES.include?(ruby_fqn)
 
   GENERATED_PAYLOAD_PREFIXES.each_key { |prefix| return true if ruby_fqn.start_with?(prefix) }
   false
@@ -942,17 +1047,55 @@ end
 # Gated on the ORACLE'S member set (never the full reader list) so scalar wire
 # fields the reference does not record are not over-emitted. Empty (method-less)
 # when the class is not one the oracle records field accessors for.
+#
+# `__init__` is NOT a field reader and is resolved separately (see
+# `constructor_member?`): the reference records the CONSTRUCTOR of these value
+# carriers, and Ruby's is real but inherited (Struct defines `initialize` on
+# `Struct` itself, so `public_instance_methods(false)` never lists it). Matching
+# it against the reader set would abort on a capability the port genuinely has —
+# `ChatLog.new(messages:, call_timeline:)` works. This mirrors what
+# enumerate_signatures.py already does for the same five classes
+# (synth_positional_struct_inits / synth_ai_chat_struct_inits).
+#
+# Provenance: the synthesized `__init__` entered the oracle in porting-sdk
+# 8828dd2 ("surface must record a synthesized __init__, not just a `def` one"),
+# which is the commit from which every @dataclass / Struct-shaped model started
+# carrying one — i.e. the point at which a reader-set comparison began aborting
+# enumerations that had no port drift at all.
 def oracle_gated_field_accessors(klass, target_mod, cls, oracle_generated_members)
   wanted = oracle_generated_members[[target_mod, cls]]
   return [] unless wanted
 
   readers = klass.public_instance_methods(false).to_set(&:to_s)
-  missing = wanted.to_a - readers.to_a
+  ctor, fields = wanted.to_a.partition { |m| m == '__init__' }
+  assert_oracle_members_present(klass, target_mod, cls, readers, ctor, fields)
+  (ctor + fields.select { |m| readers.include?(m) }).sort
+end
+
+# Fail loud when the port has dropped something the oracle records: a field
+# reader that vanished (a real field drop/rename) or the constructor itself.
+def assert_oracle_members_present(klass, target_mod, cls, readers, ctor, fields)
+  missing = fields - readers.to_a
   unless missing.empty?
     abort "generated model #{target_mod}.#{cls} is missing oracle-recorded field " \
           "reader(s) #{missing.sort.inspect}; regenerate the model or update the oracle"
   end
-  wanted.to_a.select { |m| readers.include?(m) }.sort
+  return if ctor.empty? || constructor_member?(klass)
+
+  abort "generated model #{target_mod}.#{cls} is missing the oracle-recorded " \
+        'constructor (no reachable `initialize`); regenerate the model or update the oracle'
+end
+
+# True when `klass` has a reachable constructor — its own `initialize` or one
+# inherited from a superclass (`Struct`, for the value carriers here). Every
+# Ruby class technically inherits `BasicObject#initialize`, so require the owner
+# to be something more specific than `BasicObject` for the answer to mean
+# "this class defines a real construction contract".
+def constructor_member?(klass)
+  owner = klass.instance_method(:initialize).owner
+  owner != BasicObject
+rescue NameError
+  false
 end
 
 # Record one Ruby class or module into `modules`.
@@ -972,6 +1115,7 @@ def process_class(mod, name, modules, python_index, oracle_generated_members)
   methods = project_free_functions(name, methods, modules)
   methods = apply_method_aliases(target_mod, cls, methods)
   methods = drop_idiom_members(target_mod, cls, methods)
+  methods = fold_skill_base_hooks(target_mod, cls, methods)
   modules[target_mod]['classes'][cls] = methods
 end
 
@@ -1006,13 +1150,75 @@ def drop_idiom_members(target_mod, cls, methods)
   methods - effective
 end
 
+# The reference module/class the built-in skills inherit from. Its oracle-recorded
+# member set is the base contract every `signalwire.skills.<name>.skill` subclass
+# inherits.
+SKILL_BASE_REF = ['signalwire.core.skill_base', 'SkillBase'].freeze
+
+# Fold a built-in skill subclass's override of an INHERITED SkillBase member back
+# into the base, when the oracle records that member on `SkillBase` but NOT on the
+# subclass.
+#
+# ORACLE-GATED, not list-gated — the rule is a question asked of the LIVE oracle
+# every regen, never a hand-kept name list that goes stale the moment the
+# reference moves a member. It just did: the reference made
+# `SkillBase.get_prompt_sections()` a FINAL template method carrying the
+# `skip_prompt` guard and delegating to a PROTECTED `_get_prompt_sections()` hook
+# (signalwire-python core/skill_base.py:89-96). Every skill now overrides the
+# protected hook, so the oracle records the PUBLIC member on the base ONLY. Ruby
+# still overrides the public method on 12 skill classes, and a reflective dump
+# reports each override as new public surface — 10 phantom `missing-reference`
+# additions plus 1 omission that had gone dead.
+#
+# An override of a base member is INHERITANCE, not new surface: the capability is
+# already published by the base the reference records it on. So the fold is exact
+# and self-correcting in both directions:
+#   * the oracle stops recording a member on the subclass -> the port's override
+#     folds into the base on the next regen, with no hand edit;
+#   * the oracle STARTS recording it on the subclass (a genuine per-class
+#     override in the reference) -> the port MUST emit its own, and the fold
+#     stands down. That is why the rule tests the subclass, not just the base.
+# Measured: exactly 12 members fold, all of them `get_prompt_sections`. Nothing
+# else in the skills family is a base member the oracle declines to re-record, so
+# the port's real per-class additions (`name`, `description`, `version`,
+# `supports_multiple_instances?`) are untouched.
+#
+# Scoped to `signalwire.skills.*.skill` classes so it can never reach a class
+# outside the built-in skill family. `__init__` is exempt: construction shape is
+# recorded per class, never inherited.
+#
+# Fail-safe: an unresolvable/empty oracle leaves the methods alone rather than
+# folding on an empty base set. Dropping members because the oracle failed to
+# load would read as a mass deletion of real port surface; ORACLE_ALL_MEMBERS is
+# primed from a file whose absence already aborts LOUD
+# (abort_missing_python_surface), so this is belt-and-braces.
+def fold_skill_base_hooks(target_mod, cls, methods)
+  return methods unless builtin_skill_module?(target_mod)
+
+  base = ORACLE_ALL_MEMBERS[SKILL_BASE_REF]
+  return methods if base.nil? || base.empty?
+
+  recorded = ORACLE_ALL_MEMBERS[[target_mod, cls]] || Set.new
+  methods.reject { |m| inherited_base_hook?(m, base, recorded) }
+end
+
+# True when `name` is a SkillBase member the subclass does not re-declare in the
+# reference — i.e. an inherited hook, not new subclass surface. `__init__` is
+# exempt: construction shape is recorded per class, never inherited.
+def inherited_base_hook?(name, base, recorded)
+  name != '__init__' && base.include?(name) && !recorded.include?(name)
+end
+
+# A reference module of the built-in skills family (`signalwire.skills.<n>.skill`).
+def builtin_skill_module?(target_mod)
+  target_mod.start_with?('signalwire.skills.') && target_mod.end_with?('.skill')
+end
+
 # Apply the per-[module, class] Ruby-idiom -> reference method-name aliases,
 # plus the by-prefix skills alias (instance_key -> get_instance_key).
 def apply_method_aliases(target_mod, cls, methods)
   table = SURFACE_METHOD_ALIASES[[target_mod, cls]] || {}
-  if target_mod.start_with?('signalwire.skills.') && target_mod.end_with?('.skill')
-    table = SKILLS_MODULE_METHOD_ALIASES.merge(table)
-  end
+  table = SKILLS_MODULE_METHOD_ALIASES.merge(table) if builtin_skill_module?(target_mod)
   return methods if table.empty?
 
   methods.map { |m| table.fetch(m, m) }.uniq.sort
@@ -1204,6 +1410,18 @@ def strip_meta(obj)
   obj.except(*META_FIELDS)
 end
 
+# Exit codes, kept DISTINCT on purpose. An argument-validation failure must never
+# share a code with a real verdict: `--check` documents "exit 1 on drift", so if a
+# malformed invocation also exited 1 the operator reads a usage error as "the
+# surface is stale" and regenerates an oracle to chase a typo. 2 is reserved for
+# "you called me wrong" — nothing about the surface was measured.
+EXIT_OK    = 0
+EXIT_DRIFT = 1
+EXIT_USAGE = 2
+
+# Raised when argv is malformed. Carries no verdict — the surface is never built.
+class UsageError < StandardError; end
+
 def parse_options(argv)
   options = {
     output: nil,
@@ -1212,13 +1430,17 @@ def parse_options(argv)
   }
   option_parser(options).parse!(argv)
   options
+rescue OptionParser::ParseError => e
+  # OptionParser's default is an uncaught exception -> exit 1, which collides
+  # with EXIT_DRIFT. Convert it to the usage code.
+  raise UsageError, e.message
 end
 
 def option_parser(options)
   OptionParser.new do |o|
     o.banner = 'Usage: ruby scripts/enumerate_surface.rb [options]'
     o.on('--output PATH', 'Write JSON to this path (default: stdout)') { |v| options[:output] = Pathname.new(v) }
-    o.on('--check', 'Compare against --output; exit 1 on drift') { options[:check] = true }
+    o.on('--check', 'Compare against --output; exit 1 on drift (2 on a usage error)') { options[:check] = true }
     o.on('--python-surface PATH', 'Path to python_surface.json') { |v| options[:python_surface] = Pathname.new(v) }
     o.on('-h', '--help', 'Show this help') do
       puts o
@@ -1228,34 +1450,34 @@ def option_parser(options)
 end
 
 # Compare the freshly rendered surface against the on-disk --output file.
-# Returns a process exit code (0 fresh, 1 missing/stale).
+# Returns a process exit code (EXIT_OK fresh, EXIT_DRIFT missing/stale).
 def run_check(output_path, rendered)
   unless output_path.file?
     warn "error: #{output_path} does not exist"
-    return 1
+    return EXIT_DRIFT
   end
 
   existing = JSON.parse(output_path.read)
   actual   = JSON.parse(rendered)
-  return 0 if strip_meta(existing) == strip_meta(actual)
+  return EXIT_OK if strip_meta(existing) == strip_meta(actual)
 
   warn 'DRIFT: port_surface.json is stale relative to lib/.'
   warn '  Regenerate: ruby scripts/enumerate_surface.rb --output port_surface.json'
-  1
+  EXIT_DRIFT
 end
 
 def main(argv)
   options = parse_options(argv)
-  if options[:check] && options[:output].nil?
-    warn 'error: --check requires --output'
-    return 2
-  end
+  raise UsageError, '--check requires --output' if options[:check] && options[:output].nil?
 
   rendered = "#{JSON.pretty_generate(deep_sort(build_snapshot(options[:python_surface])))}\n"
   return run_check(options[:output], rendered) if options[:check]
 
   emit(options[:output], rendered)
-  0
+  EXIT_OK
+rescue UsageError => e
+  warn "error: #{e.message}"
+  EXIT_USAGE
 end
 
 def emit(output_path, rendered)

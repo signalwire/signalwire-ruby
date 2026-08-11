@@ -8,7 +8,9 @@
 require_relative 'skill_base'
 require_relative '../logging'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Skills — the modular capability framework: skill base, registry, manager, builtins.
   module Skills
     # Thread-safe lifecycle manager for loaded skill instances.
     #

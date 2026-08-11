@@ -11,9 +11,6 @@ module SignalWire
   # Detects the execution environment (plain server, AWS Lambda, CGI,
   # Google Cloud Functions, Azure Functions) by inspecting well-known
   # environment variables set by each platform.
-  #
-  # This is the Ruby counterpart to the Python SDK's
-  # +signalwire.core.logging_config.get_execution_mode+.
   module Runtime
     MODES = %i[server lambda cgi google_cloud_function azure_function unknown].freeze
 
@@ -41,6 +38,11 @@ module SignalWire
       [:azure_function,         %w[AZURE_FUNCTIONS_ENVIRONMENT FUNCTIONS_WORKER_RUNTIME AzureWebJobsStorage]]
     ].freeze
 
+    # Detect the deployment environment from its marker environment variables, in
+    # MODE_SIGNALS order.
+    #
+    # @return [Symbol] `:cgi`, `:lambda`, `:google_cloud_function`,
+    #   `:azure_function`, or `:server` when none match
     def self.execution_mode
       MODE_SIGNALS.each { |mode, vars| return mode if env_present?(*vars) }
       :server
@@ -53,7 +55,7 @@ module SignalWire
     # line is a bare `agent.run` — swaig-test (--file / --list / exec /
     # --simulate-serverless) sets it before Kernel.load. Unset (the normal case),
     # `run`/`serve` behave exactly as before, so an example still serves when run
-    # directly. (ruby_R5 N1.)
+    # directly.
     def self.suppress_run?
       env_present?('SIGNALWIRE_SUPPRESS_RUN')
     end

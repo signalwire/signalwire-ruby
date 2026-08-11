@@ -1,17 +1,17 @@
 # frozen_string_literal: true
 
 module SignalWire
+  # POM — the Prompt Object Model: structured prompt sections rendered to markdown.
   module POM
     # Represents a section in the Prompt Object Model.
     #
     # Each section contains a title, optional body text, optional bullet
     # points, and can have any number of nested subsections.
     #
-    # Mirrors Python's ``signalwire.pom.pom.Section`` exactly. See
-    # ``signalwire-python/signalwire/signalwire/pom/pom.py`` for the
-    # source-of-truth specification; rendering output (markdown / XML /
-    # JSON / YAML) must match Python byte-for-byte so cross-language POM
-    # documents are interoperable.
+    # The rendering output (markdown / XML / JSON / YAML) is part of the POM
+    # contract: key order and formatting are load-bearing, so a document
+    # written by this SDK is byte-comparable with one written by any other
+    # POM producer. Treat the renderers as wire code, not cosmetics.
     #
     # Attributes:
     # * +title+ — the name of the section.
@@ -26,10 +26,9 @@ module SignalWire
 
       # Construct a Section.
       #
-      # All arguments after +title+ are keyword arguments mirroring the
-      # Python ``Section.__init__`` signature. ``numbered_bullets`` is
-      # snake_case in Ruby; the camelCase ``numberedBullets`` form used
-      # by Python's JSON/YAML serialization is preserved on the wire.
+      # +title+ is positional; every argument after it is a keyword.
+      # ``numbered_bullets`` is snake_case in the Ruby API but serializes to
+      # the camelCase ``numberedBullets`` key on the wire.
       def initialize(title = nil, body: '', bullets: nil, numbered: nil, numbered_bullets: false)
         validate_body!(body)
         validate_bullets!(bullets)
@@ -42,8 +41,8 @@ module SignalWire
         @numbered_bullets = numbered_bullets
       end
 
-      # Add or replace the body text for this section. Mirrors Python's
-      # ``Section.add_body`` (which is documented to "Add or replace").
+      # Add or replace the body text for this section — an existing body is
+      # overwritten, not appended to.
       def add_body(body)
         raise TypeError, "body must be a string, not #{body.class.name}" unless body.is_a?(String)
 
@@ -51,7 +50,7 @@ module SignalWire
       end
 
       # Append bullet points to this section. Does not replace existing
-      # bullets — mirrors Python's ``self.bullets.extend(bullets)``.
+      # bullets — the given Array is concatenated onto them.
       def add_bullets(bullets)
         raise TypeError, "bullets must be an Array, not #{bullets.class.name}" unless bullets.is_a?(Array)
 
@@ -60,9 +59,9 @@ module SignalWire
 
       # Add a subsection to this section, returning the new Section.
       #
-      # Raises ArgumentError when +title+ is nil (Python raises
-      # ``ValueError("Subsections must have a title")``; Ruby idiom
-      # is ArgumentError for invalid arguments).
+      # A subsection MUST have a title: +title+ of nil raises ArgumentError
+      # ("Subsections must have a title"), the Ruby idiom for an invalid
+      # argument.
       def add_subsection(title, body: '', bullets: nil, numbered: false, numbered_bullets: false)
         raise ArgumentError, 'Subsections must have a title' if title.nil?
 
@@ -73,10 +72,10 @@ module SignalWire
       end
 
       # Convert the section to a Hash representation suitable for JSON or
-      # YAML serialization. Keys are emitted in the same order as Python
-      # so cross-port string comparisons line up.
+      # YAML serialization. Key emission order is fixed: title, body, bullets,
+      # subsections, numbered, numberedBullets.
       # rubocop:disable Metrics/CyclomaticComplexity -- wire-critical: each guard
-      # emits one key in exact Python order; flattening to one branch per field is
+      # emits one key in that exact order; flattening to one branch per field is
       # the clearest expression and must not be split (key order is the contract).
       def to_h
         data = {}
@@ -90,9 +89,8 @@ module SignalWire
       end
       # rubocop:enable Metrics/CyclomaticComplexity
 
-      # Render this section and all its subsections as Markdown. The
-      # output is byte-for-byte identical to Python's
-      # ``Section.render_markdown``.
+      # Render this section and all its subsections as Markdown. The exact
+      # output is part of the POM contract — see the class docs.
       def render_markdown(level: 2, section_number: nil)
         md = []
         section_number = [] if section_number.nil?
@@ -112,8 +110,8 @@ module SignalWire
         md.join("\n")
       end
 
-      # Render this section and all its subsections as XML. Output is
-      # byte-for-byte identical to Python's ``Section.render_xml``.
+      # Render this section and all its subsections as XML. The exact output
+      # is part of the POM contract — see the class docs.
       def render_xml(indent: 0, section_number: nil)
         indent_str = '  ' * indent
         xml = []
@@ -134,6 +132,10 @@ module SignalWire
 
       private
 
+      # @api private — a body must be a String. The error explicitly points at the
+      # `bullets:` parameter, because passing a list here is the common mistake.
+      #
+      # @raise [TypeError]
       def validate_body!(body)
         return if body.is_a?(String)
 
@@ -142,6 +144,9 @@ module SignalWire
               'If you meant to pass a list of bullet points, use bullets parameter instead.'
       end
 
+      # @api private — bullets must be an Array or nil.
+      #
+      # @raise [TypeError]
       def validate_bullets!(bullets)
         return if bullets.nil? || bullets.is_a?(Array)
 
@@ -161,11 +166,16 @@ module SignalWire
       end
 
       # Subsections only inherit/extend numbering when this section is itself
-      # titled or already numbered. Mirrors Python's render guard exactly.
+      # titled or already numbered.
       def titled_or_numbered?(section_number)
         !@title.nil? || !section_number.empty?
       end
 
+      # @api private — the number a subsection renders under: the parent's number
+      # extended by its position when this level is numbered, else the parent's
+      # number unchanged. A subsection with `numbered: false` opts out.
+      #
+      # @return [Array<Integer>]
       def child_section_number(section_number, subsection, idx, any_subsection_numbered)
         if any_subsection_numbered && subsection.numbered != false
           section_number + [idx + 1]
@@ -174,6 +184,9 @@ module SignalWire
         end
       end
 
+      # @api private — render each subsection as markdown. The heading level only
+      # deepens when this section is itself titled or numbered, so an untitled
+      # wrapper does not push its children a level down.
       def render_markdown_subsections(lines, level, section_number)
         any_subsection_numbered = @subsections.any?(&:numbered)
         nested = titled_or_numbered?(section_number)
@@ -186,6 +199,8 @@ module SignalWire
         end
       end
 
+      # @api private — render the bullets as a `<bullets>` element. Numbered bullets
+      # carry a 1-based `id` attribute.
       def render_xml_bullets(xml, indent_str)
         xml << "#{indent_str}  <bullets>"
         @bullets.each_with_index do |bullet, idx|
@@ -198,6 +213,8 @@ module SignalWire
         xml << "#{indent_str}  </bullets>"
       end
 
+      # @api private — render each subsection inside a `<subsections>` element,
+      # computing each child's number the same way the markdown renderer does.
       def render_xml_subsections(xml, indent_str, indent, section_number)
         xml << "#{indent_str}  <subsections>"
         any_subsection_numbered = @subsections.any?(&:numbered)

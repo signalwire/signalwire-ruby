@@ -9,7 +9,7 @@
 #   /contact?set=onboarding
 
 require 'signalwire'
-require 'signalwire/prefabs/info_gatherer'  # opt-in subsystem (Python: from signalwire.prefabs import ...)
+require 'signalwire/prefabs/info_gatherer' # opt-in subsystem (Python: from signalwire.prefabs import ...)
 
 question_sets = {
   'default' => [
@@ -40,8 +40,8 @@ question_sets = {
 
 agent = SignalWire::Prefabs::InfoGatherer.new(
   questions: nil, # dynamic mode
-  name:      'dynamic-intake',
-  route:     '/contact'
+  name: 'dynamic-intake',
+  route: '/contact'
 )
 
 # set_question_callback takes a callable (parity with Python's positional

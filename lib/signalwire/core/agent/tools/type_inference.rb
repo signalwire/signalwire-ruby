@@ -8,16 +8,16 @@
 # Reflection-based schema inference for SWAIG tool functions.
 
 module SignalWire
+  # Core — internal building blocks shared by the agent, SWML and SWAIG layers.
   module Core
+    # Agent — the agent internals: prompt management and tool registration.
     module Agent
+      # Tools — SWAIG tool registration and parameter type inference.
       module Tools
         # Infer a JSON Schema for a SWAIG tool's parameters from a Ruby
         # callable's signature, and wrap a typed handler so it can be
         # invoked with the standard SWAIG calling convention.
         #
-        # Mirrors Python's
-        # ``signalwire.core.agent.tools.type_inference`` module-level
-        # functions ``infer_schema`` and ``create_typed_handler_wrapper``.
         # Ruby has no static type annotations, so the schema is inferred
         # from the callable's parameter list via reflection
         # (``Method#parameters`` / ``Proc#parameters``). Each keyword or
@@ -44,9 +44,8 @@ module SignalWire
           # Inspect a callable's signature to infer a JSON Schema for
           # SWAIG tool parameters.
           #
-          # Mirrors Python's ``infer_schema`` return contract. The
-          # ``raw_data`` parameter (Ruby: ``:raw_data``) is treated as the
-          # SWAIG raw-payload channel and excluded from the schema.
+          # A parameter named ``:raw_data`` is treated as the SWAIG
+          # raw-payload channel and excluded from the schema.
           #
           # @param func [Method, Proc] the callable to inspect
           # @param types [Hash{Symbol,String => Class,String}, nil]
@@ -59,7 +58,8 @@ module SignalWire
           #   ``[parameters, required, description, is_typed, has_raw_data]``:
           #   - parameters: name => property Hash (string keys)
           #   - required: required parameter names
-          #   - description: always nil (Ruby has no docstrings to parse)
+          #   - description: always nil (there is no comment text to introspect
+          #     at runtime; pass +descriptions:+ to supply one)
           #   - is_typed: true if the callable takes named parameters
           #     (i.e. it is NOT the old-style ``(args, raw_data)`` handler)
           #   - has_raw_data: true if the callable accepts ``raw_data``
@@ -79,10 +79,9 @@ module SignalWire
           # Wrap a typed handler so it can be invoked with the standard
           # SWAIG calling convention ``(args, raw_data)``.
           #
-          # Mirrors Python's ``create_typed_handler_wrapper``. The wrapper
-          # explodes the +args+ Hash into keyword arguments for the wrapped
-          # callable, passing +raw_data+ as a keyword only when the handler
-          # declared it.
+          # The wrapper explodes the +args+ Hash into keyword arguments for
+          # the wrapped callable, passing +raw_data+ as a keyword only when
+          # the handler declared it.
           #
           # @param func [Method, Proc] the typed handler
           # @param has_raw_data [Boolean] pass raw_data as a keyword
@@ -112,10 +111,10 @@ module SignalWire
             [[:args], %i[args raw_data]].include?(names)
           end
 
-          # Parameter kinds that indicate a splat (``*args`` / ``**kwargs``).
+          # Parameter kinds that indicate a splat (``*rest`` / ``**keyrest``).
           SPLAT_KINDS = %i[rest keyrest].freeze
 
-          # A callable with a splat (``*args`` / ``**kwargs``) can't be
+          # A callable with a splat (``*rest`` / ``**keyrest``) can't be
           # introspected into a fixed schema — fall back to old style.
           def splat_present?(params)
             params.any? { |kind, _name| SPLAT_KINDS.include?(kind) }
@@ -167,8 +166,8 @@ module SignalWire
             args.each_with_object({}) { |(k, v), acc| acc[k.to_sym] = v }
           end
 
-          # Internal helpers — the reference exposes only infer_schema and
-          # create_typed_handler_wrapper at the module level.
+          # Internal helpers — only infer_schema and
+          # create_typed_handler_wrapper are public.
           private_class_method :callable_parameters, :legacy_handler?,
                                :splat_present?, :build_schema, :property_for,
                                :schema_type, :required_kind?, :symbolize_args

@@ -12,7 +12,7 @@
 #   SIGNALWIRE_SPACE        - your SignalWire space (e.g. example.signalwire.com)
 
 require 'signalwire'
-require 'signalwire/rest/rest_client'  # opt-in subsystem (Python: from signalwire.rest import Client)
+require 'signalwire/rest/rest_client' # opt-in subsystem (Python: from signalwire.rest import Client)
 
 client = SignalWire::REST::RestClient.new
 
@@ -37,7 +37,7 @@ safe('Collect') do
   client.calling.collect(
     CALL_ID,
     control_id: CONTROL_ID,
-    digits:     { 'max' => 4, 'terminators' => '#' }
+    digits: { 'max' => 4, 'terminators' => '#' }
   )
 end
 safe('Start input timers') { client.calling.collect_start_input_timers(CALL_ID, control_id: CONTROL_ID) }
@@ -65,7 +65,7 @@ puts "\nTap (media fork)..."
 safe('Tap start') do
   client.calling.tap(
     CALL_ID,
-    tap:    { 'type' => 'audio', 'direction' => 'both' },
+    tap: { 'type' => 'audio', 'direction' => 'both' },
     device: { 'type' => 'rtp', 'addr' => '192.168.1.100', 'port' => 9000 }
   )
 end
@@ -93,6 +93,6 @@ safe('Receive fax stop') { client.calling.receive_fax_stop(CALL_ID, control_id: 
 
 # 10. Transfer and disconnect
 puts "\nTransfer and disconnect..."
-safe('Transfer')   { client.calling.transfer(CALL_ID, dest: '+15559999999') }
+safe('Transfer') { client.calling.transfer(CALL_ID, dest: '+15559999999') }
 safe('Update call') { client.calling.update(id: CALL_ID, status: 'completed') }
 safe('Disconnect')  { client.calling.disconnect(CALL_ID) }

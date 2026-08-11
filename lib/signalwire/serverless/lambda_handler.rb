@@ -10,7 +10,9 @@ require 'json'
 require 'stringio'
 require 'uri'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Serverless — adapters that run an agent under Lambda / CGI / GCF / Azure.
   module Serverless
     # Private mixin: translates a Rack response triple into the Lambda
     # response-hash shape. Extracted from {LambdaHandler} purely to keep that
@@ -19,6 +21,10 @@ module SignalWire
     module ResponseTranslation
       private
 
+      # @api private — translate a Rack response triple into the Lambda response
+      # hash, in whichever payload format the incoming event used.
+      #
+      # @return [Hash]
       def build_response(event, status, headers, body)
         payload = collect_body(body)
         encoded, is_base64 = maybe_base64(payload, headers)
@@ -43,6 +49,10 @@ module SignalWire
         [flat_headers, multi_headers]
       end
 
+      # @api private — the payload-v2 response shape. v2 has no `multiValueHeaders`;
+      # multiple `Set-Cookie` values go in a dedicated `cookies` array instead.
+      #
+      # @return [Hash]
       def response_v2(status, flat_headers, multi_headers, encoded, is_base64)
         response = {
           'statusCode' => status.to_i,
@@ -54,6 +64,10 @@ module SignalWire
         response
       end
 
+      # @api private — the payload-v1 response shape, which carries repeated headers
+      # in `multiValueHeaders` alongside the flattened `headers`.
+      #
+      # @return [Hash]
       def response_v1(status, flat_headers, multi_headers, encoded, is_base64)
         {
           'statusCode' => status.to_i,
@@ -64,6 +78,10 @@ module SignalWire
         }
       end
 
+      # @api private — join a Rack body into one binary string. A nil body becomes
+      # empty rather than raising.
+      #
+      # @return [String] binary-encoded
       def collect_body(body)
         return ''.b if body.nil?
 
@@ -103,6 +121,11 @@ module SignalWire
 
       private
 
+      # @api private — translate a Lambda invocation event into a Rack env. Content
+      # type and length are set as the unprefixed `CONTENT_*` keys Rack expects; every
+      # other header becomes `HTTP_*`.
+      #
+      # @return [Hash] the Rack env
       def build_env(event)
         version = detect_version(event)
         headers = extract_headers(event)
@@ -114,6 +137,12 @@ module SignalWire
         env
       end
 
+      # @api private — the request-derived Rack env keys. The server name, port and
+      # URL scheme come from the proxy headers API Gateway sets, so a URL the app
+      # builds matches what the client actually called. The raw event is stashed under
+      # `signalwire.lambda_event` for handlers that need it.
+      #
+      # @return [Hash]
       def base_rack_env(event, version, headers, body_io)
         STATIC_RACK_ENV.merge(
           'REQUEST_METHOD' => extract_method(event, version),
@@ -127,6 +156,8 @@ module SignalWire
         )
       end
 
+      # @api private — copy the request headers into the env as `HTTP_*` keys,
+      # skipping the two that Rack expects unprefixed.
       def add_http_headers(env, headers)
         headers.each do |name, value|
           next if SKIPPED_HTTP_HEADERS.include?(name)
@@ -135,6 +166,11 @@ module SignalWire
         end
       end
 
+      # @api private — which Lambda payload format this event uses. API Gateway HTTP
+      # API and Function URLs send `version: "2.0"`; everything else (REST API, ALB,
+      # a direct invoke) is treated as v1.
+      #
+      # @return [Integer] 2 or 1
       def detect_version(event)
         # API Gateway HTTP API / Function URLs use payload v2 and include
         # a 'version' key of "2.0". Everything else (REST API, ALB, direct
@@ -142,6 +178,10 @@ module SignalWire
         event['version'].to_s.start_with?('2') ? 2 : 1
       end
 
+      # @api private — the HTTP method. v2 nests it under `requestContext.http`; v1
+      # puts it at `httpMethod`. Defaults to GET when neither is present.
+      #
+      # @return [String]
       def extract_method(event, version)
         if version == 2
           event.dig('requestContext', 'http', 'method') || event['httpMethod'] || 'GET'
@@ -150,6 +190,11 @@ module SignalWire
         end
       end
 
+      # @api private — the request path, trying the v2 `rawPath`, the v1 `path` and
+      # the nested `requestContext.http.path` in turn, and guaranteeing a leading
+      # slash.
+      #
+      # @return [String]
       def extract_path(event, _version)
         raw =
           event['rawPath'] ||
@@ -160,6 +205,10 @@ module SignalWire
         raw
       end
 
+      # @api private — the query string: v2's pre-encoded `rawQueryString` when
+      # present, else re-encoded from v1's single- or multi-value parameter maps.
+      #
+      # @return [String]
       def extract_query_string(event, _version)
         return event['rawQueryString'] if event['rawQueryString'] && !event['rawQueryString'].empty?
 
@@ -169,12 +218,22 @@ module SignalWire
         URI.encode_www_form(query_param_pairs(params))
       end
 
+      # @api private — flatten a query-parameter map into `[key, value]` pairs,
+      # expanding an Array value into one pair per element so repeated parameters
+      # survive re-encoding.
+      #
+      # @return [Array<Array(String, String)>]
       def query_param_pairs(params)
         params.flat_map do |k, v|
           v.is_a?(Array) ? v.map { |vv| [k, vv] } : [[k, v]]
         end
       end
 
+      # @api private — the request headers, lower-cased. Single-value `headers` win
+      # over `multiValueHeaders`; a name present only in the multi-value map is
+      # comma-joined.
+      #
+      # @return [Hash{String => String}]
       def extract_headers(event)
         raw = event['headers'] || {}
         multi = event['multiValueHeaders'] || {}
@@ -188,6 +247,11 @@ module SignalWire
         merged
       end
 
+      # @api private — the request body as a readable stream plus its byte length,
+      # base64-decoding it when the event flags it encoded. An absent or empty body
+      # yields an empty stream and a nil length, so no CONTENT_LENGTH is set.
+      #
+      # @return [Array(StringIO, Integer/nil)]
       def extract_body(event)
         body = event['body']
         return [StringIO.new(''.b), nil] if body.nil? || body.empty?

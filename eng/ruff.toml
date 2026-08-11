@@ -1,0 +1,35 @@
+# Ruff config for signalwire-ruby's hand-written PYTHON.
+#
+# The repo is a Ruby SDK, but scripts/ holds 7 hand-written Python programs --
+# the code generators (generate_rest.py, generate_rest_tests.py,
+# generate_relay_protocol.py, generate_swaig_payloads.py,
+# generate_swml_verbs.py), the cross-port surface enumerator
+# (enumerate_signatures.py), and _gen_format.py, which is part of the FORMAT
+# TOOLCHAIN ITSELF. Until 2026-07-30 no gate linted or format-checked any of it
+# (the FMT/LINT gates run rubocop, which cannot see a .py file), so this
+# load-bearing tooling was held to no standard at all.
+#
+# The rule selection MIRRORS the reference implementation's
+# (signalwire-python/pyproject.toml [tool.ruff]) so the fleet is consistent --
+# same target-version, same line-length, same select list, same explicit
+# `preview = false` pin. Do not diverge from it without changing python first.
+#
+# Wired into scripts/run-ci.sh as the PY-LINT and PY-FMT gates (PY-FMT: local
+# applies, CI runs --check), mirroring the FMT/LINT contract for Ruby.
+
+target-version = "py310"
+line-length = 88
+
+[format]
+# Pin STABLE formatting explicitly. Without this, `ruff format --check` can
+# resolve preview-mode formatting in CI while a local stable run leaves the file
+# unchanged -- a local != CI split with no visible cause. Same pin, same reason,
+# as signalwire-python.
+preview = false
+
+[lint]
+# E4/E7/E9 + F are the ruff defaults (E501 line-length intentionally excluded --
+# formatting is owned by `ruff format`, not the linter). B = flake8-bugbear
+# (likely-bug patterns), S = flake8-bandit (security smells). Identical to the
+# reference's select list.
+select = ["E4", "E7", "E9", "F", "B", "S", "C4", "PERF", "SIM", "PTH", "RET", "RUF", "UP"]

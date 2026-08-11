@@ -8,14 +8,14 @@
 #   SIGNALWIRE_SPACE        - your SignalWire space (e.g. example.signalwire.com)
 
 require 'signalwire'
-require 'signalwire/rest/rest_client'  # opt-in subsystem (Python: from signalwire.rest import Client)
+require 'signalwire/rest/rest_client' # opt-in subsystem (Python: from signalwire.rest import Client)
 
 client = SignalWire::REST::RestClient.new
 
 # 1. Create an AI agent
 puts 'Creating AI agent...'
 agent = client.fabric.ai_agents.create(
-  name:   'Demo Support Bot',
+  name: 'Demo Support Bot',
   prompt: { 'text' => 'You are a friendly support agent for Acme Corp.' }
 )
 agent_id = agent['id']
@@ -40,8 +40,8 @@ puts "\nPlacing a test call..."
 begin
   result = client.calling.dial(
     from: '+15559876543',
-    to:    '+15551234567',
-    url:   'https://example.com/call-handler'
+    to: '+15551234567',
+    url: 'https://example.com/call-handler'
   )
   puts "  Call initiated: #{result}"
 rescue SignalWire::REST::SignalWireRestError => e

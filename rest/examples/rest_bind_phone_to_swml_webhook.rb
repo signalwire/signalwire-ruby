@@ -16,7 +16,7 @@
 #   SWML_WEBHOOK_URL        - your backend's SWML endpoint
 
 require 'signalwire'
-require 'signalwire/rest/rest_client'  # opt-in subsystem (Python: from signalwire.rest import Client)
+require 'signalwire/rest/rest_client' # opt-in subsystem (Python: from signalwire.rest import Client)
 
 pn_sid      = ENV.fetch('PHONE_NUMBER_SID', 'pn-00000000-0000-0000-0000-000000000000')
 webhook_url = ENV.fetch('SWML_WEBHOOK_URL', 'https://example.com/swml')
@@ -39,7 +39,7 @@ client.phone_numbers.set_swml_webhook(pn_sid, url: webhook_url)
 pn = client.phone_numbers.get(pn_sid)
 puts "  call_handler = #{pn['call_handler'].inspect}"
 puts "  call_relay_script_url = #{pn['call_relay_script_url'].inspect}"
-puts "  calling_handler_resource_id (server-derived) = " \
+puts '  calling_handler_resource_id (server-derived) = ' \
      "#{pn['calling_handler_resource_id'].inspect}"
 
 # To route to something other than an SWML webhook, use:

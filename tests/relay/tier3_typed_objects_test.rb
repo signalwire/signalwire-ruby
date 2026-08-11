@@ -57,7 +57,7 @@ module RelayTier3Helpers
   def dial_call(tag:, call_id:, devices:, states: %w[created answered])
     @mock.arm_dial(tag: tag, winner_call_id: call_id, states: states,
                    node_id: 'node-mock-1', device: phone_device_hash)
-    call = @client.dial(devices, tag: tag, timeout: 5)
+    call = @client.dial(devices, tag: tag, dial_timeout: 5)
 
     assert_kind_of R::Call, call
     assert_equal call_id, call.call_id
@@ -364,7 +364,7 @@ class RelayTier3StateEnumsTest < Minitest::Test
     call = dial_call(tag: 't-cs', call_id: 'C-CS', devices: [[phone_device_hash]])
 
     captured = []
-    call.on(R::EVENT_CALL_STATE) { |e| captured << e }
+    call.on(R::EVENT_CALL_STATE, nil) { |e| captured << e }
     # Dispatch a real ended state event (same path RelayClient uses).
     call._dispatch_event('event_type' => 'calling.call.state',
                          'params' => { 'call_id' => 'C-CS', 'call_state' => 'ended' })

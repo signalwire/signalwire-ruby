@@ -45,15 +45,17 @@ class SwmlBuilderTest < Minitest::Test
 
   def test_ai_pom_post_prompt_swaig_and_kwargs
     pom = [{ 'title' => 'Role' }]
+    # kwargs merge at the ai verb's TOP level, so they must be keys the closed
+    # ai schema declares -- LLM knobs like `temperature` go under `params`.
     @builder.ai(prompt_pom: pom, post_prompt: 'summarize', post_prompt_url: 'https://ex.com/pp',
-                swaig: { 'functions' => [] }, temperature: 0.4)
+                swaig: { 'functions' => [] }, params: { 'temperature' => 0.4 })
     cfg = main.first['ai']
 
     assert_equal({ 'pom' => pom }, cfg['prompt'])
     assert_equal({ 'text' => 'summarize' }, cfg['post_prompt'])
     assert_equal 'https://ex.com/pp', cfg['post_prompt_url']
     assert_equal({ 'functions' => [] }, cfg['SWAIG'])
-    assert_in_delta 0.4, cfg['temperature']
+    assert_in_delta 0.4, cfg['params']['temperature']
   end
 
   def test_play_url
@@ -63,9 +65,12 @@ class SwmlBuilderTest < Minitest::Test
   end
 
   def test_play_urls_list
-    @builder.play(urls: %w[a.mp3 b.mp3])
+    # `urls` entries must be real play URLs (http(s):, say:, ring:, silence:) --
+    # a bare filename is rejected by the SWML schema.
+    urls = %w[https://ex.com/a.mp3 say:and+now+this]
+    @builder.play(urls: urls)
 
-    assert_equal({ 'play' => { 'urls' => %w[a.mp3 b.mp3] } }, main.first)
+    assert_equal({ 'play' => { 'urls' => urls } }, main.first)
   end
 
   def test_play_requires_url_or_urls
@@ -103,6 +108,9 @@ class SwmlBuilderTest < Minitest::Test
   end
 
   def test_fluent_chaining_returns_self
+    # `reason` carries `x-sdk-widen: true`: the hangup|busy|decline union is a
+    # HINT and the platform accepts any string, so an out-of-union value like
+    # 'done' must still validate.
     result = @builder.reset.answer.say('hi').hangup(reason: 'done')
 
     assert_same @builder, result

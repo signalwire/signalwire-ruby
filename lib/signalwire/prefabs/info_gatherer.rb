@@ -8,7 +8,9 @@
 require_relative '../agent/agent_base'
 require_relative '../swaig/function_result'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Prefabs — ready-made agents assembled from the SDK's own building blocks.
   module Prefabs
     # Prefab agent for collecting answers to a series of questions.
     #
@@ -17,8 +19,8 @@ module SignalWire
     # +global_data+ so the served SWML actually drives the question flow. The
     # +submit_answer+ tool is a real state machine — it reads the current
     # +question_index+/+answers+ from the request's +global_data+, records the
-    # answer, advances the index, and returns the next question (or completion),
-    # mirroring the Python +InfoGathererAgent+.
+    # answer, advances the index, and returns the next question (or
+    # completion).
     #
     #   agent = InfoGatherer.new(
     #     questions: [
@@ -29,7 +31,7 @@ module SignalWire
     #
     class InfoGatherer < AgentBase
       # Fallback questions used in dynamic mode when no callback is registered
-      # or the callback raises (mirrors Python's fallback list).
+      # or the callback raises.
       FALLBACK_QUESTIONS = [
         { 'key_name' => 'name',    'question_text' => 'What is your name?' },
         { 'key_name' => 'message', 'question_text' => 'How can I help you today?' }
@@ -108,7 +110,7 @@ module SignalWire
 
       # Tool handler: start_questions. Reads the current question index from the
       # request's global_data and returns the corresponding question.
-      def handle_start(_args, raw_data = {})
+      def handle_start(_args, raw_data)
         gd = request_global_data(raw_data)
         questions = gd['questions']
         index     = gd['question_index']
@@ -126,7 +128,7 @@ module SignalWire
       # Tool handler: submit_answer. Real state machine — records the answer,
       # advances the index, and returns the next question (or completion),
       # persisting the updated state back into global_data.
-      def handle_submit(args, raw_data = {})
+      def handle_submit(args, raw_data)
         answer = args['answer'] || ''
         gd = request_global_data(raw_data)
         questions = gd['questions']
@@ -176,24 +178,31 @@ module SignalWire
                     } })
       end
 
+      # @api private — install the prefab's first prompt section on the agent.
       def build_info_gatherer_prompt
         section = prompt_sections.first
         prompt_add_section(section['title'], section['body'])
       end
 
+      # @api private — seed the question-flow state into the agent's `global_data`:
+      # the questions, a zero index and an empty answers list.
       def seed_static_global_data
         set_global_data(
           'questions' => @questions, 'question_index' => 0, 'answers' => []
         )
       end
 
+      # @api private — tune the AI verb's speech timing for a question-and-answer
+      # flow: an 800 ms end-of-speech timeout and a 1000 ms speech-event timeout, so
+      # the agent does not cut a considered answer short.
       def configure_agent_settings
         set_params('end_of_speech_timeout' => 800, 'speech_event_timeout' => 1000)
       end
 
-      # Pull the question-flow state out of a SWAIG request's global_data, with
-      # the same defaults Python uses. Accepts both the flat seed shape
-      # ({questions,question_index,answers}) and a nil/empty raw_data.
+      # Pull the question-flow state out of a SWAIG request's global_data,
+      # defaulting to the constructor's questions, index 0 and no answers.
+      # Accepts both the flat seed shape ({questions,question_index,answers})
+      # and a nil/empty raw_data.
       def request_global_data(raw_data)
         gd = (raw_data.is_a?(Hash) ? raw_data['global_data'] : nil) || {}
         {
@@ -218,12 +227,21 @@ module SignalWire
         result
       end
 
+      # @api private — the instruction the model receives for one question. The
+      # FIRST question carries a different lead-in, and a question needing
+      # confirmation appends the read-it-back directive.
+      #
+      # @return [String]
       def question_instruction(question_text, needs_confirmation, first:)
         "#{PROMPT_PREFIX[first ? :first : :next]}: #{question_text}\n\n" \
         'Make sure the answer fits the scope and context of the question before submitting it. ' +
           CONFIRM_TEXT[needs_confirmation ? true : false]
       end
 
+      # @api private — a non-empty Array whose every entry carries both a `key_name`
+      # and a `question_text` (either String- or Symbol-keyed).
+      #
+      # @raise [ArgumentError] naming the index of the offending question
       def validate_questions!(questions)
         raise ArgumentError, 'questions must be a non-empty Array' unless questions.is_a?(Array) && !questions.empty?
 
@@ -239,7 +257,7 @@ module SignalWire
       end
 
       # Invoke the per-request question callback, normalizing keys to strings.
-      # Falls back to FALLBACK_QUESTIONS on any error (matching Python).
+      # Falls back to FALLBACK_QUESTIONS on any error.
       def resolve_dynamic_questions(request_data, request)
         query_params = request_attr(request, :query_params)
         headers      = request_attr(request, :headers)
@@ -254,10 +272,19 @@ module SignalWire
         FALLBACK_QUESTIONS
       end
 
+      # @api private — read a named attribute off a request object, yielding an
+      # empty Hash when the object does not expose it or it is nil. Lets the
+      # question callback run against any request-like object.
+      #
+      # @return [Hash]
       def request_attr(request, name)
         (request.respond_to?(name) ? request.public_send(name) : nil) || {}
       end
 
+      # @api private — the initial question-flow state for a dynamically-resolved
+      # question list: the questions, a zero index and an empty answers list.
+      #
+      # @return [Hash]
       def fresh_global_data(questions)
         {
           'questions' => questions,

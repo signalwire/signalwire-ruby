@@ -40,7 +40,7 @@ class RelayActionsTestBase < Minitest::Test
   def answered_inbound_call(call_id = 'act-call-1')
     captured_q = Queue.new
     handler_done = Queue.new
-    @client.on_call { |call| _capture_answered_call(call, captured_q, handler_done) }
+    @client.on_call(nil) { |call| _capture_answered_call(call, captured_q, handler_done) }
     @mock.inbound_call(call_id: call_id, auto_states: ['created'])
     Timeout.timeout(5) { handler_done.pop }
     call = Timeout.timeout(5) { captured_q.pop }
@@ -545,5 +545,101 @@ class RelayConcurrentActionsTest < RelayActionsTestBase
 
     assert_predicate play_action, :done?
     refute_predicate record_action, :done?
+  end
+end
+
+# ---- API-name -> wire-key REMAP pins ---------------------------------
+#
+# The reference exposes seven keyword parameters in signalwire/relay/call.py
+# under one API name but puts them on the wire under a DIFFERENT key:
+#
+#   play()             media        -> "play"
+#   play_and_collect() media        -> "play"
+#   pay()              input_method -> "input"
+#   join_conference()  stream_obj   -> "stream"
+#   bind_digit()       bind_params  -> "params"
+#   ai()               ai_params    -> "params"
+#   amazon_bedrock()   ai_params    -> "params"
+#
+# Every construction-level test passes even when a port sends the WRONG key,
+# so each remap needs a wire-level assertion on the emitted frame. Ruby names
+# `media` positionally on #play / #play_and_collect and re-keys it to "play"
+# at the emitter; the other five ride the verbatim `**kwargs` bag, whose keys
+# are stringified unchanged — the wire key is a legal bag key at every site
+# (no collision with a Ruby parameter name), so each is reachable by writing
+# the wire key directly. These tests pin that reachability on the wire.
+class RelayRemapWireKeyTest < RelayActionsTestBase
+  def test_play_media_lands_under_play_key
+    call = answered_inbound_call('call-remap-play')
+    call.play([{ 'type' => 'tts', 'params' => { 'text' => 'hi' } }], control_id: 'remap-play')
+    p = recv('calling.play').last.frame['params']
+
+    assert_equal 'tts', p.dig('play', 0, 'type')
+    assert_nil p['media'], 'media must not appear on the wire; the key is "play"'
+  end
+
+  def test_play_and_collect_media_lands_under_play_key
+    call = answered_inbound_call('call-remap-pac')
+    call.play_and_collect([{ 'type' => 'tts', 'params' => { 'text' => 'Press 1' } }],
+                          { 'digits' => { 'max' => 1 } }, control_id: 'remap-pac')
+    p = recv('calling.play_and_collect').last.frame['params']
+
+    assert_equal 'tts', p.dig('play', 0, 'type')
+    assert_nil p['media'], 'media must not appear on the wire; the key is "play"'
+  end
+
+  def test_pay_input_method_lands_under_input_key
+    call = answered_inbound_call('call-remap-pay')
+    call.pay(payment_connector_url: 'https://pay.example/connect',
+             control_id: 'remap-pay', input: 'dtmf')
+    p = recv('calling.pay').last.frame['params']
+
+    assert_equal 'dtmf', p['input'], 'pay input_method must ride the wire key "input"'
+    assert_nil p['input_method'], 'input_method is the API name, not the wire key'
+  end
+
+  def test_join_conference_stream_obj_lands_under_stream_key
+    call = answered_inbound_call('call-remap-conf')
+    stream = { 'url' => 'wss://stream.example/live' }
+    call.join_conference(name: 'remap-conf', stream: stream)
+    p = recv('calling.join_conference').last.frame['params']
+
+    assert_equal 'remap-conf', p['name']
+    assert_equal stream, p['stream'], 'join_conference stream_obj must ride the wire key "stream"'
+    assert_nil p['stream_obj'], 'stream_obj is the API name, not the wire key'
+  end
+
+  def test_bind_digit_bind_params_lands_under_params_key
+    call = answered_inbound_call('call-remap-bind')
+    bind_params = { 'realm' => 'demo', 'foo' => 'bar' }
+    call.bind_digit(digits: '123', bind_method: 'calling.play', params: bind_params)
+    p = recv('calling.bind_digit').last.frame['params']
+
+    assert_equal '123', p['digits']
+    assert_equal 'calling.play', p['bind_method']
+    assert_equal bind_params, p['params'], 'bind_digit bind_params must ride the wire key "params"'
+    assert_nil p['bind_params'], 'bind_params is the API name, not the wire key'
+  end
+
+  def test_ai_ai_params_lands_under_params_key
+    call = answered_inbound_call('call-remap-ai')
+    ai_params = { 'temperature' => 0.7 }
+    call.ai(prompt: { 'text' => 'You are helpful.' }, control_id: 'remap-ai', params: ai_params)
+    p = recv('calling.ai').last.frame['params']
+
+    assert_equal({ 'text' => 'You are helpful.' }, p['prompt'])
+    assert_equal ai_params, p['params'], 'ai ai_params must ride the wire key "params"'
+    assert_nil p['ai_params'], 'ai_params is the API name, not the wire key'
+  end
+
+  def test_amazon_bedrock_ai_params_lands_under_params_key
+    call = answered_inbound_call('call-remap-bedrock')
+    ai_params = { 'model' => 'anthropic.claude' }
+    call.amazon_bedrock(prompt: { 'text' => 'You are helpful.' }, params: ai_params)
+    p = recv('calling.amazon_bedrock').last.frame['params']
+
+    assert_equal({ 'text' => 'You are helpful.' }, p['prompt'])
+    assert_equal ai_params, p['params'], 'amazon_bedrock ai_params must ride the wire key "params"'
+    assert_nil p['ai_params'], 'ai_params is the API name, not the wire key'
   end
 end

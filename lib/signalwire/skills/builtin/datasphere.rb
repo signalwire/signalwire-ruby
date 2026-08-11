@@ -8,8 +8,11 @@ require 'base64'
 require_relative '../skill_base'
 require_relative '../skill_registry'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Skills — the modular capability framework: skill base, registry, manager, builtins.
   module Skills
+    # Builtin — the skills that ship with the SDK, registered by name at load time.
     module Builtin
       # Private mixin holding {DatasphereSkill}'s param parsing, URL building,
       # search HTTP call, and response formatting. Extracted purely to keep the
@@ -22,6 +25,10 @@ module SignalWire
 
         private
 
+        # @api private — read the skill's configuration: the space, credentials
+        # (falling back to `SIGNALWIRE_PROJECT_ID` / `SIGNALWIRE_API_TOKEN`), the
+        # document to search, the result count and distance threshold, the tool name,
+        # optional tags, and the message spoken when nothing matches.
         def read_params
           @space_name  = get_param('space_name')
           @project_id  = get_param('project_id', env_var: 'SIGNALWIRE_PROJECT_ID')
@@ -34,6 +41,8 @@ module SignalWire
           @no_results_msg = get_param('no_results_message', default: DEFAULT_NO_RESULTS_MESSAGE)
         end
 
+        # @api private — the prompt bullets, naming this instance's CONFIGURED tool
+        # name so the model refers to the tool it will actually be offered.
         def prompt_section_bullets
           [
             "Use the #{tool_name} tool when users ask for information that might be in the knowledge base",
@@ -50,6 +59,11 @@ module SignalWire
           resolved_base_url('DATASPHERE_BASE_URL', "https://#{space_name}.signalwire.com")
         end
 
+        # @api private — the search handler: POST the query to DataSphere and format
+        # the chunks. An empty query, a non-2xx response, or a raised error each become
+        # a spoken FunctionResult rather than an exception.
+        #
+        # @return [Swaig::FunctionResult]
         def handle_search(args, _raw_data)
           query = (args['query'] || '').strip
           return Swaig::FunctionResult.new('Please provide a search query.') if query.empty?
@@ -64,6 +78,10 @@ module SignalWire
           Swaig::FunctionResult.new("Error searching knowledge base: #{e.message}")
         end
 
+        # @api private — POST the search: the document id, query string, distance
+        # threshold and count, plus `tags` when configured.
+        #
+        # @return [Net::HTTPResponse]
         def post_search(query)
           payload = {
             'document_id' => document_id, 'query_string' => query,
@@ -75,12 +93,20 @@ module SignalWire
           http_for(uri).request(build_search_request(uri, payload))
         end
 
+        # @api private — the Net::HTTP transport for +uri+, with TLS on for an https
+        # scheme (so a plain-http test endpoint still works).
+        #
+        # @return [Net::HTTP]
         def http_for(uri)
           http = Net::HTTP.new(uri.host, uri.port)
           http.use_ssl = (uri.scheme == 'https')
           http
         end
 
+        # @api private — the DataSphere search request: JSON content/accept types,
+        # HTTP-basic auth from the project id and token, and the payload as the body.
+        #
+        # @return [Net::HTTP::Post]
         def build_search_request(uri, payload)
           req = Net::HTTP::Post.new(uri.path)
           req['Content-Type'] = 'application/json'
@@ -90,6 +116,12 @@ module SignalWire
           req
         end
 
+        # @api private — render the search response for the model. Chunks arrive under
+        # `chunks` from DataSphere itself and under `results` from some upstream
+        # shapes, so BOTH keys are accepted. No chunks yields the configured
+        # no-results message.
+        #
+        # @return [Swaig::FunctionResult]
         def format_search_response(data, query)
           # Real DataSphere uses `chunks`; audit fixtures also serve `results`
           # (real-shape upstream-response variation). Accept both shapes.
@@ -101,6 +133,11 @@ module SignalWire
           )
         end
 
+        # @api private — render each chunk as a numbered, delimited block. The text is
+        # read from `text`, `content` or `chunk`, falling back to the raw JSON so an
+        # unexpected shape is still shown rather than silently dropped.
+        #
+        # @return [String]
         def format_chunks(chunks)
           chunks.each_with_index.map do |chunk, i|
             text = chunk['text'] || chunk['content'] || chunk['chunk'] || chunk.to_json
@@ -109,16 +146,34 @@ module SignalWire
         end
       end
 
+      # Search a SignalWire DataSphere document from the agent, over the platform's
+      # RAG search endpoint. Requires a space, project credentials and a document id;
+      # the skill refuses to load without all four.
       class DatasphereSkill < SkillBase
         include DatasphereSearch
 
         TOOL_DESCRIPTION =
           'Search the knowledge base for information on any topic and return relevant results'
 
+        # The name this skill is added under (`agent.add_skill('datasphere')`).
+        #
+        # @return [String]
         def name = 'datasphere'
+        # Human-readable summary of what the skill does, for skill listings.
+        #
+        # @return [String]
         def description = 'Search knowledge using SignalWire DataSphere RAG stack'
+        # This skill may be loaded more than once on one agent — each instance
+        # is distinguished by its `prefix` param, which also namespaces its
+        # tools and its slice of `global_data`.
+        #
+        # @return [Boolean] true
         def supports_multiple_instances? = true
 
+        # Called once after construction. Return false to abort loading — the
+        # agent then refuses to register this skill's tools.
+        #
+        # @return [Boolean] true when the skill is ready to run
         def setup
           read_params
 
@@ -130,6 +185,10 @@ module SignalWire
           true
         end
 
+        # The key this instance is tracked under — `datasphere_<tool_name>` — so several
+        # instances can coexist on one agent without colliding.
+        #
+        # @return [String]
         def instance_key = "datasphere_#{tool_name}"
 
         # Tears down the skill. A fresh Net::HTTP connection is opened per
@@ -142,6 +201,12 @@ module SignalWire
           nil
         end
 
+        # The SWAIG tool definitions this skill contributes to its agent. Each
+        # entry is a `{name:, description:, parameters:, handler:}` hash; the
+        # descriptions are what the model reads to decide when and how to call
+        # the tool.
+        #
+        # @return [Array<Hash>]
         def register_tools
           [
             {
@@ -158,6 +223,10 @@ module SignalWire
         # Returns [] — this skill ships no example hints.
         def get_hints = []
 
+        # Data this skill merges into the agent's `global_data`, so its prompts
+        # and tools can reference the values as `${global_data.*}`.
+        #
+        # @return [Hash]
         def get_global_data
           {
             'datasphere_enabled' => true,
@@ -166,6 +235,11 @@ module SignalWire
           }
         end
 
+        # The POM sections this skill contributes to the agent's prompt,
+        # teaching the model when to reach for the skill's tools. Returned as
+        # fresh copies, so a caller mutating them does not corrupt skill state.
+        #
+        # @return [Array<Hash>]
         def get_prompt_sections
           [
             {
@@ -176,6 +250,10 @@ module SignalWire
           ]
         end
 
+        # The JSON-Schema description of this skill's configuration params, for
+        # GUI and validation consumers.
+        #
+        # @return [Hash]
         def get_parameter_schema
           {
             'space_name' => { 'type' => 'string', 'required' => true },

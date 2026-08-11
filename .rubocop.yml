@@ -23,34 +23,15 @@ AllCops:
   TargetRubyVersion: 3.2
   SuggestExtensions: false
   Exclude:
-    # Demo programs, not library surface — excluded from the blocking gate the way
-    # signalwire-go tags its examples //go:build ignore. They are not part of the
-    # audited public surface and are free to read as tutorial-style code.
-    - 'examples/**/*'
-    - 'relay/examples/**/*'
-    - 'rest/examples/**/*'
+    # THIRD-PARTY code we do not own. This is the ONLY directory-level carve-out.
+    # Everything else in this repo — lib/, tests/, examples/, relay/examples/,
+    # rest/examples/, bin/ (including the *-dump programs), scripts/ — is linted
+    # and formatted at the SAME bar as the shipped library. Owner ruling
+    # 2026-07-30: "examples and tests are shipping code too ... all at the levels
+    # the shipping code gets." The prior "tutorial-style / not audited public
+    # surface" rationale was about PUBLIC-SURFACE AUDITING, not about whether the
+    # code should be well-formed; it is not a reason to hold it below the bar.
     - 'vendor/**/*'
-    # Layer-D cross-port dump programs (bin/*-dump) — the per-surface behavioral
-    # differ tooling, mirroring the Go reference's cmd/*-dump. Tutorial-style
-    # port-native dispatch programs, not audited library surface; same rationale
-    # as examples/ above and go's //go:build ignore dumps.
-    - 'bin/wire-dump'
-    - 'bin/swml-dump'
-    - 'bin/state-dump'
-    - 'bin/http-dump'
-    - 'bin/envelope-dump'
-    - 'bin/wire-relay-dump'
-    - 'bin/wait-liveness-dump'
-    - 'bin/secure-default-dump'
-    - 'bin/relay-liveness-dump'
-    - 'bin/pagination-dump'
-    - 'bin/secret-scrub-dump'
-    - 'bin/ai-chat-dump'
-    # Cross-port gate fixture-replay tooling, same category as the bin/*-dump
-    # programs above: doc_wire_runner.rb only DRIVES the documented REST calls
-    # against the DOC-WIRE flag-mode mock so it journals the wire shape. Not
-    # audited library surface.
-    - 'scripts/doc_wire_runner.rb'
     # NOTE: the machine-generated trees (REST resource layer, READ-SIDE typed
     # payload trees, and the full-mock REST wire-test suite) are DELIBERATELY NOT
     # excluded here — generated code is linted like hand-written code so a
@@ -195,6 +176,38 @@ Metrics/ModuleLength:
 Metrics/MethodLength:
   Exclude:
     - 'lib/signalwire/skills/builtin/mcp_gateway.rb'
+    # signature_dump.rb's Ripper default-value extractor: same DATA-SHAPE (not
+    # logic) rationale. Its size is a 1:1 DISPATCH over Ruby's literal AST node
+    # types (int/float/keyword/string/symbol/array/hash), one arm per node kind
+    # the parser can emit. The arms were already extracted into named
+    # per-node-type helpers (ripper_string_literal / ripper_array_literal /
+    # ripper_hash_literal / ...); what remains is the irreducible dispatch itself
+    # plus each helper's exhaustive shape-guard chain. Splitting further would
+    # scatter one node type's handling across two methods and make it HARDER to
+    # confirm the extractor rejects every non-literal — which is the property
+    # that keeps it from emitting a fabricated default. Size only; no naming or
+    # type idiom is being suppressed.
+    - 'scripts/signature_dump.rb'
+
+# Same scope + same rationale as the Metrics/MethodLength entry above, for the
+# same file. A literal-AST extractor's "complexity" is entirely SHAPE-GUARDING:
+# every branch asks "is this node actually the literal it looks like?" (is it an
+# Array, is its head the expected tag, does a string contain an interpolation,
+# is every array element itself a literal). Those guards are the correctness
+# property — each one is a place the extractor declines to invent a value it
+# cannot prove — so collapsing them to satisfy a branch count would trade the
+# gate's honesty for a metric. Scoped to this file only.
+Metrics/CyclomaticComplexity:
+  Exclude:
+    - 'scripts/signature_dump.rb'
+
+Metrics/PerceivedComplexity:
+  Exclude:
+    - 'scripts/signature_dump.rb'
+
+Metrics/AbcSize:
+  Exclude:
+    - 'scripts/signature_dump.rb'
 
 # Prefer keyword args for boolean defaults — a good cop in general, but a known
 # false positive on FLUENT SINGLE-ARGUMENT TOGGLES, which is exactly these sites:

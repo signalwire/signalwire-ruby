@@ -6,7 +6,9 @@ require_relative 'pagination'
 require_relative 'phone_call_handler'
 require_relative 'namespaces/generated'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # REST — the synchronous REST client and its per-namespace resources.
   module REST
     # REST client for the SignalWire platform APIs.
     #
@@ -95,6 +97,12 @@ module SignalWire
         Namespaces::Generated::ResourceTree.instance_methods(false).each { |m| send(m) }
       end
 
+      # @api private — fail before any request when the project, token, or endpoint
+      # is missing. An explicit `base_url` substitutes for the space, which is what
+      # lets a client be pointed at a local endpoint without one. The error names
+      # every environment variable, so the failure is self-diagnosing.
+      #
+      # @raise [ArgumentError]
       def validate_credentials!(project_id, api_token, space, base_url)
         return unless project_id.empty? || api_token.empty? ||
                       (space.empty? && (base_url.nil? || base_url.empty?))

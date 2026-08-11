@@ -9,13 +9,14 @@
 # AUTO-GENERATED from the SignalWire REST API specifications — regenerate with:
 #   python3 scripts/generate_rest.py
 #
-# Generated REST client container for the logs namespace (§8).
+# Generated REST client container for the logs namespace.
 
 module SignalWire
   module REST
     module Namespaces
       module Generated
-        # LogsNamespace — generated container grouping the logs namespace resources (§8).
+        # LogsNamespace — groups the logs namespace resources; each is exposed
+        # as a memoized reader on this container.
         class LogsNamespace
           attr_reader :conferences, :messages, :voice, :fax
 

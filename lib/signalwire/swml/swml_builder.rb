@@ -9,18 +9,16 @@
 #
 # Provides a fluent builder API for creating SWML documents by chaining method
 # calls. It delegates to an underlying SWML::Service instance for the actual
-# document creation, mirroring the Python reference
-# signalwire.core.swml_builder.SWMLBuilder (which wraps an SWMLService) and the
-# PHP SignalWire\SWML\SWMLBuilder.
+# document creation.
 
 module SignalWire
+  # SWML — SWML document construction, rendering and serving.
   module SWML
     # Fluent builder for SWML documents.
     #
     # The explicit verb helpers (#answer, #hangup, #play, #ai, #say) cover the
     # common verbs; every other schema verb is auto-vivified through
-    # #method_missing (e.g. +builder.denoise.goto(...)+), the Ruby analog of the
-    # Python reference's runtime +__getattr__+ verb dispatch.
+    # #method_missing (e.g. +builder.denoise.goto(...)+).
     class SWMLBuilder
       # Initialize with a SWML::Service instance to delegate to.
       #
@@ -41,8 +39,7 @@ module SignalWire
         config = {}
         config['max_duration'] = max_duration unless max_duration.nil?
         config['codecs'] = codecs unless codecs.nil?
-        @service.document.add_verb('answer', config)
-        self
+        add_verb('answer', config)
       end
 
       # Add a 'hangup' verb to the main section.
@@ -52,8 +49,7 @@ module SignalWire
       def hangup(reason: nil)
         config = {}
         config['reason'] = reason unless reason.nil?
-        @service.document.add_verb('hangup', config)
-        self
+        add_verb('hangup', config)
       end
 
       # Add an 'ai' verb to the main section.
@@ -75,7 +71,7 @@ module SignalWire
         config['prompt'] = ai_prompt(prompt_text, prompt_pom) unless prompt_text.nil? && prompt_pom.nil?
         config['post_prompt'] = { 'text' => post_prompt } unless post_prompt.nil?
         put(config, 'post_prompt_url' => post_prompt_url, 'SWAIG' => swaig)
-        # Merge any additional kwargs (parity with Python's config.update(kwargs)).
+        # Merge any additional kwargs into the config, stringifying their keys.
         kwargs.each { |key, value| config[key.to_s] = value }
 
         add_verb('ai', config)
@@ -100,8 +96,7 @@ module SignalWire
         config['say_gender'] = say_gender unless say_gender.nil?
         config['auto_answer'] = auto_answer unless auto_answer.nil?
 
-        @service.document.add_verb('play', config)
-        self
+        add_verb('play', config)
       end
 
       # Add a 'play' verb with a +say:+ prefix for text-to-speech.
@@ -150,24 +145,22 @@ module SignalWire
 
       # Auto-vivify SWML verb methods from the schema.
       #
-      # This is the Ruby analog of the Python reference's +__getattr__+ runtime
-      # verb dispatch: any schema verb name not covered by an explicit method
-      # above is dispatched to the underlying document, returning +self+ for
-      # chaining (e.g. +builder.denoise.record+, +builder.sleep(2000)+).
+      # Any schema verb name not covered by an explicit method above is
+      # dispatched to the underlying document, returning +self+ for chaining
+      # (e.g. +builder.denoise.record+, +builder.sleep(2000)+).
       def method_missing(method_name, *args, **kwargs)
         verb = method_name.to_s
         return super unless SWML.schema.valid_verb?(verb)
 
         if verb == 'sleep'
-          @service.document.add_verb('sleep', sleep_duration(args, kwargs))
+          add_verb('sleep', sleep_duration(args, kwargs))
         else
-          @service.document.add_verb(verb, SWML._verb_config(verb, args, kwargs))
+          add_verb(verb, SWML._verb_config(verb, args, kwargs))
         end
-        self
       end
 
-      # Report the auto-vivified verbs as respondable (Ruby analog of Python's
-      # +__getattr__+ making verb names look like real attributes).
+      # Report the auto-vivified verbs as respondable, so +respond_to?+ answers
+      # true for any valid schema verb name.
       def respond_to_missing?(method_name, include_private = false)
         SWML.schema.valid_verb?(method_name.to_s) || super
       end
@@ -180,8 +173,15 @@ module SignalWire
       end
 
       # Add a verb to the underlying document and return self for chaining.
+      #
+      # Every builder verb funnels through here and through the *validating*
+      # Service#add_verb — never the raw Document entry point. The raw path
+      # writes whatever it is handed, which is how schema-invalid configs
+      # (a +play+ with a +text+ key, a +hangup+ with a reason outside the
+      # closed +hangup|busy|decline+ enum) shipped unnoticed. A rejected
+      # config now raises SchemaValidationError at build time.
       def add_verb(name, config)
-        @service.document.add_verb(name, config)
+        @service.add_verb(name, config)
         self
       end
 
