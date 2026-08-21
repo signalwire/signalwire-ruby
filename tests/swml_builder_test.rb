@@ -108,10 +108,10 @@ class SwmlBuilderTest < Minitest::Test
   end
 
   def test_fluent_chaining_returns_self
-    # `reason` carries `x-sdk-widen: true`: the hangup|busy|decline union is a
-    # HINT and the platform accepts any string, so an out-of-union value like
-    # 'done' must still validate.
-    result = @builder.reset.answer.say('hi').hangup(reason: 'done')
+    # `reason` is the engine's closed six-value set (relay_apis.c:1105);
+    # 'noAnswer' is one of them and was absent from the schema's old
+    # hangup|busy|decline union.
+    result = @builder.reset.answer.say('hi').hangup(reason: 'noAnswer')
 
     assert_same @builder, result
     assert_equal(%w[answer play hangup], main.map { |v| v.keys.first })

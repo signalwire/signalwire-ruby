@@ -57,11 +57,6 @@ module SignalWire
         'boolean' => 'bool', 'object' => 'Dict[str, Any]'
       }.freeze
 
-      # Keywords stripped from a property whose value set is advisory, before
-      # the full validator is built — the ones that pin it to a fixed set of
-      # values. See {#apply_sdk_widen}.
-      WIDEN_STRIPPED_KEYS = %w[anyOf oneOf enum const x-sdk-enum-literal].freeze
-
       # @return [Hash{String=>Object}] parsed JSON Schema document
       attr_reader :schema
 
@@ -392,55 +387,12 @@ module SignalWire
       # so record why rather than degrading to the lightweight check.
       def compile_full_validator
         @full_validator = JSONSchemer.schema(
-          apply_sdk_widen(@schema), meta_schema: 'https://json-schema.org/draft/2020-12/schema'
+          @schema, meta_schema: 'https://json-schema.org/draft/2020-12/schema'
         )
       rescue StandardError => e
         @validator_unavailable_reason =
           "the JSON Schema failed to compile (#{e.class}: #{e.message})"
         @full_validator = nil
-      end
-
-      # Some schema properties mark their `enum`/`const` union as advisory: the
-      # listed values are the documented ones, but the platform accepts any
-      # value of the same base scalar type. `hangup.reason` is the standing
-      # example — the `hangup|busy|decline` union is a hint, and any string is
-      # valid on the wire.
-      #
-      # Validating against the raw union would make this SDK reject documents
-      # the platform accepts, so the constraint is dropped on marked properties
-      # before the validator is built. Returns a widened copy; the schema itself
-      # is untouched, so callers reading it still see the documented values.
-      #
-      # @return [Hash, Array, Object]
-      def apply_sdk_widen(node)
-        return node.map { |item| apply_sdk_widen(item) } if node.is_a?(Array)
-        return node unless node.is_a?(Hash)
-        return widened_scalar(node) if node['x-sdk-widen']
-
-        node.transform_values { |value| apply_sdk_widen(value) }
-      end
-
-      # @api private — a widened copy of one marked property: the constraint
-      # keywords that pin it to a fixed value set are removed, leaving the base
-      # scalar type (recovered from the const-union's members when the property
-      # states no `type` of its own).
-      #
-      # @return [Hash]
-      def widened_scalar(node)
-        widened = node.except(*WIDEN_STRIPPED_KEYS)
-        widened['type'] ||= widen_base_type(node)
-        widened.compact
-      end
-
-      # @api private — the base scalar type a const-union widens to: whatever
-      # `type` its branches agree on, or nil when they do not agree (leaving the
-      # property unconstrained rather than guessing).
-      #
-      # @return [String, nil]
-      def widen_base_type(node)
-        branches = node['anyOf'] || node['oneOf'] || []
-        types = branches.grep(Hash).filter_map { |b| b['type'] }.uniq
-        types.length == 1 ? types.first : nil
       end
 
       # Full JSON Schema validation via json_schemer: wrap the verb in a

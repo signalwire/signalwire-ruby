@@ -35,8 +35,8 @@ class BedrockAgentTest < Minitest::Test
   end
 
   # `voice_id` is a CLOSED enum of the five Bedrock voices
-  # (tiffany|matthew|amy|lupe|carlos) and carries no `x-sdk-widen` marker, so a
-  # Polly voice name is not a value the platform accepts here.
+  # (tiffany|matthew|amy|lupe|carlos), so a Polly voice name is not a value the
+  # platform accepts here.
   def test_voice_and_inference_params_in_prompt
     agent = SignalWire::Agents::BedrockAgent.new(voice_id: 'amy', temperature: 0.3, top_p: 0.8)
     agent.set_prompt_text('Hi')

@@ -161,9 +161,9 @@ class SwmlRendererFunctionResponseTest < Minitest::Test
   # reference), so a schema-invalid action config raises instead of silently
   # landing in the document.
   #
-  # Note the example is an UNKNOWN KEY, not an out-of-enum `reason`:
-  # `hangup.reason` carries `x-sdk-widen: true`, so any string is accepted
-  # there and would NOT make a usable negative case.
+  # The example is an UNKNOWN KEY. An out-of-enum `reason` would work as a
+  # negative case too now that hangup.reason enforces the engine's six values,
+  # but the unknown-key case additionally pins the closed-schema check.
   def test_function_response_rejects_schema_invalid_action
     assert_raises(SignalWire::Utils::SchemaValidationError) do
       SignalWire::SWML::SwmlRenderer.render_function_response_swml(

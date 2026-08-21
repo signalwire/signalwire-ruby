@@ -626,49 +626,75 @@ class TimingSafeAuthTest < Minitest::Test
   end
 end
 
-# `x-sdk-widen: true` declares that a property's enum/const union is only a HINT
-# and the platform accepts any value of the base scalar type. Validating against
-# the raw union would make the SDK reject documents the platform accepts.
-class SchemaWidenTest < Minitest::Test
+# `hangup.reason` is a CLOSED set of six values, because that is what the engine
+# enforces: mod_infrastructure/relay_apis.c:1105 states
+#   JSON_CHECK_STRING_MATCHES_OPTIONAL(reason, "hangup,cancel,busy,noAnswer,decline,error")
+# and a non-match is a hard reject (libks ks_json_check.h sets *error_msg and
+# returns 0). The SWML layer types the field as a bare string
+# (swml_schema.c:1571) and swml.c forwards it verbatim into the `end` RPC on the
+# same call, so the contract a document must satisfy is the COMPOSITION of the
+# two layers.
+#
+# This replaces SchemaWidenTest, which asserted that an arbitrary reason such as
+# 'done' must validate. The engine refuses it, so that test pinned a bug.
+class HangupReasonTest < Minitest::Test
+  # The six values from relay_apis.c:1105, in source order. Note the camelCase
+  # 'noAnswer' -- 'no_answer' is NOT an engine value in any spelling.
+  ENGINE_REASONS = %w[hangup cancel busy noAnswer decline error].freeze
+
   def setup
-    @svc = SignalWire::SWML::Service.new(name: 'widen')
+    @svc = SignalWire::SWML::Service.new(name: 'hangup-reason')
   end
 
-  # hangup.reason carries the marker: any string must pass, in-union or not.
-  def test_widened_enum_accepts_out_of_union_string
-    assert @svc.add_verb('hangup', { 'reason' => 'done' })
-    assert @svc.add_verb('hangup', { 'reason' => 'busy' })
+  # cancel, noAnswer and error were absent from the old three-const union and
+  # validated only because the widen transform removed the constraint.
+  def test_every_engine_reason_validates
+    ENGINE_REASONS.each do |reason|
+      assert @svc.add_verb('hangup', { 'reason' => reason }),
+             "hangup.reason=#{reason} is accepted by relay_apis.c:1105"
+    end
   end
 
-  # Widening drops the value set, NOT the base type -- a non-string still fails.
-  def test_widened_enum_still_enforces_base_type
+  # The behaviour change, and it is intended: these previously validated.
+  # Rejecting locally is STRICTER and correct -- the caller gets a clear
+  # client-side error instead of an opaque server-side call failure.
+  def test_non_engine_reason_is_rejected
+    %w[done no_answer some_future_reason].each do |reason|
+      assert_raises(SignalWire::Utils::SchemaValidationError,
+                    "hangup.reason=#{reason} is refused by relay_apis.c:1105") do
+        @svc.add_verb('hangup', { 'reason' => reason })
+      end
+    end
+  end
+
+  # A non-string still fails, so the enum did not become the only check.
+  def test_reason_still_enforces_base_type
     assert_raises(SignalWire::Utils::SchemaValidationError) do
       @svc.add_verb('hangup', { 'reason' => 123 })
     end
   end
 
-  # Widening one property must not open the verb to unknown keys.
-  def test_widened_verb_still_rejects_unknown_keys
+  def test_verb_still_rejects_unknown_keys
     assert_raises(SignalWire::Utils::SchemaValidationError) do
       @svc.add_verb('hangup', { 'bogus_key' => 'x' })
     end
   end
 
-  # A property WITHOUT the marker keeps its constraint: play.urls entries must
-  # be real play URLs, so a bare filename is still rejected.
-  def test_unwidened_property_keeps_its_constraint
+  # Blast radius: removing the widen transform must not have changed validation
+  # anywhere else.
+  def test_other_properties_keep_their_constraints
     assert_raises(SignalWire::Utils::SchemaValidationError) do
       @svc.add_verb('play', { 'urls' => ['a.mp3'] })
     end
   end
 
-  # The marker is a VALIDATION-time widening only; the raw schema keeps the
-  # union so code-gen still sees the hint.
-  def test_raw_schema_keeps_the_enum_hint_for_codegen
+  # Guard the artifact, so a re-vendor that reintroduces the three-value union
+  # or the marker is caught here rather than only through behaviour.
+  def test_schema_publishes_the_engine_values
     reason = SignalWire::Utils::SchemaUtils.new.schema
                                            .dig('$defs', 'Hangup', 'properties', 'hangup', 'properties', 'reason')
 
-    assert reason['x-sdk-widen'], 'expected the widen marker on hangup.reason'
-    assert_equal(%w[hangup busy decline], reason['anyOf'].map { |b| b['const'] })
+    refute reason.key?('x-sdk-widen'), 'the widen marker must be gone from hangup.reason'
+    assert_equal ENGINE_REASONS, reason['enum']
   end
 end
