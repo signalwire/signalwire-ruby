@@ -282,12 +282,17 @@ module RelayMockTest
     # Inject an inbound call announcement. Targets this harness's session by
     # default so the inbound-call sequence is delivered only to this test's
     # client; an explicit +session_id+ overrides (unscoped harness broadcasts).
+    # +redeliver_receive+ replays the calling.call.receive frame that many EXTRA
+    # times (byte-identical, before the state frames) to drive RELAY's
+    # at-least-once delivery. See porting-sdk RELAY_IMPLEMENTATION_GUIDE.md.
     def inbound_call(call_id: nil, from_number: '+15551234567',
                      to_number: '+15559876543', context: 'default',
-                     auto_states: nil, delay_ms: 50, session_id: nil)
+                     auto_states: nil, delay_ms: 50, session_id: nil,
+                     redeliver_receive: 0)
       body = {
         'from_number' => from_number, 'to_number' => to_number, 'context' => context,
-        'auto_states' => auto_states || ['created'], 'delay_ms' => delay_ms
+        'auto_states' => auto_states || ['created'], 'delay_ms' => delay_ms,
+        'redeliver_receive' => redeliver_receive
       }
       body['call_id'] = call_id unless call_id.nil?
       sid = session_id || @session_id

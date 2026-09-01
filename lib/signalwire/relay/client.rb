@@ -810,7 +810,9 @@ module SignalWire
 
       def handle_inbound_call(payload)
         event_params = payload['params'] || {}
-        return if max_active_calls_reached?
+        # Dedup FIRST (short-circuit): a redelivery for a call already in the
+        # map is not a new call, so it must never be counted against the cap.
+        return if redelivered_receive?(event_params['call_id']) || max_active_calls_reached?
 
         call = build_inbound_call(event_params)
         @calls_mutex.synchronize { @calls[call.call_id] = call }
@@ -822,6 +824,23 @@ module SignalWire
         rescue StandardError => e
           warn "[RELAY] Error in on_call handler: #{e.message}"
         end
+      end
+
+      # True when +call_id+ is already tracked, i.e. RELAY redelivered a
+      # calling.call.receive for a call already in flight (it delivers at least
+      # once). Receive is idempotent per call_id: the live instance is kept and
+      # the on_call handler is NOT re-entered. Replacing the map entry would
+      # orphan the Call the application is holding -- routing only ever reads
+      # @calls by call_id, so the original would silently stop receiving events
+      # and a blocking action on it would wait out its timeout instead of
+      # returning at hangup. The event is ACKed by the recv loop before this
+      # runs, so returning early still stops the server's retries.
+      def redelivered_receive?(call_id)
+        return false if call_id.nil?
+
+        in_flight = @calls_mutex.synchronize { @calls.key?(call_id) }
+        warn "[RELAY] Ignoring redelivered calling.call.receive for in-flight call #{call_id}" if in_flight
+        in_flight
       end
 
       # True when the configured max_active_calls cap is reached, so the N+1th

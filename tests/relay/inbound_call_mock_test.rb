@@ -89,6 +89,36 @@ module RelayInboundCallHelpers
     sleep 0.02 until yield || Time.now > deadline
   end
 
+  # Drive a redelivered inbound call: register a collecting on_call handler,
+  # fire one inbound call whose receive frame is replayed once, and return
+  # [first_call, handler_calls_queue] once the frames have drained.
+  def drive_redelivered_inbound(call_id)
+    handler_calls = Queue.new
+    @client.on_call { |call| handler_calls.push(call) }
+    @mock.inbound_call(call_id: call_id, auto_states: %w[ringing answered],
+                       delay_ms: 20, redeliver_receive: 1)
+    first = Timeout.timeout(TIMEOUT) { handler_calls.pop }
+    sleep 0.4 # let the redelivery and the trailing state frame drain
+    [first, handler_calls]
+  end
+
+  # Assert the mock really put +count+ calling.call.receive frames for +call_id+
+  # on the wire -- without it a redelivery test could pass vacuously because
+  # the scenario under test never happened.
+  def assert_receives_on_wire(call_id, count)
+    receives = @mock.journal_send(event_type: 'calling.call.receive').select do |s|
+      s.frame['params']['params']['call_id'] == call_id
+    end
+
+    assert_equal count, receives.size,
+                 'mock did not redeliver the receive frame; the scenario never happened'
+  end
+
+  # The Call the client currently tracks under +call_id+.
+  def tracked_call(call_id)
+    @client.send(:instance_variable_get, :@calls)[call_id]
+  end
+
   # Assert a frame for +method+ was journalled and (optionally) carries call_id.
   def assert_journalled(method, call_id: nil)
     frames = @mock.journal_recv(method: method)
@@ -332,6 +362,45 @@ class RelayInboundCallFlowMockTest < Minitest::Test
 
     assert_equal 'c-wire',  inner['call_id']
     assert_equal 'inbound', inner['direction']
+  end
+
+  # ---- Redelivered calling.call.receive (porting-sdk#141) --------------
+  #
+  # RELAY delivers at least once: the same receive frame can arrive twice for
+  # one call. Receive must therefore be idempotent per call_id -- see the
+  # "Event Redelivery" section of porting-sdk's RELAY_IMPLEMENTATION_GUIDE.md.
+
+  # Without the idempotency guard the second receive builds a second Call and
+  # overwrites @calls[call_id]. Routing only ever reads that map, so the first
+  # Call -- the one handed to the application -- silently stops receiving
+  # events and never reaches a terminal state.
+  def test_redelivered_receive_keeps_the_live_call
+    first, handler_calls = drive_redelivered_inbound('c-redeliver')
+
+    # One call means one handler invocation; the live instance survives (the
+    # map still points at what the application was handed); and it is still the
+    # object events route to -- a replacement would freeze it at 'ringing'.
+    assert_equal 0, handler_calls.size,
+                 'on_call handler re-entered for a redelivered receive'
+    assert_same first, tracked_call('c-redeliver')
+    assert_equal 'answered', first.state,
+                 'the Call handed to the application stopped receiving events'
+    assert_receives_on_wire('c-redeliver', 2)
+  end
+
+  # The dedup is per call_id and must not swallow a genuinely new concurrent
+  # inbound call.
+  def test_distinct_call_ids_still_create_separate_calls
+    handler_calls = Queue.new
+    @client.on_call { |call| handler_calls.push(call) }
+
+    @mock.inbound_call(call_id: 'c-first',  auto_states: ['ringing'], delay_ms: 0)
+    @mock.inbound_call(call_id: 'c-second', auto_states: ['ringing'], delay_ms: 0)
+
+    seen = Timeout.timeout(TIMEOUT) { [handler_calls.pop, handler_calls.pop] }
+
+    assert_equal %w[c-first c-second], seen.map(&:call_id).sort
+    refute_same seen[0], seen[1]
   end
 
   # ---- Inbound without a registered handler ----------------------------
