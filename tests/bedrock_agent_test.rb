@@ -174,12 +174,21 @@ class BedrockRenderValidationTest < Minitest::Test
     agent.set_prompt_text('Hi')
 
     refute_nil(agent.render_swml['sections']['main'].find { |v| v.key?('amazon_bedrock') })
-    body = SignalWire::Utils::SchemaUtils.new.schema.dig('$defs', 'AmazonBedrock', 'properties', 'amazon_bedrock')
-    voice = body['anyOf'].find { |arm| arm['type'] == 'object' }.dig('properties', 'prompt', 'properties', 'voice_id')
+    voice = bedrock_voice_id_schema
 
     assert_equal %w[amy carlos lupe matthew tiffany], voice['x-known-values'].sort
     refute voice.key?('enum')
   end
+
+  private
+
+  # The bundled schema's amazon_bedrock prompt.voice_id node (object body form).
+  def bedrock_voice_id_schema
+    body = SignalWire::Utils::SchemaUtils.new.schema.dig('$defs', 'AmazonBedrock', 'properties', 'amazon_bedrock')
+    body['anyOf'].find { |arm| arm['type'] == 'object' }.dig('properties', 'prompt', 'properties', 'voice_id')
+  end
+
+  public
 
   # `build_bedrock_object` copies a FIXED key set; anything outside it is
   # dropped. That set must be exactly what the amazon_bedrock schema allows,
