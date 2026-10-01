@@ -804,6 +804,45 @@ POSITIONAL_STRUCT_FIELDS: dict[tuple, list[str]] = {
 }
 
 
+# Struct value carriers that DEFINE their own ``initialize`` — the third Struct
+# form, beside AI_CHAT_STRUCT_FIELDS (keyword_init, no initialize) and
+# POSITIONAL_STRUCT_FIELDS. The reference dataclass gives these fields real
+# defaults (``NonceEntry.messages = 0``), which a bare Struct cannot express, so
+# the Ruby Struct overrides ``initialize`` with keyword params carrying those
+# defaults and delegates to ``super``. That ``initialize`` IS reflected
+# (Method#parameters + the Ripper default pass), so unlike the other two forms
+# there is nothing to synthesize: keep the reflected ``__init__`` and the field
+# readers, and drop only the Struct machinery (``new`` / ``members`` /
+# ``keyword_init?`` / ``inspect`` / ``[]``) and the ``field=`` writers. The
+# declared fields are verified against the reflected readers, so a real field
+# drop/rename still surfaces as drift.
+EXPLICIT_INIT_STRUCT_FIELDS: dict[tuple, list[str]] = {
+    ("signalwire.ai_chat.handoff", "NonceEntry"): [
+        "conversation_id",
+        "call_id",
+        "issued_at",
+        "messages",
+        "redeemed",
+    ],
+}
+
+
+def keep_explicit_init_struct_members(out_modules: dict) -> None:
+    """Reduce each explicit-``initialize`` Struct to its reflected ``__init__``
+    plus its field readers (see EXPLICIT_INIT_STRUCT_FIELDS). In place."""
+    for (mod, cls), fields in EXPLICIT_INIT_STRUCT_FIELDS.items():
+        entry = out_modules.get(mod, {}).get("classes", {}).get(cls)
+        if not entry:
+            continue
+        methods = entry.get("methods", {})
+        kept = {"__init__": methods["__init__"]} if "__init__" in methods else {}
+        for f in fields:
+            if f in methods and not _has_value_params(methods[f]):
+                kept[f] = methods[f]
+        entry["methods"] = kept
+        entry["dataclass"] = True
+
+
 def synth_positional_struct_inits(out_modules: dict) -> None:
     """Rebuild each POSITIONAL Struct value carrier to the single ``__init__``
     the reference records — params = the reflected field readers, positional and
@@ -1161,6 +1200,13 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
     "SignalWire::AIChat::ConversationInfo": "signalwire.ai_chat.client",
     "SignalWire::AIChat::ChatResponse": "signalwire.ai_chat.client",
     "SignalWire::AIChat::ChatLog": "signalwire.ai_chat.client",
+    # The browser-facing half lives in two more reference modules: the gateway
+    # (ChatGateway + GatewayRejection) and the voice/text handoff
+    # (HandoffRouter + NonceEntry). Ruby nests all four under SignalWire::AIChat.
+    "SignalWire::AIChat::ChatGateway": "signalwire.ai_chat.gateway",
+    "SignalWire::AIChat::GatewayRejection": "signalwire.ai_chat.gateway",
+    "SignalWire::AIChat::HandoffRouter": "signalwire.ai_chat.handoff",
+    "SignalWire::AIChat::NonceEntry": "signalwire.ai_chat.handoff",
     # RequestOptions envelope (plan 4.2): route the value type to the
     # reference module signalwire.rest._request_options. Its helper classes
     # (EffectiveOptions/AbortSignal) mirror that module's PRIVATE
@@ -1760,6 +1806,7 @@ def collect(raw: dict) -> dict:
     apply_sig_free_function_projections(out_modules)
     synth_ai_chat_struct_inits(out_modules)
     synth_positional_struct_inits(out_modules)
+    keep_explicit_init_struct_members(out_modules)
     apply_hand_param_renames(out_modules)
     project_reference_param_types(out_modules)
     normalize_request_options_param_kind(out_modules)

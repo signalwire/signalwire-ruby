@@ -182,6 +182,7 @@ ORACLE_FIELD_ACCESSOR_MODULES = %w[
   signalwire.core.post_prompt_generated
   signalwire.core.swaig_request_generated
   signalwire.ai_chat.client
+  signalwire.ai_chat.handoff
   signalwire.core.auth_handler
 ].freeze
 
@@ -936,10 +937,16 @@ end
 # of the Struct machinery (`[]`, `new`, `members`, `keyword_init?`, …). Emission
 # covers the Struct idiom; no PORT_ADDITIONS entry per accessor. Scoped by FQN so
 # no other class is affected.
+#
+# NonceEntry (signalwire.ai_chat.handoff) is the same Struct idiom; it also
+# overrides `initialize` to give its fields the reference dataclass's defaults,
+# which changes nothing here — the oracle-gated path emits `__init__` plus the
+# recorded field readers either way.
 AI_CHAT_METHODLESS_CLASSES = %w[
   SignalWire::AIChat::ConversationInfo
   SignalWire::AIChat::ChatResponse
   SignalWire::AIChat::ChatLog
+  SignalWire::AIChat::NonceEntry
 ].freeze
 
 # The auth credential carriers are the same Struct idiom in the POSITIONAL form
