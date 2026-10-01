@@ -13,5 +13,9 @@
 #   client = SignalWire::AIChatClient.new(space: 'myspace')
 #
 # Loads the client, its typed error family (SignalWire::AIChat::AIChatError and
-# subclasses), and its response models (ConversationInfo/ChatResponse/ChatLog).
+# subclasses), its response models (ConversationInfo/ChatResponse/ChatLog), and
+# the browser-facing half: SignalWire::AIChat::ChatGateway (with its
+# GatewayRejection) and SignalWire::AIChat::HandoffRouter (with its NonceEntry).
 require_relative 'ai_chat/client'
+require_relative 'ai_chat/gateway'
+require_relative 'ai_chat/handoff'

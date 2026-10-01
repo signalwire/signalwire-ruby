@@ -182,6 +182,7 @@ ORACLE_FIELD_ACCESSOR_MODULES = %w[
   signalwire.core.post_prompt_generated
   signalwire.core.swaig_request_generated
   signalwire.ai_chat.client
+  signalwire.ai_chat.handoff
   signalwire.core.auth_handler
   signalwire.core.post_prompt
 ].freeze
@@ -947,11 +948,17 @@ end
 # of the Struct machinery (`[]`, `new`, `members`, `keyword_init?`, …). Emission
 # covers the Struct idiom; no PORT_ADDITIONS entry per accessor. Scoped by FQN so
 # no other class is affected.
+#
+# NonceEntry (signalwire.ai_chat.handoff) is the same Struct idiom; it also
+# overrides `initialize` to give its fields the reference dataclass's defaults,
+# which changes nothing here — the oracle-gated path emits `__init__` plus the
+# recorded field readers either way.
 AI_CHAT_METHODLESS_CLASSES = %w[
   SignalWire::AIChat::ConversationInfo
   SignalWire::AIChat::ChatResponse
   SignalWire::AIChat::ChatLog
   SignalWire::Core::PostPrompt::NormalizedPostPrompt
+  SignalWire::AIChat::NonceEntry
 ].freeze
 
 # The auth credential carriers are the same Struct idiom in the POSITIONAL form
@@ -1026,6 +1033,9 @@ AUTH_CREDENTIAL_STRUCT_CLASSES = %w[
 # already neutralises would lose that provenance.
 SURFACE_MEMBER_DROPS = {
   ['signalwire.ai_chat.client', 'AIChatClient'] => %w[url inspect to_s resolve_url],
+  # Same secret-redacting Ruby object hooks (the HMAC handle-signing secret);
+  # the reference ChatGateway defines no `__repr__`/`__str__`.
+  ['signalwire.ai_chat.gateway', 'ChatGateway'] => %w[inspect to_s],
   # `message` is the POST-ALIAS spelling (SURFACE_METHOD_ALIASES renames Ruby's
   # `server_message` first); this table is keyed by the name the emitter will
   # EMIT, never the source name. Keying a member table by the source spelling
