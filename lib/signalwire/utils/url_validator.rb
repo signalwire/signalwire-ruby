@@ -231,10 +231,12 @@ module SignalWire
 
         private
 
+        # Whether the private-address checks are off (constructor flag or env).
         def private_allowed?
           @allow_private || UrlValidator.send(:_env_allows_private?)
         end
 
+        # Validate +url+, then send one GET (no redirect following) with the headers.
         def request_once(url, timeout)
           unless UrlValidator.validate_url(url, @allow_private)
             raise BlockedURLError, "URL rejected: #{SignalWire::Security::SecurityUtils.redact_url(url)} " \
@@ -248,6 +250,7 @@ module SignalWire
           http.request(request)
         end
 
+        # The Net::HTTP for +uri+, pinned to the validated public address.
         def connection(uri, timeout)
           http = Net::HTTP.new(uri.host, uri.port)
           http.use_ssl = uri.scheme == 'https'
