@@ -2107,6 +2107,27 @@
               ],
               "returns": "any"
             },
+            "on_call_end": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "handler",
+                  "type": "callable<list<list<dict<string,any>>,dict<string,any>>,void>",
+                  "required": true
+                },
+                {
+                  "name": "block",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
             "on_debug_event": {
               "params": [
                 {
@@ -6771,6 +6792,27 @@
       "classes": {
         "WebMixin": {
           "methods": {
+            "add_per_call_config": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "callback",
+                  "type": "callable<list<dict<string,any>,dict<string,any>,dict<string,any>,any>,void>",
+                  "required": true
+                },
+                {
+                  "name": "block",
+                  "type": "any",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "any"
+            },
             "as_router": {
               "params": [
                 {
@@ -6808,6 +6850,34 @@
                   "name": "proxy_url",
                   "type": "string",
                   "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "mount": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "app_or_router",
+                  "type": "any",
+                  "required": true
+                },
+                {
+                  "name": "prefix",
+                  "type": "string",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": ""
+                },
+                {
+                  "name": "name",
+                  "type": "optional<string>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -46222,6 +46292,15 @@
               "returns": "any"
             },
             "remove_xpaths": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "session": {
               "params": [
                 {
                   "name": "self",

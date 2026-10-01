@@ -6,10 +6,12 @@
 # See LICENSE file in the project root for full license information.
 
 require 'ipaddr'
+require 'net/http'
 require 'resolv'
 require 'uri'
 
 require_relative '../logging'
+require_relative '../security/security_utils'
 
 # SignalWire — root namespace of the Ruby SDK.
 module SignalWire
@@ -172,6 +174,90 @@ module SignalWire
         nil
       end
       private_class_method :_resolve
+
+      # @api private — the first resolved address of +hostname+ outside the
+      # blocked networks, or nil.
+      def self._public_address(hostname)
+        (_resolve(hostname) || []).find { |ip| !_ip_blocked?(hostname, ip) }
+      end
+
+      # Raised by {PublicSession} for a private, internal or invalid URL.
+      class BlockedURLError < StandardError; end
+
+      # @api private — an HTTP session for fetching user-supplied URLs.
+      #
+      # Checking a URL with {UrlValidator.validate_url} before fetching it is not
+      # enough on its own: the server can redirect to an internal address, and
+      # the hostname can resolve differently when the connection is made. This
+      # session checks the URL of every request it sends, redirects included,
+      # and connects to the address it validated (so a re-resolution cannot
+      # land on a blocked one). +SWML_ALLOW_PRIVATE_URLS+ turns both checks off,
+      # as it does for {UrlValidator.validate_url}.
+      class PublicSession
+        # Redirects followed in one fetch.
+        MAX_REDIRECTS = 10
+
+        # @return [Hash{String=>String}] headers sent with every request
+        attr_reader :headers
+
+        # @param allow_private [Boolean] when true, skip the address checks
+        def initialize(allow_private: false)
+          @allow_private = allow_private
+          @headers = {}
+        end
+
+        # GET +url+, following up to {MAX_REDIRECTS} redirects, each one checked.
+        #
+        # @param url [String]
+        # @param timeout [Numeric] per-request open/read timeout in seconds
+        # @return [Net::HTTPResponse] the final response
+        # @raise [BlockedURLError] for a private, internal or invalid URL (or hop)
+        def get(url, timeout: 5)
+          MAX_REDIRECTS.times do
+            response = request_once(url, timeout)
+            return response unless response.is_a?(Net::HTTPRedirection) && response['location']
+
+            url = URI.join(url, response['location']).to_s
+          end
+          raise BlockedURLError, "Too many redirects fetching #{SignalWire::Security::SecurityUtils.redact_url(url)}"
+        end
+
+        # Nothing to release: each request opens its own connection.
+        #
+        # @return [nil]
+        def close
+          nil
+        end
+
+        private
+
+        def private_allowed?
+          @allow_private || UrlValidator.send(:_env_allows_private?)
+        end
+
+        def request_once(url, timeout)
+          unless UrlValidator.validate_url(url, @allow_private)
+            raise BlockedURLError, "URL rejected: #{SignalWire::Security::SecurityUtils.redact_url(url)} " \
+                                   'is private, internal or invalid'
+          end
+
+          uri = URI(url)
+          http = connection(uri, timeout)
+          request = Net::HTTP::Get.new(uri)
+          @headers.each { |name, value| request[name] = value }
+          http.request(request)
+        end
+
+        def connection(uri, timeout)
+          http = Net::HTTP.new(uri.host, uri.port)
+          http.use_ssl = uri.scheme == 'https'
+          http.open_timeout = timeout
+          http.read_timeout = timeout
+          # Connect to the validated address, so the peer check applies.
+          http.ipaddr = UrlValidator.send(:_public_address, uri.hostname) unless private_allowed?
+          http
+        end
+      end
     end
   end
 end

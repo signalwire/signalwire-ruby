@@ -28,9 +28,13 @@ module SignalWire
     # ``amazon_bedrock`` schema (keys: ``prompt``, ``SWAIG``, ``params``,
     # ``global_data``, ``post_prompt``, ``post_prompt_url``).
     class BedrockAgent < AgentBase
-      # Prompt keys that apply to text models but not to Bedrock's
-      # voice-to-voice model; stripped from the prompt config.
-      TEXT_MODEL_ONLY_PROMPT_KEYS = %w[barge_confidence presence_penalty frequency_penalty].freeze
+      # The prompt keys copied from the ai verb's prompt. The platform's Bedrock
+      # session reads only these, voice_id, temperature and top_p; the last three
+      # are set from the agent's own settings, as is max_tokens.
+      BEDROCK_PROMPT_KEYS = %w[text pom].freeze
+
+      # The prompt keys set from the agent's own settings.
+      AGENT_PROMPT_KEYS = %w[voice_id temperature top_p max_tokens].freeze
 
       # Initialize a BedrockAgent.
       #
@@ -178,14 +182,28 @@ module SignalWire
         object.compact
       end
 
-      # Add voice + inference params to the prompt object, stripping
-      # text-model-only keys.
+      # Build the Bedrock prompt: the prompt text (text / pom) plus the agent's
+      # voice and inference settings. Anything else — confidence, the text-model
+      # penalties, contexts — is left out (the platform's Bedrock session does not
+      # read it), with a one-time warning per key.
       def add_voice_to_prompt(prompt_config)
-        filtered = prompt_config.except(*TEXT_MODEL_ONLY_PROMPT_KEYS)
+        filtered = prompt_config.slice(*BEDROCK_PROMPT_KEYS)
+        warn_dropped_prompt_keys(prompt_config.keys - BEDROCK_PROMPT_KEYS - AGENT_PROMPT_KEYS)
         filtered['voice_id'] = @voice_id
         filtered['temperature'] = @temperature
         filtered['top_p'] = @top_p
+        filtered['max_tokens'] = @max_tokens
         filtered
+      end
+
+      # Log a warning, once per agent, for each prompt key left out of the SWML.
+      def warn_dropped_prompt_keys(keys)
+        @bedrock_dropped_warned ||= Set.new
+        keys.each do |key|
+          next unless @bedrock_dropped_warned.add?(key)
+
+          @logger.warn("BedrockAgent: Bedrock's prompt has no #{key}, so it's left out of the SWML")
+        end
       end
     end
   end

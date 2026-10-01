@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 745b8828a68872a207ce2770246ac51c4f9695f0",
+  "generated_from": "signalwire-ruby @ 0f93516159a90218dedadef043322e03a585e47d",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -170,6 +170,7 @@
           "list_tool_names",
           "logger",
           "native_functions",
+          "on_call_end",
           "on_debug_event",
           "on_summary",
           "pom",
@@ -538,10 +539,12 @@
     "signalwire.core.mixins.web_mixin": {
       "classes": {
         "WebMixin": [
+          "add_per_call_config",
           "as_router",
           "enable_debug_routes",
           "get_app",
           "manual_set_proxy_url",
+          "mount",
           "on_request",
           "on_swml_request",
           "register_routing_callback",
@@ -3854,6 +3857,7 @@
           "name",
           "register_tools",
           "remove_xpaths",
+          "session",
           "setup",
           "supports_multiple_instances?"
         ]

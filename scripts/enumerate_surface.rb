@@ -462,6 +462,8 @@ RUBY_EXCLUDED_CLASSES = %w[
   SignalWire::REST::AbortSignal
   SignalWire::REST::Attempt
   SignalWire::REST::RestClient::MissingCredentialHttp
+  SignalWire::Utils::UrlValidator::PublicSession
+  SignalWire::Utils::UrlValidator::BlockedURLError
 ].freeze
 
 # Mixin projections: Ruby collapses Python's mixin classes into
@@ -502,8 +504,8 @@ MIXIN_PROJECTIONS = {
     define_tool define_tools on_function_call register_swaig_function tool
   ],
   ['signalwire.core.mixins.web_mixin', 'WebMixin'] => %w[
-    as_router enable_debug_routes get_app manual_set_proxy_url on_request
-    on_swml_request register_routing_callback run serve
+    add_per_call_config as_router enable_debug_routes get_app manual_set_proxy_url
+    mount on_request on_swml_request register_routing_callback run serve
     set_dynamic_config_callback setup_graceful_shutdown
   ],
   ['signalwire.core.mixins.auth_mixin', 'AuthMixin'] => %w[

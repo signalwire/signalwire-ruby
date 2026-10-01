@@ -813,6 +813,43 @@ module SignalWire
       self
     end
 
+    # @api private — register the reserved hangup_hook once, and enable its
+    # call_log payload (swaig_post_conversation) unless explicitly disabled.
+    def ensure_call_end_hook
+      if @params['swaig_post_conversation'] == false
+        @logger.warn('call_end_handler_without_conversation: [signalwire] on_call_end handlers are ' \
+                     'registered but swaig_post_conversation is explicitly false -- they will ' \
+                     'receive an empty call_log')
+      elsif !@params.key?('swaig_post_conversation')
+        @params['swaig_post_conversation'] = true
+      end
+      define_tool(name: 'hangup_hook', description: 'Internal: fires when the call ends.',
+                  parameters: {}, handler: method(:dispatch_call_end))
+    end
+
+    # @api private — pass the call log to each call-end handler, isolating
+    # failures so one handler cannot stop the others.
+    def dispatch_call_end(_args, raw_data)
+      raw = raw_data.is_a?(Hash) ? raw_data : {}
+      call_log = call_end_log(raw)
+      (@call_end_handlers || []).each do |callback|
+        callback.call(call_log, raw)
+      rescue StandardError => e
+        @logger.error("call_end_handler_failed: error=#{e.message} handler=#{callback.inspect}")
+      end
+      Swaig::FunctionResult.new('')
+    end
+
+    # @api private — the call log from a hangup_hook request; both spellings are
+    # seen in the wild depending on engine.
+    def call_end_log(raw)
+      %w[call_log raw_call_log].each do |key|
+        log = raw[key]
+        return log if log.is_a?(Array) && !log.empty?
+      end
+      []
+    end
+
     # Normalise parameters into JSON-Schema form and inject the caller's
     # `required:` list onto an object schema.
     def build_tool_param_schema(parameters, required)
@@ -1667,6 +1704,47 @@ module SignalWire
       self
     end
 
+    # Register a per-request configuration callback, KEEPING any already set.
+    #
+    # Same signature and contract as {#set_dynamic_config_callback} — the
+    # callback takes +(query_params, body_params, headers, agent)+, where +agent+
+    # is the EPHEMERAL per-request copy (configure that, never +self+) — except
+    # that callbacks accumulate instead of overwriting. They run in registration
+    # order against the same ephemeral agent, so a later one sees what an earlier
+    # one configured. This is the composable form: a base class and a subclass,
+    # or an agent and a mixin, can each register what they own without either
+    # needing to know the other exists.
+    #
+    #   agent.add_per_call_config(configure_voice)
+    #   agent.add_per_call_config(nil) { |query, body, headers, copy| ... }
+    #
+    # The callback is REQUIRED; the block form is the idiomatic spelling of the
+    # same slot, and passing neither raises.
+    #
+    # @param callback [#call, nil] the callback; nil with a block
+    # @return [self]
+    # @raise [ArgumentError] when neither a callback nor a block is given
+    def add_per_call_config(callback, &block)
+      callback ||= block
+      raise ArgumentError, 'add_per_call_config requires a callback (block or callable)' if callback.nil?
+
+      # Rebind rather than mutate: compose a new chain so an ephemeral copy that
+      # shares the old one is never written into.
+      @dynamic_config_callback = chain_per_call_config(@dynamic_config_callback, callback)
+      self
+    end
+
+    # @api private — +callback+ alone, or a callable running +previous+ then
+    # +callback+ against the same arguments.
+    def chain_per_call_config(previous, callback)
+      return callback if previous.nil?
+
+      lambda do |query_params, body_params, headers, agent|
+        previous.call(query_params, body_params, headers, agent)
+        callback.call(query_params, body_params, headers, agent)
+      end
+    end
+
     # Override the base URL used to build webhook URLs, for when the agent is
     # reached through a proxy or tunnel at a different address than it binds. Takes
     # precedence over the SWML_PROXY_URL_BASE environment variable.
@@ -1692,6 +1770,32 @@ module SignalWire
     # A Rack-mountable router/app for this agent — the Rack app itself.
     def as_router
       rack_app
+    end
+
+    # Mount an extra Rack app alongside this agent's own routes — e.g. a chat
+    # gateway's router or a static-file app — served by {#serve} and
+    # {#rack_app} at +prefix+. The agent's routes keep precedence (Rack's URL
+    # map matches the longest prefix first), and a mount made after the app was
+    # built rebuilds it, so a later {#serve} includes it. The mounted app gets
+    # none of the agent's middleware (auth, signature validation): it answers on
+    # its own terms.
+    #
+    #   agent.mount(gateway.router, prefix: '/chat')
+    #   agent.mount(Rack::Files.new('web'), prefix: '/demo', name: 'demo')
+    #
+    # @param app_or_router [#call] any Rack application
+    # @param prefix [String] path prefix (no trailing slash; "" mounts at "/")
+    # @param name [String, nil] optional mount name, used in the startup log
+    # @return [self]
+    def mount(app_or_router, prefix: '', name: nil)
+      raise ArgumentError, 'mount requires a Rack app (responds to #call)' unless app_or_router.respond_to?(:call)
+
+      clean_prefix = prefix.to_s.chomp('/')
+      clean_prefix = '/' if clean_prefix.empty?
+      @mounts = [*(@mounts || []), [clean_prefix, app_or_router]]
+      remove_instance_variable(:@rack_app) if defined?(@rack_app)
+      @logger.info("agent_route_mounted: prefix=#{clean_prefix}#{" name=#{name}" if name}")
+      self
     end
 
     # NOTE: register_routing_callback / on_request / on_swml_request /
@@ -2096,6 +2200,45 @@ module SignalWire
 
       @debug_event_callback = callback
       self
+    end
+
+    # Register a handler that runs when the call ends, with the transcript.
+    # Handlers run in registration order and receive +(call_log, raw_data)+:
+    # the conversation as the platform recorded it (already resolved from
+    # whichever field carried it) and the complete SWAIG request, including
+    # +global_data+ and +call_id+.
+    #
+    #   agent.on_call_end(nil) do |call_log, raw_data|
+    #     store(raw_data.dig('global_data', 'conversation_id'), call_log)
+    #   end
+    #
+    # This wraps the platform's reserved +hangup_hook+ function, which fires on
+    # hangup and is never offered to the model. Registering a handler also turns
+    # on +swaig_post_conversation+: +call_log+ is a CONDITIONAL field of a SWAIG
+    # request, and without that param the hook still fires but carries no
+    # transcript. An explicit +swaig_post_conversation: false+ is left alone,
+    # with a warning. The return value is ignored, and an exception is logged
+    # rather than raised, so a failing teardown handler cannot fail the hangup.
+    #
+    # The handler is REQUIRED; the block form (+on_call_end(nil) { ... }+) is
+    # the idiomatic spelling of the same slot, and passing neither raises.
+    #
+    # @param handler [#call, nil] callable taking (call_log, raw_data); nil with a block
+    # @return [#call] the handler
+    # @raise [ArgumentError] when neither a handler nor a block is given
+    def on_call_end(handler, &block)
+      callback = block || handler
+      raise ArgumentError, 'on_call_end requires a handler (block or callable)' if callback.nil?
+
+      if @call_end_handlers.nil?
+        # Rebind rather than mutate, so an ephemeral copy never shares a list
+        # it could append to.
+        @call_end_handlers = [callback]
+        ensure_call_end_hook
+      else
+        @call_end_handlers = [*@call_end_handlers, callback]
+      end
+      callback
     end
 
     # Universal run method.
@@ -2831,16 +2974,23 @@ module SignalWire
     # ==================================================================
 
     def build_rack_app
-      agent = self
-      main_route = route
-      authenticated = build_authenticated_app
+      routes = rack_routes
       Rack::Builder.new do
-        # --- public endpoints (no auth) --------------------------------
-        map('/health') { run ->(_env) { agent.send(:static_status_response, 'healthy') } }
-        map('/ready')  { run ->(_env) { agent.send(:static_status_response, 'ready') } }
-        # --- authenticated endpoints -----------------------------------
-        map(main_route) { run authenticated }
+        routes.each { |path, app| map(path) { run app } }
       end
+    end
+
+    # @api private — the [path, app] pairs the agent's Rack app maps, in order:
+    # the public endpoints (no auth), the apps mounted with {#mount} (their own
+    # terms, no agent auth), then the authenticated main route.
+    def rack_routes
+      agent = self
+      [
+        ['/health', ->(_env) { agent.send(:static_status_response, 'healthy') }],
+        ['/ready', ->(_env) { agent.send(:static_status_response, 'ready') }],
+        *(@mounts || []),
+        [route, build_authenticated_app]
+      ]
     end
 
     # The middleware stack + handler for the authenticated main route, as its
@@ -3179,6 +3329,7 @@ module SignalWire
     private :sym_or_str, :verb_entries, :warn_unexpected_function_result
     private :warn_unknown_filler_name, :warn_unknown_filler_names, :webrick_opts
     private :answer_entry, :record_call_entry, :webrick_handler
+    private :ensure_call_end_hook, :dispatch_call_end, :call_end_log, :chain_per_call_config, :rack_routes
     private :valid_function_include?, :warn_dropped_function_include, :find_summary_in_post_data
     private :summary_from_post_prompt_data
     # Formerly leading-underscore-by-convention internals; underscore dropped in

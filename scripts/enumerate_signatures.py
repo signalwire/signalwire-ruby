@@ -1342,10 +1342,12 @@ MIXIN_PROJECTIONS = {
         "get_basic_auth_credentials",
     ],
     ("signalwire.core.mixins.web_mixin", "WebMixin"): [
+        "add_per_call_config",
         "as_router",
         "enable_debug_routes",
         "get_app",
         "manual_set_proxy_url",
+        "mount",
         "on_request",
         "on_swml_request",
         "register_routing_callback",
@@ -1466,6 +1468,10 @@ EXCLUDED_RUBY_CLASSES = {
     # The stand-in HTTP client for a credential RestClient was not given; mirrors
     # the reference's PRIVATE signalwire.rest.client._MissingCredentialHttp.
     "SignalWire::REST::RestClient::MissingCredentialHttp",
+    # The SSRF-guarded fetch session and its error; mirror the reference's
+    # PRIVATE signalwire.utils.url_validator._PublicSession / _BlockedURLError.
+    "SignalWire::Utils::UrlValidator::PublicSession",
+    "SignalWire::Utils::UrlValidator::BlockedURLError",
 }
 
 

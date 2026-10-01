@@ -138,5 +138,31 @@ a.define_tool(name: 'lookup', description: 'Look up a thing',
 out['swml_define_tool_complete_schema'] =
   swaig_field(extract(render(a), 'ai.SWAIG.functions'), 'lookup', 'parameters')
 
+# swml_on_call_end_hook: on_call_end registers the reserved hangup_hook.
+a = new_agent
+a.on_call_end(nil) { |_call_log, _raw| nil }
+out['swml_on_call_end_hook'] = swaig_field(extract(render(a), 'ai.SWAIG.functions'), 'hangup_hook', 'description')
+
+# swml_on_call_end_post_conversation: ...and turns on swaig_post_conversation.
+a = new_agent
+a.on_call_end(nil) { |_call_log, _raw| nil }
+out['swml_on_call_end_post_conversation'] = pick(extract(render(a), 'ai.params'), %w[swaig_post_conversation])
+
+# swml_contexts_in_prompt: contexts render inside ai.prompt.
+a = new_agent
+a.prompt_add_section('Role', 'You take orders.')
+a.define_contexts.add_context('default').add_step('greet').set_text('Greet the caller.')
+out['swml_contexts_in_prompt'] = pick(extract(render(a), 'ai.prompt'), %w[contexts])
+
+# swml_bedrock_prompt: max_tokens renders; params the Bedrock session never reads
+# are dropped.
+b = SignalWire::Agents::BedrockAgent.new(name: 'bedrock', route: '/bedrock', voice_id: 'tiffany', max_tokens: 512)
+b.set_prompt_text('You are a helpful assistant.')
+b.set_prompt_llm_params(presence_penalty: 0.3, frequency_penalty: 0.2, confidence: 0.5, barge_confidence: 0.4)
+bedrock = render(b)['sections']['main'].find { |v| v.is_a?(Hash) && v.key?('amazon_bedrock') }
+out['swml_bedrock_prompt'] = pick(bedrock&.dig('amazon_bedrock', 'prompt'),
+                                  %w[voice_id max_tokens temperature top_p presence_penalty
+                                     frequency_penalty confidence barge_confidence])
+
 REAL_STDOUT.puts(JSON.generate(out))
 REAL_STDOUT.flush

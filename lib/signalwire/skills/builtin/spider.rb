@@ -5,6 +5,7 @@ require 'uri'
 
 require_relative '../skill_base'
 require_relative '../skill_registry'
+require_relative '../../utils/url_validator'
 
 # SignalWire — root namespace of the Ruby SDK.
 module SignalWire
@@ -55,12 +56,19 @@ module SignalWire
         # caller can add or remove entries before scraping.
         attr_reader :remove_xpaths
 
+        # The HTTP session every fetch goes through. It refuses redirects and
+        # connections to private or internal addresses (SSRF), which a check
+        # before the fetch can't catch, and carries the User-Agent and any
+        # configured +headers+.
+        #
+        # @return [SignalWire::Utils::UrlValidator::PublicSession]
+        attr_reader :session
+
         # Extracts the performance / crawling / content-processing
         # configuration off ``params`` and allocates the per-instance
         # response cache at construction time so the ivars (and the cache
         # #cleanup tears down) exist immediately. {#setup} re-reads them and
-        # returns +true+. A fresh Net::HTTP is opened per request, so there
-        # is no persistent session ivar.
+        # returns +true+.
         def initialize(agent = nil, params = nil)
           super
           @max_text_length = get_param('max_text_length', default: 10_000).to_i
@@ -71,6 +79,7 @@ module SignalWire
           @cache_enabled   = get_param('cache_enabled', default: true) != false
           @cache = @cache_enabled ? {} : nil
           @remove_xpaths = DEFAULT_REMOVE_XPATHS.dup
+          @session = build_session
         end
 
         # Called once after construction. Return false to abort loading — the
@@ -87,14 +96,14 @@ module SignalWire
           # Per-instance fetch cache. Held as state so #cleanup has something
           # concrete to tear down.
           @cache = @cache_enabled ? {} : nil
+          @session = build_session
           true
         end
 
-        # Tears down the skill: clears the response cache and logs. A fresh
-        # Net::HTTP connection is opened per request (no persistent session
-        # to close), so teardown here drops the response cache and logs that
-        # the skill was cleaned up. Safe to call more than once.
+        # Tears down the skill: closes the session, drops the response cache and
+        # logs that the skill was cleaned up. Safe to call more than once.
         def cleanup
+          @session&.close
           @cache&.clear
           @cache = nil
           logger.info('Spider skill cleaned up')
@@ -272,21 +281,25 @@ module SignalWire
           "#{base.sub(%r{/$}, '')}#{_url_path(url)}"
         end
 
-        # Perform the GET and return the decoded body, or nil on non-success.
+        # Perform the GET through the session and return the decoded body, or nil
+        # on non-success. A SPIDER_BASE_URL redirect is an operator-configured
+        # upstream, fetched without the private-address check.
         def http_get(url)
-          uri = URI(url)
-          http = Net::HTTP.new(uri.host, uri.port)
-          http.use_ssl = (uri.scheme == 'https')
-          http.open_timeout = @timeout
-          http.read_timeout = @timeout
-
-          req = Net::HTTP::Get.new(uri)
-          req['User-Agent'] = @user_agent
-
-          resp = http.request(req)
+          session = ENV.fetch('SPIDER_BASE_URL', '').empty? ? @session : build_session(allow_private: true)
+          resp = session.get(url, timeout: @timeout)
           return nil unless resp.is_a?(Net::HTTPSuccess)
 
           resp.body.encode('UTF-8', invalid: :replace, undef: :replace, replace: '')
+        end
+
+        # @api private — a public session carrying the User-Agent and the configured
+        # +headers+ param.
+        def build_session(allow_private: false)
+          session = SignalWire::Utils::UrlValidator::PublicSession.new(allow_private: allow_private)
+          headers = get_param('headers', default: {})
+          session.headers.merge!(headers.transform_keys(&:to_s)) if headers.is_a?(Hash)
+          session.headers['User-Agent'] = @user_agent
+          session
         end
 
         # Some upstreams (and the audit fixture) wrap the HTML in JSON under an

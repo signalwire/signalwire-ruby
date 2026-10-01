@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+# The log-injection scrub every emitted line goes through.
+require_relative 'core/logging_config'
+
 module SignalWire
   # Logging — the SDK's minimal leveled logger and its process-global level.
   module Logging
