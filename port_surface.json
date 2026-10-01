@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ b5bdf99641d643b728b69a94cc136c8da55d9176",
+  "generated_from": "signalwire-ruby @ 745b8828a68872a207ce2770246ac51c4f9695f0",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -225,6 +225,14 @@
         ]
       },
       "functions": []
+    },
+    "signalwire.core.capabilities": {
+      "classes": {},
+      "functions": [
+        "declared_capabilities",
+        "has_capability",
+        "user_variables"
+      ]
     },
     "signalwire.core.config_loader": {
       "classes": {
@@ -563,6 +571,25 @@
         ]
       },
       "functions": []
+    },
+    "signalwire.core.post_prompt": {
+      "classes": {
+        "NormalizedPostPrompt": [
+          "__init__",
+          "call_id",
+          "conversation_id",
+          "dialogue",
+          "medium",
+          "raw",
+          "summary"
+        ]
+      },
+      "functions": [
+        "dialogue_turns",
+        "normalize_post_prompt",
+        "parse_post_prompt_data",
+        "strip_json_fence"
+      ]
     },
     "signalwire.core.post_prompt_generated": {
       "classes": {

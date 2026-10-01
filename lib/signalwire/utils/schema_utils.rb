@@ -462,8 +462,7 @@ module SignalWire
 
       # Resolve a verb's own schema node to the set of KNOWN top-level property
       # names it closes over, following $refs and resolving an anyOf/oneOf union
-      # to its ONE closed object arm (the #223 contract: exactly-one-closed-arm,
-      # else disengage).
+      # to its ONE closed object arm (exactly-one-closed-arm, else disengage).
       # Returns nil only when there is genuinely no enumerable closed key-set, so
       # no shallow check applies.
       def verb_top_level_property_names(verb_name)
@@ -482,9 +481,9 @@ module SignalWire
       #   - `anyOf` / `oneOf` — resolved BRANCH BY BRANCH. The union node itself
       #     carries no `properties` and no closed-key flag of its own (the
       #     BRANCHES carry both), so reading it directly silently DISENGAGED the
-      #     check. The #223 contract (porting-sdk docs/legacy-census/DISC-g-d21.md
-      #     §1.4/§4): when EXACTLY ONE branch is a closed object, its keys are
-      #     the verb's known keys — an object config can only satisfy that branch
+      #     check. The exactly-one-closed-arm rule: when EXACTLY ONE branch is a
+      #     closed object, its keys are the verb's known keys — an object config
+      #     can only satisfy that branch
       #     (the engine's swml_schema.c check_method_type_and_unknown_params
       #     admits a body as object/string/number/array, one object form per
       #     verb). With zero closed object branches, or more than one, the check
@@ -517,7 +516,7 @@ module SignalWire
       # The key-set of the ONE branch that yields a closed key-set; nil when no
       # branch is a closed object (e.g. unset: string | array-of-string) or more
       # than one is — then there is no single key-set to enforce and the deep
-      # validator owns the shape (the #223 exactly-one-closed-arm contract).
+      # validator owns the shape (the exactly-one-closed-arm rule).
       def single_closed_arm_key_set(branches, depth)
         sets = branches.filter_map { |branch| closed_key_set(branch, depth + 1) }
         sets.size == 1 ? sets.first : nil

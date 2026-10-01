@@ -183,6 +183,7 @@ ORACLE_FIELD_ACCESSOR_MODULES = %w[
   signalwire.core.swaig_request_generated
   signalwire.ai_chat.client
   signalwire.core.auth_handler
+  signalwire.core.post_prompt
 ].freeze
 
 # Load the oracle's per-class recorded surface members for the generated-payload
@@ -299,6 +300,9 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
   # dependency factory in the same module — that one is in PORT_OMISSIONS.md).
   'SignalWire::Security::WebhookValidator' => 'signalwire.core.security.webhook_validator',
   'SignalWire::Security::WebhookMiddleware' => 'signalwire.core.security.webhook_middleware',
+  # The post-prompt value model lives beside the module functions in the
+  # reference's core/post_prompt.py.
+  'SignalWire::Core::PostPrompt::NormalizedPostPrompt' => 'signalwire.core.post_prompt',
   # Prefabs: Ruby uses short names, Python appends "Agent".
   'SignalWire::Prefabs::Concierge' => 'signalwire.prefabs.concierge',
   'SignalWire::Prefabs::FaqBot' => 'signalwire.prefabs.faq_bot',
@@ -604,6 +608,9 @@ SURFACE_METHOD_DONORS = {
 # NOT apply; no `impossible:` needed).
 RUBY_FREE_FUNCTION_MODULES = {
   'SignalWire::Core::LoggingConfig' => 'signalwire.core.logging_config',
+  # Module functions mirroring the reference's module-level free functions.
+  'SignalWire::Core::Capabilities' => 'signalwire.core.capabilities',
+  'SignalWire::Core::PostPrompt' => 'signalwire.core.post_prompt',
   'SignalWire::Utils' => 'signalwire.utils',
   'SignalWire::Utils::UrlValidator' => 'signalwire.utils.url_validator',
   'SignalWire::Core::Agent::Tools::TypeInference' => 'signalwire.core.agent.tools.type_inference',
@@ -940,6 +947,7 @@ AI_CHAT_METHODLESS_CLASSES = %w[
   SignalWire::AIChat::ConversationInfo
   SignalWire::AIChat::ChatResponse
   SignalWire::AIChat::ChatLog
+  SignalWire::Core::PostPrompt::NormalizedPostPrompt
 ].freeze
 
 # The auth credential carriers are the same Struct idiom in the POSITIONAL form

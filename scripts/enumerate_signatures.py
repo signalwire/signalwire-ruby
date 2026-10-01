@@ -748,6 +748,16 @@ AI_CHAT_STRUCT_FIELDS: dict[tuple, list[str]] = {
         "user_event",
     ],
     ("signalwire.ai_chat.client", "ChatLog"): ["messages", "call_timeline"],
+    # The post-prompt normalization value (reference @dataclass(frozen=True)),
+    # a keyword_init Struct in Ruby.
+    ("signalwire.core.post_prompt", "NormalizedPostPrompt"): [
+        "medium",
+        "conversation_id",
+        "summary",
+        "dialogue",
+        "call_id",
+        "raw",
+    ],
 }
 
 # Ruby-idiom accessors/methods on the AI-Chat client family the reference records
@@ -1161,6 +1171,9 @@ RUBY_TO_PYTHON_MODULE_OVERRIDES = {
     "SignalWire::AIChat::ConversationInfo": "signalwire.ai_chat.client",
     "SignalWire::AIChat::ChatResponse": "signalwire.ai_chat.client",
     "SignalWire::AIChat::ChatLog": "signalwire.ai_chat.client",
+    # The post-prompt value model lives in the reference's core/post_prompt.py
+    # beside the module functions (SignalWire::Core::PostPrompt).
+    "SignalWire::Core::PostPrompt::NormalizedPostPrompt": "signalwire.core.post_prompt",
     # RequestOptions envelope (plan 4.2): route the value type to the
     # reference module signalwire.rest._request_options. Its helper classes
     # (EffectiveOptions/AbortSignal) mirror that module's PRIVATE

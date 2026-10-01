@@ -361,10 +361,18 @@ end
 # work here is walking OUTWARD through the enclosing namespaces -- which is what
 # makes a bare ``WAV`` written inside ``SignalWire::Swaig::FunctionResult``
 # resolve to ``SignalWire::Swaig::RecordFormat::WAV``'s sibling scope.
+#
+# A constant whose value is a COLLECTION (a frozen Array/Hash such as
+# ``DIALOGUE_ROLES``) is recorded by its NAME, the way the reference records a
+# module-constant default (``roles: tuple[str, ...] = DIALOGUE_ROLES``) — the
+# name is the contract, the collection behind it may grow. Scalars stay values.
 def const_lookup(path, owner)
   joined = path.join('::')
   namespaces_for(owner).each do |ns|
-    return json_scalar(ns.const_get(joined))
+    value = ns.const_get(joined)
+    return path.last if value.is_a?(Array) || value.is_a?(Hash)
+
+    return json_scalar(value)
   rescue NameError, TypeError
     next
   end
@@ -374,6 +382,9 @@ end
 # [owner, each enclosing namespace ..., Object] for a module, by name.
 def namespaces_for(owner)
   out = []
+  # A module_function / ``def self.`` method is owned by the singleton class,
+  # which has no name: look up from the module it is attached to.
+  owner = owner.attached_object if owner.is_a?(Class) && owner.singleton_class?
   name = owner.is_a?(Module) ? owner.name : nil
   if name
     parts = name.split('::')

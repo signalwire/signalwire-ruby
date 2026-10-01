@@ -2575,6 +2575,45 @@
         }
       }
     },
+    "signalwire.core.capabilities": {
+      "functions": {
+        "declared_capabilities": {
+          "params": [
+            {
+              "name": "body_params",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "any"
+        },
+        "has_capability": {
+          "params": [
+            {
+              "name": "body_params",
+              "type": "any",
+              "required": true
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "any"
+        },
+        "user_variables": {
+          "params": [
+            {
+              "name": "body_params",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "any"
+        }
+      }
+    },
     "signalwire.core.config_loader": {
       "classes": {
         "ConfigLoader": {
@@ -7178,6 +7217,175 @@
               "returns": "any"
             }
           }
+        }
+      }
+    },
+    "signalwire.core.post_prompt": {
+      "classes": {
+        "NormalizedPostPrompt": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "medium",
+                  "type": "string",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "conversation_id",
+                  "type": "optional<string>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "summary",
+                  "type": "dict<string,any>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "dialogue",
+                  "type": "list<dict<string,string>>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "call_id",
+                  "type": "optional<string>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "raw",
+                  "type": "dict<string,any>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "void"
+            },
+            "medium": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "conversation_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "summary": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "dialogue": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "call_id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            },
+            "raw": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "any"
+            }
+          }
+        }
+      },
+      "functions": {
+        "dialogue_turns": {
+          "params": [
+            {
+              "name": "call_log",
+              "type": "any",
+              "required": true
+            },
+            {
+              "name": "roles",
+              "type": "tuple<string,any>",
+              "kind": "keyword",
+              "required": false,
+              "default": "DIALOGUE_ROLES"
+            },
+            {
+              "name": "drop_echo",
+              "type": "optional<string>",
+              "kind": "keyword",
+              "required": false,
+              "default": null
+            }
+          ],
+          "returns": "any"
+        },
+        "normalize_post_prompt": {
+          "params": [
+            {
+              "name": "body",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "any"
+        },
+        "parse_post_prompt_data": {
+          "params": [
+            {
+              "name": "data",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "any"
+        },
+        "strip_json_fence": {
+          "params": [
+            {
+              "name": "text",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "any"
         }
       }
     },
@@ -47855,6 +48063,34 @@
         },
         "tool_result": {
           "type": "optional<string>",
+          "required": false
+        }
+      }
+    },
+    "signalwire.core.post_prompt.NormalizedPostPrompt": {
+      "params": {
+        "call_id": {
+          "type": "optional<string>",
+          "required": false
+        },
+        "conversation_id": {
+          "type": "optional<string>",
+          "required": false
+        },
+        "dialogue": {
+          "type": "list<dict<string,string>>",
+          "required": false
+        },
+        "medium": {
+          "type": "string",
+          "required": false
+        },
+        "raw": {
+          "type": "dict<string,any>",
+          "required": false
+        },
+        "summary": {
+          "type": "dict<string,any>",
           "required": false
         }
       }

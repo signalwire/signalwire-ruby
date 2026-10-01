@@ -158,9 +158,27 @@ class BedrockRenderValidationTest < Minitest::Test
 
     refute_nil verb, 'expected an amazon_bedrock verb'
 
-    # ...and an out-of-enum voice is REJECTED rather than silently shipped.
-    agent.set_voice('not-a-bedrock-voice')
+    # ...and an out-of-range prompt temperature (schema: number 0..2) is
+    # REJECTED rather than silently shipped.
+    agent.set_inference_params(temperature: 5.0)
     assert_raises(SignalWire::Utils::SchemaValidationError) { agent.render_swml }
+  end
+
+  # Parity: python test_an_unoffered_voice_is_accepted_and_the_offered_ones_are_annotated.
+  # Bedrock refuses a voice outside its five, but behind a SWML handler that
+  # discards relay's reply (no SWML error; the verb just does not run) — so the
+  # schema states the offered voices as x-known-values, not an enum, and an
+  # unoffered voice renders (owner ruling 2026-09-27).
+  def test_an_unoffered_voice_is_accepted_and_the_offered_ones_are_annotated
+    agent = SignalWire::Agents::BedrockAgent.new(voice_id: 'inworld.Mark')
+    agent.set_prompt_text('Hi')
+
+    refute_nil(agent.render_swml['sections']['main'].find { |v| v.key?('amazon_bedrock') })
+    body = SignalWire::Utils::SchemaUtils.new.schema.dig('$defs', 'AmazonBedrock', 'properties', 'amazon_bedrock')
+    voice = body['anyOf'].find { |arm| arm['type'] == 'object' }.dig('properties', 'prompt', 'properties', 'voice_id')
+
+    assert_equal %w[amy carlos lupe matthew tiffany], voice['x-known-values'].sort
+    refute voice.key?('enum')
   end
 
   # `build_bedrock_object` copies a FIXED key set; anything outside it is
