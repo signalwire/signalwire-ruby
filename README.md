@@ -264,6 +264,9 @@ dashboard: sign in at [my.signalwire.com](https://signalwire.com/signin) → **A
 | `SWML_SSL_KEY_PATH` | Agents | Path to SSL private key |
 | `SWML_ALLOW_PRIVATE_URLS` | Agents | Allow webhook/tool URLs pointing at private/loopback IPs (`1`/`true`/`yes`); off by default (SSRF guard) |
 | `SWML_SKIP_SCHEMA_VALIDATION` | Agents | Skip SWML schema validation (`1`/`true`/`yes`) |
+| `SWML_SYNC_HANDLERS_INLINE` | Agents | Run tool handlers and per-request / routing callbacks one call at a time across requests (`1`/`true`/`yes`); by default each request runs them on its own thread, concurrently |
+| `SIGNALWIRE_CHAT_GATEWAY_KEY` | AI Chat | The browser-facing key a `ChatGateway` checks when none is passed; otherwise one is generated |
+| `SIGNALWIRE_CHAT_GATEWAY_SECRET` | AI Chat | The secret a `ChatGateway` signs conversation handles with when none is passed; otherwise random per process (handles do not survive a restart) |
 | `SIGNALWIRE_SKILL_PATHS` | Skills | Extra skill search directories (colon-separated) |
 | `SIGNALWIRE_RELAY_HOST` | RELAY | Override the RELAY WebSocket host (testing / self-hosted) |
 | `SIGNALWIRE_RELAY_SCHEME` | RELAY | Override the RELAY WebSocket scheme (`ws`/`wss`) |
