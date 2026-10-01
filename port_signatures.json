@@ -32257,15 +32257,6 @@
               ],
               "returns": "any"
             },
-            "generated_pat_http_client": {
-              "params": [
-                {
-                  "name": "self",
-                  "kind": "self"
-                }
-              ],
-              "returns": "any"
-            },
             "http": {
               "params": [
                 {

@@ -139,13 +139,14 @@ module SignalWire
         @http
       end
 
-      # The HttpClient carrying the Personal Access Token, which the generated
-      # ResourceTree builds the PAT-authenticated containers (+space+) off of.
+      private
+
+      # @api private — the HttpClient carrying the Personal Access Token, which the
+      # generated ResourceTree builds the PAT-authenticated containers (+space+)
+      # off of (called with an implicit receiver, so it can stay private).
       def generated_pat_http_client
         @pat_http
       end
-
-      private
 
       # @api private — each credential from its argument, else its environment
       # variable, else empty.

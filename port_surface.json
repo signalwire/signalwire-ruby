@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 9e802a700c48e91cc6348ee86e23cbbddc8598c0",
+  "generated_from": "signalwire-ruby @ f27b72b5b160ec71a7e3ce8867b7e8cbcf1ed330",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -2168,7 +2168,6 @@
           "datasphere",
           "fabric",
           "generated_http_client",
-          "generated_pat_http_client",
           "http",
           "imported_numbers",
           "inspect",
