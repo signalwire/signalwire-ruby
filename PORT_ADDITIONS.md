@@ -390,7 +390,6 @@ signalwire.skills.builtin.custom_skills_skill.CustomSkillsSkill.register_tools: 
 signalwire.skills.builtin.custom_skills_skill.CustomSkillsSkill.setup: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
 signalwire.skills.builtin.custom_skills_skill.CustomSkillsSkill.supports_multiple_instances?: port-only: Ruby predicate method (? suffix)
 signalwire.skills.claude_skills.skill.ClaudeSkillsSkill.description: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
-signalwire.skills.claude_skills.skill.ClaudeSkillsSkill.get_prompt_sections: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
 signalwire.skills.claude_skills.skill.ClaudeSkillsSkill.name: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
 signalwire.skills.claude_skills.skill.ClaudeSkillsSkill.supports_multiple_instances?: port-only: Ruby predicate method (? suffix)
 signalwire.skills.datasphere.skill.DataSphereSkill.description: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
@@ -404,7 +403,6 @@ signalwire.skills.datetime.skill.DateTimeSkill.name: port-only: Ruby attr_reader
 signalwire.skills.google_maps.skill.GoogleMapsSkill.description: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
 signalwire.skills.google_maps.skill.GoogleMapsSkill.name: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
 signalwire.skills.info_gatherer.skill.InfoGathererSkill.description: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
-signalwire.skills.info_gatherer.skill.InfoGathererSkill.get_prompt_sections: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
 signalwire.skills.info_gatherer.skill.InfoGathererSkill.name: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
 signalwire.skills.info_gatherer.skill.InfoGathererSkill.supports_multiple_instances?: port-only: Ruby predicate method (? suffix)
 signalwire.skills.joke.skill.JokeSkill.description: port-only: Ruby attr_reader on skill (matches Python __init__ stored attribute)
@@ -661,7 +659,7 @@ agentbase-family.default_webhook_url: port-only: Ruby attr_reader for the constr
 agentbase-family.extract_sip_username: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
 agentbase-family.extract_sip_username_from_request: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance)
 agentbase-family.full_url: ruby-idiom bare-noun reader (D9) over get_full_url; native `agent.full_url`, get_ name retained for parity
-agentbase-family.get_contexts: port-only: Ruby getter for the contexts dictionary (Python parity: PromptManager#get_contexts via PromptMixin projection)
+agentbase-family.get_contexts: port-only: mixin method collapsed onto SignalWire::AgentBase (Ruby single-inheritance + modules model replaces Python multiple inheritance). NOT a new capability: the reference declares the same read twice — `PromptManager#get_contexts` (Ruby matches by name) and the `PromptMixin.contexts` property (Ruby's `get_contexts` folds to it via SURFACE_METHOD_ALIASES/SIG_METHOD_ALIASES). Only the AgentBase-hosted twin, which the reference's AgentBase does not carry, is excused here.
 agentbase-family.get_raw_prompt: port-only: Ruby getter for the raw prompt text (Python parity: PromptManager#get_raw_prompt via PromptMixin projection)
 agentbase-family.handle_additional_route: port-only: Ruby's SWML::Service hosts the tool/web mixin surface + attr_readers + Rack helpers directly on the base service (Python splits these across ToolMixin/WebMixin/AgentBase; folded onto the base is the Ruby idiom)
 agentbase-family.list_tool_names: port-only: Ruby's SWML::Service hosts the tool/web mixin surface + attr_readers + Rack helpers directly on the base service (Python splits these across ToolMixin/WebMixin/AgentBase; folded onto the base is the Ruby idiom)

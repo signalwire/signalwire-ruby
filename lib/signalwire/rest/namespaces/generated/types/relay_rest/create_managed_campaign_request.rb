@@ -22,12 +22,11 @@ module SignalWire
             #
             # Method-less data DTO: the frozen FIELDS constant maps each snake wire
             # key to its JSON type symbol. No reader/writer methods and no
-            # initialize — the reference records this as a method-less type
-            # definition, so the surface enumerator surfaces the bare class name.
+            # initialize — the class is a bare namespace for its FIELDS map,
+            # describing the wire shape rather than wrapping a payload.
             class CreateManagedCampaignRequest
               FIELDS = {
                 'name' => :string,
-                'brand_id' => :object,
                 'sms_use_case' => :string,
                 'sub_use_cases' => :array,
                 'campaign_verify_token' => :string,
@@ -53,7 +52,9 @@ module SignalWire
                 'age_gated_content' => :boolean,
                 'lead_generation' => :boolean,
                 'terms_and_conditions' => :boolean,
-                'status_callback_url' => :string
+                'status_callback_url' => :string,
+                'csp_campaign_reference' => :string,
+                'signalwire_contact_emails' => :object
               }.freeze
             end
           end

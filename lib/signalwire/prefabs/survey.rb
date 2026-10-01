@@ -9,7 +9,9 @@ require 'json'
 
 require_relative '../swaig/function_result'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Prefabs — ready-made agents assembled from the SDK's own building blocks.
   module Prefabs
     # @api private — per-question-type answer validation for Survey. Split out
     # of Survey so the class keeps only its public API + survey state; these
@@ -28,6 +30,10 @@ module SignalWire
         end
       end
 
+      # @api private — reject a rating outside 1..scale (default 5) or one that is
+      # not a whole number at all.
+      #
+      # @return [String, nil] the error text, or nil when valid
       def rating_error(question, response)
         scale = question['scale'] || 5
         rating = Integer(response.strip, exception: false)
@@ -36,6 +42,11 @@ module SignalWire
         "Invalid rating. Please provide a number between 1 and #{scale}."
       end
 
+      # @api private — reject an answer that is not one of the question's options.
+      # The comparison is case-insensitive and whitespace-trimmed, so a spoken answer
+      # matches without exact casing.
+      #
+      # @return [String, nil] the error text, or nil when valid
       def multiple_choice_error(question, response)
         options = question['options'] || []
         return if options.any? { |opt| response.downcase.strip == opt.downcase }
@@ -43,12 +54,19 @@ module SignalWire
         "Invalid choice. Please select one of: #{options.join(', ')}."
       end
 
+      # @api private — accept `yes`/`no`/`y`/`n`, case-insensitive and trimmed.
+      #
+      # @return [String, nil] the error text, or nil when valid
       def yes_no_error(response)
         return if %w[yes no y n].include?(response.downcase.strip)
 
         "Please answer with 'yes' or 'no'."
       end
 
+      # @api private — reject an empty answer only when the question is required.
+      # Required defaults to TRUE, so a question must opt OUT of being required.
+      #
+      # @return [String, nil] the error text, or nil when valid
       def open_ended_error(question, response)
         required = question.key?('required') ? question['required'] : true
         'A response is required for this question.' if response.strip.empty? && required
@@ -77,12 +95,10 @@ module SignalWire
       attr_reader :survey_name, :questions, :name, :route, :brand_name, :max_retries
 
       # @return [String] the opening message in force — the caller-supplied
-      #   +introduction:+ or the generated default. Reference attribute
-      #   `self.introduction` (prefabs/survey.py).
+      #   +introduction:+ or the generated default.
       # @return [String] +conclusion+: the closing message — caller-supplied or
-      #   {DEFAULT_CONCLUSION}. Also a public reference attribute. Both are
-      #   defaulted, so reading back is the only way a caller learns which text
-      #   the agent will actually speak.
+      #   {DEFAULT_CONCLUSION}. Both are defaulted, so reading them back is the
+      #   only way a caller learns which text the agent will actually speak.
       attr_reader :introduction, :conclusion
 
       # @param brand_name [String, nil] brand or company name the agent
@@ -104,14 +120,25 @@ module SignalWire
         @route = route
       end
 
+      # The SWAIG tool names this prefab's agent exposes.
+      #
+      # @return [Array<String>]
       def tools
         %w[start_survey submit_survey_answer get_survey_summary validate_response log_response]
       end
 
+      # The POM sections that make up the survey agent's prompt.
+      #
+      # @return [Array<Hash>]
       def prompt_sections
         [personality_section, instructions_section, questions_section]
       end
 
+      # The `global_data` the survey agent starts with: the survey name, brand and
+      # retry budget, plus the `survey` state object holding the questions, the
+      # current index and the collected responses.
+      #
+      # @return [Hash]
       def global_data
         {
           'survey_name' => @survey_name, 'brand_name' => @brand_name,
@@ -123,15 +150,27 @@ module SignalWire
         }
       end
 
+      # @api private — the start handler: speak the introduction and ask the first
+      # question, numbered so the caller knows how long the survey is.
+      #
+      # @return [Swaig::FunctionResult]
       def handle_start(_args, _raw_data)
         q = @questions.first
         Swaig::FunctionResult.new("#{@introduction}\n\n[Question 1 of #{@questions.size}]: #{q['text']}")
       end
 
+      # @api private — the submit handler: acknowledge the answer back to the model.
+      # The response is carried in the agent's `global_data` by the runtime, not
+      # stored on this object.
+      #
+      # @return [Swaig::FunctionResult]
       def handle_submit(args, _raw_data)
         Swaig::FunctionResult.new("Response recorded: #{args['answer']}")
       end
 
+      # @api private — the summary handler: speak the closing message.
+      #
+      # @return [Swaig::FunctionResult]
       def handle_summary(_args, _raw_data)
         Swaig::FunctionResult.new(@conclusion)
       end
@@ -195,12 +234,20 @@ module SignalWire
 
       private
 
+      # @api private — a survey needs at least one question; an empty list is
+      # rejected at construction rather than producing an agent with nothing to ask.
+      #
+      # @raise [ArgumentError]
       def validate_questions!(questions)
         return if questions.is_a?(Array) && !questions.empty?
 
         raise ArgumentError, 'questions must be a non-empty Array'
       end
 
+      # @api private — the opening line used when the caller supplied no
+      # `introduction:`.
+      #
+      # @return [String]
       def default_introduction(survey_name)
         "Welcome to the #{survey_name}. Let's get started."
       end
@@ -225,6 +272,11 @@ module SignalWire
         }
       end
 
+      # @api private — the prompt section listing every question with its id and
+      # type, so the model knows the full sequence and what kind of answer each
+      # expects. An untyped question is presented as open-ended.
+      #
+      # @return [Hash]
       def questions_section
         {
           'title' => "Survey: #{@survey_name}",

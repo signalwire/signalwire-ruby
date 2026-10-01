@@ -486,7 +486,7 @@ class RelayCallTest < Minitest::Test
 
   def test_call_event_listener
     events_received = []
-    @call.on('calling.call.state') { |e| events_received << e }
+    @call.on('calling.call.state', nil) { |e| events_received << e }
     @call._dispatch_event(payload('calling.call.state', 'call_id' => 'call-1', 'call_state' => 'ending'))
 
     assert_equal 1, events_received.length
@@ -674,7 +674,7 @@ class RelayMessageTest < Minitest::Test
     msg = SignalWire::Relay::Message.new(message_id: 'msg-5', state: 'queued')
 
     events = []
-    msg.on_event { |e| events << e }
+    msg.on_event(nil) { |e| events << e }
     msg._dispatch_event(message_state('msg-5', 'sent'))
 
     assert_equal 1, events.length

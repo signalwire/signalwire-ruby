@@ -19,7 +19,16 @@ group :development, :test do
   gem 'rack-test', '>= 2.0'
   gem 'rake', '>= 13.0'
   # Lint/format quality floor (FMT + LINT gates in scripts/run-ci.sh).
-  gem 'rubocop', '>= 1.80'
-  gem 'rubocop-minitest', '>= 0.38'
-  gem 'rubocop-performance', '>= 1.25'
+  #
+  # These carry an upper bound on the MINOR version, not just a floor. With an
+  # open floor ('>= 1.80'), CI resolves the newest release while local runs use
+  # the committed Gemfile.lock, so a rubocop release that adds or tightens a cop
+  # turns CI red with no code change and local FMT/LINT cannot reproduce it.
+  # That happened with 1.89.0, which tightened
+  # Layout/MultilineMethodCallIndentation: local 1.88.0 reported 0 offenses on
+  # the exact commit CI failed with 3. Bump these deliberately (and fix the new
+  # offenses in the same commit) rather than letting CI float.
+  gem 'rubocop', '>= 1.89', '< 1.90'
+  gem 'rubocop-minitest', '>= 0.40', '< 0.41'
+  gem 'rubocop-performance', '>= 1.26', '< 1.27'
 end

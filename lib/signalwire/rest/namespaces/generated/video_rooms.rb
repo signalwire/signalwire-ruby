@@ -42,7 +42,7 @@ module SignalWire
             @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(resource_id, display_name: nil, description: nil, max_members: nil, quality: nil, join_from: nil, join_until: nil, remove_at: nil, remove_after_seconds_elapsed: nil, layout: nil, record_on_start: nil, enable_room_previews: nil, meta: nil, sync_audio_video: nil, extras: {}, request_options: nil, **kwargs)
+          def update(id, display_name: nil, description: nil, max_members: nil, quality: nil, join_from: nil, join_until: nil, remove_at: nil, remove_after_seconds_elapsed: nil, layout: nil, record_on_start: nil, enable_room_previews: nil, meta: nil, sync_audio_video: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['display_name'] = display_name unless display_name.nil?
             body['description'] = description unless description.nil?
@@ -58,7 +58,7 @@ module SignalWire
             body['meta'] = meta unless meta.nil?
             body['sync_audio_video'] = sync_audio_video unless sync_audio_video.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.put(_path(resource_id), body, request_options: request_options)
+            @http.put(_path(id), body, request_options: request_options)
           end
 
           def delete(resource_id, request_options: nil)

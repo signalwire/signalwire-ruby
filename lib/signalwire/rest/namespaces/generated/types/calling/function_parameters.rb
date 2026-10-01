@@ -22,13 +22,58 @@ module SignalWire
             #
             # Method-less data DTO: the frozen FIELDS constant maps each snake wire
             # key to its JSON type symbol. No reader/writer methods and no
-            # initialize — the reference records this as a method-less type
-            # definition, so the surface enumerator surfaces the bare class name.
+            # initialize — the class is a bare namespace for its FIELDS map,
+            # describing the wire shape rather than wrapping a payload.
             class FunctionParameters
               FIELDS = {
-                'type' => :string,
+                'title' => :string,
+                'description' => :string,
+                'type' => :object,
+                'const' => :any,
+                'enum' => :array,
+                'format' => :string,
+                'pattern' => :string,
+                'minimum' => :number,
+                'maximum' => :number,
+                'exclusiveMinimum' => :number,
+                'exclusiveMaximum' => :number,
+                'minLength' => :integer,
+                'maxLength' => :integer,
+                'minItems' => :integer,
+                'maxItems' => :integer,
+                'minProperties' => :integer,
+                'maxProperties' => :integer,
+                'default' => :any,
+                'examples' => :array,
+                'deprecated' => :boolean,
+                'nullable' => :boolean,
                 'properties' => :object,
-                'required' => :array
+                'required' => :array,
+                'prefixItems' => :array,
+                'items' => :object,
+                'propertyNames' => :object,
+                'additionalProperties' => :object,
+                'unevaluatedProperties' => :object,
+                'oneOf' => :array,
+                'anyOf' => :array,
+                'allOf' => :array,
+                'not' => :object,
+                'contains' => :object,
+                'dependentRequired' => :object,
+                'dependentSchemas' => :object,
+                'else' => :object,
+                'example' => :any,
+                'if' => :object,
+                'maxContains' => :integer,
+                'minContains' => :integer,
+                'multipleOf' => :number,
+                'patternProperties' => :object,
+                'propertyOrdering' => :array,
+                'readOnly' => :boolean,
+                'then' => :object,
+                'unevaluatedItems' => :object,
+                'uniqueItems' => :boolean,
+                'writeOnly' => :boolean
               }.freeze
             end
           end

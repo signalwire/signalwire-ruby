@@ -19,7 +19,7 @@ agent.run
 ### With Environment-Driven Configuration
 <!-- snippet: no-run illustrative fragment: uses the reader's own placeholder MyAgent subclass -->
 ```ruby
-# The Ruby port is configured from environment variables (no ConfigLoader).
+# The Ruby SDK is configured from environment variables (no ConfigLoader).
 # Set the relevant SWML_* vars, then instantiate as usual.
 ENV['SWML_SSL_ENABLED']   = 'true'
 ENV['SWML_SSL_CERT_PATH'] = '/etc/ssl/cert.pem'
@@ -266,7 +266,7 @@ After (Option 3 - Mix config and env vars):
 
 ## Programmatic Usage
 
-The Ruby port does not ship a dedicated `ConfigLoader` class; configuration is
+The Ruby SDK does not ship a dedicated `ConfigLoader` class; configuration is
 driven entirely from environment variables (see
 [PORT_OMISSIONS.md](../PORT_OMISSIONS.md)). Set the relevant `SWML_*` and
 agent-specific environment variables before instantiating your agent:

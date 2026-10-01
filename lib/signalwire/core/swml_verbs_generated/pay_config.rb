@@ -7,39 +7,43 @@
 
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
-# flattened SWMLMethod verb 'pay' config
+# schema.json $defs schema 'PayConfig'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
-      # PayConfig — generated read-side payload (flattened SWMLMethod verb 'pay' config).
+      # PayConfig — generated read-side payload (schema.json $defs schema 'PayConfig').
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
-      # A zero-arg reader per field mirrors the reference's recorded
-      # accessors (dropped on the SURFACE by the enumerator — method-less there).
+      # Each field also has a zero-arg reader, so a decoded payload can be
+      # accessed by name rather than by wire key.
       class PayConfig
         FIELDS = {
-          'payment_connector_url' => :string,
-          'charge_amount' => :string,
-          'currency' => :string,
-          'description' => :string,
-          'input' => :string,
-          'language' => :string,
+          'description' => :object,
+          'bank_account_type' => :object,
+          'charge_amount' => :object,
+          'currency' => :object,
+          'input' => :object,
+          'language' => :object,
           'max_attempts' => :object,
           'min_postal_code_length' => :object,
-          'parameters' => :array,
-          'payment_method' => :string,
+          'parameters' => :object,
+          'payment_connector_url' => :object,
+          'payment_method' => :object,
           'postal_code' => :object,
-          'prompts' => :array,
+          'prompts' => :object,
+          'say_voice' => :object,
           'security_code' => :object,
-          'status_url' => :string,
+          'status_url' => :object,
           'timeout' => :object,
           'token_type' => :object,
-          'valid_card_types' => :string,
-          'voice' => :string
+          'valid_card_types' => :object,
+          'voice' => :object
         }.freeze
 
-        attr_reader :payment_connector_url, :charge_amount, :currency, :description, :input, :language, :max_attempts, :min_postal_code_length, :parameters, :payment_method, :postal_code, :prompts, :security_code, :status_url, :timeout, :token_type, :valid_card_types, :voice
+        attr_reader :description, :bank_account_type, :charge_amount, :currency, :input, :language, :max_attempts, :min_postal_code_length, :parameters, :payment_connector_url, :payment_method, :postal_code, :prompts, :say_voice, :security_code, :status_url, :timeout, :token_type, :valid_card_types, :voice
       end
     end
   end

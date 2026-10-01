@@ -9,17 +9,23 @@
 # swaig-response action 'hold' value object
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwaigActionsGenerated — namespace for this generated data-class tree.
     module SwaigActionsGenerated
-      # HoldAction — generated data type (swaig-response action 'hold' value object).
+      # HoldAction — generated read-side payload (swaig-response action 'hold' value object).
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
-      # No reader/writer methods and no initialize — a method-less type the
-      # reference records method-less on both surface and signatures.
+      # Each field also has a zero-arg reader, so a decoded payload can be
+      # accessed by name rather than by wire key.
       class HoldAction
         FIELDS = {
-          'timeout' => :integer
+          'step' => :string,
+          'timeout' => :number,
+          'timeout_step' => :string
         }.freeze
+
+        attr_reader :step, :timeout, :timeout_step
       end
     end
   end

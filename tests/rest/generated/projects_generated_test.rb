@@ -118,7 +118,7 @@ class ProjectsGeneratedTest < Minitest::Test
   end
 
   def test_projects_update_success
-    @client.projects.update('x', name: 'x')
+    @client.projects.update('x')
     last = @mock.last
 
     assert_equal 'PATCH', last.method
@@ -127,7 +127,7 @@ class ProjectsGeneratedTest < Minitest::Test
 
   def test_projects_update_error
     @mock.push_scenario('projects.update_project', status: 500, response: { 'error' => 'x' })
-    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.projects.update('x', name: 'x') }
+    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.projects.update('x') }
 
     assert_equal 500, err.status_code
     assert_equal 500, @mock.last.response_status

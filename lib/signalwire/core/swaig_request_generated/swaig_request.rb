@@ -3,22 +3,26 @@
 # Spec-derived generated surface: wire keys, folded schema constants, and per-schema
 # CRUD/data-class size are preserved verbatim; these cops are pruned per file by the
 # generator's rubocop pass to exactly those that fire.
-# rubocop:disable Layout/LineLength
+# rubocop:disable Layout/LineLength, Naming/MethodName
 
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
 # swaig-request `SwaigRequest` schema
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwaigRequestGenerated — namespace for this generated data-class tree.
     module SwaigRequestGenerated
       # SwaigRequest — generated read-side payload (swaig-request `SwaigRequest` schema).
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
-      # A zero-arg reader per field mirrors the reference's recorded
-      # accessors (dropped on the SURFACE by the enumerator — method-less there).
+      # Each field also has a zero-arg reader, so a decoded payload can be
+      # accessed by name rather than by wire key.
       class SwaigRequest
         FIELDS = {
+          'SWMLCall' => :object,
+          'SWMLVars' => :object,
           'ai_session_id' => :string,
           'app_name' => :string,
           'args' => :string,
@@ -48,9 +52,9 @@ module SignalWire
           'version' => :any
         }.freeze
 
-        attr_reader :ai_session_id, :app_name, :args, :argument, :argument_desc, :call_id, :call_log, :caller_id_name, :caller_id_num, :channel_active, :channel_offhook, :channel_ready, :content_disposition, :content_type, :conversation_id, :description, :error_reason, :fatal_error, :function, :global_data, :input, :meta_data, :meta_data_token, :project_id, :raw_call_log, :space_id, :version
+        attr_reader :SWMLCall, :SWMLVars, :ai_session_id, :app_name, :args, :argument, :argument_desc, :call_id, :call_log, :caller_id_name, :caller_id_num, :channel_active, :channel_offhook, :channel_ready, :content_disposition, :content_type, :conversation_id, :description, :error_reason, :fatal_error, :function, :global_data, :input, :meta_data, :meta_data_token, :project_id, :raw_call_log, :space_id, :version
       end
     end
   end
 end
-# rubocop:enable Layout/LineLength
+# rubocop:enable Layout/LineLength, Naming/MethodName

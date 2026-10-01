@@ -9,7 +9,7 @@
 require 'signalwire'
 
 agent = SignalWire::AgentBase.new(
-  name:        'Simple Customer Service Agent',
+  name: 'Simple Customer Service Agent',
   record_call: true
 )
 
@@ -18,18 +18,18 @@ agent = SignalWire::AgentBase.new(
 agent.add_language('English', 'en-US', 'elevenlabs.rachel')
 
 agent.set_params(
-  'end_of_speech_timeout'    => 500,
-  'attention_timeout'        => 15_000,
-  'background_file_volume'   => -20
+  'end_of_speech_timeout' => 500,
+  'attention_timeout' => 15_000,
+  'background_file_volume' => -20
 )
 
 agent.add_hints(%w[SignalWire SWML API webhook SIP])
 
 agent.set_global_data(
-  'agent_type'        => 'customer_service',
-  'service_level'     => 'standard',
-  'features_enabled'  => %w[basic_conversation help_desk],
-  'session_info'      => { 'environment' => 'production', 'version' => '1.0' }
+  'agent_type' => 'customer_service',
+  'service_level' => 'standard',
+  'features_enabled' => %w[basic_conversation help_desk],
+  'session_info' => { 'environment' => 'production', 'version' => '1.0' }
 )
 
 agent.prompt_add_section(
@@ -61,6 +61,6 @@ agent.prompt_add_section(
 )
 
 puts 'Starting simple static agent...'
-puts "  Configuration: STATIC (set once at startup)"
+puts '  Configuration: STATIC (set once at startup)'
 puts "  Agent available at: http://localhost:#{agent.port}/"
 agent.run

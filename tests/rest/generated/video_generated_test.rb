@@ -187,7 +187,7 @@ class VideoGeneratedTest < Minitest::Test
   end
 
   def test_conferences_update_success
-    @client.video.conferences.update('x', display_name: 'x')
+    @client.video.conferences.update('x')
     last = @mock.last
 
     assert_equal 'PUT', last.method
@@ -196,7 +196,7 @@ class VideoGeneratedTest < Minitest::Test
 
   def test_conferences_update_error
     @mock.push_scenario('video.update_video_conference', status: 500, response: { 'error' => 'x' })
-    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.video.conferences.update('x', display_name: 'x') }
+    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.video.conferences.update('x') }
 
     assert_equal 500, err.status_code
     assert_equal 500, @mock.last.response_status
@@ -218,6 +218,23 @@ class VideoGeneratedTest < Minitest::Test
     assert_equal 500, err.status_code
     assert_equal 500, @mock.last.response_status
     assert_equal 'video.delete_room_recording', @mock.last.matched_route
+  end
+
+  def test_room_recordings_download_success
+    @client.video.room_recordings.download('x')
+    last = @mock.last
+
+    assert_equal 'GET', last.method
+    assert_equal 'video.download_room_recording', last.matched_route
+  end
+
+  def test_room_recordings_download_error
+    @mock.push_scenario('video.download_room_recording', status: 500, response: { 'error' => 'x' })
+    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.video.room_recordings.download('x') }
+
+    assert_equal 500, err.status_code
+    assert_equal 500, @mock.last.response_status
+    assert_equal 'video.download_room_recording', @mock.last.matched_route
   end
 
   def test_room_recordings_get_success
@@ -527,7 +544,7 @@ class VideoGeneratedTest < Minitest::Test
   end
 
   def test_streams_update_success
-    @client.video.streams.update('x', url: 'x')
+    @client.video.streams.update('x')
     last = @mock.last
 
     assert_equal 'PUT', last.method
@@ -536,7 +553,7 @@ class VideoGeneratedTest < Minitest::Test
 
   def test_streams_update_error
     @mock.push_scenario('video.update_stream', status: 500, response: { 'error' => 'x' })
-    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.video.streams.update('x', url: 'x') }
+    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.video.streams.update('x') }
 
     assert_equal 500, err.status_code
     assert_equal 500, @mock.last.response_status

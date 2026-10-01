@@ -7,32 +7,34 @@
 
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
-# flattened SWMLMethod verb 'record_call' config
+# schema.json $defs schema 'RecordCallConfig'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
-      # RecordCallConfig — generated read-side payload (flattened SWMLMethod verb 'record_call' config).
+      # RecordCallConfig — generated read-side payload (schema.json $defs schema 'RecordCallConfig').
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
-      # A zero-arg reader per field mirrors the reference's recorded
-      # accessors (dropped on the SURFACE by the enumerator — method-less there).
+      # Each field also has a zero-arg reader, so a decoded payload can be
+      # accessed by name rather than by wire key.
       class RecordCallConfig
         FIELDS = {
-          'control_id' => :string,
-          'stereo' => :object,
           'format' => :object,
-          'direction' => :object,
-          'terminators' => :string,
           'beep' => :object,
-          'input_sensitivity' => :object,
-          'initial_timeout' => :object,
+          'control_id' => :object,
+          'direction' => :object,
           'end_silence_timeout' => :object,
+          'initial_timeout' => :object,
+          'input_sensitivity' => :object,
           'max_length' => :object,
-          'status_url' => :string
+          'status_url' => :object,
+          'stereo' => :object,
+          'terminators' => :object
         }.freeze
 
-        attr_reader :control_id, :stereo, :format, :direction, :terminators, :beep, :input_sensitivity, :initial_timeout, :end_silence_timeout, :max_length, :status_url
+        attr_reader :format, :beep, :control_id, :direction, :end_silence_timeout, :initial_timeout, :input_sensitivity, :max_length, :status_url, :stereo, :terminators
       end
     end
   end

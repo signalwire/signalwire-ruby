@@ -7,6 +7,7 @@
 
 require_relative '../swaig/function_result'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
   # Fluent builder for server-side DataMap tools.
   #
@@ -25,6 +26,7 @@ module SignalWire
   class DataMap
     attr_reader :function_name
 
+    # @param function_name [String] the SWAIG function name this DataMap defines
     def initialize(function_name)
       @function_name = function_name
       @purpose_text = ''
@@ -145,17 +147,32 @@ module SignalWire
       self
     end
 
-    # Set the request body for the most-recently-added webhook (POST / PUT).
-    def body(data)
-      raise ArgumentError, 'Must add webhook before setting body' if @webhooks.empty?
+    # Set the JSON request body for the most-recently-added webhook.
+    #
+    # The platform sends +params+ as the request's JSON body, not as URL query
+    # parameters, so a webhook with params is sent as a POST whatever its method.
+    # Put query parameters in the URL instead. Templates in the values are expanded
+    # against the call data, such as +${args.query}+. It writes the +params+
+    # webhook key, which schema.json +$defs/Webhook+ lists among its permitted
+    # properties and which the engine's webhook readers look up.
+    #
+    # @param data [Hash] request body data (may include +${variable}+ substitutions)
+    # @return [self]
+    def params(data)
+      raise ArgumentError, 'Must add webhook before setting params' if @webhooks.empty?
 
-      @webhooks.last['body'] = data
+      @webhooks.last['params'] = data
       self
     end
 
-    # Set request params for the most-recently-added webhook.
-    def params(data)
-      raise ArgumentError, 'Must add webhook before setting params' if @webhooks.empty?
+    # Set the JSON request body for the most-recently-added webhook; the same as
+    # {#params}. The platform reads a webhook's body from its +params+ field and
+    # has no +body+ field, so this sets +params+.
+    #
+    # @param data [Hash] request body data (may include +${variable}+ substitutions)
+    # @return [self]
+    def body(data)
+      raise ArgumentError, 'Must add webhook before setting body' if @webhooks.empty?
 
       @webhooks.last['params'] = data
       self
@@ -234,8 +251,9 @@ module SignalWire
     # @param response_template [String]
     # @param parameters [Hash, nil] name => { "type" => ..., "description" => ..., "required" => bool }
     # @param method [String] HTTP method (default GET)
-    # @param headers [Hash, nil]
-    # @param body [Hash, nil]
+    # @param headers [Hash, nil] HTTP headers, sent as written
+    # @param body [Hash, nil] JSON request body, set as the webhook's params (a
+    #   webhook with a body is sent as a POST)
     # @param error_keys [Array<String>, nil]
     # @return [DataMap]
     def self.create_simple_api_tool(name:, url:, response_template:, parameters: nil,
@@ -243,7 +261,7 @@ module SignalWire
       dm = new(name)
       add_parameters(dm, parameters)
       dm.webhook(method, url, headers: headers)
-      dm.body(body) if body
+      dm.params(body) if body && !body.empty?
       dm.error_keys(error_keys) if error_keys
       dm.output(Swaig::FunctionResult.new(response_template))
       dm
@@ -279,10 +297,18 @@ module SignalWire
 
     private
 
+    # @api private — convert a value to a Hash when it can be (a FunctionResult
+    # typically), else pass it through, so both typed builders and raw Hashes can
+    # be used as outputs.
     def to_h_if_possible(value)
       value.respond_to?(:to_h) ? value.to_h : value
     end
 
+    # @api private — the tool's JSON Schema from the declared parameters, adding
+    # `required` only when at least one parameter was marked required. No
+    # parameters yields an empty object schema.
+    #
+    # @return [Hash]
     def build_param_schema
       return { 'type' => 'object', 'properties' => {} } unless @parameters.any?
 
@@ -291,6 +317,10 @@ module SignalWire
       schema
     end
 
+    # @api private — the `data_map` object: expressions, webhooks, the fallback
+    # output and the global error keys, each included only when non-empty.
+    #
+    # @return [Hash]
     def build_data_map
       data_map = {}
       data_map['expressions'] = @expressions          if @expressions.any?

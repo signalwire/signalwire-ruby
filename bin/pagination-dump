@@ -58,7 +58,7 @@ CYCLE_WATCHDOG_S = 8.0
 # optional 'next' cursor URL.
 def push_page(mock, data, links)
   mock.push_scenario(LIST_ENDPOINT_ID, status: 200,
-                                        response: { 'data' => data, 'links' => links })
+                                       response: { 'data' => data, 'links' => links })
 end
 
 def new_iterator(client)
@@ -99,16 +99,20 @@ def run_exhaustion(client, mock)
   { 'terminated' => (ids == %w[x-1 x-2 x-3 x-4 x-5]), 'total_items' => ids.length }
 end
 
+# fixture-id -> the runner that drives it, in emission order.
+FIXTURES = {
+  'empty_page_with_next' => method(:run_empty_page_with_next),
+  'repeating_cursor_guard' => method(:run_repeating_cursor_guard),
+  'exhaustion' => method(:run_exhaustion)
+}.freeze
+
 def main
-  out = {}
   # A fresh client (fresh auth-scoped scenario view) per fixture so an armed FIFO
   # sequence never crosses between fixtures.
-  h = MockTest.client
-  out['empty_page_with_next'] = run_empty_page_with_next(h[:client], h[:mock])
-  h = MockTest.client
-  out['repeating_cursor_guard'] = run_repeating_cursor_guard(h[:client], h[:mock])
-  h = MockTest.client
-  out['exhaustion'] = run_exhaustion(h[:client], h[:mock])
+  out = FIXTURES.to_h do |id, runner|
+    h = MockTest.client
+    [id, runner.call(h[:client], h[:mock])]
+  end
 
   REAL_STDOUT.puts(JSON.generate(out))
   REAL_STDOUT.flush

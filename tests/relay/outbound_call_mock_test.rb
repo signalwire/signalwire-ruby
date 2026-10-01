@@ -42,7 +42,7 @@ module RelayOutboundCallHelpers
   def arm_and_dial(tag:, winner:, states: %w[created answered], arm: {}, dial: {}, devices: nil)
     @mock.arm_dial(tag: tag, winner_call_id: winner, states: states,
                    node_id: 'node-mock-1', device: phone_device, **arm)
-    @client.dial(devices || [[phone_device]], tag: tag, timeout: 5, **dial)
+    @client.dial(devices || [[phone_device]], tag: tag, dial_timeout: 5, **dial)
   end
 
   # The single calling.dial frame's params (asserts exactly one was sent).
@@ -103,7 +103,7 @@ class RelayOutboundCallMockTest < Minitest::Test
     seen_tag = Queue.new
     pusher = Thread.new { push_winner_for_pending_dial(seen_tag) }
 
-    call = @client.dial([[phone_device]], timeout: 5)
+    call = @client.dial([[phone_device]], dial_timeout: 5)
     pusher.join(5)
     tag = seen_tag.pop
 
@@ -143,7 +143,7 @@ class RelayOutboundCallMockTest < Minitest::Test
       @mock.push(call_dial_event('t-fail', 'failed', {}))
     end
     err = assert_raises(SignalWire::Relay::RelayError) do
-      @client.dial([[phone_device]], tag: 't-fail', timeout: 5)
+      @client.dial([[phone_device]], tag: 't-fail', dial_timeout: 5)
     end
     pusher.join(5)
 
@@ -152,7 +152,7 @@ class RelayOutboundCallMockTest < Minitest::Test
 
   def test_dial_timeout_when_no_dial_event
     err = assert_raises(SignalWire::Relay::ActionTimeoutError) do
-      @client.dial([[phone_device]], tag: 't-timeout', timeout: 0.5)
+      @client.dial([[phone_device]], tag: 't-timeout', dial_timeout: 0.5)
     end
     assert_match(/timed out/i, err.message)
   end

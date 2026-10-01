@@ -62,7 +62,7 @@ class SchemaUtilsTest < Minitest::Test
     agent.define_tool(
       name: 'test',
       description: 'Test',
-      parameters: { 'name' => { 'type' => 'string', 'description' => 'Name' } }
+      parameters: { 'name' => { 'type' => 'string', 'description' => 'Name' } }, handler: nil
     ) { |_, _| }
 
     tools = agent.define_tools
@@ -74,7 +74,7 @@ class SchemaUtilsTest < Minitest::Test
 
   def test_empty_parameters_normalised
     agent = SignalWire::AgentBase.new
-    agent.define_tool(name: 'test', description: 'Test', parameters: {}) { |_, _| }
+    agent.define_tool(name: 'test', description: 'Test', parameters: {}, handler: nil) { |_, _| }
     tools = agent.define_tools
     params = tools[0]['parameters']
 

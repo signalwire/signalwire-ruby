@@ -20,7 +20,7 @@ class ToolTokenTest < Minitest::Test
       name: 'test_tool',
       description: 't',
       parameters: {},
-      secure: secure
+      secure: secure, handler: nil
     ) { |_args, _raw| { 'response' => 'ok' } }
     agent
   end

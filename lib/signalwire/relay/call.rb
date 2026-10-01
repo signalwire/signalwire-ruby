@@ -6,7 +6,9 @@ require_relative 'constants'
 require_relative 'device'
 require_relative 'collect_config'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Relay — the RELAY realtime (WebSocket / JSON-RPC 2.0) client surface.
   module Relay
     # Represents a live RELAY call.
     #
@@ -17,6 +19,17 @@ module SignalWire
                   :direction, :device, :segment_id
       attr_accessor :state
 
+      # @param client [Client] the RelayClient this call's RPCs are sent through
+      # @param call_id [String] the server's identifier for this call leg
+      # @param node_id [String] the RELAY node that owns the call; part of how the
+      #   platform addresses it
+      # @param project_id [String] the SignalWire project the call belongs to
+      # @param context [String] the context the call arrived on (inbound)
+      # @param tag [String] the caller-supplied correlation tag, when one was set
+      # @param direction [String] `"inbound"` or `"outbound"`
+      # @param device [Hash] the raw device descriptor for this leg
+      # @param state [String] the call's current state (see {CallState})
+      # @param segment_id [String] the call-segment identifier
       def initialize(client, call_id:, node_id:, project_id: '', context: '',
                      tag: '', direction: '', device: {}, state: '', segment_id: '')
         @client = client
@@ -83,9 +96,15 @@ module SignalWire
       # ------------------------------------------------------------------
 
       # Register an event listener for this call.
-      def on(event_type, &handler)
+      #
+      # The handler is REQUIRED. Ruby's block IS the handler; supplying neither
+      # registers nothing and raises.
+      def on(event_type, handler, &block)
+        callback = block || handler
+        raise ArgumentError, 'on requires a handler (block or callable)' if callback.nil?
+
         @mutex.synchronize do
-          (@listeners[event_type] ||= []) << handler
+          (@listeners[event_type] ||= []) << callback
         end
       end
 
@@ -161,16 +180,20 @@ module SignalWire
         end
       end
 
+      # Whether the call has reached its terminal state. Non-blocking, unlike the
+      # `wait_for_*` helpers.
+      #
+      # @return [Boolean]
       def ended?
         @ended
       end
 
       # Block until the call reaches +target+, returning immediately if the
       # call is already at or past that state. Backs the typed +wait_for_*+
-      # helpers below. Mirrors Python's +Call._wait_for_state+: states are
-      # ordered created < ringing < answered < ending < ended, and a call
-      # already at/past the target resolves with a synthetic state event
-      # (matching the legacy SDK's short-circuit).
+      # helpers below. States are ordered
+      # created < ringing < answered < ending < ended, and a call already
+      # at/past the target resolves with a synthetic state event (the legacy
+      # SDK's short-circuit).
       def _wait_for_state(target, timeout)
         return synthetic_state_event if state_rank(@state) >= state_rank(target)
 
@@ -195,22 +218,19 @@ module SignalWire
       end
 
       # Wait until the call is answered (immediate if already answered or past
-      # it). Typed wait over #wait_for. Mirrors Python's
-      # +Call.wait_for_answered(timeout)+.
+      # it). Typed wait over #wait_for.
       def wait_for_answered(timeout: nil)
         _wait_for_state(CALL_STATE_ANSWERED, timeout)
       end
 
       # Wait until the call is ringing (immediate if already ringing or past
-      # it). Typed wait over #wait_for. Mirrors Python's
-      # +Call.wait_for_ringing(timeout)+.
+      # it). Typed wait over #wait_for.
       def wait_for_ringing(timeout: nil)
         _wait_for_state(CALL_STATE_RINGING, timeout)
       end
 
       # Wait until the call is ending (immediate if already ending or past
-      # it). Typed wait over #wait_for. Mirrors Python's
-      # +Call.wait_for_ending(timeout)+.
+      # it). Typed wait over #wait_for.
       def wait_for_ending(timeout: nil)
         _wait_for_state(CALL_STATE_ENDING, timeout)
       end
@@ -233,7 +253,7 @@ module SignalWire
         state   = { result: nil, satisfied: false }
         handler = one_shot_handler(mutex, cv, state, predicate)
 
-        on(event_type, &handler)
+        on(event_type, handler)
         with_one_shot_listener(event_type, handler) do
           mutex.synchronize { block_until(cv, mutex, timeout) { state[:satisfied] } }
           state[:result]
@@ -316,10 +336,18 @@ module SignalWire
         _execute('answer', kwargs.empty? ? nil : kwargs.transform_keys(&:to_s))
       end
 
+      # End the call by sending the RELAY `calling.end` method.
+      #
+      # @param reason [String] why the call is ending, sent as the `reason` wire param
+      # @return [Hash] the server's result
       def hangup(reason: 'hangup')
         _execute('end', { 'reason' => reason })
       end
 
+      # Hand the call back to the platform's dial plan without answering it, so
+      # another consumer (or the next route) can take it. Sends `calling.pass`.
+      #
+      # @return [Hash] the server's result
       def pass_call
         _execute('pass')
       end
@@ -334,6 +362,10 @@ module SignalWire
         _execute('connect', params)
       end
 
+      # Tear down a peer connection established by {#connect}, leaving this leg up.
+      # Sends `calling.disconnect`.
+      #
+      # @return [Hash] the server's result
       def disconnect
         _execute('disconnect')
       end
@@ -346,6 +378,9 @@ module SignalWire
         _execute('hold')
       end
 
+      # Take the call off hold, resuming two-way media. Sends `calling.unhold`.
+      #
+      # @return [Hash] the server's result
       def unhold
         _execute('unhold')
       end
@@ -358,6 +393,9 @@ module SignalWire
         _execute('denoise')
       end
 
+      # Stop background-noise reduction on the call. Sends `calling.denoise.stop`.
+      #
+      # @return [Hash] the server's result
       def denoise_stop
         _execute('denoise.stop')
       end
@@ -382,6 +420,11 @@ module SignalWire
         _execute('join_conference', params)
       end
 
+      # Remove this call from a conference it joined. Sends
+      # `calling.leave_conference`.
+      #
+      # @param conference_id [String] the conference to leave
+      # @return [Hash] the server's result
       def leave_conference(conference_id:)
         _execute('leave_conference', { 'conference_id' => conference_id })
       end
@@ -404,6 +447,11 @@ module SignalWire
         _execute('bind_digit', params)
       end
 
+      # Remove every DTMF binding registered via {#bind_digit}, so digits stop
+      # triggering their bound behaviour. Sends `calling.clear_digit_bindings`.
+      #
+      # @param kwargs [Hash] extra wire params, keys stringified; omitted when empty
+      # @return [Hash] the server's result
       def clear_digit_bindings(**kwargs)
         _execute('clear_digit_bindings', kwargs.empty? ? nil : kwargs.transform_keys(&:to_s))
       end
@@ -419,6 +467,12 @@ module SignalWire
         _execute('queue.enter', params)
       end
 
+      # Remove the call from a queue it entered. Sends `calling.queue.leave`.
+      #
+      # @param queue_name [String] the queue to leave
+      # @param control_id [String, nil] correlation id; a fresh UUID is minted when omitted
+      # @param kwargs [Hash] extra wire params, keys stringified
+      # @return [Hash] the server's result
       def queue_leave(queue_name:, control_id: nil, **kwargs)
         cid = control_id || SecureRandom.uuid
         params = { 'control_id' => cid, 'queue_name' => queue_name }
@@ -457,6 +511,12 @@ module SignalWire
         _execute('live_transcribe', params)
       end
 
+      # Start, stop or reconfigure real-time translation on the call. Sends
+      # `calling.live_translate`.
+      #
+      # @param action [String] the operation to perform, sent as the `action` wire param
+      # @param kwargs [Hash] the translation configuration, keys stringified
+      # @return [Hash] the server's result
       def live_translate(action:, **kwargs)
         params = { 'action' => action }
         kwargs.each { |k, v| params[k.to_s] = v }
@@ -473,6 +533,9 @@ module SignalWire
         _execute('join_room', params)
       end
 
+      # Remove this call from a video room it joined. Sends `calling.leave_room`.
+      #
+      # @return [Hash] the server's result
       def leave_room
         _execute('leave_room')
       end
@@ -496,14 +559,28 @@ module SignalWire
         _execute('ai_message', kwargs.transform_keys(&:to_s))
       end
 
+      # Put the AI agent attached to this call on hold, so it stops responding while
+      # the leg stays up. Sends `calling.ai_hold`.
+      #
+      # @param kwargs [Hash] extra wire params, keys stringified; omitted when empty
+      # @return [Hash] the server's result
       def ai_hold(**kwargs)
         _execute('ai_hold', kwargs.empty? ? nil : kwargs.transform_keys(&:to_s))
       end
 
+      # Resume an AI agent that was held by {#ai_hold}. Sends `calling.ai_unhold`.
+      #
+      # @param kwargs [Hash] extra wire params, keys stringified; omitted when empty
+      # @return [Hash] the server's result
       def ai_unhold(**kwargs)
         _execute('ai_unhold', kwargs.empty? ? nil : kwargs.transform_keys(&:to_s))
       end
 
+      # Attach an Amazon Bedrock AI agent to the call. This is its own RELAY method
+      # (`calling.amazon_bedrock`), not `calling.ai` with an engine parameter.
+      #
+      # @param kwargs [Hash] the Bedrock agent configuration, keys stringified
+      # @return [Hash] the server's result
       def amazon_bedrock(**kwargs)
         _execute('amazon_bedrock', kwargs.transform_keys(&:to_s))
       end
@@ -528,8 +605,6 @@ module SignalWire
       #
       # Restores the legacy +call.play_tts(text)+ ergonomics so callers don't
       # hand-build the +{ 'type' => 'tts', 'params' => {...} }+ media shape.
-      # Mirrors Python's +Call.play_tts(text, *, language, gender, voice,
-      # volume, on_completed)+.
       #
       # Wire shape: play [{ 'type' => 'tts', 'params' => { 'text', language?,
       # gender?, voice? } }] with an optional top-level +volume+.
@@ -544,7 +619,6 @@ module SignalWire
       end
 
       # Play an audio file from a URL. Typed convenience over #play.
-      # Mirrors Python's +Call.play_audio(url, *, volume, on_completed)+.
       #
       # Wire shape: play [{ 'type' => 'audio', 'params' => { 'url' } }] with an
       # optional top-level +volume+.
@@ -554,7 +628,6 @@ module SignalWire
       end
 
       # Play silence for +duration+ seconds. Typed convenience over #play.
-      # Mirrors Python's +Call.play_silence(duration, *, on_completed)+.
       #
       # Wire shape: play [{ 'type' => 'silence', 'params' => { 'duration' } }].
       def play_silence(duration, on_completed: nil)
@@ -563,8 +636,6 @@ module SignalWire
       end
 
       # Play a named ringtone by country code. Typed convenience over #play.
-      # Mirrors Python's +Call.play_ringtone(name, *, duration, volume,
-      # on_completed)+.
       #
       # Wire shape: play [{ 'type' => 'ringtone', 'params' => { 'name',
       # duration? } }] with an optional top-level +volume+.
@@ -602,6 +673,15 @@ module SignalWire
         start_action(action, 'play_and_collect', params, on_completed: on_completed)
       end
 
+      # Collect caller input WITHOUT playing a prompt first, for when the prompt was
+      # played separately. Sends `calling.collect` and returns immediately.
+      #
+      # @param collect_opts [Hash] the collect configuration (digits / speech rules),
+      #   merged into the wire params with its keys stringified
+      # @param control_id [String, nil] correlation id; a fresh UUID is minted when omitted
+      # @param on_completed [Proc, nil] invoked with the terminal event when the collect finishes
+      # @param kwargs [Hash] extra wire params, keys stringified
+      # @return [StandaloneCollectAction] a handle to wait on or stop
       def collect(collect_opts, control_id: nil, on_completed: nil, **kwargs)
         cid = control_id || SecureRandom.uuid
         params = { 'control_id' => cid }
@@ -612,8 +692,6 @@ module SignalWire
       end
 
       # Play TTS then collect input. Typed media over #play_and_collect.
-      # Mirrors Python's +Call.prompt_tts(text, collect, *, language, gender,
-      # voice, volume, on_completed)+.
       #
       # Wire shape: play_and_collect [{ 'type' => 'tts', 'params' => { 'text',
       # language?, gender?, voice? } }] with the given +collect+ object and an
@@ -629,8 +707,7 @@ module SignalWire
       end
 
       # Play an audio file then collect input. Typed media over
-      # #play_and_collect. Mirrors Python's +Call.prompt_audio(url, collect,
-      # *, volume, on_completed)+.
+      # #play_and_collect.
       #
       # Wire shape: play_and_collect [{ 'type' => 'audio', 'params' =>
       # { 'url' } }] with the given +collect+ object and an optional top-level
@@ -655,8 +732,6 @@ module SignalWire
       end
 
       # Detect DTMF digits. Typed convenience over #detect.
-      # Mirrors Python's +Call.detect_digit(*, digits, timeout,
-      # on_completed)+.
       #
       # Wire shape: detect { 'type' => 'digit', 'params' => { digits? } } with
       # an optional top-level +timeout+.
@@ -668,10 +743,7 @@ module SignalWire
       end
 
       # Detect human vs answering machine (AMD). Typed convenience over
-      # #detect. Mirrors Python's +Call.detect_answering_machine(*,
-      # initial_timeout, end_silence_timeout, machine_voice_threshold,
-      # machine_words_threshold, detect_interruptions, detect_message_end,
-      # timeout, on_completed)+.
+      # #detect.
       #
       # Wire shape: detect { 'type' => 'machine', 'params' => { ...only the
       # provided fields... } } with an optional top-level +timeout+.
@@ -693,7 +765,6 @@ module SignalWire
       end
 
       # Detect a fax tone (CED/CNG). Typed convenience over #detect.
-      # Mirrors Python's +Call.detect_fax(*, tone, timeout, on_completed)+.
       #
       # Wire shape: detect { 'type' => 'fax', 'params' => { tone? } } with an
       # optional top-level +timeout+.
@@ -716,6 +787,13 @@ module SignalWire
         start_action(action, 'send_fax', params, on_completed: on_completed)
       end
 
+      # Start receiving an inbound fax on this call. Sends `calling.receive_fax` and
+      # returns immediately.
+      #
+      # @param control_id [String, nil] correlation id; a fresh UUID is minted when omitted
+      # @param on_completed [Proc, nil] invoked with the terminal event when the fax finishes
+      # @param kwargs [Hash] extra wire params, keys stringified
+      # @return [FaxAction] a handle to wait on or stop
       def receive_fax(control_id: nil, on_completed: nil, **kwargs)
         cid = control_id || SecureRandom.uuid
         params = { 'control_id' => cid }
@@ -784,10 +862,18 @@ module SignalWire
         start_action(action, 'ai', params, on_completed: on_completed)
       end
 
+      # A short human-readable summary: the call id, its current state and its
+      # direction. Carries no credentials.
+      #
+      # @return [String]
       def to_s
         "Call(id=#{call_id}, state=#{@state}, direction=#{direction})"
       end
 
+      # Same as {#to_s} — the default `#inspect` would dump every ivar including the
+      # owning client.
+      #
+      # @return [String]
       def inspect
         to_s
       end
@@ -796,7 +882,7 @@ module SignalWire
       attr_reader :client
 
       # Internal helpers (formerly leading-underscore by convention). Not part of
-      # the public/Python surface — declared private so the cross-port surface
+      # the public surface — declared private so it stays
       # enumerator continues to exclude them. _execute / _dispatch_event /
       # _wait_for_state stay public+underscored: they are invoked cross-instance
       # (Action, RelayClient, and the test suite call them with an explicit

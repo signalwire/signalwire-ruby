@@ -10,13 +10,15 @@
 # post-prompt components/schemas 'PostPromptAssistantEntry'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::PostPromptGenerated — namespace for this generated data-class tree.
     module PostPromptGenerated
       # PostPromptAssistantEntry — generated read-side payload (post-prompt components/schemas 'PostPromptAssistantEntry').
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
-      # A zero-arg reader per field mirrors the reference's recorded
-      # accessors (dropped on the SURFACE by the enumerator — method-less there).
+      # Each field also has a zero-arg reader, so a decoded payload can be
+      # accessed by name rather than by wire key.
       class PostPromptAssistantEntry
         FIELDS = {
           'role' => :string,

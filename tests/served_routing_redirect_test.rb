@@ -20,7 +20,7 @@ class ServedRoutingRedirectTest < Minitest::Test
   def app
     @agent = SignalWire::AgentBase.new(name: 'a', basic_auth: %w[u p])
     @agent.set_prompt_text('Hello')
-    @agent.register_routing_callback('/sip') { |_body, _headers| '/redirected' }
+    @agent.register_routing_callback(nil, '/sip') { |_body, _headers| '/redirected' }
     @agent.rack_app
   end
 

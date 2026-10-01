@@ -21,8 +21,8 @@ module SignalWire
             #
             # Method-less data DTO: the frozen FIELDS constant maps each snake wire
             # key to its JSON type symbol. No reader/writer methods and no
-            # initialize — the reference records this as a method-less type
-            # definition, so the surface enumerator surfaces the bare class name.
+            # initialize — the class is a bare namespace for its FIELDS map,
+            # describing the wire shape rather than wrapping a payload.
             class CxmlApplication
               FIELDS = {
                 'id' => :object,
@@ -39,7 +39,10 @@ module SignalWire
                 'sms_fallback_url' => :object,
                 'sms_fallback_method' => :object,
                 'sms_status_callback' => :object,
-                'sms_status_callback_method' => :object
+                'sms_status_callback_method' => :object,
+                'message_status_callback' => :string,
+                'api_version' => :string,
+                'uri' => :string
               }.freeze
             end
           end

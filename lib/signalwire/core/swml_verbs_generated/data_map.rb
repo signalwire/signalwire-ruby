@@ -9,21 +9,24 @@
 # schema.json $defs schema 'DataMap'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
       # DataMap — generated read-side payload (schema.json $defs schema 'DataMap').
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
-      # A zero-arg reader per field mirrors the reference's recorded
-      # accessors (dropped on the SURFACE by the enumerator — method-less there).
+      # Each field also has a zero-arg reader, so a decoded payload can be
+      # accessed by name rather than by wire key.
       class DataMap
         FIELDS = {
+          'contexts' => :object,
+          'expressions' => :object,
           'output' => :object,
-          'expressions' => :array,
-          'webhooks' => :array
+          'webhooks' => :object
         }.freeze
 
-        attr_reader :output, :expressions, :webhooks
+        attr_reader :contexts, :expressions, :output, :webhooks
       end
     end
   end

@@ -3,7 +3,9 @@
 require 'json'
 require_relative 'constants'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Relay — the RELAY realtime (WebSocket / JSON-RPC 2.0) client surface.
   module Relay
     # Base event wrapper for raw signalwire.event payloads.
     # Subclasses provide typed accessors for specific event types.
@@ -30,6 +32,13 @@ module SignalWire
     class RelayEvent
       attr_reader :event_type, :params, :call_id, :timestamp
 
+      # Build an event from already-decoded envelope fields. Subclasses forward
+      # these through +**base+ after decoding their own typed fields.
+      #
+      # @param event_type [String] the RELAY `event_type` string, e.g. `"calling.call.state"`
+      # @param params [Hash] the raw `params` map from the wire frame, kept verbatim
+      # @param call_id [String] the call this event belongs to (`params['call_id']`), '' when absent
+      # @param timestamp [Float] the server-side event time (`params['timestamp']`), 0.0 when absent
       def initialize(event_type:, params: {}, call_id: '', timestamp: 0.0)
         @event_type = event_type
         @params     = params
@@ -37,6 +46,12 @@ module SignalWire
         @timestamp  = timestamp
       end
 
+      # Decode a raw `signalwire.event` payload into a bare {RelayEvent}, reading
+      # `event_type` from the frame and `call_id`/`timestamp` out of its `params`.
+      # Absent fields fall back to the empty/zero default rather than nil.
+      #
+      # @param payload [Hash] the wire frame's decoded `params` object
+      # @return [RelayEvent]
       def self.from_payload(payload)
         et = payload['event_type'] || ''
         p  = payload['params'] || {}
@@ -153,6 +168,12 @@ module SignalWire
     class CallStateEvent < RelayEvent
       attr_reader :call_state, :end_reason, :direction, :device
 
+      # Decode a `calling.call.state` frame into a {CallStateEvent}, reading the call state, end reason, direction and
+      # device
+      # out of the event's `params`.
+      #
+      # @param payload [Hash] the wire frame's decoded `params` object
+      # @return [CallStateEvent]
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
         p = base.params
@@ -165,6 +186,11 @@ module SignalWire
         )
       end
 
+      # @param call_state [String] the new call state (see {CallState}); '' when absent
+      # @param end_reason [String] why the call ended, set on the terminal transition; '' otherwise
+      # @param direction [String] `"inbound"` or `"outbound"` as reported by the server
+      # @param device [Hash] the raw device descriptor (`type` plus its per-type params)
+      # @param base [Hash] the shared envelope kwargs forwarded to {RelayEvent#initialize}
       def initialize(call_state: '', end_reason: '', direction: '', device: {}, **base)
         super(**base)
         @call_state = call_state
@@ -184,6 +210,9 @@ module SignalWire
 
       private
 
+      # The `calling.call.state` typed fields contributed to {#to_h} and pattern matching.
+      #
+      # @return [Hash{Symbol => Object}]
       def event_fields
         { call_state: @call_state, end_reason: @end_reason,
           direction: @direction, device: @device }
@@ -200,6 +229,12 @@ module SignalWire
         project_id: '', segment_id: '', tag: ''
       }.freeze
 
+      # Decode a `calling.call.receive` frame into a {CallReceiveEvent}, reading the call state, direction, device and
+      # routing identifiers
+      # out of the event's `params`.
+      #
+      # @param payload [Hash] the wire frame's decoded `params` object
+      # @return [CallReceiveEvent]
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
         p = base.params
@@ -207,6 +242,16 @@ module SignalWire
             context: _fetch(p, 'context', _fetch(p, 'protocol', '')))
       end
 
+      # @param call_state [String] the state the inbound call arrived in (see {CallState})
+      # @param direction [String] `"inbound"` or `"outbound"`
+      # @param device [Hash] the raw device descriptor for the leg
+      # @param node_id [String] the RELAY node that owns this call; needed to address it
+      # @param project_id [String] the SignalWire project the call belongs to
+      # @param context [String] the context the call was received on — decoded from
+      #   `params['context']`, falling back to the legacy `params['protocol']` key
+      # @param segment_id [String] the call-segment identifier
+      # @param tag [String] the caller-supplied correlation tag, when one was set
+      # @param base [Hash] the shared envelope kwargs forwarded to {RelayEvent#initialize}
       def initialize(call_state: '', direction: '', device: {}, node_id: '',
                      project_id: '', context: '', segment_id: '', tag: '', **base)
         super(**base)
@@ -222,6 +267,9 @@ module SignalWire
 
       private
 
+      # The `calling.call.receive` typed fields contributed to {#to_h} and pattern matching.
+      #
+      # @return [Hash{Symbol => Object}]
       def event_fields
         { call_state: @call_state, direction: @direction, device: @device,
           node_id: @node_id, project_id: @project_id, context: @context,
@@ -233,6 +281,11 @@ module SignalWire
     class PlayEvent < RelayEvent
       attr_reader :control_id, :state
 
+      # Decode a `calling.call.play` frame into a {PlayEvent}, reading the playback control id and state
+      # out of the event's `params`.
+      #
+      # @param payload [Hash] the wire frame's decoded `params` object
+      # @return [PlayEvent]
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
         p = base.params
@@ -243,6 +296,9 @@ module SignalWire
         )
       end
 
+      # @param control_id [String] identifies the playback this event reports on
+      # @param state [String] the playback state, e.g. `"playing"` / `"finished"`
+      # @param base [Hash] the shared envelope kwargs forwarded to {RelayEvent#initialize}
       def initialize(control_id: '', state: '', **base)
         super(**base)
         @control_id = control_id
@@ -251,6 +307,9 @@ module SignalWire
 
       private
 
+      # The `calling.call.play` typed fields contributed to {#to_h} and pattern matching.
+      #
+      # @return [Hash{Symbol => Object}]
       def event_fields
         { control_id: @control_id, state: @state }
       end
@@ -260,6 +319,13 @@ module SignalWire
     class RecordEvent < RelayEvent
       attr_reader :control_id, :state, :url, :duration, :size, :record
 
+      # Decode a `calling.call.record` frame into a {RecordEvent}. The recording's
+      # `url`, `duration` and `size` are read from the nested `params['record']`
+      # object when present, falling back to the same keys at the top level (the
+      # server has emitted both shapes).
+      #
+      # @param payload [Hash] the wire frame's decoded `params` object
+      # @return [RecordEvent]
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
         p = base.params
@@ -273,6 +339,13 @@ module SignalWire
         )
       end
 
+      # @param control_id [String] identifies the recording this event reports on
+      # @param state [String] the recording state, e.g. `"recording"` / `"finished"`
+      # @param url [String] where the finished recording can be fetched
+      # @param duration [Float] recording length in seconds
+      # @param size [Integer] recording size in bytes
+      # @param record [Hash] the raw nested `record` object, kept verbatim
+      # @param base [Hash] the shared envelope kwargs forwarded to {RelayEvent#initialize}
       def initialize(control_id: '', state: '', url: '', duration: 0.0, size: 0, record: {}, **base)
         super(**base)
         @control_id = control_id
@@ -285,6 +358,9 @@ module SignalWire
 
       private
 
+      # The `calling.call.record` typed fields contributed to {#to_h} and pattern matching.
+      #
+      # @return [Hash{Symbol => Object}]
       def event_fields
         { control_id: @control_id, state: @state, url: @url,
           duration: @duration, size: @size, record: @record }
@@ -296,6 +372,11 @@ module SignalWire
       # The decoded field is +result+ (formerly +result_data+).
       attr_reader :control_id, :state, :result, :final
 
+      # Decode a `calling.call.collect` frame into a {CollectEvent}, reading the collect control id, state and result
+      # out of the event's `params`.
+      #
+      # @param payload [Hash] the wire frame's decoded `params` object
+      # @return [CollectEvent]
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
         p = base.params
@@ -308,6 +389,12 @@ module SignalWire
         )
       end
 
+      # @param control_id [String] identifies the collect this event reports on
+      # @param state [String] the collect state, e.g. `"collecting"` / `"finished"`
+      # @param result [Hash] the collected result object (type plus its digits/speech payload)
+      # @param final [Boolean, nil] whether this is the last result for the collect;
+      #   nil when the server did not send the field
+      # @param base [Hash] the shared envelope kwargs forwarded to {RelayEvent#initialize}
       def initialize(control_id: '', state: '', result: {}, final: nil, **base)
         super(**base)
         @control_id  = control_id
@@ -318,6 +405,9 @@ module SignalWire
 
       private
 
+      # The `calling.call.collect` typed fields contributed to {#to_h} and pattern matching.
+      #
+      # @return [Hash{Symbol => Object}]
       def event_fields
         { control_id: @control_id, state: @state,
           result: @result, final: @final }
@@ -328,6 +418,11 @@ module SignalWire
     class ConnectEvent < RelayEvent
       attr_reader :connect_state, :peer
 
+      # Decode a `calling.call.connect` frame into a {ConnectEvent}, reading the connect state and peer descriptor
+      # out of the event's `params`.
+      #
+      # @param payload [Hash] the wire frame's decoded `params` object
+      # @return [ConnectEvent]
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
         p = base.params
@@ -338,6 +433,9 @@ module SignalWire
         )
       end
 
+      # @param connect_state [String] the connect state, e.g. `"connecting"` / `"connected"` / `"failed"`
+      # @param peer [Hash] the raw peer descriptor (the far leg's call/node identifiers)
+      # @param base [Hash] the shared envelope kwargs forwarded to {RelayEvent#initialize}
       def initialize(connect_state: '', peer: {}, **base)
         super(**base)
         @connect_state = connect_state
@@ -346,6 +444,9 @@ module SignalWire
 
       private
 
+      # The `calling.call.connect` typed fields contributed to {#to_h} and pattern matching.
+      #
+      # @return [Hash{Symbol => Object}]
       def event_fields
         { connect_state: @connect_state, peer: @peer }
       end
@@ -355,6 +456,11 @@ module SignalWire
     class DetectEvent < RelayEvent
       attr_reader :control_id, :detect
 
+      # Decode a `calling.call.detect` frame into a {DetectEvent}, reading the detect control id and detector result
+      # out of the event's `params`.
+      #
+      # @param payload [Hash] the wire frame's decoded `params` object
+      # @return [DetectEvent]
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
         p = base.params
@@ -365,6 +471,9 @@ module SignalWire
         )
       end
 
+      # @param control_id [String] identifies the detect this event reports on
+      # @param detect [Hash] the raw detector result (`type` plus its per-detector params)
+      # @param base [Hash] the shared envelope kwargs forwarded to {RelayEvent#initialize}
       def initialize(control_id: '', detect: {}, **base)
         super(**base)
         @control_id = control_id
@@ -373,6 +482,9 @@ module SignalWire
 
       private
 
+      # The `calling.call.detect` typed fields contributed to {#to_h} and pattern matching.
+      #
+      # @return [Hash{Symbol => Object}]
       def event_fields
         { control_id: @control_id, detect: @detect }
       end
@@ -382,6 +494,11 @@ module SignalWire
     class FaxEvent < RelayEvent
       attr_reader :control_id, :fax
 
+      # Decode a `calling.call.fax` frame into a {FaxEvent}, reading the fax control id and fax result
+      # out of the event's `params`.
+      #
+      # @param payload [Hash] the wire frame's decoded `params` object
+      # @return [FaxEvent]
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
         p = base.params
@@ -392,6 +509,9 @@ module SignalWire
         )
       end
 
+      # @param control_id [String] identifies the fax this event reports on
+      # @param fax [Hash] the raw fax result object (direction, pages, identity, document)
+      # @param base [Hash] the shared envelope kwargs forwarded to {RelayEvent#initialize}
       def initialize(control_id: '', fax: {}, **base)
         super(**base)
         @control_id = control_id
@@ -400,6 +520,9 @@ module SignalWire
 
       private
 
+      # The `calling.call.fax` typed fields contributed to {#to_h} and pattern matching.
+      #
+      # @return [Hash{Symbol => Object}]
       def event_fields
         { control_id: @control_id, fax: @fax }
       end
@@ -409,6 +532,12 @@ module SignalWire
     class TapEvent < RelayEvent
       attr_reader :control_id, :state, :tap, :device
 
+      # Decode a `calling.call.tap` frame into a {TapEvent}, reading the tap control id, state, tap and device
+      # descriptors
+      # out of the event's `params`.
+      #
+      # @param payload [Hash] the wire frame's decoded `params` object
+      # @return [TapEvent]
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
         p = base.params
@@ -421,6 +550,11 @@ module SignalWire
         )
       end
 
+      # @param control_id [String] identifies the tap this event reports on
+      # @param state [String] the tap state, e.g. `"tapping"` / `"finished"`
+      # @param tap [Hash] the raw tap descriptor (what media is being tapped and how)
+      # @param device [Hash] the raw destination device the tapped media is sent to
+      # @param base [Hash] the shared envelope kwargs forwarded to {RelayEvent#initialize}
       def initialize(control_id: '', state: '', tap: {}, device: {}, **base)
         super(**base)
         @control_id = control_id
@@ -431,6 +565,9 @@ module SignalWire
 
       private
 
+      # The `calling.call.tap` typed fields contributed to {#to_h} and pattern matching.
+      #
+      # @return [Hash{Symbol => Object}]
       def event_fields
         { control_id: @control_id, state: @state, tap: @tap, device: @device }
       end
@@ -440,6 +577,11 @@ module SignalWire
     class StreamEvent < RelayEvent
       attr_reader :control_id, :state, :url, :name
 
+      # Decode a `calling.call.stream` frame into a {StreamEvent}, reading the stream control id, state, url and name
+      # out of the event's `params`.
+      #
+      # @param payload [Hash] the wire frame's decoded `params` object
+      # @return [StreamEvent]
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
         p = base.params
@@ -452,6 +594,11 @@ module SignalWire
         )
       end
 
+      # @param control_id [String] identifies the stream this event reports on
+      # @param state [String] the stream state, e.g. `"streaming"` / `"finished"`
+      # @param url [String] the stream destination URL
+      # @param name [String] the caller-supplied stream name, when one was set
+      # @param base [Hash] the shared envelope kwargs forwarded to {RelayEvent#initialize}
       def initialize(control_id: '', state: '', url: '', name: '', **base)
         super(**base)
         @control_id = control_id
@@ -462,6 +609,9 @@ module SignalWire
 
       private
 
+      # The `calling.call.stream` typed fields contributed to {#to_h} and pattern matching.
+      #
+      # @return [Hash{Symbol => Object}]
       def event_fields
         { control_id: @control_id, state: @state, url: @url, name: @name }
       end
@@ -471,6 +621,11 @@ module SignalWire
     class SendDigitsEvent < RelayEvent
       attr_reader :control_id, :state
 
+      # Decode a `calling.call.send_digits` frame into a {SendDigitsEvent}, reading the send-digits control id and state
+      # out of the event's `params`.
+      #
+      # @param payload [Hash] the wire frame's decoded `params` object
+      # @return [SendDigitsEvent]
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
         p = base.params
@@ -481,6 +636,9 @@ module SignalWire
         )
       end
 
+      # @param control_id [String] identifies the send-digits operation this event reports on
+      # @param state [String] the send-digits state, e.g. `"finished"`
+      # @param base [Hash] the shared envelope kwargs forwarded to {RelayEvent#initialize}
       def initialize(control_id: '', state: '', **base)
         super(**base)
         @control_id = control_id
@@ -489,6 +647,9 @@ module SignalWire
 
       private
 
+      # The `calling.call.send_digits` typed fields contributed to {#to_h} and pattern matching.
+      #
+      # @return [Hash{Symbol => Object}]
       def event_fields
         { control_id: @control_id, state: @state }
       end
@@ -498,6 +659,12 @@ module SignalWire
     class DialEvent < RelayEvent
       attr_reader :tag, :dial_state, :call_data
 
+      # Decode a `calling.call.dial` frame into a {DialEvent}. The dialed call's
+      # descriptor arrives under the wire key `call` and is exposed as {#call_data}
+      # (`call` would shadow nothing useful and reads ambiguously in Ruby).
+      #
+      # @param payload [Hash] the wire frame's decoded `params` object
+      # @return [DialEvent]
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
         p = base.params
@@ -509,6 +676,11 @@ module SignalWire
         )
       end
 
+      # @param tag [String] the correlation tag the dial was issued with
+      # @param dial_state [String] the dial state (see {DialState})
+      # @param call_data [Hash] the resulting call descriptor from the wire key `call`;
+      #   empty until the dial resolves
+      # @param base [Hash] the shared envelope kwargs forwarded to {RelayEvent#initialize}
       def initialize(tag: '', dial_state: '', call_data: {}, **base)
         super(**base)
         @tag        = tag
@@ -537,6 +709,9 @@ module SignalWire
 
       private
 
+      # The `calling.call.dial` typed fields contributed to {#to_h} and pattern matching.
+      #
+      # @return [Hash{Symbol => Object}]
       def event_fields
         { tag: @tag, dial_state: @dial_state, call_data: @call_data }
       end
@@ -547,6 +722,12 @@ module SignalWire
       attr_reader :state, :sip_refer_to, :sip_refer_response_code,
                   :sip_notify_response_code
 
+      # Decode a `calling.call.refer` frame into a {ReferEvent}, reading the refer state and the SIP REFER/NOTIFY
+      # response codes
+      # out of the event's `params`.
+      #
+      # @param payload [Hash] the wire frame's decoded `params` object
+      # @return [ReferEvent]
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
         p = base.params
@@ -559,6 +740,12 @@ module SignalWire
         )
       end
 
+      # @param state [String] the refer state, e.g. `"referring"` / `"completed"` / `"failed"`
+      # @param sip_refer_to [String] the SIP URI the call was referred to
+      # @param sip_refer_response_code [String] the response code the far end returned to the REFER
+      # @param sip_notify_response_code [String] the response code carried by the follow-up NOTIFY,
+      #   which is what reports whether the transfer actually succeeded
+      # @param base [Hash] the shared envelope kwargs forwarded to {RelayEvent#initialize}
       def initialize(state: '', sip_refer_to: '', sip_refer_response_code: '',
                      sip_notify_response_code: '', **base)
         super(**base)
@@ -570,6 +757,9 @@ module SignalWire
 
       private
 
+      # The `calling.call.refer` typed fields contributed to {#to_h} and pattern matching.
+      #
+      # @return [Hash{Symbol => Object}]
       def event_fields
         { state: @state, sip_refer_to: @sip_refer_to,
           sip_refer_response_code: @sip_refer_response_code,
@@ -581,6 +771,11 @@ module SignalWire
     class DenoiseEvent < RelayEvent
       attr_reader :denoised
 
+      # Decode a `calling.call.denoise` frame into a {DenoiseEvent}, reading the denoise flag
+      # out of the event's `params`.
+      #
+      # @param payload [Hash] the wire frame's decoded `params` object
+      # @return [DenoiseEvent]
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
         p = base.params
@@ -590,6 +785,8 @@ module SignalWire
         )
       end
 
+      # @param denoised [Boolean] whether denoising is currently active on the call
+      # @param base [Hash] the shared envelope kwargs forwarded to {RelayEvent#initialize}
       def initialize(denoised: false, **base)
         super(**base)
         @denoised = denoised
@@ -597,6 +794,9 @@ module SignalWire
 
       private
 
+      # The `calling.call.denoise` typed fields contributed to {#to_h} and pattern matching.
+      #
+      # @return [Hash{Symbol => Object}]
       def event_fields
         { denoised: @denoised }
       end
@@ -606,6 +806,11 @@ module SignalWire
     class PayEvent < RelayEvent
       attr_reader :control_id, :state
 
+      # Decode a `calling.call.pay` frame into a {PayEvent}, reading the pay control id and state
+      # out of the event's `params`.
+      #
+      # @param payload [Hash] the wire frame's decoded `params` object
+      # @return [PayEvent]
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
         p = base.params
@@ -616,6 +821,9 @@ module SignalWire
         )
       end
 
+      # @param control_id [String] identifies the pay session this event reports on
+      # @param state [String] the pay state reported by the server
+      # @param base [Hash] the shared envelope kwargs forwarded to {RelayEvent#initialize}
       def initialize(control_id: '', state: '', **base)
         super(**base)
         @control_id = control_id
@@ -624,6 +832,9 @@ module SignalWire
 
       private
 
+      # The `calling.call.pay` typed fields contributed to {#to_h} and pattern matching.
+      #
+      # @return [Hash{Symbol => Object}]
       def event_fields
         { control_id: @control_id, state: @state }
       end
@@ -633,6 +844,12 @@ module SignalWire
     class QueueEvent < RelayEvent
       attr_reader :control_id, :status, :queue_id, :queue_name, :position, :size
 
+      # Decode a `calling.call.queue` frame into a {QueueEvent}. The queue's
+      # identifier and name arrive under the generic wire keys `id` and `name`
+      # and are exposed as {#queue_id} / {#queue_name}.
+      #
+      # @param payload [Hash] the wire frame's decoded `params` object
+      # @return [QueueEvent]
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
         p = base.params
@@ -644,6 +861,13 @@ module SignalWire
         )
       end
 
+      # @param control_id [String] identifies the queue operation this event reports on
+      # @param status [String] the queue status reported by the server
+      # @param queue_id [String] the queue's identifier, from the wire key `id`
+      # @param queue_name [String] the queue's name, from the wire key `name`
+      # @param position [Integer] this call's position in the queue
+      # @param size [Integer] how many calls are currently in the queue
+      # @param base [Hash] the shared envelope kwargs forwarded to {RelayEvent#initialize}
       def initialize(control_id: '', status: '', queue_id: '', queue_name: '',
                      position: 0, size: 0, **base)
         super(**base)
@@ -657,6 +881,9 @@ module SignalWire
 
       private
 
+      # The `calling.call.queue` typed fields contributed to {#to_h} and pattern matching.
+      #
+      # @return [Hash{Symbol => Object}]
       def event_fields
         { control_id: @control_id, status: @status, queue_id: @queue_id,
           queue_name: @queue_name, position: @position, size: @size }
@@ -667,6 +894,11 @@ module SignalWire
     class EchoEvent < RelayEvent
       attr_reader :state
 
+      # Decode a `calling.call.echo` frame into a {EchoEvent}, reading the echo state
+      # out of the event's `params`.
+      #
+      # @param payload [Hash] the wire frame's decoded `params` object
+      # @return [EchoEvent]
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
         p = base.params
@@ -676,6 +908,8 @@ module SignalWire
         )
       end
 
+      # @param state [String] the echo state reported by the server
+      # @param base [Hash] the shared envelope kwargs forwarded to {RelayEvent#initialize}
       def initialize(state: '', **base)
         super(**base)
         @state = state
@@ -683,6 +917,9 @@ module SignalWire
 
       private
 
+      # The `calling.call.echo` typed fields contributed to {#to_h} and pattern matching.
+      #
+      # @return [Hash{Symbol => Object}]
       def event_fields
         { state: @state }
       end
@@ -696,11 +933,24 @@ module SignalWire
         control_id: '', state: '', url: '', recording_id: '', duration: 0.0, size: 0
       }.freeze
 
+      # Decode a `calling.call.transcribe` frame into a {TranscribeEvent}, reading the transcribe control id, state and
+      # recording metadata
+      # out of the event's `params`.
+      #
+      # @param payload [Hash] the wire frame's decoded `params` object
+      # @return [TranscribeEvent]
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
         new(**_base_kwargs(base), **_typed_from(base.params, TYPED_FIELDS))
       end
 
+      # @param control_id [String] identifies the transcription this event reports on
+      # @param state [String] the transcribe state reported by the server
+      # @param url [String] where the transcription artifact can be fetched
+      # @param recording_id [String] the recording the transcription was produced from
+      # @param duration [Float] transcribed length in seconds
+      # @param size [Integer] artifact size in bytes
+      # @param base [Hash] the shared envelope kwargs forwarded to {RelayEvent#initialize}
       def initialize(control_id: '', state: '', url: '', recording_id: '',
                      duration: 0.0, size: 0, **base)
         super(**base)
@@ -714,6 +964,9 @@ module SignalWire
 
       private
 
+      # The `calling.call.transcribe` typed fields contributed to {#to_h} and pattern matching.
+      #
+      # @return [Hash{Symbol => Object}]
       def event_fields
         { control_id: @control_id, state: @state, url: @url,
           recording_id: @recording_id, duration: @duration, size: @size }
@@ -724,6 +977,11 @@ module SignalWire
     class HoldEvent < RelayEvent
       attr_reader :state
 
+      # Decode a `calling.call.hold` frame into a {HoldEvent}, reading the hold state
+      # out of the event's `params`.
+      #
+      # @param payload [Hash] the wire frame's decoded `params` object
+      # @return [HoldEvent]
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
         p = base.params
@@ -733,6 +991,8 @@ module SignalWire
         )
       end
 
+      # @param state [String] the hold state reported by the server
+      # @param base [Hash] the shared envelope kwargs forwarded to {RelayEvent#initialize}
       def initialize(state: '', **base)
         super(**base)
         @state = state
@@ -740,6 +1000,9 @@ module SignalWire
 
       private
 
+      # The `calling.call.hold` typed fields contributed to {#to_h} and pattern matching.
+      #
+      # @return [Hash{Symbol => Object}]
       def event_fields
         { state: @state }
       end
@@ -749,6 +1012,11 @@ module SignalWire
     class ConferenceEvent < RelayEvent
       attr_reader :conference_id, :name, :status
 
+      # Decode a `calling.conference` frame into a {ConferenceEvent}, reading the conference id, name and status
+      # out of the event's `params`.
+      #
+      # @param payload [Hash] the wire frame's decoded `params` object
+      # @return [ConferenceEvent]
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
         p = base.params
@@ -760,6 +1028,10 @@ module SignalWire
         )
       end
 
+      # @param conference_id [String] the conference this event reports on
+      # @param name [String] the conference's name
+      # @param status [String] the conference status reported by the server
+      # @param base [Hash] the shared envelope kwargs forwarded to {RelayEvent#initialize}
       def initialize(conference_id: '', name: '', status: '', **base)
         super(**base)
         @conference_id = conference_id
@@ -769,6 +1041,9 @@ module SignalWire
 
       private
 
+      # The `calling.conference` typed fields contributed to {#to_h} and pattern matching.
+      #
+      # @return [Hash{Symbol => Object}]
       def event_fields
         { conference_id: @conference_id, name: @name, status: @status }
       end
@@ -778,6 +1053,11 @@ module SignalWire
     class CallingErrorEvent < RelayEvent
       attr_reader :code, :message
 
+      # Decode a `calling.error` frame into a {CallingErrorEvent}, reading the error code and message
+      # out of the event's `params`.
+      #
+      # @param payload [Hash] the wire frame's decoded `params` object
+      # @return [CallingErrorEvent]
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
         p = base.params
@@ -788,6 +1068,9 @@ module SignalWire
         )
       end
 
+      # @param code [String] the server-supplied error code
+      # @param message [String] the human-readable error text
+      # @param base [Hash] the shared envelope kwargs forwarded to {RelayEvent#initialize}
       def initialize(code: '', message: '', **base)
         super(**base)
         @code    = code
@@ -796,6 +1079,9 @@ module SignalWire
 
       private
 
+      # The `calling.error` typed fields contributed to {#to_h} and pattern matching.
+      #
+      # @return [Hash{Symbol => Object}]
       def event_fields
         { code: @code, message: @message }
       end
@@ -811,11 +1097,28 @@ module SignalWire
         body: '', media: [], segments: 0, message_state: '', tags: []
       }.freeze
 
+      # Decode a `messaging.receive` frame into a {MessageReceiveEvent}, reading the message identity, addressing and
+      # body
+      # out of the event's `params`.
+      #
+      # @param payload [Hash] the wire frame's decoded `params` object
+      # @return [MessageReceiveEvent]
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
         new(**_base_kwargs(base), **_typed_from(base.params, TYPED_FIELDS))
       end
 
+      # @param message_id [String] the inbound message's identifier
+      # @param context [String] the messaging context the message arrived on
+      # @param direction [String] `"inbound"` or `"outbound"`
+      # @param from_number [String] the sender in E.164
+      # @param to_number [String] the recipient in E.164
+      # @param body [String] the message text
+      # @param media [Array<String>] MMS media URLs attached to the message
+      # @param segments [Integer] how many SMS segments the message was split into
+      # @param message_state [String] the delivery state (see {MessageState})
+      # @param tags [Array<String>] caller-supplied correlation tags
+      # @param base [Hash] the shared envelope kwargs forwarded to {RelayEvent#initialize}
       def initialize(message_id: '', context: '', direction: '', from_number: '',
                      to_number: '', body: '', media: [], segments: 0,
                      message_state: '', tags: [], **base)
@@ -827,6 +1130,9 @@ module SignalWire
 
       private
 
+      # The `messaging.receive` typed fields contributed to {#to_h} and pattern matching.
+      #
+      # @return [Hash{Symbol => Object}]
       def event_fields
         { message_id: @message_id, context: @context, direction: @direction,
           from_number: @from_number, to_number: @to_number, body: @body,
@@ -845,11 +1151,29 @@ module SignalWire
         body: '', media: [], segments: 0, message_state: '', reason: '', tags: []
       }.freeze
 
+      # Decode a `messaging.state` frame into a {MessageStateEvent}, reading the message identity, addressing, body and
+      # delivery state
+      # out of the event's `params`.
+      #
+      # @param payload [Hash] the wire frame's decoded `params` object
+      # @return [MessageStateEvent]
       def self.from_payload(payload)
         base = RelayEvent.from_payload(payload)
         new(**_base_kwargs(base), **_typed_from(base.params, TYPED_FIELDS))
       end
 
+      # @param message_id [String] the message whose delivery state changed
+      # @param context [String] the messaging context the message belongs to
+      # @param direction [String] `"inbound"` or `"outbound"`
+      # @param from_number [String] the sender in E.164
+      # @param to_number [String] the recipient in E.164
+      # @param body [String] the message text
+      # @param media [Array<String>] MMS media URLs attached to the message
+      # @param segments [Integer] how many SMS segments the message was split into
+      # @param message_state [String] the new delivery state (see {MessageState})
+      # @param reason [String] why delivery failed, set on the failure transition; '' otherwise
+      # @param tags [Array<String>] caller-supplied correlation tags
+      # @param base [Hash] the shared envelope kwargs forwarded to {RelayEvent#initialize}
       def initialize(message_id: '', context: '', direction: '', from_number: '',
                      to_number: '', body: '', media: [], segments: 0,
                      message_state: '', reason: '', tags: [], **base)
@@ -871,6 +1195,9 @@ module SignalWire
 
       private
 
+      # The `messaging.state` typed fields contributed to {#to_h} and pattern matching.
+      #
+      # @return [Hash{Symbol => Object}]
       def event_fields
         { message_id: @message_id, context: @context, direction: @direction,
           from_number: @from_number, to_number: @to_number, body: @body,

@@ -9,7 +9,7 @@
 require 'signalwire'
 
 agent = SignalWire::AgentBase.new(
-  name:  'Patient Intake Agent',
+  name: 'Patient Intake Agent',
   route: '/patient-intake'
 )
 
@@ -30,7 +30,7 @@ step1 = ctx.add_step('demographics')
 step1.text = 'Collect the patient\'s basic information.'
 step1.set_gather_info(
   output_key: 'patient_demographics',
-  prompt:     'Please collect the following patient information.'
+  prompt: 'Please collect the following patient information.'
 )
 step1.add_gather_question(key: 'full_name',     question: 'What is your full name?')
 step1.add_gather_question(key: 'date_of_birth', question: 'What is your date of birth?')
@@ -43,11 +43,12 @@ step2 = ctx.add_step('symptoms')
 step2.text = 'Ask about the patient\'s current symptoms and reason for visit.'
 step2.set_gather_info(
   output_key: 'patient_symptoms',
-  prompt:     "Now let's talk about why you're visiting today."
+  prompt: "Now let's talk about why you're visiting today."
 )
 step2.add_gather_question(key: 'reason_for_visit',  question: 'What is the main reason for your visit today?')
 step2.add_gather_question(key: 'symptom_duration',  question: 'How long have you been experiencing these symptoms?')
-step2.add_gather_question(key: 'pain_level',        question: 'On a scale of 1 to 10, how would you rate your discomfort?')
+step2.add_gather_question(key: 'pain_level',
+                          question: 'On a scale of 1 to 10, how would you rate your discomfort?')
 step2.valid_steps = %w[confirmation]
 
 # Step 3: Confirmation (normal step, not gather)

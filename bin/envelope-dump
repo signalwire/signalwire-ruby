@@ -127,17 +127,23 @@ CORPUS = [
 # of diff_port_envelope._decode_body_error_code. The Ruby REST client already
 # json-parses a JSON body (Hash) and leaves a non-JSON body a String, so parse a
 # String body if it is JSON, then read errors[0].code.
-def decode_body_error_code(body)
-  if body.is_a?(String)
-    begin
-      body = JSON.parse(body)
-    rescue JSON::ParserError, TypeError
-      return nil
-    end
-  end
-  return nil unless body.is_a?(Hash)
+def as_hash_body(body)
+  return body if body.is_a?(Hash)
+  return nil unless body.is_a?(String)
 
-  errs = body['errors']
+  begin
+    parsed = JSON.parse(body)
+  rescue JSON::ParserError, TypeError
+    return nil
+  end
+  parsed.is_a?(Hash) ? parsed : nil
+end
+
+def decode_body_error_code(body)
+  hash = as_hash_body(body)
+  return nil unless hash
+
+  errs = hash['errors']
   return nil unless errs.is_a?(Array) && errs.first.is_a?(Hash)
 
   code = errs.first['code']
@@ -191,71 +197,86 @@ base_client = harness[:client]
 mock = harness[:mock]
 mock_url = mock.url
 
-out = {}
+NO_ERROR_ARTIFACT = {
+  'raised' => false,
+  'error_kind' => nil,
+  'status_code' => nil,
+  'body_error_code' => nil,
+  'request_count' => 0
+}.freeze
 
-CORPUS.each do |case_spec|
-  cid = case_spec[:id]
+# The client a case drives. A :transport case gets a FRESH client pointed at a
+# DEAD port (connection refused): nothing reaches a server, so request_count
+# stays 0 and the mock is never armed or journalled.
+def case_client(case_spec, harness, base_client, mock, mock_url)
+  if case_spec[:transport]
+    return SignalWire::REST::RestClient.new(
+      project: harness[:project], token: MockTest::REST_TOKEN,
+      base_url: "http://127.0.0.1:#{dead_port}"
+    )
+  end
+
+  arm_case_scenario(case_spec, mock, mock_url)
+  base_client
+end
+
+# scenario_repeat arms the SAME override N times (FIFO) so a retry-armed case
+# sees the failure on every attempt.
+def arm_case_scenario(case_spec, mock, mock_url)
   scenario = case_spec[:scenario]
-  transport = case_spec[:transport] || false
-  request_options = build_request_options(case_spec[:request_options])
-  scenario_repeat = case_spec[:scenario_repeat] || 1
-  post = case_spec[:method] == 'POST'
-  call_path = post ? CREATE_PATH : CALL_PATH
-  endpoint = post ? CREATE_ENDPOINT : ENDPOINT
+  return unless scenario
 
-  artifact = {
-    'raised' => false,
-    'error_kind' => nil,
-    'status_code' => nil,
-    'body_error_code' => nil,
-    'request_count' => 0
-  }
+  endpoint = case_spec[:method] == 'POST' ? CREATE_ENDPOINT : ENDPOINT
+  (case_spec[:scenario_repeat] || 1).times do
+    arm_scenario(mock_url, mock.auth_header, endpoint, scenario)
+  end
+end
 
+def issue_request(client, case_spec, request_options)
+  if case_spec[:method] == 'POST'
+    client.http.post(CREATE_PATH, CREATE_BODY, request_options: request_options)
+  else
+    client.http.get(CALL_PATH, nil, request_options: request_options)
+  end
+end
+
+# Drive the case's one request and report how it failed (or that it did not).
+def drive_case(client, case_spec, request_options)
+  issue_request(client, case_spec, request_options)
+  {}
+rescue SignalWire::REST::SignalWireRestError => e
+  { 'raised' => true, 'error_kind' => 'typed', 'status_code' => e.status_code,
+    'body_error_code' => decode_body_error_code(e.body) }
+rescue StandardError => e
+  # A BARE error -> the wrong-type contract violation (records the class name).
+  { 'raised' => true, 'error_kind' => "bare:#{e.class.name}",
+    'status_code' => (e.respond_to?(:status_code) ? e.status_code : nil) }
+end
+
+def journalled_request_count(mock_url, call_path)
+  journal = JSON.parse(Net::HTTP.get(URI("#{mock_url}/__mock__/journal")))
+  journal.count { |j| j['path'] == call_path }
+end
+
+def run_case(case_spec, harness, base_client, mock, mock_url)
   # Fresh journal + scenarios per case so request_count is exact (mirrors the
   # oracle, which resets both before every case). Safe here: the dump runs as a
   # single standalone process, so a global reset races nothing.
   mock_post(mock_url, '/__mock__/journal/reset')
   mock_post(mock_url, '/__mock__/scenarios/reset')
 
-  if transport
-    # Point a fresh client at a DEAD port: connection refused. Nothing reaches a
-    # server, so request_count stays 0 and the mock is never armed/journalled.
-    client = SignalWire::REST::RestClient.new(
-      project: harness[:project], token: MockTest::REST_TOKEN,
-      base_url: "http://127.0.0.1:#{dead_port}"
-    )
-  else
-    client = base_client
-    if scenario
-      # scenario_repeat arms the SAME override N times (FIFO) so a retry-armed
-      # case sees the failure on every attempt.
-      scenario_repeat.times { arm_scenario(mock_url, mock.auth_header, endpoint, scenario) }
-    end
-  end
+  client = case_client(case_spec, harness, base_client, mock, mock_url)
+  artifact = NO_ERROR_ARTIFACT.merge(
+    drive_case(client, case_spec, build_request_options(case_spec[:request_options]))
+  )
+  return artifact if case_spec[:transport]
 
-  begin
-    if post
-      client.http.post(call_path, CREATE_BODY, request_options: request_options)
-    else
-      client.http.get(call_path, nil, request_options: request_options)
-    end
-  rescue SignalWire::REST::SignalWireRestError => e
-    artifact['raised'] = true
-    artifact['error_kind'] = 'typed'
-    artifact['status_code'] = e.status_code
-    artifact['body_error_code'] = decode_body_error_code(e.body)
-  rescue StandardError => e
-    # A BARE error -> the wrong-type contract violation (records the class name).
-    artifact['raised'] = true
-    artifact['error_kind'] = "bare:#{e.class.name}"
-    artifact['status_code'] = (e.respond_to?(:status_code) ? e.status_code : nil)
-  end
+  call_path = case_spec[:method] == 'POST' ? CREATE_PATH : CALL_PATH
+  artifact.merge('request_count' => journalled_request_count(mock_url, call_path))
+end
 
-  unless transport
-    journal = JSON.parse(Net::HTTP.get(URI("#{mock_url}/__mock__/journal")))
-    artifact['request_count'] = journal.count { |j| j['path'] == call_path }
-  end
-  out[cid] = artifact
+out = CORPUS.to_h do |case_spec|
+  [case_spec[:id], run_case(case_spec, harness, base_client, mock, mock_url)]
 end
 
 REAL_STDOUT.puts(JSON.generate(out))

@@ -1,0 +1,166 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Copyright (c) 2026 SignalWire
+#
+# Licensed under the MIT License.
+# See LICENSE file in the project root for full license information.
+
+#
+# ai-chat-gateway-dump — the Ruby port's dump program for the AI-CHAT-GATEWAY
+# gate (porting-sdk/scripts/diff_port_ai_chat_gateway.py).
+#
+# Builds an AIChatClient pointed at MOCK_AI_CHAT_URL (the mock_ai_chat server the
+# gate starts), a ChatGateway with the corpus's fixed settings and a
+# HandoffRouter whose callbacks record their calls, serves both routers under the
+# corpus prefix in process (Rack::Cascade, no network listener), runs every step
+# of porting-sdk/scripts/ai_chat_gateway_corpus.py, and prints ONE JSON object
+# mapping step id -> observation — the shape
+# porting-sdk/scripts/ai_chat_gateway_dump_reference.py prints. The steps are read
+# from the corpus itself (PORTING_SDK), so they can't drift from the reference.
+#
+#   MOCK_AI_CHAT_URL=... PORTING_SDK=... ruby bin/ai-chat-gateway-dump
+#
+# Nothing but the JSON object is written to stdout on success.
+
+require 'json'
+require 'open3'
+
+# Keep stdout PURE JSON: the gate parses it, so point $stdout at stderr for
+# setup and restore it only to emit the result.
+REAL_STDOUT = $stdout.dup
+$stdout.reopen($stderr)
+
+require 'rack'
+require 'rack/mock'
+require_relative '../lib/signalwire/ai_chat'
+
+# The corpus's fixed settings, headers and steps, read from porting-sdk's Python
+# module so they are the same data the reference dump runs.
+def load_corpus
+  psdk = ENV.fetch('PORTING_SDK', nil) || ENV.fetch('PORTING_SDK_DIR', nil)
+  abort 'set PORTING_SDK to the porting-sdk checkout' if psdk.nil?
+  script = 'import json, sys; sys.path.insert(0, sys.argv[1]); import ai_chat_gateway_corpus as c; ' \
+           'print(json.dumps({k: getattr(c, k) for k in ["PREFIX", "CONFIG_URL", "KEY", "SECRET", ' \
+           '"ALLOWED_ORIGIN", "ESCALATE_CONVERSATION", "HEADERS", "CHECKED_HEADERS", "STEPS"]}))'
+  out, status = Open3.capture2('python3', '-c', script, File.join(psdk, 'scripts'))
+  abort "could not load the corpus from #{psdk}" unless status.success?
+  JSON.parse(out)
+end
+
+# Replace every "handle" value with a placeholder: handles are random.
+def scrub(value)
+  case value
+  when Hash then value.to_h { |k, v| [k, k == 'handle' && v.is_a?(String) ? '<handle>' : scrub(v)] }
+  when Array then value.map { |v| scrub(v) }
+  else value
+  end
+end
+
+# A request header name as Rack's env spells it.
+def rack_header(name)
+  key = name.upcase.tr('-', '_')
+  %w[CONTENT_TYPE CONTENT_LENGTH].include?(key) ? key : "HTTP_#{key}"
+end
+
+# A ChatGateway with the corpus's fixed settings, talking to the mock.
+def build_gateway(corpus)
+  client = SignalWire::AIChatClient.new(url: ENV.fetch('MOCK_AI_CHAT_URL'))
+  SignalWire::AIChat::ChatGateway.new(
+    config_url: corpus['CONFIG_URL'], key: corpus['KEY'], allowed_origins: [corpus['ALLOWED_ORIGIN']],
+    client: client, secret: corpus['SECRET']
+  )
+end
+
+# A HandoffRouter whose callbacks record each call into +calls+, in order.
+def build_handoff(gateway, calls)
+  SignalWire::AIChat::HandoffRouter.new(
+    gateway: gateway,
+    capture_leg: ->(conversation_id, medium) { (calls << ['capture', conversation_id, medium]) && true },
+    end_call: ->(call_id) { calls << ['end_call', call_id] },
+    send_message: ->(call_id, text) { (calls << ['send_message', call_id, text]) && true }
+  )
+end
+
+# Both routers served in process under the corpus prefix.
+def build_http(prefix, gateway, handoff)
+  apps = [gateway.router, handoff.router]
+  Rack::MockRequest.new(Rack::Builder.new { map(prefix) { run Rack::Cascade.new(apps) } }.to_app)
+end
+
+# The step's request body with the corpus placeholders substituted.
+def step_body(step, gateway, minted, corpus)
+  return nil unless step.key?('body')
+
+  text = JSON.generate(step['body'])
+  text = text.gsub('{handle}', minted).gsub('{forged_handle}', "#{minted.split('.').first}.AAAA") if minted
+  text.gsub('{escalate_handle}', gateway.mint_handle(corpus['ESCALATE_CONVERSATION']))
+end
+
+# One step's observation, in the reference dump's shape.
+def observe(step, response, gateway, calls, corpus)
+  parsed = parsed_body(response)
+  obs = { 'status' => response.status }
+  obs['handle_names'] = gateway.read_handle(parsed['handle']) if parsed.is_a?(Hash) && parsed['handle'].is_a?(String)
+  obs['body'] = scrub(parsed)
+  obs['headers'] = checked_headers(response, corpus) if step['check_headers']
+  obs['callbacks'] = calls.dup
+  obs
+end
+
+# The answer's JSON body (a JSON-RPC body without its random id), or nil.
+def parsed_body(response)
+  raw = response.body.strip
+  parsed = raw.empty? ? nil : JSON.parse(raw)
+  parsed.delete('id') if parsed.is_a?(Hash) && parsed.key?('jsonrpc')
+  parsed
+end
+
+# The headers a check_headers step reports; x-chat-handle as presence only.
+def checked_headers(response, corpus)
+  corpus['CHECKED_HEADERS'].to_h do |name|
+    [name, name == 'x-chat-handle' ? !response.headers[name].nil? : response.headers[name]]
+  end
+end
+
+# Send one corpus step and return [observation, response].
+def run_step(step, ctx)
+  gateway, calls, corpus = ctx.values_at(:gateway, :calls, :corpus)
+  calls.clear
+  nonce, conversation_id, call_id = step.dig('setup', 'register')
+  ctx[:handoff].register(nonce, conversation_id: conversation_id, call_id: call_id) if nonce
+  response = ctx[:http].request(step['method'], corpus['PREFIX'] + step['path'], request_env(step, ctx))
+  [observe(step, response, gateway, calls, corpus), response]
+end
+
+# The Rack env options for one step: its header set and substituted body.
+def request_env(step, ctx)
+  env = ctx[:corpus]['HEADERS'].fetch(step['headers']).to_h { |name, value| [rack_header(name), value] }
+  body = step_body(step, ctx[:gateway], ctx[:minted], ctx[:corpus])
+  env[:input] = body if body
+  env
+end
+
+# Everything a step needs: the routers, their recorded calls, the corpus, and
+# the handle the start step minted.
+def build_context(corpus)
+  calls = []
+  gateway = build_gateway(corpus)
+  handoff = build_handoff(gateway, calls)
+  { gateway: gateway, handoff: handoff, http: build_http(corpus['PREFIX'], gateway, handoff),
+    calls: calls, corpus: corpus, minted: nil }
+end
+
+# Run every corpus step and print the one JSON object the gate reads.
+def main
+  corpus = load_corpus
+  ctx = build_context(corpus)
+  out = corpus['STEPS'].to_h do |step|
+    obs, response = run_step(step, ctx)
+    ctx[:minted] = response.headers['x-chat-handle'] if step['id'] == 'gateway_start'
+    [step['id'], obs]
+  end
+  REAL_STDOUT.puts(JSON.generate(out))
+end
+
+main

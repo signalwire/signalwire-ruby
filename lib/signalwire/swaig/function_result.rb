@@ -7,19 +7,20 @@
 
 require 'json'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Swaig — the SWAIG function-call surface: results, actions and typed payloads.
   module Swaig
     # ------------------------------------------------------------------
     # Closed-set vocabularies for SWAIG verbs.
     #
     # Each constant's value IS the wire string, so a caller may pass the
-    # bare string (parity with the Python reference, which takes a plain
-    # +str+) or the named constant interchangeably — they are literally
+    # bare string or the named constant interchangeably — they are literally
     # the same object. The +FunctionResult+ validators below reference
     # these +ALL+ arrays directly, so the named set and the validated set
     # can never drift apart (single source of truth).
     #
-    # Idiom note: this mirrors +SignalWire::Relay+'s constants module
+    # Idiom note: these follow +SignalWire::Relay+'s constants module
     # (flat +NAME = 'value'+ string constants grouped into a frozen +ALL+
     # array). These are SWAIG (SWML-verb) vocabularies and are deliberately
     # kept DISTINCT from the RELAY codecs/directions — see the warnings on
@@ -38,9 +39,8 @@ module SignalWire
 
     # Channel selection for the +record_call+ verb.
     #
-    # DISTINCT from {TapDirection}: record uses +listen+, tap uses +hear+.
-    # Never share a constant between the two — Python validates two
-    # different lists, and conflating them is a known bug generator.
+    # Kept DISTINCT from {TapDirection} even though both verbs name the channels
+    # speak/listen/both: each verb is validated against its OWN list.
     module RecordDirection
       SPEAK  = 'speak'
       LISTEN = 'listen'
@@ -50,18 +50,18 @@ module SignalWire
       ALL = [SPEAK, LISTEN, BOTH].freeze
     end
 
-    # Channel selection for the +tap+ verb.
-    #
-    # DISTINCT from {RecordDirection}: tap uses +hear+, record uses
-    # +listen+. Also distinct from the RELAY play/record/tap direction
-    # vocabulary. Never unify.
+    # Channel selection for the +tap+ verb: +speak+ (what the party says),
+    # +listen+ (what the party hears), +both+. The SWML tap verb's enum is
+    # speak/listen/both (schema.json $defs/Tap); +hear+ is not a tap direction
+    # and produced SWML the platform rejects. Distinct from the RELAY
+    # play/record/tap direction vocabulary.
     module TapDirection
-      SPEAK = 'speak'
-      HEAR  = 'hear'
-      BOTH  = 'both'
+      SPEAK  = 'speak'
+      LISTEN = 'listen'
+      BOTH   = 'both'
 
       # Every valid +tap+ direction, in wire order.
-      ALL = [SPEAK, HEAR, BOTH].freeze
+      ALL = [SPEAK, LISTEN, BOTH].freeze
     end
 
     # RTP payload codec for the +tap+ verb.
@@ -91,12 +91,13 @@ module SignalWire
     #
     class FunctionResult
       # Default +ai_response+ for +pay+ (extracted to keep the signature line
-      # within length limits; value is wire-load-bearing — mirrors Python).
+      # within length limits; the value is wire-load-bearing).
       PAY_DEFAULT_AI_RESPONSE =
         'The payment status is ${pay_result}, do not mention anything else ' \
         'about collecting payment if successful.'
 
-      # Enum validations for +join_conference+, in Python's raise order.
+      # Enum validations for +join_conference+, in the order they are checked:
+      # the FIRST invalid value in this order is the one that raises.
       # Each entry: [opts_key, allowed_values, error_message].
       JOIN_CONFERENCE_ENUMS = [
         [:beep, %w[true false onEnter onExit],
@@ -111,17 +112,21 @@ module SignalWire
          "recording_status_callback_method must be one of ['GET', 'POST']"]
       ].freeze
 
+      # A SWML variable reference (+${...}+ / +%{...}+), passed through as written
+      # where a verb takes an integer.
+      SWML_VAR = /\A[$%]\{.*\}\z/m
+
       # Spec for the non-default conference params, in exact wire-key order.
       # Each entry: [wire_key, opts_key, ->(value) { include? }]. Driving the
-      # build off this table keeps key insertion order byte-identical to the
-      # Python reference while staying flat (one loop, not 18 branches).
+      # build off this table pins the emitted key insertion order while staying
+      # flat (one loop, not 18 branches).
       JOIN_CONFERENCE_PARAM_SPEC = [
         ['muted',            :muted,            ->(v) { v }],
         ['beep',             :beep,             ->(v) { v != 'true' }],
         ['start_on_enter',   :start_on_enter,   :!.to_proc],
         ['end_on_exit',      :end_on_exit,      ->(v) { v }],
         ['wait_url',         :wait_url,         ->(v) { v }],
-        ['max_participants', :max_participants, ->(v) { v != 250 }],
+        ['max_participants', :max_participants, ->(v) { !v.nil? }],
         ['record',           :record,           ->(v) { v != 'do-not-record' }],
         ['region',           :region,           ->(v) { v }],
         ['trim',             :trim,             ->(v) { v != 'trim-silence' }],
@@ -141,12 +146,19 @@ module SignalWire
       attr_reader :response, :post_process
       attr_accessor :action
 
-      # @param response [String, nil] text the AI speaks back to the user
+      # @param response [String, Hash, nil] text the AI speaks back to the user
+      #   (or the structured {tool_result, tool_prompt} form)
       # @param post_process [Boolean] whether to let AI take another turn before executing actions
-      def initialize(response = nil, post_process: false)
+      # @param tool_result [String, nil] structured-response outcome (see {#set_tool_response})
+      # @param tool_prompt [String, nil] structured-response instruction (see {#set_tool_response})
+      def initialize(response = nil, post_process: false, tool_result: nil, tool_prompt: nil)
         @response = response || ''
         @action = []
         @post_process = post_process
+        return if tool_result.nil? && tool_prompt.nil?
+
+        set_tool_response(tool_result: tool_result,
+                          tool_prompt: tool_prompt)
       end
 
       # ------------------------------------------------------------------
@@ -157,6 +169,34 @@ module SignalWire
       # @return [self]
       def set_response(text)
         @response = text
+        self
+      end
+
+      # Set the structured response form, separating outcome from instruction.
+      #
+      # +response+ may be a plain string, or an object with two distinct fields:
+      #
+      #   { 'tool_result' => 'status: on hold',
+      #     'tool_prompt' => 'Tell the caller you are placing them on hold.' }
+      #
+      # - +tool_result+: what the tool DID — a factual status line for the model
+      #   to reason from ("hold initiated", "payment declined", "3 seats left").
+      # - +tool_prompt+: what the model should now SAY — an instruction, second
+      #   person, exactly like the string form of +response+.
+      #
+      # Splitting them keeps the model from reading a status line aloud, and keeps
+      # the spoken instruction from being mistaken for data.
+      #
+      # @param tool_result [String, nil] factual outcome of the call; omit if there
+      #   is nothing to report beyond the instruction
+      # @param tool_prompt [String, nil] instruction for what to say next; omit for
+      #   a silent status-only result
+      # @return [self]
+      def set_tool_response(tool_result: nil, tool_prompt: nil)
+        payload = {}
+        payload['tool_result'] = tool_result unless tool_result.nil?
+        payload['tool_prompt'] = tool_prompt unless tool_prompt.nil?
+        @response = payload
         self
       end
 
@@ -232,12 +272,38 @@ module SignalWire
         add_action('hangup', true)
       end
 
-      # Put the call on hold.
-      # @param timeout [Integer] seconds, clamped to 0..900
+      # Put the call on hold, optionally announcing it and routing what happens next.
+      #
+      # The SWML hold action carries no prompt of its own, and during hold speech
+      # detection is paused, so anything the caller needs to hear has to be said
+      # BEFORE the action lands. Passing +prompt+ wires that up: it becomes the
+      # result's response (a prompt into the model's context, not speech) and
+      # switches on post_process, so the model takes one more turn and speaks
+      # before the hold executes:
+      #
+      #   FunctionResult.new.hold('Tell the caller you are placing them on hold.', 120)
+      #
+      # +step+ and +timeout_step+ land the caller in a chosen step when the hold
+      # ends (deferred: the transition fires when the hold actually ends). Omitting
+      # both emits the bare integer form and the caller resumes where they were.
+      #
+      # @param prompt [String, Integer, nil] instruction for the model to deliver
+      #   before the hold takes effect (sets the response and post_process). An
+      #   Integer here is treated as +timeout+, so +hold(120)+ keeps working.
+      # @param timeout [Integer] seconds, clamped to 0..900 (default 300)
+      # @param step [String, nil] step to move to when the call is taken off hold
+      # @param timeout_step [String, nil] step to move to when the hold times out
       # @return [self]
-      def hold(timeout = 300)
-        timeout = timeout.clamp(0, 900)
-        add_action('hold', timeout)
+      def hold(prompt = nil, timeout = 300, step: nil, timeout_step: nil)
+        # Back-compat: hold(120) means hold(timeout: 120). A boolean is neither a
+        # prompt nor a timeout, so it is dropped.
+        timeout = prompt if prompt.is_a?(Integer)
+        prompt = nil unless prompt.is_a?(String)
+        unless prompt.nil?
+          set_tool_response(tool_result: 'status: on hold', tool_prompt: prompt)
+          @post_process = true
+        end
+        add_action('hold', hold_value(timeout.clamp(0, 900), step, timeout_step))
       end
 
       # Control how the agent waits for user input.
@@ -423,6 +489,21 @@ module SignalWire
       # Speech & AI Configuration
       # ==================================================================
 
+      # Change the agent's voice for the rest of the call.
+      #
+      # The voice is an +engine.voice:model+ spec, the same form a language's
+      # voice takes in the SWML +languages+ list (for example "elevenlabs.rachel");
+      # the +engine.+ prefix and the +:model+ suffix are optional. It replaces the
+      # voice of the language currently in use. The platform applies it at the next
+      # speech batch boundary, never mid-utterance, and it then persists for that
+      # language for the rest of the call. An empty spec is ignored.
+      #
+      # @param voice [String] voice spec in +engine.voice:model+ form
+      # @return [self]
+      def change_voice(voice)
+        add_action('change_voice', voice)
+      end
+
       # Add dynamic speech recognition hints.
       # @param hints [Array<String, Hash>]
       # @return [self]
@@ -489,9 +570,13 @@ module SignalWire
       # @param transfer [Boolean] whether call should exit agent after execution
       # @return [self]
       def execute_swml(swml_content, transfer: false)
-        swml_data = coerce_swml_content(swml_content)
-        swml_data['transfer'] = 'true' if transfer
-        add_action('SWML', swml_data)
+        # transfer rides BESIDE the SWML document, not inside it — the same shape
+        # connect() and swml_transfer() emit. Inside the document it is not a SWML
+        # key and the call never exits the agent.
+        action = { 'SWML' => coerce_swml_content(swml_content) }
+        action['transfer'] = 'true' if transfer
+        @action << action
+        self
       end
 
       # Join an ad-hoc audio conference via SWML.
@@ -500,7 +585,7 @@ module SignalWire
       # @return [self]
       def join_conference(name, muted: false, beep: 'true',
                           start_on_enter: true, end_on_exit: false,
-                          wait_url: nil, max_participants: 250,
+                          wait_url: nil, max_participants: nil,
                           record: 'do-not-record', region: nil,
                           trim: 'trim-silence', coach: nil,
                           status_callback_event: nil, status_callback: nil,
@@ -539,7 +624,7 @@ module SignalWire
       #
       # @param uri [String] destination URI (rtp://, ws://, wss://)
       # @param control_id [String, nil]
-      # @param direction [String] "speak", "hear", or "both"
+      # @param direction [String] "speak", "listen", or "both"
       # @param codec [String] "PCMU" or "PCMA"
       # @param rtp_ptime [Integer] packetization time in ms
       # @param status_url [String, nil]
@@ -550,7 +635,9 @@ module SignalWire
 
         tap_params = { 'uri' => uri }
         tap_params['control_id'] = control_id if control_id
-        tap_params['direction']  = direction  if direction != TapDirection::BOTH
+        # Always sent: the verb's own default is "speak", not this helper's "both",
+        # so omitting it would tap less than the caller asked for.
+        tap_params['direction']  = direction
         tap_params['codec']      = codec      if codec != Codec::PCMU
         tap_params['rtp_ptime']  = rtp_ptime  if rtp_ptime != 20
         tap_params['status_url'] = status_url if status_url
@@ -652,21 +739,45 @@ module SignalWire
         execute_rpc('dial', params: { 'devices' => device, 'dest_swml' => dest_swml })
       end
 
-      # Inject a message into an AI agent on another call.
+      # Send a message and/or global_data to an AI agent on another call.
       #
-      # @param call_id [String]
-      # @param message_text [String]
-      # @param role [String]
+      # Two payloads, either or both:
+      # - +message_text+ lands as a turn in the other agent's conversation, so it
+      #   competes for attention with everything else arriving that moment.
+      # - +global_data+ is MERGED into the other call's global_data, where it is
+      #   silent until something expands it — the better channel for content a
+      #   later prompt needs to speak (write +${global_data.your_key}+ into the
+      #   step that will run).
+      #
+      # @param call_id [String] the call ID of the target call
+      # @param message_text [String, nil] optional message to inject
+      # @param role [String] role for the message (default "system")
+      # @param global_data [Hash, nil] optional object merged into the target
+      #   call's global_data
       # @return [self]
-      def rpc_ai_message(call_id, message_text, role: 'system')
-        execute_rpc(
-          'ai_message',
-          call_id: call_id,
-          params: {
-            'role' => role,
-            'message_text' => message_text
-          }
-        )
+      # @raise [ArgumentError] when neither message_text nor global_data is given
+      def rpc_ai_message(call_id, message_text = nil, role: 'system', global_data: nil)
+        params = {}
+        unless message_text.nil?
+          params['role'] = role
+          params['message_text'] = message_text
+        end
+        params['global_data'] = global_data unless global_data.nil?
+        raise ArgumentError, 'rpc_ai_message needs message_text, global_data, or both' if params.empty?
+
+        execute_rpc('ai_message', call_id: call_id, params: params)
+      end
+
+      # Merge data into another call's global_data, with no conversation turn.
+      # A thin wrapper over +rpc_ai_message(global_data:)+ — use it when the other
+      # call needs a value rather than an instruction; the destination prompt reads
+      # it back with +${global_data.key}+.
+      #
+      # @param call_id [String] the call ID of the target call
+      # @param data [Hash] object merged into that call's global_data
+      # @return [self]
+      def rpc_ai_global_data(call_id, data)
+        rpc_ai_message(call_id, global_data: data)
       end
 
       # Unhold another call via RPC.
@@ -758,24 +869,37 @@ module SignalWire
         set_end_of_speech_timeout(value)
       end
 
+      # Attach arbitrary metadata to the result. Writer form of {#set_metadata};
+      # returns the assigned value, not self.
       def metadata=(value)
         set_metadata(value)
       end
 
+      # Whether the AI speaks its response BEFORE running this result's actions
+      # (true) or after. Writer form of {#set_post_process}.
       def post_process=(value)
         set_post_process(value)
       end
 
+      # The text the model receives as this tool's answer. Writer form of
+      # {#set_response}.
       def response=(value)
         set_response(value)
       end
 
+      # Milliseconds to wait for a speech event before proceeding. Writer form of
+      # {#set_speech_event_timeout}.
       def speech_event_timeout=(value)
         set_speech_event_timeout(value)
       end
 
       private
 
+      # @api private — reject a record_call whose format is not wav/mp3/mp4 or whose
+      # direction is not speak/listen/both, so a bad value fails here rather than
+      # being rejected mid-call by the server.
+      #
+      # @raise [ArgumentError] naming the offending field
       def validate_record_call!(format, direction)
         raise ArgumentError, "format must be 'wav', 'mp3', or 'mp4'" unless RecordFormat::ALL.include?(format)
         return if RecordDirection::ALL.include?(direction)
@@ -783,8 +907,14 @@ module SignalWire
         raise ArgumentError, "direction must be 'speak', 'listen', or 'both'"
       end
 
+      # @api private — reject a tap whose direction is not speak/listen/both, whose
+      # codec is not PCMU/PCMA, or whose packetization time is not positive.
+      #
+      # @raise [ArgumentError] naming the offending field
       def validate_tap!(direction, codec, rtp_ptime)
-        raise ArgumentError, "direction must be 'speak', 'hear', or 'both'" unless TapDirection::ALL.include?(direction)
+        unless TapDirection::ALL.include?(direction)
+          raise ArgumentError, "direction must be 'speak', 'listen', or 'both'"
+        end
         raise ArgumentError, "codec must be 'PCMU' or 'PCMA'" unless Codec::ALL.include?(codec)
         raise ArgumentError, 'rtp_ptime must be positive' unless rtp_ptime.positive?
       end
@@ -796,9 +926,9 @@ module SignalWire
         target
       end
 
-      # Build the object-form +context_switch+ payload (key order matches
-      # the Python reference: system_prompt, user_prompt, consolidate,
-      # full_reset, isolated).
+      # Build the object-form +context_switch+ payload. Key order is
+      # wire-load-bearing: system_prompt, user_prompt, consolidate,
+      # full_reset, isolated.
       def build_context_switch_data(system_prompt, user_prompt, consolidate, full_reset, isolated)
         context_data = {}
         context_data['system_prompt'] = system_prompt if system_prompt
@@ -824,8 +954,7 @@ module SignalWire
       end
 
       # Build the +pay+ verb params. Key order (the fixed block, then
-      # postal_code, then the optional tail) is wire-load-bearing and
-      # identical to the Python reference.
+      # postal_code, then the optional tail) is wire-load-bearing.
       def build_pay_params(payment_connector_url:, input_method:, payment_method:, timeout:,
                            max_attempts:, security_code:, min_postal_code_length:, token_type:,
                            currency:, language:, voice:, valid_card_types:, postal_code:,
@@ -881,7 +1010,7 @@ module SignalWire
 
       # Wrap a single SWAIG verb + params in the standard SWML envelope.
       # Key order (version, sections → main → [{verb => params}]) is
-      # wire-load-bearing and identical to the Python reference.
+      # wire-load-bearing.
       def swml_envelope(verb, params)
         {
           'version' => '1.0.0',
@@ -889,20 +1018,30 @@ module SignalWire
         }
       end
 
+      # @api private — whether any action has been queued on this result.
+      #
+      # @return [Boolean]
       def actions?
         @action && !@action.empty?
       end
 
+      # @api private — whether a non-empty response text has been set.
+      #
+      # @return [Boolean]
       def response?
         @response && !@response.empty?
       end
 
-      # nil, or responds to #empty? and is empty (mirrors the Python
-      # truthiness checks used by +send_sms+).
+      # The blank test +send_sms+ applies to its arguments: nil, or responds to
+      # #empty? and is empty. (An empty String is truthy in Ruby, so a plain
+      # truthiness check would not do.)
       def sms_blank?(value)
         value.nil? || (value.respond_to?(:empty?) && value.empty?)
       end
 
+      # @api private — the join_conference action. When every option is at its
+      # default the wire value collapses to the bare conference NAME rather than a
+      # params object.
       def join_conference_action(name, opts)
         validate_join_conference!(name, opts)
         join_params = if join_conference_all_defaults?(opts)
@@ -913,32 +1052,94 @@ module SignalWire
         execute_swml(swml_envelope('join_conference', join_params))
       end
 
-      # Validation order + message text mirror the Python reference
-      # (core/function_result.py::join_conference). Python renders its
-      # valid-value lists via an f-string over a Python list literal, i.e.
-      # "one of ['a', 'b']"; we reproduce that exact form.
+      # Validation order and message text are both load-bearing. Each
+      # valid-value list renders bracketed with single-quoted, comma-separated
+      # members — "one of ['a', 'b']" — so the message a caller sees is stable.
       def validate_join_conference!(name, opts)
         JOIN_CONFERENCE_ENUMS.each do |opts_key, allowed, message|
-          # max_participants is validated immediately after beep, mirroring
-          # the Python reference's raise order.
-          validate_max_participants!(opts[:max_participants]) if opts_key == :record
+          # max_participants is validated immediately after beep, before
+          # record — the order decides which error a caller sees first.
+          normalize_max_participants!(opts) if opts_key == :record
           raise ArgumentError, message unless allowed.include?(opts[opts_key])
         end
         raise ArgumentError, 'name cannot be empty' if name.to_s.strip.empty?
       end
 
-      def validate_max_participants!(max_participants)
-        return if max_participants.is_a?(Integer) && max_participants.positive? && max_participants <= 250
+      # @api private — validate + coerce the optional conference participant cap in
+      # place: at least 2 (the platform's conference refuses fewer), no upper limit.
+      def normalize_max_participants!(opts)
+        return if opts[:max_participants].nil?
 
-        raise ArgumentError, 'max_participants must be a positive integer <= 250'
+        opts[:max_participants] = swml_int('max_participants', opts[:max_participants], minimum: 2)
       end
 
+      # @api private — +value+ as an Integer for a SWML verb, or ArgumentError.
+      # Accepts an Integer, an integral Float, a string of ASCII digits, or a SWML
+      # variable reference (passed through as written). An Integer must be within
+      # +minimum+ / +maximum+ when they are given. The conference participant cap
+      # is at least 2 (the platform's conference refuses fewer) with no upper limit.
+      #
+      # @raise [ArgumentError]
+      def swml_int(name, value, minimum: nil, maximum: nil)
+        number = swml_int_number(value)
+        return number if number.is_a?(String)
+        return number if !number.nil? && (minimum.nil? || number >= minimum) && (maximum.nil? || number <= maximum)
+
+        raise ArgumentError, "#{name} must be #{swml_int_expected(minimum, maximum)}, got #{value.inspect}"
+      end
+
+      # @api private — the Integer a SWML int argument denotes, the SWML variable
+      # string itself, or nil when it denotes neither.
+      def swml_int_number(value)
+        case value
+        when String then swml_int_string(value.strip)
+        when Integer then value
+        when Float then value.finite? && value == value.floor ? value.to_i : nil
+        end
+      end
+
+      # @api private — a SWML int given as a string: the variable reference itself,
+      # the Integer a string of ASCII digits denotes, or nil.
+      def swml_int_string(text)
+        return text if SWML_VAR.match?(text)
+
+        text.match?(/\A-?[0-9]+\z/) ? Integer(text, 10) : nil
+      end
+
+      # @api private — the "expected" half of a swml_int error message.
+      def swml_int_expected(minimum, maximum)
+        if minimum && maximum then "an integer from #{minimum} to #{maximum}"
+        elsif minimum then "an integer of at least #{minimum}"
+        elsif maximum then "an integer of at most #{maximum}"
+        else 'an integer'
+        end
+      end
+
+      # @api private — the hold action value: the bare clamped timeout unless a
+      # step is routed, so existing output is unchanged.
+      def hold_value(timeout, step, timeout_step)
+        return timeout if step.nil? && timeout_step.nil?
+
+        config = { 'timeout' => timeout }
+        config['step'] = step unless step.nil?
+        config['timeout_step'] = timeout_step unless timeout_step.nil?
+        config
+      end
+
+      # @api private — whether no join_conference option departs from its default,
+      # which is what lets the action emit the bare name instead of a params object.
+      #
+      # @return [Boolean]
       def join_conference_all_defaults?(opts)
         JOIN_CONFERENCE_PARAM_SPEC.none? do |_wire_key, opts_key, include_check|
           include_check.call(opts[opts_key])
         end
       end
 
+      # @api private — the join_conference params object: the name plus only those
+      # options that differ from their default, in the spec's declared wire-key order.
+      #
+      # @return [Hash{String => Object}]
       def build_join_conference_params(name, opts)
         params = { 'name' => name }
         JOIN_CONFERENCE_PARAM_SPEC.each do |wire_key, opts_key, include_check|

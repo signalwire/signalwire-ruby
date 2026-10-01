@@ -36,7 +36,7 @@ module RelayEventDispatchSupport
   def answered_call(call_id = 'evt-call-1')
     captured_q = Queue.new
     handler_done = Queue.new
-    @client.on_call { |call| _answer_and_signal(call, captured_q, handler_done) }
+    @client.on_call(nil) { |call| _answer_and_signal(call, captured_q, handler_done) }
     @mock.inbound_call(call_id: call_id, auto_states: ['created'])
     Timeout.timeout(5) { handler_done.pop }
     call = Timeout.timeout(5) { captured_q.pop }
@@ -218,7 +218,7 @@ class RelayEventDispatchConcurrencyMockTest < Minitest::Test
   def test_dial_event_routes_via_tag_when_no_top_level_call_id
     arm_tag_dial('ec-tag-route', 'WINTAG')
     device = { 'type' => 'phone', 'params' => { 'to_number' => '+1', 'from_number' => '+2' } }
-    call = @client.dial([[device]], tag: 'ec-tag-route', timeout: 5)
+    call = @client.dial([[device]], tag: 'ec-tag-route', dial_timeout: 5)
 
     assert_equal 'WINTAG', call.call_id
     sends = @mock.journal_send(event_type: 'calling.call.dial')
@@ -296,7 +296,7 @@ class RelayEventDispatchStateMockTest < Minitest::Test
   def test_call_listener_fires_on_event
     call = answered_call('ec-list')
     fired_q = Queue.new
-    call.on('calling.call.play') { |event| fired_q.push(event) }
+    call.on('calling.call.play', nil) { |event| fired_q.push(event) }
     params = { 'call_id' => 'ec-list', 'control_id' => 'x', 'state' => 'playing' }
     @mock.push(bare_event_frame('calling.call.play', params))
     event = Timeout.timeout(2) { fired_q.pop }

@@ -22,9 +22,8 @@ module SignalWire
             super(http, '/api/fabric/resources/ai_agents')
           end
 
-          def create(prompt:, name:, global_data: nil, hints: nil, languages: nil, params: nil, post_prompt: nil, post_prompt_url: nil, pronounce: nil, sWAIG: nil, agent_id: nil, extras: {}, request_options: nil, **kwargs)
+          def create(name:, global_data: nil, hints: nil, languages: nil, params: nil, post_prompt: nil, post_prompt_url: nil, pronounce: nil, prompt: nil, sWAIG: nil, post_prompt_auth_user: nil, post_prompt_auth_password: nil, multilingual: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
-            body['prompt'] = prompt
             body['name'] = name
             body['global_data'] = global_data unless global_data.nil?
             body['hints'] = hints unless hints.nil?
@@ -33,13 +32,16 @@ module SignalWire
             body['post_prompt'] = post_prompt unless post_prompt.nil?
             body['post_prompt_url'] = post_prompt_url unless post_prompt_url.nil?
             body['pronounce'] = pronounce unless pronounce.nil?
+            body['prompt'] = prompt unless prompt.nil?
             body['SWAIG'] = sWAIG unless sWAIG.nil?
-            body['agent_id'] = agent_id unless agent_id.nil?
+            body['post_prompt_auth_user'] = post_prompt_auth_user unless post_prompt_auth_user.nil?
+            body['post_prompt_auth_password'] = post_prompt_auth_password unless post_prompt_auth_password.nil?
+            body['multilingual'] = multilingual unless multilingual.nil?
             body = body.merge(extras).merge(kwargs)
             @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(resource_id, global_data: nil, hints: nil, languages: nil, params: nil, post_prompt: nil, post_prompt_url: nil, pronounce: nil, prompt: nil, sWAIG: nil, agent_id: nil, name: nil, extras: {}, request_options: nil, **kwargs)
+          def update(id, global_data: nil, hints: nil, languages: nil, params: nil, post_prompt: nil, post_prompt_url: nil, pronounce: nil, prompt: nil, sWAIG: nil, name: nil, post_prompt_auth_user: nil, post_prompt_auth_password: nil, multilingual: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['global_data'] = global_data unless global_data.nil?
             body['hints'] = hints unless hints.nil?
@@ -50,10 +52,20 @@ module SignalWire
             body['pronounce'] = pronounce unless pronounce.nil?
             body['prompt'] = prompt unless prompt.nil?
             body['SWAIG'] = sWAIG unless sWAIG.nil?
-            body['agent_id'] = agent_id unless agent_id.nil?
             body['name'] = name unless name.nil?
+            body['post_prompt_auth_user'] = post_prompt_auth_user unless post_prompt_auth_user.nil?
+            body['post_prompt_auth_password'] = post_prompt_auth_password unless post_prompt_auth_password.nil?
+            body['multilingual'] = multilingual unless multilingual.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.patch(_path(resource_id), body, request_options: request_options)
+            @http.patch(_path(id), body, request_options: request_options)
+          end
+
+          def list_voices(request_options: nil, **params)
+            @http.get(_path('voices'), params.empty? ? nil : params, request_options: request_options)
+          end
+
+          def list_conversation_logs(id, request_options: nil, **params)
+            @http.get(_path(id, 'conversation_logs'), params.empty? ? nil : params, request_options: request_options)
           end
         end
       end

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module SignalWire
+  # REST — the synchronous REST client and its per-namespace resources.
   module REST
     # RequestOptions — the REST request-options envelope (plan 4.2).
     #
@@ -78,9 +79,8 @@ module SignalWire
       # built-in floor. +nil+ on any field inherits the next level down; the
       # result has every field concrete. Returns an {EffectiveOptions}.
       #
-      # A module-level operation (mirrors the reference's module function
-      # +signalwire.rest._request_options.resolve+); exposed as a class method so
-      # the Ruby call site reads +RequestOptions.resolve(...)+.
+      # A stateless operation, exposed as a class method so the call site
+      # reads +RequestOptions.resolve(...)+.
       def self.resolve(client_default, per_request)
         merged = (client_default || RequestOptions.new).merge(per_request)
         EffectiveOptions.new(
@@ -93,10 +93,9 @@ module SignalWire
       end
 
       # Whether an HTTP +status+ for +method+ should trigger a retry, given the
-      # resolved +opts+ ({EffectiveOptions}). A module-level operation (mirrors
-      # the reference's module function
-      # +signalwire.rest._request_options.status_is_retryable+); delegates to the
-      # resolved options so the idempotency asymmetry lives in one place.
+      # resolved +opts+ ({EffectiveOptions}). A stateless operation; delegates
+      # to the resolved options so the idempotency asymmetry lives in one
+      # place.
       def self.status_is_retryable(method, status, opts)
         opts.status_retryable?(method, status)
       end
@@ -115,6 +114,12 @@ module SignalWire
 
       attr_reader :timeout, :retries, :retry_on_status, :retry_backoff, :abort_signal
 
+      # @param timeout [Numeric, nil] per-attempt wall-clock cap in seconds; nil for no cap
+      # @param retries [Integer] retries AFTER the first attempt (total attempts = retries + 1)
+      # @param retry_on_status [Array<Integer>, Set<Integer>] statuses eligible for retry,
+      #   further narrowed for non-idempotent methods by {#status_retryable?}
+      # @param retry_backoff [Numeric] base backoff in seconds, doubled each attempt
+      # @param abort_signal [#set?, nil] checked before every attempt for cooperative cancellation
       def initialize(timeout:, retries:, retry_on_status:, retry_backoff:, abort_signal:)
         @timeout         = timeout
         @retries         = retries
@@ -145,16 +150,25 @@ module SignalWire
     # their own that responds to +set?+ (e.g. a wrapper over their app's own
     # cancellation) — this class is a convenience, not a requirement.
     class AbortSignal
+      # Create an unset signal.
       def initialize
         @mutex = Mutex.new
         @set = false
       end
 
+      # Set the signal, cancelling any request that checks it from here on. A request
+      # already in flight is not interrupted — the check happens between attempts.
+      #
+      # @return [AbortSignal] self, for chaining
       def set!
         @mutex.synchronize { @set = true }
         self
       end
 
+      # Whether the signal has been set. Thread-safe; the REST client calls this
+      # before each attempt.
+      #
+      # @return [Boolean]
       def set?
         @mutex.synchronize { @set }
       end

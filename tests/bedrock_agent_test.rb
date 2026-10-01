@@ -34,12 +34,15 @@ class BedrockAgentTest < Minitest::Test
     refute(main.any? { |v| v.key?('ai') }, 'ai verb must be transformed away')
   end
 
+  # `voice_id` is a CLOSED enum of the five Bedrock voices
+  # (tiffany|matthew|amy|lupe|carlos), so a Polly voice name is not a value the
+  # platform accepts here.
   def test_voice_and_inference_params_in_prompt
-    agent = SignalWire::Agents::BedrockAgent.new(voice_id: 'joanna', temperature: 0.3, top_p: 0.8)
+    agent = SignalWire::Agents::BedrockAgent.new(voice_id: 'amy', temperature: 0.3, top_p: 0.8)
     agent.set_prompt_text('Hi')
     prompt = bedrock_verb(agent)['prompt']
 
-    assert_equal 'joanna', prompt['voice_id']
+    assert_equal 'amy', prompt['voice_id']
     assert_in_delta(0.3, prompt['temperature'])
     assert_in_delta(0.8, prompt['top_p'])
   end
@@ -53,7 +56,7 @@ class BedrockAgentTest < Minitest::Test
   def test_bedrock_object_keys_present_with_tool_and_post_prompt
     agent = SignalWire::Agents::BedrockAgent.new
     agent.set_prompt_text('Hi')
-    agent.define_tool(name: 't', description: 'd') { |_a, _r| {} }
+    agent.define_tool(name: 't', description: 'd', parameters: {}, handler: nil) { |_a, _r| {} }
     agent.set_post_prompt('summarize')
     ab = bedrock_verb(agent)
 
@@ -73,9 +76,9 @@ class BedrockAgentTest < Minitest::Test
   def test_set_voice
     agent = SignalWire::Agents::BedrockAgent.new
     agent.set_prompt_text('Hi')
-    agent.set_voice('stephen')
+    agent.set_voice('tiffany')
 
-    assert_equal 'stephen', bedrock_verb(agent)['prompt']['voice_id']
+    assert_equal 'tiffany', bedrock_verb(agent)['prompt']['voice_id']
   end
 
   def test_set_inference_params_partial_update
@@ -138,5 +141,77 @@ class BedrockAgentTest < Minitest::Test
     agent = SignalWire::Agents::BedrockAgent.new
 
     assert_kind_of SignalWire::AgentBase, agent
+  end
+end
+
+# The bedrock render REWRITES the already-rendered document, swapping the `ai`
+# verb for `amazon_bedrock` after the base render validated `ai`. The
+# substituted verb must be validated too, or a post-render rewrite is a hole
+# straight to the wire.
+class BedrockRenderValidationTest < Minitest::Test
+  def test_rewritten_verb_goes_through_the_validator
+    agent = SignalWire::Agents::BedrockAgent.new(voice_id: 'lupe')
+    agent.set_prompt_text('Hi')
+
+    # A valid agent renders cleanly...
+    verb = agent.render_swml['sections']['main'].find { |v| v.key?('amazon_bedrock') }
+
+    refute_nil verb, 'expected an amazon_bedrock verb'
+
+    # ...and an out-of-range prompt temperature (schema: number 0..2) is
+    # REJECTED rather than silently shipped.
+    agent.set_inference_params(temperature: 5.0)
+    assert_raises(SignalWire::Utils::SchemaValidationError) { agent.render_swml }
+  end
+
+  # Parity: python test_an_unoffered_voice_is_accepted_and_the_offered_ones_are_annotated.
+  # Bedrock refuses a voice outside its five, but behind a SWML handler that
+  # discards relay's reply (no SWML error; the verb just does not run) — so the
+  # schema states the offered voices as x-known-values, not an enum, and an
+  # unoffered voice renders (owner ruling 2026-09-27).
+  def test_an_unoffered_voice_is_accepted_and_the_offered_ones_are_annotated
+    agent = SignalWire::Agents::BedrockAgent.new(voice_id: 'inworld.Mark')
+    agent.set_prompt_text('Hi')
+
+    refute_nil(agent.render_swml['sections']['main'].find { |v| v.key?('amazon_bedrock') })
+    voice = bedrock_voice_id_schema
+
+    assert_equal %w[amy carlos lupe matthew tiffany], voice['x-known-values'].sort
+    refute voice.key?('enum')
+  end
+
+  private
+
+  # The bundled schema's amazon_bedrock prompt.voice_id node (object body form).
+  def bedrock_voice_id_schema
+    body = SignalWire::Utils::SchemaUtils.new.schema.dig('$defs', 'AmazonBedrock', 'properties', 'amazon_bedrock')
+    body['anyOf'].find { |arm| arm['type'] == 'object' }.dig('properties', 'prompt', 'properties', 'voice_id')
+  end
+
+  public
+
+  # `build_bedrock_object` copies a FIXED key set; anything outside it is
+  # dropped. That set must be exactly what the amazon_bedrock schema allows,
+  # so the drop is the schema's doing and not a silent data loss.
+  def test_copied_key_set_matches_the_schema
+    allowed = %w[SWAIG global_data params post_prompt post_prompt_url prompt]
+    agent = SignalWire::Agents::BedrockAgent.new
+    agent.set_prompt_text('Hi')
+    agent.set_global_data({ 'k' => 'v' })
+    verb = agent.render_swml['sections']['main'].find { |v| v.key?('amazon_bedrock') }['amazon_bedrock']
+
+    assert_empty verb.keys - allowed, 'emitted a key the amazon_bedrock schema does not declare'
+  end
+
+  # debug_events ride inside `params`, which IS copied -- so enabling them on a
+  # Bedrock agent must not lose the webhook wiring.
+  def test_debug_webhook_survives_the_rewrite
+    agent = SignalWire::Agents::BedrockAgent.new
+    agent.set_prompt_text('Hi')
+    agent.enable_debug_events
+    verb = agent.render_swml['sections']['main'].find { |v| v.key?('amazon_bedrock') }['amazon_bedrock']
+
+    refute_nil verb.dig('params', 'debug_webhook_url'), 'debug_webhook_url lost in the bedrock rewrite'
+    refute_nil verb.dig('params', 'debug_webhook_level'), 'debug_webhook_level lost in the bedrock rewrite'
   end
 end

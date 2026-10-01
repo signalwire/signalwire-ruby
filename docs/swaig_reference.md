@@ -440,7 +440,7 @@ result.tap(
 **Audio Configuration:**
 - `direction`: Audio direction to tap (default: "both")
   - `"speak"`: What party says
-  - `"hear"`: What party hears
+  - `"listen"`: What party hears
   - `"both"`: What party hears and says
 - `codec`: Codec for tap stream - "PCMU" or "PCMA" (default: "PCMU")
 - `rtp_ptime`: RTP packetization time in milliseconds (default: 20)
@@ -643,7 +643,7 @@ result = SignalWire::Swaig::FunctionResult.new('Profile saved.')
 result.replace_in_history("I've saved your profile information.")
 
 # Practical example: data collection function that shouldn't clutter history
-agent.define_tool(name: 'save_answer', description: "Save the user's answer") do |args, raw_data|
+agent.define_tool(name: 'save_answer', description: "Save the user's answer", handler: nil) do |args, raw_data|
   answer = args['answer']
   result = SignalWire::Swaig::FunctionResult.new("Answer recorded: #{answer}")
   result.replace_in_history  # Keep history clean

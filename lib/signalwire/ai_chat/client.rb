@@ -13,7 +13,10 @@ require 'uri'
 require 'base64'
 require_relative '../version'
 require_relative '../error'
+require_relative '../logging'
+require_relative '../core/logging_config'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
   # Namespace holding the AI Chat client's error family and response models.
   #
@@ -26,12 +29,9 @@ module SignalWire
   # A +chat+ call awaits a full LLM round trip (seconds, not milliseconds). The
   # service streams keepalive whitespace ahead of a slow response body (proxy
   # read-timeout protection), so liveness is byte-driven rather than wall-clock:
-  # there is no total-request timeout an idle turn could trip — only a per-read
-  # idle timeout, mirroring the python reference's
-  # +aiohttp.ClientTimeout(total=None, connect=10, sock_read=60)+. Leading
-  # whitespace is valid JSON, so the buffered +JSON.parse+ is unaffected.
-  #
-  # Mirrors the python reference +signalwire.ai_chat.AIChatClient+.
+  # there is no total-request timeout an idle turn could trip — only a bounded
+  # connect timeout and a per-read idle timeout. Leading whitespace is valid
+  # JSON, so the buffered +JSON.parse+ is unaffected.
   #
   #   require 'signalwire/ai_chat'
   #
@@ -43,19 +43,22 @@ module SignalWire
     # Default endpoint path appended to a +space+-derived base URL.
     DEFAULT_PATH = '/api/ai/chat'
 
-    # Connect timeout (seconds) — a bounded TCP/TLS handshake. Mirrors the python
-    # reference's +connect=10+.
+    # Connect timeout (seconds) — a bounded TCP/TLS handshake.
     DEFAULT_CONNECT_TIMEOUT_SECONDS = 10
 
     # Idle read timeout (seconds) for a single request. The service streams
     # keepalive whitespace roughly every 10s, so this bounds true byte-silence (a
-    # dead connection), NOT total turn length — mirroring the python reference's
-    # +sock_read=60+. Net::HTTP's +read_timeout+ is per-read (it resets on each
+    # dead connection), NOT total turn length. Net::HTTP's +read_timeout+ is
+    # per-read (it resets on each
     # received chunk), so the streaming proxy's heartbeat keeps a live-but-slow
     # turn alive while a truly dead connection is severed after this many seconds
     # of silence. A total wall-clock cap is deliberately absent — a slow-but-live
     # turn must never be severed by the client.
     DEFAULT_READ_IDLE_TIMEOUT_SECONDS = 60
+
+    # Characters the chat service does NOT keep in a conversation id. Anything
+    # matching is stripped on arrival, silently and without error.
+    ID_UNSAFE = /[^a-zA-Z0-9_\-.:]/
 
     # ── Errors ─────────────────────────────────────────────────────────
 
@@ -74,6 +77,10 @@ module SignalWire
       # The server-provided error message (without the +[code]+ prefix).
       attr_reader :server_message
 
+      # @param code [Integer, nil] the JSON-RPC error code, or nil when the failure
+      #   rode the success envelope
+      # @param message [String] the server's error text; also readable via
+      #   {#server_message} without the `[code]` prefix
       def initialize(code, message)
         @code = code
         @server_message = message
@@ -191,12 +198,45 @@ module SignalWire
             'or provide space: / SIGNALWIRE_SPACE.'
     end
 
-    # Release any client-held resources. The reference closes its persistent
-    # aiohttp session here; Ruby's AIChatClient opens a fresh Net::HTTP
+    # Release any client-held resources. AIChatClient opens a fresh Net::HTTP
     # connection per request and owns no long-lived session, so there is nothing
     # to release — this is a well-defined no-op that completes the lifecycle
-    # contract (mirrors the reference #close). Safe to call any number of times.
+    # contract. Safe to call any number of times.
     def close; end
+
+    # Send one JSON-RPC call and yield the response with its body UNREAD.
+    #
+    # For proxies that must stream the body through rather than buffer it. The
+    # service pads a slow response with keepalive whitespace so intermediaries do
+    # not sever the connection mid-turn; a proxy that reads the whole body first
+    # absorbs that padding and reintroduces the very timeout it exists to
+    # prevent. Read the body inside the block with +read_body+ and forward each
+    # chunk as it arrives:
+    #
+    #   client.raw_post('chat', params) do |response|
+    #     response.read_body { |chunk| out.write(chunk) }
+    #   end
+    #
+    # The caller owns interpreting the result — including that a JSON-RPC error
+    # arrives under HTTP 200 (see the typed methods). Prefer those unless you are
+    # genuinely relaying bytes. The connection is closed when the block returns.
+    #
+    # @param method [String] the JSON-RPC method name
+    # @param params [Hash] the JSON-RPC params, sent verbatim
+    # @yieldparam response [Net::HTTPResponse] the response, body not yet read
+    # @return [Object] the block's value
+    # @raise [ArgumentError] when no block is given
+    def raw_post(method, params)
+      raise ArgumentError, 'raw_post needs a block that reads the response' unless block_given?
+
+      uri = URI(@url)
+      req = build_request(uri, next_payload(method, params))
+      result = nil
+      build_http(uri).start do |http|
+        http.request(req) { |response| result = yield(response) }
+      end
+      result
+    end
 
     # ── API methods ──────────────────────────────────────────────────
 
@@ -204,16 +244,14 @@ module SignalWire
     # optionally send its opening user message. Returns a {AIChat::ConversationInfo}.
     def create_conversation(conversation_id, config_url:, user_message: nil,
                             timeout: nil, user_metadata: nil, reinit: false)
+      warn_if_id_will_be_altered(conversation_id)
       params = { 'id' => conversation_id, 'config_url' => config_url }.merge(
         optional('user_message' => user_message, 'conversation_timeout' => timeout,
                  'user_meta_data' => user_metadata, 'reinit' => (true if reinit))
       )
       result = request('create_conversation', params)
-      ConversationInfo.new(
-        id: conversation_id,
-        status: result['status'].is_a?(String) ? result['status'] : 'created',
-        initial_message: result['initial_message']
-      )
+      ConversationInfo.new(id: conversation_id, initial_message: result['initial_message'],
+                           status: result['status'].is_a?(String) ? result['status'] : 'created')
     end
 
     # Send a message and await a full LLM round trip. Returns a
@@ -300,20 +338,47 @@ module SignalWire
       pairs.compact
     end
 
+    # The JSON-RPC 2.0 envelope for one call, numbered by this client.
+    def next_payload(method, params)
+      @request_counter += 1
+      { 'jsonrpc' => '2.0', 'method' => method, 'params' => params, 'id' => "req-#{@request_counter}" }
+    end
+
+    # Warn when the service will not store the id it is being given.
+    #
+    # The service sanitizes conversation ids and drops disallowed characters
+    # without reporting it, so a caller that composes ids — +root~2+ for a second
+    # leg of +root+, say — gets back +root2+, a DIFFERENT, valid-looking id, and
+    # everything filed under the original is unreachable with no error at any
+    # layer. +_+ and +-+ occur inside the ids {AIChat::ChatGateway#mint_handle}
+    # generates and +:+ is the gateway's handle delimiter, which leaves +.+ as
+    # the safe separator for composing ids.
+    def warn_if_id_will_be_altered(conversation_id)
+      return unless conversation_id.is_a?(String) && !conversation_id.empty?
+
+      cleaned = conversation_id.gsub(ID_UNSAFE, '')
+      return if cleaned == conversation_id
+
+      removed = conversation_id.scan(ID_UNSAFE).uniq.sort.join
+      Logging.logger('signalwire.ai_chat.client').warn(
+        "conversation_id_will_be_sanitized requested=#{conversation_id.inspect} " \
+        "stored_as=#{cleaned} removed_characters=#{removed.inspect} " \
+        'message="[signalwire] the chat service will store this conversation under a ' \
+        "different id; anything filed under the requested id will not be found. Use '.' to compose ids.\""
+      )
+    end
+
     # POST one JSON-RPC call and return its decoded +result+ object (a Hash).
     #
     # Success/failure is decided by the JSON-RPC BODY, not the HTTP status: the
     # service's keepalive heartbeat commits +200+ before the turn's outcome is
     # known, so a slow error can arrive as +200 + {"error": …}+. Never gate on the
-    # HTTP status here (mirrors the python reference).
+    # HTTP status here.
     #
     # Raises {AIChat::AIChatError} (or a typed subclass) when the body carries
     # +error+.
     def request(method, params)
-      @request_counter += 1
-      payload = { 'jsonrpc' => '2.0', 'method' => method, 'params' => params,
-                  'id' => "req-#{@request_counter}" }
-      response = perform(payload)
+      response = perform(next_payload(method, params))
       body = parse_body(response)
 
       raise_for_error(body['error']) if body.is_a?(Hash) && !body['error'].nil?
@@ -358,6 +423,11 @@ module SignalWire
       http
     end
 
+    # @api private — the chat request: the Basic-auth header, JSON
+    # content/accept types, the SDK's versioned User-Agent, and the payload as the
+    # body.
+    #
+    # @return [Net::HTTP::Post]
     def build_request(uri, payload)
       req = Net::HTTP::Post.new(uri)
       req['Authorization'] = @auth_header

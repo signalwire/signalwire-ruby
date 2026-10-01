@@ -101,6 +101,23 @@ class RelayRestGeneratedTest < Minitest::Test
     assert_equal 'relay-rest.list_addresses', @mock.last.matched_route
   end
 
+  def test_addresses_update_success
+    @client.addresses.update('x')
+    last = @mock.last
+
+    assert_equal 'PUT', last.method
+    assert_equal 'relay-rest.update_address', last.matched_route
+  end
+
+  def test_addresses_update_error
+    @mock.push_scenario('relay-rest.update_address', status: 500, response: { 'error' => 'x' })
+    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.addresses.update('x') }
+
+    assert_equal 500, err.status_code
+    assert_equal 500, @mock.last.response_status
+    assert_equal 'relay-rest.update_address', @mock.last.matched_route
+  end
+
   def test_imported_numbers_create_success
     @client.imported_numbers.create(number: 'x', number_type: 'x')
     last = @mock.last
@@ -323,7 +340,7 @@ class RelayRestGeneratedTest < Minitest::Test
   end
 
   def test_number_groups_update_success
-    @client.number_groups.update('x', name: 'x')
+    @client.number_groups.update('x')
     last = @mock.last
 
     assert_equal 'PUT', last.method
@@ -332,11 +349,45 @@ class RelayRestGeneratedTest < Minitest::Test
 
   def test_number_groups_update_error
     @mock.push_scenario('relay-rest.update_number_group', status: 500, response: { 'error' => 'x' })
-    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.number_groups.update('x', name: 'x') }
+    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.number_groups.update('x') }
 
     assert_equal 500, err.status_code
     assert_equal 500, @mock.last.response_status
     assert_equal 'relay-rest.update_number_group', @mock.last.matched_route
+  end
+
+  def test_phone_numbers_assign_e911_address_success
+    @client.phone_numbers.assign_e911_address('x', e911_address_id: 'x')
+    last = @mock.last
+
+    assert_equal 'POST', last.method
+    assert_equal 'relay-rest.assign_e911_address', last.matched_route
+  end
+
+  def test_phone_numbers_assign_e911_address_error
+    @mock.push_scenario('relay-rest.assign_e911_address', status: 500, response: { 'error' => 'x' })
+    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.phone_numbers.assign_e911_address('x', e911_address_id: 'x') }
+
+    assert_equal 500, err.status_code
+    assert_equal 500, @mock.last.response_status
+    assert_equal 'relay-rest.assign_e911_address', @mock.last.matched_route
+  end
+
+  def test_phone_numbers_clear_cnam_success
+    @client.phone_numbers.clear_cnam('x')
+    last = @mock.last
+
+    assert_equal 'DELETE', last.method
+    assert_equal 'relay-rest.clear_caller_id_name', last.matched_route
+  end
+
+  def test_phone_numbers_clear_cnam_error
+    @mock.push_scenario('relay-rest.clear_caller_id_name', status: 500, response: { 'error' => 'x' })
+    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.phone_numbers.clear_cnam('x') }
+
+    assert_equal 500, err.status_code
+    assert_equal 500, @mock.last.response_status
+    assert_equal 'relay-rest.clear_caller_id_name', @mock.last.matched_route
   end
 
   def test_phone_numbers_create_success
@@ -390,6 +441,23 @@ class RelayRestGeneratedTest < Minitest::Test
     assert_equal 'relay-rest.retrieve_phone_number', @mock.last.matched_route
   end
 
+  def test_phone_numbers_get_cnam_success
+    @client.phone_numbers.get_cnam('x')
+    last = @mock.last
+
+    assert_equal 'GET', last.method
+    assert_equal 'relay-rest.retrieve_caller_id_name', last.matched_route
+  end
+
+  def test_phone_numbers_get_cnam_error
+    @mock.push_scenario('relay-rest.retrieve_caller_id_name', status: 500, response: { 'error' => 'x' })
+    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.phone_numbers.get_cnam('x') }
+
+    assert_equal 500, err.status_code
+    assert_equal 500, @mock.last.response_status
+    assert_equal 'relay-rest.retrieve_caller_id_name', @mock.last.matched_route
+  end
+
   def test_phone_numbers_list_success
     @client.phone_numbers.list
     last = @mock.last
@@ -405,6 +473,40 @@ class RelayRestGeneratedTest < Minitest::Test
     assert_equal 500, err.status_code
     assert_equal 500, @mock.last.response_status
     assert_equal 'relay-rest.list_phone_numbers', @mock.last.matched_route
+  end
+
+  def test_phone_numbers_remove_e911_address_success
+    @client.phone_numbers.remove_e911_address('x')
+    last = @mock.last
+
+    assert_equal 'DELETE', last.method
+    assert_equal 'relay-rest.remove_e911_address', last.matched_route
+  end
+
+  def test_phone_numbers_remove_e911_address_error
+    @mock.push_scenario('relay-rest.remove_e911_address', status: 500, response: { 'error' => 'x' })
+    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.phone_numbers.remove_e911_address('x') }
+
+    assert_equal 500, err.status_code
+    assert_equal 500, @mock.last.response_status
+    assert_equal 'relay-rest.remove_e911_address', @mock.last.matched_route
+  end
+
+  def test_phone_numbers_request_cnam_success
+    @client.phone_numbers.request_cnam('x', name: 'x')
+    last = @mock.last
+
+    assert_equal 'POST', last.method
+    assert_equal 'relay-rest.request_caller_id_name', last.matched_route
+  end
+
+  def test_phone_numbers_request_cnam_error
+    @mock.push_scenario('relay-rest.request_caller_id_name', status: 500, response: { 'error' => 'x' })
+    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.phone_numbers.request_cnam('x', name: 'x') }
+
+    assert_equal 500, err.status_code
+    assert_equal 500, @mock.last.response_status
+    assert_equal 'relay-rest.request_caller_id_name', @mock.last.matched_route
   end
 
   def test_phone_numbers_search_success
@@ -442,7 +544,7 @@ class RelayRestGeneratedTest < Minitest::Test
   end
 
   def test_queues_create_success
-    @client.queues.create
+    @client.queues.create(name: 'x')
     last = @mock.last
 
     assert_equal 'POST', last.method
@@ -451,7 +553,7 @@ class RelayRestGeneratedTest < Minitest::Test
 
   def test_queues_create_error
     @mock.push_scenario('relay-rest.create_queue', status: 500, response: { 'error' => 'x' })
-    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.queues.create }
+    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.queues.create(name: 'x') }
 
     assert_equal 500, err.status_code
     assert_equal 500, @mock.last.response_status
@@ -594,6 +696,23 @@ class RelayRestGeneratedTest < Minitest::Test
     assert_equal 'relay-rest.delete_recording', @mock.last.matched_route
   end
 
+  def test_recordings_download_success
+    @client.recordings.download('x')
+    last = @mock.last
+
+    assert_equal 'GET', last.method
+    assert_equal 'relay-rest.download_recording', last.matched_route
+  end
+
+  def test_recordings_download_error
+    @mock.push_scenario('relay-rest.download_recording', status: 500, response: { 'error' => 'x' })
+    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.recordings.download('x') }
+
+    assert_equal 500, err.status_code
+    assert_equal 500, @mock.last.response_status
+    assert_equal 'relay-rest.download_recording', @mock.last.matched_route
+  end
+
   def test_recordings_get_success
     @client.recordings.get('x')
     last = @mock.last
@@ -713,8 +832,25 @@ class RelayRestGeneratedTest < Minitest::Test
     assert_equal 'relay-rest.list_campaigns', @mock.last.matched_route
   end
 
+  def test_brands_update_success
+    @client.registry.brands.update('x')
+    last = @mock.last
+
+    assert_equal 'PUT', last.method
+    assert_equal 'relay-rest.update_brand', last.matched_route
+  end
+
+  def test_brands_update_error
+    @mock.push_scenario('relay-rest.update_brand', status: 500, response: { 'error' => 'x' })
+    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.registry.brands.update('x') }
+
+    assert_equal 500, err.status_code
+    assert_equal 500, @mock.last.response_status
+    assert_equal 'relay-rest.update_brand', @mock.last.matched_route
+  end
+
   def test_campaigns_create_order_success
-    @client.registry.campaigns.create_order('x')
+    @client.registry.campaigns.create_order('x', phone_numbers: 'x')
     last = @mock.last
 
     assert_equal 'POST', last.method
@@ -723,7 +859,7 @@ class RelayRestGeneratedTest < Minitest::Test
 
   def test_campaigns_create_order_error
     @mock.push_scenario('relay-rest.create_order', status: 500, response: { 'error' => 'x' })
-    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.registry.campaigns.create_order('x') }
+    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.registry.campaigns.create_order('x', phone_numbers: 'x') }
 
     assert_equal 500, err.status_code
     assert_equal 500, @mock.last.response_status
@@ -867,7 +1003,7 @@ class RelayRestGeneratedTest < Minitest::Test
   end
 
   def test_short_codes_update_success
-    @client.short_codes.update('x', name: 'x', message_handler: 'x')
+    @client.short_codes.update('x')
     last = @mock.last
 
     assert_equal 'PUT', last.method
@@ -876,7 +1012,7 @@ class RelayRestGeneratedTest < Minitest::Test
 
   def test_short_codes_update_error
     @mock.push_scenario('relay-rest.update_short_code', status: 500, response: { 'error' => 'x' })
-    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.short_codes.update('x', name: 'x', message_handler: 'x') }
+    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.short_codes.update('x') }
 
     assert_equal 500, err.status_code
     assert_equal 500, @mock.last.response_status
@@ -1020,7 +1156,7 @@ class RelayRestGeneratedTest < Minitest::Test
   end
 
   def test_verified_callers_update_success
-    @client.verified_callers.update('x', name: 'x')
+    @client.verified_callers.update('x')
     last = @mock.last
 
     assert_equal 'PUT', last.method
@@ -1029,7 +1165,7 @@ class RelayRestGeneratedTest < Minitest::Test
 
   def test_verified_callers_update_error
     @mock.push_scenario('relay-rest.update_verified_caller_id', status: 500, response: { 'error' => 'x' })
-    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.verified_callers.update('x', name: 'x') }
+    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.verified_callers.update('x') }
 
     assert_equal 500, err.status_code
     assert_equal 500, @mock.last.response_status

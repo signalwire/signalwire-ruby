@@ -8,7 +8,7 @@
 #   SIGNALWIRE_SPACE        - your SignalWire space (e.g. example.signalwire.com)
 
 require 'signalwire'
-require 'signalwire/rest/rest_client'  # opt-in subsystem (Python: from signalwire.rest import Client)
+require 'signalwire/rest/rest_client' # opt-in subsystem (Python: from signalwire.rest import Client)
 
 client = SignalWire::REST::RestClient.new
 
@@ -18,7 +18,7 @@ client = SignalWire::REST::RestClient.new
 puts 'Uploading document to Datasphere...'
 doc = client.datasphere.documents.create(
   {
-    url:  'https://filesamples.com/samples/document/txt/sample3.txt',
+    url: 'https://filesamples.com/samples/document/txt/sample3.txt',
     tags: %w[support demo]
   }
 )
@@ -36,7 +36,7 @@ end
 puts "\nSearching Datasphere..."
 results = client.datasphere.documents.search(
   query_string: 'lorem ipsum dolor sit amet',
-  count:        3
+  count: 3
 )
 (results['chunks'] || []).each do |chunk|
   puts "  - #{(chunk['text'] || '')[0, 100]}..."

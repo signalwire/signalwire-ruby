@@ -21,18 +21,23 @@ module SignalWire
             #
             # Method-less data DTO: the frozen FIELDS constant maps each snake wire
             # key to its JSON type symbol. No reader/writer methods and no
-            # initialize — the reference records this as a method-less type
-            # definition, so the surface enumerator surfaces the bare class name.
+            # initialize — the class is a bare namespace for its FIELDS map,
+            # describing the wire shape rather than wrapping a payload.
             class AIPromptPom
               FIELDS = {
-                'max_tokens' => :integer,
-                'temperature' => :object,
-                'top_p' => :object,
-                'confidence' => :object,
-                'presence_penalty' => :object,
-                'frequency_penalty' => :object,
+                'contexts' => :object,
+                'frequency_penalty' => :any,
+                'max_completion_tokens' => :number,
+                'max_tokens' => :number,
+                'model' => :string,
                 'pom' => :array,
-                'contexts' => :object
+                'presence_penalty' => :any,
+                'reasoning_effort' => :string,
+                'steps' => :array,
+                'temperature' => :number,
+                'text' => :string,
+                'top_p' => :number,
+                'verbosity' => :string
               }.freeze
             end
           end

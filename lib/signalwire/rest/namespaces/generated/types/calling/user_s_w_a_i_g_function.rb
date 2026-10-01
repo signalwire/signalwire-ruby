@@ -21,25 +21,28 @@ module SignalWire
             #
             # Method-less data DTO: the frozen FIELDS constant maps each snake wire
             # key to its JSON type symbol. No reader/writer methods and no
-            # initialize — the reference records this as a method-less type
-            # definition, so the surface enumerator surfaces the bare class name.
+            # initialize — the class is a bare namespace for its FIELDS map,
+            # describing the wire shape rather than wrapping a payload.
             class UserSWAIGFunction
               FIELDS = {
                 'description' => :string,
-                'purpose' => :string,
-                'parameters' => :object,
-                'fillers' => :object,
-                'argument' => :object,
                 'active' => :object,
+                'argument' => :object,
+                'data_map' => :object,
+                'fillers' => :object,
+                'function' => :string,
                 'meta_data' => :object,
                 'meta_data_token' => :string,
-                'data_map' => :object,
+                'parameters' => :object,
+                'purpose' => :string,
                 'skip_fillers' => :object,
-                'web_hook_url' => :string,
                 'wait_file' => :string,
                 'wait_file_loops' => :object,
                 'wait_for_fillers' => :object,
-                'function' => :string
+                'web_hook_auth_pass' => :string,
+                'web_hook_auth_password' => :string,
+                'web_hook_auth_user' => :string,
+                'web_hook_url' => :string
               }.freeze
             end
           end

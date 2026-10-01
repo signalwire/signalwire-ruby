@@ -7,22 +7,18 @@
 #
 # Standalone security hygiene utilities.
 #
-# These mirror the TypeScript SDK's ``SecurityUtils`` (filterSensitiveHeaders,
-# redactUrl, isValidHostname) and the Python reference's
-# ``signalwire.core.security.security_utils`` free functions, so the same
-# protections -- keeping credentials out of user callbacks and logs, reusable
-# hostname validation -- are available in every port.
+# Three stateless helpers -- filter_sensitive_headers, redact_url and
+# is_valid_hostname -- that keep credentials out of user callbacks and logs and
+# provide reusable hostname validation.
 
 module SignalWire
+  # Security — webhook signature validation, session tokens and request hardening.
   module Security
     # Stateless security hygiene helpers exposed as module functions.
     #
-    # The three public entry points project onto the Python free functions
-    # ``signalwire.core.security.security_utils.{filter_sensitive_headers,
-    # redact_url, is_valid_hostname}`` via the Ruby->Python module override in
-    # scripts/enumerate_surface.rb + scripts/enumerate_signatures.py. The
-    # ``SENSITIVE_HEADERS`` set + regexes are internal (not on the public
-    # surface; the Python reference doesn't export them either).
+    # The public entry points are {filter_sensitive_headers}, {redact_url} and
+    # {is_valid_hostname}. The ``SENSITIVE_HEADERS`` set and the regexes are
+    # internal — not part of the public surface, and subject to change.
     module SecurityUtils
       # Header names whose values are credentials/secrets and must never be
       # handed to user callbacks or written to logs. Compared case-insensitively.

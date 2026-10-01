@@ -7,43 +7,54 @@
 
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
-# flattened SWMLMethod verb 'connect' config
+# schema.json $defs schema 'ConnectConfig'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
-      # ConnectConfig — generated read-side payload (flattened SWMLMethod verb 'connect' config).
+      # ConnectConfig — generated read-side payload (schema.json $defs schema 'ConnectConfig').
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
-      # A zero-arg reader per field mirrors the reference's recorded
-      # accessors (dropped on the SURFACE by the enumerator — method-less there).
+      # Each field also has a zero-arg reader, so a decoded payload can be
+      # accessed by name rather than by wire key.
       class ConnectConfig
         FIELDS = {
-          'from' => :string,
-          'headers' => :array,
-          'codecs' => :string,
-          'webrtc_media' => :object,
-          'session_timeout' => :object,
-          'ringback' => :object,
-          'result' => :object,
-          'timeout' => :object,
-          'max_duration' => :object,
           'answer_on_bridge' => :object,
+          'authorization_bearer_token' => :object,
+          'call_state_events' => :object,
+          'call_state_url' => :object,
+          'codec' => :object,
+          'codecs' => :object,
           'confirm' => :object,
           'confirm_timeout' => :object,
-          'username' => :string,
-          'password' => :string,
+          'custom_parameters' => :object,
           'encryption' => :object,
-          'call_state_url' => :string,
-          'transfer_after_bridge' => :object,
-          'call_state_events' => :array,
-          'to' => :string,
-          'serial' => :array,
+          'execute_after_queue' => :object,
+          'from' => :object,
+          'from_name' => :object,
+          'headers' => :array,
+          'max_duration' => :object,
+          'name' => :object,
           'parallel' => :array,
-          'serial_parallel' => :array
+          'password' => :object,
+          'realtime' => :object,
+          'result' => :object,
+          'ringback' => :object,
+          'serial' => :array,
+          'serial_parallel' => :array,
+          'session_timeout' => :object,
+          'status_url' => :object,
+          'status_url_method' => :object,
+          'stop_all_on_reject' => :object,
+          'timeout' => :object,
+          'to' => :object,
+          'username' => :object,
+          'webrtc_media' => :object
         }.freeze
 
-        attr_reader :from, :headers, :codecs, :webrtc_media, :session_timeout, :ringback, :result, :timeout, :max_duration, :answer_on_bridge, :confirm, :confirm_timeout, :username, :password, :encryption, :call_state_url, :transfer_after_bridge, :call_state_events, :to, :serial, :parallel, :serial_parallel
+        attr_reader :answer_on_bridge, :authorization_bearer_token, :call_state_events, :call_state_url, :codec, :codecs, :confirm, :confirm_timeout, :custom_parameters, :encryption, :execute_after_queue, :from, :from_name, :headers, :max_duration, :name, :parallel, :password, :realtime, :result, :ringback, :serial, :serial_parallel, :session_timeout, :status_url, :status_url_method, :stop_all_on_reject, :timeout, :to, :username, :webrtc_media
       end
     end
   end

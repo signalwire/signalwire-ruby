@@ -10,13 +10,13 @@ require 'signalwire'
 require 'signalwire/relay/client'
 
 client = SignalWire::Relay::Client.new(
-  project:  'your-project-id',
-  token:    'your-api-token',
-  space:    'example.signalwire.com',
+  project: 'your-project-id',
+  token: 'your-api-token',
+  space: 'example.signalwire.com',
   contexts: ['default']
 )
 
-client.on_call do |call|
+client.on_call(nil) do |call|
   call.answer
   action = call.play([{ 'type' => 'tts', 'params' => { 'text' => 'Welcome!' } }])
   action.wait

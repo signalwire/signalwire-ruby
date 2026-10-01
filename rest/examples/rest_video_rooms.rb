@@ -8,7 +8,7 @@
 #   SIGNALWIRE_SPACE        - your SignalWire space (e.g. example.signalwire.com)
 
 require 'signalwire'
-require 'signalwire/rest/rest_client'  # opt-in subsystem (Python: from signalwire.rest import Client)
+require 'signalwire/rest/rest_client' # opt-in subsystem (Python: from signalwire.rest import Client)
 
 client = SignalWire::REST::RestClient.new
 
@@ -26,10 +26,10 @@ end
 # 1. Create a video room
 puts 'Creating video room...'
 room = client.video.rooms.create(
-  name:         'daily-standup',
+  name: 'daily-standup',
   display_name: 'Daily Standup',
-  max_members:  10,
-  layout:       'grid-responsive'
+  max_members: 10,
+  layout: 'grid-responsive'
 )
 room_id = room['id']
 puts "  Created room: #{room_id}"
@@ -45,8 +45,8 @@ end
 puts "\nGenerating room token..."
 safe('Room token') do
   token = client.video.room_tokens.create(
-    room_name:   'daily-standup',
-    user_name:   'alice',
+    room_name: 'daily-standup',
+    user_name: 'alice',
     permissions: %w[room.self.audio_mute room.self.video_mute]
   )
   puts "  Token: #{token.fetch('token', '')[0, 40]}..."
@@ -100,7 +100,7 @@ end
 
 # 7. Create a video conference
 puts "\nCreating video conference..."
-conf_id = nil
+nil
 conf = safe('Create conference') do
   client.video.conferences.create(name: 'all-hands-stream', display_name: 'All Hands Meeting')
 end

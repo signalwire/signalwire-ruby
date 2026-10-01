@@ -56,9 +56,9 @@ module SwaigTest
   # the fall-through HTTP path and think the simulator worked.
   IMPLEMENTED_SERVERLESS_PLATFORMS = %w[lambda].freeze
 
-  # All platforms the porting guide recognises, so the CLI can emit a
-  # helpful "recognised but not implemented" error rather than
-  # "unrecognised value" for the in-progress ones.
+  # Every platform name the CLI accepts, so it can emit a helpful
+  # "recognised but not implemented" error rather than "unrecognised value"
+  # for the in-progress ones.
   RECOGNISED_SERVERLESS_PLATFORMS = %w[lambda cgi gcf google_cloud_function azure azure_function].freeze
 
   # Environment variables the simulator touches. Captured so the simulator
@@ -93,8 +93,7 @@ module SwaigTest
 
   # Builds the env-override hash for a serverless simulation from the CLI's
   # --env-file (loaded first) and --env flags (merged after, so an explicit
-  # --env wins over a file entry). Mirrors Python's swaig-test, where
-  # env_overrides is built from --env-file then updated with --env.
+  # --env wins over a file entry).
   module EnvOverrides
     module_function
 
@@ -116,8 +115,7 @@ module SwaigTest
       end
     end
 
-    # Parse KEY=VALUE lines from a file (blank lines and #-comments skipped),
-    # matching Python's load_env_file in cli/simulation/mock_env.py.
+    # Parse KEY=VALUE lines from a file (blank lines and #-comments skipped).
     def load_file(path)
       unless File.exist?(path)
         warn "Error: environment file not found: #{path}"
@@ -191,8 +189,6 @@ module SwaigTest
   #   * setting the mode-detection env vars for the target platform,
   #   * clearing conflicting env vars (notably SWML_PROXY_URL_BASE),
   #   * restoring the original environment on deactivate.
-  #
-  # Mirrors signalwire/cli/simulation/mock_env.py's ServerlessSimulator.
   class ServerlessSimulator
     LAMBDA_PRESETS = {
       'AWS_LAMBDA_FUNCTION_NAME' => 'test-agent-function',
@@ -258,8 +254,8 @@ module SwaigTest
     end
 
     def warn_if_proxy_base_survived
-      # Match Python: warn if SWML_PROXY_URL_BASE somehow survived (e.g.
-      # an override re-set it). A live warning here is far cheaper than
+      # Warn if SWML_PROXY_URL_BASE somehow survived the simulation clear
+      # (e.g. an override re-set it). A live warning here is far cheaper than
       # silently generating the wrong webhook URLs.
       return unless ENV['SWML_PROXY_URL_BASE'] && !ENV['SWML_PROXY_URL_BASE'].empty?
 
@@ -812,10 +808,10 @@ module SwaigTest
     end
 
     # --env / --env-file feed the ServerlessSimulator's `overrides:` plumbing
-    # (env vars applied AFTER the platform preset, before activation). Mirrors
-    # Python's swaig-test --env/--env-file: --env is repeatable KEY=VALUE pairs,
-    # --env-file loads KEY=VALUE lines from a file (later sources win). Only
-    # meaningful with --simulate-serverless (validated in the simulate guard).
+    # (env vars applied AFTER the platform preset, before activation). --env is
+    # repeatable KEY=VALUE pairs; --env-file loads KEY=VALUE lines from a file
+    # (later sources win). Only meaningful with --simulate-serverless
+    # (validated in the simulate guard).
     def register_env_options(opts)
       opts.on('--env KEY=VALUE',
               'Override an environment variable for the serverless simulation ' \
@@ -1093,8 +1089,8 @@ module SwaigTest
     # --parse-only / --dry-run: run the same argument validation as a real
     # invocation, then report success and exit WITHOUT loading the agent,
     # touching the filesystem, or hitting the network. On a valid invocation
-    # print exactly "parse OK" and exit 0; on an invalid one exit 2 (canonical
-    # bad-args code, matching the Python reference) without printing "parse OK".
+    # print exactly "parse OK" and exit 0; on an invalid one exit 2 (the
+    # canonical bad-args code) without printing "parse OK".
     # The validators exit(1) on a bad invocation, which we re-map to 2 here.
     def run_parse_only
       OptionsValidator.new(@options).validate!
@@ -1167,8 +1163,8 @@ module SwaigTest
       elsif @options[:list_tools]
         render_dispatcher_tools(dispatcher)
       else
-        # No sub-action: render the SWML and print it (matches the porting-guide
-        # "render SWML and exit" default).
+        # No sub-action: render the SWML and print it — the default behaviour
+        # when no --list-tools/--exec is given.
         print_json(dispatcher.dump_swml)
       end
     end
@@ -1209,8 +1205,8 @@ module SwaigTest
 end
 
 # Run when invoked directly. An OptionParser error (unknown flag, missing value)
-# is a usage error: report it cleanly and exit 2 (the canonical bad-args code,
-# matching the reference), rather than surfacing a raw stack trace.
+# is a usage error: report it cleanly and exit 2 (the canonical bad-args code),
+# rather than surfacing a raw stack trace.
 if __FILE__ == $PROGRAM_NAME
   begin
     SwaigTest::CLI.new.run

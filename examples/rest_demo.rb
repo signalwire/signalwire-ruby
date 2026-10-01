@@ -11,7 +11,7 @@
 #   SIGNALWIRE_SPACE        - your SignalWire space
 
 require 'signalwire'
-require 'signalwire/rest/rest_client'  # opt-in subsystem (Python: from signalwire.rest import Client)
+require 'signalwire/rest/rest_client' # opt-in subsystem (Python: from signalwire.rest import Client)
 
 client = SignalWire::REST::RestClient.new
 
@@ -19,7 +19,7 @@ client = SignalWire::REST::RestClient.new
 puts 'Creating AI agent...'
 begin
   agent = client.fabric.ai_agents.create(
-    name:   'Ruby Demo Bot',
+    name: 'Ruby Demo Bot',
     prompt: { 'text' => 'You are a helpful assistant powered by Ruby.' }
   )
   agent_id = agent['id']

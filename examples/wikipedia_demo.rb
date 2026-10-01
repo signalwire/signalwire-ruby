@@ -15,19 +15,19 @@ agent.add_language('English', 'en-US', 'elevenlabs.rachel')
 begin
   agent.add_skill('datetime')
   puts 'Added datetime skill'
-rescue => e
+rescue StandardError => e
   puts "Failed to add datetime skill: #{e.message}"
 end
 
 # Add wikipedia search skill
 begin
   agent.add_skill('wikipedia_search', {
-    'num_results'       => 2,
-    'no_results_message' => "I couldn't find any Wikipedia articles about '{query}'. " \
-                            'Try different keywords or a related topic.'
-  })
+                    'num_results' => 2,
+                    'no_results_message' => "I couldn't find any Wikipedia articles about '{query}'. " \
+                                            'Try different keywords or a related topic.'
+                  })
   puts 'Added Wikipedia search skill'
-rescue => e
+rescue StandardError => e
   puts "Failed to add Wikipedia skill: #{e.message}"
   exit 1
 end

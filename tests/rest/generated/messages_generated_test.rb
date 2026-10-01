@@ -50,7 +50,7 @@ class MessagesGeneratedTest < Minitest::Test
   end
 
   def test_messages_update_success
-    @client.messages.update('x', body: 'x')
+    @client.messages.update('x')
     last = @mock.last
 
     assert_equal 'PATCH', last.method
@@ -59,7 +59,7 @@ class MessagesGeneratedTest < Minitest::Test
 
   def test_messages_update_error
     @mock.push_scenario('messages.update_message', status: 500, response: { 'error' => 'x' })
-    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.messages.update('x', body: 'x') }
+    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.messages.update('x') }
 
     assert_equal 500, err.status_code
     assert_equal 500, @mock.last.response_status

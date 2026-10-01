@@ -22,8 +22,8 @@ module SignalWire
             #
             # Method-less data DTO: the frozen FIELDS constant maps each snake wire
             # key to its JSON type symbol. No reader/writer methods and no
-            # initialize — the reference records this as a method-less type
-            # definition, so the surface enumerator surfaces the bare class name.
+            # initialize — the class is a bare namespace for its FIELDS map,
+            # describing the wire shape rather than wrapping a payload.
             class AIAgentCreateRequest
               FIELDS = {
                 'global_data' => :object,
@@ -35,8 +35,10 @@ module SignalWire
                 'pronounce' => :array,
                 'prompt' => :object,
                 'SWAIG' => :object,
-                'agent_id' => :object,
-                'name' => :string
+                'name' => :string,
+                'post_prompt_auth_user' => :string,
+                'post_prompt_auth_password' => :string,
+                'multilingual' => :object
               }.freeze
             end
           end

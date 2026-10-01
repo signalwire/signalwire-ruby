@@ -91,7 +91,7 @@ class SipServedRoutingTest < Minitest::Test
     @agent = build_agent
     # Register a SIP-path routing callback that redirects on a parsed username —
     # the same wiring enable_sip_routing uses, exercising the redirect branch.
-    @agent.register_routing_callback('/sip') do |body, _headers|
+    @agent.register_routing_callback(nil, '/sip') do |body, _headers|
       user = SignalWire::AgentBase.extract_sip_username_from_request(body)
       user ? "/agents/#{user}" : nil
     end

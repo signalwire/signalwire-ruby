@@ -6,7 +6,7 @@
 # and service lookups, hours of operation, and custom welcome message.
 
 require 'signalwire'
-require 'signalwire/prefabs/concierge'  # opt-in subsystem (Python: from signalwire.prefabs import ...)
+require 'signalwire/prefabs/concierge' # opt-in subsystem (Python: from signalwire.prefabs import ...)
 
 # Build the concierge prefab
 concierge = SignalWire::Prefabs::Concierge.new(
@@ -21,32 +21,32 @@ concierge = SignalWire::Prefabs::Concierge.new(
   ],
   amenities: {
     'infinity pool' => {
-      'hours'       => '7:00 AM - 10:00 PM',
-      'location'    => 'Main Level, Ocean View',
+      'hours' => '7:00 AM - 10:00 PM',
+      'location' => 'Main Level, Ocean View',
       'description' => 'Heated infinity pool with poolside service.'
     },
     'spa' => {
-      'hours'       => '9:00 AM - 8:00 PM',
-      'location'    => 'Lower Level, East Wing',
+      'hours' => '9:00 AM - 8:00 PM',
+      'location' => 'Lower Level, East Wing',
       'description' => 'Full-service luxury spa.',
       'reservation' => 'Required'
     },
     'fitness center' => {
-      'hours'       => '24 hours',
-      'location'    => '2nd Floor, North Wing',
+      'hours' => '24 hours',
+      'location' => '2nd Floor, North Wing',
       'description' => 'State-of-the-art fitness center.'
     },
     'beach access' => {
-      'hours'    => 'Dawn to Dusk',
+      'hours' => 'Dawn to Dusk',
       'location' => 'Southern Pathway',
       'services' => 'Beach attendants, food and beverage'
     }
   },
   hours_of_operation: {
-    'check-in'     => '3:00 PM',
-    'check-out'    => '11:00 AM',
-    'front desk'   => '24 hours',
-    'concierge'    => '7:00 AM - 11:00 PM',
+    'check-in' => '3:00 PM',
+    'check-out' => '11:00 AM',
+    'front desk' => '24 hours',
+    'concierge' => '7:00 AM - 11:00 PM',
     'room service' => '24 hours'
   },
   welcome_message: 'Welcome to Oceanview Resort! I am your virtual concierge, ' \
@@ -63,21 +63,21 @@ end
 agent.global_data = concierge.global_data
 
 agent.define_tool(
-  name:        'get_amenity_info',
+  name: 'get_amenity_info',
   description: 'Get information about a resort amenity',
-  parameters:  {
+  parameters: {
     'amenity' => { 'type' => 'string', 'description' => 'Name of the amenity' }
-  }
+  }, handler: nil
 ) do |args, raw_data|
   concierge.handle_amenity_info(args, raw_data)
 end
 
 agent.define_tool(
-  name:        'get_service_info',
+  name: 'get_service_info',
   description: 'Get information about a resort service',
-  parameters:  {
+  parameters: {
     'service' => { 'type' => 'string', 'description' => 'Name of the service' }
-  }
+  }, handler: nil
 ) do |args, raw_data|
   concierge.handle_service_info(args, raw_data)
 end

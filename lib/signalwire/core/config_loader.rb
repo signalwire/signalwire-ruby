@@ -10,11 +10,12 @@
 require 'json'
 require 'yaml'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Core — internal building blocks shared by the agent, SWML and SWAIG layers.
   module Core
     # Configuration loader with environment variable substitution.
     #
-    # Mirrors Python's ``signalwire.core.config_loader.ConfigLoader``.
     # Supports ``${VAR|default}`` syntax for referencing environment variables
     # within JSON (or YAML) configuration files. This provides a clean pattern
     # for configuration across all SignalWire services.
@@ -27,10 +28,8 @@ module SignalWire
                        File.expand_path('~/.swml/config.json'), '/etc/swml/config.json'].freeze
 
       # @return [Array<String>] the search paths in use — the caller-supplied
-      #   list, or {DEFAULT_PATHS} when none was given. The reference exposes the
-      #   same resolved attribute (`self.config_paths = config_paths or
-      #   self._get_default_paths()`, core/config_loader.py:37), so which paths a
-      #   loader is actually consulting is readable back either way.
+      #   list, or {DEFAULT_PATHS} when none was given. Reading this back tells
+      #   you which paths a loader is actually consulting.
       attr_reader :config_paths
 
       # Initialize the config loader.
@@ -131,6 +130,9 @@ module SignalWire
 
       private
 
+      # @api private — load the first readable config file from the search path. A
+      # file that fails to parse is SKIPPED and the search continues, so one broken
+      # config does not prevent a later valid one from being used.
       def load_config
         @config_paths.each do |path|
           next unless File.exist?(path)
@@ -143,16 +145,29 @@ module SignalWire
         end
       end
 
+      # @api private — parse a config file as YAML or JSON, chosen by its extension.
+      # YAML is loaded in safe mode.
+      #
+      # @return [Hash]
       def parse_file(path)
         contents = File.read(path)
         path.end_with?('.yaml', '.yml') ? YAML.safe_load(contents) : JSON.parse(contents)
       end
 
+      # @api private — expand `${VAR}` / `${VAR:default}` references from the
+      # environment, then coerce the result to a scalar type.
+      #
+      # @return [Object]
       def substitute_string(value)
         result = value.gsub(VAR_PATTERN) { ENV.fetch(Regexp.last_match(1), Regexp.last_match(2) || '') }
         coerce_scalar(result)
       end
 
+      # @api private — turn a substituted string into a Boolean, Integer or Float
+      # when it looks like one, so `${PORT}` yields a number rather than a string.
+      # Anything else passes through unchanged.
+      #
+      # @return [Object]
       def coerce_scalar(result)
         lowered = result.downcase
         return true if lowered == 'true'
@@ -163,6 +178,10 @@ module SignalWire
         result
       end
 
+      # @api private — whether an underscore-joined path (`a_b_c`) resolves to a key
+      # in the nested Hash.
+      #
+      # @return [Boolean]
       def has_nested_key?(data, key_path)
         current = data
         key_path.split('_').each do |key|
@@ -173,6 +192,8 @@ module SignalWire
         true
       end
 
+      # @api private — write +value+ at an underscore-joined path, creating the
+      # intermediate Hashes as needed.
       def set_nested_key(data, key_path, value)
         keys = key_path.split('_')
         current = data

@@ -87,7 +87,7 @@ end
 # differ compares. Skills register tools in one of two shapes:
 #   * handler tool  — { name:, description:, parameters:, required?:, handler: }
 #     where `parameters` is the flat {param => {type, ...}} map and `required` is
-#     an optional separate list (mirrors agent define_tool(parameters:, required:)).
+#     an optional separate list (mirrors agent define_tool(parameters:, required:, handler: nil)).
 #   * DataMap tool  — { datamap: <serialized SWAIG function Hash> }, where the
 #     name lives under "function" and the WRAPPED param schema (with its own
 #     `required` array) under "parameters".

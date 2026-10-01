@@ -182,18 +182,26 @@ class RelayConnectMockTest < Minitest::Test
 
   # ---- Auth failure paths ------------------------------------------------
 
+  # Every credential is INJECTED, so the assertion depends on nothing outside
+  # this example. It used to `ENV.delete` the three credential vars and restore
+  # them in an `ensure` -- a process-global mutation inside a `parallelize_me!`
+  # class, i.e. a window in which every concurrently-running test saw the
+  # environment of a test it does not own. (`ensure` restores the var, so the
+  # racing threads clobber EACH OTHER's window too: the mutation is the defect,
+  # not just the read.)
+  #
+  # No env var actually needed clearing. `value_or_env` is `explicit || ENV[key]`
+  # and `''` is TRUTHY in Ruby, so the explicit `project:`/`token:`/`space:`
+  # already win outright; only `jwt_token:` was unset and could fall back to an
+  # ambient `SIGNALWIRE_JWT_TOKEN` (which short-circuits validation and would
+  # suppress the ArgumentError). Passing `jwt_token: ''` closes that last channel
+  # by injection rather than by mutating the world.
   def test_connect_rejects_empty_creds_at_constructor
-    old_proj  = ENV.delete('SIGNALWIRE_PROJECT_ID')
-    old_token = ENV.delete('SIGNALWIRE_API_TOKEN')
-    old_jwt   = ENV.delete('SIGNALWIRE_JWT_TOKEN')
-
     assert_raises(ArgumentError) do
-      SignalWire::Relay::Client.new(project: '', token: '', space: '127.0.0.1:1')
+      SignalWire::Relay::Client.new(
+        project: '', token: '', jwt_token: '', space: '127.0.0.1:1'
+      )
     end
-  ensure
-    ENV['SIGNALWIRE_PROJECT_ID'] = old_proj  if old_proj
-    ENV['SIGNALWIRE_API_TOKEN']  = old_token if old_token
-    ENV['SIGNALWIRE_JWT_TOKEN']  = old_jwt   if old_jwt
   end
 
   def test_unauthenticated_raw_connect_rejected_by_mock

@@ -41,20 +41,20 @@ agent.set_post_prompt_llm_params(temperature: 0.1)
 # --- Global data (pre-populated per-call state) ---
 
 agent.set_global_data(
-  'customer_name'  => 'Jane Doe',
-  'account_id'     => 'ACCT-12345',
-  'recent_orders'  => %w[ORD-001 ORD-002 ORD-003],
-  'preferences'    => { 'delivery_window' => 'morning', 'sms_updates' => true }
+  'customer_name' => 'Jane Doe',
+  'account_id' => 'ACCT-12345',
+  'recent_orders' => %w[ORD-001 ORD-002 ORD-003],
+  'preferences' => { 'delivery_window' => 'morning', 'sms_updates' => true }
 )
 
 # --- Tools ---
 
 agent.define_tool(
-  name:        'lookup_order',
+  name: 'lookup_order',
   description: 'Look up an order by order ID',
-  parameters:  {
+  parameters: {
     'order_id' => { 'type' => 'string', 'description' => 'The order ID to look up' }
-  }
+  }, handler: nil
 ) do |args, _raw_data|
   order_id = args['order_id'] || 'unknown'
   SignalWire::Swaig::FunctionResult.new(
@@ -64,12 +64,12 @@ agent.define_tool(
 end
 
 agent.define_tool(
-  name:        'update_preferences',
+  name: 'update_preferences',
   description: 'Update customer delivery preferences',
-  parameters:  {
+  parameters: {
     'delivery_window' => { 'type' => 'string', 'description' => 'Preferred window: morning, afternoon, evening' },
-    'sms_updates'     => { 'type' => 'boolean', 'description' => 'Enable SMS delivery updates' }
-  }
+    'sms_updates' => { 'type' => 'boolean', 'description' => 'Enable SMS delivery updates' }
+  }, handler: nil
 ) do |args, _raw_data|
   result = SignalWire::Swaig::FunctionResult.new(
     "Preferences updated: delivery window=#{args['delivery_window']}, " \
@@ -79,7 +79,7 @@ agent.define_tool(
   result.update_global_data(
     'preferences' => {
       'delivery_window' => args['delivery_window'],
-      'sms_updates'     => args['sms_updates']
+      'sms_updates' => args['sms_updates']
     }
   )
   result
@@ -87,7 +87,7 @@ end
 
 # --- Summary callback ---
 
-agent.on_summary do |summary, raw_data|
+agent.on_summary(nil) do |summary, raw_data|
   puts "\n=== Call Summary ==="
   puts "Summary: #{summary}"
   call_id = raw_data&.dig('call', 'call_id') || 'unknown'

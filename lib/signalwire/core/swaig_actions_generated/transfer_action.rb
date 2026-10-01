@@ -9,18 +9,22 @@
 # swaig-response action 'transfer' value object
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwaigActionsGenerated — namespace for this generated data-class tree.
     module SwaigActionsGenerated
-      # TransferAction — generated data type (swaig-response action 'transfer' value object).
+      # TransferAction — generated read-side payload (swaig-response action 'transfer' value object).
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
-      # No reader/writer methods and no initialize — a method-less type the
-      # reference records method-less on both surface and signatures.
+      # Each field also has a zero-arg reader, so a decoded payload can be
+      # accessed by name rather than by wire key.
       class TransferAction
         FIELDS = {
-          'dest' => :any,
+          'dest' => :string,
           'summarize' => :boolean
         }.freeze
+
+        attr_reader :dest, :summarize
       end
     end
   end

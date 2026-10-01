@@ -7,7 +7,7 @@ RELAY events are server-pushed notifications about call state changes and operat
 ### On a Call
 
 ```ruby
-client.on_call do |call|
+client.on_call(nil) do |call|
   # Register a listener
   call.on('calling.call.play') { |event| puts "Play: #{event.params}" }
 

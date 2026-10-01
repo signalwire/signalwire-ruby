@@ -90,7 +90,7 @@ client = SignalWire::Relay::Client.new(
   contexts: ['default']
 )
 
-client.on_message do |message|
+client.on_message(nil) do |message|
   puts "From: #{message.from_number}"
   puts "To: #{message.to_number}"
   puts "Body: #{message.body}"
@@ -169,13 +169,13 @@ The same `RelayClient` handles both calls and messages:
 ```ruby
 client = SignalWire::Relay::Client.new(project: '...', token: '...', contexts: ['default'])
 
-client.on_call do |call|
+client.on_call(nil) do |call|
   call.answer
   call.play([{ 'type' => 'tts', 'params' => { 'text' => 'Hello!' } }])
   call.hangup
 end
 
-client.on_message do |message|
+client.on_message(nil) do |message|
   puts "SMS from #{message.from_number}: #{message.body}"
 end
 

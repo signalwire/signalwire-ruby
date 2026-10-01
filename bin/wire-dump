@@ -107,6 +107,12 @@ out['token_interop'] = {
   'valid' => sm.validate_token('oracle_fn', oracle_token('oracle_call', 'oracle_fn'), 'oracle_call')
 }
 
+# token_interop_dotted_call_id: a call_id may itself contain dots ("root.2");
+# the token's fields are split from the right.
+out['token_interop_dotted_call_id'] = {
+  'valid' => sm.validate_token('oracle_fn', oracle_token('root.2', 'oracle_fn'), 'root.2')
+}
+
 # token_tamper_rejected: a one-byte-flipped signature must fail.
 out['token_tamper_rejected'] = { 'valid' => sm.validate_token('f', tampered_token, 'c') }
 
@@ -120,6 +126,16 @@ out['wire_validate_webhook_signature'] = {
 bad_sig = 'deadbeef' * 8
 out['wire_validate_webhook_signature_bad'] = {
   'valid' => WV.validate_webhook_signature(SECRET, bad_sig, wh_url, wh_body)
+}
+
+# wire_validate_webhook_signature_sha256: correct hex(HMAC-SHA256(key, url + body)) -> valid.
+out['wire_validate_webhook_signature_sha256'] = {
+  'valid' => WV.validate_webhook_signature_sha256(SECRET, OpenSSL::HMAC.hexdigest('SHA256', SECRET, wh_url + wh_body),
+                                                  wh_url, wh_body)
+}
+# wire_validate_webhook_signature_sha256_bad: a correct SHA-1 signature is not a SHA-256 one.
+out['wire_validate_webhook_signature_sha256_bad'] = {
+  'valid' => WV.validate_webhook_signature_sha256(SECRET, oracle_sig(wh_url, wh_body, SECRET), wh_url, wh_body)
 }
 
 # redact_url: credentials + token redacted, structure preserved.

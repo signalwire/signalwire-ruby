@@ -80,7 +80,7 @@ class MyAgent < SignalWire::AgentBase
       description: 'Get weather for a location',
       parameters: {
         'location' => { 'type' => 'string', 'description' => 'City name' }
-      }
+      }, handler: nil
     ) do |args, _raw_data|
       location = args['location'] || 'unknown'
       SignalWire::Swaig::FunctionResult.new("72F sunny in #{location}")
@@ -134,7 +134,7 @@ class MyAgent < SignalWire::AgentBase
     define_tool(
       name: 'transfer_call',
       description: 'Transfer the caller',
-      parameters: {}
+      parameters: {}, handler: nil
     ) do |_args, _raw_data|
       # This tool is available both as MCP AND as SWAIG webhook
       SignalWire::Swaig::FunctionResult.new('Transferring now.')

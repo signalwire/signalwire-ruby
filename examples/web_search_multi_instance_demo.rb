@@ -9,8 +9,8 @@
 
 require 'signalwire'
 
-api_key   = ENV['GOOGLE_SEARCH_API_KEY']
-engine_id = ENV['GOOGLE_SEARCH_ENGINE_ID']
+api_key   = ENV.fetch('GOOGLE_SEARCH_API_KEY', nil)
+engine_id = ENV.fetch('GOOGLE_SEARCH_ENGINE_ID', nil)
 
 agent = SignalWire::AgentBase.new(name: 'multi-search', route: '/multi-search')
 
@@ -25,7 +25,7 @@ agent.prompt_add_section(
 begin
   agent.add_skill('datetime')
   agent.add_skill('math')
-rescue => e
+rescue StandardError => e
   puts "Skill warning: #{e.message}"
 end
 
@@ -33,7 +33,7 @@ end
 begin
   agent.add_skill('wikipedia_search', 'num_results' => 2)
   puts 'Added Wikipedia search (tool: search_wiki)'
-rescue => e
+rescue StandardError => e
   puts "Wikipedia: #{e.message}"
 end
 
@@ -44,37 +44,37 @@ else
   # General web search (default tool name)
   begin
     agent.add_skill('web_search',
-      'api_key'          => api_key,
-      'search_engine_id' => engine_id,
-      'num_results'      => 3)
+                    'api_key' => api_key,
+                    'search_engine_id' => engine_id,
+                    'num_results' => 3)
     puts 'Added general web search (tool: web_search)'
-  rescue => e
+  rescue StandardError => e
     puts "General search: #{e.message}"
   end
 
   # News search
   begin
     agent.add_skill('web_search',
-      'api_key'          => api_key,
-      'search_engine_id' => engine_id,
-      'tool_name'        => 'search_news',
-      'num_results'      => 5,
-      'delay'            => 0.5)
+                    'api_key' => api_key,
+                    'search_engine_id' => engine_id,
+                    'tool_name' => 'search_news',
+                    'num_results' => 5,
+                    'delay' => 0.5)
     puts 'Added news search (tool: search_news)'
-  rescue => e
+  rescue StandardError => e
     puts "News search: #{e.message}"
   end
 
   # Quick single-result search
   begin
     agent.add_skill('web_search',
-      'api_key'          => api_key,
-      'search_engine_id' => engine_id,
-      'tool_name'        => 'quick_search',
-      'num_results'      => 1,
-      'delay'            => 0)
+                    'api_key' => api_key,
+                    'search_engine_id' => engine_id,
+                    'tool_name' => 'quick_search',
+                    'num_results' => 1,
+                    'delay' => 0)
     puts 'Added quick search (tool: quick_search)'
-  rescue => e
+  rescue StandardError => e
     puts "Quick search: #{e.message}"
   end
 end

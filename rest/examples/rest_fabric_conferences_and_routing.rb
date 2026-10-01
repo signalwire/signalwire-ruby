@@ -8,7 +8,7 @@
 #   SIGNALWIRE_SPACE        - your SignalWire space (e.g. example.signalwire.com)
 
 require 'signalwire'
-require 'signalwire/rest/rest_client'  # opt-in subsystem (Python: from signalwire.rest import Client)
+require 'signalwire/rest/rest_client' # opt-in subsystem (Python: from signalwire.rest import Client)
 
 client = SignalWire::REST::RestClient.new
 
@@ -42,7 +42,7 @@ end
 puts "\nCreating cXML script..."
 cxml = client.fabric.cxml_scripts.create(
   display_name: 'Hold Music Script',
-  contents:     '<Response><Say>Please hold.</Say><Play>https://example.com/hold.mp3</Play></Response>'
+  contents: '<Response><Say>Please hold.</Say><Play>https://example.com/hold.mp3</Play></Response>'
 )
 cxml_id = cxml['id']
 puts "  Created cXML script: #{cxml_id}"
@@ -80,10 +80,6 @@ puts "\nGenerating tokens..."
 safe('Guest token') do
   guest = client.fabric.tokens.create_guest_token(allowed_addresses: [relay_id])
   puts "  Guest token: #{guest.fetch('token', '')[0, 40]}..."
-end
-safe('Invite token') do
-  invite = client.fabric.tokens.create_invite_token(address_id: relay_id)
-  puts "  Invite token: #{invite.fetch('token', '')[0, 40]}..."
 end
 safe('Embed token') do
   embed = client.fabric.tokens.create_embed_token(token: 'demo-embed-token')

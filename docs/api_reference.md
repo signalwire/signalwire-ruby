@@ -547,10 +547,12 @@ agent.update_global_data({
 def define_tool(
   name:,                      # String
   description:,               # String
-  parameters: {},             # Hash — property_name => JSON-schema hash
-  handler: nil,               # Callable (block is canonical; see below)
-  secure: false,              # Boolean
+  parameters:,                # Hash — property_name => JSON-schema hash (REQUIRED)
+  handler:,                   # Callable (REQUIRED; pass nil and give a block)
+  secure: true,               # Boolean
   fillers: nil,               # Hash — language code => Array<String>
+  wait_file: nil,             # String — audio URL played while the tool runs
+  wait_file_loops: nil,       # Integer — loop count for wait_file
   webhook_url: nil,           # String
   required: nil,              # Array<String> — required parameter names
   is_typed_handler: false,    # Boolean
@@ -563,9 +565,9 @@ Define a custom SWAIG function/tool.
 **Parameters:**
 - `name` (str): Function name
 - `description` (str): Function description for AI
-- `parameters` (Dict[str, Any]): JSON schema for function parameters. If omitted when using the decorator and the handler has type-hinted parameters, the schema is inferred automatically from the type hints.
-- `handler` (Callable): Function to execute when called
-- `secure` (bool): Require security token (default: True)
+- `parameters` (Hash): REQUIRED. JSON schema for function parameters; state `{}` explicitly for a tool that takes none.
+- `handler` (Callable): REQUIRED. The callable to execute when called. Ruby cannot let a block satisfy a required positional, so the canonical block form passes `handler: nil` and supplies the block (which wins).
+- `secure` (Boolean): Require security token (default: `true`)
 - `fillers` (Optional[Dict[str, List[str]]]): Language-specific filler phrases
 - `webhook_url` (Optional[str]): Custom webhook URL
 - `**swaig_fields`: Additional SWAIG function properties
@@ -582,7 +584,7 @@ agent.define_tool(
     }
   },
   required: ["location"],
-  fillers: { "en-US" => ["Checking weather...", "Looking up forecast..."] }
+  fillers: { "en-US" => ["Checking weather...", "Looking up forecast..."] }, handler: nil
 ) do |args, raw_data|
   location = args["location"] || "Unknown"
   SignalWire::Swaig::FunctionResult.new("The weather in #{location} is sunny and 75°F")
@@ -608,7 +610,7 @@ class MyAgent < SignalWire::AgentBase
     define_tool(
       name: "get_time",
       description: "Get current time",
-      parameters: {}
+      parameters: {}, handler: nil
     ) do |args, raw_data|
       SignalWire::Swaig::FunctionResult.new("Current time: #{Time.now}")
     end
@@ -629,7 +631,7 @@ class MyAgent < SignalWire::AgentBase
         "city"  => { "type" => "string", "description" => "Name of the city" },
         "units" => { "type" => "string", "description" => "Temperature units" }
       },
-      required: ["city"]
+      required: ["city"], handler: nil
     ) do |args, raw_data|
       SignalWire::Swaig::FunctionResult.new("Weather in #{args['city']}")
     end
@@ -669,7 +671,7 @@ Called when a new conversation/call begins.
 agent.define_tool(
   name: "startup_hook",
   description: "Called when a new conversation starts to initialize state",
-  parameters: {}
+  parameters: {}, handler: nil
 ) do |args, raw_data|
   call_id = raw_data["call_id"]
   # Initialize session resources, load user data, etc.
@@ -685,7 +687,7 @@ Called when a conversation/call ends.
 agent.define_tool(
   name: "hangup_hook",
   description: "Called when conversation ends to clean up resources",
-  parameters: {}
+  parameters: {}, handler: nil
 ) do |args, raw_data|
   call_id = raw_data["call_id"]
   # Clean up resources, save session data, etc.
@@ -722,7 +724,7 @@ Add a modular skill to the agent.
 - `math`: Mathematical calculations
 - `web_search`: Google Custom Search integration
 - `datasphere`: SignalWire DataSphere search
-- `native_vector_search`: Document search over a remote search server (the Ruby port does not ship the offline/embedded backend)
+- `native_vector_search`: Document search over a remote search server (the Ruby SDK does not ship the offline/embedded backend)
 
 **Usage:**
 ```ruby
@@ -971,7 +973,7 @@ This is useful for preserving dynamic configuration state across SWAIG callbacks
 **Usage:**
 ```ruby
 # In dynamic config callback, preserve configuration parameters
-agent.set_dynamic_config_callback do |query_params, body, headers, config|
+agent.set_dynamic_config_callback(nil) do |query_params, body, headers, config|
   customer_id = query_params["customer_id"]
   if customer_id
     # Pass through to SWAIG callbacks
@@ -1152,7 +1154,7 @@ Set callback for per-request dynamic configuration.
 
 **Usage:**
 ```ruby
-agent.set_dynamic_config_callback do |query_params, body, headers, config|
+agent.set_dynamic_config_callback(nil) do |query_params, body, headers, config|
   # Configure based on request
   config.add_language("Spanish", "es-ES", "nova.luna") if query_params["language"] == "spanish"
 
@@ -1200,9 +1202,10 @@ agent.register_sip_username("sales")
 
 <!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
-# The routing logic is supplied as a block returning the agent route
-# (or nil) based on the request; path is the routing endpoint.
-def register_routing_callback(path, &block) # => nil
+# `callback_fn` is a REQUIRED positional (reference parity): pass a callable, or
+# pass `nil` and supply the block. The routing logic returns the agent route
+# (or nil) for the request; `path` is the routing endpoint.
+def register_routing_callback(callback_fn, path = '/sip', &block) # => nil
 ```
 Register custom routing logic for SIP calls.
 
@@ -1212,7 +1215,7 @@ Register custom routing logic for SIP calls.
 
 **Usage:**
 ```ruby
-agent.register_routing_callback("/sip") do |body, headers|
+agent.register_routing_callback(nil, "/sip") do |body, headers|
   case body["sip_username"]
   when "support" then "/support-agent"
   when "sales"   then "/sales-agent"
@@ -1254,8 +1257,10 @@ end.to_app
 
 <!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
-# Register a handler with a block, or override this method in a subclass.
-def on_summary(summary = nil, raw_data = nil, &block) # => self / nil
+# `summary` is a REQUIRED positional (reference parity). To REGISTER a handler,
+# call `on_summary(nil) { |summary, raw_data| … }`; to DISPATCH one, pass the
+# summary. You may also override this method in a subclass.
+def on_summary(summary, raw_data = nil, &block) # => self / nil
 ```
 Override to handle conversation summaries. This callback is triggered when the AI generates a summary based on your `post_prompt` configuration.
 
@@ -1307,11 +1312,12 @@ end
 
 <!-- snippet: no-compile ruby method-signature reference (def without body/end) -->
 ```ruby
-# Register a handler by passing a block; the block receives
-# |event_type, data|. Requires enable_debug_events first.
-def on_debug_event(&block) # => AgentBase
+# `handler` is a REQUIRED positional (reference parity). Pass a callable, or
+# pass `nil` and supply the block; the block receives |event_type, data|.
+# Requires enable_debug_events first.
+def on_debug_event(handler, &block) # => AgentBase
 ```
-Register a handler for debug webhook events. Use as a decorator. Requires `enable_debug_events()` to be called first.
+Register a handler for debug webhook events. Ruby has no decorator; pass the handler as a block (with `nil` in the required positional slot). Requires `enable_debug_events()` to be called first.
 
 The handler receives:
 - `event_type` (str): The event label (e.g. `"barge"`, `"llm_error"`, `"session_start"`)
@@ -1319,12 +1325,12 @@ The handler receives:
 
 The handler may be sync or async.
 
-**Usage (decorator style):**
+**Usage (block style):**
 ```ruby
 agent = SignalWire::AgentBase.new(name: "my_agent")
 agent.enable_debug_events
 
-agent.on_debug_event do |event_type, data|
+agent.on_debug_event(nil) do |event_type, data|
   call_id = data["call_id"]
   case event_type
   when "llm_error"
@@ -1343,7 +1349,7 @@ class MyAgent < SignalWire::AgentBase
   def initialize
     super(name: "debug-agent", route: "/agent")
     enable_debug_events(2)
-    on_debug_event { |event_type, data| handle_debug(event_type, data) }
+    on_debug_event(nil) { |event_type, data| handle_debug(event_type, data) }
   end
 
   def handle_debug(event_type, data)
@@ -2387,32 +2393,6 @@ data_map.webhook(
 )
 ```
 
-##### `body(data) -> DataMap`
-Set the JSON body for POST/PUT requests.
-
-**Parameters:**
-- `data` (Hash): JSON body data (supports `${variable}` substitution)
-
-**Usage:**
-```ruby
-# Static body with parameter substitution
-data_map.body({
-  'query' => '${args.search_term}',
-  'limit' => 5,
-  'filters' => {
-    'category' => '${args.category}',
-    'active' => true
-  }
-})
-
-# Body with call-related data (NOT sensitive info)
-data_map.body({
-  'customer_id' => '${global_data.customer_id}',
-  'request_id' => '${meta_data.call_id}',
-  'search' => '${args.query}'
-})
-```
-
 ##### `params(data) -> DataMap`
 Set URL query parameters.
 
@@ -2671,7 +2651,7 @@ search_tool = SignalWire::DataMap.new('search_knowledge')
     'https://api.company.com/search',
     headers: { 'Authorization' => 'Bearer TOKEN' }
   )
-  .body({
+  .params({
     'query' => '${args.query}',
     'category' => '${args.category}',
     'limit' => 5
@@ -2737,7 +2717,7 @@ agent.register_swaig_function(swaig_function)
 
 The SDK provides helper class methods for common DataMap patterns:
 
-##### `DataMap.create_simple_api_tool(name:, url:, response_template:, parameters: nil, method: "GET", headers: nil, body: nil, error_keys: nil) -> DataMap`
+##### `DataMap.create_simple_api_tool(name:, url:, response_template:, parameters: nil, method: "GET", headers: nil, error_keys: nil) -> DataMap`
 
 Create a simple API integration tool.
 
@@ -2748,7 +2728,6 @@ Create a simple API integration tool.
 - `parameters` (Hash, optional): Parameter definitions
 - `method` (String): HTTP method (default: "GET")
 - `headers` (Hash, optional): HTTP headers
-- `body` (Hash, optional): Request body
 - `error_keys` (Array<String>, optional): Error field names
 
 **Usage:**
@@ -3066,7 +3045,7 @@ agent.add_skill("datasphere", {
 
 #### `native_vector_search` Skill
 Document search against a remote search server using vector similarity and keyword
-search. The Ruby port supports **remote (network) mode only** -- it POSTs queries to
+search. The Ruby SDK supports **remote (network) mode only** -- it POSTs queries to
 the server at `remote_url`. Local `.swsearch` index files are not supported.
 
 **Parameters:**
@@ -3160,7 +3139,7 @@ Built-in skills are automatically discovered from the `lib/signalwire/skills/bui
 
 ### SWAIG Functions
 
-The Ruby port does not ship a dedicated `SWAIGFunction` wrapper class (see
+The Ruby SDK does not ship a dedicated `SWAIGFunction` wrapper class (see
 [PORT_OMISSIONS.md](../PORT_OMISSIONS.md)); SWAIG functions are registered as
 plain Hashes directly with the agent. Use `AgentBase#define_tool` for the
 conventional case, or `AgentBase#register_swaig_function` for manual hashes:
@@ -3385,7 +3364,7 @@ class ComprehensiveAgent < SignalWire::AgentBase
     define_tool(
       name: "transfer_to_billing",
       description: "Transfer call to billing department",
-      parameters: { "type" => "object", "properties" => {} }
+      parameters: { "type" => "object", "properties" => {} }, handler: nil
     ) do |args, raw_data|
       SignalWire::Swaig::FunctionResult.new("Transferring you to our billing department")
         .update_global_data({ "last_action" => "transfer_to_billing" })

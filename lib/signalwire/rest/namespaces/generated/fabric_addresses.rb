@@ -33,6 +33,10 @@ module SignalWire
           def get(resource_id, request_options: nil)
             @http.get(_path(resource_id), request_options: request_options)
           end
+
+          def delete(id, request_options: nil)
+            @http.delete(_path(id), request_options: request_options)
+          end
         end
       end
     end

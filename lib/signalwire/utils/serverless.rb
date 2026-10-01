@@ -2,12 +2,11 @@
 
 require_relative '../core/logging_config'
 
-# Cross-language SDK contract: SignalWire::Utils.is_serverless_mode
-# mirrors signalwire.utils.is_serverless_mode in the Python reference.
-# Returns true when running inside any short-lived / event-driven
-# environment (i.e. not 'server').
+# SignalWire::Utils.is_serverless_mode returns true when running inside any
+# short-lived / event-driven environment (i.e. not 'server').
 
 module SignalWire
+  # Utils — small shared helpers with no dependency on the agent surface.
   module Utils
     module_function
 

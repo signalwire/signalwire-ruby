@@ -22,8 +22,8 @@ module SignalWire
             #
             # Method-less data DTO: the frozen FIELDS constant maps each snake wire
             # key to its JSON type symbol. No reader/writer methods and no
-            # initialize — the reference records this as a method-less type
-            # definition, so the surface enumerator surfaces the bare class name.
+            # initialize — the class is a bare namespace for its FIELDS map,
+            # describing the wire shape rather than wrapping a payload.
             class UpdatePhoneNumberRequest
               FIELDS = {
                 'name' => :string,
@@ -40,6 +40,7 @@ module SignalWire
                 'call_relay_topic' => :string,
                 'call_relay_topic_status_callback_url' => :string,
                 'call_relay_script_url' => :string,
+                'call_relay_script_url_method' => :string,
                 'call_relay_context' => :string,
                 'call_relay_context_status_callback_url' => :string,
                 'call_relay_application' => :string,

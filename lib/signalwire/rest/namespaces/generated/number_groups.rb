@@ -30,12 +30,12 @@ module SignalWire
             @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(resource_id, name:, sticky_sender: nil, extras: {}, request_options: nil, **kwargs)
+          def update(id, name: nil, sticky_sender: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
-            body['name'] = name
+            body['name'] = name unless name.nil?
             body['sticky_sender'] = sticky_sender unless sticky_sender.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.put(_path(resource_id), body, request_options: request_options)
+            @http.put(_path(id), body, request_options: request_options)
           end
 
           def delete(resource_id, request_options: nil)

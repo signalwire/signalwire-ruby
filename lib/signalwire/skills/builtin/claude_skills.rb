@@ -4,25 +4,42 @@ require 'yaml'
 require_relative '../skill_base'
 require_relative '../skill_registry'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Skills — the modular capability framework: skill base, registry, manager, builtins.
   module Skills
+    # Builtin — the skills that ship with the SDK, registered by name at load time.
     module Builtin
       # Loads Claude SKILL.md files as agent tools.
       #
-      # Mirrors the Python reference (`skills/claude_skills/skill.py`): the
-      # `skills_path` load-path is validated (exists + is a directory), then
+      # The `skills_path` load-path is validated (exists + is a directory), then
       # each SUBDIRECTORY containing a `SKILL.md` file is discovered, its YAML
       # frontmatter parsed for `name`/`description`, and one SWAIG tool is
       # registered per discovered skill. A loose `.md` file that is NOT a
       # `SKILL.md` inside a skill directory is ignored.
       class ClaudeSkillsSkill < SkillBase
+        # The name this skill is added under (`agent.add_skill('claude_skills')`).
+        #
+        # @return [String]
         def name = 'claude_skills'
+        # Human-readable summary of what the skill does, for skill listings.
+        #
+        # @return [String]
         def description = 'Load Claude SKILL.md files as agent tools'
+        # This skill may be loaded more than once on one agent — each instance
+        # is distinguished by its `prefix` param, which also namespaces its
+        # tools and its slice of `global_data`.
+        #
+        # @return [Boolean] true
         def supports_multiple_instances? = true
 
+        # Called once after construction. Return false to abort loading — the
+        # agent then refuses to register this skill's tools.
+        #
+        # @return [Boolean] true when the skill is ready to run
         def setup
-          # Load-path validation (Python parity: validate_packages then the
-          # skills_path exists/is-a-directory checks).
+          # Load-path validation, in order: validate_packages first, then the
+          # skills_path exists/is-a-directory checks.
           return false unless validate_packages
 
           read_params
@@ -32,22 +49,45 @@ module SignalWire
           true
         end
 
+        # The key this instance is tracked under — `claude_skills_<skills_path>` — so
+        # one agent can load several skill directories without colliding.
+        #
+        # @return [String]
         def instance_key = "claude_skills_#{@skills_path}"
 
+        # The SWAIG tool definitions this skill contributes to its agent. Each
+        # entry is a `{name:, description:, parameters:, handler:}` hash; the
+        # descriptions are what the model reads to decide when and how to call
+        # the tool.
+        #
+        # @return [Array<Hash>]
         def register_tools
           @discovered.map { |skill| skill_tool(skill) }
         end
 
+        # Speech-recognition hints this skill contributes to the AI verb, biasing
+        # the recognizer toward the vocabulary the skill's domain uses.
+        #
+        # @return [Array<String>]
         def get_hints
           @discovered.flat_map { |s| s[:name].split(/[-_]/) }.uniq
         end
 
+        # The POM sections this skill contributes to the agent's prompt,
+        # teaching the model when to reach for the skill's tools. Returned as
+        # fresh copies, so a caller mutating them does not corrupt skill state.
+        #
+        # @return [Array<Hash>]
         def get_prompt_sections
           @discovered.map do |skill|
             { 'title' => "Claude Skill: #{skill[:name]}", 'body' => skill[:body][0, 200] }
           end
         end
 
+        # The JSON-Schema description of this skill's configuration params, for
+        # GUI and validation consumers.
+        #
+        # @return [Hash]
         def get_parameter_schema
           {
             'skills_path' => { 'type' => 'string', 'required' => true },
@@ -74,6 +114,11 @@ module SignalWire
           @skills_path && !@skills_path.empty? && File.directory?(@skills_path)
         end
 
+        # @api private — one SWAIG tool per discovered SKILL.md. Calling the tool
+        # returns the skill file's BODY as the result: the model is handed the
+        # instructions to follow, not the output of running anything.
+        #
+        # @return [Hash]
         def skill_tool(skill)
           {
             name: "#{@tool_prefix}#{skill[:safe_name]}",
@@ -86,10 +131,10 @@ module SignalWire
           }
         end
 
-        # Discover skill DIRECTORIES (each containing a SKILL.md), mirroring
-        # Python's `_discover_skills`: iterate the immediate subdirectories of
-        # skills_path, keep those with a SKILL.md, apply include/exclude
-        # patterns against the directory name, and parse the frontmatter.
+        # Discover skill DIRECTORIES (each containing a SKILL.md): iterate the
+        # immediate subdirectories of skills_path, keep those with a SKILL.md,
+        # apply include/exclude patterns against the directory name, and parse
+        # the frontmatter.
         def discover_skills
           Dir.children(@skills_path).sort.filter_map do |entry|
             dir = File.join(@skills_path, entry)
@@ -105,8 +150,9 @@ module SignalWire
           []
         end
 
-        # Include/exclude glob-pattern gate against a skill directory name,
-        # mirroring Python's `_matches_patterns` (excludes win, then includes).
+        # Include/exclude glob-pattern gate against a skill directory name.
+        # Excludes are applied first and win; an entry must then match an
+        # include pattern.
         def matches_patterns?(dir_name)
           return false if @exclude.any? { |pat| File.fnmatch(pat, dir_name) }
 
@@ -114,8 +160,8 @@ module SignalWire
         end
 
         # Build a skill entry from a SKILL.md, parsing YAML frontmatter for
-        # name/description and falling back to the directory name. Mirrors
-        # Python's `_parse_skill_md` name-fallback behavior.
+        # name/description and falling back to the directory name when the
+        # frontmatter carries no `name`.
         def skill_entry(dir_name, skill_file)
           front, body = parse_skill_md(skill_file)
           skill_name  = front['name'] || dir_name
@@ -128,8 +174,8 @@ module SignalWire
           }
         end
 
-        # Split a SKILL.md into (frontmatter_hash, body). No frontmatter =>
-        # ({}, whole content). Mirrors Python's `---`-delimited split.
+        # Split a SKILL.md into (frontmatter_hash, body) on the `---` delimiter.
+        # No frontmatter => ({}, whole content).
         def parse_skill_md(path)
           content = File.read(path, encoding: 'UTF-8')
           return [{}, content.strip] unless content.start_with?('---')

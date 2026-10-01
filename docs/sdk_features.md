@@ -47,7 +47,7 @@ agent.define_tool(
   description: 'Get weather',
   parameters:  {
     'city' => { 'type' => 'string', 'description' => 'The city to look up' }
-  }
+  }, handler: nil
 ) do |args, _raw_data|
   city = args['city']
   # ... fetch weather ...
@@ -88,7 +88,7 @@ agent.define_tool(
   description: 'Look up an order',
   parameters:  {
     'order_id' => { 'type' => 'string', 'description' => 'The order ID to look up' }
-  }
+  }, handler: nil
 ) do |args, _raw_data|
   order  = db.get(args['order_id'])
   result = SignalWire::Swaig::FunctionResult.new("Order #{order.id}: #{order.status}")
@@ -219,7 +219,7 @@ The `you_lost` step has zero functions and zero valid transitions. The game is o
 The tool handler demonstrates execution authority -- the model has no idea a step change is about to happen:
 
 ```ruby
-agent.define_tool(name: 'hit', description: 'Draw another card') do |_args, raw_data|
+agent.define_tool(name: 'hit', description: 'Draw another card', handler: nil) do |_args, raw_data|
   game = raw_data['global_data']['game_state']
   card = game['deck'].pop
   game['player_hand'] << card
@@ -275,14 +275,14 @@ That single call auto-detects the environment and does the right thing:
 
 Each mode handles authentication differently (HTTP Basic Auth, API Gateway authorizers, function-level auth), constructs webhook URLs using the correct public endpoint, and formats request/response bodies per platform. You write one agent, deploy it anywhere.
 
-In the Ruby port, `agent.run` ships dedicated request/response handling for **Lambda** and **CGI**; Google Cloud Functions and Azure Functions are recognised by the runtime detector but currently fall through to the standard HTTP server rather than emitting a platform-native response shape. (The Python reference additionally returns Flask-compatible and Azure `HttpResponse` objects for those two platforms.)
+In the Ruby SDK, `agent.run` ships dedicated request/response handling for **Lambda** and **CGI**; Google Cloud Functions and Azure Functions are recognised by the runtime detector but currently fall through to the standard HTTP server rather than emitting a platform-native response shape. (The Python reference additionally returns Flask-compatible and Azure `HttpResponse` objects for those two platforms.)
 
 For standalone mode, the SDK provides:
 - Kubernetes health (`/health`) and readiness (`/ready`) probes
 - SSL/TLS support via the `serve(ssl_enabled:, ssl_cert:, ssl_key:)` keyword arguments
 - Debug events endpoint (`/debug_events`) for inspection
 
-(SSL can also be configured through the `SWML_SSL_ENABLED`, `SWML_SSL_CERT_PATH`, and `SWML_SSL_KEY_PATH` env vars, which `serve` reads when the matching keyword arguments are not passed. The Python reference additionally exposes a CORS configuration option the Ruby port does not.)
+(SSL can also be configured through the `SWML_SSL_ENABLED`, `SWML_SSL_CERT_PATH`, and `SWML_SSL_KEY_PATH` env vars, which `serve` reads when the matching keyword arguments are not passed. The Python reference additionally exposes a CORS configuration option the Ruby SDK does not.)
 
 ---
 
@@ -311,7 +311,7 @@ One process, multiple agents, route-based dispatch. Each agent gets its own SWML
 ## Dynamic Configuration and Multi-Tenancy
 
 ```ruby
-agent.set_dynamic_config_callback do |_query_params, _body, headers, ephemeral|
+agent.set_dynamic_config_callback(nil) do |_query_params, _body, headers, ephemeral|
   tenant = headers['X-Tenant-ID'] || 'default'
   config = load_tenant_config(tenant)
   ephemeral.prompt_add_section('Company', config['company_info'])
@@ -326,7 +326,7 @@ Each inbound request creates an **ephemeral copy** of the agent. The callback cu
 
 ## Search
 
-The Ruby port provides document search through the `native_vector_search` skill in
+The Ruby SDK provides document search through the `native_vector_search` skill in
 **remote (network) mode only**. The skill POSTs queries to a remote search server
 over HTTP (using `net/http` from the standard library) and formats the returned
 results for the agent. The Python reference's local/offline `.swsearch` index mode,
@@ -369,7 +369,7 @@ receptionist = SignalWire::Prefabs::Receptionist.new(departments: [
 ])
 ```
 
-In the Ruby port a prefab is a helper object rather than an `AgentBase` subclass: it produces the prompt sections, global data, and tool handlers that you wire into a plain `SignalWire::AgentBase.new(...)` for serving (the `examples/info_gatherer_example.rb` and `examples/receptionist_agent_example.rb` files show the full wiring).
+In the Ruby SDK a prefab is a helper object rather than an `AgentBase` subclass: it produces the prompt sections, global data, and tool handlers that you wire into a plain `SignalWire::AgentBase.new(...)` for serving (the `examples/info_gatherer_example.rb` and `examples/receptionist_agent_example.rb` files show the full wiring).
 
 Five prefabs: **InfoGatherer**, **Survey**, **Receptionist**, **FaqBot**, **Concierge**. Each generates complete SWML with appropriate prompts, tools, and workflows. You instantiate, customize, deploy.
 

@@ -164,7 +164,7 @@ class SWMLServiceSidecarTest < SWMLServiceSwaigTestBase
 
   def _register_event_sink
     events_seen = []
-    @svc.register_routing_callback('/events') do |body|
+    @svc.register_routing_callback(nil, '/events') do |body|
       events_seen << (body && body['type'])
       { 'ok' => true }
     end

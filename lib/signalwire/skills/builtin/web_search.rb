@@ -7,8 +7,11 @@ require 'uri'
 require_relative '../skill_base'
 require_relative '../skill_registry'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Skills — the modular capability framework: skill base, registry, manager, builtins.
   module Skills
+    # Builtin — the skills that ship with the SDK, registered by name at load time.
     module Builtin
       # Private mixin: {WebSearchSkill}'s search orchestration + scrape loop.
       # Extracted purely to keep the skill class within the size budget; every
@@ -31,7 +34,7 @@ module SignalWire
 
           processed = scrape_candidates(query, results, deadline_at)
           # Time ran out or every page was below quality threshold: fall back to
-          # snippet-only results so we return SOMETHING useful (Python parity).
+          # snippet-only results so we return SOMETHING useful.
           return format_snippet_results(query, results, num_results) if processed.empty?
 
           wrap_response(format_scraped_results(query, processed))
@@ -97,8 +100,7 @@ module SignalWire
         end
 
         # Fetch + score one candidate. Returns an enriched hash or nil (empty
-        # page / below the quality threshold / past the deadline). Mirrors
-        # Python's _scrape_one closure.
+        # page / below the quality threshold / past the deadline).
         def scrape_one(query, result, deadline_at)
           return nil if monotonic_now >= deadline_at
 
@@ -124,7 +126,7 @@ module SignalWire
 
         # Fetch a page and extract meaningful text, bounded by per_page_timeout
         # (Net::HTTP open_timeout/read_timeout). Returns the text, or nil on any
-        # failure. Mirrors Python's GoogleSearchScraper.extract_text_from_url.
+        # failure.
         def extract_text_from_url(url)
           uri = URI(url)
           return nil unless uri.is_a?(URI::HTTP) || uri.is_a?(URI::HTTPS)
@@ -160,9 +162,9 @@ module SignalWire
               .strip
         end
 
-        # Lightweight content-quality heuristic. Mirrors the spirit of Python's
-        # _calculate_content_quality: longer, query-relevant text scores higher.
-        # Returns a hash with at least 'quality_score' and 'domain'.
+        # Lightweight content-quality heuristic: longer, query-relevant text
+        # scores higher. Returns a hash with at least 'quality_score' and
+        # 'domain'.
         def calculate_content_quality(text, url, query)
           length = text.length
           # Length component: saturates around ~2000 chars.
@@ -173,6 +175,10 @@ module SignalWire
             'text_length' => length, 'query_relevance' => relevance }
         end
 
+        # @api private — the lower-cased host of a URL, or the empty string when it
+        # does not parse. Feeds the per-result quality scoring.
+        #
+        # @return [String]
         def url_domain(url)
           URI(url).host.to_s.downcase
         rescue StandardError
@@ -192,7 +198,7 @@ module SignalWire
         # when snippets_only is true, or as a graceful fallback when page
         # scraping is abandoned by the overall_deadline. Always non-empty when
         # CSE returned anything at all, so the kernel never sees a webhook
-        # timeout. Mirrors Python's _format_snippet_results.
+        # timeout.
         def format_snippet_results(query, results, num_results)
           return no_results_msg if results.empty?
 
@@ -202,6 +208,10 @@ module SignalWire
           wrap_response(lines.join("\n").rstrip)
         end
 
+        # @api private — the numbered block for one snippet-only result: title, URL and
+        # the CSE snippet.
+        #
+        # @return [Array<String>]
         def snippet_result_lines(result, index)
           ["=== RESULT #{index + 1} ===",
            "Title: #{result['title']}",
@@ -224,6 +234,11 @@ module SignalWire
           Process.clock_gettime(Process::CLOCK_MONOTONIC)
         end
 
+        # @api private — call the Google Custom Search API and normalise each item to
+        # `{title, url, snippet}`. A non-2xx response yields an empty list rather than
+        # raising, so a search-API outage degrades to "no results".
+        #
+        # @return [Array<Hash>]
         def google_search(query, num)
           uri = google_search_uri(query, num)
           response = Net::HTTP.get_response(uri)
@@ -236,9 +251,9 @@ module SignalWire
         end
 
         # Build the Google CSE request URI. WEB_SEARCH_BASE_URL overrides the
-        # host for tests and the audit fixture (matches the Rust SDK — env var
-        # is the *host*, the `/customsearch/v1` path is appended so the audit
-        # can match on `customsearch` in req.path).
+        # host for tests and the audit fixture. The env var is the *host*; the
+        # `/customsearch/v1` path is appended, so a fixture can match on
+        # `customsearch` in req.path.
         def google_search_uri(query, num)
           base = resolved_base_url('WEB_SEARCH_BASE_URL', 'https://www.googleapis.com')
           uri = URI("#{base}/customsearch/v1")
@@ -251,13 +266,14 @@ module SignalWire
 
       # Private mixin: {WebSearchSkill}'s param parsing + SWAIG parameter-schema
       # builders + prompt-section bullets. The description constants are
-      # wire-load-bearing (match the Python reference). Extracted to keep the
-      # skill class within the size budget.
+      # wire-load-bearing — they ship in the SWAIG schema the model reads, so
+      # editing them changes agent behaviour. Extracted to keep the skill class
+      # within the size budget.
       module WebSearchConfig
         DEFAULT_NO_RESULTS_MESSAGE =
           "I couldn't find quality results for that query. Try rephrasing your search."
 
-        # SWAIG parameter-schema descriptions (wire-load-bearing — match Python).
+        # SWAIG parameter-schema descriptions (wire-load-bearing).
         PER_PAGE_TIMEOUT_DESC = 'Maximum seconds to wait on a single page scrape.'
         OVERALL_DEADLINE_DESC =
           'Wall-clock budget in seconds for the whole tool call. In-flight scrapes are ' \
@@ -276,6 +292,8 @@ module SignalWire
                     :response_prefix, :response_postfix, :per_page_timeout,
                     :overall_deadline, :parallel_scrape, :snippets_only
 
+        # @api private — the prompt bullets, naming this instance's CONFIGURED tool
+        # name and telling the model that results are already quality-filtered.
         def prompt_section_bullets
           [
             "Use the #{tool_name} tool when users ask for information you need to look up",
@@ -285,6 +303,10 @@ module SignalWire
           ]
         end
 
+        # @api private — the schema for the credentials and result-shaping params. The
+        # API key and engine id are marked hidden and carry their env-var names.
+        #
+        # @return [Hash]
         def core_parameter_schema
           {
             'api_key' => { 'type' => 'string', 'required' => true, 'hidden' => true,
@@ -315,6 +337,10 @@ module SignalWire
           }
         end
 
+        # @api private — read the credentials (falling back to `GOOGLE_SEARCH_API_KEY`
+        # / `GOOGLE_SEARCH_ENGINE_ID`), the result count, tool name, quality-score
+        # floor, inter-request delay, no-results message and the optional
+        # prefix/postfix wrapped around every non-empty result.
         def read_core_params
           @api_key           = get_param('api_key', env_var: 'GOOGLE_SEARCH_API_KEY')
           @search_engine_id  = get_param('search_engine_id', env_var: 'GOOGLE_SEARCH_ENGINE_ID')
@@ -326,14 +352,13 @@ module SignalWire
           # Optional prefix/postfix wrapped around every non-empty search
           # result. Use these to give the calling agent a mechanical cue
           # (e.g. "tell the user this came from a public web search")
-          # without needing prompt-side rules. Mirrors Python parity.
+          # without needing prompt-side rules.
           @response_prefix   = get_param('response_prefix',  default: '')
           @response_postfix  = get_param('response_postfix', default: '')
         end
 
         # Latency-control parameters. The SignalWire kernel times out webhook
         # responses around 55s, so the handler MUST finish under that.
-        # Mirrors Python's web_search/skill.py (51101da + 295745b).
         #   per_page_timeout: max seconds to wait on a single page scrape
         #     (Net::HTTP open_timeout/read_timeout).
         #   overall_deadline: wall-clock budget for the whole tool call. Once
@@ -370,6 +395,11 @@ module SignalWire
         end
       end
 
+      # Search the web via Google Custom Search, scrape the resulting pages, score
+      # them for length and query relevance, and hand the model the high-quality
+      # ones. Bounded by per-page and overall deadlines so the handler finishes
+      # inside the platform's webhook timeout; falls back to CSE snippets when the
+      # deadline is hit or `snippets_only` is set.
       class WebSearchSkill < SkillBase
         include WebScraping
         include WebPageFetcher
@@ -379,11 +409,29 @@ module SignalWire
           'Search the web for high-quality information, automatically filtering low-quality results'
         QUERY_PARAM_DESC = 'The search query - what you want to find information about'
 
+        # The name this skill is added under (`agent.add_skill('web_search')`).
+        #
+        # @return [String]
         def name = 'web_search'
+        # Human-readable summary of what the skill does, for skill listings.
+        #
+        # @return [String]
         def description = 'Search the web for information using Google Custom Search API'
+        # This skill's own version, independent of the SDK's.
+        #
+        # @return [String] '2.0.0'
         def version = '2.0.0'
+        # This skill may be loaded more than once on one agent — each instance
+        # is distinguished by its `prefix` param, which also namespaces its
+        # tools and its slice of `global_data`.
+        #
+        # @return [Boolean] true
         def supports_multiple_instances? = true
 
+        # Called once after construction. Return false to abort loading — the
+        # agent then refuses to register this skill's tools.
+        #
+        # @return [Boolean] true when the skill is ready to run
         def setup
           read_core_params
           read_latency_params
@@ -394,8 +442,18 @@ module SignalWire
           true
         end
 
+        # The key this instance is tracked under — `web_search_<tool_name>` — so several
+        # instances can coexist on one agent without colliding.
+        #
+        # @return [String]
         def instance_key = "web_search_#{tool_name}"
 
+        # The SWAIG tool definitions this skill contributes to its agent. Each
+        # entry is a `{name:, description:, parameters:, handler:}` hash; the
+        # descriptions are what the model reads to decide when and how to call
+        # the tool.
+        #
+        # @return [Array<Hash>]
         def register_tools
           [
             {
@@ -410,10 +468,19 @@ module SignalWire
         # Returns [] — this skill ships no example hints.
         def get_hints = []
 
+        # Data this skill merges into the agent's `global_data`, so its prompts
+        # and tools can reference the values as `${global_data.*}`.
+        #
+        # @return [Hash]
         def get_global_data
           { 'web_search_enabled' => true, 'search_provider' => 'Google Custom Search', 'quality_filtering' => true }
         end
 
+        # The POM sections this skill contributes to the agent's prompt,
+        # teaching the model when to reach for the skill's tools. Returned as
+        # fresh copies, so a caller mutating them does not corrupt skill state.
+        #
+        # @return [Array<Hash>]
         def get_prompt_sections
           [
             {
@@ -424,12 +491,20 @@ module SignalWire
           ]
         end
 
+        # The JSON-Schema description of this skill's configuration params, for
+        # GUI and validation consumers.
+        #
+        # @return [Hash]
         def get_parameter_schema
           core_parameter_schema.merge(latency_parameter_schema)
         end
 
         private
 
+        # @api private — the search handler. An empty query or a raised error each
+        # become a spoken FunctionResult rather than an exception.
+        #
+        # @return [Swaig::FunctionResult]
         def handle_search(args, _raw_data)
           query = (args['query'] || '').strip
           if query.empty?

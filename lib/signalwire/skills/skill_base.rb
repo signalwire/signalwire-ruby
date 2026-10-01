@@ -8,7 +8,9 @@
 require_relative '../swaig/function_result'
 require_relative '../logging'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Skills — the modular capability framework: skill base, registry, manager, builtins.
   module Skills
     # Base class for all skills. Subclasses override the metadata methods
     # and +register_tools+ to supply tool hashes.
@@ -21,14 +23,34 @@ module SignalWire
       #   pulled out of ``params`` if provided
       attr_reader :params, :agent, :logger, :swaig_fields
 
+      # The name this skill is added under. Every subclass MUST override this — the
+      # base raises rather than inventing a name.
+      #
+      # @return [String]
+      # @raise [NotImplementedError] when a subclass has not overridden it
       def name = raise(NotImplementedError, "#{self.class}#name")
+      # Human-readable summary of what the skill does. Every subclass MUST override
+      # this — the base raises rather than inventing one.
+      #
+      # @return [String]
+      # @raise [NotImplementedError] when a subclass has not overridden it
       def description = raise(NotImplementedError, "#{self.class}#description")
+      # This skill's own version, independent of the SDK's.
+      #
+      # @return [String] '1.0.0'
       def version = '1.0.0'
+      # The environment variables this skill needs set before it can run; checked by
+      # {#validate_env_vars}. Empty by default.
+      #
+      # @return [Array<String>]
       def required_env_vars = []
       # The gem names this skill needs loadable before it can run;
       # consumed by {#validate_packages}.
       def required_packages = []
       private :required_packages # internal hook; not part of the public API
+      # Only one instance of this skill may be loaded per agent.
+      #
+      # @return [Boolean] false
       def supports_multiple_instances? = false
 
       # First positional arg is the owning AgentBase (or nil for
@@ -42,7 +64,7 @@ module SignalWire
         end
         @agent  = agent
         @params = (params || {}).transform_keys(&:to_s)
-        # Python: pop swaig_fields out of params for separate access.
+        # swaig_fields is removed from params and held separately.
         @swaig_fields = @params.delete('swaig_fields') || {}
         @logger = ::SignalWire::Logging.logger("signalwire.skills.#{logger_name_segment}")
       end
@@ -56,8 +78,7 @@ module SignalWire
 
       # Define a SWAIG tool on the owning agent, automatically merging any
       # swaig_fields configured for this skill. Skills should use this instead
-      # of calling agent.define_tool directly. Mirrors Python
-      # SkillBase.define_tool(**kwargs).
+      # of calling agent.define_tool directly.
       #
       # @param name [String] tool name
       # @param description [String] tool description
@@ -67,8 +88,10 @@ module SignalWire
         raise 'skill has no agent to define tools on' unless @agent
 
         merged = (@swaig_fields || {}).merge(kwargs)
+        # `handler:` is a required keyword; the block IS the handler here, so the
+        # explicit slot is nil unless the caller's merged kwargs already set it.
         @agent.define_tool(name: name, description: description,
-                           parameters: parameters, **merged, &handler)
+                           parameters: parameters, handler: nil, **merged, &handler)
       end
 
       # Speech recognition hints.

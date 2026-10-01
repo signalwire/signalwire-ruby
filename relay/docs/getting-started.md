@@ -49,7 +49,7 @@ client = SignalWire::Relay::Client.new(
   contexts: ['default']
 )
 
-client.on_call do |call|
+client.on_call(nil) do |call|
   call.answer
   action = call.play_tts('Hello!')
   action.wait
@@ -73,7 +73,7 @@ require 'signalwire'
 
 client = SignalWire::Relay::Client.new(contexts: ['default'])
 
-client.on_call do |call|
+client.on_call(nil) do |call|
   call.answer
   call.hangup
 end

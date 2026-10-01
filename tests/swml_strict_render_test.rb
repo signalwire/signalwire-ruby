@@ -128,7 +128,9 @@ class SwmlStrictRenderTest < Minitest::Test
 
   def test_dangling_function_ref_raises
     agent = strict_agent
-    agent.define_tool(name: 'order_status', description: 'look up an order', parameters: {}) { |_a, _r| nil }
+    agent.define_tool(name: 'order_status', description: 'look up an order', parameters: {}, handler: nil) do |_a, _r|
+      nil
+    end
     contexts = agent.define_contexts
     step = contexts.add_context('default').add_step('help')
     step.set_text('help the caller')
@@ -140,7 +142,9 @@ class SwmlStrictRenderTest < Minitest::Test
 
   def test_registered_function_ref_renders
     agent = strict_agent
-    agent.define_tool(name: 'order_status', description: 'look up an order', parameters: {}) { |_a, _r| nil }
+    agent.define_tool(name: 'order_status', description: 'look up an order', parameters: {}, handler: nil) do |_a, _r|
+      nil
+    end
     contexts = agent.define_contexts
     step = contexts.add_context('default').add_step('help')
     step.set_text('help the caller')

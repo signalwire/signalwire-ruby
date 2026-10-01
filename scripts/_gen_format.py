@@ -20,6 +20,7 @@ never a blanket file suppression and never a config exclusion.
 Fails LOUD if rubocop is unavailable or errors (so a broken tool can't silently ship
 unformatted generated code).
 """
+
 from __future__ import annotations
 
 import os
@@ -126,12 +127,20 @@ def rubocop_format(files: dict[str, str]) -> dict[str, str]:
         # not itself a failure; a missing/broken rubocop is (caught below via the binary
         # probe + the read-back).
         cmd = [
-            "bundle", "exec", "rubocop",
-            "-a", "--force-exclusion", "--no-color",
-            "--config", str(config),
+            "bundle",
+            "exec",
+            "rubocop",
+            "-a",
+            "--force-exclusion",
+            "--no-color",
+            "--config",
+            str(config),
             str(work),
         ]
-        proc = subprocess.run(cmd, cwd=str(repo), capture_output=True, text=True)
+        # S603: fixed list-form arg vector under the default shell=False, so there
+        # is no shell to interpolate into; the only non-literal elements are paths
+        # this function itself built (the tempdir mirror and the repo config).
+        proc = subprocess.run(cmd, cwd=str(repo), capture_output=True, text=True)  # noqa: S603
         # rubocop returns 0 (clean) or 1 (offenses remain). Any other code, or a
         # "command not found"/load error, means the tool itself failed — fail loud.
         if proc.returncode not in (0, 1):
@@ -168,7 +177,7 @@ def _fix_enable_directive(src: str) -> str:
     dis_cops = ""
     for ln in lines:
         if ln.startswith(dis_prefix):
-            dis_cops = ln[len(dis_prefix):].strip()
+            dis_cops = ln[len(dis_prefix) :].strip()
             break
     kept: list[str] = []
     for ln in lines:

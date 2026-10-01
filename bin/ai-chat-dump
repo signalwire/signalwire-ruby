@@ -66,69 +66,67 @@ def force_error_id(code)
   "__err_#{code}"
 end
 
-def run(url)
-  out = {}
-  client = SignalWire::AIChatClient.new(url: url)
+def short_error_type(err)
+  err.class.name.split('::').last
+end
 
-  # ── success steps ──────────────────────────────────────────────────
+# create + chat: the two calls that return a decoded payload object.
+def create_and_chat_steps(client)
   info = client.create_conversation('conv-1', config_url: 'http://cfg', timeout: 30, reinit: true)
-  out['create'] = {
-    'wire_method' => 'create_conversation',
-    'decoded' => { 'status' => info.status, 'id' => info.id, 'initial_message' => info.initial_message }
-  }
-
   reply = client.chat('conv-1', 'hello', timeout: 30, reinit: true)
-  out['chat'] = {
-    'wire_method' => 'chat',
-    'decoded' => { 'response' => reply.text, 'user_event' => reply.user_event }
+  {
+    'create' => { 'wire_method' => 'create_conversation',
+                  'decoded' => { 'status' => info.status, 'id' => info.id,
+                                 'initial_message' => info.initial_message } },
+    'chat' => { 'wire_method' => 'chat',
+                'decoded' => { 'response' => reply.text, 'user_event' => reply.user_event } }
   }
+end
 
-  # end/delete return bool idiomatically; the wire result also carries the
-  # conversation id (the caller's own input, echoed). Report both the derived
-  # status and the id operated on — mirroring the reference dump.
-  ended = client.end('conv-1')
-  out['end'] = {
-    'wire_method' => 'end_conversation',
-    'decoded' => { 'status' => ended ? 'ended' : '?', 'id' => 'conv-1' }
-  }
+# end/delete return bool idiomatically; the wire result also carries the
+# conversation id (the caller's own input, echoed). Report both the derived
+# status and the id operated on — mirroring the reference dump.
+def bool_step(wire_method, succeeded, done_word)
+  { 'wire_method' => wire_method,
+    'decoded' => { 'status' => succeeded ? done_word : '?', 'id' => 'conv-1' } }
+end
 
-  deleted = client.delete('conv-1')
-  out['delete'] = {
-    'wire_method' => 'delete',
-    'decoded' => { 'status' => deleted ? 'deleted' : '?', 'id' => 'conv-1' }
-  }
-
+def lifecycle_steps(client)
+  ended = bool_step('end_conversation', client.end('conv-1'), 'ended')
+  deleted = bool_step('delete', client.delete('conv-1'), 'deleted')
   chat_log = client.log('conv-1')
-  out['log'] = {
-    'wire_method' => 'chat_log',
-    'decoded' => { 'chat_log' => chat_log.messages, 'call_timeline' => chat_log.call_timeline }
-  }
+  { 'end' => ended, 'delete' => deleted,
+    'log' => { 'wire_method' => 'chat_log',
+               'decoded' => { 'chat_log' => chat_log.messages,
+                              'call_timeline' => chat_log.call_timeline } } }
+end
 
-  summary = client.summarize('conv-1')
-  out['summarize'] = { 'wire_method' => 'summarize', 'decoded' => { 'summary' => summary } }
+# The summarize one_of {error} branch must SURFACE, not swallow.
+def summarize_failed_step(client)
+  swallowed = client.summarize(SUMMARIZE_ERROR_ID)
+  { 'wire_method' => 'summarize', 'raised' => false, 'decoded' => { 'summary' => swallowed } }
+rescue SignalWire::AIChat::SummaryError => e
+  { 'wire_method' => 'summarize', 'raised' => true,
+    'error_type' => short_error_type(e), 'message' => e.server_message }
+end
 
-  # ── summarize one_of {error} branch: must SURFACE, not swallow ───────
-  begin
-    swallowed = client.summarize(SUMMARIZE_ERROR_ID)
-    out['summarize_failed'] = {
-      'wire_method' => 'summarize', 'raised' => false, 'decoded' => { 'summary' => swallowed }
-    }
-  rescue SignalWire::AIChat::SummaryError => e
-    out['summarize_failed'] = {
-      'wire_method' => 'summarize', 'raised' => true,
-      'error_type' => e.class.name.split('::').last, 'message' => e.server_message
-    }
-  end
+# Each error step drives a sentinel id the mock answers with a JSON-RPC error
+# object, and records whether the port raised with the mandated code.
+def error_step(client, code)
+  client.chat(force_error_id(code), 'x')
+  { 'raised' => false }
+rescue SignalWire::AIChat::AIChatError => e
+  { 'raised' => true, 'error_code' => e.code, 'error_type' => short_error_type(e) }
+end
 
-  # ── error-code steps (JSON-RPC error object) ─────────────────────────
-  ERROR_STEPS.each do |step, code|
-    client.chat(force_error_id(code), 'x')
-    out[step] = { 'raised' => false }
-  rescue SignalWire::AIChat::AIChatError => e
-    out[step] = { 'raised' => true, 'error_code' => e.code, 'error_type' => e.class.name.split('::').last }
-  end
-
-  out
+def run(url)
+  client = SignalWire::AIChatClient.new(url: url)
+  create_and_chat_steps(client)
+    .merge(lifecycle_steps(client))
+    .merge('summarize' => { 'wire_method' => 'summarize',
+                            'decoded' => { 'summary' => client.summarize('conv-1') } },
+           'summarize_failed' => summarize_failed_step(client))
+    .merge(ERROR_STEPS.to_h { |step, code| [step, error_step(client, code)] })
 end
 
 url = ENV.fetch('MOCK_AI_CHAT_URL', nil)

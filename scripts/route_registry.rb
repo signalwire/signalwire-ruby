@@ -47,11 +47,21 @@ class RecordingHttp < SignalWire::REST::HttpClient
   # it, every capture call raises ArgumentError and Set B comes up empty. The
   # capture only needs (method, path); the body/params/request_options are ignored.
   # rubocop:disable Lint/UnusedMethodArgument
-  def get(path, _params = nil, request_options: nil)
+  def get(path, _params = nil, request_options: nil, headers: nil)
     record('GET', path)
   end
 
-  def post(path, _body = nil, params: nil, request_options: nil)
+  # A non-JSON GET (text/csv) and a redirect GET (a 302 whose Location is the
+  # answer) are routes too — the same (GET, path) capture.
+  def get_text(path, _params = nil, request_options: nil, headers: nil)
+    record('GET', path)
+  end
+
+  def get_redirect_location(path, _params = nil, request_options: nil)
+    record('GET', path)
+  end
+
+  def post(path, _body = nil, params: nil, request_options: nil, headers: nil)
     record('POST', path)
   end
 
@@ -82,7 +92,7 @@ module RouteRegistry # rubocop:disable Metrics/ModuleLength
   SENTINEL = '__ID__'
 
   # Client ivars that are not walkable namespaces (credentials / the http itself).
-  NON_NAMESPACE_IVARS = %w[project_id http].freeze
+  NON_NAMESPACE_IVARS = %w[project_id http pat_http].freeze
 
   # Methods that do NOT map to a single canonical REST route, keyed by
   # "<namespace>.<resource>.<method>" or a "<namespace>.<resource>.*" wildcard.

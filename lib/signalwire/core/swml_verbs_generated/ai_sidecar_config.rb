@@ -7,33 +7,35 @@
 
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
-# flattened SWMLMethod verb 'ai_sidecar' config
+# schema.json $defs schema 'AiSidecarConfig'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
-      # AiSidecarConfig — generated read-side payload (flattened SWMLMethod verb 'ai_sidecar' config).
+      # AiSidecarConfig — generated read-side payload (schema.json $defs schema 'AiSidecarConfig').
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
-      # A zero-arg reader per field mirrors the reference's recorded
-      # accessors (dropped on the SURFACE by the enumerator — method-less there).
+      # Each field also has a zero-arg reader, so a decoded payload can be
+      # accessed by name rather than by wire key.
       class AiSidecarConfig
         FIELDS = {
-          'prompt' => :object,
-          'lang' => :string,
-          'model' => :string,
-          'direction' => :array,
-          'customer_role' => :string,
-          'url' => :string,
           'SWAIG' => :object,
-          'permissions' => :object,
+          'action' => :object,
+          'customer_role' => :object,
+          'direction' => :object,
           'global_data' => :object,
-          'hints' => :array,
+          'hints' => :object,
+          'lang' => :object,
+          'model' => :object,
           'params' => :object,
-          'action' => :any
+          'permissions' => :object,
+          'prompt' => :object,
+          'url' => :object
         }.freeze
 
-        attr_reader :prompt, :lang, :model, :direction, :customer_role, :url, :SWAIG, :permissions, :global_data, :hints, :params, :action
+        attr_reader :SWAIG, :action, :customer_role, :direction, :global_data, :hints, :lang, :model, :params, :permissions, :prompt, :url
       end
     end
   end

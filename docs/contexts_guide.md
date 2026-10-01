@@ -1349,7 +1349,7 @@ support.add_step('diagnose').set_text('Help diagnose and resolve technical issue
 agent.define_tool(
   name:        'transfer_to_support',
   description: 'Transfer the customer to technical support',
-  parameters:  {}
+  parameters:  {}, handler: nil
 ) do |_args, _raw_data|
   # Use swml_change_context to switch contexts
   SignalWire::Swaig::FunctionResult.new('Transferring you to technical support...')
@@ -1359,7 +1359,7 @@ end
 agent.define_tool(
   name:        'transfer_to_sales',
   description: 'Transfer the customer to sales',
-  parameters:  {}
+  parameters:  {}, handler: nil
 ) do |_args, _raw_data|
   SignalWire::Swaig::FunctionResult.new('Transferring you to sales...')
                                    .swml_change_context('sales')

@@ -45,15 +45,17 @@ class SwmlBuilderTest < Minitest::Test
 
   def test_ai_pom_post_prompt_swaig_and_kwargs
     pom = [{ 'title' => 'Role' }]
+    # kwargs merge at the ai verb's TOP level, so they must be keys the closed
+    # ai schema declares -- LLM knobs like `temperature` go under `params`.
     @builder.ai(prompt_pom: pom, post_prompt: 'summarize', post_prompt_url: 'https://ex.com/pp',
-                swaig: { 'functions' => [] }, temperature: 0.4)
+                swaig: { 'functions' => [] }, params: { 'temperature' => 0.4 })
     cfg = main.first['ai']
 
     assert_equal({ 'pom' => pom }, cfg['prompt'])
     assert_equal({ 'text' => 'summarize' }, cfg['post_prompt'])
     assert_equal 'https://ex.com/pp', cfg['post_prompt_url']
     assert_equal({ 'functions' => [] }, cfg['SWAIG'])
-    assert_in_delta 0.4, cfg['temperature']
+    assert_in_delta 0.4, cfg['params']['temperature']
   end
 
   def test_play_url
@@ -63,9 +65,12 @@ class SwmlBuilderTest < Minitest::Test
   end
 
   def test_play_urls_list
-    @builder.play(urls: %w[a.mp3 b.mp3])
+    # `urls` entries must be real play URLs (http(s):, say:, ring:, silence:) --
+    # a bare filename is rejected by the SWML schema.
+    urls = %w[https://ex.com/a.mp3 say:and+now+this]
+    @builder.play(urls: urls)
 
-    assert_equal({ 'play' => { 'urls' => %w[a.mp3 b.mp3] } }, main.first)
+    assert_equal({ 'play' => { 'urls' => urls } }, main.first)
   end
 
   def test_play_requires_url_or_urls
@@ -103,7 +108,10 @@ class SwmlBuilderTest < Minitest::Test
   end
 
   def test_fluent_chaining_returns_self
-    result = @builder.reset.answer.say('hi').hangup(reason: 'done')
+    # `reason` is the engine's closed six-value set (relay_apis.c:1105);
+    # 'noAnswer' is one of them and was absent from the schema's old
+    # hangup|busy|decline union.
+    result = @builder.reset.answer.say('hi').hangup(reason: 'noAnswer')
 
     assert_same @builder, result
     assert_equal(%w[answer play hangup], main.map { |v| v.keys.first })
@@ -150,5 +158,32 @@ class SwmlBuilderTest < Minitest::Test
 
   def test_unknown_method_raises
     assert_raises(NoMethodError) { @builder.definitely_not_a_verb }
+  end
+end
+
+# answer/play options added with signalwire-python 3.5.x: SIP credentials on
+# answer, loop + status_url on play.
+class SwmlBuilderVerbOptionsTest < Minitest::Test
+  def setup
+    @builder = SignalWire::SWML::SWMLBuilder.new(SignalWire::SWML::Service.new(name: 'builder-test'))
+  end
+
+  def main
+    @builder.build['sections']['main']
+  end
+
+  # Parity: python SWMLBuilder.answer(username, password) — SIP auth for the answer.
+  def test_answer_with_sip_credentials
+    @builder.answer(username: 'alice', password: 's3cret')
+
+    assert_equal({ 'answer' => { 'username' => 'alice', 'password' => 's3cret' } }, main.first)
+  end
+
+  # Parity: python SWMLBuilder.play(loop, status_url).
+  def test_play_loop_and_status_url
+    @builder.play(url: 'https://ex.com/a.mp3', loop: 0, status_url: 'https://ex.com/status')
+
+    assert_equal({ 'play' => { 'url' => 'https://ex.com/a.mp3', 'loop' => 0,
+                               'status_url' => 'https://ex.com/status' } }, main.first)
   end
 end

@@ -16,6 +16,25 @@ All parameters fall back to their corresponding environment variables. An
 
 Authentication uses HTTP Basic Auth (`project:token`).
 
+### Space administration (Personal Access Token)
+
+`client.space` — the Space Administration API (members, balance, billing,
+payment methods, settings, usage) — authenticates with a user's Personal Access
+Token instead of a project token. Pass `personal_access_token:` (or set
+`SIGNALWIRE_PERSONAL_ACCESS_TOKEN`); it is sent as HTTP Basic with an empty
+username. Either credential, or both, may be given; calling a resource whose
+credential is missing raises `ArgumentError` before anything is sent.
+
+<!-- snippet: no-run needs a real personal access token and space -->
+```ruby
+admin = SignalWire::REST::RestClient.new(
+  personal_access_token: 'pat_...',
+  host:                  'your-space.signalwire.com'
+)
+admin.space.members.list
+admin.space.balance.get
+```
+
 ## Namespaces
 
 Every API surface is available as a namespace attribute on the client:
@@ -74,6 +93,8 @@ Every API surface is available as a namespace attribute on the client:
 | `client.project` | API token management |
 | `client.pubsub` | PubSub token creation |
 | `client.chat` | Chat token creation |
+| `client.whatsapp` | WhatsApp numbers, businesses and message templates |
+| `client.space` | Space administration (members, balance, billing, settings, usage) — Personal Access Token |
 
 ## Error Handling
 

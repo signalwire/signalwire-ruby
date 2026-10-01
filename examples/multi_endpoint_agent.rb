@@ -17,14 +17,14 @@ require 'signalwire'
 voice = SignalWire::AgentBase.new(name: 'voice-assistant', route: '/voice')
 voice.prompt_add_section('Role', 'You are a helpful voice assistant.')
 voice.prompt_add_section('Instructions', nil, bullets: [
-  'Greet callers warmly.',
-  'Be concise in your responses.',
-  'Use the get_time function when asked about the current time.'
-])
+                           'Greet callers warmly.',
+                           'Be concise in your responses.',
+                           'Use the get_time function when asked about the current time.'
+                         ])
 voice.add_language('English', 'en-US', 'elevenlabs.rachel')
 
 voice.define_tool(
-  name: 'get_time', description: 'Get the current time', parameters: {}
+  name: 'get_time', description: 'Get the current time', parameters: {}, handler: nil
 ) do |_args, _raw_data|
   now = Time.now.strftime('%I:%M %p')
   SignalWire::Swaig::FunctionResult.new("The current time is #{now}")
@@ -35,14 +35,14 @@ end
 info = SignalWire::AgentBase.new(name: 'info-desk', route: '/info')
 info.prompt_add_section('Role', 'You are an information desk assistant.')
 info.prompt_add_section('Guidelines', nil, bullets: [
-  'Provide accurate information about the building and services.',
-  'Direct callers to the correct department.',
-  'Be polite and professional.'
-])
+                          'Provide accurate information about the building and services.',
+                          'Direct callers to the correct department.',
+                          'Be polite and professional.'
+                        ])
 
 info.define_tool(
   name: 'get_directory', description: 'Look up a department',
-  parameters: { 'department' => { 'type' => 'string', 'description' => 'Department name' } }
+  parameters: { 'department' => { 'type' => 'string', 'description' => 'Department name' } }, handler: nil
 ) do |args, _raw_data|
   dept = args['department'] || 'unknown'
   SignalWire::Swaig::FunctionResult.new("#{dept.capitalize}: Floor 3, Room 302. Hours 9 AM-5 PM.")

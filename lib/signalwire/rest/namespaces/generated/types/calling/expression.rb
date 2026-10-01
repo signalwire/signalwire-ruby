@@ -21,13 +21,15 @@ module SignalWire
             #
             # Method-less data DTO: the frozen FIELDS constant maps each snake wire
             # key to its JSON type symbol. No reader/writer methods and no
-            # initialize — the reference records this as a method-less type
-            # definition, so the surface enumerator surfaces the bare class name.
+            # initialize — the class is a bare namespace for its FIELDS map,
+            # describing the wire shape rather than wrapping a payload.
             class Expression
               FIELDS = {
-                'string' => :string,
                 'pattern' => :string,
-                'output' => :object
+                'expr' => :string,
+                'nomatch-output' => :object,
+                'output' => :object,
+                'string' => :string
               }.freeze
             end
           end

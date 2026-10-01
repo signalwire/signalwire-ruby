@@ -6,22 +6,25 @@
 
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
-# flattened SWMLMethod verb 'live_transcribe' config
+# schema.json $defs schema 'LiveTranscribeConfig'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
-      # LiveTranscribeConfig — generated read-side payload (flattened SWMLMethod verb 'live_transcribe' config).
+      # LiveTranscribeConfig — generated read-side payload (schema.json $defs schema 'LiveTranscribeConfig').
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
-      # A zero-arg reader per field mirrors the reference's recorded
-      # accessors (dropped on the SURFACE by the enumerator — method-less there).
+      # Each field also has a zero-arg reader, so a decoded payload can be
+      # accessed by name rather than by wire key.
       class LiveTranscribeConfig
         FIELDS = {
-          'action' => :object
+          'action' => :object,
+          'hints' => :object
         }.freeze
 
-        attr_reader :action
+        attr_reader :action, :hints
       end
     end
   end

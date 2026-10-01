@@ -51,6 +51,21 @@ module SignalWire
             body = body.merge(extras).merge(kwargs)
             @http.post(_path(id, 'domain_applications'), body, request_options: request_options)
           end
+
+          def assign_sip_endpoint(id, sip_endpoint_id:, extras: {}, request_options: nil, **kwargs)
+            body = {}
+            body['sip_endpoint_id'] = sip_endpoint_id
+            body = body.merge(extras).merge(kwargs)
+            @http.post(_path(id, 'sip_endpoints'), body, request_options: request_options)
+          end
+
+          def assign_whatsapp_number(id, whatsapp_number_id:, handler:, extras: {}, request_options: nil, **kwargs)
+            body = {}
+            body['whatsapp_number_id'] = whatsapp_number_id
+            body['handler'] = handler
+            body = body.merge(extras).merge(kwargs)
+            @http.post(_path(id, 'whatsapp_numbers'), body, request_options: request_options)
+          end
         end
       end
     end

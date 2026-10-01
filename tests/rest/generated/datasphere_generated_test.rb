@@ -170,7 +170,7 @@ class DatasphereGeneratedTest < Minitest::Test
   end
 
   def test_documents_update_success
-    @client.datasphere.documents.update('x', tags: 'x')
+    @client.datasphere.documents.update('x')
     last = @mock.last
 
     assert_equal 'PATCH', last.method
@@ -179,7 +179,7 @@ class DatasphereGeneratedTest < Minitest::Test
 
   def test_documents_update_error
     @mock.push_scenario('datasphere.update_document', status: 500, response: { 'error' => 'x' })
-    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.datasphere.documents.update('x', tags: 'x') }
+    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.datasphere.documents.update('x') }
 
     assert_equal 500, err.status_code
     assert_equal 500, @mock.last.response_status

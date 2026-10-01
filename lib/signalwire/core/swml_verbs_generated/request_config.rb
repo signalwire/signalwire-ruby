@@ -6,28 +6,30 @@
 
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
-# flattened SWMLMethod verb 'request' config
+# schema.json $defs schema 'RequestConfig'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
-      # RequestConfig — generated read-side payload (flattened SWMLMethod verb 'request' config).
+      # RequestConfig — generated read-side payload (schema.json $defs schema 'RequestConfig').
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
-      # A zero-arg reader per field mirrors the reference's recorded
-      # accessors (dropped on the SURFACE by the enumerator — method-less there).
+      # Each field also has a zero-arg reader, so a decoded payload can be
+      # accessed by name rather than by wire key.
       class RequestConfig
         FIELDS = {
-          'url' => :string,
-          'method' => :object,
-          'headers' => :object,
           'body' => :object,
-          'timeout' => :object,
           'connect_timeout' => :object,
-          'save_variables' => :object
+          'headers' => :object,
+          'method' => :object,
+          'save_variables' => :object,
+          'timeout' => :object,
+          'url' => :object
         }.freeze
 
-        attr_reader :url, :method, :headers, :body, :timeout, :connect_timeout, :save_variables
+        attr_reader :body, :connect_timeout, :headers, :method, :save_variables, :timeout, :url
       end
     end
   end

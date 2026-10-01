@@ -29,7 +29,9 @@ require 'openssl'
 require 'rack/utils'
 require 'uri'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # Security — webhook signature validation, session tokens and request hardening.
   module Security
     # Stateless validator for SignalWire-signed webhook requests.
     #
@@ -85,6 +87,39 @@ module SignalWire
         # the compat surface). Try with-port and without-port URL variants.
         # ------------------------------------------------------------------
         _scheme_b_match?(signing_key, signature, url.to_s, raw_body)
+      end
+
+      # Validate the SHA-256 webhook signature (Scheme A with a stronger hash).
+      #
+      # SignalWire sends +X-SignalWire-Sha256-Signature+ alongside the SHA-1
+      # +X-SignalWire-Signature+ on signed webhooks. Its construction is the same
+      # Scheme A message with SHA-256:
+      #
+      #   hex(HMAC-SHA256(signing_key, url + raw_body))
+      #
+      # Only Scheme A (RELAY/SWML/JSON) is defined for this header; the legacy
+      # cXML/form Scheme B stays on SHA-1 — see {validate_webhook_signature}.
+      #
+      # @param signing_key [String] Customer's Signing Key. +nil+ / empty raises
+      #   +ArgumentError+ (a programming error, not a validation failure).
+      # @param signature [String, nil] the +X-SignalWire-Sha256-Signature+ header
+      #   value (64-char lowercase hex). Missing / empty returns false.
+      # @param url [String] the full public URL SignalWire POSTed to, exactly as
+      #   the platform saw it when it computed the signature.
+      # @param raw_body [String] the raw request body BEFORE any parsing; a
+      #   parsed Hash raises +TypeError+.
+      # @return [Boolean] true if the SHA-256 signature matches
+      # @raise [ArgumentError] when +signing_key+ is missing.
+      # @raise [TypeError] when +raw_body+ is not a String.
+      def self.validate_webhook_signature_sha256(signing_key, signature, url, raw_body)
+        raise ArgumentError, 'signing_key is required' if signing_key.nil? || signing_key.to_s.empty?
+        unless raw_body.is_a?(String)
+          raise TypeError,
+                'raw_body must be a String — did you pass parsed JSON by mistake?'
+        end
+        return false if signature.nil? || signature.to_s.empty?
+
+        _safe_eq(_hex_hmac_sha256(signing_key, url.to_s + raw_body), signature)
       end
 
       # @api private — Scheme B across URL/param-shape variants; honors bodySHA256.
@@ -176,8 +211,15 @@ module SignalWire
         [403, { 'content-type' => 'text/plain' }, ['']]
       end
 
+      # @api private — hex-encoded HMAC-SHA1, one of the two signature encodings the
+      # platform emits.
       def self._hex_hmac_sha1(key, message) = OpenSSL::HMAC.hexdigest('SHA1', key.to_s, message.to_s)
 
+      # @api private — hex HMAC-SHA256 of +message+ keyed by +key+.
+      def self._hex_hmac_sha256(key, message) = OpenSSL::HMAC.hexdigest('SHA256', key.to_s, message.to_s)
+
+      # @api private — base64-encoded HMAC-SHA1, the other signature encoding the
+      # platform emits.
       def self._b64_hmac_sha1(key, message)
         Base64.strict_encode64(OpenSSL::HMAC.digest('SHA1', key.to_s, message.to_s))
       end
@@ -200,6 +242,8 @@ module SignalWire
         items.map { |pair| _concat_pair(pair) }.join
       end
 
+      # @api private — one `key + value` term of the signature base string. A nil
+      # value contributes the key alone, matching the platform's own concatenation.
       def self._concat_pair((key, value)) = "#{key}#{value unless value.nil?}"
 
       # @api private — normalize Hash / Array-of-pairs into [key, value] items;
@@ -211,12 +255,21 @@ module SignalWire
         nil
       end
 
+      # @api private — flatten a Hash of params into `[key, value]` items, expanding
+      # an Array value into one item per element so repeated keys each contribute a
+      # term to the signature.
+      #
+      # @return [Array<Array>]
       def self._hash_items(params)
         params.flat_map do |k, v|
           v.is_a?(Array) ? v.map { |vi| [k.to_s, vi] } : [[k.to_s, v]]
         end
       end
 
+      # @api private — normalise an Array of `[key, value]` pairs into signature
+      # items, ignoring entries that are not at least two-element Arrays.
+      #
+      # @return [Array<Array>]
       def self._pair_items(params)
         # Accept [k, v] pairs (the most common form).
         params.select { |pair| pair.is_a?(Array) && pair.length >= 2 }
@@ -270,6 +323,12 @@ module SignalWire
         # Else: non-standard explicit port — only try as-is (nil).
       end
 
+      # @api private — whether the parsed URL's port is its scheme's default. `URI`
+      # always populates `port`, so this is how an implicit default is told apart
+      # from one the sender actually wrote — the signature covers the URL string as
+      # SENT, so both spellings have to be tried.
+      #
+      # @return [Boolean]
       def self._implicit_default_port?(parsed)
         parsed.respond_to?(:default_port) && parsed.port == parsed.default_port
       end
@@ -299,6 +358,10 @@ module SignalWire
         "#{parsed.scheme}://#{userinfo}#{netloc_host}#{port_part}#{_build_url_rest(parsed)}"
       end
 
+      # @api private — the path, query and fragment portion of a reassembled URL,
+      # each appended only when present.
+      #
+      # @return [String]
       def self._build_url_rest(parsed)
         rest = +(parsed.path || '')
         rest << "?#{parsed.query}" if parsed.query

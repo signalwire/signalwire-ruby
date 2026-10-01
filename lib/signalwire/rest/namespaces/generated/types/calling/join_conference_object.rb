@@ -22,28 +22,37 @@ module SignalWire
             #
             # Method-less data DTO: the frozen FIELDS constant maps each snake wire
             # key to its JSON type symbol. No reader/writer methods and no
-            # initialize — the reference records this as a method-less type
-            # definition, so the surface enumerator surfaces the bare class name.
+            # initialize — the class is a bare namespace for its FIELDS map,
+            # describing the wire shape rather than wrapping a payload.
             class JoinConferenceObject
               FIELDS = {
-                'name' => :string,
-                'muted' => :object,
-                'beep' => :string,
-                'start_on_enter' => :object,
+                'beep' => :object,
+                'coach' => :object,
+                'emit_call_quality' => :object,
                 'end_on_exit' => :object,
-                'wait_url' => :object,
                 'max_participants' => :object,
-                'record' => :string,
-                'region' => :string,
-                'trim' => :string,
-                'coach' => :string,
-                'status_callback_event' => :string,
-                'status_callback' => :string,
-                'status_callback_method' => :string,
-                'recording_status_callback' => :string,
-                'recording_status_callback_method' => :string,
-                'recording_status_callback_event' => :string,
-                'result' => :object
+                'meta' => :object,
+                'min_participants' => :object,
+                'muted' => :object,
+                'name' => :object,
+                'record' => :object,
+                'recording_status_callback' => :object,
+                'recording_status_callback_event' => :object,
+                'recording_status_callback_event_type' => :object,
+                'recording_status_callback_method' => :object,
+                'region' => :object,
+                'start_on_enter' => :object,
+                'status_callback' => :object,
+                'status_callback_event' => :object,
+                'status_callback_event_type' => :object,
+                'status_callback_method' => :object,
+                'stream' => :object,
+                'trim' => :object,
+                'video' => :object,
+                'video_layout' => :object,
+                'video_preview' => :object,
+                'video_quality' => :object,
+                'wait_url' => :object
               }.freeze
             end
           end

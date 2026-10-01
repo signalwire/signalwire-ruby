@@ -9,6 +9,11 @@ require_relative '../lib/signalwire/swaig/function_result'
 module DataMapTestAliases
   FR = SignalWire::Swaig::FunctionResult
   DM = SignalWire::DataMap
+
+  # The ten properties schema.json $defs/Webhook permits, under
+  # +unevaluatedProperties: {"not": {}}+ — everything else is forbidden.
+  WEBHOOK_SCHEMA_KEYS = %w[error_keys expressions foreach headers input_args_as_params
+                           method output params require_args url].freeze
 end
 
 class DataMapTest < Minitest::Test
@@ -125,30 +130,27 @@ class DataMapTest < Minitest::Test
   end
 
   # ----------------------------------------------------------------
-  # Webhook body and params
+  # Webhook params
   # ----------------------------------------------------------------
 
-  def test_webhook_body_and_params
+  # Was +test_webhook_body_and_params+, which called +body+ AND +params+ and then
+  # asserted +wh['body']+ — pinning a schema-forbidden key as correct. It now
+  # asserts only the contract key and that +body+ is absent.
+  def test_webhook_params
     dm = DM.new('func')
            .webhook('POST', 'https://example.com')
-           .body({ 'query' => '${args.q}' })
-           .params({ 'limit' => 10 })
+           .params({ 'query' => '${args.q}', 'limit' => 10 })
            .output(FR.new('ok'))
 
     wh = dm.to_swaig_function['data_map']['webhooks'].first
 
-    assert_equal({ 'query' => '${args.q}' }, wh['body'])
-    assert_equal({ 'limit' => 10 }, wh['params'])
+    assert_equal({ 'query' => '${args.q}', 'limit' => 10 }, wh['params'])
+    refute wh.key?('body')
   end
 
   # ----------------------------------------------------------------
-  # body/params/output/foreach without webhook raises
+  # params/output/foreach without webhook raises
   # ----------------------------------------------------------------
-
-  def test_body_without_webhook_raises
-    dm = DM.new('func')
-    assert_raises(ArgumentError) { dm.body({}) }
-  end
 
   def test_params_without_webhook_raises
     dm = DM.new('func')
@@ -240,7 +242,7 @@ class DataMapExpressionTest < Minitest::Test
       .parameter('limit', 'number', 'Max results')
       .webhook('POST', 'https://api.docs.com/search',
                headers: { 'Authorization' => 'Bearer TOKEN' })
-      .body({ 'query' => '${query}', 'limit' => 3 })
+      .params({ 'query' => '${query}', 'limit' => 3 })
       .output(FR.new('Found: ${response.results[0].title}'))
       .to_swaig_function
   end
@@ -398,19 +400,44 @@ class DataMapFactoryTest < Minitest::Test
     assert_equal 'Weather: ${response.temp}', wh['output']['response']
   end
 
-  def test_create_simple_api_tool_with_body
-    dm = DM.create_simple_api_tool(
-      name: 'post_data',
-      url: 'https://example.com/api',
-      response_template: 'Done: ${response.id}',
-      method: 'POST',
-      body: { 'data' => '${args.payload}' }
-    )
+  # Parity: test_create_simple_api_tool_body_becomes_params — the +body:+ is
+  # sent as the webhook's params (+body+ is not a webhook key: schema.json
+  # $defs/Webhook has none and no engine reader looks one up).
+  def test_create_simple_api_tool_body_becomes_params
+    wh = DM.create_simple_api_tool(
+      name: 'search', url: 'https://api.example.com/search',
+      response_template: 'Found ${total} for ${input.args.query}',
+      method: 'POST', body: { 'q' => '${args.query}' }
+    ).to_swaig_function['data_map']['webhooks'].first
 
-    wh = dm.to_swaig_function['data_map']['webhooks'].first
+    assert_equal({ 'q' => '${args.query}' }, wh['params'])
+    refute wh.key?('body')
+    assert_equal({ 'response' => 'Found ${total} for ${input.args.query}' }, wh['output'])
+  end
+
+  # The webhook a POST-shaped +create_simple_api_tool+ emits.
+  def post_tool_webhook
+    DM.create_simple_api_tool(
+      name: 'post_data', url: 'https://example.com/api',
+      response_template: 'Done: ${response.id}',
+      parameters: { 'payload' => { 'type' => 'string', 'description' => 'Payload' } },
+      method: 'POST', headers: { 'Authorization' => 'Bearer TOKEN' }, error_keys: %w[error]
+    ).to_swaig_function['data_map']['webhooks'].first
+  end
+
+  # The EMITTED webhook payload carries no +body+ key.
+  def test_create_simple_api_tool_emits_no_body_key
+    wh = post_tool_webhook
 
     assert_equal 'POST', wh['method']
-    assert_equal({ 'data' => '${args.payload}' }, wh['body'])
+    refute_includes wh.keys, 'body', "webhook carries a body key: #{wh.inspect}"
+  end
+
+  # Every emitted webhook key is one schema.json $defs/Webhook permits.
+  def test_create_simple_api_tool_emits_only_schema_keys
+    extra = post_tool_webhook.keys - WEBHOOK_SCHEMA_KEYS
+
+    assert_empty extra, "webhook has keys outside schema.json $defs/Webhook: #{extra.sort.inspect}"
   end
 
   def test_create_simple_api_tool_minimal
@@ -475,7 +502,7 @@ class DataMapFactoryTest < Minitest::Test
     [
       [:purpose, 'test'], [:description, 'test'], [:parameter, 'x', 'string', 'desc'],
       [:expression, '${x}', 'pat', FR.new('y')], [:webhook, 'GET', 'https://example.com'],
-      [:body, {}], [:params, {}],
+      [:params, {}],
       [:foreach, { 'input_key' => 'a', 'output_key' => 'b', 'append' => 'c' }],
       [:output, FR.new('ok')], [:fallback_output, FR.new('fail')],
       [:error_keys, %w[e]], [:global_error_keys, %w[e]], [:webhook_expressions, []]
@@ -488,5 +515,46 @@ class DataMapFactoryTest < Minitest::Test
     fluent_calls.each do |meth, *args|
       assert_same dm, dm.public_send(meth, *args), "#{meth} must return self for chaining"
     end
+  end
+end
+
+# DataMap#body sets the webhook's +params+ — the request body the platform
+# sends. The platform reads a webhook's body from +params+ and has no +body+
+# field (schema.json +$defs/Webhook+ has none; mod_openai actions.c / bedrock.c
+# read url, method, form_param, +params+ and +headers+ only), so body() is the
+# same builder as params() and never emits a +body+ key. Parity:
+# signalwire-python core/data_map.py DataMap.body.
+class DataMapBodyBuilderTest < Minitest::Test
+  include DataMapTestAliases
+
+  # Parity: test_webhook_body_and_params / test_body_is_serialized_as_params —
+  # body() sets the webhook's params (the request body the platform sends);
+  # the platform reads no body field.
+  def test_body_is_serialized_as_params
+    dm = DM.new('search')
+           .webhook('POST', 'https://api.example.com/search')
+           .body({ 'q' => '${args.query}' })
+           .output(FR.new('Found ${total}'))
+
+    wh = dm.to_swaig_function['data_map']['webhooks'].first
+
+    assert_equal({ 'q' => '${args.query}' }, wh['params'])
+    refute wh.key?('body')
+  end
+
+  def test_body_requires_a_webhook
+    e = assert_raises(ArgumentError) { DM.new('f').body({ 'a' => 1 }) }
+    assert_equal 'Must add webhook before setting body', e.message
+  end
+
+  # The params builder writes the same contract key.
+  def test_params_still_writes_the_contract_key
+    wh = DM.new('t')
+           .webhook('POST', 'https://x.test')
+           .params({ 'q' => '${query}' })
+           .to_swaig_function['data_map']['webhooks'].first
+
+    assert_equal({ 'q' => '${query}' }, wh['params'])
+    refute wh.key?('body')
   end
 end

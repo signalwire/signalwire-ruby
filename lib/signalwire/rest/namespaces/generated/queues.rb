@@ -22,20 +22,20 @@ module SignalWire
             super(http, '/api/relay/rest/queues')
           end
 
-          def create(name: nil, max_size: nil, extras: {}, request_options: nil, **kwargs)
+          def create(name:, max_size: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
-            body['name'] = name unless name.nil?
+            body['name'] = name
             body['max_size'] = max_size unless max_size.nil?
             body = body.merge(extras).merge(kwargs)
             @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(resource_id, name: nil, max_size: nil, extras: {}, request_options: nil, **kwargs)
+          def update(id, name: nil, max_size: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['name'] = name unless name.nil?
             body['max_size'] = max_size unless max_size.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.put(_path(resource_id), body, request_options: request_options)
+            @http.put(_path(id), body, request_options: request_options)
           end
 
           def delete(resource_id, request_options: nil)

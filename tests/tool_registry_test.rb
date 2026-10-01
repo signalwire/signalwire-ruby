@@ -13,7 +13,7 @@ class ToolRegistryTest < Minitest::Test
 
   def test_define_tool_and_get
     @registry.define_tool(name: 'greet', description: 'Say hi',
-                          parameters: { 'name' => { 'type' => 'string' } })
+                          parameters: { 'name' => { 'type' => 'string' } }, handler: nil)
     fn = @registry.get_function('greet')
 
     refute_nil fn
@@ -22,7 +22,7 @@ class ToolRegistryTest < Minitest::Test
   end
 
   def test_has_function
-    @registry.define_tool(name: 'a', description: 'd')
+    @registry.define_tool(name: 'a', description: 'd', parameters: {}, handler: nil)
 
     assert @registry.has_function('a')
     refute @registry.has_function('missing')
@@ -34,7 +34,7 @@ class ToolRegistryTest < Minitest::Test
 
   def test_define_tool_normalises_parameters_into_object_schema
     @registry.define_tool(name: 't', description: 'd',
-                          parameters: { 'city' => { 'type' => 'string' } })
+                          parameters: { 'city' => { 'type' => 'string' } }, handler: nil)
     schema = @registry.get_function('t')['parameters']
 
     assert_equal 'object', schema['type']
@@ -44,7 +44,7 @@ class ToolRegistryTest < Minitest::Test
   def test_define_tool_injects_required
     @registry.define_tool(name: 't', description: 'd',
                           parameters: { 'city' => { 'type' => 'string' } },
-                          required: ['city'])
+                          required: ['city'], handler: nil)
     schema = @registry.get_function('t')['parameters']
 
     assert_includes schema['required'], 'city'
@@ -54,7 +54,7 @@ class ToolRegistryTest < Minitest::Test
     @registry.define_tool(name: 't', description: 'd',
                           wait_file: 'https://x/w.mp3', wait_file_loops: 2,
                           webhook_url: 'https://x/hook',
-                          fillers: { 'en-US' => ['wait'] })
+                          fillers: { 'en-US' => ['wait'] }, parameters: {}, handler: nil)
     fn = @registry.get_function('t')
 
     assert_equal 'https://x/w.mp3', fn['wait_file']
@@ -64,15 +64,16 @@ class ToolRegistryTest < Minitest::Test
   end
 
   def test_define_tool_swaig_fields_merged
-    @registry.define_tool(name: 't', description: 'd', swaig_fields: { 'meta_data' => { 'k' => 'v' } })
+    @registry.define_tool(name: 't', description: 'd', swaig_fields: { 'meta_data' => { 'k' => 'v' } }, parameters: {},
+                          handler: nil)
 
     assert_equal({ 'k' => 'v' }, @registry.get_function('t')['meta_data'])
   end
 
   def test_define_tool_duplicate_raises
-    @registry.define_tool(name: 'dup', description: 'd')
+    @registry.define_tool(name: 'dup', description: 'd', parameters: {}, handler: nil)
 
-    assert_raises(ArgumentError) { @registry.define_tool(name: 'dup', description: 'd2') }
+    assert_raises(ArgumentError) { @registry.define_tool(name: 'dup', description: 'd2', parameters: {}, handler: nil) }
   end
 
   def test_register_swaig_function
@@ -100,7 +101,7 @@ class ToolRegistryTest < Minitest::Test
   end
 
   def test_get_all_functions_returns_copy
-    @registry.define_tool(name: 'a', description: 'd')
+    @registry.define_tool(name: 'a', description: 'd', parameters: {}, handler: nil)
     @registry.register_swaig_function({ 'function' => 'b' })
     all = @registry.get_all_functions
 
@@ -112,7 +113,7 @@ class ToolRegistryTest < Minitest::Test
   end
 
   def test_remove_function
-    @registry.define_tool(name: 'a', description: 'd')
+    @registry.define_tool(name: 'a', description: 'd', parameters: {}, handler: nil)
 
     assert @registry.remove_function('a')
     refute @registry.has_function('a')

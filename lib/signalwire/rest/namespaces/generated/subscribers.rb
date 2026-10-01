@@ -22,7 +22,7 @@ module SignalWire
             super(http, '/api/fabric/resources/subscribers')
           end
 
-          def create(email:, password: nil, first_name: nil, last_name: nil, display_name: nil, job_title: nil, timezone: nil, country: nil, region: nil, company_name: nil, extras: {}, request_options: nil, **kwargs)
+          def create(email:, password: nil, first_name: nil, last_name: nil, display_name: nil, job_title: nil, country: nil, company_name: nil, time_zone: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['email'] = email
             body['password'] = password unless password.nil?
@@ -30,28 +30,26 @@ module SignalWire
             body['last_name'] = last_name unless last_name.nil?
             body['display_name'] = display_name unless display_name.nil?
             body['job_title'] = job_title unless job_title.nil?
-            body['timezone'] = timezone unless timezone.nil?
             body['country'] = country unless country.nil?
-            body['region'] = region unless region.nil?
             body['company_name'] = company_name unless company_name.nil?
+            body['time_zone'] = time_zone unless time_zone.nil?
             body = body.merge(extras).merge(kwargs)
             @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(resource_id, email:, password: nil, first_name: nil, last_name: nil, display_name: nil, job_title: nil, timezone: nil, country: nil, region: nil, company_name: nil, extras: {}, request_options: nil, **kwargs)
+          def update(id, password: nil, email: nil, first_name: nil, last_name: nil, display_name: nil, job_title: nil, country: nil, company_name: nil, time_zone: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
-            body['email'] = email
             body['password'] = password unless password.nil?
+            body['email'] = email unless email.nil?
             body['first_name'] = first_name unless first_name.nil?
             body['last_name'] = last_name unless last_name.nil?
             body['display_name'] = display_name unless display_name.nil?
             body['job_title'] = job_title unless job_title.nil?
-            body['timezone'] = timezone unless timezone.nil?
             body['country'] = country unless country.nil?
-            body['region'] = region unless region.nil?
             body['company_name'] = company_name unless company_name.nil?
+            body['time_zone'] = time_zone unless time_zone.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.put(_path(resource_id), body, request_options: request_options)
+            @http.put(_path(id), body, request_options: request_options)
           end
 
           def list_sip_endpoints(subscriber_id, request_options: nil, **params)

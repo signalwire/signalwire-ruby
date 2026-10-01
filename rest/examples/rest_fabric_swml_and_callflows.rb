@@ -8,7 +8,7 @@
 #   SIGNALWIRE_SPACE        - your SignalWire space (e.g. example.signalwire.com)
 
 require 'signalwire'
-require 'signalwire/rest/rest_client'  # opt-in subsystem (Python: from signalwire.rest import Client)
+require 'signalwire/rest/rest_client' # opt-in subsystem (Python: from signalwire.rest import Client)
 
 client = SignalWire::REST::RestClient.new
 
@@ -24,7 +24,7 @@ end
 # 1. Create a SWML script
 puts 'Creating SWML script...'
 swml = client.fabric.swml_scripts.create(
-  name:     'Greeting Script',
+  name: 'Greeting Script',
   contents: { 'sections' => { 'main' => [{ 'play' => { 'url' => 'say:Hello from SignalWire' } }] } }
 )
 swml_id = swml['id']
@@ -76,7 +76,7 @@ end
 # 7. Create a SWML webhook as an alternative approach
 puts "\nCreating SWML webhook..."
 webhook = client.fabric.swml_webhooks.create(
-  name:                'External Handler',
+  name: 'External Handler',
   primary_request_url: 'https://example.com/swml-handler'
 )
 webhook_id = webhook['id']

@@ -6,22 +6,24 @@
 
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
-# flattened SWMLMethod verb 'send_fax' config
+# schema.json $defs schema 'SendFaxConfig'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
-      # SendFaxConfig — generated read-side payload (flattened SWMLMethod verb 'send_fax' config).
+      # SendFaxConfig — generated read-side payload (schema.json $defs schema 'SendFaxConfig').
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
-      # A zero-arg reader per field mirrors the reference's recorded
-      # accessors (dropped on the SURFACE by the enumerator — method-less there).
+      # Each field also has a zero-arg reader, so a decoded payload can be
+      # accessed by name rather than by wire key.
       class SendFaxConfig
         FIELDS = {
-          'document' => :string,
-          'header_info' => :string,
-          'identity' => :string,
-          'status_url' => :string
+          'document' => :object,
+          'header_info' => :object,
+          'identity' => :object,
+          'status_url' => :object
         }.freeze
 
         attr_reader :document, :header_info, :identity, :status_url

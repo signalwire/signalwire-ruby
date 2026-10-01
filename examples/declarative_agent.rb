@@ -9,7 +9,7 @@
 require 'signalwire'
 
 agent = SignalWire::AgentBase.new(
-  name:  'declarative',
+  name: 'declarative',
   route: '/declarative'
 )
 
@@ -26,11 +26,11 @@ agent.prompt_add_section(
 )
 
 agent.prompt_add_section('Instructions', nil, bullets: [
-  'Be concise and direct in your responses.',
-  "If you don't know something, say so clearly.",
-  'Use the get_time function when asked about the current time.',
-  'Use the get_weather function when asked about the weather.'
-])
+                           'Be concise and direct in your responses.',
+                           "If you don't know something, say so clearly.",
+                           'Use the get_time function when asked about the current time.',
+                           'Use the get_weather function when asked about the weather.'
+                         ])
 
 # --- Post-prompt for summary ---
 
@@ -42,25 +42,25 @@ agent.set_post_prompt(<<~PROMPT
     "follow_up_needed": true/false
   }
 PROMPT
-)
+                     )
 
 # --- Tools ---
 
 agent.define_tool(
-  name:        'get_time',
+  name: 'get_time',
   description: 'Get the current time',
-  parameters:  {}
+  parameters: {}, handler: nil
 ) do |_args, _raw_data|
   now = Time.now.strftime('%H:%M:%S')
   SignalWire::Swaig::FunctionResult.new("The current time is #{now}")
 end
 
 agent.define_tool(
-  name:        'get_weather',
+  name: 'get_weather',
   description: 'Get the current weather for a location',
-  parameters:  {
+  parameters: {
     'location' => { 'type' => 'string', 'description' => 'City or location' }
-  }
+  }, handler: nil
 ) do |args, _raw_data|
   location = args['location'] || 'Unknown location'
   SignalWire::Swaig::FunctionResult.new("It's sunny and 72F in #{location}.")
@@ -68,7 +68,7 @@ end
 
 # --- Summary callback ---
 
-agent.on_summary do |summary, _raw_data|
+agent.on_summary(nil) do |summary, _raw_data|
   puts "Conversation summary: #{summary.inspect}"
 end
 

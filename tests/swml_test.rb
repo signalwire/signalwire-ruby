@@ -354,10 +354,10 @@ class ServiceTest < Minitest::Test
   # A positional Hash and kwargs merge (kwargs win on a key collision).
   def test_verb_positional_hash_merges_with_kwargs
     svc = SignalWire::SWML::Service.new(name: 'test')
-    svc.play({ 'url' => 'a.mp3', 'volume' => 1 }, volume: 5)
+    svc.play({ 'url' => 'https://ex.com/a.mp3', 'volume' => 1 }, volume: 5)
     verbs = svc.document.get_verbs
 
-    assert_equal({ 'play' => { 'url' => 'a.mp3', 'volume' => 5 } }, verbs.first)
+    assert_equal({ 'play' => { 'url' => 'https://ex.com/a.mp3', 'volume' => 5 } }, verbs.first)
   end
 
   # A misshapen positional (a non-Hash, or more than one) must RAISE loudly, not
@@ -593,7 +593,7 @@ class ServiceRackTest < Minitest::Test
   # -- Routing callback ---------------------------------------------------
 
   def test_routing_callback
-    @service.register_routing_callback('/custom') do |data|
+    @service.register_routing_callback(nil, '/custom') do |data|
       { 'custom' => true, 'received' => data }
     end
 
@@ -623,5 +623,81 @@ class TimingSafeAuthTest < Minitest::Test
     assert Rack::Utils.secure_compare('hello', 'hello')
     refute Rack::Utils.secure_compare('hello', 'world')
     refute Rack::Utils.secure_compare('short', 'longer_string')
+  end
+end
+
+# `hangup.reason` is a CLOSED set of six values, because that is what the engine
+# enforces: mod_infrastructure/relay_apis.c:1105 states
+#   JSON_CHECK_STRING_MATCHES_OPTIONAL(reason, "hangup,cancel,busy,noAnswer,decline,error")
+# and a non-match is a hard reject (libks ks_json_check.h sets *error_msg and
+# returns 0). The SWML layer types the field as a bare string
+# (swml_schema.c:1571) and swml.c forwards it verbatim into the `end` RPC on the
+# same call, so the contract a document must satisfy is the COMPOSITION of the
+# two layers.
+#
+# This replaces SchemaWidenTest, which asserted that an arbitrary reason such as
+# 'done' must validate. The engine refuses it, so that test pinned a bug.
+class HangupReasonTest < Minitest::Test
+  # The six values from relay_apis.c:1105, in source order. Note the camelCase
+  # 'noAnswer' -- 'no_answer' is NOT an engine value in any spelling.
+  ENGINE_REASONS = %w[hangup cancel busy noAnswer decline error].freeze
+
+  def setup
+    @svc = SignalWire::SWML::Service.new(name: 'hangup-reason')
+  end
+
+  # cancel, noAnswer and error were absent from the old three-const union and
+  # validated only because the widen transform removed the constraint.
+  def test_every_engine_reason_validates
+    ENGINE_REASONS.each do |reason|
+      assert @svc.add_verb('hangup', { 'reason' => reason }),
+             "hangup.reason=#{reason} is accepted by relay_apis.c:1105"
+    end
+  end
+
+  # The behaviour change, and it is intended: these previously validated.
+  # Rejecting locally is STRICTER and correct -- the caller gets a clear
+  # client-side error instead of an opaque server-side call failure.
+  def test_non_engine_reason_is_rejected
+    %w[done no_answer some_future_reason].each do |reason|
+      assert_raises(SignalWire::Utils::SchemaValidationError,
+                    "hangup.reason=#{reason} is refused by relay_apis.c:1105") do
+        @svc.add_verb('hangup', { 'reason' => reason })
+      end
+    end
+  end
+
+  # A non-string still fails, so the enum did not become the only check.
+  def test_reason_still_enforces_base_type
+    assert_raises(SignalWire::Utils::SchemaValidationError) do
+      @svc.add_verb('hangup', { 'reason' => 123 })
+    end
+  end
+
+  def test_verb_still_rejects_unknown_keys
+    assert_raises(SignalWire::Utils::SchemaValidationError) do
+      @svc.add_verb('hangup', { 'bogus_key' => 'x' })
+    end
+  end
+
+  # Blast radius: removing the widen transform must not have changed validation
+  # anywhere else.
+  def test_other_properties_keep_their_constraints
+    assert_raises(SignalWire::Utils::SchemaValidationError) do
+      @svc.add_verb('play', { 'urls' => ['a.mp3'] })
+    end
+  end
+
+  # Guard the artifact, so a re-vendor that reintroduces the three-value union
+  # or the marker is caught here rather than only through behaviour.
+  def test_schema_publishes_the_engine_values
+    # The hangup body is a union (object | positional array); its object arm
+    # carries reason, itself the engine enum or a SWML variable.
+    body = SignalWire::Utils::SchemaUtils.new.schema.dig('$defs', 'Hangup', 'properties', 'hangup')
+    reason = body['anyOf'].find { |arm| arm['type'] == 'object' }.dig('properties', 'reason')
+    enum_arm = reason['anyOf'].find { |arm| arm.key?('enum') }
+
+    refute reason.key?('x-sdk-widen'), 'the widen marker must be gone from hangup.reason'
+    assert_equal ENGINE_REASONS, enum_arm['enum']
   end
 end

@@ -286,7 +286,7 @@ agent.define_tool(
       'description' => 'The city or location to get weather for'
     }
   },
-  secure: true # Optional; pass secure: true to require a per-call token
+  secure: true, handler: nil # Optional; pass secure: true to require a per-call token
 ) do |args, _raw_data|
   # Extract the location parameter
   location = args['location'] || 'Unknown location'
@@ -319,7 +319,7 @@ agent.define_tool(
       'description' => 'The city or location to get weather for'
     }
   },
-  webhook_url: 'https://your-service.com/weather-endpoint'
+  webhook_url: 'https://your-service.com/weather-endpoint', handler: nil
 ) do |_args, _raw_data|
   # This block will never be called locally when webhook_url is provided.
   # The external service at webhook_url will receive the function call instead.
@@ -362,7 +362,7 @@ agent = SignalWire::AgentBase.new(name: 'hybrid-agent', route: '/hybrid')
 agent.define_tool(
   name:        'get_help',
   description: 'Get help information',
-  parameters:  {}
+  parameters:  {}, handler: nil
 ) do |_args, _raw_data|
   SignalWire::Swaig::FunctionResult.new('I can help you with weather and news!')
 end
@@ -374,7 +374,7 @@ agent.define_tool(
   parameters:  {
     'location' => { 'type' => 'string', 'description' => 'City name' }
   },
-  webhook_url: 'https://weather-service.com/api/weather'
+  webhook_url: 'https://weather-service.com/api/weather', handler: nil
 ) do |_args, _raw_data|
   # This won't be called for external webhooks
 end
@@ -386,7 +386,7 @@ agent.define_tool(
   parameters:  {
     'topic' => { 'type' => 'string', 'description' => 'News topic' }
   },
-  webhook_url: 'https://news-service.com/api/news'
+  webhook_url: 'https://news-service.com/api/news', handler: nil
 ) do |_args, _raw_data|
   # This won't be called for external webhooks
 end
@@ -410,7 +410,7 @@ The CLI tool will automatically detect external webhook functions and make HTTP 
 
 > **Ruby note:** the Python reference SDK can infer a function's JSON Schema from
 > type hints, the docstring, and `Literal`/`Optional` annotations. Ruby has no
-> equivalent type-hint reflection, so the Ruby port does not auto-infer
+> equivalent type-hint reflection, so the Ruby SDK does not auto-infer
 > schemas — you always pass an explicit `parameters:` hash to `define_tool`.
 > The block always receives `|args, raw_data|`, so there is no special "typed
 > handler" signature to learn.
@@ -428,7 +428,7 @@ agent.define_tool(
       'description' => 'Temperature units to use',
       'enum'        => %w[celsius fahrenheit]
     }
-  }
+  }, handler: nil
 ) do |args, _raw_data|
   city  = args['city']  || 'unknown'
   units = args['units'] || 'celsius'
@@ -459,7 +459,7 @@ agent.define_tool(
   description: 'Check the current call.',
   parameters:  {
     'query' => { 'type' => 'string', 'description' => 'What to check' }
-  }
+  }, handler: nil
 ) do |args, raw_data|
   call_id = raw_data&.dig('call_id') || 'unknown'
   SignalWire::Swaig::FunctionResult.new("Call #{call_id}: query=#{args['query']}")
@@ -542,15 +542,16 @@ The SDK implements an automated security mechanism for SWAIG functions to ensure
 
 #### Token-Based Security
 
-Pass `secure: true` to a function to enable token-based security (the Ruby port
-defaults `secure:` to `false`, so opt in explicitly per function that needs it):
+Token-based security is ON BY DEFAULT: `define_tool` defaults `secure:` to
+`true`, so every function requires a valid per-call token unless you explicitly
+pass `secure: false` to opt out.
 
 ```ruby
 agent.define_tool(
   name:        'get_account_details',
   description: 'Get customer account details',
   parameters:  { 'account_id' => { 'type' => 'string' } },
-  secure:      true # Require a per-call token for this function
+  secure:      true, handler: nil # Require a per-call token for this function
 ) do |args, raw_data|
   # Implementation
 end
@@ -559,8 +560,11 @@ end
 When a function is marked as secure:
 
 1. The SDK automatically generates a secure token for each function when rendering the SWML document
-2. The token is added to the function's URL as a query parameter: `?token=X2FiY2RlZmcuZ2V0X3RpbWUuMTcxOTMxNDI1...`
-3. When the function is called, the token is validated before executing the function
+2. The token is added to the function's URL as a query parameter: `?__token=X2FiY2RlZmcuZ2V0X3RpbWUuMTcxOTMxNDI1...`
+3. When the function is called, the token is validated before executing the
+   function. A missing, expired, or forged token REFUSES the call: the function
+   does not run, and the SDK returns a normal 200 whose body explains that the
+   action could not be executed.
 
 These security tokens have important properties:
 - **Completely stateless**: The system doesn't need to store tokens or track sessions
@@ -581,14 +585,14 @@ The token system secures both SWAIG functions and post-prompt endpoints:
 - Post-prompt requests for receiving conversation summaries
 
 You can leave token security off for functions that expose only public data
-(this is the default in the Ruby port):
+(this is the default in the Ruby SDK):
 
 ```ruby
 agent.define_tool(
   name:        'get_public_information',
   description: "Get public information that doesn't require security",
   parameters:  {},
-  secure:      false # No token required for this function
+  secure:      false, handler: nil # No token required for this function
 ) do |args, raw_data|
   # Implementation
 end
@@ -796,7 +800,7 @@ agent.add_skill('datasphere', {
 
 #### Native Vector Search Skill (`native_vector_search`)
 Provides document search via a remote search server using vector similarity and
-keyword search. The Ruby port implements **remote (network) mode only**: it POSTs
+keyword search. The Ruby SDK implements **remote (network) mode only**: it POSTs
 queries to a search server over HTTP using the Ruby standard library (`net/http`).
 The Python reference's local/offline `.swsearch` index mode and the `sw-search`
 index-building CLI are not part of the Ruby gem.
@@ -1006,7 +1010,7 @@ Skills work with dynamic configuration:
 ```ruby
 agent = SignalWire::AgentBase.new(name: 'dynamic-skill-agent')
 
-agent.set_dynamic_config_callback do |query_params, _body, _headers, ephemeral|
+agent.set_dynamic_config_callback(nil) do |query_params, _body, _headers, ephemeral|
   # Add different skills based on request parameters
   tier = query_params['tier'] || 'basic'
 
@@ -1222,7 +1226,7 @@ agent.global_data = { 'service_level' => 'standard' }
 agent = SignalWire::AgentBase.new(name: 'dynamic-agent')
 
 # No static configuration - set up dynamic callback instead
-agent.set_dynamic_config_callback do |query_params, _body, _headers, ephemeral|
+agent.set_dynamic_config_callback(nil) do |query_params, _body, _headers, ephemeral|
   # Configuration happens fresh for each request
   tier = query_params['tier'] || 'standard'
 
@@ -1257,7 +1261,7 @@ agent = SignalWire::AgentBase.new(name: 'my-agent', route: '/agent')
 #   body         (Hash):  Parsed JSON body from POST requests
 #   headers      (Hash):  HTTP headers from the request
 #   ephemeral    (AgentBase): The per-request agent copy to configure
-agent.set_dynamic_config_callback do |query_params, body, headers, ephemeral|
+agent.set_dynamic_config_callback(nil) do |query_params, body, headers, ephemeral|
   # Your dynamic configuration logic here
 end
 ```
@@ -1344,7 +1348,7 @@ Your callback function receives detailed information about the incoming request:
 
 #### Query Parameters
 ```ruby
-agent.set_dynamic_config_callback do |query_params, _body, _headers, ephemeral|
+agent.set_dynamic_config_callback(nil) do |query_params, _body, _headers, ephemeral|
   # Extract query parameters
   tier        = query_params['tier'] || 'standard'
   language    = query_params['language'] || 'en'
@@ -1362,7 +1366,7 @@ end
 
 #### POST Body Parameters
 ```ruby
-agent.set_dynamic_config_callback do |_query_params, body, _headers, ephemeral|
+agent.set_dynamic_config_callback(nil) do |_query_params, body, _headers, ephemeral|
   # Extract from POST body
   user_profile = body['user_profile'] || {}
   preferences  = body['preferences'] || {}
@@ -1382,7 +1386,7 @@ end
 
 #### HTTP Headers
 ```ruby
-agent.set_dynamic_config_callback do |_query_params, _body, headers, ephemeral|
+agent.set_dynamic_config_callback(nil) do |_query_params, _body, headers, ephemeral|
   # Extract headers
   user_agent = headers['user-agent'] || ''
   auth_token = headers['authorization'] || ''
@@ -1399,7 +1403,7 @@ end
 
 #### Simple Multi-Tenant Configuration
 ```ruby
-agent.set_dynamic_config_callback do |query_params, _body, _headers, ephemeral|
+agent.set_dynamic_config_callback(nil) do |query_params, _body, _headers, ephemeral|
   tenant = query_params['tenant'] || 'default'
 
   # Tenant-specific configuration
@@ -1426,7 +1430,7 @@ end
 
 #### Language and Localization
 ```ruby
-agent.set_dynamic_config_callback do |query_params, _body, _headers, ephemeral|
+agent.set_dynamic_config_callback(nil) do |query_params, _body, _headers, ephemeral|
   language = query_params['language'] || 'en'
   region   = query_params['region'] || 'us'
 
@@ -1464,7 +1468,7 @@ end
 
 #### A/B Testing Configuration
 ```ruby
-agent.set_dynamic_config_callback do |query_params, _body, _headers, ephemeral|
+agent.set_dynamic_config_callback(nil) do |query_params, _body, _headers, ephemeral|
   # Determine test group (could be from query param, user ID hash, etc.)
   test_group = query_params['test_group'] || 'A'
 
@@ -1485,7 +1489,7 @@ end
 
 #### Customer Tier-Based Configuration
 ```ruby
-agent.set_dynamic_config_callback do |query_params, _body, _headers, ephemeral|
+agent.set_dynamic_config_callback(nil) do |query_params, _body, _headers, ephemeral|
   customer_id = query_params['customer_id']
   tier        = query_params['tier'] || 'standard'
 
@@ -1610,7 +1614,7 @@ After (Dynamic):
 agent = SignalWire::AgentBase.new(name: 'my-agent')
 
 # Set up dynamic configuration
-agent.set_dynamic_config_callback do |_query_params, _body, _headers, ephemeral|
+agent.set_dynamic_config_callback(nil) do |_query_params, _body, _headers, ephemeral|
   # Same configuration, but now dynamic
   ephemeral.add_language('English', 'en-US', 'rime.spore:mistv2')
   ephemeral.set_params({ 'end_of_speech_timeout' => 500 })
@@ -1622,7 +1626,7 @@ end
 **Step 2: Add Parameter-Based Logic**
 
 ```ruby
-agent.set_dynamic_config_callback do |query_params, _body, _headers, ephemeral|
+agent.set_dynamic_config_callback(nil) do |query_params, _body, _headers, ephemeral|
   # Start with base configuration
   ephemeral.add_language('English', 'en-US', 'rime.spore:mistv2')
   ephemeral.prompt_add_section('Role', 'You are a helpful assistant.')
@@ -1653,7 +1657,7 @@ end
 agent = SignalWire::AgentBase.new(name: 'my-agent')
 
 if use_dynamic
-  agent.set_dynamic_config_callback do |_query_params, _body, _headers, ephemeral|
+  agent.set_dynamic_config_callback(nil) do |_query_params, _body, _headers, ephemeral|
     configure(ephemeral) # New dynamic configuration
   end
 else
@@ -1667,7 +1671,7 @@ end
 
 1. **Keep Callbacks Lightweight**
 ```ruby
-agent.set_dynamic_config_callback do |query_params, _body, _headers, ephemeral|
+agent.set_dynamic_config_callback(nil) do |query_params, _body, _headers, ephemeral|
   # Good: Simple parameter extraction and configuration
   tier = query_params['tier'] || 'standard'
   ephemeral.set_params(TIER_CONFIGS[tier])
@@ -1688,7 +1692,7 @@ TIER_CONFIGS = {
 
 agent = SignalWire::AgentBase.new(name: 'my-agent')
 
-agent.set_dynamic_config_callback do |query_params, _body, _headers, ephemeral|
+agent.set_dynamic_config_callback(nil) do |query_params, _body, _headers, ephemeral|
   tier = query_params['tier'] || 'basic'
   ephemeral.set_params(TIER_CONFIGS.fetch(tier, TIER_CONFIGS['basic']))
 end
@@ -1696,7 +1700,7 @@ end
 
 3. **Use Default Values**
 ```ruby
-agent.set_dynamic_config_callback do |query_params, _body, _headers, ephemeral|
+agent.set_dynamic_config_callback(nil) do |query_params, _body, _headers, ephemeral|
   # Always provide defaults
   language = query_params['language'] || 'en'
   tier     = query_params['tier'] || 'standard'
@@ -1710,7 +1714,7 @@ end
 
 1. **Validate Input Parameters**
 ```ruby
-agent.set_dynamic_config_callback do |query_params, _body, _headers, ephemeral|
+agent.set_dynamic_config_callback(nil) do |query_params, _body, _headers, ephemeral|
   # Validate and sanitize inputs
   tier = query_params['tier'] || 'standard'
   tier = 'basic' unless %w[basic premium enterprise].include?(tier) # Safe default
@@ -1728,7 +1732,7 @@ end
 
 2. **Protect Sensitive Configuration**
 ```ruby
-agent.set_dynamic_config_callback do |query_params, _body, _headers, ephemeral|
+agent.set_dynamic_config_callback(nil) do |query_params, _body, _headers, ephemeral|
   # Don't expose internal configuration via parameters
   # Bad: ephemeral.set_global_data({ 'api_key' => query_params['api_key'] })
 
@@ -1754,7 +1758,7 @@ def customer_config(customer_id)
   CUSTOMER_CONFIG_CACHE[customer_id] ||= database.customer_settings(customer_id)
 end
 
-agent.set_dynamic_config_callback do |query_params, _body, _headers, ephemeral|
+agent.set_dynamic_config_callback(nil) do |query_params, _body, _headers, ephemeral|
   customer_id = query_params['customer_id']
   if customer_id
     config = customer_config(customer_id)
@@ -1767,7 +1771,7 @@ end
 
 1. **Graceful Degradation**
 ```ruby
-agent.set_dynamic_config_callback do |query_params, _body, _headers, ephemeral|
+agent.set_dynamic_config_callback(nil) do |query_params, _body, _headers, ephemeral|
   begin
     # Try custom configuration
     apply_custom_config(query_params, ephemeral)
@@ -1783,7 +1787,7 @@ end
 
 2. **Configuration Validation**
 ```ruby
-agent.set_dynamic_config_callback do |query_params, _body, _headers, ephemeral|
+agent.set_dynamic_config_callback(nil) do |query_params, _body, _headers, ephemeral|
   # Validate required parameters. Use `next` (not `return`) to bail out of
   # the block early.
   if query_params['tenant'].nil? || query_params['tenant'].empty?
@@ -1833,7 +1837,7 @@ To act on specific events (alerting, metrics, custom logging), register a handle
 agent = SignalWire::AgentBase.new(name: 'my_agent')
 agent.enable_debug_events
 
-agent.on_debug_event do |event_type, data|
+agent.on_debug_event(nil) do |event_type, data|
   call_id = data['call_id']
 
   case event_type
@@ -1896,7 +1900,7 @@ sessions = {}
 agent.define_tool(
   name:        'startup_hook',
   description: 'Called when the voice session starts',
-  parameters:  {}
+  parameters:  {}, handler: nil
 ) do |_args, raw_data|
   call_id     = raw_data['call_id']
   from_number = raw_data['from_number']
@@ -1918,7 +1922,7 @@ end
 agent.define_tool(
   name:        'hangup_hook',
   description: 'Called when the voice session ends',
-  parameters:  {}
+  parameters:  {}, handler: nil
 ) do |_args, raw_data|
   call_id = raw_data['call_id']
   state   = sessions[call_id]
@@ -1944,7 +1948,7 @@ end
 agent.define_tool(
   name:        'startup_hook',
   description: 'Called when the voice session starts',
-  parameters:  {}
+  parameters:  {}, handler: nil
 ) do |_args, raw_data|
   caller_id = raw_data['from_number']
 
@@ -1967,7 +1971,7 @@ end
 agent.define_tool(
   name:        'hangup_hook',
   description: 'Called when the voice session ends',
-  parameters:  {}
+  parameters:  {}, handler: nil
 ) do |_args, raw_data|
   call_id = raw_data['call_id']
   state   = sessions[call_id] || {}
@@ -2065,7 +2069,7 @@ class CustomAgent < SignalWire::AgentBase
     super(name: 'custom-agent')
 
     # Enable custom routing in the constructor or anytime after initialization
-    register_routing_callback('/customer') do |request_data|
+    register_routing_callback(nil, '/customer') do |request_data|
       # Extract any relevant data
       customer_id = request_data['customer_id']
 
@@ -2078,7 +2082,7 @@ class CustomAgent < SignalWire::AgentBase
       nil
     end
 
-    register_routing_callback('/product') do |request_data|
+    register_routing_callback(nil, '/product') do |request_data|
       nil
     end
   end
@@ -2215,7 +2219,7 @@ Prefab agents are pre-configured agent implementations designed for specific use
 The SDK includes several built-in prefab agents.
 
 > **Ruby note:** in the Python reference SDK each prefab *is* an `AgentBase`
-> subclass you serve directly. The Ruby port models prefabs as configuration
+> subclass you serve directly. The Ruby SDK models prefabs as configuration
 > helpers under `SignalWire::Prefabs::` — you construct the prefab, then apply
 > its `prompt_sections`, `global_data`, and tool handlers to a plain
 > `SignalWire::AgentBase`. The constructor keywords also differ from Python
@@ -2250,13 +2254,13 @@ gatherer.prompt_sections.each do |section|
 end
 agent.global_data = gatherer.global_data
 
-agent.define_tool(name: 'start_questions', description: 'Start the question sequence', parameters: {}) do |args, raw_data|
+agent.define_tool(name: 'start_questions', description: 'Start the question sequence', parameters: {}, handler: nil) do |args, raw_data|
   gatherer.handle_start(args, raw_data)
 end
 agent.define_tool(
   name:        'submit_answer',
   description: 'Submit an answer to the current question',
-  parameters:  { 'answer' => { 'type' => 'string', 'description' => "The caller's answer" } }
+  parameters:  { 'answer' => { 'type' => 'string', 'description' => "The caller's answer" } }, handler: nil
 ) do |args, raw_data|
   gatherer.handle_submit(args, raw_data)
 end
@@ -2294,7 +2298,7 @@ agent.global_data = faq_bot.global_data
 agent.define_tool(
   name:        'search_faq',
   description: 'Search the FAQ knowledge base',
-  parameters:  { 'query' => { 'type' => 'string', 'description' => 'Search query' } }
+  parameters:  { 'query' => { 'type' => 'string', 'description' => 'Search query' } }, handler: nil
 ) do |args, raw_data|
   faq_bot.handle_search(args, raw_data)
 end
@@ -2338,14 +2342,14 @@ agent.global_data = concierge.global_data
 agent.define_tool(
   name:        'get_amenity_info',
   description: 'Get information about a venue amenity',
-  parameters:  { 'amenity' => { 'type' => 'string', 'description' => 'Name of the amenity' } }
+  parameters:  { 'amenity' => { 'type' => 'string', 'description' => 'Name of the amenity' } }, handler: nil
 ) do |args, raw_data|
   concierge.handle_amenity_info(args, raw_data)
 end
 agent.define_tool(
   name:        'get_service_info',
   description: 'Get information about a venue service',
-  parameters:  { 'service' => { 'type' => 'string', 'description' => 'Name of the service' } }
+  parameters:  { 'service' => { 'type' => 'string', 'description' => 'Name of the service' } }, handler: nil
 ) do |args, raw_data|
   concierge.handle_service_info(args, raw_data)
 end
@@ -2387,13 +2391,13 @@ survey.prompt_sections.each do |section|
 end
 agent.global_data = survey.global_data
 
-agent.define_tool(name: 'start_survey', description: 'Start the survey', parameters: {}) do |args, raw_data|
+agent.define_tool(name: 'start_survey', description: 'Start the survey', parameters: {}, handler: nil) do |args, raw_data|
   survey.handle_start(args, raw_data)
 end
 agent.define_tool(
   name:        'submit_survey_answer',
   description: 'Submit an answer to the current survey question',
-  parameters:  { 'answer' => { 'type' => 'string', 'description' => "The respondent's answer" } }
+  parameters:  { 'answer' => { 'type' => 'string', 'description' => "The respondent's answer" } }, handler: nil
 ) do |args, raw_data|
   survey.handle_submit(args, raw_data)
 end
@@ -2433,7 +2437,7 @@ agent.global_data = receptionist.global_data
 agent.define_tool(
   name:        'transfer_to_department',
   description: 'Transfer the caller to a specific department',
-  parameters:  { 'department' => { 'type' => 'string', 'description' => 'Department name' } }
+  parameters:  { 'department' => { 'type' => 'string', 'description' => 'Department name' } }, handler: nil
 ) do |args, raw_data|
   receptionist.handle_transfer(args, raw_data)
 end
@@ -2488,7 +2492,7 @@ def build_customer_support_agent(product_name:, knowledge_base_path: nil,
     parameters:  {
       'issue_summary'  => { 'type' => 'string', 'description' => 'Brief summary of the issue' },
       'customer_email' => { 'type' => 'string', 'description' => "Customer's email address" }
-    }
+    }, handler: nil
   ) do |_args, _raw_data|
     # Implementation...
     SignalWire::Swaig::FunctionResult.new('Issue escalated successfully.')
@@ -2501,7 +2505,7 @@ def build_customer_support_agent(product_name:, knowledge_base_path: nil,
       'customer_email'   => { 'type' => 'string' },
       'issue_summary'    => { 'type' => 'string' },
       'resolution_steps' => { 'type' => 'string' }
-    }
+    }, handler: nil
   ) do |_args, _raw_data|
     # Implementation...
     SignalWire::Swaig::FunctionResult.new('Follow-up email sent successfully.')
@@ -2558,7 +2562,7 @@ def build_enhanced_gatherer(questions:, **agent_opts)
   agent.define_tool(
     name:        'check_customer',
     description: 'Check customer status in database',
-    parameters:  { 'email' => { 'type' => 'string' } }
+    parameters:  { 'email' => { 'type' => 'string' } }, handler: nil
   ) do |_args, _raw_data|
     # Implementation...
     SignalWire::Swaig::FunctionResult.new('Customer status: Active')
@@ -2633,19 +2637,19 @@ my-prefab-agents/
 - Readers: `agent.prompt`, `agent.post_prompt`, `agent.prompt_text`
 
 > The Python `setPersonality` / `setGoal` / `setInstructions` camelCase
-> convenience methods are not part of the Ruby port — call `prompt_add_section`
+> convenience methods are not part of the Ruby SDK — call `prompt_add_section`
 > with the relevant title directly.
 
 ### SWAIG Methods
 
-- `define_tool(name:, description:, parameters: {}, secure: false, fillers: nil, webhook_url: nil, ...) { |args, raw_data| ... }` (block-based; there is no decorator form)
+- `define_tool(name:, description:, parameters:, handler:, secure: true, fillers: nil, webhook_url: nil, ...) { |args, raw_data| ... }` — `parameters:` and `handler:` are REQUIRED; the block-based form passes `handler: nil` and supplies the block
 - `register_swaig_function(func_def)`
 - `set_native_functions(names)` / `agent.native_functions = names`
 - `add_function_include(url, functions, meta_data: nil)`
 - Predicate/readers: `agent.function?(name)`, `agent.get_function(name)`, `agent.all_functions`, `agent.list_tool_names`
 
 > The Python `add_native_function` / `remove_native_function` helpers are not in
-> the Ruby port — assign the full list via `set_native_functions` /
+> the Ruby SDK — assign the full list via `set_native_functions` /
 > `agent.native_functions =`.
 
 ### Configuration Methods
@@ -2662,7 +2666,7 @@ my-prefab-agents/
 Per-call state is managed internally by the agent's `SessionManager` (used for
 SWAIG token minting/validation). The Python `get_state` / `set_state` /
 `update_state` / `clear_state` / `cleanup_expired_state` helpers are not exposed
-as public `AgentBase` methods in the Ruby port; persist your own session data in
+as public `AgentBase` methods in the Ruby SDK; persist your own session data in
 a captured Hash or external store (see [Session Lifecycle Hooks](#session-lifecycle-hooks)).
 
 ### SIP Routing Methods
@@ -2670,8 +2674,8 @@ a captured Hash or external store (see [Session Lifecycle Hooks](#session-lifecy
 - `enable_sip_routing(auto_map: true, path: '/sip')`: Enable SIP routing for an agent
 - `register_sip_username(username)`: Register a SIP username for an agent
 
-> The Python `auto_map_sip_usernames()` helper is not separately exposed in the
-> Ruby port — auto-mapping happens via `enable_sip_routing(auto_map: true)`.
+> There is no separate `auto_map_sip_usernames()` helper — auto-mapping happens
+> via `enable_sip_routing(auto_map: true)`.
 
 #### AgentServer SIP Methods
 
@@ -2683,9 +2687,9 @@ a captured Hash or external store (see [Session Lifecycle Hooks](#session-lifecy
 - `serve(host: nil, port: nil)`: Start the web server (Rack/WEBrick)
 - `rack_app` (aliased `as_rack_app`): Return a Rack-compatible application for this agent (Ruby uses Rack, not FastAPI)
 - `on_swml_request(request_data = nil, callback_path = nil, request: nil)`: Customize SWML based on request data and path (override in a subclass)
-- `on_summary(...) { |summary, raw_data| ... }`: Handle post-prompt summaries (block form)
+- `on_summary(nil) { |summary, raw_data| ... }`: Handle post-prompt summaries. `summary` is a REQUIRED positional — pass `nil` when REGISTERING a block handler; pass the summary to DISPATCH. You may also override `on_summary` in a subclass.
 - `on_function_call(name, args, raw_data)`: Process SWAIG function calls
-- `register_routing_callback(path) { |request_data| ... }`: Register a block for custom path routing
+- `register_routing_callback(callback_fn, path = '/sip') { |request_data| ... }`: Register a callback for custom path routing. `callback_fn` is the REQUIRED first positional — the block form passes `nil` for it, e.g. `register_routing_callback(nil, '/customer') { |request_data| ... }`
 - `set_web_hook_url(url)` / `agent.web_hook_url = url`: Override the default web_hook_url
 - `set_post_prompt_url(url)` / `agent.post_prompt_url = url`: Override the default post_prompt_url
 
@@ -2711,7 +2715,7 @@ the AWS Lambda handler adapter, and **in-process file mode**
 (`--file PATH --list-tools`). The actions are `--dump-swml`, `--list-tools`, and
 `--exec NAME` (with repeatable `--param KEY=VALUE`).
 
-> **Ruby note:** the Ruby port implements only the flags listed above (plus
+> **Ruby note:** the Ruby SDK implements only the flags listed above (plus
 > `--env` / `--env-file` for the Lambda simulation, `--raw`, and `--verbose`).
 > The larger Python `swaig-test` surface — multi-agent selection
 > (`--list-agents` / `--agent-class` / `--route`), CGI / Cloud Functions / Azure
@@ -2774,7 +2778,7 @@ agent.prompt_add_section('Instructions', nil, bullets: [
 agent.define_tool(
   name:        'get_time',
   description: 'Get the current time',
-  parameters:  {}
+  parameters:  {}, handler: nil
 ) do |_args, _raw_data|
   formatted_time = Time.now.strftime('%H:%M:%S')
   SignalWire::Swaig::FunctionResult.new("The current time is #{formatted_time}")
@@ -2840,7 +2844,7 @@ agent.define_tool(
   description: "Check the status of a customer's account",
   parameters:  {
     'account_id' => { 'type' => 'string', 'description' => "The customer's account ID" }
-  }
+  }, handler: nil
 ) do |args, _raw_data|
   account_id = args['account_id']
   # In a real implementation, this would query a database
@@ -2857,7 +2861,7 @@ agent.define_tool(
       'description' => 'Ticket priority',
       'enum'        => %w[low medium high critical]
     }
-  }
+  }, handler: nil
 ) do |args, _raw_data|
   issue    = args['issue'] || ''
   priority = args['priority'] || 'medium'

@@ -9,13 +9,14 @@
 # AUTO-GENERATED from the SignalWire REST API specifications — regenerate with:
 #   python3 scripts/generate_rest.py
 #
-# Generated REST client container for the datasphere namespace (§8).
+# Generated REST client container for the datasphere namespace.
 
 module SignalWire
   module REST
     module Namespaces
       module Generated
-        # DatasphereNamespace — generated container grouping the datasphere namespace resources (§8).
+        # DatasphereNamespace — groups the datasphere namespace resources; each is exposed
+        # as a memoized reader on this container.
         class DatasphereNamespace
           attr_reader :documents
 

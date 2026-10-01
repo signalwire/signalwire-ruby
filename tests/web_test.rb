@@ -9,7 +9,7 @@ require_relative '../lib/signalwire'
 class WebhookUrlTest < Minitest::Test
   def test_webhook_url_in_swml
     agent = SignalWire::AgentBase.new(basic_auth: %w[u p])
-    agent.define_tool(name: 'test', description: 'Test') { |_, _| }
+    agent.define_tool(name: 'test', description: 'Test', parameters: {}, handler: nil) { |_, _| }
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
     default_url = ai['SWAIG']['defaults']['web_hook_url']
@@ -21,7 +21,7 @@ class WebhookUrlTest < Minitest::Test
   def test_web_hook_url_override
     agent = SignalWire::AgentBase.new
     agent.set_web_hook_url('https://custom.example.com/hook')
-    agent.define_tool(name: 'test', description: 'Test') { |_, _| }
+    agent.define_tool(name: 'test', description: 'Test', parameters: {}, handler: nil) { |_, _| }
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
 
@@ -52,7 +52,7 @@ class ProxyUrlTest < Minitest::Test
   def test_proxy_url_from_env
     ENV['SWML_PROXY_URL_BASE'] = 'https://proxy.example.com'
     agent = SignalWire::AgentBase.new
-    agent.define_tool(name: 'test', description: 'Test') { |_, _| }
+    agent.define_tool(name: 'test', description: 'Test', parameters: {}, handler: nil) { |_, _| }
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
     url = ai['SWAIG']['defaults']['web_hook_url']
@@ -65,7 +65,7 @@ class ProxyUrlTest < Minitest::Test
   def test_manual_set_proxy_url
     agent = SignalWire::AgentBase.new
     agent.manual_set_proxy_url('https://manual.example.com')
-    agent.define_tool(name: 'test', description: 'Test') { |_, _| }
+    agent.define_tool(name: 'test', description: 'Test', parameters: {}, handler: nil) { |_, _| }
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
     url = ai['SWAIG']['defaults']['web_hook_url']
@@ -78,7 +78,7 @@ class SwaigQueryParamsTest < Minitest::Test
   def test_add_swaig_query_params
     agent = SignalWire::AgentBase.new(basic_auth: %w[u p])
     agent.add_swaig_query_params({ 'tenant' => 'acme' })
-    agent.define_tool(name: 'test', description: 'Test') { |_, _| }
+    agent.define_tool(name: 'test', description: 'Test', parameters: {}, handler: nil) { |_, _| }
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
     url = ai['SWAIG']['defaults']['web_hook_url']
@@ -90,7 +90,7 @@ class SwaigQueryParamsTest < Minitest::Test
     agent = SignalWire::AgentBase.new
     agent.add_swaig_query_params({ 'key' => 'val' })
     agent.clear_swaig_query_params
-    agent.define_tool(name: 'test', description: 'Test') { |_, _| }
+    agent.define_tool(name: 'test', description: 'Test', parameters: {}, handler: nil) { |_, _| }
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
     url = ai['SWAIG']['defaults']['web_hook_url']
@@ -103,7 +103,7 @@ class DynamicConfigIsolationTest < Minitest::Test
   def test_dynamic_config_callback_applied
     agent = SignalWire::AgentBase.new
     agent.set_prompt_text('Original')
-    agent.set_dynamic_config_callback do |_query, _body, _headers, ephemeral|
+    agent.set_dynamic_config_callback(nil) do |_query, _body, _headers, ephemeral|
       ephemeral.set_prompt_text('Modified')
     end
     swml = agent.render_swml
@@ -115,7 +115,7 @@ class DynamicConfigIsolationTest < Minitest::Test
   def test_original_not_mutated
     agent = SignalWire::AgentBase.new
     agent.set_prompt_text('Original')
-    agent.set_dynamic_config_callback do |_query, _body, _headers, ephemeral|
+    agent.set_dynamic_config_callback(nil) do |_query, _body, _headers, ephemeral|
       ephemeral.set_prompt_text('Modified')
       ephemeral.add_hint('NewHint')
     end
@@ -126,8 +126,9 @@ class DynamicConfigIsolationTest < Minitest::Test
 
   def test_dynamic_config_can_add_tools
     agent = SignalWire::AgentBase.new
-    agent.set_dynamic_config_callback do |_q, _b, _h, ephemeral|
-      ephemeral.define_tool(name: 'dynamic_tool', description: 'Added dynamically') { |_, _| }
+    agent.set_dynamic_config_callback(nil) do |_q, _b, _h, ephemeral|
+      ephemeral.define_tool(name: 'dynamic_tool', description: 'Added dynamically',
+                            parameters: {}, handler: nil) { |_, _| }
     end
     swml = agent.render_swml
     ai = swml['sections']['main'].find { |v| v.key?('ai') }['ai']
@@ -142,7 +143,7 @@ class WebChainingTest < Minitest::Test
   def test_web_methods_return_self
     agent = SignalWire::AgentBase.new
 
-    assert_same(agent, agent.set_dynamic_config_callback { |*| })
+    assert_same(agent, agent.set_dynamic_config_callback(nil) { |*| })
     assert_same agent, agent.manual_set_proxy_url('x')
     assert_same agent, agent.set_web_hook_url('x')
     assert_same agent, agent.set_post_prompt_url('x')

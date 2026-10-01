@@ -122,6 +122,76 @@ class SwmlHandlerTest < Minitest::Test
   end
 end
 
+# +post_prompt+ must be validated the same way +prompt+ is.
+#
+# THE ENGINE TREATS THEM IDENTICALLY. +mod_openai/app_config.c+ checks
+# +!cJSON_IsObject(assistant_prompt)+ at :3193 and +!cJSON_IsObject(post_prompt)+
+# at :3219 — same structure, same +fatal: true+ +calling.error+, and both error
+# payloads read "must be an object with 'text' or 'pom' field". post_prompt's
+# names the array case explicitly ("not an array").
+#
+# +build_config+ has always emitted the right shape ({ 'text' => ... }), so no
+# code path here produced bad wire. The hole was in +validate_config+, which is
+# PUBLIC surface taking a caller-supplied Hash: it checked +prompt+ four ways
+# and +post_prompt+ zero times, so a hand-assembled config that ABORTS THE CALL
+# was reported valid. That blind spot is exactly how signalwire-go shipped a
+# bare-string post_prompt (fixed in go 51934ec).
+# Rippled from signalwire-python 4371610.
+class SwmlHandlerPostPromptShapeTest < Minitest::Test
+  def setup
+    @handler = SignalWire::SWML::AIVerbHandler.new
+  end
+
+  def test_validate_config_bare_string_post_prompt_is_rejected
+    valid, errors = @handler.validate_config(
+      { 'prompt' => { 'text' => 'You are helpful.' }, 'post_prompt' => 'Summarize.' }
+    )
+
+    refute valid
+    assert_includes errors, "'post_prompt' must be an object"
+  end
+
+  # The array case the engine names by name in its error payload.
+  def test_validate_config_array_post_prompt_is_rejected
+    valid, errors = @handler.validate_config(
+      { 'prompt' => { 'text' => 'hi' }, 'post_prompt' => [{ 'say' => 'x' }] }
+    )
+
+    refute valid
+    assert_includes errors, "'post_prompt' must be an object"
+  end
+
+  # The shape build_config emits must stay valid.
+  def test_validate_config_object_post_prompt_is_accepted
+    valid, errors = @handler.validate_config(
+      { 'prompt' => { 'text' => 'hi' }, 'post_prompt' => { 'text' => 'Summarize.' } }
+    )
+
+    assert valid
+    assert_empty errors
+  end
+
+  # post_prompt is OPTIONAL — absence must not become an error.
+  def test_validate_config_absent_post_prompt_is_accepted
+    valid, errors = @handler.validate_config({ 'prompt' => { 'text' => 'hi' } })
+
+    assert valid
+    assert_empty errors
+  end
+
+  # The builder and the validator must agree — round-trip guard.
+  def test_build_config_output_validates
+    config = @handler.build_config(prompt_text: 'You are helpful.', post_prompt: 'Summarize.')
+
+    assert_equal({ 'text' => 'Summarize.' }, config['post_prompt'])
+
+    valid, errors = @handler.validate_config(config)
+
+    assert valid
+    assert_empty errors
+  end
+end
+
 # Tests for the SWMLVerbHandler base class and the VerbHandlerRegistry.
 class SwmlVerbHandlerRegistryTest < Minitest::Test
   def setup

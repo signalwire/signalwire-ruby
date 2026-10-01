@@ -6,7 +6,7 @@ require 'signalwire'
 ```
 
 This guide covers deploying SignalWire AI Agents for Ruby to serverless
-platforms. The Ruby port ships a first-class adapter for AWS Lambda via
+platforms. The Ruby SDK ships a first-class adapter for AWS Lambda via
 `SignalWire::Serverless::LambdaHandler`; deployment to Google Cloud Functions
 and Azure Functions is not officially supported (see
 [PORT_OMISSIONS.md](../PORT_OMISSIONS.md)).
@@ -101,7 +101,7 @@ https://username:password@{url-id}.lambda-url.{region}.on.aws/
 
 ## Google Cloud Functions / Azure Functions
 
-Google Cloud Functions and Azure Functions are not supported by the Ruby port.
+Google Cloud Functions and Azure Functions are not supported by the Ruby SDK.
 The Python SDK ships per-platform detection mixins
 (`signalwire.core.mixins.serverless_mixin.ServerlessMixin`) that have not been
 ported. If you need to run a SignalWire agent on these platforms, options are:
@@ -136,7 +136,7 @@ agent = SignalWire::AgentBase.new(
 
 ## Testing
 
-The Ruby port does not ship a CLI analogue to Python's `swaig-test`. Tests
+The Ruby SDK does not ship a CLI analogue to Python's `swaig-test`. Tests
 target the agent's Rack app directly with `Rack::Test` or with raw HTTP
 requests:
 

@@ -28,32 +28,41 @@ require 'signalwire'
 # SWML::Service subclass that registers SWAIG tools and serves them
 # on /swaig. No AgentBase in the inheritance chain.
 class StandaloneSwaig < SignalWire::SWML::Service
+  COMPETITOR_TOOL_DESCRIPTION = 'Look up competitor pricing by company name. Use this ' \
+                                "when the user asks how a competitor's price compares to ours."
+
+  COMPETITOR_PARAMS = {
+    'competitor' => {
+      'type' => 'string',
+      'description' => "The competitor's company name, e.g. 'ACME'."
+    }
+  }.freeze
+
   def initialize(host: '0.0.0.0', port: nil)
     super(
-      name:  'standalone-swaig',
+      name: 'standalone-swaig',
       route: '/standalone',
-      host:  host,
-      port:  port
+      host: host,
+      port: port
     )
 
     # 1. Build a minimal SWML document. Any verbs are fine -- the SWAIG
     #    HTTP surface is independent of what the document contains.
     answer
     hangup
+    register_lookup_competitor
+  end
 
-    # 2. Register a SWAIG function. `define_tool` lives on SWML::Service,
-    #    not just AgentBase. The handler block receives parsed arguments
-    #    plus the raw POST body.
+  private
+
+  # 2. Register a SWAIG function. `define_tool` lives on SWML::Service,
+  #    not just AgentBase. The handler block receives parsed arguments
+  #    plus the raw POST body.
+  def register_lookup_competitor
     define_tool(
-      name:        'lookup_competitor',
-      description: 'Look up competitor pricing by company name. Use this ' \
-                   "when the user asks how a competitor's price compares to ours.",
-      parameters:  {
-        'competitor' => {
-          'type'        => 'string',
-          'description' => "The competitor's company name, e.g. 'ACME'."
-        }
-      },
+      name: 'lookup_competitor',
+      description: COMPETITOR_TOOL_DESCRIPTION,
+      parameters: COMPETITOR_PARAMS,
       secure: false # standalone services don't validate session tokens by default
     ) do |args, _raw_data|
       competitor = args['competitor'] || '<unknown>'
@@ -62,6 +71,4 @@ class StandaloneSwaig < SignalWire::SWML::Service
   end
 end
 
-if __FILE__ == $PROGRAM_NAME
-  StandaloneSwaig.new.serve
-end
+StandaloneSwaig.new.serve if __FILE__ == $PROGRAM_NAME

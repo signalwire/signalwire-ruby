@@ -7,14 +7,14 @@
 #
 # SWML document rendering utilities for SignalWire AI Agents.
 #
-# Mirrors the Python reference signalwire.core.swml_renderer.SwmlRenderer (two
-# staticmethod-like helpers) and the PHP SignalWire\SWML\SwmlRenderer. Both
-# helpers are module functions in Ruby (def self.) since the reference methods
-# are static.
+# Two stateless helpers, exposed as module functions (def self.) — there is
+# nothing to instantiate.
 
 require_relative 'swml_builder'
 
+# SignalWire — root namespace of the Ruby SDK.
 module SignalWire
+  # SWML — SWML document construction, rendering and serving.
   module SWML
     # Renders SWML documents for SignalWire AI Agents with AI and SWAIG
     # components, built on top of the SWML::Service document model.
@@ -60,8 +60,12 @@ module SignalWire
       end
 
       # Add the record_call verb with its exact wire keys (format + stereo).
+      #
+      # Goes through the validating Service#add_verb rather than the raw
+      # document entry point, so a config the schema rejects fails loudly here
+      # instead of shipping an invalid document.
       def self.add_record_call(service, record_format, record_stereo)
-        service.document.add_verb('record_call', { 'format' => record_format, 'stereo' => record_stereo })
+        service.add_verb('record_call', { 'format' => record_format, 'stereo' => record_stereo })
       end
 
       # Emit the ai verb on the builder from the renderer's inputs.
@@ -81,14 +85,20 @@ module SignalWire
       # Generate a SWML document for a function response — a +play+ of the
       # response text followed by any provided actions.
       #
+      # The SWML +play+ verb has no +text+ key: its config is PlayWithURL /
+      # PlayWithURLS, and spoken text goes through the +say:+ URL scheme. Verbs
+      # are added through the validating Service#add_verb (not the raw document
+      # entry point), so a config the schema rejects fails loudly here rather
+      # than shipping an invalid document.
+      #
       # @param response_text [String] text response to include in the document
       # @param service [SignalWire::SWML::Service] service to build with
       # @param actions [Array<Hash>, nil] optional list of actions to perform
       # @param format [String] output format ("json" or "yaml")
       # @return [String] SWML document as a string
       def self.render_function_response_swml(response_text:, service:, actions: nil, format: 'json')
-        service.document.reset
-        service.document.add_verb('play', { 'text' => response_text }) if response_text && !response_text.empty?
+        service.reset_document
+        service.add_verb('play', { 'url' => "say:#{response_text}" }) if response_text && !response_text.empty?
         (actions || []).each { |action| add_response_action(service, action) }
 
         format.to_s.downcase == 'yaml' ? render_yaml(service.document.to_h) : service.render
@@ -97,7 +107,7 @@ module SignalWire
       # Add the first recognised action verb from an action hash to the document.
       def self.add_response_action(service, action)
         verb = RESPONSE_ACTION_VERBS.find { |v| action.key?(v) }
-        service.document.add_verb(verb, action[verb]) if verb
+        service.add_verb(verb, action[verb]) if verb
       end
 
       # Build the SWAIG function list, prepending startup/hangup hooks and

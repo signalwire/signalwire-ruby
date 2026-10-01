@@ -9,13 +9,14 @@
 # AUTO-GENERATED from the SignalWire REST API specifications — regenerate with:
 #   python3 scripts/generate_rest.py
 #
-# Generated REST client container for the registry namespace (§8).
+# Generated REST client container for the registry namespace.
 
 module SignalWire
   module REST
     module Namespaces
       module Generated
-        # RegistryNamespace — generated container grouping the registry namespace resources (§8).
+        # RegistryNamespace — groups the registry namespace resources; each is exposed
+        # as a memoized reader on this container.
         class RegistryNamespace
           attr_reader :brands, :campaigns, :numbers, :orders
 

@@ -139,7 +139,8 @@ class SummaryExtractionOrderTest < Minitest::Test
   def setup
     @agent = SignalWire::AgentBase.new
     @received = nil
-    @agent.on_summary { |summary, _raw| @received = summary }
+    # `summary` is required (reference parity); a registration states it as nil.
+    @agent.on_summary(nil) { |summary, _raw| @received = summary }
   end
 
   def test_prefers_top_level_summary_key

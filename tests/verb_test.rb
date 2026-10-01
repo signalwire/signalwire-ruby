@@ -22,7 +22,7 @@ class PreAnswerVerbTest < Minitest::Test
   end
 
   def test_clear_pre_answer_verbs
-    @agent.add_pre_answer_verb('play', { 'url' => 'ring.mp3' })
+    @agent.add_pre_answer_verb('play', { 'url' => 'https://example.com/ring.mp3' })
     @agent.clear_pre_answer_verbs
     swml = @agent.render_swml
     main = swml['sections']['main']
@@ -32,7 +32,7 @@ class PreAnswerVerbTest < Minitest::Test
 
   def test_multiple_pre_answer_verbs
     @agent.add_pre_answer_verb('set', { 'x' => '1' })
-    @agent.add_pre_answer_verb('play', { 'url' => 'ring.mp3' })
+    @agent.add_pre_answer_verb('play', { 'url' => 'https://example.com/ring.mp3' })
     swml = @agent.render_swml
     main = swml['sections']['main']
 
@@ -47,7 +47,7 @@ class PostAnswerVerbTest < Minitest::Test
   end
 
   def test_post_answer_verbs
-    @agent.add_post_answer_verb('play', { 'url' => 'welcome.mp3' })
+    @agent.add_post_answer_verb('play', { 'url' => 'https://example.com/welcome.mp3' })
     swml = @agent.render_swml
     main = swml['sections']['main']
     answer_idx = main.index { |v| v.key?('answer') }

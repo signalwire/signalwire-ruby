@@ -22,26 +22,27 @@ module SignalWire
             super(http, '/api/projects')
           end
 
-          def create(name:, protect_recordings: nil, protect_message_media: nil, protect_fax_media: nil, force_https_requests: nil, extras: {}, request_options: nil, **kwargs)
+          def create(name:, protect_recordings: nil, protect_message_media: nil, protect_fax_media: nil, force_https_requests: nil, parent_project_id: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['name'] = name
             body['protect_recordings'] = protect_recordings unless protect_recordings.nil?
             body['protect_message_media'] = protect_message_media unless protect_message_media.nil?
             body['protect_fax_media'] = protect_fax_media unless protect_fax_media.nil?
             body['force_https_requests'] = force_https_requests unless force_https_requests.nil?
+            body['parent_project_id'] = parent_project_id unless parent_project_id.nil?
             body = body.merge(extras).merge(kwargs)
             @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(resource_id, name:, protect_recordings: nil, protect_message_media: nil, protect_fax_media: nil, force_https_requests: nil, extras: {}, request_options: nil, **kwargs)
+          def update(id, name: nil, protect_recordings: nil, protect_message_media: nil, protect_fax_media: nil, force_https_requests: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
-            body['name'] = name
+            body['name'] = name unless name.nil?
             body['protect_recordings'] = protect_recordings unless protect_recordings.nil?
             body['protect_message_media'] = protect_message_media unless protect_message_media.nil?
             body['protect_fax_media'] = protect_fax_media unless protect_fax_media.nil?
             body['force_https_requests'] = force_https_requests unless force_https_requests.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.patch(_path(resource_id), body, request_options: request_options)
+            @http.patch(_path(id), body, request_options: request_options)
           end
 
           def delete(resource_id, request_options: nil)

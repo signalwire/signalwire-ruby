@@ -10,18 +10,19 @@
 # post-prompt components/schemas 'PostPromptStampsUs'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::PostPromptGenerated — namespace for this generated data-class tree.
     module PostPromptGenerated
       # PostPromptStampsUs — generated read-side payload (post-prompt components/schemas 'PostPromptStampsUs').
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
-      # A zero-arg reader per field mirrors the reference's recorded
-      # accessors (dropped on the SURFACE by the enumerator — method-less there).
+      # Each field also has a zero-arg reader, so a decoded payload can be
+      # accessed by name rather than by wire key.
       class PostPromptStampsUs
         FIELDS = {
           'speech_start' => :integer,
           'last_word_end' => :integer,
-          'suspected_end' => :integer,
           'turn_decided' => :integer,
           'status_pushed' => :integer,
           'request_detect' => :integer,
@@ -30,7 +31,7 @@ module SignalWire
           'first_audio' => :integer
         }.freeze
 
-        attr_reader :speech_start, :last_word_end, :suspected_end, :turn_decided, :status_pushed, :request_detect, :first_token, :first_utterance, :first_audio
+        attr_reader :speech_start, :last_word_end, :turn_decided, :status_pushed, :request_detect, :first_token, :first_utterance, :first_audio
       end
     end
   end

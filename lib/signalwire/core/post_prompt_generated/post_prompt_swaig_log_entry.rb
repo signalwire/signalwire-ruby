@@ -10,13 +10,15 @@
 # post-prompt components/schemas 'PostPromptSwaigLogEntry'
 
 module SignalWire
+  # SignalWire::Core — namespace for this generated data-class tree.
   module Core
+    # SignalWire::Core::PostPromptGenerated — namespace for this generated data-class tree.
     module PostPromptGenerated
       # PostPromptSwaigLogEntry — generated read-side payload (post-prompt components/schemas 'PostPromptSwaigLogEntry').
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
-      # A zero-arg reader per field mirrors the reference's recorded
-      # accessors (dropped on the SURFACE by the enumerator — method-less there).
+      # Each field also has a zero-arg reader, so a decoded payload can be
+      # accessed by name rather than by wire key.
       class PostPromptSwaigLogEntry
         FIELDS = {
           'command_name' => :string,
@@ -30,8 +32,8 @@ module SignalWire
           'delayed_post_response' => :object,
           'mcp_url' => :string,
           'mcp_tool' => :string,
-          'mcp_response' => :object,
-          'mcp_error' => :string
+          'mcp_response' => :string,
+          'mcp_error' => :boolean
         }.freeze
 
         attr_reader :command_name, :command_arg, :epoch_time, :native, :active_count, :url, :post_data, :post_response, :delayed_post_response, :mcp_url, :mcp_tool, :mcp_response, :mcp_error

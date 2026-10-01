@@ -22,22 +22,24 @@ module SignalWire
             super(http, '/api/fabric/resources/swml_scripts')
           end
 
-          def create(name:, contents:, status_callback_url: nil, extras: {}, request_options: nil, **kwargs)
+          def create(name:, contents:, status_callback_url: nil, script_type: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['name'] = name
             body['contents'] = contents
             body['status_callback_url'] = status_callback_url unless status_callback_url.nil?
+            body['script_type'] = script_type unless script_type.nil?
             body = body.merge(extras).merge(kwargs)
             @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(resource_id, display_name: nil, contents: nil, status_callback_url: nil, extras: {}, request_options: nil, **kwargs)
+          def update(id, contents: nil, status_callback_url: nil, name: nil, script_type: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
-            body['display_name'] = display_name unless display_name.nil?
             body['contents'] = contents unless contents.nil?
             body['status_callback_url'] = status_callback_url unless status_callback_url.nil?
+            body['name'] = name unless name.nil?
+            body['script_type'] = script_type unless script_type.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.put(_path(resource_id), body, request_options: request_options)
+            @http.put(_path(id), body, request_options: request_options)
           end
         end
       end
