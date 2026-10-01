@@ -28,13 +28,13 @@ class SpaceGeneratedTest < Minitest::Test
   parallelize_me!
 
   def setup
-    h = MockTest.client
+    h = MockTest.pat_client
     @client = h[:client]
     @mock = h[:mock]
   end
 
   def test_balance_create_top_up_success
-    @client.space.balance.create_top_up(amount_in_microdollars: 'x', payment_method_id: 'x')
+    @client.space.balance.create_top_up(idempotency_key: 'x', amount_in_microdollars: 'x', payment_method_id: 'x')
     last = @mock.last
 
     assert_equal 'POST', last.method
@@ -43,7 +43,7 @@ class SpaceGeneratedTest < Minitest::Test
 
   def test_balance_create_top_up_error
     @mock.push_scenario('space.create_top_up', status: 500, response: { 'error' => 'x' })
-    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.space.balance.create_top_up(amount_in_microdollars: 'x', payment_method_id: 'x') }
+    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.space.balance.create_top_up(idempotency_key: 'x', amount_in_microdollars: 'x', payment_method_id: 'x') }
 
     assert_equal 500, err.status_code
     assert_equal 500, @mock.last.response_status

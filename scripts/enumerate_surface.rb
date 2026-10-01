@@ -116,6 +116,7 @@ GENERATED_TYPES_NS = {
   'Projects' => 'projects',
   'Chat' => 'chat',
   'PubSub' => 'pubsub',
+  'Space' => 'space',
   'SwmlWebhooks' => 'swml_webhooks'
 }.freeze
 GENERATED_SURFACE_MAP =
@@ -456,6 +457,7 @@ RUBY_EXCLUDED_CLASSES = %w[
   SignalWire::REST::EffectiveOptions
   SignalWire::REST::AbortSignal
   SignalWire::REST::Attempt
+  SignalWire::REST::RestClient::MissingCredentialHttp
 ].freeze
 
 # Mixin projections: Ruby collapses Python's mixin classes into
@@ -1067,9 +1069,26 @@ def oracle_gated_field_accessors(klass, target_mod, cls, oracle_generated_member
   return [] unless wanted
 
   readers = klass.public_instance_methods(false).to_set(&:to_s)
+  readers.merge(folded_wire_key_readers(klass, readers))
   ctor, fields = wanted.to_a.partition { |m| m == '__init__' }
   assert_oracle_members_present(klass, target_mod, cls, readers, ctor, fields)
   (ctor + fields.select { |m| readers.include?(m) }).sort
+end
+
+# A generated payload's FIELDS maps each wire key to its type; the generator names
+# a field's reader after the wire key with every non-identifier rune folded to `_`
+# (`nomatch-output` -> `nomatch_output`), since a Ruby method name cannot carry a
+# `-`. The reference records the accessor as the wire key, so a reader that is
+# present under its folded name answers for that wire key. Read off the class's own
+# FIELDS — the generator's record of the wire keys — never a hand table.
+def folded_wire_key_readers(klass, readers)
+  return [] unless klass.const_defined?(:FIELDS, false)
+
+  klass::FIELDS.keys.map(&:to_s).select do |wire|
+    reader = wire.gsub(/[^A-Za-z0-9_]/, '_')
+    reader = "_#{reader}" if reader.match?(/\A\d/)
+    reader != wire && readers.include?(reader)
+  end
 end
 
 # Fail loud when the port has dropped something the oracle records: a field

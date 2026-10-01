@@ -697,7 +697,7 @@ class RelayRestGeneratedTest < Minitest::Test
   end
 
   def test_recordings_download_success
-    @client.recordings.download
+    @client.recordings.download('x')
     last = @mock.last
 
     assert_equal 'GET', last.method
@@ -706,7 +706,7 @@ class RelayRestGeneratedTest < Minitest::Test
 
   def test_recordings_download_error
     @mock.push_scenario('relay-rest.download_recording', status: 500, response: { 'error' => 'x' })
-    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.recordings.download }
+    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.recordings.download('x') }
 
     assert_equal 500, err.status_code
     assert_equal 500, @mock.last.response_status

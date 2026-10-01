@@ -221,7 +221,7 @@ class VideoGeneratedTest < Minitest::Test
   end
 
   def test_room_recordings_download_success
-    @client.video.room_recordings.download
+    @client.video.room_recordings.download('x')
     last = @mock.last
 
     assert_equal 'GET', last.method
@@ -230,7 +230,7 @@ class VideoGeneratedTest < Minitest::Test
 
   def test_room_recordings_download_error
     @mock.push_scenario('video.download_room_recording', status: 500, response: { 'error' => 'x' })
-    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.video.room_recordings.download }
+    err = assert_raises(SignalWire::REST::SignalWireRestError) { @client.video.room_recordings.download('x') }
 
     assert_equal 500, err.status_code
     assert_equal 500, @mock.last.response_status

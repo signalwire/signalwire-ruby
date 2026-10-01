@@ -397,6 +397,30 @@ module MockTest
     { client: sdk, mock: mock, project: project }
   end
 
+  # {client} for the Personal-Access-Token namespaces (+client.space+): the client
+  # carries a unique random PAT (+pat_<12 hex>+) alongside a project credential,
+  # and the harness view is scoped to the PAT's
+  # +Authorization: Basic base64(":" + pat)+ header — the header the mock
+  # journals and scopes scenarios by for those routes (a PAT is HTTP Basic with
+  # an EMPTY username).
+  #
+  # Returns the same Hash shape as {client}.
+  def pat_client
+    h = harness
+    project = "test_proj_#{SecureRandom.hex(6)}"
+    pat = "pat_#{SecureRandom.hex(6)}"
+
+    sdk = SignalWire::REST::RestClient.new(
+      project: project, token: REST_TOKEN, base_url: h.url, personal_access_token: pat
+    )
+
+    mock = Harness.new(h.url, h.port)
+    mock.auth_header = "Basic #{Base64.strict_encode64(":#{pat}")}"
+    mock.project = project
+
+    { client: sdk, mock: mock, project: project }
+  end
+
   # Convenience method-name aliases so tests can use the journal/scenario
   # helpers without grabbing a Harness instance first. NOTE: these return the
   # UNSCOPED global harness (legacy, single-threaded view). Parallel-safe tests

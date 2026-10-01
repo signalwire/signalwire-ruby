@@ -149,10 +149,10 @@ module SignalWire
             @http.post(@base_path, body, request_options: request_options)
           end
 
-          def play(call_id, control_id:, play:, direction: nil, gender: nil, language: nil, loop: nil, status_url: nil, voice: nil, volume: nil, extras: {}, request_options: nil, **kwargs)
+          def play(call_id, play:, control_id: nil, direction: nil, gender: nil, language: nil, loop: nil, status_url: nil, voice: nil, volume: nil, extras: {}, request_options: nil, **kwargs)
             params = {}
-            params['control_id'] = control_id
             params['play'] = play
+            params['control_id'] = control_id unless control_id.nil?
             params['direction'] = direction unless direction.nil?
             params['gender'] = gender unless gender.nil?
             params['language'] = language unless language.nil?
@@ -161,6 +161,7 @@ module SignalWire
             params['voice'] = voice unless voice.nil?
             params['volume'] = volume unless volume.nil?
             params = params.merge(extras).merge(kwargs)
+            params['control_id'] ||= SecureRandom.uuid
             body = { 'command' => 'calling.play', 'params' => params }
             body['id'] = call_id if call_id
             @http.post(@base_path, body, request_options: request_options)
@@ -203,12 +204,14 @@ module SignalWire
             @http.post(@base_path, body, request_options: request_options)
           end
 
-          def record(call_id, control_id:, record:, status_url: nil, extras: {}, request_options: nil, **kwargs)
+          def record(call_id, control_id: nil, record: nil, status_url: nil, audio: nil, extras: {}, request_options: nil, **kwargs)
             params = {}
-            params['control_id'] = control_id
-            params['record'] = record
+            params['control_id'] = control_id unless control_id.nil?
+            params['record'] = record unless record.nil?
             params['status_url'] = status_url unless status_url.nil?
+            params['record'] = (params['record'] || {}).merge('audio' => audio) unless audio.nil?
             params = params.merge(extras).merge(kwargs)
+            params['control_id'] ||= SecureRandom.uuid
             body = { 'command' => 'calling.record', 'params' => params }
             body['id'] = call_id if call_id
             @http.post(@base_path, body, request_options: request_options)
@@ -242,11 +245,11 @@ module SignalWire
             @http.post(@base_path, body, request_options: request_options)
           end
 
-          def collect(call_id, control_id:, continue: nil, continuous: nil, digits: nil, initial_timeout: nil, partial_results: nil, send_start_of_input: nil, speech: nil, start_input_timers: nil, status_url: nil, extras: {}, request_options: nil, **kwargs)
+          def collect(call_id, continue: nil, continuous: nil, control_id: nil, digits: nil, initial_timeout: nil, partial_results: nil, send_start_of_input: nil, speech: nil, start_input_timers: nil, status_url: nil, extras: {}, request_options: nil, **kwargs)
             params = {}
-            params['control_id'] = control_id
             params['continue'] = continue unless continue.nil?
             params['continuous'] = continuous unless continuous.nil?
+            params['control_id'] = control_id unless control_id.nil?
             params['digits'] = digits unless digits.nil?
             params['initial_timeout'] = initial_timeout unless initial_timeout.nil?
             params['partial_results'] = partial_results unless partial_results.nil?
@@ -255,6 +258,7 @@ module SignalWire
             params['start_input_timers'] = start_input_timers unless start_input_timers.nil?
             params['status_url'] = status_url unless status_url.nil?
             params = params.merge(extras).merge(kwargs)
+            params['control_id'] ||= SecureRandom.uuid
             body = { 'command' => 'calling.collect', 'params' => params }
             body['id'] = call_id if call_id
             @http.post(@base_path, body, request_options: request_options)
@@ -278,13 +282,14 @@ module SignalWire
             @http.post(@base_path, body, request_options: request_options)
           end
 
-          def detect(call_id, control_id:, detect:, status_url: nil, timeout: nil, extras: {}, request_options: nil, **kwargs)
+          def detect(call_id, detect:, control_id: nil, status_url: nil, timeout: nil, extras: {}, request_options: nil, **kwargs)
             params = {}
-            params['control_id'] = control_id
             params['detect'] = detect
+            params['control_id'] = control_id unless control_id.nil?
             params['status_url'] = status_url unless status_url.nil?
             params['timeout'] = timeout unless timeout.nil?
             params = params.merge(extras).merge(kwargs)
+            params['control_id'] ||= SecureRandom.uuid
             body = { 'command' => 'calling.detect', 'params' => params }
             body['id'] = call_id if call_id
             @http.post(@base_path, body, request_options: request_options)
@@ -299,13 +304,14 @@ module SignalWire
             @http.post(@base_path, body, request_options: request_options)
           end
 
-          def tap(call_id, control_id:, device:, tap:, status_url: nil, extras: {}, request_options: nil, **kwargs)
+          def tap(call_id, device:, tap:, control_id: nil, status_url: nil, extras: {}, request_options: nil, **kwargs)
             params = {}
-            params['control_id'] = control_id
             params['device'] = device
             params['tap'] = tap
+            params['control_id'] = control_id unless control_id.nil?
             params['status_url'] = status_url unless status_url.nil?
             params = params.merge(extras).merge(kwargs)
+            params['control_id'] ||= SecureRandom.uuid
             body = { 'command' => 'calling.tap', 'params' => params }
             body['id'] = call_id if call_id
             @http.post(@base_path, body, request_options: request_options)
@@ -320,18 +326,19 @@ module SignalWire
             @http.post(@base_path, body, request_options: request_options)
           end
 
-          def stream(call_id, control_id:, url:, authorization_bearer_token: nil, codec: nil, custom_parameters: nil, name: nil, status_url: nil, status_url_method: nil, track: nil, extras: {}, request_options: nil, **kwargs)
+          def stream(call_id, url:, authorization_bearer_token: nil, codec: nil, control_id: nil, custom_parameters: nil, name: nil, status_url: nil, status_url_method: nil, track: nil, extras: {}, request_options: nil, **kwargs)
             params = {}
-            params['control_id'] = control_id
             params['url'] = url
             params['authorization_bearer_token'] = authorization_bearer_token unless authorization_bearer_token.nil?
             params['codec'] = codec unless codec.nil?
+            params['control_id'] = control_id unless control_id.nil?
             params['custom_parameters'] = custom_parameters unless custom_parameters.nil?
             params['name'] = name unless name.nil?
             params['status_url'] = status_url unless status_url.nil?
             params['status_url_method'] = status_url_method unless status_url_method.nil?
             params['track'] = track unless track.nil?
             params = params.merge(extras).merge(kwargs)
+            params['control_id'] ||= SecureRandom.uuid
             body = { 'command' => 'calling.stream', 'params' => params }
             body['id'] = call_id if call_id
             @http.post(@base_path, body, request_options: request_options)
@@ -362,11 +369,12 @@ module SignalWire
             @http.post(@base_path, body, request_options: request_options)
           end
 
-          def transcribe(call_id, control_id:, status_url: nil, extras: {}, request_options: nil, **kwargs)
+          def transcribe(call_id, control_id: nil, status_url: nil, extras: {}, request_options: nil, **kwargs)
             params = {}
-            params['control_id'] = control_id
+            params['control_id'] = control_id unless control_id.nil?
             params['status_url'] = status_url unless status_url.nil?
             params = params.merge(extras).merge(kwargs)
+            params['control_id'] ||= SecureRandom.uuid
             body = { 'command' => 'calling.transcribe', 'params' => params }
             body['id'] = call_id if call_id
             @http.post(@base_path, body, request_options: request_options)

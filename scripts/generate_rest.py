@@ -382,10 +382,32 @@ def _url_path(url: str) -> str:
     return url[i:] if i >= 0 else "/"
 
 
+#: The REST generator input (owner ruling 2026-09-28, the reference generator's
+#: GENERATOR_SPEC): the COMPOSED ``rest-apis/<ns>/openapi.enriched.yaml`` — the base's
+#: facts and x-sdk-* markup with the round-tripped prose. Discovery stays keyed on the
+#: base ``openapi.yaml``; only the READ switches. ``swml-webhooks`` has no composed
+#: document (its openapi.yaml is itself a rendering of the engine-derived section).
+GENERATOR_SPEC = "openapi.enriched.yaml"
+_BASE_ONLY_SPEC_DIRS = frozenset({"swml-webhooks"})
+
+
+def generator_spec_path(psdk: Path, ns: str) -> Path:
+    """The spec document the generator reads for ``ns``. A missing composed document
+    is fatal: generating from the bare base instead would silently drop what the
+    composition adds and still look like a clean regeneration."""
+    if ns in _BASE_ONLY_SPEC_DIRS:
+        return psdk / "rest-apis" / ns / "openapi.yaml"
+    path = psdk / "rest-apis" / ns / GENERATOR_SPEC
+    if not path.is_file():
+        raise SystemExit(
+            f"generate_rest.py: {path} is missing — run porting-sdk's "
+            "`python3 scripts/spec_pipeline.py build` to compose it."
+        )
+    return path
+
+
 def load_spec(psdk: Path, ns: str) -> Spec:
-    return Spec(
-        ns, yaml.safe_load((psdk / "rest-apis" / ns / "openapi.yaml").read_text())
-    )
+    return Spec(ns, yaml.safe_load(generator_spec_path(psdk, ns).read_text()))
 
 
 # ---------------------------------------------------------------------------
@@ -779,7 +801,9 @@ def schema_fields(spec: Spec, schema: dict, seen=None) -> set[str]:
 # ---------------------------------------------------------------------------
 
 
-def kwarg_params_and_body(spec, fields, indent="        ", body_var="body"):
+def kwarg_params_and_body(
+    spec, fields, indent="        ", body_var="body", compat=None
+):
     """Build (kwarg_param_list, body_build_lines, sidecar_records, body_var) for a set of
     object-body / command-params fields, in the Ruby kwargs idiom + the two doors
     (§B):
@@ -807,6 +831,23 @@ def kwarg_params_and_body(spec, fields, indent="        ", body_var="body"):
     idents = {escape_param(wire_name) for wire_name, _s, _r in fields}
     while body_var in idents:
         body_var = "req_" + body_var
+    # x-sdk-autofill: uuid4 — a server-required id the SDK generates when the caller
+    # omits it (the RELAY client's control_id idiom), so the kwarg stays OPTIONAL and
+    # the body gets a fresh UUID after extras/kwargs are merged (a caller-supplied
+    # value, by name or through extras, wins). Mirrors the reference generator.
+    autofill: list[str] = []
+    norm: list[tuple[str, dict, bool]] = []
+    for wire_name, schema, required in fields:
+        fill = schema.get("x-sdk-autofill") if isinstance(schema, dict) else None
+        if fill not in (None, "uuid4"):
+            raise SystemExit(
+                f"{wire_name}: x-sdk-autofill {fill!r} is not a known generator (uuid4)"
+            )
+        if fill == "uuid4":
+            autofill.append(wire_name)
+            required = False
+        norm.append((wire_name, schema, required))
+    fields = norm
     params: list[str] = []
     build: list[str] = [f"{indent}{body_var} = {{}}"]
     records: list[dict] = []
@@ -829,10 +870,33 @@ def kwarg_params_and_body(spec, fields, indent="        ", body_var="body"):
                 f"{indent}{body_var}[{rb_str(wire_name)}] = {ident} unless {ident}.nil?"
             )
         records.append(rec)
+    # x-sdk-compat-kwargs: an SDK kwarg kept for compatibility that is sent INTO a
+    # nested wire key (calling.record ``audio`` -> params.record.audio). Optional,
+    # after the spec fields; merged into the nested root before extras/kwargs.
+    for carg, root, leaf, cschema in compat or []:
+        cident = escape_param(carg)
+        params.append(f"{cident}: nil")
+        records.append(
+            {
+                "name": carg,
+                "kind": "keyword",
+                "type": canonical_type(spec, cschema, False),
+                "required": False,
+                "default": None,
+            }
+        )
+        build.append(
+            f"{indent}{body_var}[{rb_str(root)}] = "
+            f"({body_var}[{rb_str(root)}] || {{}}).merge({rb_str(leaf)} => {cident}) "
+            f"unless {cident}.nil?"
+        )
     params.append("extras: {}")
     params.append(REQUEST_OPTIONS_SIG)
     params.append("**kwargs")
     build.append(f"{indent}{body_var} = {body_var}.merge(extras).merge(kwargs)")
+    build.extend(
+        f"{indent}{body_var}[{rb_str(w)}] ||= SecureRandom.uuid" for w in autofill
+    )
     records.append(
         {
             "name": "extras",
@@ -856,12 +920,16 @@ def method_call_path(spec: Spec, anchor: str, markup: dict, op_path: str):
     id_args: list[str] = []
     pieces: list[str] = []
     for s in segs:
-        if s.startswith("{") and s.endswith("}"):
-            arg = arg_for(s[1:-1])
+        # A path param fills a whole segment (``{id}``) or sits beside a literal in
+        # one (``{id}.mp3`` — a Rails format suffix); the literal stays in the segment.
+        m = re.fullmatch(r"([^{}]*)\{([^}]+)\}([^{}]*)", s)
+        if m:
+            arg = arg_for(m.group(2))
             while arg in id_args:
                 arg += "2"
             id_args.append(arg)
-            pieces.append(arg)
+            pre, post = m.group(1), m.group(3)
+            pieces.append(f'"{pre}#{{{arg}}}{post}"' if (pre or post) else arg)
         else:
             pieces.append(rb_str(s))
     if sibling:
@@ -908,6 +976,68 @@ GEN_HEADER = """# frozen_string_literal: true
 """
 
 
+def response_kind(op: dict) -> tuple[str, str | None]:
+    """How a declared op's success is read (the reference generator's rule):
+    ``json`` (the default); ``text`` when the success body is another media type
+    (``text/csv``) — returned with that media type for the Accept header; or
+    ``redirect`` when the only success IS a redirect carrying ``Location`` (the
+    method returns that URL instead of following it)."""
+    responses = op.get("responses") or {}
+    ok = responses.get("200") or responses.get("201") or responses.get("2XX") or {}
+    ok_content = ok.get("content") or {}
+    text_media = next((m for m in ok_content if m != "application/json"), None)
+    if ok and "application/json" not in ok_content and text_media is not None:
+        return "text", text_media
+    if not ok:
+        for code, r in sorted(responses.items()):
+            if str(code).startswith("3") and "Location" in (
+                (r or {}).get("headers") or {}
+            ):
+                return "redirect", None
+    return "json", None
+
+
+def header_params(
+    spec: Spec, op_path: str, op: dict
+) -> list[tuple[str, str, dict, bool]]:
+    """``in: header`` parameters (path-level then op-level), e.g. the top-up
+    ``Idempotency-Key`` the server answers 400 without:
+    [(wire header name, ruby kwarg, schema, required)]."""
+    out = []
+    path_item = (spec.doc.get("paths") or {}).get(op_path) or {}
+    for raw in [*(path_item.get("parameters") or []), *(op.get("parameters") or [])]:
+        prm = raw
+        if isinstance(raw, dict) and "$ref" in raw:
+            leaf = raw["$ref"].rsplit("/", 1)[-1]
+            prm = ((spec.doc.get("components") or {}).get("parameters") or {}).get(leaf)
+        if not isinstance(prm, dict) or prm.get("in") != "header":
+            continue
+        arg = snake(re.sub(r"[^0-9A-Za-z]+", "_", prm["name"])).strip("_")
+        out.append(
+            (
+                prm["name"],
+                escape_param(arg),
+                prm.get("schema") or {},
+                bool(prm.get("required")),
+            )
+        )
+    return out
+
+
+def headers_expr(hdrs, text_media: str | None) -> str:
+    """The Ruby ``headers:`` hash for a call: the declared header params (a nil
+    optional one is not sent) plus the Accept of a non-JSON success; '' if none."""
+    items = [f"{rb_str(n)} => {a}" for n, a, _s, _r in hdrs]
+    if text_media:
+        items.append(f"'Accept' => {rb_str(text_media)}")
+    if not items:
+        return ""
+    expr = "{ " + ", ".join(items) + " }"
+    if any(not r for _n, _a, _s, r in hdrs):
+        expr += ".compact"
+    return f", headers: {expr}"
+
+
 def emit_method(
     spec: Spec,
     anchor: str,
@@ -921,6 +1051,43 @@ def emit_method(
         raise SystemExit(f"{markup['name']}.{method_snake}: op {op_id!r} not in spec")
     verb, op_path, has_body = spec.ops[op_id]
     id_args, path_expr = method_call_path(spec, anchor, markup, op_path)
+    op = ((spec.doc.get("paths") or {}).get(op_path) or {}).get(verb) or {}
+    kind, text_media = response_kind(op)
+    if kind != "json" and verb != "get":
+        raise SystemExit(
+            f"{markup['name']}.{method_snake} ({op_id}): {kind} success on "
+            f"{verb.upper()}; only GET is supported"
+        )
+    hdrs = header_params(spec, op_path, op)
+    if hdrs and verb not in ("get", "post"):
+        raise SystemExit(
+            f"{markup['name']}.{method_snake} ({op_id}): header parameter on "
+            f"{verb.upper()}; only GET/POST carry headers"
+        )
+    hdr_fwd = headers_expr(hdrs, text_media if kind == "text" else None)
+    hdr_req_kw = [f"{a}:" for _n, a, _s, r in hdrs if r]
+    hdr_opt_kw = [f"{a}: nil" for _n, a, _s, r in hdrs if not r]
+    hdr_req_rec = [
+        {
+            "name": a,
+            "kind": "keyword",
+            "type": canonical_type(spec, sc, True),
+            "required": True,
+        }
+        for _n, a, sc, r in hdrs
+        if r
+    ]
+    hdr_opt_rec = [
+        {
+            "name": a,
+            "kind": "keyword",
+            "type": canonical_type(spec, sc, False),
+            "required": False,
+            "default": None,
+        }
+        for _n, a, sc, r in hdrs
+        if not r
+    ]
     name = method_snake
     write_verb = verb in ("post", "put", "patch")
     lines: list[str] = []
@@ -944,11 +1111,16 @@ def emit_method(
             kw, build, records, bvar = kwarg_params_and_body(
                 spec, fields, indent=indent + "  "
             )
+            # Header kwargs: required ones lead, optional ones follow the body
+            # fields (before the extras door) — the reference's order.
+            n_tail = 3  # extras: {}, request_options: nil, **kwargs
+            kw = hdr_req_kw + kw[:-n_tail] + hdr_opt_kw + kw[-n_tail:]
+            records = hdr_req_rec + records[:-2] + hdr_opt_rec + records[-2:]
             sig = ", ".join(id_args + kw)
             lines.append(f"{indent}def {name}({sig})")
             lines.extend(build)
             lines.append(
-                f"{indent}  @http.{verb_fn}({path_expr}, {bvar}, {REQUEST_OPTIONS_FWD})"
+                f"{indent}  @http.{verb_fn}({path_expr}, {bvar}, {REQUEST_OPTIONS_FWD}{hdr_fwd})"
             )
             lines.append(f"{indent}end")
             _register_sidecar(cls, name, id_records + records)
@@ -995,13 +1167,32 @@ def emit_method(
         # reference enumerator records ONLY the path-ids + ``request_options`` for
         # a GET (the ``**params`` var_keyword is not surfaced), so the sidecar
         # mirrors that shape (drop ``params``, record ``request_options``).
-        sig = ", ".join([*id_args, REQUEST_OPTIONS_SIG, "**params"])
+        sig = ", ".join(
+            [*id_args, *hdr_req_kw, *hdr_opt_kw, REQUEST_OPTIONS_SIG, "**params"]
+        )
+        getter = (
+            {"text": "get_text", "redirect": "get_redirect_location"}[kind]
+            if kind != "json"
+            else "get"
+        )
+        if kind == "redirect":
+            # The contract every port mirrors: the success IS the redirect, and the
+            # method's answer is its target — never followed, never streamed.
+            lines.append(
+                f"{indent}# Return the URL this endpoint redirects to (the +Location+ of its"
+            )
+            lines.append(
+                f"{indent}# redirect), without following it or downloading anything; fetch it"
+            )
+            lines.append(
+                f"{indent}# with any HTTP client. Raises SignalWireRestError for an error status."
+            )
         lines.append(f"{indent}def {name}({sig})")
         lines.append(
-            f"{indent}  @http.get({path_expr}, params.empty? ? nil : params, {REQUEST_OPTIONS_FWD})"
+            f"{indent}  @http.{getter}({path_expr}, params.empty? ? nil : params, {REQUEST_OPTIONS_FWD}{hdr_fwd})"
         )
         lines.append(f"{indent}end")
-        _register_sidecar(cls, name, [*id_records, ro_rec])
+        _register_sidecar(cls, name, [*id_records, *hdr_req_rec, *hdr_opt_rec, ro_rec])
     else:  # delete
         sig = ", ".join([*id_args, REQUEST_OPTIONS_SIG])
         lines.append(f"{indent}def {name}({sig})")
@@ -1306,6 +1497,36 @@ def update_request_field_schemas(
     return {name: sch for name, sch, _req in object_body_fields(spec, op[2])}
 
 
+def command_compat_kwargs(spec: Spec, command: str, command_schema: dict, fields):
+    """[(arg, root, leaf, leaf_schema)] from the command ``params`` schema's
+    ``x-sdk-compat-kwargs`` markup (owner 2026-09-29): an SDK kwarg kept for
+    compatibility, sent INTO ``params.<root>.<leaf>``. The root it fills stays an
+    OPTIONAL kwarg. Fails loud on markup that names no existing ``<param>.<key>``
+    or shadows a param — the reference generator's rule."""
+    cs = resolve_schema(spec, command_schema)
+    pnode = resolve_schema(spec, (cs.get("properties") or {}).get("params"))
+    markup = (pnode or {}).get("x-sdk-compat-kwargs") or {}
+    by_name = {n: sc for n, sc, _r in fields}
+    out = []
+    for carg, cspec in markup.items():
+        into = (cspec or {}).get("into", "") if isinstance(cspec, dict) else ""
+        parts = into.split(".")
+        if len(parts) != 2 or carg in by_name or parts[0] not in by_name:
+            raise SystemExit(
+                f"command {command!r}: x-sdk-compat-kwargs.{carg} into {into!r} must "
+                "name <existing param>.<key> and must not shadow a param"
+            )
+        root_props = {
+            n: sc for n, sc, _r in object_body_fields(spec, by_name[parts[0]])
+        }
+        if parts[1] not in root_props:
+            raise SystemExit(
+                f"command {command!r}: x-sdk-compat-kwargs.{carg}: {into!r} not found"
+            )
+        out.append((carg, parts[0], parts[1], root_props[parts[1]]))
+    return out
+
+
 def emit_command_dispatch(spec: Spec, anchor: str, markup: dict) -> str:
     name = markup["name"]
     request = markup.get("request")
@@ -1337,8 +1558,11 @@ def emit_command_dispatch(spec: Spec, anchor: str, markup: dict) -> str:
         cmd_leaf = cmd_ref.rsplit("/", 1)[-1] if cmd_ref else ""
         cmd_schema = spec.schemas.get(cmd_leaf, {})
         fields, with_id = command_param_fields(spec, cmd_schema)
+        compat = command_compat_kwargs(spec, cmd, cmd_schema, fields)
+        compat_roots = {root for _a, root, _l, _s in compat}
+        fields = [(n, sc, req and n not in compat_roots) for n, sc, req in fields]
         kw, build, records, bvar = kwarg_params_and_body(
-            spec, fields, indent="            ", body_var="params"
+            spec, fields, indent="            ", body_var="params", compat=compat
         )
         id_params = ["call_id"] if with_id else []
         sig = ", ".join(id_params + kw)
@@ -1486,19 +1710,15 @@ def emit_resource(spec: Spec, anchor: str, markup: dict) -> str:
         op_id = spec_ref.get("op")
         if not op_id:
             raise SystemExit(f"{name}.{method_snake}: method markup missing op")
-        # A declared method the base already provides is inherited — EXCEPT
-        # list_addresses re-declared with a sibling/override path (fabric
-        # singular resources), which must shadow the base; AND declared
+        # A declared method the base already provides is inherited — EXCEPT a
+        # declared list_addresses, which is emitted on the subclass (the
+        # reference records it there: L12 — CallFlows/ConferenceRooms/
+        # CxmlApplications/GenericResources), whether its path is a sibling
+        # override or the base's own <collection>/{id}/addresses; AND declared
         # list/get/create/update/delete on a BaseResource resource (the base
         # does NOT provide them, so they are emitted).
-        if method_snake in provided:
-            if method_snake == "list_addresses":
-                _, op_path, _ = spec.ops[op_id]
-                _, sibling = relative_tail(spec, anchor, markup, op_path)
-                if not sibling:
-                    continue
-            else:
-                continue
+        if method_snake in provided and method_snake != "list_addresses":
+            continue
         lines.append("")
         lines.extend(
             emit_method(spec, anchor, markup, base, method_snake, op_id, indent)
@@ -2095,7 +2315,7 @@ def emit_methodless_class(
 def _load_types_schemas(psdk: Path, spec_dir: str) -> dict:
     """Load a spec's components/schemas WITHOUT the full Spec model (swml-webhooks
     has no servers block, so Spec() would reject it). Ordered by yaml declaration."""
-    doc = yaml.safe_load((psdk / "rest-apis" / spec_dir / "openapi.yaml").read_text())
+    doc = yaml.safe_load(generator_spec_path(psdk, spec_dir).read_text())
     return ((doc.get("components") or {}).get("schemas")) or {}
 
 

@@ -100,6 +100,7 @@ GENERATED_TYPES_NS = {
     "Project": "project",
     "Chat": "chat",
     "PubSub": "pubsub",
+    "Space": "space",
     "SwmlWebhooks": "swml_webhooks",
 }
 GENERATED_PAYLOAD_PREFIXES = {
@@ -1449,6 +1450,9 @@ EXCLUDED_RUBY_CLASSES = {
     # Internal REST retry-loop outcome value object (DONE/RETRY); no Python
     # counterpart (the reference inlines the loop in HttpClient._request).
     "SignalWire::REST::Attempt",
+    # The stand-in HTTP client for a credential RestClient was not given; mirrors
+    # the reference's PRIVATE signalwire.rest.client._MissingCredentialHttp.
+    "SignalWire::REST::RestClient::MissingCredentialHttp",
 }
 
 

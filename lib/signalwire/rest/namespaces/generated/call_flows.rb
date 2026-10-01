@@ -41,6 +41,10 @@ module SignalWire
             @http.put(_path(id), body, request_options: request_options)
           end
 
+          def list_addresses(id, request_options: nil, **params)
+            @http.get(_path(id, 'addresses'), params.empty? ? nil : params, request_options: request_options)
+          end
+
           def list_versions(id, request_options: nil, **params)
             @http.get(_path(id, 'versions'), params.empty? ? nil : params, request_options: request_options)
           end

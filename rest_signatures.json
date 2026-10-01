@@ -296,6 +296,21 @@
         "type": "optional<class:RequestOptions>"
       }
     ],
+    "CallFlows::list_addresses": [
+      {
+        "kind": "positional",
+        "name": "id",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
+        "required": false,
+        "type": "optional<class:RequestOptions>"
+      }
+    ],
     "CallFlows::list_versions": [
       {
         "kind": "positional",
@@ -668,12 +683,6 @@
         "type": "string"
       },
       {
-        "kind": "keyword",
-        "name": "control_id",
-        "required": true,
-        "type": "string"
-      },
-      {
         "default": null,
         "kind": "keyword",
         "name": "continue",
@@ -684,6 +693,13 @@
         "default": null,
         "kind": "keyword",
         "name": "continuous",
+        "required": false,
+        "type": "optional<any>"
+      },
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "control_id",
         "required": false,
         "type": "optional<any>"
       },
@@ -860,15 +876,16 @@
       },
       {
         "kind": "keyword",
-        "name": "control_id",
-        "required": true,
-        "type": "string"
-      },
-      {
-        "kind": "keyword",
         "name": "detect",
         "required": true,
         "type": "dict<string,any>"
+      },
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "control_id",
+        "required": false,
+        "type": "optional<any>"
       },
       {
         "default": null,
@@ -1205,15 +1222,16 @@
       },
       {
         "kind": "keyword",
-        "name": "control_id",
-        "required": true,
-        "type": "string"
-      },
-      {
-        "kind": "keyword",
         "name": "play",
         "required": true,
         "type": "list<any>"
+      },
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "control_id",
+        "required": false,
+        "type": "optional<any>"
       },
       {
         "default": null,
@@ -1433,21 +1451,30 @@
         "type": "string"
       },
       {
+        "default": null,
         "kind": "keyword",
         "name": "control_id",
-        "required": true,
-        "type": "string"
+        "required": false,
+        "type": "optional<any>"
       },
       {
+        "default": null,
         "kind": "keyword",
         "name": "record",
-        "required": true,
-        "type": "dict<string,any>"
+        "required": false,
+        "type": "optional<any>"
       },
       {
         "default": null,
         "kind": "keyword",
         "name": "status_url",
+        "required": false,
+        "type": "optional<any>"
+      },
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "audio",
         "required": false,
         "type": "optional<any>"
       },
@@ -1629,12 +1656,6 @@
       },
       {
         "kind": "keyword",
-        "name": "control_id",
-        "required": true,
-        "type": "string"
-      },
-      {
-        "kind": "keyword",
         "name": "url",
         "required": true,
         "type": "string"
@@ -1650,6 +1671,13 @@
         "default": null,
         "kind": "keyword",
         "name": "codec",
+        "required": false,
+        "type": "optional<any>"
+      },
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "control_id",
         "required": false,
         "type": "optional<any>"
       },
@@ -1740,12 +1768,6 @@
       },
       {
         "kind": "keyword",
-        "name": "control_id",
-        "required": true,
-        "type": "string"
-      },
-      {
-        "kind": "keyword",
         "name": "device",
         "required": true,
         "type": "dict<string,any>"
@@ -1755,6 +1777,13 @@
         "name": "tap",
         "required": true,
         "type": "dict<string,any>"
+      },
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "control_id",
+        "required": false,
+        "type": "optional<any>"
       },
       {
         "default": null,
@@ -1814,10 +1843,11 @@
         "type": "string"
       },
       {
+        "default": null,
         "kind": "keyword",
         "name": "control_id",
-        "required": true,
-        "type": "string"
+        "required": false,
+        "type": "optional<any>"
       },
       {
         "default": null,
@@ -2025,6 +2055,21 @@
       }
     ],
     "ConferenceLogs::list": [
+      {
+        "default": null,
+        "kind": "keyword",
+        "name": "request_options",
+        "required": false,
+        "type": "optional<class:RequestOptions>"
+      }
+    ],
+    "ConferenceRooms::list_addresses": [
+      {
+        "kind": "positional",
+        "name": "id",
+        "required": true,
+        "type": "string"
+      },
       {
         "default": null,
         "kind": "keyword",
@@ -3694,6 +3739,12 @@
     ],
     "Recordings::download": [
       {
+        "kind": "positional",
+        "name": "id",
+        "required": true,
+        "type": "string"
+      },
+      {
         "default": null,
         "kind": "keyword",
         "name": "request_options",
@@ -4236,6 +4287,12 @@
       }
     ],
     "SpaceBalance::create_top_up": [
+      {
+        "kind": "keyword",
+        "name": "idempotency_key",
+        "required": true,
+        "type": "string"
+      },
       {
         "kind": "keyword",
         "name": "amount_in_microdollars",
@@ -5001,6 +5058,12 @@
       }
     ],
     "VideoRoomRecordings::download": [
+      {
+        "kind": "positional",
+        "name": "id",
+        "required": true,
+        "type": "string"
+      },
       {
         "default": null,
         "kind": "keyword",

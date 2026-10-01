@@ -62,6 +62,10 @@ module SignalWire
             body = body.merge(extras).merge(kwargs)
             @http.put(_path(id), body, request_options: request_options)
           end
+
+          def list_addresses(id, request_options: nil, **params)
+            @http.get(_path(id, 'addresses'), params.empty? ? nil : params, request_options: request_options)
+          end
         end
       end
     end

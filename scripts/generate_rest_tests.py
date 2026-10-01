@@ -283,16 +283,31 @@ class {cls} < Minitest::Test
   parallelize_me!
 
   def setup
-    h = MockTest.client
+    h = MockTest.{client_fn}
     @client = h[:client]
     @mock = h[:mock]
   end
 """
 
+#: The security scheme a Personal-Access-Token spec declares (rest-apis/space): its
+#: routes are served only to a PAT, so its tests run on a PAT-carrying client whose
+#: harness view is scoped to the PAT's Authorization header (MockTest.pat_client).
+PAT_SECURITY_SCHEME = "SignalWirePersonalAccessToken"
 
-def emit_spec_file(spec: str, rows: list[dict]) -> str:
+
+def is_pat_spec(psdk: Path, spec: str) -> bool:
+    doc = yaml.safe_load((psdk / "rest-apis" / spec / "openapi.yaml").read_text()) or {}
+    names = [
+        n for req in (doc.get("security") or []) if isinstance(req, dict) for n in req
+    ]
+    return bool(names) and all(n == PAT_SECURITY_SCHEME for n in names)
+
+
+def emit_spec_file(spec: str, rows: list[dict], pat: bool = False) -> str:
     cls = camel_spec(spec) + "GeneratedTest"
-    body = HEADER_TMPL.format(spec=spec, cls=cls)
+    body = HEADER_TMPL.format(
+        spec=spec, cls=cls, client_fn="pat_client" if pat else "client"
+    )
     for r in rows:
         name = r["_name"]
         call = r["_call"]
@@ -365,7 +380,7 @@ def build_outputs(psdk: Path) -> tuple[dict[str, str], list[str], int]:
             used.add(name)
             r["_name"] = name
         fn = f"{spec.replace('-', '_')}_generated_test.rb"
-        outs[fn] = emit_spec_file(spec, srows)
+        outs[fn] = emit_spec_file(spec, srows, pat=is_pat_spec(psdk, spec))
 
     return outs, uncovered, len(covered_vias)
 

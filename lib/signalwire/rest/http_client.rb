@@ -5,6 +5,7 @@ require 'json'
 require 'uri'
 require 'base64'
 require 'openssl'
+require 'securerandom'
 require_relative 'request_options'
 require_relative '../version'
 require_relative '../error'
@@ -205,10 +206,39 @@ module SignalWire
       # @param params [Hash, nil] query parameters; omitted from the URL when nil or empty
       # @param request_options [RequestOptions, nil] per-request overrides of the
       #   client's timeout / retries / backoff / abort signal
+      # @param headers [Hash{String=>String}, nil] extra request headers for this call only
       # @return [Hash] the decoded JSON body, or `{}` for a 204 / empty body
       # @raise [SignalWireRestError] on a non-2xx response or a transport failure
-      def get(path, params = nil, request_options: nil)
-        request('GET', path, params: params, request_options: request_options)
+      def get(path, params = nil, request_options: nil, headers: nil)
+        request('GET', path, params: params, request_options: request_options, headers: headers)
+      end
+
+      # Issue a GET whose success body is NOT JSON and return it as text — for an
+      # endpoint that answers with another media type (e.g. +text/csv+); pass that
+      # type as the +Accept+ header. Errors are raised exactly as {#get}.
+      #
+      # @param path [String] path appended to the client's base URL
+      # @param params [Hash, nil] query parameters
+      # @param request_options [RequestOptions, nil] per-request overrides
+      # @param headers [Hash{String=>String}, nil] extra request headers for this call only
+      # @return [String] the raw response body
+      # @raise [SignalWireRestError] on a non-2xx response or a transport failure
+      def get_text(path, params = nil, request_options: nil, headers: nil)
+        request('GET', path, params: params, request_options: request_options, headers: headers,
+                             response: :text)
+      end
+
+      # Issue a GET whose success IS a redirect and return its +Location+. The
+      # redirect is not followed: the endpoint's answer is the URL of the resource
+      # (e.g. a signed download URL), which the caller fetches with any HTTP client.
+      #
+      # @param path [String] path appended to the client's base URL
+      # @param params [Hash, nil] query parameters
+      # @param request_options [RequestOptions, nil] per-request overrides
+      # @return [String] the redirect's +Location+
+      # @raise [SignalWireRestError] on an error status or a non-redirect success
+      def get_redirect_location(path, params = nil, request_options: nil)
+        request('GET', path, params: params, request_options: request_options, response: :redirect)
       end
 
       # Issue a POST with a JSON body.
@@ -217,10 +247,13 @@ module SignalWire
       # @param body [Hash, nil] serialized as the JSON request body
       # @param params [Hash, nil] query parameters
       # @param request_options [RequestOptions, nil] per-request overrides
+      # @param headers [Hash{String=>String}, nil] extra request headers for this call
+      #   only (e.g. +Idempotency-Key+)
       # @return [Hash] the decoded JSON body, or `{}` for a 204 / empty body
       # @raise [SignalWireRestError] on a non-2xx response or a transport failure
-      def post(path, body = nil, params: nil, request_options: nil)
-        request('POST', path, body: body, params: params, request_options: request_options)
+      def post(path, body = nil, params: nil, request_options: nil, headers: nil)
+        request('POST', path, body: body, params: params, request_options: request_options,
+                              headers: headers)
       end
 
       # Issue a PUT with a JSON body — a full replacement of the resource.
@@ -305,7 +338,8 @@ module SignalWire
       #
       # @return [Object] the decoded success body
       # @raise [SignalWireRestError] terminal HTTP error, or {SignalWireRestTransportError}
-      def request(method, path, body: nil, params: nil, request_options: nil)
+      def request(method, path, body: nil, params: nil, request_options: nil, headers: nil,
+                  response: :json)
         uri  = build_uri(path, params)
         opts = RequestOptions.resolve(@request_options, request_options)
 
@@ -316,12 +350,12 @@ module SignalWire
         # the exact string that went on the wire — not the bare path. +uri+ is
         # already the composed absolute URL, so thread +uri.to_s+ to every error
         # site.
-        url = uri.to_s
+        call = { headers: headers, response: response }
         attempt = 0
         loop do
           attempt += 1
-          check_abort!(opts, url, method)
-          result = attempt_request(method, url, uri, body, opts, attempt)
+          check_abort!(opts, uri.to_s, method)
+          result = attempt_request(method, uri.to_s, uri, body, opts, attempt, call)
           return result.value if result.done?
           # else: a retry was scheduled (backoff already slept) — loop again.
         end
@@ -332,9 +366,11 @@ module SignalWire
       # error; +done?+ false means "retry scheduled, loop again". Keeps +request+
       # a thin driver so the retry policy reads linearly. +url+ is the full
       # request URL stored in any raised error (D1).
-      def attempt_request(method, url, uri, body, opts, attempt)
-        response = perform(method, uri, body, opts.timeout)
-        handle_http_response(response, url, method, opts, attempt)
+      # +call+ carries the per-call extra +headers+ and the expected +response+ kind
+      # (:json / :text / :redirect).
+      def attempt_request(method, url, uri, body, opts, attempt, call)
+        response = perform(method, uri, body, opts.timeout, call[:headers])
+        handle_http_response(response, url, method, opts, attempt, call[:response])
       rescue *TRANSPORT_ERRORS => e
         # Transport failure (connection refused / DNS / reset / TLS / timeout):
         # the request never produced a response. Retry if attempts remain, else
@@ -369,13 +405,39 @@ module SignalWire
       # Reduce a completed HTTP response to an {Attempt}: schedule a retry for a
       # retryable non-2xx (idempotency-aware) with attempts remaining, raise the
       # terminal typed error for a non-retryable/exhausted non-2xx, else return
-      # the decoded success body.
-      def handle_http_response(response, url, method, opts, attempt)
+      # the decoded success body. A +:redirect+ call's success IS the redirect: its
+      # +Location+ is the value (any other success raises); a +:text+ call returns
+      # the raw body.
+      def handle_http_response(response, url, method, opts, attempt, kind = :json)
+        return redirect_location(response, url, method) if kind == :redirect && !error_status?(response)
         return handle_error_response(response, url, method, opts, attempt) unless response.is_a?(Net::HTTPSuccess)
 
-        return Attempt.done({}) if response.code.to_i == 204 || response.body.nil? || response.body.empty?
+        Attempt.done(success_body(response, kind))
+      end
 
-        Attempt.done(JSON.parse(response.body))
+      # The decoded success body: the raw text for a +:text+ call, else the parsed
+      # JSON (+{}+ for a 204 / empty body).
+      def success_body(response, kind)
+        return response.body.to_s if kind == :text
+        return {} if response.code.to_i == 204 || response.body.nil? || response.body.empty?
+
+        JSON.parse(response.body)
+      end
+
+      # True for a 4xx/5xx response — the error path, whatever the call expects.
+      def error_status?(response)
+        response.code.to_i >= 400
+      end
+
+      # A redirect-expecting call's non-error response: the +Location+ of a redirect,
+      # else the typed error (a success that is not the redirect the endpoint
+      # answers with).
+      def redirect_location(response, url, method)
+        location = response['Location']
+        return Attempt.done(location) if response.is_a?(Net::HTTPRedirection) && location && !location.empty?
+
+        raise SignalWireRestError.new(response.code.to_i, response.body, url, method,
+                                      response_headers(response))
       end
 
       # A non-2xx response: retry if it's a retryable status with attempts left
@@ -403,9 +465,10 @@ module SignalWire
       # Issue one HTTP attempt. Net::HTTP's +read_timeout+/+open_timeout+ bound
       # the per-attempt wall clock; on exceed it raises Net::ReadTimeout/
       # Net::OpenTimeout (in TRANSPORT_ERRORS), which the request loop wraps.
-      def perform(method, uri, body, timeout)
+      def perform(method, uri, body, timeout, extra_headers = nil)
         req = build_request(method, uri)
         apply_headers(req)
+        extra_headers&.each { |name, value| req[name.to_s] = value.to_s }
         req.body = JSON.generate(body) if body && %w[POST PUT PATCH].include?(method)
         build_http(uri, timeout).request(req)
       end
