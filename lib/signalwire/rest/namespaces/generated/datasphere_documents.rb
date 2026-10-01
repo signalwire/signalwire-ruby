@@ -26,11 +26,11 @@ module SignalWire
             @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(resource_id, tags:, extras: {}, request_options: nil, **kwargs)
+          def update(id, tags: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
-            body['tags'] = tags
+            body['tags'] = tags unless tags.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.patch(_path(resource_id), body, request_options: request_options)
+            @http.patch(_path(id), body, request_options: request_options)
           end
 
           def delete(resource_id, request_options: nil)

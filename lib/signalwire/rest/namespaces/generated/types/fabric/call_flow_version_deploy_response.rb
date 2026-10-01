@@ -30,8 +30,8 @@ module SignalWire
                 'created_at' => :string,
                 'updated_at' => :string,
                 'document_version' => :integer,
-                'flow_data' => :string,
-                'relayml' => :string
+                'flow_data' => :object,
+                'relayml' => :object
               }.freeze
             end
           end

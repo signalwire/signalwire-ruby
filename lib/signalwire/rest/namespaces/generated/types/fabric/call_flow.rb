@@ -27,8 +27,8 @@ module SignalWire
               FIELDS = {
                 'id' => :object,
                 'title' => :string,
-                'flow_data' => :string,
-                'relayml' => :string,
+                'flow_data' => :object,
+                'relayml' => :object,
                 'document_version' => :integer
               }.freeze
             end

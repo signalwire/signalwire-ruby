@@ -1073,24 +1073,23 @@ def emit_crud_create_update(
             object_body_fields(spec, ubody) if is_object_body(spec, ubody) else None
         )
         verb_fn = uverb
+        id_name = identity_field(spec, anchor, markup)
         if fields is not None:
             kw, build, _records, bvar = kwarg_params_and_body(
                 spec, fields, indent=indent + "  "
             )
             lines.append("")
-            lines.append(f"{indent}def update(resource_id, {', '.join(kw)})")
+            lines.append(f"{indent}def update({id_name}, {', '.join(kw)})")
             lines.extend(build)
             lines.append(
-                f"{indent}  @http.{verb_fn}(_path(resource_id), {bvar}, {REQUEST_OPTIONS_FWD})"
+                f"{indent}  @http.{verb_fn}(_path({id_name}), {bvar}, {REQUEST_OPTIONS_FWD})"
             )
             lines.append(f"{indent}end")
         else:
             lines.append("")
+            lines.append(f"{indent}def update({id_name}, body, {REQUEST_OPTIONS_SIG})")
             lines.append(
-                f"{indent}def update(resource_id, body, {REQUEST_OPTIONS_SIG})"
-            )
-            lines.append(
-                f"{indent}  @http.{verb_fn}(_path(resource_id), body, {REQUEST_OPTIONS_FWD})"
+                f"{indent}  @http.{verb_fn}(_path({id_name}), body, {REQUEST_OPTIONS_FWD})"
             )
             lines.append(f"{indent}end")
 
@@ -1105,6 +1104,28 @@ def emit_crud_create_update(
         )
         lines.append(f"{indent}end")
     return lines
+
+
+def identity_field(spec: Spec, anchor: str, markup: dict) -> str:
+    """The item GET response's identity field (``id`` / ``sid``) — the name the
+    reference generator gives a typed update's positional id param
+    (``_identity_field``). Falls back to ``id`` when the response has none.
+
+    Naming the positional after the reference's identity field (not a fixed
+    ``resource_id``) is what lets the enumerator's same-name type projection
+    re-attach the reference's ``string`` type to it, and keeps it from colliding
+    with a ``resource_id`` WIRE field in the same update body."""
+    get_op = _find_op(spec, anchor, markup, verbs=("get",), item_level=True)
+    if not get_op:
+        return "id"
+    _, path, _ = get_op
+    op = ((spec.doc.get("paths") or {}).get(path) or {}).get("get") or {}
+    resp = (op.get("responses") or {}).get("200") or {}
+    media = (resp.get("content") or {}).get("application/json") or {}
+    for name, _psc, _req in object_body_fields(spec, media.get("schema") or {}):
+        if name.lower() in ("id", "sid"):
+            return name
+    return "id"
 
 
 def _find_op(spec: Spec, anchor: str, markup: dict, verbs, item_level: bool):
@@ -1524,8 +1545,10 @@ CONTAINERS = {
     "video": ("VideoNamespace", "video"),
     "logs": ("LogsNamespace", "logs"),
     "registry": ("RegistryNamespace", "registry"),
+    "space": ("SpaceNamespace", "space"),
     "project": ("ProjectNamespace", "project"),
     "datasphere": ("DatasphereNamespace", "datasphere"),
+    "whatsapp": ("WhatsappNamespace", "whatsapp"),
 }
 
 # Accessor-name overrides — mirrors the reference generator's _ATTR_OVERRIDE
@@ -1606,9 +1629,46 @@ def emit_container(container: str, members: list[tuple[str, str]]) -> str:
     )
 
 
+#: The security scheme a Personal-Access-Token spec declares (rest-apis/space) — the
+#: same name the reference generator and the mock route by.
+PAT_SECURITY_SCHEME = "SignalWirePersonalAccessToken"
+
+
+def _is_pat_spec(doc: dict) -> bool:
+    """True when the spec's root ``security`` accepts ONLY the Personal Access Token:
+    its resources are wired to the client's PAT credential, never the project token."""
+    security = doc.get("security") or []
+    names = [n for req in security if isinstance(req, dict) for n in req]
+    return bool(names) and all(n == PAT_SECURITY_SCHEME for n in names)
+
+
+def pat_containers(placed) -> set[str]:
+    """The containers whose resources ALL come from a PAT spec. Fails loud on a
+    container mixing PAT and project-token resources (one container gets one HTTP
+    client) and on a PAT resource placed flat on the client."""
+    kinds: dict[str, set[bool]] = {}
+    for spec, _anchor, _markup, container in placed:
+        kinds.setdefault(container, set()).add(_is_pat_spec(spec.doc))
+    mixed = sorted(c or "<flat>" for c, k in kinds.items() if len(k) > 1)
+    if mixed:
+        raise SystemExit(
+            f"placement container(s) {mixed} mix Personal-Access-Token and "
+            "project-token resources; a container is wired to one credential"
+        )
+    pat = {c for c, k in kinds.items() if k == {True}}
+    if "" in pat:
+        raise SystemExit(
+            "a Personal-Access-Token spec must declare x-sdk-namespace (a container)"
+        )
+    return pat
+
+
 def emit_resource_tree(placed) -> str:
     """Emit ResourceTree: a module the hand RestClient includes, wiring a lazy
-    accessor per FLAT resource + per CONTAINER (§8)."""
+    accessor per FLAT resource + per CONTAINER (§8). A container whose spec
+    authenticates only with a Personal Access Token is built off
+    ``generated_pat_http_client`` instead of ``generated_http_client``."""
+    pat = pat_containers(placed)
     flats: list[tuple[str, str]] = []
     containers_seen: list[str] = []
     seen_c: set[str] = set()
@@ -1644,9 +1704,10 @@ def emit_resource_tree(placed) -> str:
         lines.append("          end")
     for c in containers_seen:
         clsname, acc = CONTAINERS[c]
+        http = "generated_pat_http_client" if c in pat else "generated_http_client"
         lines.append("")
         lines.append(f"          def {acc}")
-        lines.append(f"            @{acc} ||= {clsname}.new(generated_http_client)")
+        lines.append(f"            @{acc} ||= {clsname}.new({http})")
         lines.append("          end")
     lines.append("        end")
     lines.append("      end")

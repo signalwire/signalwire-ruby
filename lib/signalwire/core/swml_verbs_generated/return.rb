@@ -20,7 +20,7 @@ module SignalWire
       # accessed by name rather than by wire key.
       class Return
         FIELDS = {
-          'return' => :any
+          'return' => :object
         }.freeze
 
         attr_reader :return

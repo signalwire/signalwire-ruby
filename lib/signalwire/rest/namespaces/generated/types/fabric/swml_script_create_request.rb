@@ -28,7 +28,8 @@ module SignalWire
               FIELDS = {
                 'name' => :string,
                 'contents' => :string,
-                'status_callback_url' => :string
+                'status_callback_url' => :string,
+                'script_type' => :string
               }.freeze
             end
           end

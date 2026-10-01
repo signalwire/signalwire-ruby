@@ -20,12 +20,13 @@ module SignalWire
       # accessed by name rather than by wire key.
       class DataMap
         FIELDS = {
+          'contexts' => :object,
+          'expressions' => :object,
           'output' => :object,
-          'expressions' => :array,
-          'webhooks' => :array
+          'webhooks' => :object
         }.freeze
 
-        attr_reader :output, :expressions, :webhooks
+        attr_reader :contexts, :expressions, :output, :webhooks
       end
     end
   end

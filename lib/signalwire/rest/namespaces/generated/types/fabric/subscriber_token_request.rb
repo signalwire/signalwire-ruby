@@ -26,6 +26,7 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class SubscriberTokenRequest
               FIELDS = {
+                'ch' => :string,
                 'reference' => :string,
                 'expire_at' => :integer,
                 'application_id' => :object,
@@ -37,7 +38,9 @@ module SignalWire
                 'time_zone' => :string,
                 'country' => :string,
                 'region' => :string,
-                'company_name' => :string
+                'company_name' => :string,
+                'scope' => :string,
+                'fingerprint' => :string
               }.freeze
             end
           end

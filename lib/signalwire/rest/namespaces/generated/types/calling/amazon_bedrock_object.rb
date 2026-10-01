@@ -26,12 +26,18 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class AmazonBedrockObject
               FIELDS = {
+                'SWAIG' => :object,
+                'app_name' => :string,
+                'assistant_name' => :string,
+                'assistant_prompt' => :string,
+                'conversation_id' => :string,
                 'global_data' => :object,
+                'greeting_prompt' => :object,
                 'params' => :object,
                 'post_prompt' => :object,
                 'post_prompt_url' => :string,
                 'prompt' => :object,
-                'SWAIG' => :object
+                'transcript_webhook_url' => :string
               }.freeze
             end
           end

@@ -38,7 +38,9 @@ module SignalWire
                 'number_of_segments' => :integer,
                 'charge' => :number,
                 'charge_details' => :array,
-                'created_at' => :string
+                'created_at' => :string,
+                'error_code' => :object,
+                'error_message' => :object
               }.freeze
             end
           end

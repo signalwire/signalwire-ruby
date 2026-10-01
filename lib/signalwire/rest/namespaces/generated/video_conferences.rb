@@ -49,9 +49,9 @@ module SignalWire
             @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(resource_id, display_name:, description: nil, join_from: nil, join_until: nil, quality: nil, layout: nil, size: nil, record_on_start: nil, tone_on_entry_and_exit: nil, room_join_video_off: nil, user_join_video_off: nil, enable_room_previews: nil, enable_chat: nil, dark_primary: nil, dark_background: nil, dark_foreground: nil, dark_success: nil, dark_negative: nil, light_primary: nil, light_background: nil, light_foreground: nil, light_success: nil, light_negative: nil, extras: {}, request_options: nil, **kwargs)
+          def update(id, display_name: nil, description: nil, join_from: nil, join_until: nil, quality: nil, layout: nil, size: nil, record_on_start: nil, tone_on_entry_and_exit: nil, room_join_video_off: nil, user_join_video_off: nil, enable_room_previews: nil, enable_chat: nil, dark_primary: nil, dark_background: nil, dark_foreground: nil, dark_success: nil, dark_negative: nil, light_primary: nil, light_background: nil, light_foreground: nil, light_success: nil, light_negative: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
-            body['display_name'] = display_name
+            body['display_name'] = display_name unless display_name.nil?
             body['description'] = description unless description.nil?
             body['join_from'] = join_from unless join_from.nil?
             body['join_until'] = join_until unless join_until.nil?
@@ -75,7 +75,7 @@ module SignalWire
             body['light_success'] = light_success unless light_success.nil?
             body['light_negative'] = light_negative unless light_negative.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.put(_path(resource_id), body, request_options: request_options)
+            @http.put(_path(id), body, request_options: request_options)
           end
 
           def delete(resource_id, request_options: nil)

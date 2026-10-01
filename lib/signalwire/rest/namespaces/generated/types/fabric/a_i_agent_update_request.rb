@@ -35,8 +35,10 @@ module SignalWire
                 'pronounce' => :array,
                 'prompt' => :object,
                 'SWAIG' => :object,
-                'agent_id' => :object,
-                'name' => :string
+                'name' => :string,
+                'post_prompt_auth_user' => :string,
+                'post_prompt_auth_password' => :string,
+                'multilingual' => :object
               }.freeze
             end
           end

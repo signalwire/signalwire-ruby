@@ -19,9 +19,12 @@ module SignalWire
         # FabricNamespace — groups the fabric namespace resources; each is exposed
         # as a memoized reader on this container.
         class FabricNamespace
-          attr_reader :addresses, :resources, :ai_agents, :call_flows, :conference_rooms, :cxml_applications, :cxml_scripts, :cxml_webhooks, :freeswitch_connectors, :relay_applications, :sip_endpoints, :sip_gateways, :subscribers, :swml_scripts, :swml_webhooks, :tokens
+          attr_reader :alias_addresses, :sip_addresses, :phone_number_addresses, :addresses, :resources, :ai_agents, :call_flows, :conference_rooms, :cxml_applications, :cxml_scripts, :cxml_webhooks, :freeswitch_connectors, :relay_applications, :sip_endpoints, :sip_gateways, :subscribers, :swml_scripts, :swml_webhooks, :tokens
 
           def initialize(http)
+            @alias_addresses = AliasAddresses.new(http)
+            @sip_addresses = SipAddresses.new(http)
+            @phone_number_addresses = PhoneNumberAddresses.new(http)
             @addresses = FabricAddresses.new(http)
             @resources = GenericResources.new(http)
             @ai_agents = AiAgents.new(http)

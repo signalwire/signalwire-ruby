@@ -35,7 +35,8 @@ module SignalWire
                 'prompt' => :object,
                 'SWAIG' => :object,
                 'agent_id' => :object,
-                'name' => :string
+                'name' => :string,
+                'multilingual' => :object
               }.freeze
             end
           end

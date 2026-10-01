@@ -22,10 +22,9 @@ module SignalWire
             super(http, '/api/fabric/resources/conference_rooms')
           end
 
-          def create(name:, enable_room_previews:, display_name: nil, description: nil, join_from: nil, join_until: nil, max_members: nil, quality: nil, remove_at: nil, remove_after_seconds_elapsed: nil, layout: nil, record_on_start: nil, meta: nil, sync_audio_video: nil, tone_on_entry_and_exit: nil, room_join_video_off: nil, user_join_video_off: nil, extras: {}, request_options: nil, **kwargs)
+          def create(name:, display_name: nil, description: nil, join_from: nil, join_until: nil, max_members: nil, quality: nil, remove_at: nil, remove_after_seconds_elapsed: nil, layout: nil, record_on_start: nil, enable_room_previews: nil, meta: nil, sync_audio_video: nil, tone_on_entry_and_exit: nil, room_join_video_off: nil, user_join_video_off: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['name'] = name
-            body['enable_room_previews'] = enable_room_previews
             body['display_name'] = display_name unless display_name.nil?
             body['description'] = description unless description.nil?
             body['join_from'] = join_from unless join_from.nil?
@@ -36,6 +35,7 @@ module SignalWire
             body['remove_after_seconds_elapsed'] = remove_after_seconds_elapsed unless remove_after_seconds_elapsed.nil?
             body['layout'] = layout unless layout.nil?
             body['record_on_start'] = record_on_start unless record_on_start.nil?
+            body['enable_room_previews'] = enable_room_previews unless enable_room_previews.nil?
             body['meta'] = meta unless meta.nil?
             body['sync_audio_video'] = sync_audio_video unless sync_audio_video.nil?
             body['tone_on_entry_and_exit'] = tone_on_entry_and_exit unless tone_on_entry_and_exit.nil?
@@ -45,13 +45,9 @@ module SignalWire
             @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(resource_id, enable_room_previews:, sync_audio_video:, name: nil, display_name: nil, description: nil, join_from: nil, join_until: nil, max_members: nil, quality: nil, remove_at: nil, remove_after_seconds_elapsed: nil, layout: nil, record_on_start: nil, meta: nil, tone_on_entry_and_exit: nil, room_join_video_off: nil, user_join_video_off: nil, extras: {}, request_options: nil, **kwargs)
+          def update(id, display_name: nil, join_from: nil, join_until: nil, max_members: nil, quality: nil, remove_at: nil, remove_after_seconds_elapsed: nil, layout: nil, record_on_start: nil, enable_room_previews: nil, meta: nil, sync_audio_video: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
-            body['enable_room_previews'] = enable_room_previews
-            body['sync_audio_video'] = sync_audio_video
-            body['name'] = name unless name.nil?
             body['display_name'] = display_name unless display_name.nil?
-            body['description'] = description unless description.nil?
             body['join_from'] = join_from unless join_from.nil?
             body['join_until'] = join_until unless join_until.nil?
             body['max_members'] = max_members unless max_members.nil?
@@ -60,16 +56,11 @@ module SignalWire
             body['remove_after_seconds_elapsed'] = remove_after_seconds_elapsed unless remove_after_seconds_elapsed.nil?
             body['layout'] = layout unless layout.nil?
             body['record_on_start'] = record_on_start unless record_on_start.nil?
+            body['enable_room_previews'] = enable_room_previews unless enable_room_previews.nil?
             body['meta'] = meta unless meta.nil?
-            body['tone_on_entry_and_exit'] = tone_on_entry_and_exit unless tone_on_entry_and_exit.nil?
-            body['room_join_video_off'] = room_join_video_off unless room_join_video_off.nil?
-            body['user_join_video_off'] = user_join_video_off unless user_join_video_off.nil?
+            body['sync_audio_video'] = sync_audio_video unless sync_audio_video.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.put(_path(resource_id), body, request_options: request_options)
-          end
-
-          def list_addresses(id, request_options: nil, **params)
-            @http.get("/api/fabric/resources/conference_room/#{id}/addresses", params.empty? ? nil : params, request_options: request_options)
+            @http.put(_path(id), body, request_options: request_options)
           end
         end
       end

@@ -31,7 +31,7 @@ module SignalWire
                 'last_accessed_at' => :object,
                 'request_url' => :string,
                 'script_type' => :string,
-                'display_name' => :string,
+                'name' => :string,
                 'status_callback_url' => :object,
                 'status_callback_method' => :object
               }.freeze

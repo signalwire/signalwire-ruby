@@ -26,15 +26,15 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class SWAIGInternalFiller
               FIELDS = {
-                'hangup' => :object,
-                'check_time' => :object,
-                'wait_for_user' => :object,
-                'wait_seconds' => :object,
                 'adjust_response_latency' => :object,
-                'next_step' => :object,
                 'change_context' => :object,
+                'check_time' => :object,
+                'get_ideal_strategy' => :object,
                 'get_visual_input' => :object,
-                'get_ideal_strategy' => :object
+                'next_step' => :object,
+                'pause_conversation' => :object,
+                'wait_for_user' => :object,
+                'wait_seconds' => :object
               }.freeze
             end
           end

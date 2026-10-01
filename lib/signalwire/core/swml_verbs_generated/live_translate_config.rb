@@ -6,14 +6,14 @@
 
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
-# flattened SWMLMethod verb 'live_translate' config
+# schema.json $defs schema 'LiveTranslateConfig'
 
 module SignalWire
   # SignalWire::Core — namespace for this generated data-class tree.
   module Core
     # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
-      # LiveTranslateConfig — generated read-side payload (flattened SWMLMethod verb 'live_translate' config).
+      # LiveTranslateConfig — generated read-side payload (schema.json $defs schema 'LiveTranslateConfig').
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
       # Each field also has a zero-arg reader, so a decoded payload can be

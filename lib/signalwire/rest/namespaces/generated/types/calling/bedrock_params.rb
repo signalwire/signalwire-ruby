@@ -26,12 +26,14 @@ module SignalWire
             class BedrockParams
               FIELDS = {
                 'attention_timeout' => :object,
-                'hard_stop_time' => :object,
+                'compact_conversation_time' => :string,
+                'compact_strategy' => :string,
+                'hard_stop_prompt' => :string,
+                'hard_stop_time' => :string,
                 'inactivity_timeout' => :object,
-                'video_listening_file' => :string,
                 'video_idle_file' => :string,
-                'video_talking_file' => :string,
-                'hard_stop_prompt' => :string
+                'video_listening_file' => :string,
+                'video_talking_file' => :string
               }.freeze
             end
           end

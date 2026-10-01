@@ -27,9 +27,9 @@ module SignalWire
             class CreatePartnerCampaignRequest
               FIELDS = {
                 'name' => :string,
-                'brand_id' => :object,
                 'csp_campaign_reference' => :string,
-                'status_callback_url' => :string
+                'status_callback_url' => :string,
+                'signalwire_contact_emails' => :object
               }.freeze
             end
           end

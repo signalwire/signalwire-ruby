@@ -21,19 +21,20 @@ module SignalWire
       # accessed by name rather than by wire key.
       class Webhook
         FIELDS = {
-          'expressions' => :array,
           'error_keys' => :object,
-          'url' => :string,
+          'expressions' => :object,
           'foreach' => :object,
+          'form_param' => :string,
           'headers' => :object,
-          'method' => :object,
-          'input_args_as_params' => :object,
+          'input_args_as_params' => :boolean,
+          'method' => :string,
+          'output' => :object,
           'params' => :object,
           'require_args' => :object,
-          'output' => :object
+          'url' => :string
         }.freeze
 
-        attr_reader :expressions, :error_keys, :url, :foreach, :headers, :method, :input_args_as_params, :params, :require_args, :output
+        attr_reader :error_keys, :expressions, :foreach, :form_param, :headers, :input_args_as_params, :method, :output, :params, :require_args, :url
       end
     end
   end

@@ -26,9 +26,10 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class SwmlScriptUpdateRequest
               FIELDS = {
-                'display_name' => :string,
                 'contents' => :string,
-                'status_callback_url' => :string
+                'status_callback_url' => :string,
+                'name' => :string,
+                'script_type' => :string
               }.freeze
             end
           end

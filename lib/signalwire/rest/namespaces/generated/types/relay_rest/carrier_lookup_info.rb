@@ -34,7 +34,8 @@ module SignalWire
                 'state' => :string,
                 'jurisdiction' => :string,
                 'lec' => :string,
-                'linetype' => :string
+                'linetype' => :string,
+                'dnc' => :string
               }.freeze
             end
           end

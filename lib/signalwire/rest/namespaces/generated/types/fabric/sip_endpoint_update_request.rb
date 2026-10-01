@@ -33,7 +33,8 @@ module SignalWire
                 'codecs' => :array,
                 'encryption' => :object,
                 'call_handler' => :object,
-                'calling_handler_resource_id' => :object
+                'calling_handler_resource_id' => :object,
+                'password' => :string
               }.freeze
             end
           end

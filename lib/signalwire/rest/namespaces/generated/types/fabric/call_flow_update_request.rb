@@ -27,7 +27,9 @@ module SignalWire
             class CallFlowUpdateRequest
               FIELDS = {
                 'title' => :string,
-                'document_version' => :integer
+                'document_version' => :integer,
+                'flow_data' => :object,
+                'relayml' => :object
               }.freeze
             end
           end

@@ -37,7 +37,10 @@ module SignalWire
                 'city' => :string,
                 'state' => :string,
                 'postal_code' => :string,
-                'zip_code' => :string
+                'zip_code' => :string,
+                'emergency_enabled' => :boolean,
+                'validated' => :boolean,
+                'validated_at' => :string
               }.freeze
             end
           end

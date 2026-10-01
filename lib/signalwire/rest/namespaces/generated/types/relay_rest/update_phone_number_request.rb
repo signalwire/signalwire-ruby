@@ -40,6 +40,7 @@ module SignalWire
                 'call_relay_topic' => :string,
                 'call_relay_topic_status_callback_url' => :string,
                 'call_relay_script_url' => :string,
+                'call_relay_script_url_method' => :string,
                 'call_relay_context' => :string,
                 'call_relay_context_status_callback_url' => :string,
                 'call_relay_application' => :string,

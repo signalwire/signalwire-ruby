@@ -26,8 +26,8 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class PayPromptPlayAction
               FIELDS = {
-                'type' => :string,
-                'phrase' => :string
+                'type' => :object,
+                'phrase' => :object
               }.freeze
             end
           end

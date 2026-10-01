@@ -25,7 +25,35 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class UserInputAction
               FIELDS = {
-                'user_input' => :string
+                'SWML' => :object,
+                'add_dynamic_hints' => :array,
+                'back_to_back_functions' => :object,
+                'change_context' => :string,
+                'change_step' => :string,
+                'change_voice' => :object,
+                'clear_dynamic_hints' => :boolean,
+                'context_switch' => :object,
+                'end_of_speech_timeout' => :integer,
+                'extensive_data' => :boolean,
+                'functions_on_speaker_timeout' => :boolean,
+                'hangup' => :boolean,
+                'hold' => :object,
+                'playback_bg' => :object,
+                'replace_in_history' => :object,
+                'say' => :string,
+                'set_global_data' => :object,
+                'set_meta_data' => :object,
+                'settings' => :object,
+                'speech_event_timeout' => :integer,
+                'stop' => :boolean,
+                'stop_playback_bg' => :boolean,
+                'toggle_functions' => :array,
+                'transfer' => :object,
+                'unset_global_data' => :object,
+                'unset_meta_data' => :object,
+                'user_event' => :object,
+                'user_input' => :string,
+                'wait_for_user' => :object
               }.freeze
             end
           end

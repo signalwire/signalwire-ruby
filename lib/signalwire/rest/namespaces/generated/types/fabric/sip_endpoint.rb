@@ -31,8 +31,8 @@ module SignalWire
                 'send_as' => :string,
                 'ciphers' => :array,
                 'codecs' => :array,
-                'encryption' => :object,
-                'call_handler' => :object,
+                'encryption' => :string,
+                'call_handler' => :string,
                 'calling_handler_resource_id' => :object
               }.freeze
             end

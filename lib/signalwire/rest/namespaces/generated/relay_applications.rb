@@ -31,13 +31,13 @@ module SignalWire
             @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(resource_id, name: nil, topic: nil, call_status_callback_url: nil, extras: {}, request_options: nil, **kwargs)
+          def update(id, name: nil, topic: nil, call_status_callback_url: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['name'] = name unless name.nil?
             body['topic'] = topic unless topic.nil?
             body['call_status_callback_url'] = call_status_callback_url unless call_status_callback_url.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.put(_path(resource_id), body, request_options: request_options)
+            @http.put(_path(id), body, request_options: request_options)
           end
         end
       end

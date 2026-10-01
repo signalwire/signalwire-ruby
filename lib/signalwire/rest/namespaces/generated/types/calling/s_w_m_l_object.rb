@@ -25,8 +25,8 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class SWMLObject
               FIELDS = {
-                'version' => :string,
-                'sections' => :object
+                'sections' => :object,
+                'version' => :string
               }.freeze
             end
           end

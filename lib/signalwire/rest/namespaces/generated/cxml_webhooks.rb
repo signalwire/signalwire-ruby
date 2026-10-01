@@ -36,7 +36,7 @@ module SignalWire
             @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(resource_id, name: nil, used_for: nil, primary_request_url: nil, primary_request_method: nil, fallback_request_url: nil, fallback_request_method: nil, status_callback_url: nil, status_callback_method: nil, extras: {}, request_options: nil, **kwargs)
+          def update(id, name: nil, used_for: nil, primary_request_url: nil, primary_request_method: nil, fallback_request_url: nil, fallback_request_method: nil, status_callback_url: nil, status_callback_method: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['name'] = name unless name.nil?
             body['used_for'] = used_for unless used_for.nil?
@@ -47,7 +47,7 @@ module SignalWire
             body['status_callback_url'] = status_callback_url unless status_callback_url.nil?
             body['status_callback_method'] = status_callback_method unless status_callback_method.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.patch(_path(resource_id), body, request_options: request_options)
+            @http.patch(_path(id), body, request_options: request_options)
           end
         end
       end

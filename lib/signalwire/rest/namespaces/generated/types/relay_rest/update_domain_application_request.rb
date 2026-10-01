@@ -47,6 +47,7 @@ module SignalWire
                 'call_laml_application_id' => :string,
                 'call_video_room_id' => :object,
                 'call_relay_script_url' => :string,
+                'call_relay_script_url_method' => :string,
                 'call_dialogflow_agent_id' => :object,
                 'call_ai_agent_id' => :object,
                 'call_flow_id' => :object,

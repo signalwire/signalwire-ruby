@@ -25,8 +25,8 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class PayParameters
               FIELDS = {
-                'name' => :string,
-                'value' => :string
+                'name' => :object,
+                'value' => :object
               }.freeze
             end
           end

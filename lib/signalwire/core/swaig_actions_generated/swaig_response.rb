@@ -20,7 +20,7 @@ module SignalWire
       # accessed by name rather than by wire key.
       class SwaigResponse
         FIELDS = {
-          'response' => :string,
+          'response' => :object,
           'action' => :object,
           'post_process' => :boolean
         }.freeze

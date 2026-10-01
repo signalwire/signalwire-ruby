@@ -20,12 +20,14 @@ module SignalWire
       # accessed by name rather than by wire key.
       class Expression
         FIELDS = {
-          'string' => :string,
           'pattern' => :string,
-          'output' => :object
+          'expr' => :string,
+          'nomatch-output' => :object,
+          'output' => :object,
+          'string' => :string
         }.freeze
 
-        attr_reader :string, :pattern, :output
+        attr_reader :pattern, :expr, :nomatch_output, :output, :string
       end
     end
   end

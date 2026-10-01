@@ -22,31 +22,31 @@ module SignalWire
             super(http, '/api/fabric/resources/call_flows')
           end
 
-          def create(title:, extras: {}, request_options: nil, **kwargs)
+          def create(title:, flow_data: nil, relayml: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
             body['title'] = title
+            body['flow_data'] = flow_data unless flow_data.nil?
+            body['relayml'] = relayml unless relayml.nil?
             body = body.merge(extras).merge(kwargs)
             @http.post(@base_path, body, request_options: request_options)
           end
 
-          def update(resource_id, title: nil, document_version: nil, extras: {}, request_options: nil, **kwargs)
+          def update(id, document_version:, title: nil, flow_data: nil, relayml: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
+            body['document_version'] = document_version
             body['title'] = title unless title.nil?
-            body['document_version'] = document_version unless document_version.nil?
+            body['flow_data'] = flow_data unless flow_data.nil?
+            body['relayml'] = relayml unless relayml.nil?
             body = body.merge(extras).merge(kwargs)
-            @http.put(_path(resource_id), body, request_options: request_options)
-          end
-
-          def list_addresses(id, request_options: nil, **params)
-            @http.get("/api/fabric/resources/call_flow/#{id}/addresses", params.empty? ? nil : params, request_options: request_options)
+            @http.put(_path(id), body, request_options: request_options)
           end
 
           def list_versions(id, request_options: nil, **params)
-            @http.get("/api/fabric/resources/call_flow/#{id}/versions", params.empty? ? nil : params, request_options: request_options)
+            @http.get(_path(id, 'versions'), params.empty? ? nil : params, request_options: request_options)
           end
 
           def deploy_version(id, body, request_options: nil)
-            @http.post("/api/fabric/resources/call_flow/#{id}/versions", body, request_options: request_options)
+            @http.post(_path(id, 'versions'), body, request_options: request_options)
           end
         end
       end

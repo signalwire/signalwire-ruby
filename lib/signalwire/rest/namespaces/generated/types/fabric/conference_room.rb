@@ -31,7 +31,7 @@ module SignalWire
                 'display_name' => :string,
                 'max_members' => :integer,
                 'quality' => :string,
-                'fps' => :number,
+                'fps' => :integer,
                 'join_from' => :object,
                 'join_until' => :object,
                 'remove_at' => :object,

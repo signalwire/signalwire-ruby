@@ -196,7 +196,7 @@ def _build_swaig_actions(psdk: Path) -> dict:
                 rb_name,
                 b.get("properties") or {},
                 f"swaig-response action {verb!r} value object",
-                emit_readers=False,
+                emit_readers=True,
             )
             outs[fn] = src
 

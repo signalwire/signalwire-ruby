@@ -29,7 +29,8 @@ module SignalWire
                 'csp_self_registered' => :boolean,
                 'name' => :string,
                 'csp_brand_reference' => :string,
-                'status_callback_url' => :string
+                'status_callback_url' => :string,
+                'signalwire_contact_emails' => :object
               }.freeze
             end
           end

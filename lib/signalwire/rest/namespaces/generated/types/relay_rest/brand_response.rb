@@ -36,12 +36,14 @@ module SignalWire
                 'ein' => :string,
                 'company_address' => :string,
                 'company_vertical' => :string,
-                'company_website' => :string,
                 'csp_brand_reference' => :string,
                 'csp_self_registered' => :boolean,
                 'status_callback_url' => :string,
                 'created_at' => :string,
-                'updated_at' => :string
+                'updated_at' => :string,
+                'signalwire_contact_emails' => :array,
+                'large_message_limit' => :string,
+                'number_pooling_for_company' => :string
               }.freeze
             end
           end

@@ -114,6 +114,45 @@ GENERATED_SURFACE_MAP: dict[str, str] = (
     json.loads(_GEN_MAP_PATH.read_text()) if _GEN_MAP_PATH.is_file() else {}
 )
 
+# Payload reader -> wire-key fold. A generated payload class's FIELDS constant maps
+# each wire key to its type; the generator names each field's zero-arg reader
+# ``_reader_name(wire_key)`` — the wire key VERBATIM where it is a legal Ruby method
+# identifier, else with the illegal runes folded to ``_`` (``nomatch-output`` ->
+# ``nomatch_output``). The reference records the accessor as the wire key, so map a
+# folded reader back to it. Read off the generated sources' FIELDS (the generator's
+# own record of the wire keys), never a hand table: a reader whose wire key is
+# already an identifier maps to itself and is left alone.
+_PAYLOAD_FIELDS_RE = re.compile(r"^\s*'([^']+)' => :", re.M)
+_PAYLOAD_CLASS_RE = re.compile(r"^\s*class (\w+)\b", re.M)
+
+
+def _build_payload_reader_wire_keys() -> dict:
+    """``{class_name: {reader: wire_key}}`` for every generated payload field whose
+    reader differs from its wire key (see the block comment above)."""
+    out: dict = {}
+    roots = [
+        PORT_ROOT / "lib" / "signalwire" / "core",
+        PORT_ROOT / "lib" / "signalwire" / "relay" / "protocol_types_generated",
+    ]
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for path in sorted(root.rglob("*_generated/*.rb")) + sorted(root.glob("*.rb")):
+            src = path.read_text()
+            classes = _PAYLOAD_CLASS_RE.findall(src)
+            if len(classes) != 1:
+                continue
+            for wire in _PAYLOAD_FIELDS_RE.findall(src):
+                reader = re.sub(r"[^A-Za-z0-9_]", "_", wire) or "field"
+                if reader[0].isdigit():
+                    reader = "_" + reader
+                if reader != wire:
+                    out.setdefault(classes[0], {})[reader] = wire
+    return out
+
+
+PAYLOAD_READER_WIRE_KEYS = _build_payload_reader_wire_keys()
+
 # Typed-input sidecar (§B / L10): the generator (scripts/generate_rest.py)
 # records, per generated operation/command/set method, the canonical param
 # records (name/kind/type/required) the reference oracle carries. Ruby is
@@ -1600,7 +1639,11 @@ def collect(raw: dict) -> dict:
                 # signature inventory doesn't mark predicates / bangs.
                 clean = native.rstrip("?!")
                 # Payload readers carry the wire field verbatim (no snake_case).
-                method_canonical = clean if is_payload else snake_case(clean)
+                method_canonical = (
+                    PAYLOAD_READER_WIRE_KEYS.get(canonical_class, {}).get(clean, clean)
+                    if is_payload
+                    else snake_case(clean)
+                )
             if method_canonical in methods_out:
                 continue
             sig = build_signature(

@@ -23,7 +23,6 @@ module SignalWire
         FIELDS = {
           'speech_start' => :integer,
           'last_word_end' => :integer,
-          'suspected_end' => :integer,
           'turn_decided' => :integer,
           'status_pushed' => :integer,
           'request_detect' => :integer,
@@ -32,7 +31,7 @@ module SignalWire
           'first_audio' => :integer
         }.freeze
 
-        attr_reader :speech_start, :last_word_end, :suspected_end, :turn_decided, :status_pushed, :request_detect, :first_token, :first_utterance, :first_audio
+        attr_reader :speech_start, :last_word_end, :turn_decided, :status_pushed, :request_detect, :first_token, :first_utterance, :first_audio
       end
     end
   end

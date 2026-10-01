@@ -25,11 +25,13 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class PayPrompts
               FIELDS = {
-                'actions' => :array,
-                'for' => :string,
-                'attempts' => :string,
-                'card_type' => :string,
-                'error_type' => :string
+                'actions' => :object,
+                'attempt' => :object,
+                'card_type' => :object,
+                'error_type' => :object,
+                'for' => :object,
+                'play' => :object,
+                'require_matching_inputs' => :object
               }.freeze
             end
           end

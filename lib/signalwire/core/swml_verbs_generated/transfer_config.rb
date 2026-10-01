@@ -6,26 +6,26 @@
 
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
-# flattened SWMLMethod verb 'transfer' config
+# schema.json $defs schema 'TransferConfig'
 
 module SignalWire
   # SignalWire::Core — namespace for this generated data-class tree.
   module Core
     # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
-      # TransferConfig — generated read-side payload (flattened SWMLMethod verb 'transfer' config).
+      # TransferConfig — generated read-side payload (schema.json $defs schema 'TransferConfig').
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
       # Each field also has a zero-arg reader, so a decoded payload can be
       # accessed by name rather than by wire key.
       class TransferConfig
         FIELDS = {
-          'dest' => :string,
-          'params' => :object,
-          'meta' => :object
+          'dest' => :object,
+          'meta' => :object,
+          'params' => :object
         }.freeze
 
-        attr_reader :dest, :params, :meta
+        attr_reader :dest, :meta, :params
       end
     end
   end

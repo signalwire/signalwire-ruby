@@ -25,9 +25,11 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class SWAIGIncludes
               FIELDS = {
+                'auth_password' => :string,
+                'auth_user' => :string,
                 'functions' => :array,
-                'url' => :string,
-                'meta_data' => :object
+                'meta_data' => :object,
+                'url' => :string
               }.freeze
             end
           end

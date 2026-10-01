@@ -7,38 +7,39 @@
 
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
-# flattened SWMLMethod verb 'prompt' config
+# schema.json $defs schema 'PromptConfig'
 
 module SignalWire
   # SignalWire::Core — namespace for this generated data-class tree.
   module Core
     # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
-      # PromptConfig — generated read-side payload (flattened SWMLMethod verb 'prompt' config).
+      # PromptConfig — generated read-side payload (schema.json $defs schema 'PromptConfig').
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
       # Each field also has a zero-arg reader, so a decoded payload can be
       # accessed by name rather than by wire key.
       class PromptConfig
         FIELDS = {
-          'play' => :object,
-          'volume' => :number,
-          'say_voice' => :string,
-          'say_language' => :string,
-          'say_gender' => :string,
-          'max_digits' => :object,
-          'terminators' => :string,
           'digit_timeout' => :object,
           'initial_timeout' => :object,
-          'speech_timeout' => :object,
+          'max_digits' => :object,
+          'play' => :object,
+          'say_gender' => :object,
+          'say_language' => :object,
+          'say_voice' => :object,
           'speech_end_timeout' => :object,
-          'speech_language' => :string,
-          'speech_hints' => :object,
-          'speech_engine' => :string,
-          'status_url' => :string
+          'speech_engine' => :object,
+          'speech_hints' => :array,
+          'speech_language' => :object,
+          'speech_timeout' => :object,
+          'status_url' => :object,
+          'terminators' => :object,
+          'url' => :string,
+          'volume' => :object
         }.freeze
 
-        attr_reader :play, :volume, :say_voice, :say_language, :say_gender, :max_digits, :terminators, :digit_timeout, :initial_timeout, :speech_timeout, :speech_end_timeout, :speech_language, :speech_hints, :speech_engine, :status_url
+        attr_reader :digit_timeout, :initial_timeout, :max_digits, :play, :say_gender, :say_language, :say_voice, :speech_end_timeout, :speech_engine, :speech_hints, :speech_language, :speech_timeout, :status_url, :terminators, :url, :volume
       end
     end
   end

@@ -29,7 +29,6 @@ module SignalWire
                 'name' => :string,
                 'parent_project_id' => :object,
                 'subproject' => :boolean,
-                'region_preference' => :string,
                 'protect_recordings' => :boolean,
                 'protect_message_media' => :boolean,
                 'protect_fax_media' => :boolean,

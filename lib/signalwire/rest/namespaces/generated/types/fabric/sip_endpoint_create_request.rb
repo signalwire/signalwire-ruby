@@ -26,7 +26,6 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class SipEndpointCreateRequest
               FIELDS = {
-                'id' => :object,
                 'username' => :string,
                 'caller_id' => :string,
                 'send_as' => :string,
@@ -34,7 +33,8 @@ module SignalWire
                 'codecs' => :array,
                 'encryption' => :object,
                 'call_handler' => :object,
-                'calling_handler_resource_id' => :object
+                'calling_handler_resource_id' => :object,
+                'password' => :string
               }.freeze
             end
           end

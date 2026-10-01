@@ -30,7 +30,8 @@ module SignalWire
                 'default_codecs' => :array,
                 'default_ciphers' => :array,
                 'default_encryption' => :string,
-                'default_send_as' => :string
+                'default_send_as' => :string,
+                'default_outbound_policy' => :string
               }.freeze
             end
           end

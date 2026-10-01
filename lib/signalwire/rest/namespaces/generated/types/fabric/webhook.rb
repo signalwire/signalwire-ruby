@@ -25,16 +25,17 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class Webhook
               FIELDS = {
-                'expressions' => :array,
                 'error_keys' => :object,
-                'url' => :string,
+                'expressions' => :object,
                 'foreach' => :object,
+                'form_param' => :string,
                 'headers' => :object,
+                'input_args_as_params' => :boolean,
                 'method' => :string,
-                'input_args_as_params' => :object,
+                'output' => :object,
                 'params' => :object,
                 'require_args' => :object,
-                'output' => :object
+                'url' => :string
               }.freeze
             end
           end

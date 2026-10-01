@@ -22,16 +22,10 @@ module SignalWire
         FIELDS = {
           'url' => :string,
           'urls' => :array,
-          'volume' => :number,
-          'auto_answer' => :boolean,
-          'say_voice' => :string,
-          'say_language' => :string,
-          'say_gender' => :string,
-          'status_url' => :string,
-          'loop' => :integer
+          'volume' => :object
         }.freeze
 
-        attr_reader :url, :urls, :volume, :auto_answer, :say_voice, :say_language, :say_gender, :status_url, :loop
+        attr_reader :url, :urls, :volume
       end
     end
   end

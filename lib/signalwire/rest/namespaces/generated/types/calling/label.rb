@@ -25,7 +25,7 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class Label
               FIELDS = {
-                'label' => :string
+                'label' => :object
               }.freeze
             end
           end

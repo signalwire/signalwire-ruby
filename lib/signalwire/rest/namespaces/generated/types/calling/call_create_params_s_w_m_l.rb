@@ -34,6 +34,15 @@ module SignalWire
                 'status_events' => :array,
                 'url_method' => :string,
                 'codecs' => :object,
+                'to_script' => :object,
+                'timeout' => :integer,
+                'max_price_per_minute' => :number,
+                'send_digits' => :string,
+                'region' => :object,
+                'username' => :string,
+                'password' => :string,
+                'headers' => :array,
+                'custom_variables' => :object,
                 'swml' => :object
               }.freeze
             end

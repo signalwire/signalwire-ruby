@@ -25,12 +25,13 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class SMSWithMedia
               FIELDS = {
-                'to_number' => :string,
-                'from_number' => :string,
-                'region' => :string,
-                'tags' => :array,
+                'body' => :object,
+                'from_number' => :object,
                 'media' => :array,
-                'body' => :string
+                'region' => :object,
+                'status_callback' => :object,
+                'tags' => :array,
+                'to_number' => :object
               }.freeze
             end
           end

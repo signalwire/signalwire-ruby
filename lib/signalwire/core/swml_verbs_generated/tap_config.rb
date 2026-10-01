@@ -6,29 +6,29 @@
 
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
-# flattened SWMLMethod verb 'tap' config
+# schema.json $defs schema 'TapConfig'
 
 module SignalWire
   # SignalWire::Core — namespace for this generated data-class tree.
   module Core
     # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
-      # TapConfig — generated read-side payload (flattened SWMLMethod verb 'tap' config).
+      # TapConfig — generated read-side payload (schema.json $defs schema 'TapConfig').
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
       # Each field also has a zero-arg reader, so a decoded payload can be
       # accessed by name rather than by wire key.
       class TapConfig
         FIELDS = {
-          'uri' => :string,
-          'control_id' => :string,
-          'direction' => :object,
           'codec' => :object,
+          'control_id' => :object,
+          'direction' => :object,
           'rtp_ptime' => :object,
-          'status_url' => :string
+          'status_url' => :object,
+          'uri' => :object
         }.freeze
 
-        attr_reader :uri, :control_id, :direction, :codec, :rtp_ptime, :status_url
+        attr_reader :codec, :control_id, :direction, :rtp_ptime, :status_url, :uri
       end
     end
   end

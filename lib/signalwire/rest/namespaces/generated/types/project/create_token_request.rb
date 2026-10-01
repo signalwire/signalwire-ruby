@@ -28,7 +28,8 @@ module SignalWire
               FIELDS = {
                 'name' => :string,
                 'permissions' => :array,
-                'subproject_id' => :string
+                'subproject_id' => :string,
+                'project_id' => :string
               }.freeze
             end
           end

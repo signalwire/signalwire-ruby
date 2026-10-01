@@ -6,26 +6,26 @@
 
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
-# flattened SWMLMethod verb 'switch' config
+# schema.json $defs schema 'SwitchConfig'
 
 module SignalWire
   # SignalWire::Core — namespace for this generated data-class tree.
   module Core
     # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
-      # SwitchConfig — generated read-side payload (flattened SWMLMethod verb 'switch' config).
+      # SwitchConfig — generated read-side payload (schema.json $defs schema 'SwitchConfig').
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
       # Each field also has a zero-arg reader, so a decoded payload can be
       # accessed by name rather than by wire key.
       class SwitchConfig
         FIELDS = {
-          'variable' => :string,
+          'default' => :object,
           'case' => :object,
-          'default' => :array
+          'variable' => :object
         }.freeze
 
-        attr_reader :variable, :case, :default
+        attr_reader :default, :case, :variable
       end
     end
   end

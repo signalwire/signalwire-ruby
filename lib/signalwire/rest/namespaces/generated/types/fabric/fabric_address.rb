@@ -32,8 +32,8 @@ module SignalWire
                 'preview_url' => :string,
                 'locked' => :boolean,
                 'channels' => :object,
-                'created_at' => :string,
-                'type' => :object
+                'type' => :object,
+                'resource_id' => :string
               }.freeze
             end
           end

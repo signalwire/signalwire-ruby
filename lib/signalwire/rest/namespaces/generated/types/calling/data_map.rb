@@ -25,9 +25,10 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class DataMap
               FIELDS = {
+                'contexts' => :object,
+                'expressions' => :object,
                 'output' => :object,
-                'expressions' => :array,
-                'webhooks' => :array
+                'webhooks' => :object
               }.freeze
             end
           end

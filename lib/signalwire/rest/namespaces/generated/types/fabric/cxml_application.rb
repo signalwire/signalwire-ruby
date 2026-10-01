@@ -39,7 +39,10 @@ module SignalWire
                 'sms_fallback_url' => :object,
                 'sms_fallback_method' => :object,
                 'sms_status_callback' => :object,
-                'sms_status_callback_method' => :object
+                'sms_status_callback_method' => :object,
+                'message_status_callback' => :string,
+                'api_version' => :string,
+                'uri' => :string
               }.freeze
             end
           end

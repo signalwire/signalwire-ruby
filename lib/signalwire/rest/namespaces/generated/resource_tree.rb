@@ -104,8 +104,16 @@ module SignalWire
             @logs ||= LogsNamespace.new(generated_http_client)
           end
 
+          def whatsapp
+            @whatsapp ||= WhatsappNamespace.new(generated_http_client)
+          end
+
           def project
             @project ||= ProjectNamespace.new(generated_http_client)
+          end
+
+          def space
+            @space ||= SpaceNamespace.new(generated_pat_http_client)
           end
         end
       end

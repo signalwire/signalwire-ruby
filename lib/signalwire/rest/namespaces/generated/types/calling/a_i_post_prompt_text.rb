@@ -25,13 +25,17 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class AIPostPromptText
               FIELDS = {
-                'max_tokens' => :integer,
-                'temperature' => :object,
-                'top_p' => :object,
-                'confidence' => :object,
-                'presence_penalty' => :object,
-                'frequency_penalty' => :object,
-                'text' => :string
+                'frequency_penalty' => :any,
+                'max_completion_tokens' => :number,
+                'max_tokens' => :number,
+                'model' => :string,
+                'pom' => :array,
+                'presence_penalty' => :any,
+                'reasoning_effort' => :string,
+                'temperature' => :number,
+                'text' => :string,
+                'top_p' => :number,
+                'verbosity' => :string
               }.freeze
             end
           end

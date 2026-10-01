@@ -26,12 +26,14 @@ module SignalWire
             class PlayWithURLS
               FIELDS = {
                 'auto_answer' => :object,
-                'volume' => :object,
-                'say_voice' => :string,
-                'say_language' => :string,
-                'say_gender' => :string,
-                'status_url' => :string,
-                'urls' => :object
+                'loop' => :object,
+                'say_gender' => :object,
+                'say_language' => :object,
+                'say_voice' => :object,
+                'status_url' => :object,
+                'url' => :object,
+                'urls' => :array,
+                'volume' => :object
               }.freeze
             end
           end

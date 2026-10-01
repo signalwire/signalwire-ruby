@@ -36,6 +36,10 @@ module SignalWire
           def list_events(id, request_options: nil, **params)
             @http.get(_path(id, 'events'), params.empty? ? nil : params, request_options: request_options)
           end
+
+          def download(request_options: nil, **params)
+            @http.get(_path('{id}.mp4'), params.empty? ? nil : params, request_options: request_options)
+          end
         end
       end
     end

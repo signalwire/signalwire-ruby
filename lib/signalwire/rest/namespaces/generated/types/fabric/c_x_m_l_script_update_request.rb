@@ -26,10 +26,11 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class CXMLScriptUpdateRequest
               FIELDS = {
-                'display_name' => :string,
                 'contents' => :string,
                 'status_callback_url' => :string,
-                'status_callback_method' => :object
+                'status_callback_method' => :object,
+                'name' => :string,
+                'script_type' => :string
               }.freeze
             end
           end

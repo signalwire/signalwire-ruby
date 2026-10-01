@@ -51,7 +51,8 @@ module SignalWire
                 'call_flow_id' => :string,
                 'call_flow_version' => :string,
                 'call_ai_agent_id' => :string,
-                'call_relay_script_url' => :string
+                'call_relay_script_url' => :string,
+                'call_relay_script_url_method' => :string
               }.freeze
             end
           end

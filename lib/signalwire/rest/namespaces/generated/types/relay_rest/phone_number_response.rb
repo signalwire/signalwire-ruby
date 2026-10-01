@@ -32,6 +32,8 @@ module SignalWire
                 'capabilities' => :array,
                 'number_type' => :object,
                 'e911_address_id' => :object,
+                'e911_status' => :object,
+                'cnam' => :string,
                 'created_at' => :string,
                 'updated_at' => :string,
                 'next_billed_at' => :object,

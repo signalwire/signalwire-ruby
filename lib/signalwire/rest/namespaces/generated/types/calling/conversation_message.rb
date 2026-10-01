@@ -26,9 +26,11 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class ConversationMessage
               FIELDS = {
-                'role' => :object,
                 'content' => :string,
-                'lang' => :string
+                'lang' => :string,
+                'role' => :object,
+                'tool_call_id' => :string,
+                'tool_calls' => :array
               }.freeze
             end
           end

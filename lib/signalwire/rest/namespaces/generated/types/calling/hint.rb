@@ -25,10 +25,10 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class Hint
               FIELDS = {
-                'hint' => :string,
                 'pattern' => :string,
-                'replace' => :string,
-                'ignore_case' => :object
+                'hint' => :string,
+                'ignore_case' => :object,
+                'replace' => :string
               }.freeze
             end
           end

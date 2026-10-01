@@ -26,9 +26,7 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class ConferenceRoomUpdateRequest
               FIELDS = {
-                'name' => :string,
                 'display_name' => :string,
-                'description' => :string,
                 'join_from' => :string,
                 'join_until' => :string,
                 'max_members' => :integer,
@@ -39,10 +37,7 @@ module SignalWire
                 'record_on_start' => :boolean,
                 'enable_room_previews' => :boolean,
                 'meta' => :object,
-                'sync_audio_video' => :boolean,
-                'tone_on_entry_and_exit' => :boolean,
-                'room_join_video_off' => :boolean,
-                'user_join_video_off' => :boolean
+                'sync_audio_video' => :boolean
               }.freeze
             end
           end

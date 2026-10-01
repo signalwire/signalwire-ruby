@@ -25,15 +25,21 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class AIObject
               FIELDS = {
+                'SWAIG' => :object,
+                'agent' => :object,
+                'engine' => :object,
                 'global_data' => :object,
                 'hints' => :array,
                 'languages' => :array,
+                'multilingual' => :object,
                 'params' => :object,
                 'post_prompt' => :object,
-                'post_prompt_url' => :string,
-                'pronounce' => :array,
+                'post_prompt_auth_password' => :object,
+                'post_prompt_auth_user' => :object,
+                'post_prompt_url' => :object,
                 'prompt' => :object,
-                'SWAIG' => :object
+                'pronounce' => :array,
+                'voice' => :object
               }.freeze
             end
           end

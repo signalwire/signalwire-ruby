@@ -28,8 +28,7 @@ module SignalWire
               FIELDS = {
                 'id' => :object,
                 'name' => :string,
-                'number' => :string,
-                'status_callback_url' => :string
+                'number' => :string
               }.freeze
             end
           end

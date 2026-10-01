@@ -36,7 +36,9 @@ module SignalWire
                 'company_address' => :string,
                 'company_vertical' => :object,
                 'company_website' => :string,
-                'status_callback_url' => :string
+                'status_callback_url' => :string,
+                'csp_brand_reference' => :string,
+                'signalwire_contact_emails' => :object
               }.freeze
             end
           end

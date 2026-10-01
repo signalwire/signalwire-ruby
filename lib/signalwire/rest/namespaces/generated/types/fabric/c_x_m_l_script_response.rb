@@ -27,7 +27,7 @@ module SignalWire
               FIELDS = {
                 'id' => :object,
                 'project_id' => :object,
-                'name' => :string,
+                'display_name' => :string,
                 'type' => :string,
                 'created_at' => :string,
                 'updated_at' => :string,

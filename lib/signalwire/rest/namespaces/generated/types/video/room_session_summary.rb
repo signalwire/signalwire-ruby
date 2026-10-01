@@ -49,7 +49,7 @@ module SignalWire
                 'created_at' => :string,
                 'updated_at' => :string,
                 'preview_url' => :object,
-                'prioritize_handraise' => :object,
+                'prioritize_handraise' => :boolean,
                 'sync_audio_video' => :object
               }.freeze
             end

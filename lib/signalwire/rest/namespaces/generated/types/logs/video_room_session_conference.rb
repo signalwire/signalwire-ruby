@@ -33,10 +33,10 @@ module SignalWire
                 'url' => :string,
                 'room_name' => :object,
                 'status' => :object,
-                'locked' => :boolean,
+                'locked' => :object,
                 'started_at' => :object,
                 'ended_at' => :object,
-                'charge' => :string,
+                'charge' => :number,
                 'charge_details' => :array
               }.freeze
             end

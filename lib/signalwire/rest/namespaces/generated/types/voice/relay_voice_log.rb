@@ -39,7 +39,26 @@ module SignalWire
                 'duration' => :object,
                 'duration_ms' => :object,
                 'billing_ms' => :object,
-                'parent_id' => :object
+                'parent_id' => :object,
+                'audio_in_mos' => :object,
+                'audio_in_jitter_min' => :object,
+                'audio_in_jitter_max' => :object,
+                'audio_out_jitter_min' => :object,
+                'audio_out_jitter_max' => :object,
+                'audio_out_jitter_avg' => :object,
+                'audio_rtt_avg' => :object,
+                'audio_rtt_min' => :object,
+                'audio_rtt_max' => :object,
+                'audio_in_media_packet_count' => :object,
+                'audio_out_packet_count' => :object,
+                'audio_out_media_packet_count' => :object,
+                'audio_out_lost' => :object,
+                'audio_in_mean_interval' => :object,
+                'audio_in_dtmf_packet_count' => :object,
+                'audio_out_dtmf_packet_count' => :object,
+                'audio_in_skip_packet_count' => :object,
+                'audio_in_flush_packet_count' => :object,
+                'audio_in_largest_jb_size' => :object
               }.freeze
             end
           end

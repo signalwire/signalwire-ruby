@@ -26,7 +26,7 @@ module SignalWire
             class ConnectHeaders
               FIELDS = {
                 'name' => :string,
-                'value' => :string
+                'value' => :object
               }.freeze
             end
           end

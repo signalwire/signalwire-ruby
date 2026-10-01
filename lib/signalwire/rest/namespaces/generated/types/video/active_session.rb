@@ -28,12 +28,12 @@ module SignalWire
                 'id' => :string,
                 'room_id' => :string,
                 'name' => :string,
-                'display_name' => :string,
-                'join_from' => :string,
-                'join_until' => :string,
-                'remove_at' => :string,
-                'remove_after_seconds_elapsed' => :integer,
-                'layout' => :string,
+                'display_name' => :object,
+                'join_from' => :object,
+                'join_until' => :object,
+                'remove_at' => :object,
+                'remove_after_seconds_elapsed' => :object,
+                'layout' => :object,
                 'max_members' => :integer,
                 'fps' => :object,
                 'quality' => :object,
@@ -43,8 +43,17 @@ module SignalWire
                 'status' => :object,
                 'record_on_start' => :boolean,
                 'enable_room_previews' => :boolean,
-                'preview_url' => :string,
-                'audio_video_sync' => :boolean
+                'preview_url' => :object,
+                'sync_audio_video' => :boolean,
+                'tone_on_entry_and_exit' => :boolean,
+                'room_join_video_off' => :boolean,
+                'user_join_video_off' => :boolean,
+                'locked' => :boolean,
+                'cost_in_dollars' => :number,
+                'created_at' => :string,
+                'updated_at' => :string,
+                'locked_cover' => :string,
+                'prioritize_handraise' => :object
               }.freeze
             end
           end

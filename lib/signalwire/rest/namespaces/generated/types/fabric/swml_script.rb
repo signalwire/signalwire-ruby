@@ -26,11 +26,12 @@ module SignalWire
             class SwmlScript
               FIELDS = {
                 'id' => :object,
-                'contents' => :string,
+                'contents' => :object,
                 'request_url' => :string,
                 'display_name' => :string,
                 'status_callback_url' => :string,
-                'status_callback_method' => :string
+                'status_callback_method' => :string,
+                'script_type' => :string
               }.freeze
             end
           end

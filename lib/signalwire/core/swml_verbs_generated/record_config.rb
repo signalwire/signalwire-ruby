@@ -7,33 +7,33 @@
 
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
-# flattened SWMLMethod verb 'record' config
+# schema.json $defs schema 'RecordConfig'
 
 module SignalWire
   # SignalWire::Core — namespace for this generated data-class tree.
   module Core
     # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
-      # RecordConfig — generated read-side payload (flattened SWMLMethod verb 'record' config).
+      # RecordConfig — generated read-side payload (schema.json $defs schema 'RecordConfig').
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
       # Each field also has a zero-arg reader, so a decoded payload can be
       # accessed by name rather than by wire key.
       class RecordConfig
         FIELDS = {
-          'stereo' => :object,
           'format' => :object,
-          'direction' => :object,
-          'terminators' => :string,
           'beep' => :object,
-          'input_sensitivity' => :object,
-          'initial_timeout' => :object,
+          'direction' => :object,
           'end_silence_timeout' => :object,
+          'initial_timeout' => :object,
+          'input_sensitivity' => :object,
           'max_length' => :object,
-          'status_url' => :string
+          'status_url' => :object,
+          'stereo' => :object,
+          'terminators' => :object
         }.freeze
 
-        attr_reader :stereo, :format, :direction, :terminators, :beep, :input_sensitivity, :initial_timeout, :end_silence_timeout, :max_length, :status_url
+        attr_reader :format, :beep, :direction, :end_silence_timeout, :initial_timeout, :input_sensitivity, :max_length, :status_url, :stereo, :terminators
       end
     end
   end

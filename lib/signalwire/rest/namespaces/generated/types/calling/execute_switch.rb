@@ -25,9 +25,9 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class ExecuteSwitch
               FIELDS = {
-                'variable' => :string,
+                'default' => :object,
                 'case' => :object,
-                'default' => :array
+                'variable' => :object
               }.freeze
             end
           end

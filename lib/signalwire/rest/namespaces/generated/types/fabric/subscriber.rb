@@ -31,10 +31,9 @@ module SignalWire
                 'last_name' => :string,
                 'display_name' => :string,
                 'job_title' => :string,
-                'timezone' => :string,
                 'country' => :string,
-                'region' => :string,
-                'company_name' => :string
+                'company_name' => :string,
+                'time_zone' => :string
               }.freeze
             end
           end

@@ -29,6 +29,7 @@ module SignalWire
                 'state' => :string,
                 'campaign_id' => :object,
                 'phone_number' => :object,
+                'status_callback_url' => :string,
                 'created_at' => :string,
                 'updated_at' => :string
               }.freeze

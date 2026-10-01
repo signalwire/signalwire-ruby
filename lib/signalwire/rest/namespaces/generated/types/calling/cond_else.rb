@@ -25,7 +25,9 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class CondElse
               FIELDS = {
-                'else' => :array
+                'else' => :array,
+                'then' => :array,
+                'when' => :string
               }.freeze
             end
           end

@@ -25,10 +25,8 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class BedrockSWAIG
               FIELDS = {
-                'functions' => :array,
                 'defaults' => :object,
-                'native_functions' => :array,
-                'includes' => :array
+                'functions' => :array
               }.freeze
             end
           end

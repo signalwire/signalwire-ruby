@@ -26,7 +26,7 @@ module SignalWire
             class ChargeDetails
               FIELDS = {
                 'description' => :string,
-                'charge' => :string
+                'charge' => :number
               }.freeze
             end
           end

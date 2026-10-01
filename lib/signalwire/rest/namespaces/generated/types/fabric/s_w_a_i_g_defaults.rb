@@ -25,6 +25,11 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class SWAIGDefaults
               FIELDS = {
+                'meta_data' => :any,
+                'meta_data_token' => :string,
+                'web_hook_auth_pass' => :string,
+                'web_hook_auth_password' => :string,
+                'web_hook_auth_user' => :string,
                 'web_hook_url' => :string
               }.freeze
             end

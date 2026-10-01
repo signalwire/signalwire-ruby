@@ -32,7 +32,12 @@ module SignalWire
                 'media' => :array,
                 'send_as_mms' => :boolean,
                 'status_callback' => :string,
-                'custom_variables' => :object
+                'custom_variables' => :object,
+                'message_type' => :string,
+                'template_id' => :string,
+                'header_template_parameters' => :object,
+                'body_template_parameters' => :object,
+                'button_template_parameters' => :array
               }.freeze
             end
           end

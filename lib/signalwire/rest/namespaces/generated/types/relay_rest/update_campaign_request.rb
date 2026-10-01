@@ -26,7 +26,9 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class UpdateCampaignRequest
               FIELDS = {
-                'name' => :string
+                'name' => :string,
+                'status_callback_url' => :string,
+                'signalwire_contact_emails' => :object
               }.freeze
             end
           end

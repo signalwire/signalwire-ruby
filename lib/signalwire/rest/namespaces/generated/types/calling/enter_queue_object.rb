@@ -25,11 +25,12 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class EnterQueueObject
               FIELDS = {
-                'queue_name' => :string,
-                'transfer_after_bridge' => :object,
-                'status_url' => :string,
+                'execute_after_queue' => :object,
+                'queue_name' => :object,
+                'status_url' => :object,
+                'wait_time' => :object,
                 'wait_url' => :object,
-                'wait_time' => :object
+                'whisper_url' => :object
               }.freeze
             end
           end

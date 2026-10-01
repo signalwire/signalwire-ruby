@@ -26,6 +26,7 @@ module SignalWire
           'back_to_back_functions' => :object,
           'change_context' => :string,
           'change_step' => :string,
+          'change_voice' => :object,
           'clear_dynamic_hints' => :boolean,
           'context_switch' => :object,
           'end_of_speech_timeout' => :integer,
@@ -51,7 +52,7 @@ module SignalWire
           'wait_for_user' => :object
         }.freeze
 
-        attr_reader :SWML, :add_dynamic_hints, :back_to_back_functions, :change_context, :change_step, :clear_dynamic_hints, :context_switch, :end_of_speech_timeout, :extensive_data, :functions_on_speaker_timeout, :hangup, :hold, :playback_bg, :replace_in_history, :say, :set_global_data, :set_meta_data, :settings, :speech_event_timeout, :stop, :stop_playback_bg, :toggle_functions, :transfer, :unset_global_data, :unset_meta_data, :user_event, :user_input, :wait_for_user
+        attr_reader :SWML, :add_dynamic_hints, :back_to_back_functions, :change_context, :change_step, :change_voice, :clear_dynamic_hints, :context_switch, :end_of_speech_timeout, :extensive_data, :functions_on_speaker_timeout, :hangup, :hold, :playback_bg, :replace_in_history, :say, :set_global_data, :set_meta_data, :settings, :speech_event_timeout, :stop, :stop_playback_bg, :toggle_functions, :transfer, :unset_global_data, :unset_meta_data, :user_event, :user_input, :wait_for_user
       end
     end
   end

@@ -32,6 +32,10 @@ module SignalWire
           def delete(id, request_options: nil)
             @http.delete(_path(id), request_options: request_options)
           end
+
+          def download(request_options: nil, **params)
+            @http.get(_path('{id}.mp3'), params.empty? ? nil : params, request_options: request_options)
+          end
         end
       end
     end

@@ -39,6 +39,7 @@ module SignalWire
                 'duration_ms' => :object,
                 'billing_ms' => :object,
                 'type' => :object,
+                'qos_metrics' => :object,
                 'parent_id' => :object
               }.freeze
             end

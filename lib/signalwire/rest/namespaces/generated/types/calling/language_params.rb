@@ -25,8 +25,15 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class LanguageParams
               FIELDS = {
+                'emotion' => :string,
+                'pitch' => :object,
+                'similarity' => :object,
+                'speakingRate' => :object,
+                'speed' => :object,
                 'stability' => :object,
-                'similarity' => :object
+                'streaming' => :object,
+                'temperature' => :object,
+                'vol' => :object
               }.freeze
             end
           end

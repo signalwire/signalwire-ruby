@@ -26,16 +26,21 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class LanguagesWithFillers
               FIELDS = {
-                'name' => :string,
-                'code' => :string,
-                'voice' => :string,
-                'model' => :string,
-                'emotion' => :string,
-                'speed' => :string,
+                'auto_emotion' => :object,
+                'auto_speed' => :object,
+                'code' => :object,
+                'double_turn_fillers' => :array,
                 'engine' => :string,
-                'params' => :object,
+                'fillers' => :array,
                 'function_fillers' => :array,
-                'speech_fillers' => :array
+                'listen_language' => :object,
+                'model' => :string,
+                'name' => :string,
+                'params' => :object,
+                'pronounce' => :array,
+                'speech_fillers' => :array,
+                'turn_fillers' => :array,
+                'voice' => :string
               }.freeze
             end
           end

@@ -26,11 +26,11 @@ module SignalWire
             class CallFlowVersion
               FIELDS = {
                 'id' => :object,
-                'version' => :string,
+                'document_version' => :integer,
                 'created_at' => :string,
                 'updated_at' => :string,
-                'flow_data' => :string,
-                'relayml' => :string
+                'flow_data' => :object,
+                'relayml' => :object
               }.freeze
             end
           end

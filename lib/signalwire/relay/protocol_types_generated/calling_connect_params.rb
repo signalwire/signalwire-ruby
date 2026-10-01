@@ -26,6 +26,7 @@ module SignalWire
           'max_price_per_minute' => :number,
           'node_id' => :string,
           'ringback' => :array,
+          'send_digits' => :string,
           'tag' => :string
         }.freeze
       end

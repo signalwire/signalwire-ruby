@@ -30,22 +30,21 @@ module SignalWire
             @http.get(_path(id), params.empty? ? nil : params, request_options: request_options)
           end
 
-          def update(id, display_name: nil, account_sid: nil, voice_url: nil, voice_method: nil, voice_fallback_url: nil, voice_fallback_method: nil, status_callback: nil, status_callback_method: nil, sms_url: nil, sms_method: nil, sms_fallback_url: nil, sms_fallback_method: nil, sms_status_callback: nil, sms_status_callback_method: nil, extras: {}, request_options: nil, **kwargs)
+          def update(id, name: nil, call_request_url: nil, call_request_method: nil, call_fallback_url: nil, call_fallback_method: nil, call_status_url: nil, call_status_method: nil, message_request_url: nil, message_request_method: nil, message_fallback_url: nil, message_fallback_method: nil, message_status_url: nil, message_status_method: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
-            body['display_name'] = display_name unless display_name.nil?
-            body['account_sid'] = account_sid unless account_sid.nil?
-            body['voice_url'] = voice_url unless voice_url.nil?
-            body['voice_method'] = voice_method unless voice_method.nil?
-            body['voice_fallback_url'] = voice_fallback_url unless voice_fallback_url.nil?
-            body['voice_fallback_method'] = voice_fallback_method unless voice_fallback_method.nil?
-            body['status_callback'] = status_callback unless status_callback.nil?
-            body['status_callback_method'] = status_callback_method unless status_callback_method.nil?
-            body['sms_url'] = sms_url unless sms_url.nil?
-            body['sms_method'] = sms_method unless sms_method.nil?
-            body['sms_fallback_url'] = sms_fallback_url unless sms_fallback_url.nil?
-            body['sms_fallback_method'] = sms_fallback_method unless sms_fallback_method.nil?
-            body['sms_status_callback'] = sms_status_callback unless sms_status_callback.nil?
-            body['sms_status_callback_method'] = sms_status_callback_method unless sms_status_callback_method.nil?
+            body['name'] = name unless name.nil?
+            body['call_request_url'] = call_request_url unless call_request_url.nil?
+            body['call_request_method'] = call_request_method unless call_request_method.nil?
+            body['call_fallback_url'] = call_fallback_url unless call_fallback_url.nil?
+            body['call_fallback_method'] = call_fallback_method unless call_fallback_method.nil?
+            body['call_status_url'] = call_status_url unless call_status_url.nil?
+            body['call_status_method'] = call_status_method unless call_status_method.nil?
+            body['message_request_url'] = message_request_url unless message_request_url.nil?
+            body['message_request_method'] = message_request_method unless message_request_method.nil?
+            body['message_fallback_url'] = message_fallback_url unless message_fallback_url.nil?
+            body['message_fallback_method'] = message_fallback_method unless message_fallback_method.nil?
+            body['message_status_url'] = message_status_url unless message_status_url.nil?
+            body['message_status_method'] = message_status_method unless message_status_method.nil?
             body = body.merge(extras).merge(kwargs)
             @http.put(_path(id), body, request_options: request_options)
           end

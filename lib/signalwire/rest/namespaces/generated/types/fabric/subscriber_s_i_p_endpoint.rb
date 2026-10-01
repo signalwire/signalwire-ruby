@@ -32,7 +32,7 @@ module SignalWire
                 'send_as' => :string,
                 'ciphers' => :array,
                 'codecs' => :array,
-                'encryption' => :object
+                'encryption' => :string
               }.freeze
             end
           end

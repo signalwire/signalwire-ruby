@@ -26,7 +26,9 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class CallFlowCreateRequest
               FIELDS = {
-                'title' => :string
+                'title' => :string,
+                'flow_data' => :object,
+                'relayml' => :object
               }.freeze
             end
           end

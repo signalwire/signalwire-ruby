@@ -30,7 +30,10 @@ module SignalWire
                 'processed_at' => :string,
                 'created_at' => :string,
                 'updated_at' => :string,
-                'status_callback_url' => :string
+                'status_callback_url' => :string,
+                'campaign_id' => :string,
+                'brand_id' => :string,
+                'phone_numbers' => :array
               }.freeze
             end
           end

@@ -26,12 +26,13 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class AvailablePhoneNumber
               FIELDS = {
-                'number' => :string,
                 'region' => :string,
-                'city' => :string,
                 'rate_center' => :string,
-                'lata' => :string,
-                'capabilities' => :object
+                'capabilities' => :array,
+                'e164' => :string,
+                'national_number_formatted' => :string,
+                'international_number_formatted' => :string,
+                'country_code' => :string
               }.freeze
             end
           end

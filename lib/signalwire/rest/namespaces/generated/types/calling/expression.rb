@@ -25,9 +25,11 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class Expression
               FIELDS = {
-                'string' => :string,
                 'pattern' => :string,
-                'output' => :object
+                'expr' => :string,
+                'nomatch-output' => :object,
+                'output' => :object,
+                'string' => :string
               }.freeze
             end
           end

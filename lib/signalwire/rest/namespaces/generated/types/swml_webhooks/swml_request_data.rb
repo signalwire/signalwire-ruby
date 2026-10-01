@@ -28,8 +28,8 @@ module SignalWire
               FIELDS = {
                 'call' => :object,
                 'vars' => :object,
-                'envs' => :object,
-                'params' => :object
+                'envs' => :any,
+                'params' => :any
               }.freeze
             end
           end

@@ -27,7 +27,17 @@ module SignalWire
             class SubscriberGuestTokenCreateRequest
               FIELDS = {
                 'allowed_addresses' => :array,
-                'expire_at' => :integer
+                'expire_at' => :integer,
+                'ch' => :string,
+                'region' => :string,
+                'email' => :string,
+                'first_name' => :string,
+                'last_name' => :string,
+                'display_name' => :string,
+                'job_title' => :string,
+                'time_zone' => :string,
+                'country' => :string,
+                'company_name' => :string
               }.freeze
             end
           end

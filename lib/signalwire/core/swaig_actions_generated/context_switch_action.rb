@@ -13,11 +13,11 @@ module SignalWire
   module Core
     # SignalWire::Core::SwaigActionsGenerated — namespace for this generated data-class tree.
     module SwaigActionsGenerated
-      # ContextSwitchAction — generated data type (swaig-response action 'context_switch' value object).
+      # ContextSwitchAction — generated read-side payload (swaig-response action 'context_switch' value object).
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
-      # No reader/writer methods and no initialize — the class is a bare
-      # namespace for its FIELDS map, describing the wire shape only.
+      # Each field also has a zero-arg reader, so a decoded payload can be
+      # accessed by name rather than by wire key.
       class ContextSwitchAction
         FIELDS = {
           'consolidate' => :boolean,
@@ -27,6 +27,8 @@ module SignalWire
           'user_pom' => :object,
           'user_prompt' => :string
         }.freeze
+
+        attr_reader :consolidate, :full_reset, :system_pom, :system_prompt, :user_pom, :user_prompt
       end
     end
   end

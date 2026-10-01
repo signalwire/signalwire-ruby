@@ -25,9 +25,9 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class Pronounce
               FIELDS = {
+                'ignore_case' => :object,
                 'replace' => :string,
-                'with' => :string,
-                'ignore_case' => :object
+                'with' => :string
               }.freeze
             end
           end

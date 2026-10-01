@@ -37,7 +37,6 @@ module SignalWire
                 'sample3' => :string,
                 'sample4' => :string,
                 'sample5' => :string,
-                'dynamic_templates' => :string,
                 'message_flow' => :string,
                 'opt_in_message' => :string,
                 'opt_out_message' => :string,
@@ -45,7 +44,6 @@ module SignalWire
                 'opt_in_keywords' => :string,
                 'opt_out_keywords' => :string,
                 'help_keywords' => :string,
-                'number_pooling_required' => :boolean,
                 'number_pooling_per_campaign' => :string,
                 'direct_lending' => :boolean,
                 'embedded_link' => :boolean,
@@ -55,7 +53,13 @@ module SignalWire
                 'csp_campaign_reference' => :string,
                 'status_callback_url' => :string,
                 'created_at' => :string,
-                'updated_at' => :string
+                'updated_at' => :string,
+                'dynamic_messages' => :string,
+                'requested_throughput' => :string,
+                'daily_messages_per_number' => :string,
+                'privacy_policy_link' => :string,
+                'purchase_or_port_numbers' => :string,
+                'signalwire_contact_emails' => :array
               }.freeze
             end
           end

@@ -27,11 +27,11 @@ module SignalWire
             class PomSectionBodyContent
               FIELDS = {
                 'title' => :string,
-                'subsections' => :array,
-                'numbered' => :object,
-                'numberedBullets' => :object,
                 'body' => :string,
-                'bullets' => :array
+                'bullets' => :array,
+                'numbered' => :boolean,
+                'numberedBullets' => :boolean,
+                'subsections' => :array
               }.freeze
             end
           end

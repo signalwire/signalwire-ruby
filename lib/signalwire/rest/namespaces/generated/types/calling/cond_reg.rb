@@ -25,9 +25,9 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class CondReg
               FIELDS = {
-                'when' => :string,
+                'else' => :array,
                 'then' => :array,
-                'else' => :array
+                'when' => :string
               }.freeze
             end
           end

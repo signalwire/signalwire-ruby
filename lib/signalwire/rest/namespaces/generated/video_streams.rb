@@ -25,9 +25,9 @@ module SignalWire
             @http.get(_path(id), params.empty? ? nil : params, request_options: request_options)
           end
 
-          def update(id, url:, extras: {}, request_options: nil, **kwargs)
+          def update(id, url: nil, extras: {}, request_options: nil, **kwargs)
             body = {}
-            body['url'] = url
+            body['url'] = url unless url.nil?
             body = body.merge(extras).merge(kwargs)
             @http.put(_path(id), body, request_options: request_options)
           end

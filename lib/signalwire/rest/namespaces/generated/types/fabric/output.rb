@@ -25,8 +25,9 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class Output
               FIELDS = {
-                'response' => :string,
-                'action' => :array
+                'action' => :object,
+                'post_process' => :boolean,
+                'response' => :object
               }.freeze
             end
           end

@@ -29,7 +29,8 @@ module SignalWire
                 'protect_recordings' => :boolean,
                 'protect_message_media' => :boolean,
                 'protect_fax_media' => :boolean,
-                'force_https_requests' => :boolean
+                'force_https_requests' => :boolean,
+                'parent_project_id' => :string
               }.freeze
             end
           end

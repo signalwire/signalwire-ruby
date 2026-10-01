@@ -26,10 +26,12 @@ module SignalWire
             class SWAIG
               FIELDS = {
                 'defaults' => :object,
-                'native_functions' => :array,
-                'includes' => :array,
                 'functions' => :array,
-                'internal_fillers' => :object
+                'hooks' => :array,
+                'includes' => :array,
+                'internal_fillers' => :object,
+                'mcp_servers' => :array,
+                'native_functions' => :array
               }.freeze
             end
           end

@@ -26,7 +26,8 @@ module SignalWire
             # describing the wire shape rather than wrapping a payload.
             class PurchasePhoneNumberRequest
               FIELDS = {
-                'number' => :string
+                'number' => :string,
+                'number_type' => :string
               }.freeze
             end
           end

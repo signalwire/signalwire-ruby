@@ -6,21 +6,21 @@
 
 # Code generated; DO NOT EDIT. Regenerate with the matching scripts/generate_*.py.
 #
-# flattened SWMLMethod verb 'stop_tap' config
+# schema.json $defs schema 'StopTapConfig'
 
 module SignalWire
   # SignalWire::Core — namespace for this generated data-class tree.
   module Core
     # SignalWire::Core::SwmlVerbsGenerated — namespace for this generated data-class tree.
     module SwmlVerbsGenerated
-      # StopTapConfig — generated read-side payload (flattened SWMLMethod verb 'stop_tap' config).
+      # StopTapConfig — generated read-side payload (schema.json $defs schema 'StopTapConfig').
       #
       # Frozen FIELDS maps each snake wire key to its JSON type symbol.
       # Each field also has a zero-arg reader, so a decoded payload can be
       # accessed by name rather than by wire key.
       class StopTapConfig
         FIELDS = {
-          'control_id' => :string
+          'control_id' => :object
         }.freeze
 
         attr_reader :control_id

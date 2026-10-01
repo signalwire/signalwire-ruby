@@ -27,7 +27,11 @@ module SignalWire
             class SubscriberGuestTokenCreateResponse
               FIELDS = {
                 'token' => :object,
-                'refresh_token' => :object
+                'refresh_token' => :object,
+                'address_uri' => :string,
+                'expires_at' => :string,
+                'expires_in' => :integer,
+                'issued_at' => :string
               }.freeze
             end
           end
