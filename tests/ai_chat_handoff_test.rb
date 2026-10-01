@@ -36,24 +36,29 @@ module HandoffTestHelper
   def setup
     @events = []
     @gateway = new_gateway
-    events = @events
-    @handoff = Router.new(
-      gateway: @gateway,
-      capture_leg: lambda { |conversation_id, medium|
-        events << [:capture, conversation_id, medium]
-        true
-      },
-      end_call: ->(call_id) { events << [:end_call, call_id] },
-      send_message: lambda { |call_id, text|
-        events << [:say, call_id, text]
-        true
-      }
-    )
+    @handoff = Router.new(gateway: @gateway, **recording_callbacks(@events))
   end
 
-  def new_gateway(**kw)
+  # capture_leg / end_call / send_message that record each call, in order.
+  def recording_callbacks(events)
+    { capture_leg: ->(conversation_id, medium) { (events << [:capture, conversation_id, medium]) && true },
+      end_call: ->(call_id) { events << [:end_call, call_id] },
+      send_message: ->(call_id, text) { (events << [:say, call_id, text]) && true } }
+  end
+
+  def new_gateway(**)
     client = SignalWire::AIChatClient.new(project: 'p', token: 't', url: 'https://service.example.invalid/aichat')
-    Gateway.new(config_url: 'https://agent.example.com/swml', key: 'pk_test', secret: SECRET, client: client, **kw)
+    Gateway.new(config_url: 'https://agent.example.com/swml', key: 'pk_test', secret: SECRET, client: client, **)
+  end
+
+  # A send_message whose first delivery fails, recording every attempt.
+  def failing_once_sender(attempts)
+    lambda { |_call_id, text|
+      attempts << text
+      raise IOError, 'platform unavailable' if attempts.length == 1
+
+      true
+    }
   end
 
   # A send_message that records the text and always succeeds.
@@ -76,6 +81,11 @@ module HandoffTestHelper
 
   def nonces(router = @handoff)
     router.instance_variable_get(:@nonces)
+  end
+
+  # Move a registration back past the router's nonce_ttl.
+  def age_past_ttl(nonce, router = @handoff)
+    nonces(router)[nonce].issued_at -= router.nonce_ttl + 1
   end
 end
 
@@ -132,11 +142,10 @@ class HandoffRedemptionTest < Minitest::Test
     post('/chat/handoff', { 'nonce' => 'n1' })
     spent = post('/chat/handoff', { 'nonce' => 'n1' })
     unknown = post('/chat/handoff', { 'nonce' => 'never-existed' })
+    not_found = [404, { 'error' => 'not found' }]
 
-    assert_equal 404, spent.status
-    assert_equal spent.status, unknown.status
-    assert_equal({ 'error' => 'not found' }, JSON.parse(spent.body))
-    assert_equal JSON.parse(spent.body), JSON.parse(unknown.body)
+    assert_equal not_found, [spent.status, JSON.parse(spent.body)]
+    assert_equal not_found, [unknown.status, JSON.parse(unknown.body)]
   end
 
   def test_expired_nonces_are_not_redeemable
@@ -235,30 +244,29 @@ class HandoffRegistrationTest < Minitest::Test
   def test_redemption_is_kept_until_the_ttl_passes
     @handoff.register('n', conversation_id: 'conv-root', call_id: 'call-9')
 
-    refute_nil @handoff.redeem('n')
-    entry = nonces['n']
-
-    assert entry.redeemed
+    assert @handoff.redeem('n') && nonces['n'].redeemed
     # Once the entry would have expired it is pruned, and the nonce can be
     # registered afresh.
-    entry.issued_at -= @handoff.nonce_ttl + 1
+    age_past_ttl('n')
     @handoff.register('n', conversation_id: 'conv-new', call_id: 'call-11')
 
-    refute nonces['n'].redeemed
-    assert_equal 'conv-new', nonces['n'].conversation_id
+    assert_equal ['conv-new', false], nonces['n'].to_h.values_at(:conversation_id, :redeemed)
   end
 
   # A registry backed by shared storage sees the change only when the entry is
   # assigned back, so redemption must not rely on mutation.
-  def test_a_shared_registry_stores_the_redemption
-    registry = Class.new(Hash) do
-      def assigned = (@assigned ||= [])
+  # Records every assignment as [key, redeemed].
+  Recording = Class.new(Hash) do
+    def assigned = (@assigned ||= [])
 
-      def []=(key, value)
-        assigned << [key, value.redeemed]
-        super
-      end
-    end.new
+    def []=(key, value)
+      assigned << [key, value.redeemed]
+      super
+    end
+  end
+
+  def test_a_shared_registry_stores_the_redemption
+    registry = Recording.new
     router = Router.new(gateway: @gateway, registry: registry)
     router.register('n', conversation_id: 'c', call_id: 'call-1')
 
@@ -279,45 +287,49 @@ end
 class HandoffConcurrencyTest < Minitest::Test
   include HandoffTestHelper
 
-  def test_a_registration_racing_a_redemption_cant_revive_the_nonce
+  # Once the first lookup has found the nonce absent, runs +racer+ in another
+  # thread, before the caller inserts its entry — and waits for it only briefly,
+  # since it blocks on the router's lock if the update is atomic.
+  Racing = Class.new(Hash) do
+    attr_accessor :racer, :raced_thread
+
+    def [](key)
+      found = super
+      if racer && !raced_thread
+        self.raced_thread = Thread.new(&racer)
+        raced_thread.join(0.5)
+      end
+      found
+    end
+  end
+
+  # A router whose registry races a second register + redeem (into +handles+)
+  # against the first registration's lookup.
+  def racing_router(handles)
     router = Router.new(gateway: @gateway)
-    handles = []
-    racers = []
-    register_and_redeem_elsewhere = lambda {
+    registry = Racing.new
+    registry.racer = lambda {
       router.register('n', conversation_id: 'late', call_id: 'call-2')
       handles << router.redeem('n')
     }
-    # Once the first registration has found the nonce absent, runs another
-    # registration and redemption in another thread, before the first one
-    # inserts its entry.
-    racing = Class.new(Hash) do
-      define_method(:[]) do |key|
-        found = super(key)
-        unless @raced
-          @raced = true
-          other = Thread.new(&register_and_redeem_elsewhere)
-          other.join(0.5) # blocks on the lock if it's atomic
-          racers << other
-        end
-        found
-      end
-    end
-    router.instance_variable_set(:@nonces, racing.new)
+    router.instance_variable_set(:@nonces, registry)
+    router
+  end
+
+  def test_a_registration_racing_a_redemption_cant_revive_the_nonce
+    handles = Queue.new
+    router = racing_router(handles)
     router.register('n', conversation_id: 'first', call_id: 'call-1')
-    racers.first.join(5)
+    nonces(router).raced_thread.join(5)
     # One registration stands, and the nonce redeems once.
     handles << router.redeem('n')
 
-    assert_equal 1, handles.compact.length
+    assert_equal 1, Array.new(handles.size) { handles.pop }.compact.length
   end
 
   def test_overlapping_says_cant_pass_the_cap
     delivered = Queue.new
-    send = lambda { |_call_id, text|
-      sleep 0.01 # delivery takes a moment
-      delivered << text
-      true
-    }
+    send = ->(_call_id, text) { sleep(0.01) && (delivered << text) } # delivery takes a moment
     router = Router.new(gateway: @gateway, send_message: send, max_messages_per_call: 1)
     router.register('n', conversation_id: 'c', call_id: 'call-1')
     results = Array.new(3) { |i| Thread.new { router.say('n', "m#{i}") } }.map(&:value)
@@ -328,13 +340,7 @@ class HandoffConcurrencyTest < Minitest::Test
 
   def test_a_failed_delivery_gives_its_slot_back
     attempts = []
-    send = lambda { |_call_id, text|
-      attempts << text
-      raise IOError, 'platform unavailable' if attempts.length == 1
-
-      true
-    }
-    router = Router.new(gateway: @gateway, send_message: send, max_messages_per_call: 1)
+    router = Router.new(gateway: @gateway, send_message: failing_once_sender(attempts), max_messages_per_call: 1)
     router.register('n', conversation_id: 'c', call_id: 'call-1')
 
     refute router.say('n', 'first')
@@ -359,13 +365,8 @@ class HandoffCopyingRegistryTest < Minitest::Test
 
   def test_a_failed_delivery_gives_its_slot_back
     attempts = []
-    send = lambda { |_call_id, text|
-      attempts << text
-      raise IOError, 'platform unavailable' if attempts.length == 1
-
-      true
-    }
-    router = Router.new(gateway: @gateway, send_message: send, max_messages_per_call: 1, registry: Copying.new)
+    router = Router.new(gateway: @gateway, send_message: failing_once_sender(attempts), max_messages_per_call: 1,
+                        registry: Copying.new)
     router.register('n', conversation_id: 'c', call_id: 'call-1')
 
     refute router.say('n', 'first')
@@ -425,6 +426,7 @@ class HandoffSayTest < Minitest::Test
   # Unlike redemption, typing is repeatable until the nonce is redeemed or expires.
   def test_is_repeatable
     @handoff.register('n2', conversation_id: 'conv-root', call_id: 'call-9')
+
     3.times { assert_equal 200, post('/chat/say', { 'nonce' => 'n2', 'text' => 'x' }).status }
   end
 
@@ -522,10 +524,7 @@ class HandoffCaptureFailureTest < Minitest::Test
 
   # Thin context beats refusing a switch the visitor asked for.
   def test_a_capture_timeout_does_not_block_the_switch
-    never_finishes = lambda { |_id, _medium|
-      sleep 10
-      true
-    }
+    never_finishes = ->(_id, _medium) { sleep(10) || true }
     router = Router.new(gateway: @gateway, capture_leg: never_finishes, capture_timeout: 0.05)
     router.register('n', conversation_id: 'c', call_id: 'call-1')
     started = Process.clock_gettime(Process::CLOCK_MONOTONIC)

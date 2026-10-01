@@ -69,16 +69,20 @@ class StubChatService
   def handle(conn)
     return if conn.gets.nil?
 
-    headers = {}
-    while (line = conn.gets) && line != "\r\n"
-      k, v = line.split(':', 2)
-      headers[k.strip.downcase] = v.strip if v
-    end
-    body = JSON.parse(conn.read(headers['content-length'].to_i))
+    body = JSON.parse(conn.read(read_headers(conn)['content-length'].to_i))
     @seen << body
     @slow ? reply_slow(conn, body) : reply(conn, body)
   ensure
     conn.close
+  end
+
+  def read_headers(conn)
+    headers = {}
+    while (line = conn.gets) && line != "\r\n"
+      name, value = line.split(':', 2)
+      headers[name.strip.downcase] = value.strip if value
+    end
+    headers
   end
 
   def reply(conn, body)
@@ -125,10 +129,10 @@ module GatewayTestHelper
 
   # A gateway wired to the stub service. Construction is fail-fast on
   # credentials, so every gateway gets a client.
-  def make_gateway(service: @service, **kw)
-    kw[:secret] ||= 's'
+  def make_gateway(service: @service, **opts)
+    opts[:secret] ||= 's'
     client = SignalWire::AIChatClient.new(project: 'p', token: 't', url: service.url)
-    Gateway.new(config_url: CONFIG_URL, key: KEY, client: client, **kw)
+    Gateway.new(config_url: CONFIG_URL, key: KEY, client: client, **opts)
   end
 
   def prep(body, gateway: @gateway, origin: ORIGIN)
@@ -156,7 +160,7 @@ class ChatGatewayHandleTest < Minitest::Test
   include GatewayTestHelper
 
   def test_a_handle_round_trips
-    assert @gateway.read_handle(@gateway.mint_handle()).start_with?('chat-')
+    assert @gateway.read_handle(@gateway.mint_handle).start_with?('chat-')
   end
 
   # The whole reason the gateway mints: with a publishable key, a guessable id
@@ -448,17 +452,18 @@ class ChatGatewayStartAndLogTest < Minitest::Test
     assert_rejected { prep({ 'method' => 'log' }) }
   end
 
+  RAW_TRANSCRIPT = [
+    { 'role' => 'system', 'content' => 'You are Sigmond. Secret instructions.' },
+    { 'role' => 'user', 'content' => 'hi', 'timestamp' => 123 },
+    { 'role' => 'assistant', 'content' => nil, 'tool_calls' => [{ 'id' => 'call_1' }] },
+    { 'role' => 'tool', 'content' => '{"internal": "result"}' },
+    { 'role' => 'assistant', 'content' => 'Hello!', 'timestamp' => 124 },
+    { 'role' => 'assistant', 'content' => '   ' }
+  ].freeze
+
   # chat_log returns the substituted SYSTEM PROMPT and the tool traffic.
   def test_the_transcript_hides_everything_but_the_dialogue
-    raw = [
-      { 'role' => 'system', 'content' => 'You are Sigmond. Secret instructions.' },
-      { 'role' => 'user', 'content' => 'hi', 'timestamp' => 123 },
-      { 'role' => 'assistant', 'content' => nil, 'tool_calls' => [{ 'id' => 'call_1' }] },
-      { 'role' => 'tool', 'content' => '{"internal": "result"}' },
-      { 'role' => 'assistant', 'content' => 'Hello!', 'timestamp' => 124 },
-      { 'role' => 'assistant', 'content' => '   ' }
-    ]
-    out = Gateway.visible_messages(raw)
+    out = Gateway.visible_messages(RAW_TRANSCRIPT)
 
     assert_equal [
       { 'role' => 'user', 'content' => 'hi', 'timestamp' => 123 / 1_000_000.0 },
@@ -568,7 +573,7 @@ class ChatGatewayPageContextTest < Minitest::Test
 
   # Measured as the reference serializes it: non-ASCII escaped to \uXXXX.
   def test_page_context_size_counts_escaped_non_ascii
-    wide = { 'j' => "é" * ((Gateway::MAX_USER_METADATA_BYTES / 6) + 1) }
+    wide = { 'j' => 'é' * ((Gateway::MAX_USER_METADATA_BYTES / 6) + 1) }
 
     assert_rejected(413) { prep({ 'method' => 'start', 'user_meta_data' => wide }) }
   end
@@ -617,7 +622,7 @@ class ChatGatewaySizeLimitTest < Minitest::Test
 
   # Two bytes each: under the limit in characters, over it in bytes sent.
   def test_the_message_limit_counts_utf8_bytes_not_characters
-    wide = "é" * ((Gateway::MAX_MESSAGE_BYTES / 2) + 1)
+    wide = 'é' * ((Gateway::MAX_MESSAGE_BYTES / 2) + 1)
 
     assert_operator wide.length, :<, Gateway::MAX_MESSAGE_BYTES
     assert_rejected(413) { prep({ 'message' => wide }) }
@@ -648,22 +653,19 @@ class ChatGatewayHttpTest < Minitest::Test
   def test_a_full_exchange_over_http
     r = post(@gateway, { 'message' => 'hello' })
 
-    assert_equal 200, r.status
-    handle = r.headers['x-chat-handle']
-
-    assert_equal 'hi there', JSON.parse(r.body)['result']['response']
+    assert_equal [200, 'hi there'], [r.status, JSON.parse(r.body).dig('result', 'response')]
     # What actually went upstream: our config_url, our conversation id, and a
     # Basic credential the browser never saw.
     sent = @service.seen.last['params']
 
-    assert_equal CONFIG_URL, sent['config_url']
-    assert_equal @gateway.read_handle(handle), sent['id']
+    assert_equal [CONFIG_URL, @gateway.read_handle(r.headers['x-chat-handle'])], sent.values_at('config_url', 'id')
     refute_includes JSON.generate(sent), 'token'
+  end
 
-    r2 = post(@gateway, { 'method' => 'end', 'handle' => handle })
+  def test_end_over_http
+    r = post(@gateway, { 'method' => 'end', 'handle' => @gateway.mint_handle })
 
-    assert_equal 200, r2.status
-    assert_equal({ 'status' => 'ended' }, JSON.parse(r2.body))
+    assert_equal [200, { 'status' => 'ended' }], [r.status, JSON.parse(r.body)]
     assert_equal 'end_conversation', @service.seen.last['method']
   end
 
@@ -730,22 +732,26 @@ class ChatGatewayHttpTest < Minitest::Test
   end
 
   # The reload path end to end: start, keep the handle, read it back.
+  REPLAYED = {
+    'messages' => [{ 'role' => 'user', 'content' => 'hi' }, { 'role' => 'assistant', 'content' => 'hi there' }],
+    'timeout' => 3600, 'last_activity' => nil
+  }.freeze
+  GREETING = { 'greeting' => 'Hi, I am Sigmond.', 'status' => 'created', 'timeout' => 3600 }.freeze
+
   def test_start_then_reload_replays_the_same_conversation
     started = post(@gateway, { 'method' => 'start' })
 
-    assert_equal 200, started.status
+    assert_equal [200, GREETING], [started.status, JSON.parse(started.body)]
     handle = started.headers['x-chat-handle']
-    body = JSON.parse(started.body)
-
-    assert_equal({ 'greeting' => 'Hi, I am Sigmond.', 'status' => 'created', 'timeout' => 3600 }, body)
-
     replay = post(@gateway, { 'method' => 'log', 'handle' => handle })
 
-    assert_equal 200, replay.status
-    assert_equal({ 'messages' => [{ 'role' => 'user', 'content' => 'hi' },
-                                  { 'role' => 'assistant', 'content' => 'hi there' }],
-                   'timeout' => 3600, 'last_activity' => nil }, JSON.parse(replay.body))
-    assert_equal @gateway.read_handle(handle), @service.seen.last['params']['id']
+    assert_equal [200, REPLAYED], [replay.status, JSON.parse(replay.body)]
+    assert_equal ['chat_log', @gateway.read_handle(handle)], last_sent('id')
+  end
+
+  # The last call the stub service saw, as [method, params[key]].
+  def last_sent(key)
+    [@service.seen.last['method'], @service.seen.last['params'][key]]
   end
 
   # The number the page schedules its idle warning around must be the number the
@@ -755,14 +761,12 @@ class ChatGatewayHttpTest < Minitest::Test
     started = post(gw, { 'method' => 'start' })
 
     assert_equal 900, JSON.parse(started.body)['timeout']
-    assert_equal 'create_conversation', @service.seen.last['method']
-    assert_equal 900, @service.seen.last['params']['conversation_timeout']
+    assert_equal ['create_conversation', 900], last_sent('conversation_timeout')
 
     chatted = post(gw, { 'message' => 'hi', 'handle' => started.headers['x-chat-handle'] })
 
     assert_equal 200, chatted.status
-    assert_equal 'chat', @service.seen.last['method']
-    assert_equal 900, @service.seen.last['params']['conversation_timeout']
+    assert_equal ['chat', 900], last_sent('conversation_timeout')
   end
 
   # prepare() builds the params; the dispatch must not drop the bag on the wire.
@@ -771,18 +775,16 @@ class ChatGatewayHttpTest < Minitest::Test
     started = post(@gateway, { 'method' => 'start', 'user_meta_data' => page })
 
     assert_equal 200, started.status
-    assert_equal 'create_conversation', @service.seen.last['method']
-    assert_equal page, @service.seen.last['params']['user_meta_data']
+    assert_equal ['create_conversation', page], last_sent('user_meta_data')
 
     chatted = post(@gateway, { 'message' => 'hi', 'handle' => started.headers['x-chat-handle'],
                                'user_meta_data' => page })
 
     assert_equal 200, chatted.status
-    assert_equal 'chat', @service.seen.last['method']
-    assert_equal page, @service.seen.last['params']['user_meta_data']
+    assert_equal ['chat', page], last_sent('user_meta_data')
   end
 
-  def test_a_malformed_bag_is_a_clean_rejection_not_a_500
+  def test_a_malformed_bag_is_a_clean_rejection_not_a_server_error
     r = post(@gateway, { 'method' => 'start', 'user_meta_data' => %w[not an object] })
 
     assert_equal 400, r.status
@@ -806,16 +808,12 @@ class ChatGatewayHttpSizeLimitTest < Minitest::Test
 
   # With no Content-Length the body is counted as it arrives.
   def test_http_refuses_an_oversized_chunked_body
-    env = Rack::MockRequest.env_for('/chat/', HEADERS.merge(method: 'POST',
-                                                            input: ' ' * (Gateway::MAX_REQUEST_BODY_BYTES + 2048)))
+    env = Rack::MockRequest.env_for('/', HEADERS.merge(method: 'POST',
+                                                       input: ' ' * (Gateway::MAX_REQUEST_BODY_BYTES + 2048)))
     env.delete('CONTENT_LENGTH')
-    app = @gateway.router
-    status, _, body = Rack::Builder.new { map('/chat') { run app } }.to_app.call(env)
-    text = +''
-    body.each { |chunk| text << chunk }
+    status, _, body = @gateway.router.call(env)
 
-    assert_equal 413, status
-    assert_equal({ 'error' => 'request too large' }, JSON.parse(text))
+    assert_equal [413, { 'error' => 'request too large' }], [status, JSON.parse(body.to_a.join)]
     assert_empty @service.seen
   end
 
@@ -866,34 +864,32 @@ class ChatGatewayStreamingTest < Minitest::Test
 
   # Chunks leave the upstream socket one at a time, and the route hands back a
   # lazily-produced body rather than a completed one.
-  def test_the_relay_streams_rather_than_collects
-    client = @slow_gateway.instance_variable_get(:@client)
+  def test_raw_post_yields_the_body_chunk_by_chunk
     chunks = []
-    client.raw_post('chat', { 'id' => 'c', 'message' => 'hi' }) do |resp|
+    @slow_gateway.instance_variable_get(:@client).raw_post('chat', { 'id' => 'c', 'message' => 'hi' }) do |resp|
       resp.read_body { |chunk| chunks << chunk }
     end
 
     assert_operator chunks.length, :>, 1, "upstream body arrived in one piece: #{chunks.inspect}"
     assert_equal '', chunks.first.strip, 'first chunk should be keepalive padding'
+  end
 
+  def test_the_route_streams_rather_than_collects
     env = Rack::MockRequest.env_for('/', method: 'POST', input: JSON.generate('message' => 'hi'),
                                          'HTTP_AUTHORIZATION' => "Bearer #{KEY}")
+    sent_before = @slow.seen.length
     status, headers, body = @slow_gateway.router.call(env)
 
     assert_equal 200, status
     assert_equal 'application/json', headers['content-type']
     refute_kind_of Array, body, 'the route materialised the body instead of streaming it'
-    assert_empty @slow.seen, 'nothing should reach upstream until the body is iterated'
-    streamed = []
-    body.each { |chunk| streamed << chunk }
-    body.close if body.respond_to?(:close)
-
-    assert_operator streamed.length, :>, 1
+    assert_equal sent_before, @slow.seen.length, 'nothing should reach upstream until the body is iterated'
+    assert_operator body.to_a.length, :>, 1
   end
 
   def test_raw_post_sends_one_json_rpc_call_and_returns_the_block_value
     client = @gateway.instance_variable_get(:@client)
-    status = client.raw_post('chat', { 'id' => 'c', 'message' => 'hi' }) { |resp| resp.code }
+    status = client.raw_post('chat', { 'id' => 'c', 'message' => 'hi' }, &:code)
 
     assert_equal '200', status
     sent = @service.seen.last
@@ -924,11 +920,12 @@ class ChatGatewayLifecycleTest < Minitest::Test
     assert_empty closed
   end
 
+  CREDENTIALS = { 'SIGNALWIRE_PROJECT_ID' => 'p', 'SIGNALWIRE_API_TOKEN' => 't',
+                  'SIGNALWIRE_SPACE' => 'example' }.freeze
+
   def test_close_releases_a_client_the_gateway_built
-    saved = %w[SIGNALWIRE_PROJECT_ID SIGNALWIRE_API_TOKEN SIGNALWIRE_SPACE].to_h { |k| [k, ENV.fetch(k, nil)] }
-    ENV['SIGNALWIRE_PROJECT_ID'] = 'p'
-    ENV['SIGNALWIRE_API_TOKEN'] = 't'
-    ENV['SIGNALWIRE_SPACE'] = 'example'
+    saved = CREDENTIALS.to_h { |name, _| [name, ENV.fetch(name, nil)] }
+    ENV.update(CREDENTIALS)
     gw = Gateway.new(config_url: CONFIG_URL, key: KEY)
     closed = []
     gw.instance_variable_get(:@client).define_singleton_method(:close) { closed << :closed }
@@ -936,6 +933,6 @@ class ChatGatewayLifecycleTest < Minitest::Test
 
     assert_equal [:closed], closed
   ensure
-    saved.each { |k, v| v ? ENV[k] = v : ENV.delete(k) }
+    saved.each { |name, value| value ? ENV[name] = value : ENV.delete(name) }
   end
 end
