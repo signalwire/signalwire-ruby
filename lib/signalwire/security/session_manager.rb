@@ -93,7 +93,7 @@ module SignalWire
       def validate_token(function_name, token, call_id)
         return false if _blank?(token) || _blank?(call_id)
 
-        parts = Base64.urlsafe_decode64(token).split('.')
+        parts = token_parts(Base64.urlsafe_decode64(token))
         return false unless parts.length == 5 && _token_fields_valid?(parts, function_name, call_id)
 
         token_call_id, token_function, token_expiry, token_nonce, token_signature = parts
@@ -176,7 +176,7 @@ module SignalWire
       def debug_token(token)
         return { 'error' => 'debug mode not enabled' } unless @debug_mode
 
-        parts = Base64.urlsafe_decode64(token).split('.')
+        parts = token_parts(Base64.urlsafe_decode64(token))
         return malformed_debug(token, parts) unless parts.length == 5
 
         decoded_debug(token, parts)
@@ -185,6 +185,20 @@ module SignalWire
       end
 
       private
+
+      # @api private — split a decoded token into its fields FROM THE RIGHT: the
+      # call_id may itself contain dots (a composed conversation id such as
+      # "root.2"), while function name, expiry, nonce and signature never do. So
+      # the last four dots delimit the four trailing fields and everything before
+      # them is the call_id (the reference's +rsplit(".", 4)+).
+      #
+      # @return [Array<String>]
+      def token_parts(decoded)
+        parts = decoded.split('.', -1)
+        return parts if parts.length <= 5
+
+        [parts[0..-5].join('.'), *parts[-4..]]
+      end
 
       # @api private — the debug report for a token that does not split into the
       # expected number of parts: how many parts it had and how long it was. The

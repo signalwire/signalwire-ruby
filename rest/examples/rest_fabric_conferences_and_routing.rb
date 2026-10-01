@@ -81,10 +81,6 @@ safe('Guest token') do
   guest = client.fabric.tokens.create_guest_token(allowed_addresses: [relay_id])
   puts "  Guest token: #{guest.fetch('token', '')[0, 40]}..."
 end
-safe('Invite token') do
-  invite = client.fabric.tokens.create_invite_token(address_id: relay_id)
-  puts "  Invite token: #{invite.fetch('token', '')[0, 40]}..."
-end
 safe('Embed token') do
   embed = client.fabric.tokens.create_embed_token(token: 'demo-embed-token')
   puts "  Embed token: #{embed.fetch('token', '')[0, 40]}..."

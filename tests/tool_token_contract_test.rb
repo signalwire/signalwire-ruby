@@ -83,6 +83,18 @@ class ToolTokenContractTest < Minitest::Test
            'python-oracle-format token must validate in the ruby port'
   end
 
+  # (3b) A call_id may itself contain dots (a composed conversation id such as
+  #      "root.2"); the fields are split from the right (python d59895f).
+  def test_dotted_call_id_validates
+    expiry = (Time.now.to_i + 900).to_s
+
+    assert make_manager.validate_token('oracle_fn', oracle_token('oracle_fn', 'root.2', expiry), 'root.2')
+    minted = make_manager.create_token('oracle_fn', 'conv.1.2')
+
+    assert make_manager.validate_token('oracle_fn', minted, 'conv.1.2')
+    refute make_manager.validate_token('oracle_fn', minted, 'conv.1')
+  end
+
   # (4) Flip one byte of the signature => validation fails.
   def test_tampered_signature_fails
     mgr   = make_manager

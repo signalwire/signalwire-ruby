@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ 8d68a919a1c06f28e6bd7ad79fe929eaad05650c",
+  "generated_from": "signalwire-ruby @ b5bdf99641d643b728b69a94cc136c8da55d9176",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -643,7 +643,8 @@
       "classes": {},
       "functions": [
         "validate_request",
-        "validate_webhook_signature"
+        "validate_webhook_signature",
+        "validate_webhook_signature_sha256"
       ]
     },
     "signalwire.core.security_config": {

@@ -89,6 +89,39 @@ module SignalWire
         _scheme_b_match?(signing_key, signature, url.to_s, raw_body)
       end
 
+      # Validate the SHA-256 webhook signature (Scheme A with a stronger hash).
+      #
+      # SignalWire sends +X-SignalWire-Sha256-Signature+ alongside the SHA-1
+      # +X-SignalWire-Signature+ on signed webhooks. Its construction is the same
+      # Scheme A message with SHA-256:
+      #
+      #   hex(HMAC-SHA256(signing_key, url + raw_body))
+      #
+      # Only Scheme A (RELAY/SWML/JSON) is defined for this header; the legacy
+      # cXML/form Scheme B stays on SHA-1 — see {validate_webhook_signature}.
+      #
+      # @param signing_key [String] Customer's Signing Key. +nil+ / empty raises
+      #   +ArgumentError+ (a programming error, not a validation failure).
+      # @param signature [String, nil] the +X-SignalWire-Sha256-Signature+ header
+      #   value (64-char lowercase hex). Missing / empty returns false.
+      # @param url [String] the full public URL SignalWire POSTed to, exactly as
+      #   the platform saw it when it computed the signature.
+      # @param raw_body [String] the raw request body BEFORE any parsing; a
+      #   parsed Hash raises +TypeError+.
+      # @return [Boolean] true if the SHA-256 signature matches
+      # @raise [ArgumentError] when +signing_key+ is missing.
+      # @raise [TypeError] when +raw_body+ is not a String.
+      def self.validate_webhook_signature_sha256(signing_key, signature, url, raw_body)
+        raise ArgumentError, 'signing_key is required' if signing_key.nil? || signing_key.to_s.empty?
+        unless raw_body.is_a?(String)
+          raise TypeError,
+                'raw_body must be a String — did you pass parsed JSON by mistake?'
+        end
+        return false if signature.nil? || signature.to_s.empty?
+
+        _safe_eq(_hex_hmac_sha256(signing_key, url.to_s + raw_body), signature)
+      end
+
       # @api private — Scheme B across URL/param-shape variants; honors bodySHA256.
       def self._scheme_b_match?(signing_key, signature, url, raw_body)
         param_shapes = [_parse_form_body(raw_body), []]
@@ -181,6 +214,9 @@ module SignalWire
       # @api private — hex-encoded HMAC-SHA1, one of the two signature encodings the
       # platform emits.
       def self._hex_hmac_sha1(key, message) = OpenSSL::HMAC.hexdigest('SHA1', key.to_s, message.to_s)
+
+      # @api private — hex HMAC-SHA256 of +message+ keyed by +key+.
+      def self._hex_hmac_sha256(key, message) = OpenSSL::HMAC.hexdigest('SHA256', key.to_s, message.to_s)
 
       # @api private — base64-encoded HMAC-SHA1, the other signature encoding the
       # platform emits.
