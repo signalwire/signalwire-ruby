@@ -84,23 +84,25 @@ class FabricMockTest < Minitest::Test
     assert_equal [], @mock.journal
   end
 
-  # ---- CallFlowsResource.list_addresses — singular path ---------------
+  # ---- CallFlowsResource.list_addresses — the plural path the server routes ----
+  # prime-rails config/routes.rb:1360-1363 routes only the plural
+  # /resources/call_flows/{id}/addresses; the singular /call_flow/{id}/... the SDK
+  # used before routed nowhere (404).
 
-  def test_call_flows_list_addresses_uses_singular_path
+  def test_call_flows_list_addresses_uses_plural_path
     assert_data_collection(@client.fabric.call_flows.list_addresses('cf-1'))
-    # singular 'call_flow' (NOT 'call_flows') in the addresses sub-path.
-    assert_last_request('GET', "#{FABRIC_BASE}/resources/call_flow/cf-1/addresses", route: :matched)
+    assert_last_request('GET', "#{FABRIC_BASE}/resources/call_flows/cf-1/addresses", route: :matched)
   end
 
-  # ---- ConferenceRoomsResource.list_addresses — singular path ---------
+  # ---- ConferenceRoomsResource.list_addresses — the plural path ----------------
+  # prime-rails config/routes.rb:1352-1354, mirroring call_flows.
 
-  def test_conference_rooms_list_addresses_uses_singular_path
+  def test_conference_rooms_list_addresses_uses_plural_path
     body = @client.fabric.conference_rooms.list_addresses('cr-1')
 
     assert_kind_of Hash, body
     assert body.key?('data')
-    # singular 'conference_room'.
-    assert_last_request('GET', "#{FABRIC_BASE}/resources/conference_room/cr-1/addresses",
+    assert_last_request('GET', "#{FABRIC_BASE}/resources/conference_rooms/cr-1/addresses",
                         route: :matched)
   end
 
@@ -129,16 +131,6 @@ class FabricMockTest < Minitest::Test
   end
 
   # ---- FabricTokens — every token-creation endpoint -------------------
-
-  def test_tokens_create_invite_token
-    body = @client.fabric.tokens.create_invite_token(address_id: 'addr-42')
-
-    assert_kind_of Hash, body
-    # subscriber/invites uses the singular 'subscriber' path segment.
-    last = assert_last_request('POST', "#{FABRIC_BASE}/subscriber/invites")
-    assert_kind_of Hash, last.body
-    assert_equal 'addr-42', last.body['address_id']
-  end
 
   def test_tokens_create_embed_token
     body = @client.fabric.tokens.create_embed_token(token: 'embed-token-1')

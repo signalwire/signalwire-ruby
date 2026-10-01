@@ -11,27 +11,27 @@ class RecordingHttpClient
     @requests = []
   end
 
-  def get(path, params = nil)
+  def get(path, params = nil, request_options: nil, headers: nil) # rubocop:disable Lint/UnusedMethodArgument
     @requests << { method: 'GET', path: path, body: nil, params: params }
     {}
   end
 
-  def post(path, body = nil, params: nil)
+  def post(path, body = nil, params: nil, request_options: nil, headers: nil) # rubocop:disable Lint/UnusedMethodArgument
     @requests << { method: 'POST', path: path, body: body, params: params }
     {}
   end
 
-  def put(path, body = nil)
+  def put(path, body = nil, request_options: nil) # rubocop:disable Lint/UnusedMethodArgument
     @requests << { method: 'PUT', path: path, body: body, params: nil }
     {}
   end
 
-  def patch(path, body = nil)
+  def patch(path, body = nil, request_options: nil) # rubocop:disable Lint/UnusedMethodArgument
     @requests << { method: 'PATCH', path: path, body: body, params: nil }
     {}
   end
 
-  def delete(path)
+  def delete(path, request_options: nil) # rubocop:disable Lint/UnusedMethodArgument
     @requests << { method: 'DELETE', path: path, body: nil, params: nil }
     {}
   end

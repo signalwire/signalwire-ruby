@@ -599,19 +599,59 @@ def resolve_schema(spec: Spec, schema: dict | None, seen=None) -> dict:
     return schema
 
 
+def _declaring_name(spec: Spec, schema: dict | None, name: str | None) -> str | None:
+    """The spec schema name that DECLARES ``schema``'s own properties: the last
+    ``$ref`` target followed by ``resolve_schema`` (an inline part keeps ``name``)."""
+    seen: set[str] = set()
+    while isinstance(schema, dict):
+        ref = schema.get("$ref")
+        if ref and ref.startswith("#/"):
+            leaf = ref.rsplit("/", 1)[-1]
+            if leaf in seen:
+                break
+            seen.add(leaf)
+            name, schema = leaf, spec.schemas.get(leaf)
+            continue
+        allof = schema.get("allOf")
+        if (
+            allof
+            and len(allof) == 1
+            and not schema.get("properties")
+            and not schema.get("type")
+        ):
+            schema = allof[0]
+            continue
+        break
+    return name
+
+
 def object_body_fields(spec: Spec, body_schema: dict) -> list[tuple[str, dict, bool]]:
     """[(wire_name, field_schema, required)] for an object request body,
-    flattening allOf and following $refs. Spec declaration order preserved."""
+    flattening allOf and following $refs. Spec declaration order preserved.
+
+    Overlay-hidden fields are dropped, by the spec name of the schema that
+    declares them (the ``$ref`` target; an inline allOf part belongs to the schema
+    it sits in) — the reference generator's ``_flatten_schema`` policy, so a
+    hidden field is absent from the resource methods' kwargs too, not only from
+    the generated request type."""
+    psdk = resolve_porting_sdk()
     resolved = resolve_schema(spec, body_schema)
+    owner = _declaring_name(spec, body_schema, None)
     props: dict[str, dict] = {}
-    required: set[str] = set(resolved.get("required") or [])
-    for name, psc in (resolved.get("properties") or {}).items():
-        props.setdefault(name, psc)
+    required: set[str] = set()
+
+    def take(schema: dict, name: str | None) -> None:
+        nonlocal required
+        required |= {
+            r for r in schema.get("required") or [] if not overlay_hidden(r, name, psdk)
+        }
+        for field, psc in (schema.get("properties") or {}).items():
+            if not overlay_hidden(field, name, psdk):
+                props.setdefault(field, psc)
+
+    take(resolved, owner)
     for br in resolved.get("allOf") or []:
-        rb = resolve_schema(spec, br)
-        required |= set(rb.get("required") or [])
-        for name, psc in (rb.get("properties") or {}).items():
-            props.setdefault(name, psc)
+        take(resolve_schema(spec, br), _declaring_name(spec, br, owner))
     return [(name, psc, name in required) for name, psc in props.items()]
 
 

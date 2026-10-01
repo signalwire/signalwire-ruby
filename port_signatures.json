@@ -41891,20 +41891,6 @@
                   "default": null
                 },
                 {
-                  "name": "country_code",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "number_type",
-                  "type": "any",
-                  "kind": "keyword",
-                  "required": false,
-                  "default": null
-                },
-                {
                   "name": "extras",
                   "type": "optional<dict<string,any>>",
                   "kind": "keyword",
