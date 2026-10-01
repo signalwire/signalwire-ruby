@@ -30,21 +30,6 @@ class SwmlBuilderTest < Minitest::Test
     assert_equal({ 'answer' => { 'max_duration' => 30, 'codecs' => 'PCMU' } }, main.first)
   end
 
-  # Parity: python SWMLBuilder.answer(username, password) — SIP auth for the answer.
-  def test_answer_with_sip_credentials
-    @builder.answer(username: 'alice', password: 's3cret')
-
-    assert_equal({ 'answer' => { 'username' => 'alice', 'password' => 's3cret' } }, main.first)
-  end
-
-  # Parity: python SWMLBuilder.play(loop, status_url).
-  def test_play_loop_and_status_url
-    @builder.play(url: 'https://ex.com/a.mp3', loop: 0, status_url: 'https://ex.com/status')
-
-    assert_equal({ 'play' => { 'url' => 'https://ex.com/a.mp3', 'loop' => 0,
-                               'status_url' => 'https://ex.com/status' } }, main.first)
-  end
-
   def test_hangup_reason
     @builder.hangup(reason: 'busy')
 
@@ -173,5 +158,32 @@ class SwmlBuilderTest < Minitest::Test
 
   def test_unknown_method_raises
     assert_raises(NoMethodError) { @builder.definitely_not_a_verb }
+  end
+end
+
+# answer/play options added with signalwire-python 3.5.x: SIP credentials on
+# answer, loop + status_url on play.
+class SwmlBuilderVerbOptionsTest < Minitest::Test
+  def setup
+    @builder = SignalWire::SWML::SWMLBuilder.new(SignalWire::SWML::Service.new(name: 'builder-test'))
+  end
+
+  def main
+    @builder.build['sections']['main']
+  end
+
+  # Parity: python SWMLBuilder.answer(username, password) — SIP auth for the answer.
+  def test_answer_with_sip_credentials
+    @builder.answer(username: 'alice', password: 's3cret')
+
+    assert_equal({ 'answer' => { 'username' => 'alice', 'password' => 's3cret' } }, main.first)
+  end
+
+  # Parity: python SWMLBuilder.play(loop, status_url).
+  def test_play_loop_and_status_url
+    @builder.play(url: 'https://ex.com/a.mp3', loop: 0, status_url: 'https://ex.com/status')
+
+    assert_equal({ 'play' => { 'url' => 'https://ex.com/a.mp3', 'loop' => 0,
+                               'status_url' => 'https://ex.com/status' } }, main.first)
   end
 end

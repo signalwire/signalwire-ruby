@@ -195,6 +195,14 @@ sched_gate COORDINATED-PASS desc="a non-main porting-sdk pin must be declared on
 sched_gate COORDINATED-REFS desc="every coordinated-set checkout (porting-sdk + python oracle + matrix ports) takes its ref from the branch-local .github/porting-sdk-ref pin resolver, never a repo variable or literal ref" \
     -- python3 "$PORTING_SDK_DIR/scripts/check_coordinated_refs.py" --repo "$PORT_ROOT"
 
+# SCHEMA-BUNDLE (porting-sdk docs/SCHEMA_ROUND_TRIP.md): the bundled
+# lib/signalwire/swml/schema.json is byte-identical to porting-sdk's schema.json at
+# the coordinated pin, its schema.json.sha256 record names those bytes, and psdk's
+# copy matches the ARS output it was vendored from. Cheap, per-PR.
+sched_gate SCHEMA-BUNDLE desc="bundled schema.json == porting-sdk's == ARS output (record matches)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/port_schema_bundle.py" check \
+        --port signalwire-ruby --port-root "$PORT_ROOT" --selftest
+
 sched_gate ENV-VAR-CONSISTENCY desc="REST base-url override present + custom-CA env names canonical (SIGNALWIRE_{REST,RELAY}_CA_FILE)" \
     -- python3 "$PORTING_SDK_DIR/scripts/env_var_consistency.py" --port ruby --repo "$PORT_ROOT"
 

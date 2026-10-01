@@ -71,7 +71,8 @@ class SchemaUtilsParityTest < Minitest::Test
     props = su.get_verb_properties('answer')
 
     refute_empty props, 'expected non-empty properties for answer'
-    assert_equal 'object', props['type']
+    # The verb body is a union of the engine's body forms; one arm is the object form.
+    assert(props['anyOf'].any? { |arm| arm['type'] == 'object' }, 'answer must have an object body form')
   end
 
   def test_get_verb_properties_nonexistent

@@ -461,8 +461,9 @@ module SignalWire
       private_constant :MAX_SCHEMA_RESOLVE_DEPTH
 
       # Resolve a verb's own schema node to the set of KNOWN top-level property
-      # names it closes over, following a single top-level $ref (e.g. the ai verb
-      # -> #/$defs/AIObject) and UNIONING the branches of an anyOf/oneOf union.
+      # names it closes over, following $refs and resolving an anyOf/oneOf union
+      # to its ONE closed object arm (the #223 contract: exactly-one-closed-arm,
+      # else disengage).
       # Returns nil only when there is genuinely no enumerable closed key-set, so
       # no shallow check applies.
       def verb_top_level_property_names(verb_name)
@@ -478,20 +479,19 @@ module SignalWire
       # Three node shapes are handled, and the union case is the one that matters:
       #
       #   - `$ref` — followed into $defs and resolved recursively (ai -> AIObject).
-      #   - `anyOf` / `oneOf` — resolved BRANCH BY BRANCH and UNIONED. Without
-      #     this the resolver returned the union node itself, which carries no
-      #     `properties` and no closed-key flag of its own (the BRANCHES carry
-      #     both), so schema_closed? answered false and the closed-key check
-      #     silently DISENGAGED: validate_verb_top_level_keys reported valid for
-      #     any key whatsoever. Five verbs in the shipped schema are union-shaped
-      #     — connect, play, send_sms, sleep, unset — so the check was doing
-      #     nothing for all of them. A union's known-key set is the union of its
-      #     object branches' keys: a config satisfying the union satisfies SOME
-      #     branch, so a key belonging to no branch belongs to no valid document.
-      #     Non-object branches (sleep's bare `integer`, SWMLVar) contribute no
-      #     keys and are skipped — they constrain the config to not be an object
-      #     at all, a different question from which keys an object config may
-      #     carry.
+      #   - `anyOf` / `oneOf` — resolved BRANCH BY BRANCH. The union node itself
+      #     carries no `properties` and no closed-key flag of its own (the
+      #     BRANCHES carry both), so reading it directly silently DISENGAGED the
+      #     check. The #223 contract (porting-sdk docs/legacy-census/DISC-g-d21.md
+      #     §1.4/§4): when EXACTLY ONE branch is a closed object, its keys are
+      #     the verb's known keys — an object config can only satisfy that branch
+      #     (the engine's swml_schema.c check_method_type_and_unknown_params
+      #     admits a body as object/string/number/array, one object form per
+      #     verb). With zero closed object branches, or more than one, the check
+      #     DISENGAGES and the deep validator owns the shape: unioning several
+      #     object arms would accept a document mixing keys no single arm admits.
+      #     Non-object branches (sleep's bare `integer`, SWMLVar, the positional
+      #     array forms) contribute no keys and are skipped.
       #   - a plain closed object — its own `properties`.
       def closed_key_set(node, depth)
         return nil unless node.is_a?(Hash) && depth <= MAX_SCHEMA_RESOLVE_DEPTH
@@ -501,7 +501,7 @@ module SignalWire
 
         branches = node['anyOf']
         branches = node['oneOf'] unless branches.is_a?(Array)
-        return union_key_set(branches, depth) if branches.is_a?(Array)
+        return single_closed_arm_key_set(branches, depth) if branches.is_a?(Array)
 
         closed_object_key_set(node)
       end
@@ -514,14 +514,13 @@ module SignalWire
         @schema.dig('$defs', ref[prefix.length..])
       end
 
-      # The UNION of every branch that itself yields a closed key-set. nil when
-      # no branch is a closed object (e.g. unset: string | array-of-string) —
-      # there is no key-set to enforce and the deep validator owns that shape.
-      def union_key_set(branches, depth)
+      # The key-set of the ONE branch that yields a closed key-set; nil when no
+      # branch is a closed object (e.g. unset: string | array-of-string) or more
+      # than one is — then there is no single key-set to enforce and the deep
+      # validator owns the shape (the #223 exactly-one-closed-arm contract).
+      def single_closed_arm_key_set(branches, depth)
         sets = branches.filter_map { |branch| closed_key_set(branch, depth + 1) }
-        return nil if sets.empty?
-
-        sets.reduce([]) { |acc, keys| acc | keys }
+        sets.size == 1 ? sets.first : nil
       end
 
       # A plain object node's declared property names — but only when the schema

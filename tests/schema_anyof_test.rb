@@ -24,14 +24,14 @@ require_relative '../lib/signalwire/utils/schema_utils'
 # report a problem; it stopped checking and reported success, which is strictly
 # worse than failing.
 #
-# Five verbs in the shipped schema.json are union-shaped: connect, play,
-# send_sms, sleep (object|integer|SWMLVar) and unset (string|array-of-string).
-# Four of the five have object branches with perfectly enumerable keys.
+# In the bundled schema.json every verb body is union-shaped (object | string |
+# number | array forms — the engine's check_method_type_and_unknown_params).
 #
-# The union semantic is the correct one for this shape: a config satisfying an
-# anyOf/oneOf satisfies SOME branch, so a key belonging to no branch belongs to
-# no valid document. An INTERSECTION would reject every branch discriminator —
-# test_connect_branch_discriminators_all_accepted pins that.
+# The #223 contract (porting-sdk docs/legacy-census/DISC-g-d21.md §1.4/§4):
+# EXACTLY ONE closed object arm gives the verb's known keys; zero or several
+# closed object arms DISENGAGE the shallow check (the deep validator owns the
+# shape). Measured on this artifact: every union verb has at most one closed
+# object arm, so 47 of 53 verbs engage and 6 stay disengaged.
 class SchemaAnyOfTest < Minitest::Test
   include SignalWire::Utils
 
@@ -39,20 +39,19 @@ class SchemaAnyOfTest < Minitest::Test
   #          config the check must ACCEPT]
   UNION_SHAPED_VERBS = {
     'sleep' => ['duration', 1, { 'duration' => 5000 }],
-    'play' => ['urls', 8, { 'url' => 'https://example.com/a.mp3' }],
-    'send_sms' => ['media', 6,
+    'play' => ['urls', 9, { 'url' => 'https://example.com/a.mp3' }],
+    'send_sms' => ['media', 7,
                    { 'to_number' => '+15551230000', 'from_number' => '+15554560000',
                      'body' => 'hello' }],
-    'connect' => ['serial_parallel', 22, { 'to' => 'sip:alice@example.com' }]
+    'connect' => ['serial_parallel', 31, { 'to' => 'sip:alice@example.com' }]
   }.freeze
 
   # Shapes with genuinely NO enumerable closed key-set. Pinned so the fix is not
   # read as "always enforce something":
-  #   set    — OPEN object (unevaluatedProperties:{} with no `not`, zero declared
-  #            properties: a free-form variable bag by design)
-  #   unset  — union with no object branch (string | array-of-string)
-  #   cond   — array, label — string, return — no `type` at all
-  NON_ENUMERABLE_VERBS = %w[cond label return set unset].freeze
+  #   set    — OPEN object (a free-form variable bag by design)
+  #   unset / return / transcribe_stop — union with no closed object branch
+  #   cond   — array, eval — open object
+  NON_ENUMERABLE_VERBS = %w[cond eval return set transcribe_stop unset].freeze
 
   def setup
     @su = SchemaUtils.new
@@ -68,7 +67,7 @@ class SchemaAnyOfTest < Minitest::Test
       assert_includes known, want_key,
                       "#{verb}: resolved key set is missing branch key #{want_key.inspect}"
       assert_equal want_count, known.size,
-                   "#{verb}: expected #{want_count} unioned keys, got #{known.sort.inspect}"
+                   "#{verb}: expected #{want_count} keys, got #{known.sort.inspect}"
     end
   end
 
@@ -141,14 +140,14 @@ class SchemaAnyOfTest < Minitest::Test
   end
 
   def test_engaged_count_and_membership
-    # The whole-fleet number, so a resolver that engaged the WRONG four cannot
-    # pass. Engaged went 30 -> 34: sleep, play, send_sms, connect.
+    # The whole-fleet number, so a resolver that engaged the WRONG verbs cannot
+    # pass (the bundled schema at porting-sdk bd22268: 53 verbs, 47 engaged).
     all = @su.get_all_verb_names
     engaged = all.reject { |v| @su.__send__(:verb_top_level_property_names, v).nil? }
     disengaged = all - engaged
 
-    assert_equal 34, engaged.size,
-                 "expected 34 engaged verbs, got #{engaged.size}: #{engaged.sort.inspect}"
+    assert_equal 47, engaged.size,
+                 "expected 47 engaged verbs, got #{engaged.size}: #{engaged.sort.inspect}"
     UNION_SHAPED_VERBS.each_key do |verb|
       assert_includes engaged, verb, "#{verb} must be engaged after the fix"
     end
@@ -206,6 +205,16 @@ class SchemaAnyOfResolverTest < Minitest::Test
     )
 
     assert_equal %w[a b], su.__send__(:closed_key_set, { '$ref' => '#/$defs/Mixed' }, 0).sort
+  end
+
+  def test_union_with_two_closed_object_arms_disengages
+    # The #223 contract: exactly-one-closed-arm, else disengage. Unioning two
+    # closed arms would accept {a, c} — keys no single arm admits.
+    arm_ab = { 'type' => 'object', 'additionalProperties' => false, 'properties' => { 'a' => {}, 'b' => {} } }
+    arm_c = { 'type' => 'object', 'additionalProperties' => false, 'properties' => { 'c' => {} } }
+    su = schema_utils_with_defs('TwoArms' => { 'anyOf' => [arm_ab, arm_c] })
+
+    assert_nil su.__send__(:closed_key_set, { '$ref' => '#/$defs/TwoArms' }, 0)
   end
 
   private

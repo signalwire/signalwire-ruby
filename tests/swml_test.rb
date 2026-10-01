@@ -691,10 +691,13 @@ class HangupReasonTest < Minitest::Test
   # Guard the artifact, so a re-vendor that reintroduces the three-value union
   # or the marker is caught here rather than only through behaviour.
   def test_schema_publishes_the_engine_values
-    reason = SignalWire::Utils::SchemaUtils.new.schema
-                                           .dig('$defs', 'Hangup', 'properties', 'hangup', 'properties', 'reason')
+    # The hangup body is a union (object | positional array); its object arm
+    # carries reason, itself the engine enum or a SWML variable.
+    body = SignalWire::Utils::SchemaUtils.new.schema.dig('$defs', 'Hangup', 'properties', 'hangup')
+    reason = body['anyOf'].find { |arm| arm['type'] == 'object' }.dig('properties', 'reason')
+    enum_arm = reason['anyOf'].find { |arm| arm.key?('enum') }
 
     refute reason.key?('x-sdk-widen'), 'the widen marker must be gone from hangup.reason'
-    assert_equal ENGINE_REASONS, reason['enum']
+    assert_equal ENGINE_REASONS, enum_arm['enum']
   end
 end
