@@ -1070,7 +1070,7 @@
                 },
                 {
                   "name": "allowed_origins",
-                  "type": "union<list<string>,tuple<string,any>>",
+                  "type": "union<list<string>,list<string>>",
                   "kind": "keyword",
                   "required": false,
                   "default": []
@@ -1756,7 +1756,7 @@
           "params": [
             {
               "name": "func",
-              "type": "callable<list<class:signalwire.core._sync_handlers._P>,class:signalwire.core._sync_handlers._T>",
+              "type": "callable<list<any>,any>",
               "required": true
             },
             {
@@ -8161,7 +8161,7 @@
             },
             {
               "name": "roles",
-              "type": "tuple<string,any>",
+              "type": "list<string>",
               "kind": "keyword",
               "required": false,
               "default": "DIALOGUE_ROLES"
@@ -9624,7 +9624,7 @@
           "params": [
             {
               "name": "headers",
-              "type": "dict<string,class:signalwire.core.security.security_utils._V>",
+              "type": "dict<string,any>",
               "required": true
             }
           ],
@@ -25565,7 +25565,7 @@
                 },
                 {
                   "name": "terminal_states",
-                  "type": "tuple<string,any>",
+                  "type": "list<string>",
                   "required": true
                 }
               ],
@@ -48629,7 +48629,7 @@
     "signalwire.ai_chat.gateway.ChatGateway": {
       "params": {
         "allowed_origins": {
-          "type": "union<list<string>,tuple<string,any>>",
+          "type": "union<list<string>,list<string>>",
           "required": false
         },
         "client": {
@@ -49389,7 +49389,7 @@
           "required": true
         },
         "terminal_states": {
-          "type": "tuple<string,any>",
+          "type": "list<string>",
           "required": true
         }
       }
