@@ -478,7 +478,9 @@ class FunctionResultSpeechAiTest < Minitest::Test
     swml = { 'version' => '1.0.0', 'sections' => {} }
     r = FR.new.execute_swml(swml, transfer: true)
 
-    assert_equal 'true', r.action.first['SWML']['transfer']
+    # transfer rides BESIDE the SWML document (the shape connect/swml_transfer emit).
+    assert_equal 'true', r.action.first['transfer']
+    refute r.action.first['SWML'].key?('transfer')
   end
 
   def test_execute_swml_bad_type
@@ -566,23 +568,50 @@ class FunctionResultJoinConferenceValidationTest < Minitest::Test
     assert_equal "beep must be one of ['true', 'false', 'onEnter', 'onExit']", e.message
   end
 
-  # Parity: test_join_conference_max_participants_too_high
-  def test_join_conference_max_participants_too_high
-    e = assert_raises(ArgumentError) { FR.new.join_conference('conf', max_participants: 300) }
-    assert_equal 'max_participants must be a positive integer <= 250', e.message
+  # Parity: TestJoinConferenceMaxParticipants (test_function_result_verb_types.py).
+  # The platform requires 2 or more participants and sets no upper limit; an
+  # explicit 250 is sent, and the default leaves it out.
+  def test_join_conference_max_participants_has_no_upper_limit
+    verb = join_conference_verb(FR.new.join_conference('conf', max_participants: 250_000))
+
+    assert_equal 250_000, verb['max_participants']
   end
 
-  # Parity: test_join_conference_max_participants_zero
-  def test_join_conference_max_participants_zero
-    e = assert_raises(ArgumentError) { FR.new.join_conference('conf', max_participants: 0) }
-    assert_equal 'max_participants must be a positive integer <= 250', e.message
+  def test_join_conference_max_participants_explicit_250_is_sent
+    assert_equal({ 'name' => 'room', 'max_participants' => 250 },
+                 join_conference_verb(FR.new.join_conference('room', max_participants: 250)))
   end
 
-  # Parity: test_join_conference_max_participants_negative
-  def test_join_conference_max_participants_negative
-    e = assert_raises(ArgumentError) { FR.new.join_conference('conf', max_participants: -5) }
-    assert_equal 'max_participants must be a positive integer <= 250', e.message
+  def test_join_conference_max_participants_left_out_by_default
+    assert_equal({ 'name' => 'room', 'muted' => true },
+                 join_conference_verb(FR.new.join_conference('room', muted: true)))
+    assert_equal 'room', join_conference_verb(FR.new.join_conference('room'))
   end
+
+  def test_join_conference_max_participants_swml_variable_passes_through
+    verb = join_conference_verb(FR.new.join_conference('room', max_participants: '${room_size}'))
+
+    assert_equal '${room_size}', verb['max_participants']
+  end
+
+  def test_join_conference_max_participants_numeric_string_is_converted
+    assert_equal 12, join_conference_verb(FR.new.join_conference('room', max_participants: '12'))['max_participants']
+  end
+
+  def test_join_conference_max_participants_fewer_than_two_or_not_an_integer_is_refused
+    [1, 0, -5, 'many', 2.5].each do |value|
+      e = assert_raises(ArgumentError) { FR.new.join_conference('conf', max_participants: value) }
+      assert_equal "max_participants must be an integer of at least 2, got #{value.inspect}", e.message
+    end
+  end
+
+  private
+
+  def join_conference_verb(result)
+    result.action[0]['SWML']['sections']['main'][0]['join_conference']
+  end
+
+  public
 
   # Parity: test_join_conference_invalid_record
   def test_join_conference_invalid_record
@@ -654,7 +683,7 @@ class FunctionResultJoinConferenceNameValidationTest < Minitest::Test
     tap_p = swml['sections']['main'][0]['tap']
 
     assert_equal 'rtp://10.0.0.1:9000', tap_p['uri']
-    refute tap_p.key?('direction') # default not included
+    assert_equal 'both', tap_p['direction'] # always sent: the verb's own default is 'speak'
     refute tap_p.key?('codec')
   end
 

@@ -30,6 +30,21 @@ class SwmlBuilderTest < Minitest::Test
     assert_equal({ 'answer' => { 'max_duration' => 30, 'codecs' => 'PCMU' } }, main.first)
   end
 
+  # Parity: python SWMLBuilder.answer(username, password) — SIP auth for the answer.
+  def test_answer_with_sip_credentials
+    @builder.answer(username: 'alice', password: 's3cret')
+
+    assert_equal({ 'answer' => { 'username' => 'alice', 'password' => 's3cret' } }, main.first)
+  end
+
+  # Parity: python SWMLBuilder.play(loop, status_url).
+  def test_play_loop_and_status_url
+    @builder.play(url: 'https://ex.com/a.mp3', loop: 0, status_url: 'https://ex.com/status')
+
+    assert_equal({ 'play' => { 'url' => 'https://ex.com/a.mp3', 'loop' => 0,
+                               'status_url' => 'https://ex.com/status' } }, main.first)
+  end
+
   def test_hangup_reason
     @builder.hangup(reason: 'busy')
 

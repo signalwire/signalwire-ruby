@@ -82,12 +82,18 @@ module SignalWire
       CONTROL_CHAR_RE = Regexp.new("[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]")
 
       # Strip control characters from every string value of a log event hash,
-      # preventing log-injection. A plain hash transformer: one hash in, the
-      # same hash out.
+      # preventing log-injection. Accepts either the event hash alone
+      # (+strip_control_chars(event)+) or a processor-style call
+      # +(logger, method_name, event)+: the LAST positional argument is the event
+      # hash, so it can sit directly in a processor chain.
       #
-      # @param event_dict [Hash] the log event
+      # @param args [Array] the event hash, optionally preceded by processor args
       # @return [Hash] the same hash with string values sanitised
-      def strip_control_chars(event_dict)
+      # @raise [ArgumentError] when called with no arguments
+      def strip_control_chars(*args)
+        raise ArgumentError, 'strip_control_chars requires the event dict' if args.empty?
+
+        event_dict = args.last
         event_dict.each do |key, value|
           event_dict[key] = value.gsub(CONTROL_CHAR_RE, '') if value.is_a?(String)
         end

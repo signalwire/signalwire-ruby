@@ -33,12 +33,18 @@ module SignalWire
       # Add an 'answer' verb to the main section.
       #
       # @param max_duration [Integer, nil] maximum duration in seconds
-      # @param codecs [String, nil] comma-separated list of codecs
+      # @param codecs [String, Array<String>, nil] codecs to offer — a
+      #   comma-separated string or a list (PCMU, PCMA, G722, G729, AMR-WB, OPUS,
+      #   VP8, H264)
+      # @param username [String, nil] username to use for SIP authentication
+      # @param password [String, nil] password to use for SIP authentication
       # @return [self]
-      def answer(max_duration: nil, codecs: nil)
+      def answer(max_duration: nil, codecs: nil, username: nil, password: nil)
         config = {}
         config['max_duration'] = max_duration unless max_duration.nil?
         config['codecs'] = codecs unless codecs.nil?
+        config['username'] = username unless username.nil?
+        config['password'] = password unless password.nil?
         add_verb('answer', config)
       end
 
@@ -86,15 +92,15 @@ module SignalWire
       # @param say_language [String, nil] language for text-to-speech
       # @param say_gender [String, nil] gender for text-to-speech
       # @param auto_answer [Boolean, nil] whether to auto-answer the call
+      # @param loop [Integer, nil] how many times to play (0 = until the call ends)
+      # @param status_url [String, nil] http(s) URL to deliver play status events
       # @return [self]
       def play(url: nil, urls: nil, volume: nil, say_voice: nil,
-               say_language: nil, say_gender: nil, auto_answer: nil)
+               say_language: nil, say_gender: nil, auto_answer: nil, loop: nil, status_url: nil)
         config = play_source_config(url, urls)
-        config['volume'] = volume unless volume.nil?
-        config['say_voice'] = say_voice unless say_voice.nil?
-        config['say_language'] = say_language unless say_language.nil?
-        config['say_gender'] = say_gender unless say_gender.nil?
-        config['auto_answer'] = auto_answer unless auto_answer.nil?
+        { 'volume' => volume, 'say_voice' => say_voice, 'say_language' => say_language,
+          'say_gender' => say_gender, 'auto_answer' => auto_answer, 'loop' => loop,
+          'status_url' => status_url }.each { |key, value| config[key] = value unless value.nil? }
 
         add_verb('play', config)
       end

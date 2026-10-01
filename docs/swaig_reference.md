@@ -440,7 +440,7 @@ result.tap(
 **Audio Configuration:**
 - `direction`: Audio direction to tap (default: "both")
   - `"speak"`: What party says
-  - `"hear"`: What party hears
+  - `"listen"`: What party hears
   - `"both"`: What party hears and says
 - `codec`: Codec for tap stream - "PCMU" or "PCMA" (default: "PCMU")
 - `rtp_ptime`: RTP packetization time in milliseconds (default: 20)

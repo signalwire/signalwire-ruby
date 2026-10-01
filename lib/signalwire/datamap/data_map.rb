@@ -147,15 +147,32 @@ module SignalWire
       self
     end
 
-    # Set request params for the most-recently-added webhook.
+    # Set the JSON request body for the most-recently-added webhook.
     #
-    # This is the method for POST/PUT request data. It writes the +params+
-    # webhook key, which schema.json +$defs/Webhook+ lists among its ten
-    # permitted properties and which the engine's webhook readers look up. The
-    # former +body+ builder wrote a +body+ key that the schema forbids and no
-    # engine reader consumes — it was removed 2026-07-29; use this instead.
+    # The platform sends +params+ as the request's JSON body, not as URL query
+    # parameters, so a webhook with params is sent as a POST whatever its method.
+    # Put query parameters in the URL instead. Templates in the values are expanded
+    # against the call data, such as +${args.query}+. It writes the +params+
+    # webhook key, which schema.json +$defs/Webhook+ lists among its permitted
+    # properties and which the engine's webhook readers look up.
+    #
+    # @param data [Hash] request body data (may include +${variable}+ substitutions)
+    # @return [self]
     def params(data)
       raise ArgumentError, 'Must add webhook before setting params' if @webhooks.empty?
+
+      @webhooks.last['params'] = data
+      self
+    end
+
+    # Set the JSON request body for the most-recently-added webhook; the same as
+    # {#params}. The platform reads a webhook's body from its +params+ field and
+    # has no +body+ field, so this sets +params+.
+    #
+    # @param data [Hash] request body data (may include +${variable}+ substitutions)
+    # @return [self]
+    def body(data)
+      raise ArgumentError, 'Must add webhook before setting body' if @webhooks.empty?
 
       @webhooks.last['params'] = data
       self
@@ -234,14 +251,17 @@ module SignalWire
     # @param response_template [String]
     # @param parameters [Hash, nil] name => { "type" => ..., "description" => ..., "required" => bool }
     # @param method [String] HTTP method (default GET)
-    # @param headers [Hash, nil]
+    # @param headers [Hash, nil] HTTP headers, sent as written
+    # @param body [Hash, nil] JSON request body, set as the webhook's params (a
+    #   webhook with a body is sent as a POST)
     # @param error_keys [Array<String>, nil]
     # @return [DataMap]
     def self.create_simple_api_tool(name:, url:, response_template:, parameters: nil,
-                                    method: 'GET', headers: nil, error_keys: nil)
+                                    method: 'GET', headers: nil, body: nil, error_keys: nil)
       dm = new(name)
       add_parameters(dm, parameters)
       dm.webhook(method, url, headers: headers)
+      dm.params(body) if body && !body.empty?
       dm.error_keys(error_keys) if error_keys
       dm.output(Swaig::FunctionResult.new(response_template))
       dm

@@ -400,25 +400,19 @@ class DataMapFactoryTest < Minitest::Test
     assert_equal 'Weather: ${response.temp}', wh['output']['response']
   end
 
-  # +create_simple_api_tool+ has no +body:+ keyword.
-  #
-  # +body+ is not a valid webhook key: porting-sdk/schema.json $defs/Webhook
-  # declares exactly ten properties (error_keys, expressions, foreach, headers,
-  # input_args_as_params, method, output, params, require_args, url) under
-  # +unevaluatedProperties: {"not": {}}+, and neither engine reader
-  # (mod_openai/actions.c parse_webhook, mod_openai/bedrock.c
-  # bedrock_parse_webhook) looks up "body". Accepting the argument and
-  # discarding it into an unread key silently lost the caller's data.
-  def test_create_simple_api_tool_rejects_body
-    assert_raises(ArgumentError) do
-      DM.create_simple_api_tool(
-        name: 'post_data',
-        url: 'https://example.com/api',
-        response_template: 'Done: ${response.id}',
-        method: 'POST',
-        body: { 'data' => '${args.payload}' }
-      )
-    end
+  # Parity: test_create_simple_api_tool_body_becomes_params — the +body:+ is
+  # sent as the webhook's params (+body+ is not a webhook key: schema.json
+  # $defs/Webhook has none and no engine reader looks one up).
+  def test_create_simple_api_tool_body_becomes_params
+    wh = DM.create_simple_api_tool(
+      name: 'search', url: 'https://api.example.com/search',
+      response_template: 'Found ${total} for ${input.args.query}',
+      method: 'POST', body: { 'q' => '${args.query}' }
+    ).to_swaig_function['data_map']['webhooks'].first
+
+    assert_equal({ 'q' => '${args.query}' }, wh['params'])
+    refute wh.key?('body')
+    assert_equal({ 'response' => 'Found ${total} for ${input.args.query}' }, wh['output'])
   end
 
   # The webhook a POST-shaped +create_simple_api_tool+ emits.
@@ -524,33 +518,36 @@ class DataMapFactoryTest < Minitest::Test
   end
 end
 
-# +DataMap#body+ is GONE — the key it wrote is invalid, not merely ignored.
-#
-# Owner-ruled 2026-07-29, extending the earlier ruling ("if the server doesn't
-# read them, remove them") from the +create_simple_api_tool+ PARAMETER to the
-# public BUILDER METHOD. The same three sources condemn both:
-#
-# * +porting-sdk/schema.json+ +$defs/Webhook+ declares exactly ten properties
-#   under +unevaluatedProperties: {"not": {}}+ — +body+ is not among them, so
-#   emitting it is a SCHEMA VIOLATION.
-# * +mod_openai/actions.c:735-739+ and +bedrock.c:4920-4926+ read url, method,
-#   form_param, +params+ and +headers+ and nothing else; +grep -n '"body"'+
-#   across both returns ZERO matches.
-# * So the method's only possible effect was producing an invalid document while
-#   silently discarding the caller's payload.
-#
-# +params+ is the correct method for POST/PUT request data — it writes the
-# +params+ key, which IS in the contract and IS read.
-class DataMapBodyBuilderRemovedTest < Minitest::Test
+# DataMap#body sets the webhook's +params+ — the request body the platform
+# sends. The platform reads a webhook's body from +params+ and has no +body+
+# field (schema.json +$defs/Webhook+ has none; mod_openai actions.c / bedrock.c
+# read url, method, form_param, +params+ and +headers+ only), so body() is the
+# same builder as params() and never emits a +body+ key. Parity:
+# signalwire-python core/data_map.py DataMap.body.
+class DataMapBodyBuilderTest < Minitest::Test
   include DataMapTestAliases
 
-  def test_body_method_is_gone
-    refute_respond_to DM.new('t'), :body,
-                      'DataMap#body must be removed — it writes a schema-forbidden key ' \
-                      'that no engine reader consumes; use params instead'
+  # Parity: test_webhook_body_and_params / test_body_is_serialized_as_params —
+  # body() sets the webhook's params (the request body the platform sends);
+  # the platform reads no body field.
+  def test_body_is_serialized_as_params
+    dm = DM.new('search')
+           .webhook('POST', 'https://api.example.com/search')
+           .body({ 'q' => '${args.query}' })
+           .output(FR.new('Found ${total}'))
+
+    wh = dm.to_swaig_function['data_map']['webhooks'].first
+
+    assert_equal({ 'q' => '${args.query}' }, wh['params'])
+    refute wh.key?('body')
   end
 
-  # The replacement must keep working — this is the positive control.
+  def test_body_requires_a_webhook
+    e = assert_raises(ArgumentError) { DM.new('f').body({ 'a' => 1 }) }
+    assert_equal 'Must add webhook before setting body', e.message
+  end
+
+  # The params builder writes the same contract key.
   def test_params_still_writes_the_contract_key
     wh = DM.new('t')
            .webhook('POST', 'https://x.test')

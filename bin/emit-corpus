@@ -189,7 +189,7 @@ CORPUS = {
   # ---- tap (each direction / codec) --------------------------------------
   'tap.defaults' => -> { fr('').tap('rtp://10.0.0.1:5004') },
   'tap.speak_pcma' => -> { fr('').tap('ws://ex.com/tap', direction: TD::SPEAK, codec: CDC::PCMA) },
-  'tap.hear_pcmu' => -> { fr('').tap('wss://ex.com/tap', direction: TD::HEAR, codec: CDC::PCMU) },
+  'tap.listen_pcmu' => -> { fr('').tap('wss://ex.com/tap', direction: TD::LISTEN, codec: CDC::PCMU) },
   'tap.both_full' => lambda {
     fr('').tap('rtp://10.0.0.1:5004', control_id: 'tap1', direction: TD::BOTH, codec: CDC::PCMA,
                                       rtp_ptime: 40, status_url: 'https://ex.com/tapstatus')
@@ -264,7 +264,27 @@ CORPUS = {
   },
   'execute_swml.json_string' => lambda {
     fr('').execute_swml('{"version": "1.0.0", "sections": {"main": [{"hangup": {}}]}}')
-  }
+  },
+
+  # ---- structured tool response (tool_result / tool_prompt) ---------------
+  'tool_response.ctor' => lambda {
+    FR.new(tool_result: 'Order 1042 placed.', tool_prompt: 'Tell the caller their order number.')
+  },
+  'tool_response.set' => lambda {
+    fr('').set_tool_response(tool_result: 'Balance is $12.50.', tool_prompt: 'Read the balance to the caller.')
+  },
+  'tool_response.result_only' => -> { fr('').set_tool_response(tool_result: 'Saved.') },
+
+  # ---- hold with a prompt and step routing --------------------------------
+  'hold.prompt' => -> { fr('').hold('Please hold while I check.') },
+  'hold.routing' => -> { fr('').hold('One moment.', 60, step: 'resume', timeout_step: 'timed_out') },
+
+  # ---- RPC global data ----------------------------------------------------
+  'rpc_ai_message.global_data' => lambda {
+    fr('').rpc_ai_message('call-abc', 'The caller is back.', global_data: { 'status' => 'returned' })
+  },
+  'rpc_ai_message.data_only' => -> { fr('').rpc_ai_message('call-abc', global_data: { 'order_id' => '1042' }) },
+  'rpc_ai_global_data' => -> { fr('').rpc_ai_global_data('call-abc', { 'order_id' => '1042', 'paid' => true }) }
 }.freeze
 
 out = {}

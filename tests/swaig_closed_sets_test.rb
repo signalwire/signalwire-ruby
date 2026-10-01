@@ -16,9 +16,10 @@
 #       inline validation that references the constant set (single source of
 #       truth: ALL is the literal object the validator checks against).
 #
-# The 3-vocabulary trap is asserted explicitly: RecordDirection uses
-# 'listen', TapDirection uses 'hear' — they are SEPARATE sets and must
-# never be unified.
+# RecordDirection and TapDirection both name the channels speak/listen/both
+# (the SWML record_call and tap verbs' enums), but each verb is validated
+# against its OWN set; 'hear' is in neither (it produced SWML the platform
+# rejects).
 
 require 'minitest/autorun'
 require_relative '../lib/signalwire/swaig/function_result'
@@ -129,7 +130,7 @@ class SwaigClosedSetsTest < Minitest::Test
   def test_record_direction_set_is_exactly_validated
     RecordDirection::ALL.each { |dir| FR.new.record_call(direction: dir) }
 
-    refute_includes RecordDirection::ALL, 'hear' # tap's word, NOT record's
+    refute_includes RecordDirection::ALL, 'hear' # not a SWML direction
     err = assert_raises(ArgumentError) { FR.new.record_call(direction: 'hear') }
     assert_match(/direction must be/, err.message)
   end
@@ -141,20 +142,20 @@ class SwaigTapClosedSetsTest < Minitest::Test
   include SwaigClosedSetHelpers
 
   # ------------------------------------------------------------------
-  # TapDirection {speak, hear, both}
+  # TapDirection {speak, listen, both} — the SWML tap verb's enum
   # ------------------------------------------------------------------
 
   def test_tap_direction_constants_are_wire_strings
-    assert_equal 'speak', TapDirection::SPEAK
-    assert_equal 'hear',  TapDirection::HEAR
-    assert_equal 'both',  TapDirection::BOTH
-    assert_equal %w[speak hear both], TapDirection::ALL
+    assert_equal 'speak',  TapDirection::SPEAK
+    assert_equal 'listen', TapDirection::LISTEN
+    assert_equal 'both',   TapDirection::BOTH
+    assert_equal %w[speak listen both], TapDirection::ALL
     assert_predicate TapDirection::ALL, :frozen?
   end
 
   def test_tap_direction_constant_matches_bare_string
     assert_tap_const_matches_string(
-      { TapDirection::SPEAK => 'speak', TapDirection::HEAR => 'hear',
+      { TapDirection::SPEAK => 'speak', TapDirection::LISTEN => 'listen',
         TapDirection::BOTH => 'both' },
       :direction
     )
@@ -163,9 +164,17 @@ class SwaigTapClosedSetsTest < Minitest::Test
   def test_tap_direction_set_is_exactly_validated
     TapDirection::ALL.each { |dir| FR.new.tap('rtp://x', direction: dir) }
 
-    refute_includes TapDirection::ALL, 'listen' # record's word, NOT tap's
-    err = assert_raises(ArgumentError) { FR.new.tap('rtp://x', direction: 'listen') }
-    assert_match(/direction must be/, err.message)
+    refute_includes TapDirection::ALL, 'hear' # not a tap direction
+    err = assert_raises(ArgumentError) { FR.new.tap('rtp://x', direction: 'hear') }
+    assert_equal "direction must be 'speak', 'listen', or 'both'", err.message
+  end
+
+  # Parity: python fix 2d0c6c5 — direction is always sent: the verb's own
+  # default is "speak", not this helper's "both".
+  def test_tap_direction_is_always_emitted
+    tap = FR.new.tap('rtp://x').action.first['SWML']['sections']['main'][0]['tap']
+
+    assert_equal 'both', tap['direction']
   end
 
   # ------------------------------------------------------------------
@@ -195,17 +204,16 @@ class SwaigTapClosedSetsTest < Minitest::Test
   end
 
   # ------------------------------------------------------------------
-  # The 3-vocabulary trap — RecordDirection and TapDirection are SEPARATE.
+  # RecordDirection and TapDirection are SEPARATE sets (one per verb).
   # ------------------------------------------------------------------
 
   def test_record_and_tap_direction_are_distinct_sets
-    refute_equal RecordDirection::ALL, TapDirection::ALL
-    # record has 'listen' and no 'hear'; tap has 'hear' and no 'listen'.
+    # Both verbs name the channels speak/listen/both; neither accepts 'hear'.
     assert_includes RecordDirection::ALL, 'listen'
+    assert_includes TapDirection::ALL, 'listen'
     refute_includes RecordDirection::ALL, 'hear'
-    assert_includes TapDirection::ALL, 'hear'
-    refute_includes TapDirection::ALL, 'listen'
-    # They must not be the same frozen object either.
+    refute_includes TapDirection::ALL, 'hear'
+    # Each verb validates against its OWN frozen set.
     refute_same RecordDirection::ALL, TapDirection::ALL
   end
 end

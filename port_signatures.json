@@ -3875,6 +3875,20 @@
               ],
               "returns": "void"
             },
+            "body": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "data",
+                  "type": "dict<string,any>",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
             "description": {
               "params": [
                 {
@@ -4205,6 +4219,13 @@
               "default": null
             },
             {
+              "name": "body",
+              "type": "optional<dict<string,any>>",
+              "kind": "keyword",
+              "required": false,
+              "default": null
+            },
+            {
               "name": "error_keys",
               "type": "optional<list<string>>",
               "kind": "keyword",
@@ -4238,6 +4259,20 @@
                   "kind": "keyword",
                   "required": false,
                   "default": false
+                },
+                {
+                  "name": "tool_result",
+                  "type": "optional<string>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "tool_prompt",
+                  "type": "optional<string>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "void"
@@ -4293,6 +4328,20 @@
                 {
                   "name": "hints",
                   "type": "list<union<string,dict<string,any>>>",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "change_voice": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "voice",
+                  "type": "string",
                   "required": true
                 }
               ],
@@ -4496,10 +4545,30 @@
                   "kind": "self"
                 },
                 {
+                  "name": "prompt",
+                  "type": "optional<union<string,int>>",
+                  "required": false,
+                  "default": null
+                },
+                {
                   "name": "timeout",
                   "type": "int",
                   "required": false,
                   "default": 300
+                },
+                {
+                  "name": "step",
+                  "type": "optional<string>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "timeout_step",
+                  "type": "optional<string>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -4555,7 +4624,7 @@
                   "type": "optional<int>",
                   "kind": "keyword",
                   "required": false,
-                  "default": 250
+                  "default": null
                 },
                 {
                   "name": "record",
@@ -4960,6 +5029,25 @@
               ],
               "returns": "any"
             },
+            "rpc_ai_global_data": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "call_id",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "data",
+                  "type": "dict<string,any>",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
             "rpc_ai_message": {
               "params": [
                 {
@@ -4974,7 +5062,8 @@
                 {
                   "name": "message_text",
                   "type": "optional<string>",
-                  "required": true
+                  "required": false,
+                  "default": null
                 },
                 {
                   "name": "role",
@@ -4982,6 +5071,13 @@
                   "kind": "keyword",
                   "required": false,
                   "default": "system"
+                },
+                {
+                  "name": "global_data",
+                  "type": "optional<dict<string,any>>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -5163,6 +5259,29 @@
                   "name": "milliseconds",
                   "type": "int",
                   "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "set_tool_response": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "tool_result",
+                  "type": "optional<string>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "tool_prompt",
+                  "type": "optional<string>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -5534,9 +5653,11 @@
         "strip_control_chars": {
           "params": [
             {
-              "name": "event_dict",
+              "name": "args",
               "type": "any",
-              "required": true
+              "kind": "var_positional",
+              "required": false,
+              "default": null
             }
           ],
           "returns": "any"
@@ -10748,6 +10869,20 @@
                   "kind": "keyword",
                   "required": false,
                   "default": null
+                },
+                {
+                  "name": "username",
+                  "type": "optional<string>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "password",
+                  "type": "optional<string>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
                 }
               ],
               "returns": "any"
@@ -10856,6 +10991,20 @@
                 {
                   "name": "auto_answer",
                   "type": "optional<bool>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "loop",
+                  "type": "optional<int>",
+                  "kind": "keyword",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "status_url",
+                  "type": "optional<string>",
                   "kind": "keyword",
                   "required": false,
                   "default": null
@@ -47673,6 +47822,14 @@
         },
         "response": {
           "type": "optional<union<string,dict<string,any>>>",
+          "required": false
+        },
+        "tool_prompt": {
+          "type": "optional<string>",
+          "required": false
+        },
+        "tool_result": {
+          "type": "optional<string>",
           "required": false
         }
       }
