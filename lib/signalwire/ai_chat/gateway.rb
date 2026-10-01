@@ -205,6 +205,15 @@ module SignalWire
         init_runtime(client, secret)
       end
 
+      # Redacted inspect: NEVER print the HMAC handle-signing secret — the default
+      # #inspect dumps every ivar, and whoever reads that secret from a log can
+      # forge a handle for any conversation.
+      def inspect
+        "#<#{self.class.name} config_url=#{config_url.inspect} " \
+          "allowed_origins=#{allowed_origins.to_a.inspect} secret=[REDACTED]>"
+      end
+      alias to_s inspect
+
       # Epoch SECONDS of the newest dated message, or +nil+ if nothing is dated.
       #
       # Bootstraps a browser's idle clock across a reload. The service stamps
@@ -419,10 +428,12 @@ module SignalWire
           "pk_#{SecureRandom.urlsafe_base64(24)}"
       end
 
+      # Whether +value+ is nil or empty.
       def blank?(value)
         value.nil? || (value.respond_to?(:empty?) && value.empty?)
       end
 
+      # +value+ unless it is nil or empty.
       def present(value)
         blank?(value) ? nil : value
       end
@@ -436,10 +447,12 @@ module SignalWire
         !(value.respond_to?(:empty?) && value.empty?)
       end
 
+      # HMAC-SHA256 of +payload+ under this gateway's secret.
       def sign(payload)
         OpenSSL::HMAC.digest('SHA256', @secret, payload)
       end
 
+      # Unpadded URL-safe base64.
       def b64(raw)
         Base64.urlsafe_encode64(raw, padding: false)
       end
@@ -480,6 +493,7 @@ module SignalWire
         raise GatewayRejection.new(400, 'user_meta_data must be JSON-serializable')
       end
 
+      # Refuse a chat message over MAX_MESSAGE_BYTES (UTF-8) with 413.
       def check_message_size(method, message)
         return unless method == 'chat' && message.is_a?(String) && utf8_len(message) > MAX_MESSAGE_BYTES
 
@@ -526,6 +540,7 @@ module SignalWire
         params
       end
 
+      # Monotonic clock seconds, for the cap windows.
       def monotonic
         Process.clock_gettime(Process::CLOCK_MONOTONIC)
       end
@@ -609,6 +624,7 @@ module SignalWire
         [nil, json_response(400, { 'error' => 'bad request' }, cors)]
       end
 
+      # Read and prepare one browser POST; raises GatewayRejection to refuse it.
       def prepare_request(env)
         body = read_json_body(env)
         raise GatewayRejection.new(400, 'body must be an object') unless body.is_a?(Hash)
@@ -616,6 +632,7 @@ module SignalWire
         prepare(body, origin: env['HTTP_ORIGIN'], key: bearer_key(env['HTTP_AUTHORIZATION'].to_s))
       end
 
+      # The key from an +Authorization: Bearer+ header, or nil.
       def bearer_key(auth)
         auth[7..] if auth.downcase.start_with?('bearer ')
       end
@@ -641,11 +658,13 @@ module SignalWire
         end
       end
 
+      # End the conversation upstream and confirm it.
       def respond_end(params, headers)
         @client.end(params['id'])
         json_response(200, { 'status' => 'ended' }, headers)
       end
 
+      # Create the conversation upstream and answer with its greeting and timeout.
       def respond_create(params, headers)
         info = @client.create_conversation(params['id'], config_url: params['config_url'],
                                                          timeout: params['conversation_timeout'],

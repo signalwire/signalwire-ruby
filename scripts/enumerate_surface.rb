@@ -1021,6 +1021,9 @@ AUTH_CREDENTIAL_STRUCT_CLASSES = %w[
 # already neutralises would lose that provenance.
 SURFACE_MEMBER_DROPS = {
   ['signalwire.ai_chat.client', 'AIChatClient'] => %w[url inspect to_s resolve_url],
+  # Same secret-redacting Ruby object hooks (the HMAC handle-signing secret);
+  # the reference ChatGateway defines no `__repr__`/`__str__`.
+  ['signalwire.ai_chat.gateway', 'ChatGateway'] => %w[inspect to_s],
   # `message` is the POST-ALIAS spelling (SURFACE_METHOD_ALIASES renames Ruby's
   # `server_message` first); this table is keyed by the name the emitter will
   # EMIT, never the source name. Keying a member table by the source spelling

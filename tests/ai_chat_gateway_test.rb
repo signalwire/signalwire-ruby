@@ -284,6 +284,14 @@ class ChatGatewayOriginAndKeyTest < Minitest::Test
     assert_nil @gateway.check_key(KEY)
   end
 
+  def test_inspect_redacts_the_signing_secret
+    gw = make_gateway(secret: 'super-secret-hmac-key')
+
+    refute_includes gw.inspect, 'super-secret-hmac-key'
+    refute_includes gw.to_s, 'super-secret-hmac-key'
+    assert_includes gw.inspect, '[REDACTED]'
+  end
+
   def test_config_url_is_required
     assert_raises(ArgumentError) { Gateway.new(config_url: '', client: @gateway.instance_variable_get(:@client)) }
   end

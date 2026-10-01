@@ -261,10 +261,12 @@ module SignalWire
 
       private
 
+      # The handoff logger.
       def logger
         Logging.logger('signalwire.ai_chat.handoff')
       end
 
+      # Monotonic clock seconds, for nonce lifetimes.
       def monotonic
         Process.clock_gettime(Process::CLOCK_MONOTONIC)
       end
@@ -277,6 +279,7 @@ module SignalWire
         "#{conversation_id}.1"
       end
 
+      # Log a first registration, or a repeat that tried to change an entry.
       def log_registration(existing, conversation_id, call_id)
         if existing.nil?
           logger.info("handoff_nonce_registered conversation_id=#{conversation_id} call_id=#{call_id}")
@@ -323,6 +326,7 @@ module SignalWire
         nil
       end
 
+      # Hang the call up through end_call; a failure is logged, never raised.
       def hang_up(call_id)
         return if call_id.nil? || call_id.empty? || end_call.nil?
 
@@ -331,6 +335,7 @@ module SignalWire
         logger.warn("handoff_end_call_failed error=#{e.message}")
       end
 
+      # A handle for the next leg of +conversation_id+, or nil if minting fails.
       def mint_next(conversation_id)
         gateway.mint_handle(next_conversation_id.call(conversation_id))
       rescue StandardError => e
@@ -375,6 +380,7 @@ module SignalWire
         end
       end
 
+      # Whether the entry has used its typed-message allowance (logged when it has).
       def at_cap?(entry)
         return false if entry.messages < max_messages_per_call
 
@@ -382,6 +388,7 @@ module SignalWire
         true
       end
 
+      # Hand reserved text to send_message; on failure give the slot back.
       def deliver(nonce, entry, text)
         send_message.call(entry.call_id, text)
         true
@@ -404,6 +411,7 @@ module SignalWire
         end
       end
 
+      # Whether two entries are the same registration, compared by value.
       def same_registration?(one, other)
         [one.conversation_id, one.call_id, one.issued_at] == [other.conversation_id, other.call_id, other.issued_at]
       end
@@ -421,6 +429,7 @@ module SignalWire
         json_response(e.status, { 'error' => e.reason })
       end
 
+      # Whether the gateway's origin policy admits +origin+.
       def origin_allowed?(origin)
         gateway.check_origin(origin)
         true
@@ -441,10 +450,12 @@ module SignalWire
         data.is_a?(Hash) ? data : {}
       end
 
+      # The one answer for an unknown, expired, redeemed or unverifiable nonce/handle.
       def not_found
         json_response(404, { 'error' => 'not found' })
       end
 
+      # POST /handoff: redeem +{nonce}+ for +{handle}+.
       def handoff_route(body)
         nonce = body['nonce']
         handle = nonce.is_a?(String) ? redeem(nonce) : nil
@@ -452,6 +463,7 @@ module SignalWire
         handle ? json_response(200, { 'handle' => handle }) : not_found
       end
 
+      # POST /escalate: capture the chat leg named by +{handle}+.
       def escalate_route(body)
         handle = body['handle']
         return json_response(400, { 'error' => 'bad request' }) unless handle.is_a?(String) && !handle.empty?
@@ -459,6 +471,7 @@ module SignalWire
         escalate(handle) ? json_response(200, { 'ok' => true }) : not_found
       end
 
+      # POST /say: deliver +{text}+ into the call +{nonce}+ names.
       def say_route(body)
         nonce = body['nonce']
         text = body.fetch('text', '')
