@@ -151,17 +151,11 @@ module SignalWire
       # variable, else empty.
       def resolve_credentials(project, token, host, personal_access_token)
         {
-          project: credential(project, 'SIGNALWIRE_PROJECT_ID'),
-          token: credential(token, 'SIGNALWIRE_API_TOKEN'),
-          space: credential(host, 'SIGNALWIRE_SPACE'),
-          pat: credential(personal_access_token, 'SIGNALWIRE_PERSONAL_ACCESS_TOKEN')
+          project: project || ENV.fetch('SIGNALWIRE_PROJECT_ID', ''),
+          token: token || ENV.fetch('SIGNALWIRE_API_TOKEN', ''),
+          space: host || ENV.fetch('SIGNALWIRE_SPACE', ''),
+          pat: personal_access_token || ENV.fetch('SIGNALWIRE_PERSONAL_ACCESS_TOKEN', '')
         }
-      end
-
-      # @api private — one credential: the argument, else the environment variable,
-      # else empty.
-      def credential(value, env_name)
-        value || ENV[env_name] || ''
       end
 
       # @api private — true when both halves of the project credential are given.
