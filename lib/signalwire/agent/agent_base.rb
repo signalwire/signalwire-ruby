@@ -932,7 +932,7 @@ module SignalWire
       tool = @tools[name]
       return { 'response' => "Function '#{name}' not found" } unless tool
 
-      coerce_function_result(name, tool[:handler].call(args, raw_data))
+      coerce_function_result(name, Core::SyncHandlers.run_sync_handler(tool[:handler], args, raw_data))
     rescue StandardError => e
       @logger.error "Tool '#{name}' error: #{e.message}"
       { 'response' => "Error executing '#{name}': #{e.message}" }
@@ -2573,7 +2573,7 @@ module SignalWire
       query_params = request ? parse_query_string(request) : {}
       body_params  = request_data || {}
       headers      = request ? extract_headers(request) : {}
-      @dynamic_config_callback.call(query_params, body_params, headers, agent)
+      Core::SyncHandlers.run_sync_handler(@dynamic_config_callback, query_params, body_params, headers, agent)
       agent
     rescue StandardError => e
       @logger.error "Dynamic config error: #{e.message}"

@@ -1408,6 +1408,8 @@ RUBY_MODULE_LEVEL_OVERRIDES = {
     # module-level free functions in signalwire.core.security.security_utils
     # (filter_sensitive_headers, redact_url, is_valid_hostname).
     "SignalWire::Security::SecurityUtils": "signalwire.core.security.security_utils",
+    # The reference module is the underscore-named signalwire.core._sync_handlers.
+    "SignalWire::Core::SyncHandlers": "signalwire.core._sync_handlers",
 }
 
 # Port-only Ruby modules that have no Python equivalent. Project their

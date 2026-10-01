@@ -1033,6 +1033,48 @@
         }
       }
     },
+    "signalwire.core._sync_handlers": {
+      "functions": {
+        "is_async_callable": {
+          "params": [
+            {
+              "name": "_obj",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "any"
+        },
+        "run_sync_handler": {
+          "params": [
+            {
+              "name": "func",
+              "type": "callable<list<class:signalwire.core._sync_handlers._P>,class:signalwire.core._sync_handlers._T>",
+              "required": true
+            },
+            {
+              "name": "args",
+              "type": "any",
+              "kind": "var_positional",
+              "required": false,
+              "default": null
+            },
+            {
+              "name": "kwargs",
+              "type": "any",
+              "kind": "var_keyword",
+              "required": false,
+              "default": null
+            }
+          ],
+          "returns": "any"
+        },
+        "sync_handlers_inline": {
+          "params": [],
+          "returns": "any"
+        }
+      }
+    },
     "signalwire.core.agent.prompt.manager": {
       "classes": {
         "PromptManager": {

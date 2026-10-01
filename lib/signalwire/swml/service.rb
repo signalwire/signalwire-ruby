@@ -5,6 +5,7 @@ require 'securerandom'
 require 'openssl'
 require 'rack'
 require_relative '../logging'
+require_relative '../core/sync_handlers'
 require_relative 'document'
 require_relative 'schema'
 
@@ -104,7 +105,7 @@ module SignalWire
         tool = @tools[name]
         return nil unless tool && tool[:handler]
 
-        result = tool[:handler].call(args, raw_data)
+        result = Core::SyncHandlers.run_sync_handler(tool[:handler], args, raw_data)
         if result.is_a?(Hash)
           result
         elsif result.respond_to?(:to_h) && !result.nil?
@@ -375,9 +376,9 @@ module SignalWire
       # returning nil so dispatch falls through to render.
       def invoke_routing_callback(callback, body, headers)
         if callback.arity == 1
-          callback.call(body)
+          Core::SyncHandlers.run_sync_handler(callback, body)
         else
-          callback.call(body, headers)
+          Core::SyncHandlers.run_sync_handler(callback, body, headers)
         end
       rescue StandardError => e
         @log&.error("error_in_routing_callback: #{e.message}")

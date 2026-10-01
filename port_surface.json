@@ -1,5 +1,5 @@
 {
-  "generated_from": "signalwire-ruby @ d9578721773bc83d40fefb76eb260125ffff5bcd",
+  "generated_from": "signalwire-ruby @ 38b051b69d0c05f307116ca228ee348909f80c53",
   "modules": {
     "signalwire": {
       "classes": {},
@@ -91,6 +91,14 @@
         "SummaryError": []
       },
       "functions": []
+    },
+    "signalwire.core._sync_handlers": {
+      "classes": {},
+      "functions": [
+        "is_async_callable",
+        "run_sync_handler",
+        "sync_handlers_inline"
+      ]
     },
     "signalwire.core.agent.prompt.manager": {
       "classes": {

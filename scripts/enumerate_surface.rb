@@ -613,6 +613,8 @@ RUBY_FREE_FUNCTION_MODULES = {
   # Module functions mirroring the reference's module-level free functions.
   'SignalWire::Core::Capabilities' => 'signalwire.core.capabilities',
   'SignalWire::Core::PostPrompt' => 'signalwire.core.post_prompt',
+  # The reference module is the underscore-named signalwire.core._sync_handlers.
+  'SignalWire::Core::SyncHandlers' => 'signalwire.core._sync_handlers',
   'SignalWire::Utils' => 'signalwire.utils',
   'SignalWire::Utils::UrlValidator' => 'signalwire.utils.url_validator',
   'SignalWire::Core::Agent::Tools::TypeInference' => 'signalwire.core.agent.tools.type_inference',
